@@ -1,4 +1,4 @@
-#!/Users/omer/Desktop/ai-stanbul/backend/venv/bin/python
+#!/Users/omer/Desktop/ai-stanbul/backend/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
