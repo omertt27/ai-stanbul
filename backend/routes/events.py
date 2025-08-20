@@ -1,15 +1,16 @@
 import requests
 
-API_TOKEN = 'your_apify_api_token'
-STORE_ID = 'ceS7j5KCjXdSNiRe8'
-RECORD_KEY = 'INPUT'
+url = "https://api.apify.com/v2/datasets/uVMU3BQr2wa6Vrbm5/items?token=apify_api_rjVAb7BKZgz7EiP8cZdPf7mqBhFdSD3uNdRy"
 
-url = f'https://api.apify.com/v2/key-value-stores/{STORE_ID}/records/{RECORD_KEY}?token={API_TOKEN}'
-
+# Send GET request
 response = requests.get(url)
 
+# Check for success
 if response.status_code == 200:
-    input_data = response.json()
-    print("Fetched INPUT record:", input_data)
+    data = response.json()
+    # Print each item
+    for item in data:
+        print(item)
 else:
-    print(f"Failed to fetch record: {response.status_code} - {response.text}")
+    print(f"Failed to fetch dataset: {response.status_code} - {response.text}")
+
