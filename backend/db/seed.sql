@@ -45,6 +45,6 @@ INSERT INTO places (name, category, district) VALUES
 ('İBB Maçka Democracy Park', 'Park', 'Besiktas');
 
 -- Sample events
-INSERT INTO events (title, venue, date) VALUES
+INSERT INTO events (name, venue, date) VALUES
 ('Istanbul Jazz Festival', 'Harbiye', '2025-09-15 19:00'),
 ('Art Exhibition', 'Istanbul Modern', '2025-08-30 10:00');
