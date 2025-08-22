@@ -19,17 +19,19 @@ def read_root():
     return {"message": "Istanbul AI API is running!"}
 from fastapi import FastAPI
 from database import Base, engine
-from routes import museums, restaurants, events
+from routes import museums, restaurants, events, places
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AIstanbul API")
 
+
 # Routers
 app.include_router(museums.router)
 app.include_router(restaurants.router)
 app.include_router(events.router)
+app.include_router(places.router)
 
 @app.get("/")
 def root():
