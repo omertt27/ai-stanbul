@@ -17,15 +17,6 @@ class Place(Base):
     lat = Column(Float)
     lng = Column(Float)
 
-class Event(Base):
-    __tablename__ = "events"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String(255), nullable=False)
-    venue = Column(String(255))
-    date = Column(DateTime)
-from sqlalchemy import Column, Integer, String, Float, DateTime
-from database import Base
-
 class Museum(Base):
     __tablename__ = "museums"
     id = Column(Integer, primary_key=True, index=True)
