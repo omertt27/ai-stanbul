@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import SearchBar from './components/SearchBar';
+import Chat from './components/Chat';
+import ResultCard from './components/ResultCard';
+import MapView from './components/MapView';
+import { fetchResults } from './api/api';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [messages, setMessages] = useState([
+    { user: 'Bot', text: 'Welcome! Type a query to start.' }
+  ]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setMessages([...messages, { user: 'You', text: query }]);
+    try {
+      const data = await fetchResults(query);
+      setResults(data.results || []);
+    } catch (err) {
+      setResults([]);
+    }
+  };
 
   return (
-    <>
+    <div className="max-w-2xl mx-auto p-4 space-y-6">
+      <h1 className="text-3xl font-bold text-center">AI-Stanbul</h1>
+      <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+      <Chat messages={messages} />
       <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        {results.map((res, idx) => (
+          <ResultCard key={idx} title={res.title} description={res.description} />
+        ))}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+      {/* Pass a default locations prop to MapView for testing */}
+      <MapView locations={[{ lat: 51.505, lng: -0.09, label: 'Default Location' }]} />
+    </div>
+  );
+};
 
-export default App
+export default App;
