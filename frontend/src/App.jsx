@@ -10,11 +10,12 @@ const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [messages, setMessages] = useState([
-    { user: 'Bot', text: 'Welcome! Type a query to start.' }
+    { user: 'KAM', text: 'hoşgeldin Başkan' }
   ]);
 
   useEffect(() => {
     const audio = new Audio('/welcome.mp3');
+    audio.volume = 0
     audio.play();
   }, []);
 
