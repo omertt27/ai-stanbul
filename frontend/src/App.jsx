@@ -15,7 +15,7 @@ const App = () => {
 
   useEffect(() => {
     const audio = new Audio('/welcome.mp3');
-    audio.volume = 0
+    audio.volume = 0;
     audio.play();
   }, []);
 
