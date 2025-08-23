@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
@@ -12,6 +12,21 @@ const App = () => {
   const [messages, setMessages] = useState([
     { user: 'Bot', text: 'Welcome! Type a query to start.' }
   ]);
+
+  useEffect(() => {
+    const audio = new Audio('/welcome.mp3');
+    const playAudio = () => {
+      audio.play();
+      window.removeEventListener('click', playAudio);
+    };
+    audio.play().catch(() => {
+      // If autoplay is blocked, play on first user click
+      window.addEventListener('click', playAudio);
+    });
+    return () => {
+      window.removeEventListener('click', playAudio);
+    };
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
