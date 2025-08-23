@@ -15,17 +15,7 @@ const App = () => {
 
   useEffect(() => {
     const audio = new Audio('/welcome.mp3');
-    const playAudio = () => {
-      audio.play();
-      window.removeEventListener('click', playAudio);
-    };
-    audio.play().catch(() => {
-      // If autoplay is blocked, play on first user click
-      window.addEventListener('click', playAudio);
-    });
-    return () => {
-      window.removeEventListener('click', playAudio);
-    };
+    audio.play();
   }, []);
 
   const handleSearch = async (e) => {
