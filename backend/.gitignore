@@ -12,7 +12,8 @@ dist
 dist-ssr
 *.local
 .env
-
+/Users/omer/Desktop/ai-stanbul/backend/intent_utils.py
+/Users/omer/Desktop/ai-stanbul/backend/api_clients/google_places.py
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
