@@ -4,7 +4,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("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"))
 
 def parse_user_input(user_input: str) -> dict:
     prompt = f"""
