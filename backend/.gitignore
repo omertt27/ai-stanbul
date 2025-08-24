@@ -1,4 +1,7 @@
-
+intent_utils.py
+api_clients/google_places.py
+/Users/omer/Desktop/ai-stanbul/backend/intent_utils.py
+/Users/omer/Desktop/ai-stanbul/backend/api_clients/google_places.py
 # Logs
 logs
 *.log
@@ -7,10 +10,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-intent_utils.py
-api_clients/google_places.py
-/Users/omer/Desktop/ai-stanbul/backend/intent_utils.py
-/Users/omer/Desktop/ai-stanbul/backend/api_clients/google_places.py
 node_modules
 dist
 dist-ssr
