@@ -1,3 +1,5 @@
+from intent_utils import parse_user_input
+import json
 import fastapi
 fastapi.__version__
 from fastapi import FastAPI
@@ -28,10 +30,22 @@ app = FastAPI(title="AIstanbul API")
 
 
 # Routers
+# Routers
 app.include_router(museums.router)
 app.include_router(restaurants.router)
 app.include_router(events.router)
 app.include_router(places.router)
+
+# Intent/entity extraction endpoint for integration test
+@app.post("/parse/")
+def parse_query(query: dict):
+    user_input = query.get("user_input", "")
+    parsed = parse_user_input(user_input)
+    try:
+        parsed_json = json.loads(parsed)
+    except Exception:
+        parsed_json = {"error": "Failed to parse response", "raw": parsed}
+    return parsed_json
 
 @app.get("/")
 def root():
