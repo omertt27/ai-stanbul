@@ -1,4 +1,6 @@
+/Users/omer/Desktop/ai-stanbul/backend/intent_utils.py
 # Logs
+
 logs
 *.log
 npm-debug.log*
@@ -23,3 +25,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
