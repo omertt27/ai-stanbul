@@ -1,11 +1,13 @@
 
 
 from fastapi import FastAPI, Request
-from database import engine, SessionLocal
-from models import Base, Restaurant, Museum, Place
-from routes import museums, restaurants, events, places
-from intent_utils import parse_user_input
+from .database import engine, SessionLocal
+from .models import Base, Restaurant, Museum, Place
+from .routes import museums, restaurants, events, places
+from .intent_utils import parse_user_input
 import json
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(title="AIstanbul API")
 

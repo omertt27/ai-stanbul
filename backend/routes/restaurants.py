@@ -15,8 +15,8 @@ def search_restaurants(location, radius=1000, type="restaurant"):
     return response.json()
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import Restaurant
+from ..database import SessionLocal
+from ..models import Restaurant
 
 router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
