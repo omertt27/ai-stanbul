@@ -1,41 +1,4 @@
-# Smart intent/entity integration endpoint
-from fastapi import Request
 
-@app.post("/ai")
-async def ai_istanbul_router(request: Request):
-    data = await request.json()
-    user_input = data.get("user_input", "")
-    parsed = parse_user_input(user_input)
-    try:
-        parsed_json = json.loads(parsed)
-    except Exception:
-        return {"error": "Failed to parse response", "raw": parsed}
-    intent = parsed_json.get("intent", "")
-    entities = parsed_json.get("entities", {})
-
-    # Restaurant intent
-    if intent in ["find_restaurants", "restaurant_search"]:
-        from routes.restaurants import get_restaurants
-        db = next(SessionLocal())
-        results = db.query(Base.classes.restaurants).all()
-        return {"results": [r.name for r in results], "entities": entities}
-
-    # Museum intent
-    if intent in ["inquire_about_museums", "museum_info"]:
-        from routes.museums import get_museums
-        db = next(SessionLocal())
-        results = db.query(Base.classes.museums).all()
-        return {"results": [r.name for r in results], "entities": entities}
-
-    # Place intent
-    if intent in ["inquire_about_places", "place_info"]:
-        from routes.places import get_places
-        db = next(SessionLocal())
-        results = db.query(Base.classes.places).all()
-        return {"results": [r.name for r in results], "entities": entities}
-
-    # Fallback
-    return {"message": "Sorry, I didn’t quite get that. Can you rephrase?", "entities": entities, "intent": intent}
 
 from fastapi import FastAPI, Request
 from database import engine, SessionLocal
