@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
@@ -14,8 +15,8 @@ const App = () => {
   ]);
 
   useEffect(() => {
-    const audio = new Audio('/welcome.mp3');
-    audio.volume = 0;
+    const audio = new Audio('/welcome_baskan.mp3');
+    audio.volume = 0.5;
     audio.play();
   }, []);
 
@@ -31,18 +32,21 @@ const App = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
-      <h1 className="text-3xl font-bold text-center">AI-Stanbul</h1>
-      <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
-      <Chat messages={messages} />
-      <div>
-        {results.map((res, idx) => (
-          <ResultCard key={idx} title={res.title} description={res.description} />
-        ))}
+    <>
+      <div className="max-w-2xl mx-auto p-4 space-y-6">
+        <h1 className="text-3xl font-bold text-center">AI-Stanbul</h1>
+        <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+        <Chat messages={messages} />
+        <div>
+          {results.map((res, idx) => (
+            <ResultCard key={idx} title={res.title} description={res.description} />
+          ))}
+        </div>
+        {/* Pass a default locations prop to MapView for testing */}
+        <MapView locations={[{ lat: 51.505, lng: -0.09, label: 'Default Location' }]} />
       </div>
-      {/* Pass a default locations prop to MapView for testing */}
-      <MapView locations={[{ lat: 51.505, lng: -0.09, label: 'Default Location' }]} />
-    </div>
+      <Analytics />
+    </>
   );
 };
 
