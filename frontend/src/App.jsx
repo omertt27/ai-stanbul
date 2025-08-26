@@ -15,7 +15,7 @@ const App = () => {
   ]);
 
   useEffect(() => {
-    const audio = new Audio('/welcome_baskan.mp3');
+    const audio = new Audio('/welcome.mp3');
     audio.volume = 0.5;
     audio.play();
   }, []);
