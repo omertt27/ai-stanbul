@@ -1,7 +1,5 @@
 __pycache__/
 *.pyc
-*.pyc
-
 *.pyo
 *.pyd
 .env
@@ -14,8 +12,6 @@ logs/
 node_modules/
 dist/
 dist-ssr/
-# Ignore only specific files if needed
 api_clients/google_places.py
 intent_utils.py
 backend/.env
-/Users/omer/Desktop/ai-stanbul/backend/.env
