@@ -17,4 +17,4 @@ dist-ssr/
 # Ignore only specific files if needed
 api_clients/google_places.py
 intent_utils.py
-backend/.gitignore
+backend/.env
