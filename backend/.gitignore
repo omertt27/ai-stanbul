@@ -18,3 +18,4 @@ dist-ssr/
 api_clients/google_places.py
 intent_utils.py
 backend/.env
+/Users/omer/Desktop/ai-stanbul/backend/.env
