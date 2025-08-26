@@ -14,6 +14,7 @@ function App() {
     { user: 'KAM', text: 'hoşgeldin Başkan' }
   ]);
 
+  
   useEffect(() => {
     const audio = new Audio('/welcome.mp3');
     audio.volume = 0.5;
