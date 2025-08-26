@@ -5,8 +5,6 @@ import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
-import { Analytics } from '@vercel/analytics/react';
-
 const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -45,7 +43,6 @@ const App = () => {
         {/* Pass a default locations prop to MapView for testing */}
         <MapView locations={[{ lat: 51.505, lng: -0.09, label: 'Default Location' }]} />
       </div>
-      <Analytics />
     </>
   );
 };
