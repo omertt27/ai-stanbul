@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
+import { Analytics } from '@vercel/analytics/react';
 
 const App = () => {
   const [query, setQuery] = useState('');
