@@ -4,7 +4,7 @@ import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
 
 function App() {
@@ -14,7 +14,7 @@ function App() {
     { user: 'KAM', text: 'hoşgeldin Başkan' }
   ]);
 
-  
+
   useEffect(() => {
     const audio = new Audio('/welcome.mp3');
     audio.volume = 0.5;
