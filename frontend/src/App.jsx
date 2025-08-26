@@ -5,6 +5,9 @@ import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
+import React, { useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
+
 const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
