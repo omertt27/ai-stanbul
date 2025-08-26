@@ -15,3 +15,21 @@ dist-ssr/
 api_clients/google_places.py
 intent_utils.py
 backend/.env
+__pycache__/
+*.pyc
+*.pyc
+
+*.pyo
+*.pyd
+.env
+logs/
+*.log
+.vscode/
+.idea/
+.DS_Store
+node_modules/
+dist/
+dist-ssr/
+# Ignore only specific files if needed
+api_clients/google_places.py
+intent_utils.py
