@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
-import React, { useEffect } from 'react';
-import { Analytics } from '@vercel/analytics/react';
+import { useState, useEffect } from 'react';
 
-const App = () => {
+
+function App() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [messages, setMessages] = useState([
@@ -48,6 +47,6 @@ const App = () => {
       </div>
     </>
   );
-};
+}
 
 export default App;
