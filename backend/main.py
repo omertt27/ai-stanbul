@@ -64,4 +64,10 @@ async def ai_istanbul_router(request: Request):
     except Exception as e:
         return {"error": "Internal server error", "details": str(e)}
 
+const response = await fetch('http://localhost:8000/ai', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ user_input: input }), // or the latest user message
+});
+
 
