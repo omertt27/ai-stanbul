@@ -26,3 +26,5 @@ dist-ssr
 *.sln
 *.sw?
 
+const response = await fetch('http://localhost:8000/ai', { ... });
+
