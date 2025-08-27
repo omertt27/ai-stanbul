@@ -1,16 +1,15 @@
 
+import os
 import requests
 
-GOOGLE_API_KEY = "R3g!on9$Plx"
-BASE_URL = "https://maps.googleapis.com/maps/api/place/"
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
-def search_restaurants(location, radius=1000, type="restaurant"):
-    url = f"{BASE_URL}nearbysearch/json"
+def search_restaurants(location, query):
+    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    # Always search in Istanbul, Turkey
     params = {
-        "key": GOOGLE_API_KEY,
-        "location": location,   # "lat,lng"
-        "radius": radius,
-        "type": type
+        "query": f"restaurant {query} in Istanbul, Turkey",
+        "key": GOOGLE_MAPS_API_KEY
     }
     response = requests.get(url, params=params)
     return response.json()
