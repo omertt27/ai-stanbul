@@ -16,25 +16,21 @@ function Chatbot() {
     setLoading(true)
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('http://localhost:8000/ai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: newMessages,
-        }),
-      })
-
-      const data = await response.json()
-      const botMessage = data.choices[0].message
-      setMessages([...newMessages, botMessage])
+        body: JSON.stringify({ messages: newMessages }),
+      });
+      const data = await response.json();
+      // Expecting backend to return { message: '...', ... }
+      const botMessage = { role: 'assistant', content: data.message || (data.choices && data.choices[0].message && data.choices[0].message.content) || 'No response' };
+      setMessages([...newMessages, botMessage]);
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
