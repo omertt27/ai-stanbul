@@ -1,5 +1,3 @@
-
-
 from fastapi import FastAPI, Request
 from .database import engine, SessionLocal
 from .models import Base, Restaurant, Museum, Place
@@ -7,9 +5,20 @@ from .routes import museums, restaurants, events, places
 from .intent_utils import parse_user_input
 import json
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+
 load_dotenv()
 
 app = FastAPI(title="AIstanbul API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create tables if needed
 Base.metadata.create_all(bind=engine)
