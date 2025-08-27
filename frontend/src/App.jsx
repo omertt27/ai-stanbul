@@ -1,10 +1,11 @@
+
+import { useState, useEffect } from 'react';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
 import './App.css';
-import { useEffect } from 'react';
 
 
 function App() {
