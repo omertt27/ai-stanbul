@@ -16,6 +16,7 @@ function App() {
   ]);
 
 
+  // Removed welcome.mp3 autoplay code
 
   const handleSearch = async (e) => {
     e.preventDefault();
