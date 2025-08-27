@@ -16,11 +16,6 @@ function App() {
   ]);
 
 
-  useEffect(() => {
-    const audio = new Audio('/welcome.mp3');
-    audio.volume = 0.5;
-    audio.play();
-  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
