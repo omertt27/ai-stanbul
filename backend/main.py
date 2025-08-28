@@ -47,14 +47,11 @@ async def ai_istanbul_router(request: Request):
     user_input = data.get("user_input", "")
     
     try:
-        # Import OpenAI client
         from openai import OpenAI
         import os
         
         # Debug logging
         print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
-        print(f"user_input type: {type(user_input)}")
-        print(f"user_input repr: {repr(user_input)}")
         
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
