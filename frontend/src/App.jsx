@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import SearchBar from './components/SearchBar';
-import Chat from './components/Chat';
+import Chatbot from './Chatbot';
 import ResultCard from './components/ResultCard';
 import MapView from './components/MapView';
 import { fetchResults } from './api/api';
@@ -33,8 +33,7 @@ function App() {
     <>
       <div className="max-w-2xl mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold text-center">AI-Stanbul</h1>
-        <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
-        <Chat messages={messages} />
+        <Chatbot />
         <div>
           {results.map((res, idx) => (
             <ResultCard key={idx} title={res.title} description={res.description} />
