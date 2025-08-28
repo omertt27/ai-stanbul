@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
-from ..models import Place
+from database import SessionLocal
+from models import Place
 
 router = APIRouter(prefix="/places", tags=["Places"])
 

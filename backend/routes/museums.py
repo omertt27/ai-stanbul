@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String
 
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
-from ..models import Museum
+from database import SessionLocal
+from models import Museum
 
 router = APIRouter(prefix="/museums", tags=["Museums"])
 
