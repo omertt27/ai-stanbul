@@ -8,15 +8,16 @@ function Chatbot() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { role: 'user', content: input };
+    const userInput = input.trim(); // Store the input value before clearing it
+    const userMessage = { role: 'user', content: userInput };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInput('');
+    setInput(''); // Clear input after storing the value
     setLoading(true);
 
     try {
       console.log('Sending request to:', import.meta.env.VITE_API_URL);
-      console.log('With data:', { user_input: input });
+      console.log('With data:', { user_input: userInput });
       
       const response = await fetch(import.meta.env.VITE_API_URL + `?t=${Date.now()}`, {
         method: 'POST',
@@ -24,7 +25,7 @@ function Chatbot() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
         },
-        body: JSON.stringify({ user_input: input }),
+        body: JSON.stringify({ user_input: userInput }),
       });
       console.log('Raw response:', response);
       let data;
