@@ -19,9 +19,8 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
-        # Add your production frontend URL here when you deploy
-        # "https://your-frontend-app.netlify.app",
-        # "https://your-frontend-app.vercel.app",
+        # Production frontend URLs
+        "https://aistanbul.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
