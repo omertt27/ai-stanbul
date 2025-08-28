@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 function Chatbot() {
@@ -22,17 +21,7 @@ function Chatbot() {
         body: JSON.stringify({ user_input: input }),
       });
       const data = await response.json();
-      let botContent = '';
-      if (data.results) {
-        botContent = Array.isArray(data.results) ? data.results.join(', ') : String(data.results);
-      } else if (data.message) {
-        botContent = data.message;
-      } else if (data.error) {
-        botContent = data.error;
-      } else {
-        botContent = 'No response';
-      }
-      const botMessage = { role: 'assistant', content: botContent };
+      const botMessage = { role: 'assistant', content: data.message };
       setMessages([...newMessages, botMessage]);
     } catch (error) {
       console.error('Error:', error);
