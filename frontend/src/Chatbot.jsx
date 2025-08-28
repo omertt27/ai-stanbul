@@ -35,8 +35,9 @@ function Chatbot() {
       <h2>AI-Stanbul Chatbot</h2>
       <div className="chat-window">
         {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.role}`}>
-            {msg.content}
+          <div key={index} className="mb-2">
+            <span className="font-semibold">{msg.role === 'user' ? 'You' : 'AI'}: </span>
+            <span>{msg.content}</span>
           </div>
         ))}
       </div>
