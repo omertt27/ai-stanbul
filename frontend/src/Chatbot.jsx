@@ -6,9 +6,11 @@ function Chatbot() {
   const [loading, setLoading] = useState(false)
 
   const handleSend = async () => {
+    console.log('handleSend called with input:', input); // Debug log
     if (!input.trim()) return;
 
     const userInput = input.trim(); // Store the input value before clearing it
+    console.log('userInput after trim:', userInput); // Debug log
     const userMessage = { role: 'user', content: userInput };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -18,6 +20,7 @@ function Chatbot() {
     try {
       console.log('Sending request to:', import.meta.env.VITE_API_URL);
       console.log('With data:', { user_input: userInput });
+      console.log('JSON body:', JSON.stringify({ user_input: userInput }));
       
       const response = await fetch(import.meta.env.VITE_API_URL + `?t=${Date.now()}`, {
         method: 'POST',
@@ -76,6 +79,7 @@ function Chatbot() {
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
         placeholder="Ask me anything!"
       />
       <button onClick={handleSend} disabled={loading}>
