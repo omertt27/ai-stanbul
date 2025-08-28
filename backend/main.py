@@ -21,6 +21,7 @@ app.add_middleware(
         "http://127.0.0.1:5174",
         # Production frontend URLs
         "https://aistanbul.vercel.app",
+        "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -44,30 +45,25 @@ def root():
 async def ai_istanbul_router(request: Request):
     data = await request.json()
     user_input = data.get("user_input", "")
+    
     try:
-        parsed = parse_user_input(user_input)
-        try:
-            parsed_json = json.loads(parsed)
-        except Exception:
-            return {"error": "Failed to parse response from OpenAI", "raw": parsed}
-        intent = parsed_json.get("intent", "")
-        entities = parsed_json.get("entities", {})
-
-        db = SessionLocal()
-        try:
-            if intent in ["find_restaurants", "restaurant_search"]:
-                results = db.query(Restaurant).all()
-                return {"results": [r.name for r in results], "entities": entities}
-            if intent in ["inquire_about_museums", "museum_info"]:
-                results = db.query(Museum).all()
-                return {"results": [r.name for r in results], "entities": entities}
-            if intent in ["inquire_about_places", "place_info"]:
-                results = db.query(Place).all()
-                return {"results": [r.name for r in results], "entities": entities}
-        finally:
-            db.close()
-
-        return {"message": "Sorry, I didn’t quite get that. Can you rephrase?", "entities": entities, "intent": intent}
+        # Import OpenAI client
+        from openai import OpenAI
+        import os
+        
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a friendly AI assistant specializing in Istanbul, Turkey. You are knowledgeable about restaurants, museums, places to visit, events, culture, and history. Provide helpful, conversational responses about Istanbul. Be engaging and informative."},
+                {"role": "user", "content": user_input}
+            ]
+        )
+        
+        ai_response = response.choices[0].message.content
+        return {"message": ai_response}
+        
     except Exception as e:
         return {"error": "Internal server error", "details": str(e)}
 
