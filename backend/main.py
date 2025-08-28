@@ -51,6 +51,9 @@ async def ai_istanbul_router(request: Request):
         from openai import OpenAI
         import os
         
+        # Debug logging
+        print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
+        
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
         response = client.chat.completions.create(
