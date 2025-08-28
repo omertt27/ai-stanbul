@@ -18,9 +18,12 @@ function Chatbot() {
       console.log('Sending request to:', import.meta.env.VITE_API_URL);
       console.log('With data:', { user_input: input });
       
-      const response = await fetch(import.meta.env.VITE_API_URL, {
+      const response = await fetch(import.meta.env.VITE_API_URL + `?t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         body: JSON.stringify({ user_input: input }),
       });
       console.log('Raw response:', response);

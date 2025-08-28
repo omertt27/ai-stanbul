@@ -53,6 +53,8 @@ async def ai_istanbul_router(request: Request):
         
         # Debug logging
         print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
+        print(f"user_input type: {type(user_input)}")
+        print(f"user_input repr: {repr(user_input)}")
         
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
