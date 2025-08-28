@@ -20,19 +20,43 @@ function Chatbot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_input: input }),
       });
-      const data = await response.json();
-      const botMessage = { role: 'assistant', content: data.message };
-      setMessages([...newMessages, botMessage]);
+      console.log('Raw response:', response);
+      let data;
+      try {
+        data = await response.json();
+        console.log('Parsed data:', data);
+      } catch (jsonErr) {
+        console.error('Failed to parse JSON:', jsonErr);
+        setMessages([
+          ...newMessages,
+          { role: 'assistant', content: 'Sorry, I could not understand the server response.' }
+        ]);
+        return;
+      }
+      if (data && typeof data.message === 'string') {
+        const botMessage = { role: 'assistant', content: data.message };
+        setMessages([...newMessages, botMessage]);
+      } else {
+        setMessages([
+          ...newMessages,
+          { role: 'assistant', content: 'Sorry, I did not get a valid answer from the AI.' }
+        ]);
+        console.error('Unexpected data format:', data);
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Network or fetch error:', error);
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'Sorry, there was a network error. Please try again.' }
+      ]);
     } finally {
       setLoading(false);
     }
-  }  
+  }
 
   return (
     <div className="chatbot">
-      <h2>AI-Stanbul Chatbot</h2>
+      <h2>AI Chatbot</h2>
       <div className="chat-window">
         {messages.map((msg, index) => (
           <div key={index} className="mb-2">
@@ -45,7 +69,7 @@ function Chatbot() {
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Ask me anything about Istanbul..."
+        placeholder="Ask me anything!"
       />
       <button onClick={handleSend} disabled={loading}>
         {loading ? 'Thinking...' : 'Send'}
