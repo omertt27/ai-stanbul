@@ -26,6 +26,4 @@ dist-ssr/
 # Ignore specific files
 api_clients/google_places.py
 intent_utils.py
-/Users/omer/Desktop/ai-stanbul/backend/__pycache__/main.cpython-312.pyc
-/backend/api.py
 
