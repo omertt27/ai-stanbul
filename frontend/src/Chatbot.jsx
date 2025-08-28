@@ -15,6 +15,9 @@ function Chatbot() {
     setLoading(true);
 
     try {
+      console.log('Sending request to:', import.meta.env.VITE_API_URL);
+      console.log('With data:', { user_input: input });
+      
       const response = await fetch(import.meta.env.VITE_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
