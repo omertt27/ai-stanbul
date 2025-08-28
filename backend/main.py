@@ -56,7 +56,7 @@ async def ai_istanbul_router(request: Request):
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a friendly AI assistant specializing in Istanbul, Turkey. You are knowledgeable about restaurants, museums, places to visit, events, culture, and history. Provide helpful, conversational responses about Istanbul. Be engaging and informative."},
+                {"role": "system", "content": "You are a friendly, conversational AI assistant for Istanbul. If the user's message is vague or unclear, ask a clarifying question. Otherwise, answer helpfully about Istanbul's places, food, events, or culture. Always try to keep the conversation going and be engaging."},
                 {"role": "user", "content": user_input}
             ]
         )
