@@ -7,32 +7,39 @@ function Chatbot() {
   const [loading, setLoading] = useState(false)
 
   const handleSend = async () => {
-    if (!input.trim()) return
+    if (!input.trim()) return;
 
-    const userMessage = { role: 'user', content: input }
-    const newMessages = [...messages, userMessage]
-    setMessages(newMessages)
-    setInput('')
-    setLoading(true)
+    const userMessage = { role: 'user', content: input };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/ai', {
+      const response = await fetch(import.meta.env.VITE_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ messages: newMessages }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_input: input }),
       });
       const data = await response.json();
-      // Expecting backend to return { message: '...', ... }
-      const botMessage = { role: 'assistant', content: data.message || (data.choices && data.choices[0].message && data.choices[0].message.content) || 'No response' };
+      let botContent = '';
+      if (data.results) {
+        botContent = Array.isArray(data.results) ? data.results.join(', ') : String(data.results);
+      } else if (data.message) {
+        botContent = data.message;
+      } else if (data.error) {
+        botContent = data.error;
+      } else {
+        botContent = 'No response';
+      }
+      const botMessage = { role: 'assistant', content: botContent };
       setMessages([...newMessages, botMessage]);
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }  
 
   return (
     <div className="chatbot">
