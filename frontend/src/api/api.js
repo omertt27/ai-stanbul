@@ -5,7 +5,7 @@ export const fetchResults = async (query) => {
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ user_input: query }),
   });
   if (!response.ok) throw new Error('API error');
   return response.json();
