@@ -87,10 +87,16 @@ function Chatbot({ onDarkModeToggle }) {
     setInput('');
     setLoading(true);
 
+    // Create an initial empty assistant message that will be streamed into
+    const assistantMessage = { role: 'assistant', content: '' };
+    const messagesWithAssistant = [...newMessages, assistantMessage];
+    setMessages(messagesWithAssistant);
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/ai';
-      console.log('Making API call to:', apiUrl);
-      const response = await fetch(apiUrl + `?t=${Date.now()}`, {
+      const streamApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/ai/stream';
+      console.log('Making streaming API call to:', streamApiUrl);
+      
+      const response = await fetch(streamApiUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -99,39 +105,59 @@ function Chatbot({ onDarkModeToggle }) {
         body: JSON.stringify({ user_input: userInput }),
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
+      console.log('Streaming response status:', response.status);
+      console.log('Streaming response ok:', response.ok);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      let data;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
+      
       try {
-        data = await response.json();
-        console.log('Response data:', data);
-      } catch (jsonErr) {
-        console.error('Failed to parse JSON:', jsonErr);
-        setMessages([
-          ...newMessages,
-          { role: 'assistant', content: 'Sorry, I could not understand the server response.' }
-        ]);
-        setLoading(false);
-        return;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                break;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.delta && parsed.delta.content) {
+                  accumulatedContent += parsed.delta.content;
+                  
+                  // Update the assistant message with accumulated content
+                  setMessages(prevMessages => {
+                    const updatedMessages = [...prevMessages];
+                    updatedMessages[updatedMessages.length - 1] = {
+                      ...updatedMessages[updatedMessages.length - 1],
+                      content: accumulatedContent
+                    };
+                    return updatedMessages;
+                  });
+                }
+              } catch (e) {
+                console.log('Skipping malformed JSON chunk');
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
       }
       
-      if (data && typeof data.message === 'string') {
-        const botMessage = { role: 'assistant', content: data.message };
-        setMessages([...newMessages, botMessage]);
-      } else {
-        setMessages([
-          ...newMessages,
-          { role: 'assistant', content: 'Sorry, I did not get a valid answer from the AI.' }
-        ]);
-        console.error('Unexpected data format:', data);
-      }
     } catch (error) {
-      console.error('Network or fetch error:', error);
+      console.error('Streaming error:', error);
       setMessages([
         ...newMessages,
         { role: 'assistant', content: 'Sorry, there was a network error. Please try again.' }
