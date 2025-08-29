@@ -1,42 +1,260 @@
+/* Reset and full-screen layout */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 #root {
-  max-width: 1280px;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Navigation styles */
+.nav-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.nav-container.dark {
+  background: rgba(17, 24, 39, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.nav-logo {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.nav-logo.dark {
+  color: #ffffff;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem; /* Reduced from 2rem to accommodate more links */
+  list-style: none;
+  margin-left: auto;
+  margin-right: 2rem;
+}
+
+.nav-link {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  color: #3b82f6;
+}
+
+.nav-link.active {
+  color: #3b82f6;
+}
+
+.nav-link.dark {
+  color: #9ca3af;
+}
+
+.nav-link.dark:hover,
+.nav-link.dark.active {
+  color: #60a5fa;
+}
+
+/* Page content */
+.page-content {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Changed from auto to hidden for chatbot full-screen */
+}
+
+.static-page {
+  min-height: 100vh;
+  padding: 5rem 2rem 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  color: #1f2937 !important;
+  line-height: 1.6;
+}
+
+.static-page.dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+.static-page h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #1f2937 !important;
+}
+
+.static-page.dark h1 {
+  color: #ffffff !important;
+}
+
+.static-page h2 {
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+  color: #374151 !important;
+}
+
+.static-page.dark h2 {
+  color: #d1d5db !important;
+}
+
+.static-page p {
+  margin-bottom: 1rem;
+  color: #4b5563 !important;
+}
+
+.static-page.dark p {
+  color: #9ca3af !important;
+}
+
+.static-page ul {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.static-page li {
+  margin-bottom: 0.5rem;
+  color: #4b5563 !important;
+}
+
+.static-page.dark li {
+  color: #9ca3af !important;
+}
+
+.static-page a {
+  color: #3b82f6 !important;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.static-page.dark a {
+  color: #60a5fa !important;
+}
+
+.static-page a:hover {
+  color: #2563eb !important;
+}
+
+.static-page.dark a:hover {
+  color: #3b82f6 !important;
+}
+
+.static-page code {
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.static-page.dark code {
+  background: #374151;
+  color: #f9fafb;
+}
+
+/* Additional utility styles for full-screen chatbot */
+.chatbot-container {
+  height: calc(100vh - 4rem); /* Full height minus nav bar */
+  overflow: hidden;
+}
+
+/* Responsive navigation for mobile */
+@media (max-width: 768px) {
+  .nav-content {
+    padding: 0.5rem 1rem;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .nav-links {
+    gap: 0.75rem; /* Further reduced for mobile */
+    margin-right: 1rem;
+  }
+  
+  .nav-link {
+    font-size: 0.75rem; /* Smaller text on mobile */
+  }
+  
+  .nav-logo {
+    font-size: 1rem; /* Smaller logo on mobile */
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@media (max-width: 640px) {
+  .nav-links {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  
+  .nav-link {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
   }
 }
 
-.card {
-  padding: 2em;
+@media (max-width: 480px) {
+  .nav-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+  
+  .nav-links {
+    margin: 0;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 }
 
-.read-the-docs {
-  color: #888;
+/* Enhanced donate button */
+.donate-button {
+  display: inline-block;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  margin: 1rem 0;
+  transition: transform 0.2s ease;
+}
+
+.donate-button:hover {
+  transform: translateY(-2px);
+}
+
+.donate-button:active {
+  transform: translateY(-1px);
+}
+
+.donate-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
