@@ -71,14 +71,15 @@ body {
 }
 
 .chat-container {
-  background: #23263a;
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 24px 0 rgba(20, 20, 40, 0.18);
-  padding: 2rem 1.5rem;
+  background: transparent;
+  /* Remove border-radius and shadow for seamless look */
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2rem 1.5rem 0.5rem 1.5rem;
   min-height: 350px;
   max-height: 60vh;
   overflow-y: auto;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -425,4 +426,24 @@ body {
 .donate-button:focus {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Make chatbar visually connected to chat area */
+.searchbar {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  background: #23263a;
+  border-top: 1.5px solid #353a50;
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+  box-shadow: 0 -2px 16px 0 rgba(20,20,40,0.10);
+  padding: 0.75rem 1rem 0.75rem 1rem;
+  margin-bottom: 0;
+}
+
+@media (min-width: 600px) {
+  .searchbar {
+    margin-bottom: 0;
+  }
 }

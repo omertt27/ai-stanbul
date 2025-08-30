@@ -62,18 +62,22 @@ const App = () => {
               A/<span style={{fontWeight: 400}}>STANBUL</span>
             </span>
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100%' }}>
-            <div style={{ width: '100%', maxWidth: 900, flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div ref={chatScrollRef} style={{flex: 1, overflowY: 'auto', marginBottom: 0, paddingBottom: 16, minHeight: 0}}>
-                <Chat messages={messages} />
-                <div style={{ marginTop: '1.5rem' }}>
-                  {results.map((res, idx) => (
-                    <ResultCard key={idx} title={res.title} description={res.description} />
-                  ))}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh' }}>
+            <div style={{ width: '100%', maxWidth: 850, flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+              {/* Unified chat area and search bar */}
+              <div style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)'}}>
+                <div ref={chatScrollRef} style={{flex: 1, overflowY: 'auto', marginBottom: 0, paddingBottom: 0, minHeight: 0, height: '100%'}}>
+                  <Chat messages={messages} />
+                  {/* Remove or reduce margin below chat */}
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {results.map((res, idx) => (
+                      <ResultCard key={idx} title={res.title} description={res.description} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div style={{width: '100%', position: 'sticky', bottom: 0, background: 'transparent', zIndex: 10}}>
-                <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+                <div style={{width: '100%', position: 'sticky', bottom: 0, background: 'transparent', zIndex: 10}}>
+                  <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+                </div>
               </div>
             </div>
           </div>

@@ -72,35 +72,9 @@ Istanbul has over 2,500 years of history! Here are key highlights:
 
 Would you like to know about specific historical sites or districts?"""
 
-    # Food and cuisine questions
+    # Food and cuisine questions (no static restaurant recommendations)
     elif any(word in user_input_lower for word in ['food', 'eat', 'cuisine', 'dish', 'meal', 'breakfast', 'lunch', 'dinner']):
-        return """🍽️ **Turkish Cuisine in Istanbul**
-
-Must-try Turkish dishes:
-
-**Street Food:**
-- Döner kebab - rotating grilled meat
-- Simit - Turkish bagel with sesame
-- Balık ekmek - fish sandwich near Galata Bridge
-- Midye dolma - stuffed mussels
-
-**Main Dishes:**
-- İskender kebab - meat over bread with tomato sauce
-- Manti - Turkish dumplings
-- Lahmacun - Turkish flatbread pizza
-- Börek - layered pastry dish
-
-**Sweets:**
-- Baklava - honey-soaked pastry
-- Turkish delight (lokum)
-- Künefe - cheese dessert
-
-**Drinks:**
-- Turkish tea (çay) and coffee
-- Ayran - yogurt drink
-- Raki - traditional spirit
-
-For restaurant recommendations, tell me what type of cuisine you prefer!"""
+        return """🍽️ **Turkish Cuisine in Istanbul**\n\nI can provide live restaurant recommendations using Google Maps. Please ask for a specific type of restaurant or cuisine, and I'll fetch the latest options for you!\n\nMust-try Turkish dishes include döner kebab, simit, balık ekmek, midye dolma, iskender kebab, manti, lahmacun, börek, baklava, Turkish delight, künefe, Turkish tea, ayran, and raki.\n\nFor restaurant recommendations, please specify your preference (e.g., 'seafood in Kadıköy')."""
 
     # Transportation questions
     elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'getting around']):
@@ -440,22 +414,23 @@ async def ai_istanbul_router(request: Request):
                     places_data = search_restaurants(search_location, user_input)
                     
                     if places_data.get('results'):
-                        restaurants_info = f"Here are restaurants I found{' in ' + search_location.split(',')[0] if 'Istanbul' not in search_location else ' in Istanbul'}:\n\n"
+                        restaurants_info = f"### 🍽️ Here are restaurants I found{' in ' + search_location.split(',')[0] if 'Istanbul' not in search_location else ' in Istanbul'}:\n\n"
                         for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
                             name = place.get('name', 'Unknown')
                             rating = place.get('rating', 'N/A')
                             price_level = place.get('price_level', 'N/A')
                             place_id = place.get('place_id', '')
-                            
-                            # Create Google Maps link
                             maps_link = f"https://www.google.com/maps/place/?q=place_id:{place_id}" if place_id else "N/A"
-                            
-                            restaurants_info += f"{i+1}. **{name}**\n"
-                            restaurants_info += f"   - Rating: {rating}/5\n"
-                            if price_level != 'N/A':
-                                restaurants_info += f"   - Price Level: {'$' * price_level}\n"
-                            restaurants_info += f"   - Location: [View on Google Maps]({maps_link})\n\n"
-                        
+                            # Convert price_level to emoji
+                            if price_level != 'N/A' and isinstance(price_level, int):
+                                price_emoji = '💲' * price_level
+                            elif price_level != 'N/A' and str(price_level).isdigit():
+                                price_emoji = '💲' * int(price_level)
+                            else:
+                                price_emoji = ''
+                            restaurants_info += f"{i+1}. **{name}**  \n"
+                            restaurants_info += f"   ⭐ {rating}/5\t{price_emoji}  \n"
+                            restaurants_info += f"   [View on Google Maps]({maps_link})\n\n"
                         return {"message": restaurants_info}
                     else:
                         return {"message": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
