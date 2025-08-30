@@ -1,43 +1,34 @@
 import React from 'react';
 
-function Donate({ darkMode }) {
-  return (
-    <div className={`static-page ${darkMode ? 'dark' : ''}`}>
-      <h1>Support AI Istanbul Guide</h1>
-      
-      <p>
-        AI Istanbul Guide is a free, open-source project dedicated to helping visitors and locals 
-        discover the best of Istanbul. Your support helps us maintain and improve this service.
-      </p>
+const Donate = () => (
+  <div className="page-content">
+    <h1>Support / Donate</h1>
+    <p>
+      If you find AIstanbul helpful, consider supporting the project! Your donation helps cover server costs and enables further development.
+    </p>
+    <h2>Why Donate?</h2>
+    <ul>
+      <li>Keep the service free for everyone</li>
+      <li>Cover API costs for Google Maps and other services</li>
+      <li>Support ongoing development and new features</li>
+      <li>Maintain and update our database of Istanbul attractions</li>
+      <li>Improve user experience and add new languages</li>
+    </ul>
+    <h2>How Your Donation Helps</h2>
+    <ul>
+      <li><b>Server costs:</b> Keeping our API running 24/7</li>
+      <li><b>Data accuracy:</b> Regular updates to restaurant, museum, and attraction information</li>
+      <li><b>Feature development:</b> Adding new capabilities like event recommendations and transport info</li>
+      <li><b>Multilingual support:</b> Expanding to serve visitors from around the world</li>
+    </ul>
+    <h2>Ways to Support</h2>
+    <p><b>Crypto:</b> <code>0x1234...abcd</code> (Ethereum)</p>
+    <p><b>Patreon:</b> <a href="https://patreon.com/ai-stanbul" target="_blank" rel="noopener noreferrer">patreon.com/ai-stanbul</a></p>
+    <p>Thank you for your support!</p>
+  </div>
+);
 
-      <h2>Why Donate?</h2>
-      <ul>
-        <li>Keep the service free for everyone</li>
-        <li>Cover API costs for Google Maps and other services</li>
-        <li>Support ongoing development and new features</li>
-        <li>Maintain and update our database of Istanbul attractions</li>
-        <li>Improve user experience and add new languages</li>
-      </ul>
-
-      <h2>How Your Donation Helps</h2>
-      <p>
-        Every contribution, no matter the size, makes a difference. Your donations go directly towards:
-      </p>
-      <ul>
-        <li><strong>Server costs:</strong> Keeping our API running 24/7</li>
-        <li><strong>Data accuracy:</strong> Regular updates to restaurant, museum, and attraction information</li>
-        <li><strong>Feature development:</strong> Adding new capabilities like event recommendations and transport info</li>
-        <li><strong>Multilingual support:</strong> Expanding to serve visitors from around the world</li>
-      </ul>
-
-      <h2>Ways to Support</h2>
-      <div style={{ marginTop: '2rem' }}>
-        <a 
-          href="https://ko-fi.com/aiistanbul" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="donate-button"
-        >
+export default Donate;
           ☕ Buy us a coffee
         </a>
       </div>
