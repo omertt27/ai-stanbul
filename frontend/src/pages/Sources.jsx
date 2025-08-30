@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Sources = () => (
-  <div className="page-content">
+  <div className="static-page">
     <h1>Sources & Technology</h1>
     <h2>Restaurant Data</h2>
     <ul>

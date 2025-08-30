@@ -45,12 +45,7 @@ const App = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
-      {/* Navigation bar for main page */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', marginTop: '2.5rem', marginBottom: '2.5rem' }}>
-        <Link to="/about" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>About</Link>
-        <Link to="/sources" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>Sources</Link>
-        <Link to="/donate" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)' }}>Donate</Link>
-      </div>
+
       {!expanded ? (
         <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
           <Link to="/" style={{textDecoration: 'none'}}>
@@ -73,11 +68,11 @@ const App = () => {
               </span>
             </div>
           </Link>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh' }}>
-            <div style={{ width: '100%', maxWidth: 850, flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '3rem' }}>
+            <div style={{ width: '100%', maxWidth: 850, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 3rem)' }}>
               {/* Unified chat area and search bar */}
               <div style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)'}}>
-                <div ref={chatScrollRef} style={{flex: 1, overflowY: 'auto', marginBottom: 0, paddingBottom: 0, minHeight: 0, height: '100%'}}>
+                <div ref={chatScrollRef} style={{flex: 1, overflowY: 'auto', marginBottom: 0, paddingBottom: 0, minHeight: 0, paddingTop: '0.5rem'}}>
                   <Chat messages={messages} />
                   {/* Remove or reduce margin below chat */}
                   <div style={{ marginTop: '0.5rem' }}>

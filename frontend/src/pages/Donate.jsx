@@ -1,8 +1,7 @@
 import React from 'react';
 
-
 const Donate = () => (
-  <div className="page-content">
+  <div className="static-page">
     <h1>Support / Donate</h1>
     <p>
       If you find AIstanbul helpful, consider supporting the project! Your donation helps cover server costs and enables further development.
@@ -65,6 +64,11 @@ const Donate = () => (
       Thank you for considering a donation. Together, we can make exploring Istanbul easier 
       and more enjoyable for everyone! 🇹🇷
     </p>
+    <Routes>
+      <Route path="/" element={<App />} />
+    </Routes>
   </div>
 );
+
+export default Donate;
 

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const About = () => (
-  <div className="page-content">
+  <div className="static-page">
     <h1>About AIstanbul</h1>
     <p>
       <b>AIstanbul</b> is an AI-powered chatbot and city guide for Istanbul, designed to help locals and visitors discover the best restaurants, attractions, and experiences in the city. Powered by real-time data and modern AI, it aims to provide the most up-to-date and relevant recommendations.

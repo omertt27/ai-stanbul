@@ -20,12 +20,13 @@
 .logo-move-top-left {
   position: fixed !important;
   left: 2.5rem !important;
-  top: 1.5rem !important;
+  top: 0.5rem !important;
   width: auto !important;
   margin-bottom: 0 !important;
   text-align: left !important;
-  transform: scale(1.1);
+  transform: scale(0.75);
   transition: all 0.7s cubic-bezier(.4,2,.6,1);
+  z-index: 35;
 }
 @keyframes expandChat {
   0% {
@@ -104,7 +105,7 @@ body {
   /* Remove border-radius and shadow for seamless look */
   border-radius: 0;
   box-shadow: none;
-  padding: 2rem 1.5rem 0.5rem 1.5rem;
+  padding: 0.5rem 1.5rem 0.5rem 1.5rem;
   min-height: 350px;
   max-height: 60vh;
   overflow-y: auto;
@@ -382,6 +383,24 @@ body {
 .chatbot-container {
   height: calc(100vh - 4rem); /* Full height minus nav bar */
   overflow: hidden;
+}
+
+/* Chatbot outline across top */
+.chatbot-outline {
+  position: fixed;
+  top: 2.8rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #818cf8 20%, #6366f1 80%, transparent 100%);
+  z-index: 25;
+  opacity: 0.6;
+  transition: all 0.7s cubic-bezier(.4,2,.6,1);
+}
+
+.chatbot-outline.expanded {
+  opacity: 0.8;
+  background: linear-gradient(90deg, transparent 0%, #818cf8 10%, #6366f1 90%, transparent 100%);
 }
 
 /* Responsive navigation for mobile */

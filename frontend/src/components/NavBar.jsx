@@ -4,16 +4,20 @@ import { Link, useLocation } from 'react-router-dom';
 const NavBar = () => {
   const location = useLocation();
   const navStyle = {
+    position: 'fixed',
+    top: '0.5rem',
+    right: '5rem',
     display: 'flex',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: '2.5rem',
-    padding: '1.2rem 0 0.5rem 0',
+    gap: '2rem',
+    padding: '0',
     background: 'none',
     fontWeight: 600,
-    fontSize: '1.1rem',
+    fontSize: '1.15rem',
     letterSpacing: '0.03em',
-    zIndex: 20,
+    zIndex: 30,
+    width: 'auto',
   };
   const linkStyle = isActive => ({
     color: isActive ? '#818cf8' : '#c7c9e2',
