@@ -1,5 +1,5 @@
 // API utility that works for both local and deployed environments
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 const API_URL = `${BASE_URL}/ai`;
 const STREAM_API_URL = `${BASE_URL}/ai/stream`;
 

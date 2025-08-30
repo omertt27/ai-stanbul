@@ -882,7 +882,7 @@ async def stream_response(message: str):
             "finish_reason": None
         }
         yield f"data: {json.dumps(chunk)}\n\n"
-        await asyncio.sleep(0.05)  # 50ms delay between words
+        await asyncio.sleep(0.1)  # ChatGPT-like delay between words
     
     # Send final chunk
     final_chunk = {
@@ -897,19 +897,24 @@ async def ai_istanbul_stream(request: Request):
     """Streaming version of the AI endpoint for ChatGPT-like responses"""
     data = await request.json()
     user_input = data.get("user_input", "")
+    speed = data.get("speed", 1.0)  # Speed multiplier: 1.0 = normal, 0.5 = slower, 2.0 = faster
+    
     try:
         from openai import OpenAI
         from api_clients.google_places import search_restaurants
         from sqlalchemy.orm import Session
-        print(f"Received streaming user_input: '{user_input}' (length: {len(user_input)})")
+        print(f"Received streaming user_input: '{user_input}' (length: {len(user_input)}) at speed: {speed}x")
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         db = SessionLocal()
-        message = ""
+        
         try:
-            # ...existing code for query routing and message building...
-            pass
+            # Use fallback response for now
+            places = []
+            message = create_fallback_response(user_input, places)
+            print(f"Generated message length: {len(message)}")
         finally:
             db.close()
+            
         return StreamingResponse(stream_response(message), media_type="text/plain")
     except Exception as e:
         print(f"Error in streaming AI endpoint: {e}")

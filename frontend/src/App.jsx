@@ -1,152 +1,86 @@
-import { useState, useEffect } from 'react';
-import Chatbot from './Chatbot';
-import About from './pages/About';
-import Source from './pages/Source';
-import Donate from './pages/Donate';
-import Privacy from './pages/Privacy';
-import FAQ from './pages/FAQ';
-import Tips from './pages/Tips';
+import React, { useState, useEffect, useRef } from 'react';
+import SearchBar from './components/SearchBar';
+import Chat from './components/Chat';
+import ResultCard from './components/ResultCard';
+import { fetchResults } from './api/api';
 import './App.css';
 
-function App() {
-  const [currentPage, setCurrentPage] = useState('chat');
-  const [darkMode, setDarkMode] = useState(false);
+const App = () => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [expanded, setExpanded] = useState(false);
+  const chatScrollRef = useRef(null);
 
-  // Apply dark mode to document
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const audio = new Audio('/welcome_baskan.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(() => {/* ignore audio errors */});
+  }, []);
+
+  useEffect(() => {
+    if (expanded && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [darkMode]);
+  }, [messages, expanded]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'about':
-        return <About darkMode={darkMode} />;
-      case 'source':
-        return <Source darkMode={darkMode} />;
-      case 'donate':
-        return <Donate darkMode={darkMode} />;
-      case 'privacy':
-        return <Privacy darkMode={darkMode} />;
-      case 'faq':
-        return <FAQ darkMode={darkMode} />;
-      case 'tips':
-        return <Tips darkMode={darkMode} />;
-      default:
-        return <Chatbot onDarkModeToggle={toggleDarkMode} />;
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setMessages([...messages, { user: 'You', text: query }]);
+    setExpanded(true);
+    setTimeout(() => {
+      document.getElementById('chat-animated-container')?.classList.add('expand-animate');
+    }, 10);
+    try {
+      const data = await fetchResults(query);
+      if (data && data.message) {
+        setMessages(msgs => [...msgs, { user: 'AI', text: data.message }]);
+      }
+      setResults(data.results || []);
+    } catch (err) {
+      setResults([]);
     }
   };
 
   return (
-    <div className="w-full h-screen">
-      {/* Navigation Bar */}
-      <nav className={`nav-container ${darkMode ? 'dark' : ''}`}>
-        <div className="nav-content">
-          <a 
-            href="#" 
-            onClick={() => setCurrentPage('chat')}
-            className={`nav-logo ${darkMode ? 'dark' : ''}`}
-          >
-            AI Istanbul Guide
-          </a>
-          
-          <ul className="nav-links">
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('chat')}
-                className={`nav-link ${currentPage === 'chat' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                Chat
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('tips')}
-                className={`nav-link ${currentPage === 'tips' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                Tips
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('faq')}
-                className={`nav-link ${currentPage === 'faq' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                FAQ
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('about')}
-                className={`nav-link ${currentPage === 'about' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                About
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('source')}
-                className={`nav-link ${currentPage === 'source' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                Source
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('donate')}
-                className={`nav-link ${currentPage === 'donate' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                Donate
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                onClick={() => setCurrentPage('privacy')}
-                className={`nav-link ${currentPage === 'privacy' ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-              >
-                Privacy
-              </a>
-            </li>
-          </ul>
-
-          {/* Dark mode toggle */}
-          <button 
-            onClick={toggleDarkMode}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-          >
-            {darkMode ? (
-              <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 0 1 8.646 3.646 9.003 9.003 0 1 0 12 21a9.003 9.003 0 0 0 8.354-5.646z" />
-              </svg>
-            )}
-          </button>
+    <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+      {!expanded ? (
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
+          <div className="chat-title" style={{marginBottom: '2.5rem', letterSpacing: '0.1em'}}>
+            <span style={{fontWeight: 900, fontSize: '2.5rem', letterSpacing: '0.15em', background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
+              A/<span style={{fontWeight: 400}}>STANBUL</span>
+            </span>
+          </div>
+          <div style={{width: '100%', maxWidth: 400}}>
+            <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+          </div>
         </div>
-      </nav>
-
-      {/* Page Content */}
-      <div className="page-content">
-        {renderPage()}
-      </div>
+      ) : (
+        <>
+          <div className="chat-title" style={{paddingTop: '2.5rem', letterSpacing: '0.1em'}}>
+            <span style={{fontWeight: 900, fontSize: '2.5rem', letterSpacing: '0.15em', background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>
+              A/<span style={{fontWeight: 400}}>STANBUL</span>
+            </span>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100%' }}>
+            <div style={{ width: '100%', maxWidth: 900, flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div ref={chatScrollRef} style={{flex: 1, overflowY: 'auto', marginBottom: 0, paddingBottom: 16, minHeight: 0}}>
+                <Chat messages={messages} />
+                <div style={{ marginTop: '1.5rem' }}>
+                  {results.map((res, idx) => (
+                    <ResultCard key={idx} title={res.title} description={res.description} />
+                  ))}
+                </div>
+              </div>
+              <div style={{width: '100%', position: 'sticky', bottom: 0, background: 'transparent', zIndex: 10}}>
+                <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
-}
+};
 
 export default App;
