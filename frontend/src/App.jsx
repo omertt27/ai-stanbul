@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
@@ -46,28 +47,32 @@ const App = () => {
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
       {/* Navigation bar for main page */}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', marginTop: '2.5rem', marginBottom: '2.5rem' }}>
-        <a href="/about" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>About</a>
-        <a href="/sources" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>Sources</a>
-        <a href="/donate" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)' }}>Donate</a>
+        <Link to="/about" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>About</Link>
+        <Link to="/sources" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)', marginRight: '0.5rem' }}>Sources</Link>
+        <Link to="/donate" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600, fontSize: '1.1rem', borderBottom: '2px solid #818cf8', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', background: 'rgba(35,38,58,0.7)' }}>Donate</Link>
       </div>
       {!expanded ? (
         <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
-          <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
-            <span className="logo-text">
-              A/<span style={{fontWeight: 400}}>STANBUL</span>
-            </span>
-          </div>
+          <Link to="/" style={{textDecoration: 'none'}}>
+            <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
+              <span className="logo-text">
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
           <div style={{width: '100%', maxWidth: 520, minWidth: 320, margin: '0 auto', boxShadow: '0 4px 32px 0 #0002', borderRadius: '1.5rem', background: 'rgba(35,38,58,0.98)', padding: '1.75rem 1.5rem 1.25rem 1.5rem', transition: 'max-width 0.3s cubic-bezier(.4,2,.6,1)'}}>
             <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
           </div>
         </div>
       ) : (
         <>
-          <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
-            <span className="logo-text">
-              A/<span style={{fontWeight: 400}}>STANBUL</span>
-            </span>
-          </div>
+          <Link to="/" style={{textDecoration: 'none'}}>
+            <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
+              <span className="logo-text">
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh' }}>
             <div style={{ width: '100%', maxWidth: 850, flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
               {/* Unified chat area and search bar */}
