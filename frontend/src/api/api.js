@@ -1,6 +1,7 @@
 // API utility that works for both local and deployed environments
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/ai';
-const STREAM_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/ai/stream';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = `${BASE_URL}/ai`;
+const STREAM_API_URL = `${BASE_URL}/ai/stream`;
 
 export const fetchResults = async (query) => {
   const response = await fetch(API_URL, {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchStreamingResults } from './api/api';
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -87,83 +88,46 @@ function Chatbot({ onDarkModeToggle }) {
     setInput('');
     setLoading(true);
 
-    // Create an initial empty assistant message that will be streamed into
-    const assistantMessage = { role: 'assistant', content: '' };
-    const messagesWithAssistant = [...newMessages, assistantMessage];
-    setMessages(messagesWithAssistant);
-
+    // Start streaming response
+    let streamedContent = '';
+    let hasError = false;
     try {
-      const streamApiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/ai/stream';
-      console.log('Making streaming API call to:', streamApiUrl);
-      
-      const response = await fetch(streamApiUrl, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({ user_input: userInput }),
-      });
-      
-      console.log('Streaming response status:', response.status);
-      console.log('Streaming response ok:', response.ok);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedContent = '';
-      
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') {
-                break;
-              }
-              
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.delta && parsed.delta.content) {
-                  accumulatedContent += parsed.delta.content;
-                  
-                  // Update the assistant message with accumulated content
-                  setMessages(prevMessages => {
-                    const updatedMessages = [...prevMessages];
-                    updatedMessages[updatedMessages.length - 1] = {
-                      ...updatedMessages[updatedMessages.length - 1],
-                      content: accumulatedContent
-                    };
-                    return updatedMessages;
-                  });
-                }
-              } catch (e) {
-                console.log('Skipping malformed JSON chunk');
-              }
-            }
+      await fetchStreamingResults(userInput, (chunk) => {
+        streamedContent += chunk;
+        // If assistant message already exists, update it; else, add it
+        setMessages((prev) => {
+          // If last message is assistant and was streaming, update it
+          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+            return [
+              ...prev.slice(0, -1),
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          } else {
+            return [
+              ...prev,
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
           }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-      
+        });
+      });
     } catch (error) {
-      console.error('Streaming error:', error);
-      setMessages([
-        ...newMessages,
+      hasError = true;
+      setMessages((prev) => [
+        ...prev,
         { role: 'assistant', content: 'Sorry, there was a network error. Please try again.' }
       ]);
     } finally {
       setLoading(false);
+      // Remove streaming flag on last assistant message
+      setMessages((prev) => {
+        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+          return [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: prev[prev.length - 1].content }
+          ];
+        }
+        return prev;
+      });
     }
   }
 

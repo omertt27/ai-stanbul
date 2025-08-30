@@ -1,0 +1,6 @@
+INFO:     Will watch for changes in these directories: ['/Users/omer/Desktop/ai-stanbul']
+ERROR:    [Errno 48] Address already in use
+INFO:     Will watch for changes in these directories: ['/Users/omer/Desktop/ai-stanbul']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [47752] using StatReload
+ERROR:    Error loading ASGI app. Could not import module "main".
