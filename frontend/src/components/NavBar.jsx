@@ -5,7 +5,7 @@ const NavBar = () => {
   const location = useLocation();
   const navStyle = {
     position: 'fixed',
-    top: '1rem',
+    top: '1.5rem',
     right: '5rem',
     display: 'flex',
     justifyContent: 'flex-end',

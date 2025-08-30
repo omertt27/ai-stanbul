@@ -20,7 +20,7 @@
 .logo-move-top-left {
   position: fixed !important;
   left: 1rem !important;
-  top: 1rem !important;
+  top: 0.5rem !important;
   width: auto !important;
   margin-bottom: 0 !important;
   text-align: left !important;
@@ -405,7 +405,7 @@ body {
 /* Chatbot outline across top */
 .chatbot-outline {
   position: fixed;
-  top: 5.5rem;
+  top: 5rem;
   left: 0;
   right: 0;
   height: 2px;
