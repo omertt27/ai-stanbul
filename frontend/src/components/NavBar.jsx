@@ -5,7 +5,7 @@ const NavBar = () => {
   const location = useLocation();
   const navStyle = {
     position: 'fixed',
-    top: '1.5rem',
+    top: '2.5rem',
     right: '5rem',
     display: 'flex',
     justifyContent: 'flex-end',
@@ -14,7 +14,7 @@ const NavBar = () => {
     padding: '0',
     background: 'none',
     fontWeight: 600,
-    fontSize: '1.15rem',
+    fontSize: '1.3rem',
     letterSpacing: '0.03em',
     zIndex: 30,
     width: 'auto',

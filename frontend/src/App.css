@@ -20,7 +20,7 @@
 .logo-move-top-left {
   position: fixed !important;
   left: 1rem !important;
-  top: 0.5rem !important;
+  top: -1rem !important;
   width: auto !important;
   margin-bottom: 0 !important;
   text-align: left !important;
@@ -102,9 +102,9 @@ body {
 
 .chat-container {
   background: linear-gradient(135deg, #141620 0%, #1e2134 100%);
-  /* Remove border-radius and shadow for seamless look */
-  border-radius: 0;
-  box-shadow: none;
+  /* Enhanced curved design for modern look */
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 -4px 20px 0 rgba(20, 20, 40, 0.25);
   padding: 0.5rem 1.5rem 0.5rem 1.5rem;
   margin-bottom: 0;
   display: flex;
@@ -134,12 +134,14 @@ body {
   border-bottom-right-radius: 0.25rem;
 }
 .message-bubble.bot {
-  background: rgba(24,26,32,0.92);
+  background: rgba(35, 38, 58, 0.85);
   color: #f3f4f6;
   margin-right: auto;
   border-bottom-left-radius: 0.25rem;
-  border: 1px solid #23263a;
+  border: 1px solid #353a50;
   box-shadow: 0 2px 8px 0 rgba(80, 80, 180, 0.10);
+  max-width: 85%;
+  line-height: 1.5;
 }
 
 .chat-title {
@@ -405,19 +407,22 @@ body {
 /* Chatbot outline across top */
 .chatbot-outline {
   position: fixed;
-  top: 5rem;
+  top: 7rem;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: linear-gradient(90deg, transparent 0%, #818cf8 20%, #6366f1 80%, transparent 100%);
   z-index: 25;
   opacity: 0.6;
   transition: all 0.7s cubic-bezier(.4,2,.6,1);
+  border-radius: 0 0 50px 50px;
+  transform: translateY(-1px);
 }
 
 .chatbot-outline.expanded {
   opacity: 0.8;
   background: linear-gradient(90deg, transparent 0%, #818cf8 10%, #6366f1 90%, transparent 100%);
+  border-radius: 0 0 60px 60px;
 }
 
 /* Responsive navigation for mobile */

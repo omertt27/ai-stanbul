@@ -47,7 +47,7 @@ const App = () => {
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '25vh'}}>
           <Link to="/" style={{textDecoration: 'none'}}>
             <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
               <span className="logo-text">
@@ -68,7 +68,7 @@ const App = () => {
               </span>
             </div>
           </Link>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '4rem' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '8rem' }}>
             <div style={{ width: '100%', maxWidth: 950, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)' }}>
               {/* Unified chat area and search bar */}
               <div style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)'}}>

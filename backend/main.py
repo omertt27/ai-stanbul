@@ -246,6 +246,7 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
+                'restaurant', 'restaurants',  # Add basic words first
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
                 'where to eat', 'best restaurants', 'good restaurants', 'top restaurants',
                 'food places', 'places to eat', 'good places to eat', 'where can I eat',
@@ -371,10 +372,13 @@ async def ai_istanbul_router(request: Request):
             is_location_restaurant_query = any(re.search(pattern, user_input.lower()) for pattern in location_restaurant_patterns)
             is_location_place_query = any(re.search(pattern, user_input.lower()) for pattern in location_place_patterns)
             
-            # More specific matching for different query types
+            # More specific matching for different query types - prioritize restaurant queries
             is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
+            
+            # Only consider it a district query if it's NOT a restaurant query
+            is_district_query = any(keyword in user_input.lower() for keyword in district_keywords) and not is_restaurant_query
+            
             is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
-            is_district_query = any(keyword in user_input.lower() for keyword in district_keywords)
             is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords) or is_location_place_query
             is_shopping_query = any(keyword in user_input.lower() for keyword in shopping_keywords)
             is_transportation_query = any(keyword in user_input.lower() for keyword in transportation_keywords)
