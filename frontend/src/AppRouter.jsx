@@ -9,12 +9,17 @@ import NavBar from './components/NavBar';
 const AppRouter = () => {
   const [isLightMode, setIsLightMode] = useState(false);
 
+  // Toggle light mode on both body and chat containers
   useEffect(() => {
-    // Toggle light mode class on body
+    const body = document.body;
+    const chatContainers = document.querySelectorAll('.chat-container');
+    
     if (isLightMode) {
-      document.body.classList.add('light');
+      body.classList.add('light');
+      chatContainers.forEach(el => el.classList.add('light-chat'));
     } else {
-      document.body.classList.remove('light');
+      body.classList.remove('light');
+      chatContainers.forEach(el => el.classList.remove('light-chat'));
     }
   }, [isLightMode]);
 
@@ -24,23 +29,24 @@ const AppRouter = () => {
 
   const buttonStyle = {
     position: 'fixed',
-    top: '1.5rem',
+    top: '2.5rem',  // Same as NavBar
     right: '1.5rem',
     zIndex: 1000,
-    background: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 16, 17, 0.9)',
-    backdropFilter: 'blur(10px)',
-    border: isLightMode ? '1px solid rgba(0, 0, 0, 0.1)' : '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '0.75rem',
-    padding: '0.75rem',
+    background: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+    border: isLightMode ? '1px solid #e2e8f0' : 'none',
+    borderRadius: '50%',
+    padding: 0,
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    color: isLightMode ? '#374151' : '#e5e7eb',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+    color: isLightMode ? '#475569' : '#e5e7eb',
+    boxShadow: isLightMode ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none',
+    width: '32px',
+    height: '32px',
+    minWidth: '32px',
+    minHeight: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '48px',
-    height: '48px'
   };
 
   return (
@@ -51,11 +57,11 @@ const AppRouter = () => {
         title={`Switch to ${isLightMode ? 'dark' : 'light'} mode`}
       >
         {isLightMode ? (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>

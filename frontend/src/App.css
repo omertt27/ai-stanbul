@@ -97,10 +97,10 @@ body {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 }
 
-/* Light mode override */
+/* Light mode override - consolidated */
 body.light {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-  color: #1f2937;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  color: #1e293b !important;
 }
 
 #root {
@@ -112,10 +112,10 @@ body.light {
 }
 
 .chat-container {
-  background: linear-gradient(135deg, #0e0f10 0%, #171819 100%);
-  /* Enhanced curved design for modern look */
+  background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
   border-radius: 2rem 2rem 0 0;
-  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.4);
+  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.18);
+  border: 2.5px solid #6366f1;
   padding: 0.5rem 1.5rem 0.5rem 1.5rem;
   margin-bottom: 0;
   display: flex;
@@ -124,9 +124,11 @@ body.light {
 }
 
 /* Light mode chat container */
-body.light .chat-container {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  box-shadow: 0 -4px 20px 0 rgba(0, 0, 0, 0.1);
+
+.light-chat {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 0 -4px 32px 0 rgba(99, 102, 241, 0.15) !important;
+  border: 2.5px solid #6366f1 !important;
 }
 
 .message-row {
@@ -163,10 +165,10 @@ body.light .chat-container {
 
 /* Light mode bot messages */
 body.light .message-bubble.bot {
-  background: rgba(255, 255, 255, 0.9);
-  color: #374151;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px 0 rgba(99, 102, 241, 0.08);
 }
 
 .chat-title {
@@ -200,9 +202,15 @@ body.light .message-bubble.bot {
 
 /* Light mode input */
 body.light .searchbar input {
-  border: 1px solid #d1d5db;
+  border: 2px solid #e2e8f0;
   background: #ffffff;
-  color: #374151;
+  color: #334155;
+  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.1);
+}
+
+body.light .searchbar input:focus {
+  border: 2px solid #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
 }
 .searchbar input:focus {
   border: 1.5px solid #6366f1;
@@ -321,12 +329,12 @@ body.light .nav-logo {
 
 /* Light mode nav links */
 body.light .nav-link {
-  color: #6b7280;
+  color: #475569;
 }
 
 body.light .nav-link:hover,
 body.light .nav-link.active {
-  color: #3b82f6;
+  color: #6366f1;
 }
 
 .nav-link.dark {
@@ -539,126 +547,46 @@ body.light .static-page code {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* Responsive navigation for mobile */
-@media (max-width: 768px) {
-  .nav-content {
-    padding: 0.5rem 1rem;
-  }
-  
-  .nav-links {
-    gap: 0.75rem; /* Further reduced for mobile */
-    margin-right: 1rem;
-  }
-  
-  .nav-link {
-    font-size: 0.75rem; /* Smaller text on mobile */
-  }
-  
-  .nav-logo {
-    font-size: 1rem; /* Smaller logo on mobile */
-  }
+/* Light mode scrollbar */
+body.light ::-webkit-scrollbar {
+  width: 6px;
 }
 
-@media (max-width: 640px) {
-  .nav-links {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-  }
-  
-  .nav-link {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-content {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.75rem 1rem;
-  }
-  
-  .nav-links {
-    margin: 0;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-}
-
-/* Enhanced donate button */
-.donate-button {
-  display: inline-block;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  font-weight: 600;
-  margin: 1rem 0;
-  transition: transform 0.2s ease;
-}
-
-.donate-button:hover {
-  transform: translateY(-2px);
-}
-
-.donate-button:active {
-  transform: translateY(-1px);
-}
-
-.donate-button:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Make chatbar visually connected to chat area */
-.searchbar {
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
-  background: #1a1b1d;
-  border-top: 1.5px solid #3a3b3d;
-  border-bottom-left-radius: 1.5rem;
-  border-bottom-right-radius: 1.5rem;
-  box-shadow: 0 -2px 16px 0 rgba(10,10,10,0.20);
-  padding: 0.75rem 1rem 0.75rem 1rem;
-  margin-bottom: 0;
-}
-
-/* Light mode searchbar bottom */
-body.light .searchbar {
+body.light ::-webkit-scrollbar-track {
   background: #f1f5f9;
-  border-top: 1.5px solid #d1d5db;
-  box-shadow: 0 -2px 16px 0 rgba(0,0,0,0.1);
 }
 
-@media (min-width: 600px) {
-  .searchbar {
-    margin-bottom: 0;
-  }
+body.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
-/* Buy Me a Coffee button styling */
-.buy-me-coffee-btn {
-  display: inline-block;
-  background: linear-gradient(135deg, #FFDD00, #FF813F) !important;
-  color: #000 !important;
-  padding: 1rem 2rem;
-  border-radius: 0.75rem;
-  text-decoration: none !important;
-  font-weight: 700;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(255, 221, 0, 0.4);
-  border: none;
-  cursor: pointer;
-  transform: translateY(0px);
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-.buy-me-coffee-btn:hover {
-  transform: translateY(-3px) !important;
-  box-shadow: 0 8px 25px rgba(255, 221, 0, 0.6) !important;
-  color: #000 !important;
+/* Light mode logo text enhancement */
+body.light .logo-text {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Light mode main page enhancements */
+/* Light mode search area background on main page */
+body.light .searchbar {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 1.25rem;
+  padding: 0.5rem;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Light mode logo on main page */
+body.light .logo-text {
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
 }

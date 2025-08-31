@@ -21,10 +21,14 @@ const NavBar = () => {
     width: 'auto',
   };
   
+  const isLightMode = document.body.classList.contains('light');
+  
   const linkStyle = isActive => ({
-    color: isActive ? '#818cf8' : '#c7c9e2',
+    color: isActive 
+      ? '#6366f1' 
+      : (isLightMode ? '#475569' : '#c7c9e2'),
     textDecoration: 'none',
-    borderBottom: isActive ? '2.5px solid #818cf8' : '2.5px solid transparent',
+    borderBottom: isActive ? '2.5px solid #6366f1' : '2.5px solid transparent',
     paddingBottom: '0.2rem',
     transition: 'color 0.2s, border-bottom 0.2s',
   });

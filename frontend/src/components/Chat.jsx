@@ -273,7 +273,7 @@ const Chat = ({ messages }) => (
           </div>
         );
       } else {
-        // AI messages: Left-aligned without box, with avatar and actions
+        // KAM messages: Left-aligned without avatar
         return (
           <div key={idx} style={{
             display: 'flex',
@@ -282,38 +282,21 @@ const Chat = ({ messages }) => (
             padding: '0 1rem',
             maxWidth: '100%'
           }}>
-            {/* Avatar */}
-            <div style={{
-              width: '2rem',
-              height: '2rem',
-              borderRadius: '50%',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white'
-            }}>
-              AI
-            </div>
-            
             {/* Content */}
             <div style={{ flex: 1, minWidth: 0 }}>
               {/* Name */}
               <div style={{
                 fontSize: '0.875rem',
                 fontWeight: '600',
-                color: '#f3f4f6',
+                color: document.body.classList.contains('light') ? '#475569' : '#f3f4f6',
                 marginBottom: '0.5rem'
               }}>
-                AI
+                KAM
               </div>
               
               {/* Message */}
               <div style={{
-                color: '#e5e7eb',
+                color: document.body.classList.contains('light') ? '#334155' : '#e5e7eb',
                 lineHeight: '1.6',
                 fontSize: '0.95rem'
               }}>

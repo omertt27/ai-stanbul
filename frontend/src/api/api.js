@@ -1,5 +1,5 @@
 // API utility that works for both local and deployed environments
-const BASE_URL = 'http://localhost:8000'; // Force the correct port
+const BASE_URL = 'http://127.0.0.1:8000'; // Force the correct port and use 127.0.0.1
 const API_URL = `${BASE_URL}/ai`;
 const STREAM_API_URL = `${BASE_URL}/ai/stream`;
 

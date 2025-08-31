@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+# --- Standard Library Imports ---
 import sys
 import os
 import re
@@ -8,17 +7,33 @@ import json
 import time
 from datetime import datetime
 
-# Add the current directory to Python path for Render deployment
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# --- Third-Party Imports ---
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
+# --- Project Imports ---
 from database import engine, SessionLocal
 from models import Base, Restaurant, Museum, Place
 from routes import museums, restaurants, places
-import json
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+from api_clients.google_places import search_restaurants
+from sqlalchemy.orm import Session
 
 load_dotenv()
+
+# --- OpenAI Import ---
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+    print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
+
+# Add the current directory to Python path for Render deployment
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+# (Removed duplicate project imports and load_dotenv)
 
 def clean_text_formatting(text):
     """Remove emojis, hashtags, and markdown formatting from text"""
@@ -26,7 +41,6 @@ def clean_text_formatting(text):
         return text
     
     # Remove emojis (Unicode emoji ranges)
-    import re
     emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -95,6 +109,8 @@ app.add_middleware(
         "http://127.0.0.1:5174",
         "http://127.0.0.1:5175",
         "http://127.0.0.1:5176",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
         # Production frontend URLs
         "https://aistanbul.vercel.app",
         "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
@@ -316,20 +332,18 @@ async def ai_istanbul_router(request: Request):
     user_input = data.get("user_input", "")
     
     try:
-        from openai import OpenAI
-        import os
-        import re
-        from api_clients.google_places import search_restaurants
-        from sqlalchemy.orm import Session
-        
         # Debug logging
         print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
-        
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
+
+        # --- OpenAI API Key Check ---
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not OpenAI or not openai_api_key:
+            print("[ERROR] OpenAI API key not set or openai package missing.")
+            raise RuntimeError("OpenAI API key not set or openai package missing.")
+        client = OpenAI(api_key=openai_api_key)
+
         # Create database session
         db = SessionLocal()
-        
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
@@ -437,18 +451,8 @@ async def ai_istanbul_router(request: Request):
                 'music events', 'art exhibitions', 'theater shows', 'performances'
             ]
             
-            # Add regex patterns for location-based restaurant queries
-            location_restaurant_patterns = [
-                r'restaurants?\s+in\s+\w+',  # "restaurants in taksim"
-                r'restaurants?\s+near\s+\w+',  # "restaurants near galata"
-                r'restaurants?\s+at\s+\w+',  # "restaurants at sultanahmet"
-                r'restaurants?\s+around\s+\w+',  # "restaurants around beyoglu"
-                r'food\s+in\s+\w+',  # "food in kadikoy"
-                r'eat\s+in\s+\w+',  # "eat in taksim"
-                r'dining\s+in\s+\w+',  # "dining in galata"
-                r'\w+\s+restaurants',  # "taksim restaurants", "galata restaurants"
-                r'where\s+to\s+eat\s+in\s+\w+',  # "where to eat in beyoglu"
-            ]
+            # --- Remove duplicate location_restaurant_patterns ---
+            # (Already defined above, so do not redefine here)
             
             # Add regex patterns for location-based place queries
             location_place_patterns = [
@@ -959,11 +963,10 @@ When users ask about attractions, museums, or districts, use your knowledge of I
             db.close()
             
     except Exception as e:
-        print(f"Error in AI endpoint: {e}")
-        return {"message": "Sorry, I couldn't understand. Can you type again?"}
-        
-    except Exception as e:
-        return {"error": "Internal server error", "details": str(e)}
+        print(f"[ERROR] Exception in /ai endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"message": "Sorry, I couldn't understand. Can you type again? (Backend error: " + str(e) + ")"}
 
 async def stream_response(message: str):
     """Stream response word by word like ChatGPT"""
@@ -985,34 +988,33 @@ async def stream_response(message: str):
     yield f"data: {json.dumps(final_chunk)}\n\n"
     yield "data: [DONE]\n\n"
 
+
+## Removed broken/incomplete generate_ai_response function for clarity and to avoid confusion.
+
+
 @app.post("/ai/stream")
 async def ai_istanbul_stream(request: Request):
     """Streaming version of the AI endpoint for ChatGPT-like responses"""
     data = await request.json()
     user_input = data.get("user_input", "")
-    speed = data.get("speed", 1.0)  # Speed multiplier: 1.0 = normal, 0.5 = slower, 2.0 = faster
-    
+    speed = data.get("speed", 1.0)
     try:
-        from openai import OpenAI
-        from api_clients.google_places import search_restaurants
-        from sqlalchemy.orm import Session
         print(f"Received streaming user_input: '{user_input}' (length: {len(user_input)}) at speed: {speed}x")
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        db = SessionLocal()
-        
-        try:
-            # Use fallback response for now
-            places = []
-            message = create_fallback_response(user_input, places)
-            print(f"Generated message length: {len(message)}")
-        finally:
-            db.close()
-            
+        # Reuse the /ai logic by making an internal call to ai_istanbul_router
+        class DummyRequest:
+            def __init__(self, json_data):
+                self._json = json_data
+            async def json(self):
+                return self._json
+        dummy_request = DummyRequest({"user_input": user_input})
+        ai_response = await ai_istanbul_router(dummy_request)
+        message = ai_response["message"] if isinstance(ai_response, dict) and "message" in ai_response else str(ai_response)
         return StreamingResponse(stream_response(message), media_type="text/plain")
     except Exception as e:
         print(f"Error in streaming AI endpoint: {e}")
         error_message = "Sorry, I encountered an error. Please try again."
         return StreamingResponse(stream_response(error_message), media_type="text/plain")
+
 
 # Remove any duplicate or broken code fragments below this point
 
