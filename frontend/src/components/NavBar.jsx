@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const NavBar = () => {
   const location = useLocation();
+  
   const navStyle = {
     position: 'fixed',
     top: '2.5rem',
@@ -19,6 +20,7 @@ const NavBar = () => {
     zIndex: 30,
     width: 'auto',
   };
+  
   const linkStyle = isActive => ({
     color: isActive ? '#818cf8' : '#c7c9e2',
     textDecoration: 'none',
@@ -26,6 +28,7 @@ const NavBar = () => {
     paddingBottom: '0.2rem',
     transition: 'color 0.2s, border-bottom 0.2s',
   });
+  
   return (
     <nav style={navStyle}>
       <Link to="/" style={linkStyle(location.pathname === '/')}>Home</Link>

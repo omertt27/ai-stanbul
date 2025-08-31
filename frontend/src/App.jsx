@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
+import DebugInfo from './components/DebugInfo';
 import { fetchResults } from './api/api';
 import './App.css';
 
@@ -27,28 +28,49 @@ const App = () => {
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    if (!query.trim()) return; // Don't submit empty queries
+    
     setMessages([...messages, { user: 'You', text: query }]);
     setExpanded(true);
+    const searchQuery = query; // Store the query before clearing
+    setQuery(''); // Clear the input
+    
     setTimeout(() => {
       document.getElementById('chat-animated-container')?.classList.add('expand-animate');
     }, 10);
     try {
-      const data = await fetchResults(query);
+      console.log('Searching for:', searchQuery);
+      const data = await fetchResults(searchQuery);
+      console.log('Received data:', data);
       if (data && data.message) {
         setMessages(msgs => [...msgs, { user: 'AI', text: data.message }]);
       }
       setResults(data.results || []);
     } catch (err) {
+      console.error('API Error:', err);
+      setMessages(msgs => [...msgs, { 
+        user: 'AI', 
+        text: `Sorry, I encountered an error connecting to the server: ${err.message}. Please make sure the backend is running and try again.` 
+      }]);
       setResults([]);
     }
   };
 
+  const handleLogoClick = () => {
+    // Reset chat state to go back to homepage
+    setExpanded(false);
+    setMessages([]);
+    setResults([]);
+    setQuery('');
+  };
+
   return (
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+      <DebugInfo />
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '25vh'}}>
-          <Link to="/" style={{textDecoration: 'none'}}>
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '20vh'}}>
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
             <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
@@ -61,19 +83,18 @@ const App = () => {
         </div>
       ) : (
         <>
-          <Link to="/" style={{textDecoration: 'none'}}>
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
             <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
             </div>
           </Link>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '8rem' }}>
-            <div style={{ width: '100%', maxWidth: 950, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 4rem)' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '6rem' }}>
+            <div style={{ width: '100%', maxWidth: 950, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 8rem)', minHeight: '400px' }}>
               {/* Unified chat area and search bar */}
-              <div style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)'}}>
-                <div ref={chatScrollRef} style={{flex: 1, overflowY: 'scroll', overflowX: 'hidden', marginBottom: 0, paddingBottom: '2rem', minHeight: 0, paddingTop: '0.5rem'}}>
-                  <Chat messages={messages} />
+              <div style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)', position: 'relative'}}>
+                <div ref={chatScrollRef} className="chat-scroll-area" style={{flex: 1, overflowY: 'scroll', overflowX: 'hidden', marginBottom: '4rem', paddingBottom: '0.5rem', minHeight: 0, paddingTop: '0.5rem'}}>                      <Chat messages={messages} />
                   {/* Remove or reduce margin below chat */}
                   <div style={{ marginTop: '0.5rem' }}>
                     {results.map((res, idx) => (
@@ -81,7 +102,7 @@ const App = () => {
                     ))}
                   </div>
                 </div>
-                <div style={{width: '100%', position: 'sticky', bottom: '1rem', background: 'transparent', zIndex: 10}}>
+                <div style={{position: 'absolute', bottom: '0', left: '0', right: '0', background: 'transparent', padding: '0.5rem', zIndex: 15}}>
                   <SearchBar value={query} onChange={e => setQuery(e.target.value)} onSubmit={handleSearch} />
                 </div>
               </div>

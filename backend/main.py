@@ -6,6 +6,7 @@ import re
 import asyncio
 import json
 import time
+from datetime import datetime
 
 # Add the current directory to Python path for Render deployment
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -194,25 +195,24 @@ Would you like to know about specific historical sites or districts?"""
 
 Ask me about specific areas or activities for more detailed information!"""
 
-    # Default response for other queries
+    # Default response for unclear queries
     else:
-        return f"""🏙️ **Welcome to Istanbul!**
+        # Check if the input is very short or unclear
+        if len(user_input.strip()) < 3 or not any(char.isalpha() for char in user_input):
+            return "Sorry, I couldn't understand. Can you type again?"
+        
+        return f"""Sorry, I couldn't understand your request about "{user_input}". Can you type again?
 
-I'd love to help you explore Istanbul! You asked about: "{user_input}"
+I can help you with:
 
-I can provide detailed information about:
+🍽️ **Restaurants** - "restaurants in Kadıköy" or "Turkish cuisine"
+🏛️ **Museums & Attractions** - "museums in Istanbul" or "Hagia Sophia"
+🏘️ **Districts** - "best neighborhoods" or "Sultanahmet area"
+🚇 **Transportation** - "how to get around" or "metro system"
+🛍️ **Shopping** - "Grand Bazaar" or "where to shop"
+� **Nightlife** - "best bars" or "Beyoğlu nightlife"
 
-🍽️ **Food & Restaurants** - Traditional dishes, dining spots
-🏛️ **History & Culture** - Byzantine, Ottoman heritage
-🕌 **Attractions** - Mosques, museums, landmarks  
-🏘️ **Neighborhoods** - Sultanahmet, Beyoğlu, Kadıköy
-🚇 **Transportation** - Metro, ferry, getting around
-🛍️ **Shopping** - Bazaars, markets, what to buy
-🌤️ **Travel Tips** - Weather, timing, local customs
-
-Please ask me something more specific about Istanbul, and I'll give you detailed guidance!
-
-*Note: My AI features are temporarily limited, but I have extensive knowledge about Istanbul to help you.*"""
+Please ask me something more specific about Istanbul!"""
 
 # Routers
 app.include_router(museums.router)
@@ -222,6 +222,32 @@ app.include_router(places.router)
 @app.get("/")
 def root():
     return {"message": "Welcome to AIstanbul API"}
+
+@app.post("/feedback")
+async def receive_feedback(request: Request):
+    """Endpoint to receive user feedback on AI responses"""
+    try:
+        feedback_data = await request.json()
+        
+        # Log feedback to console for observation
+        print(f"\n📊 FEEDBACK RECEIVED at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Type: {feedback_data.get('feedbackType', 'unknown')}")
+        print(f"Query: {feedback_data.get('userQuery', 'N/A')}")
+        print(f"Response: {feedback_data.get('messageText', '')[:100]}...")
+        print(f"Session: {feedback_data.get('sessionId', 'N/A')}")
+        print("-" * 50)
+        
+        # You could store this in a database here
+        # For now, we just acknowledge receipt
+        return {
+            "status": "success",
+            "message": "Feedback received",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error processing feedback: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.post("/ai")
 async def ai_istanbul_router(request: Request):
@@ -246,7 +272,8 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants',  # Add basic words first
+                'restaurant', 'restaurants', 'restarunt', 'restarunts',  # Add basic words and common misspellings first
+                'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
                 'where to eat', 'best restaurants', 'good restaurants', 'top restaurants',
                 'food places', 'places to eat', 'good places to eat', 'where can I eat',
@@ -268,6 +295,13 @@ async def ai_istanbul_router(request: Request):
             # Enhanced location-based restaurant detection
             location_restaurant_patterns = [
                 r'restaurants?\s+in\s+\w+',  # "restaurants in taksim"
+                r'restaurant\s+in\s+\w+',   # "restaurant in taksim"
+                r'restarunts?\s+in\s+\w+',   # "restarunt in taksim" - common misspelling
+                r'restarunt\s+in\s+\w+',    # "restarunt in taksim" - common misspelling
+                r'resturant\s+in\s+\w+',    # Common misspelling
+                r'restrnt\s+in\s+\w+',      # Abbreviated form
+                r'estrnt\s+in\s+\w+',       # Abbreviated form
+                r'restrant\s+in\s+\w+',     # Common misspelling
                 r'restaurants?\s+near\s+\w+',  # "restaurants near galata"
                 r'restaurants?\s+around\s+\w+',  # "restaurants around sultanahmet"
                 r'eat\s+in\s+\w+',  # "eat in beyoglu"
@@ -375,8 +409,11 @@ async def ai_istanbul_router(request: Request):
             # More specific matching for different query types - prioritize restaurant queries
             is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
             
-            # Only consider it a district query if it's NOT a restaurant query
-            is_district_query = any(keyword in user_input.lower() for keyword in district_keywords) and not is_restaurant_query
+            # Only consider it a district query if it's NOT a restaurant query and NOT a location-based query
+            is_district_query = (any(keyword in user_input.lower() for keyword in district_keywords) and 
+                               not is_restaurant_query and 
+                               not is_location_restaurant_query and 
+                               not is_location_place_query)
             
             is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
             is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords) or is_location_place_query
@@ -846,7 +883,7 @@ When users ask about attractions, museums, or districts, use your knowledge of I
             
     except Exception as e:
         print(f"Error in AI endpoint: {e}")
-        return {"message": "Sorry, I encountered an error. Please try again."}
+        return {"message": "Sorry, I couldn't understand. Can you type again?"}
         
     except Exception as e:
         return {"error": "Internal server error", "details": str(e)}

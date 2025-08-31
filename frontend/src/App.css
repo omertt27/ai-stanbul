@@ -104,7 +104,7 @@ body {
   background: linear-gradient(135deg, #141620 0%, #1e2134 100%);
   /* Enhanced curved design for modern look */
   border-radius: 2rem 2rem 0 0;
-  box-shadow: 0 -4px 20px 0 rgba(20, 20, 40, 0.25);
+  box-shadow: 0 -4px 20px 0 rgba(26, 26, 54, 0.25);
   padding: 0.5rem 1.5rem 0.5rem 1.5rem;
   margin-bottom: 0;
   display: flex;
@@ -407,7 +407,7 @@ body {
 /* Chatbot outline across top */
 .chatbot-outline {
   position: fixed;
-  top: 7rem;
+  top: 5rem;
   left: 0;
   right: 0;
   height: 3px;
@@ -423,6 +423,39 @@ body {
   opacity: 0.8;
   background: linear-gradient(90deg, transparent 0%, #818cf8 10%, #6366f1 90%, transparent 100%);
   border-radius: 0 0 60px 60px;
+}
+
+/* Custom scrollbar styling for chat area */
+.chat-scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.chat-scroll-area:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.chat-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scroll-area::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.chat-scroll-area:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.chat-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Responsive navigation for mobile */
