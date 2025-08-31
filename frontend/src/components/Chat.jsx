@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const CopyButton = ({ text }) => {
   const [copied, setCopied] = useState(false);
-  
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(text);
@@ -13,6 +13,8 @@ const CopyButton = ({ text }) => {
     }
   };
 
+  const isLightMode = document.body.classList.contains('light');
+
   return (
     <button
       onClick={handleCopy}
@@ -20,7 +22,7 @@ const CopyButton = ({ text }) => {
       style={{
         background: 'transparent',
         border: 'none',
-        color: copied ? '#10b981' : '#6b7280',
+        color: copied ? '#10b981' : (isLightMode ? '#9ca3af' : '#6b7280'),
         padding: '0.5rem',
         borderRadius: '0.5rem',
         cursor: 'pointer',
@@ -35,15 +37,15 @@ const CopyButton = ({ text }) => {
       }}
       onMouseOver={(e) => {
         if (!copied) {
-          e.target.style.background = 'rgba(129, 140, 248, 0.1)';
-          e.target.style.color = '#818cf8';
+          e.target.style.background = isLightMode ? 'rgba(229, 231, 235, 0.5)' : 'rgba(58, 59, 61, 0.3)';
+          e.target.style.color = '#6366f1';
           e.target.style.transform = 'scale(1.05)';
         }
       }}
       onMouseOut={(e) => {
         if (!copied) {
           e.target.style.background = 'transparent';
-          e.target.style.color = '#6b7280';
+          e.target.style.color = isLightMode ? '#9ca3af' : '#6b7280';
           e.target.style.transform = 'scale(1)';
         }
       }}
@@ -73,6 +75,8 @@ const ActionButtons = ({ text }) => {
     }
   };
 
+  const isLightMode = document.body.classList.contains('light');
+
   return (
     <div style={{
       display: 'flex',
@@ -88,7 +92,7 @@ const ActionButtons = ({ text }) => {
         style={{
           background: 'transparent',
           border: 'none',
-          color: '#6b7280',
+          color: isLightMode ? '#9ca3af' : '#6b7280',
           padding: '0.5rem',
           borderRadius: '0.5rem',
           cursor: 'pointer',
@@ -102,13 +106,13 @@ const ActionButtons = ({ text }) => {
           minWidth: '2rem'
         }}
         onMouseOver={(e) => {
-          e.target.style.background = 'rgba(129, 140, 248, 0.1)';
-          e.target.style.color = '#818cf8';
+          e.target.style.background = isLightMode ? 'rgba(229, 231, 235, 0.5)' : 'rgba(58, 59, 61, 0.3)';
+          e.target.style.color = '#6366f1';
           e.target.style.transform = 'scale(1.05)';
         }}
         onMouseOut={(e) => {
           e.target.style.background = 'transparent';
-          e.target.style.color = '#6b7280';
+          e.target.style.color = isLightMode ? '#9ca3af' : '#6b7280';
           e.target.style.transform = 'scale(1)';
         }}
       >
@@ -166,24 +170,26 @@ const formatMessage = (text, isUser = false) => {
                 }
               };
               
+              const isLightMode = document.body.classList.contains('light');
+              
               return (
                 <div key={idx} style={{
-                  background: 'rgba(129, 140, 248, 0.08)',
+                  background: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(30, 31, 33, 0.7)',
                   padding: '0.75rem 1rem',
                   borderRadius: '0.5rem',
-                  border: '1px solid rgba(129, 140, 248, 0.15)'
+                  border: isLightMode ? '1px solid rgba(229, 231, 235, 0.8)' : '1px solid rgba(58, 59, 61, 0.5)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
-                    <h4 style={{ margin: 0, color: '#f3f4f6', fontSize: '1rem', fontWeight: '600' }}>
+                    <h4 style={{ margin: 0, color: isLightMode ? '#1f2937' : '#f3f4f6', fontSize: '1rem', fontWeight: '600' }}>
                       {name.trim()}
                     </h4>
-                    <span style={{ color: '#a3a7c2', fontSize: '0.9rem' }}>{price}</span>
+                    <span style={{ color: isLightMode ? '#6b7280' : '#a3a7c2', fontSize: '0.9rem' }}>{price}</span>
                   </div>
                   
                   {/* Restaurant info sentence */}
                   <p style={{ 
                     margin: '0.5rem 0', 
-                    color: '#c9d1d9', 
+                    color: isLightMode ? '#4b5563' : '#c9d1d9', 
                     fontSize: '0.85rem', 
                     lineHeight: '1.4',
                     fontStyle: 'italic'
@@ -192,7 +198,7 @@ const formatMessage = (text, isUser = false) => {
                   </p>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#e5e7eb', fontSize: '0.9rem' }}>{rating}</span>
+                    <span style={{ color: isLightMode ? '#374151' : '#e5e7eb', fontSize: '0.9rem' }}>{rating}</span>
                     <a 
                       href={url} 
                       target="_blank" 
@@ -203,11 +209,11 @@ const formatMessage = (text, isUser = false) => {
                         fontSize: '0.85rem',
                         padding: '0.25rem 0.5rem',
                         borderRadius: '0.25rem',
-                        background: 'rgba(129, 140, 248, 0.15)',
+                        background: isLightMode ? 'rgba(229, 231, 235, 0.5)' : 'rgba(58, 59, 61, 0.3)',
                         transition: 'background 0.2s'
                       }}
-                      onMouseOver={(e) => e.target.style.background = 'rgba(129, 140, 248, 0.25)'}
-                      onMouseOut={(e) => e.target.style.background = 'rgba(129, 140, 248, 0.15)'}
+                      onMouseOver={(e) => e.target.style.background = isLightMode ? 'rgba(229, 231, 235, 0.8)' : 'rgba(58, 59, 61, 0.5)'}
+                      onMouseOut={(e) => e.target.style.background = isLightMode ? 'rgba(229, 231, 235, 0.5)' : 'rgba(58, 59, 61, 0.3)'}
                     >
                       📍 View on Maps
                     </a>

@@ -20,6 +20,67 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
+def clean_text_formatting(text):
+    """Remove emojis, hashtags, and markdown formatting from text"""
+    if not text:
+        return text
+    
+    # Remove emojis (Unicode emoji ranges)
+    import re
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"  # dingbats
+        u"\U000024C2-\U0001F251"
+        u"\U0001F900-\U0001F9FF"  # supplemental symbols
+        u"\U0001FA70-\U0001FAFF"  # symbols and pictographs extended-a
+        u"\U00002600-\U000026FF"  # miscellaneous symbols
+        u"\U00002700-\U000027BF"  # dingbats
+        "]+", flags=re.UNICODE)
+    
+    text = emoji_pattern.sub(r'', text)
+    
+    # Remove markdown formatting
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold**
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic*
+    text = re.sub(r'#+ ', '', text)               # Remove hashtags at start of lines
+    text = re.sub(r' #\w+', '', text)             # Remove hashtags in text
+    
+    # Clean up extra whitespace
+    text = ' '.join(text.split())
+    
+    return text.strip()
+
+def generate_restaurant_info(restaurant_name, location="Istanbul"):
+    """Generate a brief, plain-text description for a restaurant based on its name"""
+    name_lower = restaurant_name.lower()
+    
+    # Common Turkish restaurant types and food indicators
+    if any(word in name_lower for word in ['kebap', 'kebab', 'çiğ köfte', 'döner', 'dürüm']):
+        return "A popular kebab restaurant serving traditional Turkish grilled meats and specialties."
+    elif any(word in name_lower for word in ['pizza', 'pizzeria', 'italian']):
+        return "An Italian restaurant specializing in authentic pizzas and Mediterranean cuisine."
+    elif any(word in name_lower for word in ['sushi', 'japanese', 'asian']):
+        return "A Japanese restaurant offering fresh sushi and traditional Asian dishes."
+    elif any(word in name_lower for word in ['burger', 'american', 'grill']):
+        return "A casual dining spot known for burgers, grilled foods, and American-style cuisine."
+    elif any(word in name_lower for word in ['cafe', 'kahve', 'coffee']):
+        return "A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere."
+    elif any(word in name_lower for word in ['balık', 'fish', 'seafood', 'deniz']):
+        return "A seafood restaurant featuring fresh fish and Mediterranean coastal cuisine."
+    elif any(word in name_lower for word in ['ev yemeği', 'lokanta', 'traditional']):
+        return "A traditional Turkish restaurant serving home-style cooking and local specialties."
+    elif any(word in name_lower for word in ['meze', 'rakı', 'taverna']):
+        return "A traditional meze restaurant offering small plates and Turkish appetizers."
+    elif any(word in name_lower for word in ['pastane', 'tatlı', 'dessert', 'bakery']):
+        return "A bakery and dessert shop known for Turkish sweets and fresh pastries."
+    elif any(word in name_lower for word in ['steakhouse', 'et', 'meat']):
+        return "A steakhouse specializing in premium cuts of meat and grilled dishes."
+    else:
+        return "A well-regarded restaurant offering quality dining and local cuisine."
+
 app = FastAPI(title="AIstanbul API")
 
 # Add CORS middleware
@@ -455,24 +516,35 @@ async def ai_istanbul_router(request: Request):
                     places_data = search_restaurants(search_location, user_input)
                     
                     if places_data.get('results'):
-                        restaurants_info = f"### 🍽️ Here are restaurants I found{' in ' + search_location.split(',')[0] if 'Istanbul' not in search_location else ' in Istanbul'}:\n\n"
+                        restaurants_info = f"Here are restaurants I found{' in ' + search_location.split(',')[0] if 'Istanbul' not in search_location else ' in Istanbul'}:\n\n"
                         for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
                             name = place.get('name', 'Unknown')
                             rating = place.get('rating', 'N/A')
                             price_level = place.get('price_level', 'N/A')
                             place_id = place.get('place_id', '')
                             maps_link = f"https://www.google.com/maps/place/?q=place_id:{place_id}" if place_id else "N/A"
-                            # Convert price_level to emoji
+                            
+                            # Generate brief info about the restaurant based on name and location
+                            restaurant_info = generate_restaurant_info(name, search_location)
+                            
+                            # Convert price_level to text
                             if price_level != 'N/A' and isinstance(price_level, int):
-                                price_emoji = '💲' * price_level
+                                price_text = f"Price level: {price_level}/4"
                             elif price_level != 'N/A' and str(price_level).isdigit():
-                                price_emoji = '💲' * int(price_level)
+                                price_text = f"Price level: {price_level}/4"
                             else:
-                                price_emoji = ''
-                            restaurants_info += f"{i+1}. **{name}**  \n"
-                            restaurants_info += f"   ⭐ {rating}/5\t{price_emoji}  \n"
-                            restaurants_info += f"   [View on Google Maps]({maps_link})\n\n"
-                        return {"message": restaurants_info}
+                                price_text = ''
+                            
+                            restaurants_info += f"{i+1}. {name}\n"
+                            restaurants_info += f"   {restaurant_info}\n"
+                            restaurants_info += f"   Rating: {rating}/5"
+                            if price_text:
+                                restaurants_info += f" - {price_text}"
+                            restaurants_info += f"\n   View on Google Maps: {maps_link}\n\n"
+                        
+                        # Clean the response from any emojis, hashtags, or markdown
+                        clean_response = clean_text_formatting(restaurants_info)
+                        return {"message": clean_response}
                     else:
                         return {"message": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
                         
@@ -871,12 +943,17 @@ When users ask about attractions, museums, or districts, use your knowledge of I
                     
                     ai_response = response.choices[0].message.content
                     print(f"OpenAI response: {ai_response[:100]}...")
-                    return {"message": ai_response}
+                    # Clean the response from any emojis, hashtags, or markdown
+                    clean_response = clean_text_formatting(ai_response)
+                    return {"message": clean_response}
                     
                 except Exception as e:
                     print(f"OpenAI API error: {e}")
                     # Smart fallback response based on user input
-                    return {"message": create_fallback_response(user_input, places)}
+                    fallback_response = create_fallback_response(user_input, places)
+                    # Clean the fallback response as well
+                    clean_response = clean_text_formatting(fallback_response)
+                    return {"message": clean_response}
         
         finally:
             db.close()

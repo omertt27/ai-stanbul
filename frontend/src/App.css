@@ -79,17 +79,28 @@
   position: sticky;
   bottom: 0;
   z-index: 10;
-  background: #23263a;
+  background: #1a1b1d;
   padding-bottom: 1.5rem;
   border-bottom-left-radius: 1.5rem;
   border-bottom-right-radius: 1.5rem;
 }
 
+/* Light mode searchbar */
+body.light .searchbar {
+  background: #f1f5f9;
+}
+
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, #181a20 0%, #23263a 100%);
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
   color: #e5e7eb;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Light mode override */
+body.light {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  color: #1f2937;
 }
 
 #root {
@@ -101,15 +112,21 @@ body {
 }
 
 .chat-container {
-  background: linear-gradient(135deg, #141620 0%, #1e2134 100%);
+  background: linear-gradient(135deg, #0e0f10 0%, #171819 100%);
   /* Enhanced curved design for modern look */
   border-radius: 2rem 2rem 0 0;
-  box-shadow: 0 -4px 20px 0 rgba(26, 26, 54, 0.25);
+  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.4);
   padding: 0.5rem 1.5rem 0.5rem 1.5rem;
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* Light mode chat container */
+body.light .chat-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  box-shadow: 0 -4px 20px 0 rgba(0, 0, 0, 0.1);
 }
 
 .message-row {
@@ -134,14 +151,22 @@ body {
   border-bottom-right-radius: 0.25rem;
 }
 .message-bubble.bot {
-  background: rgba(35, 38, 58, 0.85);
+  background: rgba(25, 26, 28, 0.9);
   color: #f3f4f6;
   margin-right: auto;
   border-bottom-left-radius: 0.25rem;
-  border: 1px solid #353a50;
-  box-shadow: 0 2px 8px 0 rgba(80, 80, 180, 0.10);
+  border: 1px solid #3a3b3d;
+  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.15);
   max-width: 85%;
   line-height: 1.5;
+}
+
+/* Light mode bot messages */
+body.light .message-bubble.bot {
+  background: rgba(255, 255, 255, 0.9);
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
 }
 
 .chat-title {
@@ -166,11 +191,18 @@ body {
   flex: 1;
   padding: 0.75rem 1rem;
   border-radius: 1rem;
-  border: 1px solid #353a50;
+  border: 1px solid #3a3b3d;
   font-size: 1rem;
-  background: #23263a;
+  background: #1a1b1d;
   color: #e5e7eb;
   transition: border 0.2s;
+}
+
+/* Light mode input */
+body.light .searchbar input {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
 }
 .searchbar input:focus {
   border: 1.5px solid #6366f1;
@@ -213,21 +245,28 @@ body {
 }
 
 /* Navigation styles */
+.nav-container.dark {
+  background: rgba(15, 16, 17, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Default dark navigation */
 .nav-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(15, 16, 17, 0.98);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s ease;
 }
 
-.nav-container.dark {
-  background: rgba(17, 24, 39, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+/* Light mode navigation */
+body.light .nav-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .nav-content {
@@ -242,9 +281,14 @@ body {
 .nav-logo {
   font-size: 1.25rem;
   font-weight: bold;
-  color: #1f2937;
+  color: #ffffff;
   text-decoration: none;
   transition: color 0.3s ease;
+}
+
+/* Light mode logo */
+body.light .nav-logo {
+  color: #1f2937;
 }
 
 .nav-logo.dark {
@@ -260,7 +304,7 @@ body {
 }
 
 .nav-link {
-  color: #6b7280;
+  color: #9ca3af;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.3s ease;
@@ -268,10 +312,20 @@ body {
 }
 
 .nav-link:hover {
-  color: #3b82f6;
+  color: #60a5fa;
 }
 
 .nav-link.active {
+  color: #60a5fa;
+}
+
+/* Light mode nav links */
+body.light .nav-link {
+  color: #6b7280;
+}
+
+body.light .nav-link:hover,
+body.light .nav-link.active {
   color: #3b82f6;
 }
 
@@ -294,12 +348,18 @@ body {
 .static-page {
   min-height: 100vh;
   padding: 5rem 2rem 2rem;
-  background: linear-gradient(135deg, #181a20 0%, #23263a 100%) !important;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important;
   color: #e5e7eb !important;
   line-height: 1.6;
   text-align: left;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Light mode static pages */
+body.light .static-page {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+  color: #1f2937 !important;
 }
 
 .static-page.dark {
@@ -332,6 +392,11 @@ body {
   font-weight: 600;
 }
 
+/* Light mode h2 */
+body.light .static-page h2 {
+  color: #374151 !important;
+}
+
 .static-page.dark h2 {
   color: #c7c9e2 !important;
   font-weight: 600;
@@ -341,6 +406,11 @@ body {
   margin-bottom: 1rem;
   color: #a3a7c2 !important;
   font-size: 1.1rem;
+}
+
+/* Light mode paragraphs */
+body.light .static-page p {
+  color: #4b5563 !important;
 }
 
 .static-page.dark p {
@@ -357,6 +427,11 @@ body {
   margin-bottom: 0.5rem;
   color: #a3a7c2 !important;
   font-size: 1.05rem;
+}
+
+/* Light mode list items */
+body.light .static-page li {
+  color: #4b5563 !important;
 }
 
 .static-page.dark li {
@@ -391,6 +466,12 @@ body {
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Light mode code */
+body.light .static-page code {
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .static-page.dark code {
@@ -537,13 +618,20 @@ body {
   display: flex;
   gap: 0.25rem;
   align-items: center;
-  background: #23263a;
-  border-top: 1.5px solid #353a50;
+  background: #1a1b1d;
+  border-top: 1.5px solid #3a3b3d;
   border-bottom-left-radius: 1.5rem;
   border-bottom-right-radius: 1.5rem;
-  box-shadow: 0 -2px 16px 0 rgba(20,20,40,0.10);
+  box-shadow: 0 -2px 16px 0 rgba(10,10,10,0.20);
   padding: 0.75rem 1rem 0.75rem 1rem;
   margin-bottom: 0;
+}
+
+/* Light mode searchbar bottom */
+body.light .searchbar {
+  background: #f1f5f9;
+  border-top: 1.5px solid #d1d5db;
+  box-shadow: 0 -2px 16px 0 rgba(0,0,0,0.1);
 }
 
 @media (min-width: 600px) {
