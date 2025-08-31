@@ -259,7 +259,7 @@ const Chat = ({ messages }) => (
             maxWidth: '100%'
           }}>
             <div style={{
-              maxWidth: '70%',
+              maxWidth: '55%',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               padding: '0.75rem 1rem',

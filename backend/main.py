@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from fuzzywuzzy import fuzz, process
 
 # --- Project Imports ---
 from database import engine, SessionLocal
@@ -36,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # (Removed duplicate project imports and load_dotenv)
 
 def clean_text_formatting(text):
-    """Remove emojis, hashtags, and markdown formatting from text"""
+    """Remove emojis, hashtags, and markdown formatting from text while preserving line breaks"""
     if not text:
         return text
     
@@ -62,8 +63,10 @@ def clean_text_formatting(text):
     text = re.sub(r'#+ ', '', text)               # Remove hashtags at start of lines
     text = re.sub(r' #\w+', '', text)             # Remove hashtags in text
     
-    # Clean up extra whitespace
-    text = ' '.join(text.split())
+    # Clean up extra whitespace but preserve line breaks
+    lines = text.split('\n')
+    cleaned_lines = [' '.join(line.split()) for line in lines]
+    text = '\n'.join(cleaned_lines)
     
     return text.strip()
 
@@ -291,6 +294,131 @@ I can help you with:
 
 Please ask me something more specific about Istanbul!"""
 
+def create_fuzzy_keywords():
+    """Create a comprehensive list of keywords for fuzzy matching"""
+    keywords = {
+        # Location names and variations
+        'locations': [
+            'kadikoy', 'kadıköy', 'sultanahmet', 'beyoglu', 'beyoğlu', 'galata', 
+            'taksim', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'fatih', 
+            'sisli', 'şişli', 'karakoy', 'karaköy', 'ortakoy', 'ortaköy', 
+            'bebek', 'arnavutkoy', 'arnavutköy', 'balat', 'fener', 'eminonu', 
+            'eminönü', 'bakirkoy', 'bakırköy', 'maltepe', 'istanbul', 'instanbul'
+        ],
+        # Query types and variations
+        'places': [
+            'places', 'place', 'plases', 'plases', 'plase', 'spots', 'locations', 'areas'
+        ],
+        'restaurants': [
+            'restaurants', 'restaurant', 'restourant', 'resturant', 'food', 
+            'eat', 'dining', 'eatery', 'cafe', 'cafes'
+        ],
+        'attractions': [
+            'attractions', 'attraction', 'atraction', 'sights', 'sites', 
+            'tourist', 'visit', 'see', 'things to do', 'activities'
+        ],
+        'museums': [
+            'museums', 'museum', 'musem', 'gallery', 'galleries', 'art', 
+            'culture', 'cultural', 'history', 'historical'
+        ],
+        'nightlife': [
+            'nightlife', 'night', 'bars', 'bar', 'clubs', 'club', 'party', 
+            'drinks', 'entertainment'
+        ],
+        'shopping': [
+            'shopping', 'shop', 'shops', 'market', 'markets', 'bazaar', 
+            'bazaars', 'mall', 'malls', 'store', 'stores'
+        ],
+        'transport': [
+            'transport', 'transportation', 'metro', 'bus', 'taxi', 'travel', 
+            'getting around', 'how to get'
+        ]
+    }
+    return keywords
+
+def correct_typos(text, threshold=80):
+    """Correct typos in user input using fuzzy matching"""
+    try:
+        keywords = create_fuzzy_keywords()
+        words = text.lower().split()
+        corrected_words = []
+        
+        # Common words that should not be corrected
+        stop_words = {'in', 'to', 'at', 'on', 'for', 'with', 'by', 'from', 'up', 
+                     'about', 'into', 'through', 'during', 'before', 'after', 
+                     'above', 'below', 'between', 'among', 'a', 'an', 'the', 
+                     'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 
+                     'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+                     'what', 'where', 'when', 'how', 'why', 'which', 'who', 'whom'}
+        
+        for word in words:
+            # Skip common stop words
+            if word.lower() in stop_words:
+                corrected_words.append(word)
+                continue
+                
+            best_match = None
+            best_score = 0
+            best_category = None
+            
+            # Check each category of keywords
+            for category, keyword_list in keywords.items():
+                match = process.extractOne(word, keyword_list)
+                if match and match[1] > best_score and match[1] >= threshold:
+                    best_match = match[0]
+                    best_score = match[1]
+                    best_category = category
+            
+            if best_match and best_score >= threshold:
+                corrected_words.append(best_match)
+                print(f"Typo correction: '{word}' -> '{best_match}' (score: {best_score}, category: {best_category})")
+            else:
+                corrected_words.append(word)
+        
+        corrected_text = ' '.join(corrected_words)
+        return corrected_text
+    except Exception as e:
+        print(f"Error in typo correction: {e}")
+        return text
+
+def enhance_query_understanding(user_input):
+    """Enhance query understanding by correcting typos and adding context"""
+    try:
+        # First correct typos
+        corrected_input = correct_typos(user_input)
+        
+        # Add common query pattern recognition
+        enhanced_input = corrected_input.lower()
+        
+        # Handle common patterns and add missing words
+        patterns = [
+            # "kadikoy restaurant" -> "restaurants in kadikoy"
+            (r'^(\w+)\s+(restaurant|food|eat)$', r'restaurants in \1'),
+            # "kadikoy place" -> "places in kadikoy"
+            (r'^(\w+)\s+(place|spot)$', r'places in \1'),
+            # "kadikoy attraction" -> "attractions in kadikoy"
+            (r'^(\w+)\s+(attraction|sight)$', r'attractions in \1'),
+            # "kadikoy museum" -> "museums in kadikoy"
+            (r'^(\w+)\s+(museum|gallery)$', r'museums in \1'),
+            # Handle "to visit" patterns - be more specific to avoid wrong enhancements
+            (r'^(\w+)\s+to\s+visit$', r'places to visit in \1'),
+            # Handle "what in" patterns
+            (r'^what\s+(\w+)$', r'what to do in \1'),
+        ]
+        
+        for pattern, replacement in patterns:
+            match = re.search(pattern, enhanced_input)
+            if match:
+                enhanced_input = re.sub(pattern, replacement, enhanced_input)
+                print(f"Query enhancement: '{corrected_input}' -> '{enhanced_input}'")
+                break
+        
+        return enhanced_input if enhanced_input != corrected_input.lower() else corrected_input
+        
+    except Exception as e:
+        print(f"Error in query enhancement: {e}")
+        return user_input
+
 # Routers
 app.include_router(museums.router)
 app.include_router(restaurants.router)
@@ -329,10 +457,18 @@ async def receive_feedback(request: Request):
 @app.post("/ai")
 async def ai_istanbul_router(request: Request):
     data = await request.json()
-    user_input = data.get("user_input", "")
+    user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
     
     try:
         # Debug logging
+        print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
+        
+        # Correct typos and enhance query understanding
+        enhanced_user_input = enhance_query_understanding(user_input)
+        print(f"Enhanced user_input: '{enhanced_user_input}'")
+        
+        # Use enhanced input for processing
+        user_input = enhanced_user_input
         print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
 
         # --- OpenAI API Key Check ---
@@ -347,7 +483,8 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restarunt', 'restarunts',  # Add basic words and common misspellings first
+                'restaurant', 'restaurants', 'restourant', 'restourants',  # Include corrected typos
+                'restarunt', 'restarunts',  # Add basic words and common misspellings first
                 'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
                 'where to eat', 'best restaurants', 'good restaurants', 'top restaurants',
@@ -391,6 +528,16 @@ async def ai_istanbul_router(request: Request):
                 'topkapi', 'hagia sophia', 'dolmabahce', 'istanbul modern',
                 'pera museum', 'sakip sabanci', 'rahmi koc museum', 'museum recommendations',
                 'which museums', 'best museums', 'must see museums', 'famous museums'
+            ]
+            
+            # Add regex patterns for location-based museum queries
+            location_museum_patterns = [
+                r'museums?\s+in\s+\w+',      # "museums in beyoglu"
+                r'museum\s+in\s+\w+',       # "museum in taksim"  
+                r'give\s+me\s+museums?\s+in\s+\w+',  # "give me museums in beyoglu"
+                r'show\s+me\s+museums?\s+in\s+\w+',  # "show me museums in galata"
+                r'museums?\s+near\s+\w+',    # "museums near galata"
+                r'museums?\s+around\s+\w+',  # "museums around sultanahmet"
             ]
             district_keywords = [
                 'list districts', 'show districts', 'district list', 'neighborhoods in istanbul',
@@ -465,23 +612,39 @@ async def ai_istanbul_router(request: Request):
                 r'go\s+in\s+\w+',  # "go in fatih"
                 r'\w+\s+attractions',  # "kadikoy attractions"
                 r'what.*in\s+\w+',  # "what to do in beyoglu"
+                r'\w+\s+places?\s+to\s+visit',  # "kadikoy places to visit"
+                r'\w+\s+to\s+places?\s+to\s+visit',  # "kadikoy to places to visit" - double "to" pattern
+                r'\w+\s+to\s+visit',  # "kadikoy to visit"
+                r'places?\s+to\s+visit\s+in\s+\w+',  # "places to visit in kadikoy"
+                r'visit\s+\w+\s+places?',  # "visit kadikoy places"
             ]
             
             # Check if query matches location-based patterns
             is_location_restaurant_query = any(re.search(pattern, user_input.lower()) for pattern in location_restaurant_patterns)
             is_location_place_query = any(re.search(pattern, user_input.lower()) for pattern in location_place_patterns)
+            is_location_museum_query = any(re.search(pattern, user_input.lower()) for pattern in location_museum_patterns)
             
-            # More specific matching for different query types - prioritize restaurant queries
+            # Check if query is just a single district name (should show places in that district)
+            single_district_names = ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'uskudar',
+                                   'fatih', 'sisli', 'taksim', 'karakoy', 'ortakoy', 'bebek', 'arnavutkoy',
+                                   'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe']
+            is_single_district_query = (user_input.lower().strip() in single_district_names)
+            
+            # More specific matching for different query types - prioritize restaurant and museum queries
             is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
+            is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
             
-            # Only consider it a district query if it's NOT a restaurant query and NOT a location-based query
+            # Only consider it a district query if it's NOT a restaurant, museum, or location-based query and NOT a single district name
             is_district_query = (any(keyword in user_input.lower() for keyword in district_keywords) and 
                                not is_restaurant_query and 
+                               not is_museum_query and
                                not is_location_restaurant_query and 
-                               not is_location_place_query)
+                               not is_location_place_query and
+                               not is_location_museum_query and
+                               not is_single_district_query)
             
-            is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
-            is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords) or is_location_place_query
+            is_attraction_query = (any(keyword in user_input.lower() for keyword in attraction_keywords) or 
+                                 is_location_place_query or is_single_district_query)
             is_shopping_query = any(keyword in user_input.lower() for keyword in shopping_keywords)
             is_transportation_query = any(keyword in user_input.lower() for keyword in transportation_keywords)
             is_nightlife_query = any(keyword in user_input.lower() for keyword in nightlife_keywords)
@@ -496,6 +659,8 @@ async def ai_istanbul_router(request: Request):
             print(f"  is_district_query: {is_district_query}")
             print(f"  is_attraction_query: {is_attraction_query}")
             print(f"  is_location_place_query: {is_location_place_query}")
+            print(f"  is_location_museum_query: {is_location_museum_query}")
+            print(f"  is_single_district_query: {is_single_district_query}")
             
             if is_restaurant_query:
                 # Get real restaurant data from Google Maps only
@@ -520,33 +685,38 @@ async def ai_istanbul_router(request: Request):
                     places_data = search_restaurants(search_location, user_input)
                     
                     if places_data.get('results'):
-                        restaurants_info = f"Here are restaurants I found{' in ' + search_location.split(',')[0] if 'Istanbul' not in search_location else ' in Istanbul'}:\n\n"
+                        location_text = search_location.split(',')[0] if 'Istanbul' not in search_location else 'Istanbul'
+                        restaurants_info = f"Here are some great restaurants in {location_text}:\n\n"
+                        
                         for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
                             name = place.get('name', 'Unknown')
                             rating = place.get('rating', 'N/A')
                             price_level = place.get('price_level', 'N/A')
-                            place_id = place.get('place_id', '')
-                            maps_link = f"https://www.google.com/maps/place/?q=place_id:{place_id}" if place_id else "N/A"
+                            address = place.get('formatted_address', '')
                             
                             # Generate brief info about the restaurant based on name and location
                             restaurant_info = generate_restaurant_info(name, search_location)
                             
-                            # Convert price_level to text
+                            # Format price level more user-friendly
+                            price_text = ''
                             if price_level != 'N/A' and isinstance(price_level, int):
-                                price_text = f"Price level: {price_level}/4"
-                            elif price_level != 'N/A' and str(price_level).isdigit():
-                                price_text = f"Price level: {price_level}/4"
-                            else:
-                                price_text = ''
+                                if price_level == 1:
+                                    price_text = " • Budget-friendly"
+                                elif price_level == 2:
+                                    price_text = " • Moderate prices"
+                                elif price_level == 3:
+                                    price_text = " • Expensive"
+                                elif price_level == 4:
+                                    price_text = " • Very expensive"
                             
+                            # Format each restaurant entry with clean, readable formatting
                             restaurants_info += f"{i+1}. {name}\n"
                             restaurants_info += f"   {restaurant_info}\n"
-                            restaurants_info += f"   Rating: {rating}/5"
-                            if price_text:
-                                restaurants_info += f" - {price_text}"
-                            restaurants_info += f"\n   View on Google Maps: {maps_link}\n\n"
+                            restaurants_info += f"   Rating: {rating}/5{price_text}\n\n"
                         
-                        # Clean the response from any emojis, hashtags, or markdown
+                        restaurants_info += "Tip: You can search for these restaurants on Google Maps for directions and more details!"
+                        
+                        # Clean the response from any emojis, hashtags, or markdown if needed
                         clean_response = clean_text_formatting(restaurants_info)
                         return {"message": clean_response}
                     else:
@@ -562,26 +732,46 @@ async def ai_istanbul_router(request: Request):
                 
                 # Extract location if this is a location-specific query
                 extracted_location = None
-                if is_location_place_query:
-                    print(f"Location-based place query detected: {user_input}")
+                if is_location_place_query or is_location_museum_query:
+                    print(f"Location-based query detected: {user_input}")
                     location_patterns = [
                         r'in\s+([a-zA-Z\s]+)',
                         r'at\s+([a-zA-Z\s]+)',
                         r'around\s+([a-zA-Z\s]+)',
+                        r'near\s+([a-zA-Z\s]+)',
+                        r'^(\w+)\s+to\s+places\s+to\s+visit',  # "kadikoy to places to visit" - specific pattern first
+                        r'^(\w+)\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
+                        r'^(\w+)\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
+                        r'^([a-zA-Z\s]+?)\s+to\s+visit',  # "kadikoy to visit" - more general
+                        r'^([a-zA-Z\s]+)\s+attractions',  # "kadikoy attractions"
+                        r'visit\s+([a-zA-Z\s]+)\s+places?',  # "visit kadikoy places"
                     ]
                     for pattern in location_patterns:
                         match = re.search(pattern, user_input.lower())
                         if match:
-                            extracted_location = match.group(1).strip()
-                            print(f"Extracted location: '{extracted_location}'")
+                            location_candidate = match.group(1).strip()
+                            # Ignore "istanbul" as it's the general city, not a specific district
+                            if location_candidate.lower() != 'istanbul':
+                                extracted_location = location_candidate
+                                print(f"Extracted location: '{extracted_location}'")
+                            else:
+                                print(f"Ignored general city name: '{location_candidate}'")
                             break
+                elif is_single_district_query:
+                    # For single district names like "kadikoy", use the district name directly
+                    extracted_location = user_input.lower().strip()
+                    print(f"Single district query detected: '{extracted_location}'")
                 
                 # Filter based on query type
                 filtered_places = []
-                if is_location_place_query and extracted_location:
-                    # For location-specific queries like "place in kadikoy", include all places first
+                if (is_location_place_query or is_single_district_query) and extracted_location:
+                    # For location-specific place queries, include all places first
                     print(f"DEBUG: Using location-based filtering for '{extracted_location}'")
                     filtered_places = places
+                elif is_location_museum_query and extracted_location:
+                    # For location-specific museum queries, filter for museums first
+                    print(f"DEBUG: Using location-based museum filtering for '{extracted_location}'")
+                    filtered_places = [p for p in places if p.category and 'museum' in p.category.lower()]
                 elif is_museum_query:
                     filtered_places = [p for p in places if p.category and 'museum' in p.category.lower()]
                 elif is_district_query:
@@ -598,7 +788,7 @@ async def ai_istanbul_router(request: Request):
                             district_info += "\n"
                         return {"message": district_info}
                 else:  # general attraction query
-                    filtered_places = [p for p in places if p.category and p.category.lower() in ['historical place', 'mosque', 'church', 'park']]
+                    filtered_places = [p for p in places if p.category and p.category.lower() in ['historical place', 'mosque', 'church', 'park', 'museum', 'market', 'cultural center', 'art', 'landmark']]
                 
                 # Apply location filter if location was extracted
                 if extracted_location and filtered_places:
@@ -608,8 +798,25 @@ async def ai_istanbul_router(request: Request):
                     
                     # Normalize location name for matching (case-insensitive)
                     location_lower = extracted_location.lower()
+                    
+                    # Handle neighborhood to district mapping
+                    location_mappings = {
+                        'sultanahmet': 'fatih',  # Sultanahmet is in Fatih district
+                        'galata': 'beyoglu',     # Galata is in Beyoglu district
+                        'taksim': 'beyoglu',     # Taksim is in Beyoglu district
+                        'ortakoy': 'besiktas',   # Ortaköy is in Beşiktaş district
+                        'bebek': 'besiktas',     # Bebek is in Beşiktaş district
+                    }
+                    
+                    # Check if we need to map the location to a district
+                    if location_lower in location_mappings:
+                        district_to_search = location_mappings[location_lower]
+                        print(f"DEBUG: Mapping '{location_lower}' to district '{district_to_search}'")
+                    else:
+                        district_to_search = location_lower
+                    
                     original_count = len(filtered_places)
-                    filtered_places = [p for p in filtered_places if p.district and location_lower in p.district.lower()]
+                    filtered_places = [p for p in filtered_places if p.district and district_to_search in p.district.lower()]
                     print(f"DEBUG: After location filter: {len(filtered_places)} places (from {original_count})")
                     
                     if filtered_places:
@@ -623,9 +830,8 @@ async def ai_istanbul_router(request: Request):
                     location_text = f" in {extracted_location.title()}" if extracted_location else " in Istanbul"
                     places_info = f"Here are the {'museums' if is_museum_query else 'places'}{location_text}:\n\n"
                     for i, place in enumerate(filtered_places[:8]):  # Top 8 results
-                        places_info += f"{i+1}. **{place.name}**\n"
-                        places_info += f"   - Category: {place.category}\n"
-                        places_info += f"   - District: {place.district}\n\n"
+                        places_info += f"{i+1}. {place.name}\n"
+                        places_info += f"   Category: {place.category}\n\n"
                     return {"message": places_info}
                 else:
                     if extracted_location:
@@ -922,12 +1128,35 @@ async def ai_istanbul_router(request: Request):
                         places_context += f"- {place.name} ({place.category}) in {place.district}\n"
                 
                 # Create prompt for OpenAI
-                system_prompt = """You are an expert Istanbul travel guide AI assistant. You have access to:
+                system_prompt = """You are KAM, a friendly Istanbul travel guide AI assistant. You have access to:
 1. Real-time restaurant data from Google Maps API
 2. A database of museums, attractions, and districts in Istanbul
 
-Provide helpful, accurate, and engaging responses about Istanbul tourism, culture, history, food, and attractions. 
-Be conversational and enthusiastic about Istanbul. Use emojis appropriately.
+PERSONALITY & CONVERSATION STYLE:
+- You are conversational, friendly, and helpful
+- You can engage in casual daily conversations (greetings, how are you, weather, etc.)
+- You can answer general questions but try to relate them back to Istanbul when relevant
+- You're enthusiastic about Istanbul and love sharing knowledge about the city
+
+RESPONSE GUIDELINES:
+- For casual greetings (hello, hi, how are you), respond warmly and offer to help with Istanbul
+- For general questions, answer briefly and then steer toward Istanbul topics
+- For Istanbul-specific questions, provide detailed, helpful information
+- If someone asks about other cities, politely redirect to Istanbul while being helpful
+- Always maintain a friendly, approachable tone
+
+ISTANBUL EXPERTISE:
+- For restaurant queries, use the Google Maps API data or suggest specific areas/cuisine types
+- For Kadıköy specifically, recommend: Çiya Sofrası (traditional Turkish), Kadıköy Fish Market restaurants, Moda neighborhood cafes, and local street food
+- For attraction queries, use the database information provided
+- Share cultural insights, practical tips, and local recommendations
+- Help with transportation, districts, culture, history, and practical travel advice
+
+Example responses:
+- "Hello! I'm doing great, thanks for asking! I'm here to help you discover amazing things about Istanbul. What would you like to know?"
+- "That's an interesting question! Speaking of which, did you know Istanbul has some fascinating [related topic]? What would you like to explore in the city?"
+
+Keep responses engaging, helpful, and naturally conversational while showcasing Istanbul's wonders.
 
 When users ask about restaurants, suggest they specify what type of cuisine or area they're interested in.
 When users ask about attractions, museums, or districts, use your knowledge of Istanbul combined with the provided database."""

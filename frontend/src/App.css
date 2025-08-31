@@ -85,9 +85,9 @@
   border-bottom-right-radius: 1.5rem;
 }
 
-/* Light mode searchbar */
+/* Light mode searchbar - softer background */
 body.light .searchbar {
-  background: #f1f5f9;
+  background: #f7fafc;
 }
 
 body {
@@ -97,10 +97,10 @@ body {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 }
 
-/* Light mode override - consolidated */
+/* Light mode override - improved for readability */
 body.light {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
-  color: #1e293b !important;
+  background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%) !important;
+  color: #2d3748 !important;
 }
 
 #root {
@@ -123,12 +123,11 @@ body.light {
   gap: 0.5rem;
 }
 
-/* Light mode chat container */
-
+/* Light mode chat container - softer colors */
 .light-chat {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  box-shadow: 0 -4px 32px 0 rgba(99, 102, 241, 0.15) !important;
-  border: 2.5px solid #6366f1 !important;
+  background: linear-gradient(135deg, #fdfdfe 0%, #f7fafc 100%) !important;
+  box-shadow: 0 -8px 32px 0 rgba(99, 102, 241, 0.12) !important;
+  border: 2px solid #a5b4fc !important;
 }
 
 .message-row {
@@ -163,12 +162,12 @@ body.light {
   line-height: 1.5;
 }
 
-/* Light mode bot messages */
+/* Light mode bot messages - improved readability */
 body.light .message-bubble.bot {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 12px 0 rgba(99, 102, 241, 0.08);
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.06);
 }
 
 .chat-title {
@@ -200,17 +199,17 @@ body.light .message-bubble.bot {
   transition: border 0.2s;
 }
 
-/* Light mode input */
+/* Light mode input - softer and more comfortable */
 body.light .searchbar input {
-  border: 2px solid #e2e8f0;
-  background: #ffffff;
-  color: #334155;
-  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.1);
+  border: 1px solid #d1d5db;
+  background: #fdfdfe;
+  color: #374151;
+  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.05);
 }
 
 body.light .searchbar input:focus {
-  border: 2px solid #6366f1 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  border: 2px solid #a5b4fc !important;
+  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15) !important;
 }
 .searchbar input:focus {
   border: 1.5px solid #6366f1;
@@ -271,10 +270,10 @@ body.light .searchbar input:focus {
   transition: all 0.3s ease;
 }
 
-/* Light mode navigation */
+/* Light mode navigation - softer and easier on eyes */
 body.light .nav-container {
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(253, 253, 254, 0.95);
+  border-bottom: 1px solid rgba(209, 213, 219, 0.6);
 }
 
 .nav-content {
@@ -294,9 +293,9 @@ body.light .nav-container {
   transition: color 0.3s ease;
 }
 
-/* Light mode logo */
+/* Light mode logo - better contrast */
 body.light .nav-logo {
-  color: #1f2937;
+  color: #2d3748;
 }
 
 .nav-logo.dark {
@@ -307,8 +306,8 @@ body.light .nav-logo {
   display: flex;
   gap: 1.5rem; /* Reduced from 2rem to accommodate more links */
   list-style: none;
-  margin-left: auto;
-  margin-right: 2rem;
+  margin-left: 3rem; /* Move links to left side */
+  margin-right: auto; /* Allow space to expand on right */
 }
 
 .nav-link {
@@ -327,14 +326,14 @@ body.light .nav-logo {
   color: #60a5fa;
 }
 
-/* Light mode nav links */
+/* Light mode nav links - improved readability */
 body.light .nav-link {
-  color: #475569;
+  color: #4a5568;
 }
 
 body.light .nav-link:hover,
 body.light .nav-link.active {
-  color: #6366f1;
+  color: #667eea;
 }
 
 .nav-link.dark {
@@ -364,10 +363,10 @@ body.light .nav-link.active {
   margin: 0 auto;
 }
 
-/* Light mode static pages */
+/* Light mode static pages - softer background */
 body.light .static-page {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
-  color: #1f2937 !important;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+  color: #2d3748 !important;
 }
 
 .static-page.dark {
@@ -400,9 +399,9 @@ body.light .static-page {
   font-weight: 600;
 }
 
-/* Light mode h2 */
+/* Light mode h2 - better contrast */
 body.light .static-page h2 {
-  color: #374151 !important;
+  color: #2d3748 !important;
 }
 
 .static-page.dark h2 {
@@ -416,9 +415,9 @@ body.light .static-page h2 {
   font-size: 1.1rem;
 }
 
-/* Light mode paragraphs */
+/* Light mode paragraphs - improved readability */
 body.light .static-page p {
-  color: #4b5563 !important;
+  color: #4a5568 !important;
 }
 
 .static-page.dark p {
@@ -437,9 +436,9 @@ body.light .static-page p {
   font-size: 1.05rem;
 }
 
-/* Light mode list items */
+/* Light mode list items - better readability */
 body.light .static-page li {
-  color: #4b5563 !important;
+  color: #4a5568 !important;
 }
 
 .static-page.dark li {
@@ -547,22 +546,22 @@ body.light .static-page code {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* Light mode scrollbar */
+/* Light mode scrollbar - softer colors */
 body.light ::-webkit-scrollbar {
   width: 6px;
 }
 
 body.light ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f7fafc;
 }
 
 body.light ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #a0aec0;
   border-radius: 3px;
 }
 
 body.light ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #718096;
 }
 
 /* Light mode logo text enhancement */
@@ -574,12 +573,12 @@ body.light .logo-text {
 }
 
 /* Light mode main page enhancements */
-/* Light mode search area background on main page */
+/* Light mode search area background on main page - softer */
 body.light .searchbar {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 1.25rem;
   padding: 0.5rem;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
   backdrop-filter: blur(10px);
 }
 
