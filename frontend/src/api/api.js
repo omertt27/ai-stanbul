@@ -78,16 +78,82 @@ export const fetchStreamingResults = async (query, onChunk) => {
   }
 };
 
-export const fetchRestaurantRecommendations = async (location = null, district = null, keyword = null, limit = 4) => {
+// Helper function to extract location/district from user input
+export const extractLocationFromQuery = (userInput) => {
+  const input = userInput.toLowerCase();
+  
+  // Istanbul districts (both Turkish and English variants)
+  const districts = {
+    'beyoğlu': 'Beyoglu',
+    'beyoglu': 'Beyoglu',
+    'galata': 'Beyoglu',
+    'taksim': 'Beyoglu',
+    'sultanahmet': 'Sultanahmet',
+    'fatih': 'Fatih',
+    'kadıköy': 'Kadikoy',
+    'kadikoy': 'Kadikoy',
+    'beşiktaş': 'Besiktas',
+    'besiktas': 'Besiktas',
+    'şişli': 'Sisli',
+    'sisli': 'Sisli',
+    'üsküdar': 'Uskudar',
+    'uskudar': 'Uskudar',
+    'ortaköy': 'Besiktas',
+    'ortakoy': 'Besiktas',
+    'karaköy': 'Beyoglu',
+    'karakoy': 'Beyoglu',
+    'eminönü': 'Fatih',
+    'eminonu': 'Fatih',
+    'bakırköy': 'Bakirkoy',
+    'bakirkoy': 'Bakirkoy'
+  };
+  
+  // Check for district matches
+  for (const [key, value] of Object.entries(districts)) {
+    if (input.includes(key)) {
+      return { district: value, keyword: null };
+    }
+  }
+  
+  // Check for cuisine keywords
+  const cuisineKeywords = {
+    'turkish': 'Turkish',
+    'ottoman': 'Turkish',
+    'kebab': 'kebab',
+    'seafood': 'seafood',
+    'fish': 'seafood',
+    'italian': 'Italian',
+    'pizza': 'Italian',
+    'asian': 'Asian',
+    'chinese': 'Chinese',
+    'japanese': 'Japanese',
+    'sushi': 'Japanese',
+    'mediterranean': 'Mediterranean',
+    'coffee': 'cafe',
+    'cafe': 'cafe'
+  };
+  
+  for (const [key, value] of Object.entries(cuisineKeywords)) {
+    if (input.includes(key)) {
+      return { district: null, keyword: value };
+    }
+  }
+  
+  return { district: null, keyword: null };
+};
+
+export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) => {
   try {
+    const { district, keyword } = extractLocationFromQuery(userInput);
+    
     const params = new URLSearchParams();
-    if (location) params.append('location', location);
     if (district) params.append('district', district);
     if (keyword) params.append('keyword', keyword);
     params.append('limit', limit.toString());
 
     const url = `${RESTAURANTS_API_URL}?${params}`;
     console.log('Making restaurant API request to:', url);
+    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
     
     const response = await fetch(url, {
       method: 'GET',

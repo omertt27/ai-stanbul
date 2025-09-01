@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Location Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .test-case { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .restaurant { border-left: 3px solid #007bff; padding: 10px; margin: 10px 0; background: white; }
+        .rating { color: #f39c12; font-weight: bold; }
+        .address { color: #666; font-size: 0.9em; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Restaurant Location Feature Test</h1>
+        
+        <div class="test-case">
+            <h3>Test 1: Beyoğlu Restaurants</h3>
+            <p><strong>Query:</strong> "give me restaurants in beyoglu"</p>
+            <button onclick="testLocation('beyoglu')">Test Beyoğlu</button>
+            <div id="result-beyoglu" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>Test 2: Kadıköy Restaurants</h3>
+            <p><strong>Query:</strong> "restaurants in kadıköy"</p>
+            <button onclick="testLocation('kadikoy')">Test Kadıköy</button>
+            <div id="result-kadikoy" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>Test 3: Turkish Cuisine</h3>
+            <p><strong>Query:</strong> "turkish restaurants"</p>
+            <button onclick="testCuisine('Turkish')">Test Turkish Cuisine</button>
+            <div id="result-turkish" class="result"></div>
+        </div>
+
+        <div class="test-case">
+            <h3>Test 4: General Restaurants (No Location)</h3>
+            <p><strong>Query:</strong> "recommend good restaurants"</p>
+            <button onclick="testGeneral()">Test General</button>
+            <div id="result-general" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8001';
+
+        function displayResults(elementId, data) {
+            const element = document.getElementById(elementId);
+            
+            if (data.restaurants && data.restaurants.length > 0) {
+                let html = `<div class="success">✅ Found ${data.total_found} restaurants in ${data.location_searched}</div>`;
+                data.restaurants.forEach((restaurant, index) => {
+                    html += `
+                        <div class="restaurant">
+                            <strong>${index + 1}. ${restaurant.name}</strong>
+                            <div class="rating">⭐ ${restaurant.rating || 'No rating'}</div>
+                            <div class="address">📍 ${restaurant.address || 'Address not available'}</div>
+                        </div>
+                    `;
+                });
+                element.innerHTML = html;
+            } else {
+                element.innerHTML = '<div class="error">❌ No restaurants found</div>';
+            }
+        }
+
+        function displayError(elementId, error) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+        }
+
+        async function testLocation(district) {
+            const resultId = `result-${district}`;
+            document.getElementById(resultId).innerHTML = '<div>Loading...</div>';
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('district', district.charAt(0).toUpperCase() + district.slice(1));
+                params.append('limit', '4');
+                
+                const response = await fetch(`${BASE_URL}/restaurants/search?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                displayResults(resultId, data);
+            } catch (error) {
+                displayError(resultId, error);
+            }
+        }
+
+        async function testCuisine(keyword) {
+            document.getElementById('result-turkish').innerHTML = '<div>Loading...</div>';
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('keyword', keyword);
+                params.append('limit', '4');
+                
+                const response = await fetch(`${BASE_URL}/restaurants/search?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                displayResults('result-turkish', data);
+            } catch (error) {
+                displayError('result-turkish', error);
+            }
+        }
+
+        async function testGeneral() {
+            document.getElementById('result-general').innerHTML = '<div>Loading...</div>';
+            
+            try {
+                const params = new URLSearchParams();
+                params.append('limit', '4');
+                
+                const response = await fetch(`${BASE_URL}/restaurants/search?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                displayResults('result-general', data);
+            } catch (error) {
+                displayError('result-general', error);
+            }
+        }
+    </script>
+</body>
+</html>

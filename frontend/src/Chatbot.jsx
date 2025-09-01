@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchStreamingResults, fetchRestaurantRecommendations } from './api/api';
+import { fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -64,7 +64,7 @@ const renderMessageContent = (content, darkMode) => {
 };
 
 // Helper function to format restaurant recommendations
-const formatRestaurantRecommendations = (restaurants) => {
+const formatRestaurantRecommendations = (restaurants, locationInfo = null) => {
   if (!restaurants || restaurants.length === 0) {
     return "I'm sorry, I couldn't find any restaurant recommendations at the moment. Please try again or be more specific about your preferences.";
   }
@@ -97,7 +97,8 @@ const isRestaurantAdviceRequest = (userInput) => {
     'good food', 'best restaurant', 'restaurant recommendation',
     'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
     'restaurant advice', 'give me restaurant', 'find restaurant',
-    'show me restaurant', 'good restaurants', 'best places to eat'
+    'show me restaurant', 'good restaurants', 'best places to eat',
+    'restaurants in', 'food in', 'dining in', 'eat in', 'places to eat in'
   ];
   
   return restaurantKeywords.some(keyword => input.includes(keyword));
@@ -132,7 +133,7 @@ function Chatbot({ onDarkModeToggle }) {
     if (isRestaurantAdviceRequest(userInput)) {
       try {
         console.log('Detected restaurant advice request, fetching recommendations...');
-        const restaurantData = await fetchRestaurantRecommendations();
+        const restaurantData = await fetchRestaurantRecommendations(userInput);
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
         
         setMessages((prev) => [
