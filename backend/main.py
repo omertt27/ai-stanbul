@@ -18,7 +18,7 @@ from fuzzywuzzy import fuzz, process
 from database import engine, SessionLocal
 from models import Base, Restaurant, Museum, Place
 from routes import museums, restaurants, places
-from api_clients.google_places import search_restaurants
+from api_clients.google_places import GooglePlacesClient
 from sqlalchemy.orm import Session
 
 load_dotenv()
@@ -103,21 +103,7 @@ app = FastAPI(title="AIstanbul API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:5176",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        # Production frontend URLs
-        "https://aistanbul.vercel.app",
-        "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
-    ],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -711,7 +697,8 @@ async def ai_istanbul_router(request: Request):
                                 search_location = f"{location}, Istanbul, Turkey"
                                 break
                     
-                    places_data = search_restaurants(search_location, user_input)
+                    client = GooglePlacesClient()
+                    places_data = client.search_restaurants(location=search_location, keyword=user_input)
                     
                     if places_data.get('results'):
                         location_text = user_input.lower().split("in ")[-1].strip().title() if "in " in user_input.lower() else "Istanbul"

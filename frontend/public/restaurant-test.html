@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .restaurant { border: 1px solid #ccc; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .restaurant h3 { margin-top: 0; color: #333; }
+        .rating { color: #f39c12; font-weight: bold; }
+        .address { color: #666; font-size: 0.9em; }
+        .description { margin-top: 10px; line-height: 1.4; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .loading { background: #fff3cd; color: #856404; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Restaurant Recommendation Test</h1>
+    <button onclick="fetchRestaurants()">Get 4 Restaurant Recommendations</button>
+    <div id="status"></div>
+    <div id="results"></div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8001';
+        const RESTAURANTS_API_URL = `${BASE_URL}/restaurants/search`;
+
+        function showStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.className = type;
+        }
+
+        function formatRestaurant(restaurant) {
+            const name = restaurant.name || 'Unknown Restaurant';
+            const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : 'No rating';
+            const address = restaurant.address || restaurant.vicinity || 'Address not available';
+            const description = restaurant.description || 'A restaurant in Istanbul.';
+            
+            return `
+                <div class="restaurant">
+                    <h3>${name}</h3>
+                    <div class="rating">${rating}</div>
+                    <div class="address">📍 ${address}</div>
+                    <div class="description">${description}</div>
+                </div>
+            `;
+        }
+
+        async function fetchRestaurants() {
+            showStatus('Fetching restaurant recommendations...', 'loading');
+            document.getElementById('results').innerHTML = '';
+
+            try {
+                const params = new URLSearchParams();
+                params.append('limit', '4');
+
+                const url = `${RESTAURANTS_API_URL}?${params}`;
+                console.log('Making request to:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('API response:', data);
+                
+                if (data.restaurants && data.restaurants.length > 0) {
+                    showStatus(`✅ Found ${data.restaurants.length} restaurants`, 'success');
+                    const resultsHtml = data.restaurants.map(formatRestaurant).join('');
+                    document.getElementById('results').innerHTML = resultsHtml;
+                } else {
+                    showStatus('No restaurants found', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

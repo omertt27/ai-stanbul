@@ -32,6 +32,11 @@ class Restaurant(Base):
     location = Column(String)
     rating = Column(Float)
     source = Column(String)
+    description = Column(String)  # Added description field
+    place_id = Column(String, unique=True)  # Google Places ID
+    phone = Column(String)
+    website = Column(String)
+    price_level = Column(Integer)
 
 class Event(Base):
     __tablename__ = "events"

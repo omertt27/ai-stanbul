@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Restaurant Feature Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        h1 { color: #333; }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            background: #f9f9f9; 
+        }
+        button { 
+            padding: 10px 20px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #0056b3; }
+        .restaurant { 
+            border: 1px solid #ccc; 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 5px; 
+            background: white; 
+        }
+        .restaurant h3 { margin-top: 0; color: #333; }
+        .rating { color: #f39c12; font-weight: bold; }
+        .address { color: #666; font-size: 0.9em; margin: 5px 0; }
+        .description { margin-top: 10px; line-height: 1.4; }
+        #status { 
+            margin: 10px 0; 
+            padding: 10px; 
+            border-radius: 5px; 
+            font-weight: bold; 
+        }
+        .loading { background: #fff3cd; color: #856404; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .log { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 0.9em; 
+            white-space: pre-wrap; 
+            max-height: 200px; 
+            overflow-y: auto; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Complete Restaurant Feature Test</h1>
+        
+        <div class="test-section">
+            <h2>1. Test Restaurant Detection Logic</h2>
+            <button onclick="testDetectionLogic()">Test Detection Keywords</button>
+            <div id="detectionResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Test API Connection</h2>
+            <button onclick="testAPIConnection()">Test Backend API</button>
+            <div id="apiStatus"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test Complete Restaurant Recommendation Flow</h2>
+            <button onclick="testCompleteFlow()">Get 4 Restaurant Recommendations</button>
+            <div id="flowStatus"></div>
+            <div id="flowResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Debug Console</h2>
+            <button onclick="clearLog()">Clear Log</button>
+            <div id="debugLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8001';
+        const RESTAURANTS_API_URL = `${BASE_URL}/restaurants/search`;
+
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').textContent = '';
+        }
+
+        function showStatus(elementId, message, type = 'loading') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = type;
+        }
+
+        // Helper function to detect if user is asking for restaurant recommendations
+        const isRestaurantAdviceRequest = (userInput) => {
+            const input = userInput.toLowerCase();
+            const restaurantKeywords = [
+                'restaurant', 'restaurants', 'food', 'eat', 'dining', 'meal',
+                'recommend', 'suggestion', 'advice', 'where to eat',
+                'good food', 'best restaurant', 'restaurant recommendation',
+                'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
+                'restaurant advice', 'give me restaurant', 'find restaurant',
+                'show me restaurant', 'good restaurants', 'best places to eat'
+            ];
+            
+            return restaurantKeywords.some(keyword => input.includes(keyword));
+        };
+
+        // Helper function to format restaurant recommendations
+        const formatRestaurantRecommendations = (restaurants) => {
+            if (!restaurants || restaurants.length === 0) {
+                return "I'm sorry, I couldn't find any restaurant recommendations at the moment. Please try again or be more specific about your preferences.";
+            }
+
+            let formattedResponse = "🍽️ **Here are 4 great restaurant recommendations for you:**\\n\\n";
+            
+            restaurants.slice(0, 4).forEach((restaurant, index) => {
+                const name = restaurant.name || 'Unknown Restaurant';
+                const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : '';
+                const address = restaurant.address || restaurant.vicinity || '';
+                const description = restaurant.description || 'A popular dining spot in Istanbul.';
+                
+                formattedResponse += `**${index + 1}. ${name}**\\n`;
+                if (rating) formattedResponse += `${rating}\\n`;
+                if (address) formattedResponse += `📍 ${address}\\n`;
+                formattedResponse += `${description}\\n\\n`;
+            });
+
+            formattedResponse += "Would you like more details about any of these restaurants or recommendations for a specific type of cuisine?";
+            
+            return formattedResponse;
+        };
+
+        function formatRestaurantForDisplay(restaurant) {
+            const name = restaurant.name || 'Unknown Restaurant';
+            const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : 'No rating';
+            const address = restaurant.address || restaurant.vicinity || 'Address not available';
+            const description = restaurant.description || 'A restaurant in Istanbul.';
+            
+            return `
+                <div class="restaurant">
+                    <h3>${name}</h3>
+                    <div class="rating">${rating}</div>
+                    <div class="address">📍 ${address}</div>
+                    <div class="description">${description}</div>
+                </div>
+            `;
+        }
+
+        function testDetectionLogic() {
+            log('Testing restaurant detection logic...');
+            const testCases = [
+                'Give me restaurant advice - recommend 4 good restaurants',
+                'Find authentic Turkish restaurants in Istanbul',
+                'Where can I eat good food?',
+                'What are the best attractions in Istanbul?',
+                'Tell me about history',
+                'I need restaurant recommendations',
+                'Show me some good restaurants',
+                'What about food and dining options?'
+            ];
+
+            let resultsHtml = '<h3>Detection Results:</h3>';
+            testCases.forEach(testCase => {
+                const result = isRestaurantAdviceRequest(testCase);
+                const status = result ? '✅ RESTAURANT' : '❌ NOT RESTAURANT';
+                resultsHtml += `<p><strong>"${testCase}"</strong> → ${status}</p>`;
+                log(`"${testCase}" -> ${status}`);
+            });
+
+            document.getElementById('detectionResults').innerHTML = resultsHtml;
+            log('Detection logic test completed.');
+        }
+
+        async function testAPIConnection() {
+            showStatus('apiStatus', 'Testing API connection...', 'loading');
+            log('Testing API connection...');
+
+            try {
+                const params = new URLSearchParams();
+                params.append('limit', '4');
+                const url = `${RESTAURANTS_API_URL}?${params}`;
+                
+                log(`Making request to: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                
+                log(`Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                log(`API response received: ${data.restaurants ? data.restaurants.length : 0} restaurants`);
+                
+                showStatus('apiStatus', `✅ API connection successful! Found ${data.restaurants.length} restaurants`, 'success');
+                log('API connection test completed successfully.');
+                
+            } catch (error) {
+                log(`API connection error: ${error.message}`);
+                showStatus('apiStatus', `❌ API connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCompleteFlow() {
+            showStatus('flowStatus', 'Testing complete restaurant recommendation flow...', 'loading');
+            document.getElementById('flowResults').innerHTML = '';
+            log('Starting complete flow test...');
+
+            // Step 1: Test detection
+            const testQuery = 'Give me restaurant advice - recommend 4 good restaurants';
+            const isRestaurantRequest = isRestaurantAdviceRequest(testQuery);
+            log(`Step 1 - Detection: "${testQuery}" -> ${isRestaurantRequest ? 'DETECTED' : 'NOT DETECTED'}`);
+
+            if (!isRestaurantRequest) {
+                showStatus('flowStatus', '❌ Restaurant request not detected!', 'error');
+                return;
+            }
+
+            // Step 2: Fetch restaurants
+            try {
+                log('Step 2 - Fetching restaurants...');
+                const params = new URLSearchParams();
+                params.append('limit', '4');
+                const url = `${RESTAURANTS_API_URL}?${params}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                log(`Step 2 - Success: Received ${data.restaurants.length} restaurants`);
+
+                // Step 3: Format response
+                log('Step 3 - Formatting response...');
+                const formattedText = formatRestaurantRecommendations(data.restaurants);
+                log('Step 3 - Response formatted successfully');
+
+                // Step 4: Display results
+                showStatus('flowStatus', `✅ Complete flow successful! Generated recommendations for ${data.restaurants.length} restaurants`, 'success');
+                
+                const displayHtml = data.restaurants.map(formatRestaurantForDisplay).join('');
+                document.getElementById('flowResults').innerHTML = `
+                    <h3>Generated Response Preview:</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; white-space: pre-line; margin-bottom: 20px;">
+                        ${formattedText.replace(/\*\*/g, '').replace(/\\n/g, '\\n')}
+                    </div>
+                    <h3>Restaurant Details:</h3>
+                    ${displayHtml}
+                `;
+                
+                log('Complete flow test finished successfully!');
+                
+            } catch (error) {
+                log(`Step 2/3 error: ${error.message}`);
+                showStatus('flowStatus', `❌ Flow failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('Restaurant feature test page loaded');
+        log(`Base URL: ${BASE_URL}`);
+        log(`Restaurant API URL: ${RESTAURANTS_API_URL}`);
+    </script>
+</body>
+</html>

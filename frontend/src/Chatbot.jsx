@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchStreamingResults } from './api/api';
+import { fetchStreamingResults, fetchRestaurantRecommendations } from './api/api';
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -63,6 +63,46 @@ const renderMessageContent = (content, darkMode) => {
   return parts.length > 0 ? parts : content;
 };
 
+// Helper function to format restaurant recommendations
+const formatRestaurantRecommendations = (restaurants) => {
+  if (!restaurants || restaurants.length === 0) {
+    return "I'm sorry, I couldn't find any restaurant recommendations at the moment. Please try again or be more specific about your preferences.";
+  }
+
+  let formattedResponse = "🍽️ **Here are 4 great restaurant recommendations for you:**\n\n";
+  
+  restaurants.slice(0, 4).forEach((restaurant, index) => {
+    const name = restaurant.name || 'Unknown Restaurant';
+    const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : '';
+    const address = restaurant.address || restaurant.vicinity || '';
+    const description = restaurant.description || 'A popular dining spot in Istanbul.';
+    
+    formattedResponse += `**${index + 1}. ${name}**\n`;
+    if (rating) formattedResponse += `${rating}\n`;
+    if (address) formattedResponse += `📍 ${address}\n`;
+    formattedResponse += `${description}\n\n`;
+  });
+
+  formattedResponse += "Would you like more details about any of these restaurants or recommendations for a specific type of cuisine?";
+  
+  return formattedResponse;
+};
+
+// Helper function to detect if user is asking for restaurant recommendations
+const isRestaurantAdviceRequest = (userInput) => {
+  const input = userInput.toLowerCase();
+  const restaurantKeywords = [
+    'restaurant', 'restaurants', 'food', 'eat', 'dining', 'meal',
+    'recommend', 'suggestion', 'advice', 'where to eat',
+    'good food', 'best restaurant', 'restaurant recommendation',
+    'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
+    'restaurant advice', 'give me restaurant', 'find restaurant',
+    'show me restaurant', 'good restaurants', 'best places to eat'
+  ];
+  
+  return restaurantKeywords.some(keyword => input.includes(keyword));
+};
+
 function Chatbot({ onDarkModeToggle }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -88,7 +128,26 @@ function Chatbot({ onDarkModeToggle }) {
     setInput('');
     setLoading(true);
 
-    // Start streaming response
+    // Check if user is asking for restaurant recommendations
+    if (isRestaurantAdviceRequest(userInput)) {
+      try {
+        console.log('Detected restaurant advice request, fetching recommendations...');
+        const restaurantData = await fetchRestaurantRecommendations();
+        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
+        
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: formattedResponse }
+        ]);
+        setLoading(false);
+        return;
+      } catch (error) {
+        console.error('Restaurant recommendation error:', error);
+        // Fall back to regular AI response if restaurant API fails
+      }
+    }
+
+    // Regular streaming response for non-restaurant queries
     let streamedContent = '';
     let hasError = false;
     try {
@@ -112,9 +171,14 @@ function Chatbot({ onDarkModeToggle }) {
       });
     } catch (error) {
       hasError = true;
+      console.error('Chat API Error:', error);
+      const errorMessage = error.message.includes('fetch')
+        ? 'Sorry, I encountered an error connecting to the server. Please make sure the backend is running on http://localhost:8001 and try again.'
+        : `Sorry, there was an error: ${error.message}. Please try again.`;
+      
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Sorry, there was a network error. Please try again.' }
+        { role: 'assistant', content: errorMessage }
       ]);
     } finally {
       setLoading(false);
@@ -202,7 +266,7 @@ function Chatbot({ onDarkModeToggle }) {
               </div>
               
               <div 
-                onClick={() => handleSampleClick('Find authentic Turkish restaurants in Istanbul')}
+                onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
                 className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
                   darkMode 
                     ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
@@ -211,10 +275,10 @@ function Chatbot({ onDarkModeToggle }) {
               >
                 <div className={`font-semibold mb-2 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🍽️ Turkish Cuisine</div>
+                }`}>🍽️ Restaurant Advice</div>
                 <div className={`text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Find authentic Turkish restaurants in Istanbul</div>
+                }`}>Give me restaurant advice - recommend 4 good restaurants</div>
               </div>
               
               <div 

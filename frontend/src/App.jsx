@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
+import ConnectionStatus from './components/ConnectionStatus';
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults } from './api/api';
 import './App.css';
@@ -74,6 +75,9 @@ const App = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+      {/* Connection Status Indicator */}
+      <ConnectionStatus />
+      
       {/* <DebugInfo /> */}
 
       {!expanded ? (
