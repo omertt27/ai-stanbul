@@ -458,35 +458,6 @@ async def receive_feedback(request: Request):
 async def ai_istanbul_router(request: Request):
     data = await request.json()
     user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
-
-    # Handle greetings and daily talk BEFORE any typo correction or enhancement
-    user_input_clean = user_input.lower().strip()
-    greeting_patterns = [
-        'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon',
-        'good evening', 'howdy', 'hiya', 'sup', "what's up", 'whats up',
-        'how are you', 'how are you doing', "how's it going", 'hows it going',
-        'nice to meet you', 'pleased to meet you', 'good to see you'
-    ]
-    daily_talk_patterns = [
-        'how are things', "what's new", 'whats new', 'how have you been',
-        'long time no see', 'good to hear from you', "hope you're well",
-        "how's your day", 'hows your day', 'having a good day',
-        "what's happening", 'whats happening', "how's life", 'hows life'
-    ]
-    is_greeting = any(pattern in user_input_clean for pattern in greeting_patterns)
-    is_daily_talk = any(pattern in user_input_clean for pattern in daily_talk_patterns)
-    if is_greeting or is_daily_talk:
-        print(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
-        if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
-            return {"message": "Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?"}
-        elif 'how are you' in user_input_clean or 'how are you doing' in user_input_clean:
-            return {"message": "I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?"}
-        elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
-            return {"message": "Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?"}
-        elif any(phrase in user_input_clean for phrase in ["what's up", 'whats up', 'sup', "how's it going", 'hows it going']):
-            return {"message": "Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?"}
-        else:
-            return {"message": "It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?"}
     
     try:
         # Debug logging
@@ -714,7 +685,7 @@ async def ai_istanbul_router(request: Request):
                     places_data = search_restaurants(search_location, user_input)
                     
                     if places_data.get('results'):
-                        location_text = user_input.lower().split("in ")[-1].strip().title() if "in " in user_input.lower() else "Istanbul"
+                        location_text = search_location.split(',')[0] if 'Istanbul' not in search_location else 'Istanbul'
                         restaurants_info = f"Here are some great restaurants in {location_text}:\n\n"
                         
                         for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
