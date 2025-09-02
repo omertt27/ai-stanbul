@@ -3,12 +3,14 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'; // Use
 const API_URL = `${BASE_URL}/ai`;
 const STREAM_API_URL = `${BASE_URL}/ai/stream`;
 const RESTAURANTS_API_URL = `${BASE_URL}/restaurants/search`;
+const PLACES_API_URL = `${BASE_URL}/places/`;
 
 console.log('API Configuration:', {
   BASE_URL,
   API_URL,
   STREAM_API_URL,
   RESTAURANTS_API_URL,
+  PLACES_API_URL,
   VITE_API_URL: import.meta.env.VITE_API_URL
 });
 
@@ -175,6 +177,43 @@ export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) 
     return data;
   } catch (error) {
     console.error('Restaurant fetch error:', error);
+    throw error;
+  }
+};
+
+export const fetchPlacesRecommendations = async (userInput = '', limit = 6) => {
+  try {
+    console.log('fetchPlacesRecommendations called with userInput:', userInput);
+    const { district, keyword } = extractLocationFromQuery(userInput);
+    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
+    
+    const params = new URLSearchParams();
+    if (district) params.append('district', district);
+    if (keyword) params.append('keyword', keyword);
+    params.append('limit', limit.toString());
+
+    const url = `${PLACES_API_URL}?${params}`;
+    console.log('Making places API request to:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    console.log('Places API response status:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Places API error response:', errorText);
+      throw new Error(`Places API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Places API response data:', data);
+    console.log('Number of places returned:', data.length);
+    return { places: data }; // Wrap in places object to match expected format
+  } catch (error) {
+    console.error('Places fetch error:', error);
     throw error;
   }
 };

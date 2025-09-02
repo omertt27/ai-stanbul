@@ -115,6 +115,89 @@ async function unifiedRestaurantIntent(userInput) {
   return gptResult === 'YES';
 }
 
+// Places intent detection (similar to restaurant detection)
+function isPlacesAdviceRequest(userInput) {
+  console.log('🔍 Checking if places request:', userInput);
+  const input = userInput.toLowerCase();
+  
+  // First check for greetings and personal info - always route to chat
+  const greetingKeywords = [
+    'hello', 'hi', 'hey', 'how are you', 'how are u', 'how r u', 'how r you', 'good morning', 'good evening', 'good night',
+    'greetings', 'selam', 'merhaba', 'nasılsın', 'nasilsin', 'whats up', "what's up", 'sup', 'yo'
+  ];
+  if (greetingKeywords.some(keyword => input.includes(keyword))) {
+    console.log('🔍 Detected greeting, not places request');
+    return false;
+  }
+
+  // Check for pure personal info without travel context
+  const personalInfoKeywords = [
+    'i am ukrainian', 'im ukrainian', 'i am turkish', 'im turkish', 
+    'i am american', 'im american', 'my name is', 'tell me about myself', 'about me'
+  ];
+  const isPersonalInfo = personalInfoKeywords.some(keyword => input.includes(keyword));
+  const hasTravelContext = input.includes('visit') || input.includes('come to') || input.includes('going to') || 
+                         input.includes('travel') || input.includes('trip') || input.includes('tomorrow') || 
+                         input.includes('next week') || input.includes('planning');
+  
+  if (isPersonalInfo && !hasTravelContext) {
+    console.log('🔍 Detected pure personal info, not places request');
+    return false;
+  }
+  
+  // Places keywords that indicate actual place/attraction requests
+  const placesKeywords = [
+    'places to visit', 'attractions', 'sights', 'landmarks', 'monuments',
+    'museums', 'galleries', 'churches', 'mosques', 'palaces', 'towers',
+    'what to see', 'where to go', 'tourist attractions', 'historic sites',
+    'places in', 'attractions in', 'sights in', 'visit in', 'see in',
+    'show me places', 'recommend places', 'suggest places', 'find places',
+    'best places', 'top places', 'must see', 'worth visiting'
+  ];
+  
+  const isPlaces = placesKeywords.some(keyword => input.includes(keyword));
+  if (!isPlaces) return false;
+
+  // Extract location and check if it's Istanbul or a known district
+  const location = extractLocationFromQuery(userInput);
+  if (!location) return false;
+  
+  // Only allow if location exactly matches a known Istanbul district
+  const isIstanbul = istanbulDistricts.includes(location);
+  if (!isIstanbul) {
+    console.log('❌ Location is not Istanbul or a known district:', location);
+    return false;
+  }
+  
+  return true;
+}
+
+// GPT-based places intent detection
+async function gptDetectPlacesIntent(userInput) {
+  const prompt = `You are an intent classifier. Is the user asking for places, attractions, or sights to visit in Istanbul or its districts? Reply only YES or NO.\nUser: "${userInput}"`;
+  const response = await openai.createCompletion({
+    model: "text-davinci-003",
+    prompt,
+    max_tokens: 3,
+    temperature: 0,
+    n: 1,
+    stop: ["\n"]
+  });
+  const answer = response.data.choices[0].text.trim().toUpperCase();
+  return answer === "YES" ? "YES" : "NO";
+}
+
+// Unified places intent detection
+async function unifiedPlacesIntent(userInput) {
+  // 1. Manual rule-based detection (fast, cheap, covers most cases)
+  if (isPlacesAdviceRequest(userInput)) {
+    return true; // Istanbul places request detected by rules
+  }
+  // 2. If not detected by rules, ask GPT for intent classification
+  const gptResult = await gptDetectPlacesIntent(userInput);
+  return gptResult === 'YES';
+}
+
 async function runTravelContextTests() {
   console.log('🧪 Testing Travel Context Logic\n');
   
@@ -140,6 +223,14 @@ async function runTravelContextTests() {
     'good restaurants near Sultanahmet'
   ];
   
+  const placesCases = [
+    'places to visit in Istanbul',
+    'attractions in Beyoglu',
+    'where to go in Taksim',
+    'museums near Sultanahmet',
+    'best sights in Istanbul'
+  ];
+  
   console.log('❌ These should go to OpenAI CHAT (pure personal info):');
   chatCases.forEach(test => {
     const detected = isRestaurantAdviceRequest(test);
@@ -161,12 +252,24 @@ async function runTravelContextTests() {
     console.log(`   "${test}" -> ${result}`);
   });
   
+  console.log('\n📍 These should get PLACES recommendations:');
+  placesCases.forEach(test => {
+    const detected = isPlacesAdviceRequest(test);
+    const result = detected ? '✅ PLACES (CORRECT)' : '⚠️ CHAT (WRONG!)';
+    console.log(`   "${test}" -> ${result}`);
+  });
+  
   // GPT-based detection tests
   const gptTestCases = [
     'restaurants in Beyoglu',
     'where to eat in Taksim',
     'restaurant recommendations please',
     'good restaurants near Sultanahmet',
+    'places to visit in Istanbul',
+    'attractions in Beyoglu',
+    'where to go in Taksim',
+    'museums near Sultanahmet',
+    'best sights in Istanbul',
     'restaurants in Paris',
     'how are u',
     'hello',
@@ -180,12 +283,24 @@ async function runTravelContextTests() {
     console.log(`   "${test}" -> ${result}`);
   }
   
+  console.log('\n🤖 [GPT] These should get PLACES recommendations only for Istanbul:');
+  for (const test of gptTestCases) {
+    const detected = await isPlacesAdviceRequestGPT(test);
+    const result = detected ? '✅ PLACES (CORRECT for Istanbul)' : '✅ CHAT (CORRECT for non-Istanbul)';
+    console.log(`   "${test}" -> ${result}`);
+  }
+  
   // Unified detection tests
   const unifiedTestCases = [
     'restaurants in Beyoglu',
     'where to eat in Taksim',
     'restaurant recommendations please',
     'good restaurants near Sultanahmet',
+    'places to visit in Istanbul',
+    'attractions in Beyoglu',
+    'where to go in Taksim',
+    'museums near Sultanahmet',
+    'best sights in Istanbul',
     'restaurants in Paris',
     'how are u',
     'hello',
@@ -209,10 +324,18 @@ async function runTravelContextTests() {
     console.log(`   "${test}" -> ${result}`);
   }
   
+  console.log('\n🧠 [Unified] These should get PLACES recommendations only for Istanbul:');
+  for (const test of unifiedTestCases) {
+    const detected = await unifiedPlacesIntent(test);
+    const result = detected ? '✅ PLACES (CORRECT for Istanbul)' : '✅ CHAT (CORRECT for non-Istanbul)';
+    console.log(`   "${test}" -> ${result}`);
+  }
+  
   console.log('\n🎯 Summary:');
   console.log('- "I\'m Ukrainian" -> OpenAI chat response');
   console.log('- "I\'m Turkish, coming tomorrow" -> OpenAI travel advice & places');
   console.log('- "restaurants in Beyoglu" -> 4 restaurant recommendations');
+  console.log('- "places to visit in Istanbul" -> 5 places/attractions recommendations');
   console.log('- OpenAI will provide personalized travel advice for visitors!');
 }
 
@@ -221,6 +344,8 @@ runTravelContextTests().catch(console.error);
 // Export unified intent detection for integration
 module.exports = {
   unifiedRestaurantIntent,
+  unifiedPlacesIntent, // NEW: places detection
   isRestaurantAdviceRequest, // manual
+  isPlacesAdviceRequest, // NEW: manual places
   isRestaurantAdviceRequestGPT, // pure GPT
 };

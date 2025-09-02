@@ -1,7 +1,140 @@
 import { useState, useEffect } from 'react';
-import { fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
+import { fetchStreamingResults, fetchRestaurantRecommendations, fetchPlacesRecommendations, extractLocationFromQuery } from './api/api';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality');
+
+// Input security and normalization functions - ENHANCED SECURITY
+const sanitizeInput = (input) => {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Remove potential SQL injection patterns - ENHANCED
+  const sqlPatterns = [
+    /[';]/g,                              // Remove semicolons
+    /--/g,                                // Remove SQL comments  
+    /\/\*/g,                              // Remove SQL block comments start
+    /\*\//g,                              // Remove SQL block comments end
+    /\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b/gi, // SQL keywords - expanded
+    /\b(OR|AND)\s+['"]\d+['"]?\s*=\s*['"]\d+['"]/gi, // OR '1'='1' patterns
+    /['"]\s*(OR|AND)\s+['"]/gi,          // Injection connector patterns
+  ];
+  
+  // Remove XSS patterns - ENHANCED
+  const xssPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // <script> tags
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, // <iframe> tags
+    /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, // <object> tags
+    /<embed\b[^<]*>/gi,                   // <embed> tags
+    /<link\b[^>]*>/gi,                    // <link> tags
+    /<meta\b[^>]*>/gi,                    // <meta> tags
+    /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi,   // <style> tags
+    /<[^>]*>/g,                           // Remove all HTML tags
+    /javascript:/gi,                      // Remove javascript: protocol
+    /vbscript:/gi,                        // Remove vbscript: protocol
+    /data:/gi,                            // Remove data: protocol (can be dangerous)
+    /on\w+\s*=/gi,                        // Remove event handlers like onclick=
+    /expression\s*\(/gi,                  // CSS expressions
+  ];
+  
+  // Remove command injection patterns - ENHANCED  
+  const commandPatterns = [
+    /[;&|`]/g,                            // Command separators and backticks
+    /\$\([^)]*\)/g,                       // Command substitution $(...)
+    /`[^`]*`/g,                           // Command substitution `...`
+    /\${[^}]*}/g,                         // Variable substitution ${...}
+    /\|\s*\w+/g,                          // Pipe commands
+  ];
+  
+  // Remove path traversal patterns
+  const pathPatterns = [
+    /\.\.\//g,                            // Directory traversal
+    /\.\.\\{1,2}/g,                       // Windows directory traversal
+    /~\//g,                               // Home directory reference
+  ];
+  
+  // Remove template injection patterns
+  const templatePatterns = [
+    /\{\{[^}]*\}\}/g,                     // Handlebars/Mustache templates
+    /<%[^%]*%>/g,                         // EJS/ASP templates
+    /\{%[^%]*%\}/g,                       // Twig/Django templates
+  ];
+
+  let sanitized = input;
+  [...sqlPatterns, ...xssPatterns, ...commandPatterns, ...pathPatterns, ...templatePatterns].forEach(pattern => {
+    sanitized = sanitized.replace(pattern, ' ');
+  });
+  
+  // Additional security: Remove excessive special characters
+  sanitized = sanitized.replace(/[^\w\s\-.,!?'"çğıöşüÇĞİÖŞÜ]/g, ' ');
+  
+  // Normalize whitespace
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
+  
+  return sanitized;
+};
+
+const normalizeInput = (input) => {
+  if (!input || typeof input !== 'string') return '';
+  
+  return input
+    .toLowerCase()                    // Convert to lowercase
+    .replace(/\s+/g, ' ')            // Replace multiple spaces with single space
+    .replace(/[\n\r\t]/g, ' ')       // Replace newlines and tabs with spaces  
+    .trim();                         // Remove leading/trailing spaces
+};
+
+const addFuzzyMatching = (input) => {
+  // Common typos and their corrections
+  const typoCorrections = {
+    // Restaurant typos
+    'restaurnats': 'restaurants',
+    'retaurants': 'restaurants', 
+    'resturants': 'restaurants',
+    'restraurants': 'restaurants',
+    'restorans': 'restaurants',      // Turkish spelling
+    'restaurents': 'restaurants',
+    
+    // Places typos  
+    'plases': 'places',
+    'attrctions': 'attractions',
+    'atractions': 'attractions', 
+    'attractons': 'attractions',
+    'attracitons': 'attractions',
+    
+    // Location typos
+    'istanbull': 'istanbul',
+    'istanbool': 'istanbul', 
+    'beyogul': 'beyoglu',
+    'taksm': 'taksim',
+    'fateh': 'fatih',
+    'kadkoy': 'kadikoy',
+  };
+  
+  let corrected = input;
+  Object.entries(typoCorrections).forEach(([typo, correction]) => {
+    const regex = new RegExp(`\\b${typo}\\b`, 'gi');
+    corrected = corrected.replace(regex, correction);
+  });
+  
+  return corrected;
+};
+
+const preprocessInput = (userInput) => {
+  console.log('🔧 Preprocessing input:', userInput);
+  
+  // Step 1: Sanitize for security
+  const sanitized = sanitizeInput(userInput);  
+  console.log('🧹 Sanitized:', sanitized);
+  
+  // Step 2: Normalize whitespace and case
+  const normalized = normalizeInput(sanitized);
+  console.log('📏 Normalized:', normalized);
+  
+  // Step 3: Fix common typos
+  const corrected = addFuzzyMatching(normalized);
+  console.log('✏️ Typo-corrected:', corrected);
+  
+  return corrected;
+};
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -96,7 +229,41 @@ const formatRestaurantRecommendations = (restaurants, locationInfo = null) => {
 // Simplified helper function - only catch very explicit restaurant+location requests
 const isExplicitRestaurantRequest = (userInput) => {
   console.log('🔍 Checking for explicit restaurant request:', userInput);
-  const input = userInput.toLowerCase();
+  
+  // CRITICAL SECURITY: Preprocess and sanitize input FIRST
+  const processedInput = preprocessInput(userInput);
+  
+  // SECURITY CHECK: Reject if input is suspicious after sanitization
+  if (!processedInput || processedInput.trim().length === 0) {
+    console.log('🛡️ Input rejected: Empty after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Reject overly long inputs (DoS protection)
+  if (processedInput.length > 500) {
+    console.log('🛡️ Input rejected: Too long after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Double-check for remaining malicious patterns
+  const suspiciousPatterns = [
+    /<[^>]*>/,                      // HTML tags
+    /javascript:/i,                 // JavaScript protocol
+    /on\w+\s*=/i,                  // Event handlers
+    /[;'"`].*(--)|(\/\*)/,         // SQL injection patterns
+    /\$\([^)]*\)/,                 // Command substitution
+    /\{[^}]*\}/,                   // Template injection
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(processedInput)) {
+      console.log('🛡️ Input rejected: Suspicious patterns remain after sanitization');
+      return false;
+    }
+  }
+  
+  console.log('✅ Input passed security checks, using sanitized version:', processedInput);
+  const input = processedInput; // Use ONLY the sanitized input
 
   // Only intercept very specific restaurant requests with location
   const explicitRestaurantRequests = [
@@ -178,7 +345,7 @@ const isExplicitRestaurantRequest = (userInput) => {
   const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
   if (!isExplicit) return false;
   // Extract location and check if it's Istanbul or a known district
-  const { district, location } = extractLocationFromQuery(userInput);
+  const { district, location } = extractLocationFromQuery(processedInput);
   if (!district && !location) return false;
   // Use either district or location for matching
   const normalized = (district || location || '').trim().toLowerCase();
@@ -189,6 +356,173 @@ const isExplicitRestaurantRequest = (userInput) => {
     return false;
   }
   return true;
+};
+
+// Simplified helper function - detect places/attractions requests
+const isExplicitPlacesRequest = (userInput) => {
+  console.log('🏛️ Checking for explicit places/attractions request:', userInput);
+  
+  // CRITICAL SECURITY: Preprocess and sanitize input FIRST
+  const processedInput = preprocessInput(userInput);
+  
+  // SECURITY CHECK: Reject if input is suspicious after sanitization
+  if (!processedInput || processedInput.trim().length === 0) {
+    console.log('🛡️ Input rejected: Empty after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Reject overly long inputs (DoS protection)
+  if (processedInput.length > 500) {
+    console.log('🛡️ Input rejected: Too long after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Double-check for remaining malicious patterns
+  const suspiciousPatterns = [
+    /<[^>]*>/,                      // HTML tags
+    /javascript:/i,                 // JavaScript protocol
+    /on\w+\s*=/i,                  // Event handlers
+    /[;'"`].*(--)|(\/\*)/,         // SQL injection patterns
+    /\$\([^)]*\)/,                 // Command substitution
+    /\{[^}]*\}/,                   // Template injection
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(processedInput)) {
+      console.log('🛡️ Input rejected: Suspicious patterns remain after sanitization');
+      return false;
+    }
+  }
+  
+  console.log('✅ Input passed security checks, using sanitized version:', processedInput);
+  const input = processedInput; // Use ONLY the sanitized input
+
+  // Only intercept very specific places/attractions requests with location
+  const explicitPlacesRequests = [
+    'attractions in',            // "attractions in istanbul"
+    'places to visit in',        // "places to visit in sultanahmet"
+    'places to see in',          // "places to see in beyoglu"
+    'tourist attractions in',    // "tourist attractions in taksim"
+    'sights in',                 // "sights in galata"
+    'sightseeing in',           // "sightseeing in fatih"
+    'landmarks in',             // "landmarks in istanbul"
+    'museums in',               // "museums in sultanahmet"
+    'historical places in',     // "historical places in fatih"
+    'things to do in',          // "things to do in istanbul"
+    'things to see in',         // "things to see in beyoglu"
+    'what to visit in',         // "what to visit in taksim"
+    'what to see in',           // "what to see in istanbul"
+    'show me places in',        // "show me places in galata"
+    'show me attractions in',   // "show me attractions in istanbul"
+    'show me sights in',        // "show me sights in sultanahmet"
+    'give me attractions in',   // "give me attractions in fatih"
+    'find attractions in',      // "find attractions in istanbul"
+    'best places to visit in',  // "best places to visit in beyoglu"
+    'top attractions in',       // "top attractions in istanbul"
+    'must see in',              // "must see in taksim"
+    'must visit in',            // "must visit in sultanahmet"
+    'popular places in',        // "popular places in galata"
+    'famous places in',         // "famous places in istanbul"
+    'historic sites in',        // "historic sites in fatih"
+    'monuments in',             // "monuments in istanbul"
+    'palaces in',               // "palaces in sultanahmet"
+    'mosques in',               // "mosques in fatih"
+    'churches in',              // "churches in galata"
+    'towers in',                // "towers in beyoglu"
+    'bridges in',               // "bridges in istanbul"
+    'bazaars in',               // "bazaars in sultanahmet"
+    'markets in',               // "markets in fatih"
+    'parks in',                 // "parks in istanbul"
+    'gardens in',               // "gardens in beyoglu"
+    'waterfront in',            // "waterfront in galata"
+    'bosphorus in',             // "bosphorus in istanbul"
+    'golden horn in',           // "golden horn in fatih"
+    'neighborhoods in',         // "neighborhoods in istanbul"
+    'districts in',             // "districts in istanbul"
+    'areas to explore in',      // "areas to explore in istanbul"
+    'cultural sites in',        // "cultural sites in sultanahmet"
+    'art galleries in',         // "art galleries in beyoglu"
+    'viewpoints in',            // "viewpoints in galata"
+    'photo spots in',           // "photo spots in istanbul"
+    'instagram spots in',       // "instagram spots in taksim"
+    'scenic places in',         // "scenic places in istanbul"
+    'beautiful places in',      // "beautiful places in sultanahmet"
+    'hidden gems in',           // "hidden gems in fatih"
+    'off the beaten path in',   // "off the beaten path in istanbul"
+    'local attractions in',     // "local attractions in beyoglu"
+    'tourist spots in',         // "tourist spots in galata"
+    'places of interest in',    // "places of interest in istanbul"
+    'architectural sites in',   // "architectural sites in sultanahmet"
+    'religious sites in',       // "religious sites in fatih"
+    'shopping areas in',        // "shopping areas in taksim"
+    'entertainment in',         // "entertainment in istanbul"
+    'nightlife in',             // "nightlife in beyoglu"
+    'activities in',            // "activities in istanbul"
+    'experiences in',           // "experiences in galata"
+    'tours in',                 // "tours in sultanahmet"
+    'walks in',                 // "walks in fatih"
+    'trips in',                 // "trips in istanbul"
+    'destinations in',          // "destinations in beyoglu"
+    'highlights in',            // "highlights in istanbul"
+  ];
+
+  // Only allow Istanbul or known districts
+  const istanbulDistricts = [
+    'istanbul', 'beyoglu', 'beyoğlu', 'galata', 'taksim', 'sultanahmet', 'fatih',
+    'kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'ortakoy',
+    'ortaköy', 'sisli', 'şişli', 'karakoy', 'karaköy', 'bebek', 'arnavutkoy',
+    'arnavutköy', 'balat', 'fener', 'eminonu', 'eminönü', 'bakirkoy', 'bakırköy', 'maltepe'
+  ];
+
+  const isExplicit = explicitPlacesRequests.some(keyword => input.includes(keyword));
+  if (!isExplicit) return false;
+
+  // Extract location and check if it's Istanbul or a known district
+  const { district, location } = extractLocationFromQuery(processedInput);
+  if (!district && !location) return false;
+
+  // Use either district or location for matching
+  const normalizedLocation = (district || location).toLowerCase().trim();
+  const isIstanbulLocation = istanbulDistricts.some(districtName => 
+    normalizedLocation.includes(districtName)
+  );
+  
+  if (!isIstanbulLocation) {
+    console.log('❌ Location is not Istanbul or a known district:', normalizedLocation);
+    return false;
+  }
+  return true;
+};
+
+// Helper function to format places recommendations
+const formatPlacesRecommendations = (places, locationInfo = null) => {
+  console.log('formatPlacesRecommendations called with:', { places, count: places?.length });
+  
+  if (!places || places.length === 0) {
+    console.log('No places found, returning error message');
+    return "I'm sorry, I couldn't find any places or attractions at the moment. Please try again or be more specific about what you'd like to visit.";
+  }
+
+  let formattedResponse = "🏛️ **Here are amazing places to visit in Istanbul:**\n\n";
+  
+  places.slice(0, 6).forEach((place, index) => {
+    const name = place.name || 'Unknown Place';
+    const category = place.category || 'Attraction';
+    const district = place.district || '';
+    const description = place.description || 'A wonderful place to visit in Istanbul.';
+    const googleMapsUrl = place.google_maps_url || '';
+    
+    formattedResponse += `**${index + 1}. ${name}**\n`;
+    if (category) formattedResponse += `📍 Category: ${category}\n`;
+    if (district) formattedResponse += `🗺️ District: ${district}\n`;
+    formattedResponse += `${description}\n`;
+    if (googleMapsUrl) formattedResponse += `[🔗 View on Google Maps](${googleMapsUrl})\n`;
+    formattedResponse += `\n`;
+  });
+
+  formattedResponse += "Would you like more details about any of these places or recommendations for a specific type of attraction?";
+  
+  return formattedResponse;
 };
 
 function Chatbot({ onDarkModeToggle }) {
@@ -207,21 +541,56 @@ function Chatbot({ onDarkModeToggle }) {
   }, [darkMode])
 
   const handleSend = async (customInput = null) => {
-    const userInput = customInput || input.trim();
-    if (!userInput) return;
+    const originalUserInput = customInput || input.trim();
+    if (!originalUserInput) return;
 
-    const userMessage = { role: 'user', content: userInput };
+    // CRITICAL SECURITY: Sanitize input immediately
+    const sanitizedInput = preprocessInput(originalUserInput);
+    
+    // SECURITY CHECK: Reject if sanitization removed everything
+    if (!sanitizedInput || sanitizedInput.trim().length === 0) {
+      console.log('🛡️ Input rejected: Empty after sanitization');
+      const errorMessage = { role: 'assistant', content: 'Sorry, your input contains invalid characters. Please try again with a different message.' };
+      setMessages(prev => [...prev, errorMessage]);
+      setLoading(false);
+      return;
+    }
+    
+    // SECURITY CHECK: Verify sanitized input is safe
+    const isSuspicious = [
+      /<[^>]*>/,
+      /javascript:/i,
+      /on\w+\s*=/i,
+      /[;'"`].*(--)|(\/\*)/,
+      /\$\([^)]*\)/
+    ].some(pattern => pattern.test(sanitizedInput));
+    
+    if (isSuspicious) {
+      console.log('🛡️ Input still suspicious after sanitization, rejecting');
+      const errorMessage = { role: 'assistant', content: 'Sorry, your input appears to contain invalid content. Please try again with a different message.' };
+      setMessages(prev => [...prev, errorMessage]);
+      setLoading(false);
+      return;
+    }
+
+    console.log('✅ Using sanitized input:', sanitizedInput);
+    
+    // Use original input for display, but sanitized for processing
+    const userMessage = { role: 'user', content: originalUserInput };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
     setLoading(true);
 
-    // Check if user is asking for restaurant recommendations
-    if (isExplicitRestaurantRequest(userInput)) {
+    // Check if user is asking for restaurant recommendations - using SANITIZED input
+    if (isExplicitRestaurantRequest(originalUserInput)) {
       try {
         console.log('Detected restaurant advice request, fetching recommendations...');
-        console.log('User input:', userInput);
-        const restaurantData = await fetchRestaurantRecommendations(userInput);
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        
+        // CRITICAL: Use sanitized input for API call
+        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput);
         console.log('Restaurant API response:', restaurantData);
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
         console.log('Formatted response:', formattedResponse);
@@ -244,11 +613,43 @@ function Chatbot({ onDarkModeToggle }) {
       }
     }
 
-    // Regular streaming response for non-restaurant queries
+    // Check if user is asking for places/attractions recommendations - using SANITIZED input
+    if (isExplicitPlacesRequest(originalUserInput)) {
+      try {
+        console.log('Detected places/attractions request, fetching recommendations...');
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        
+        // CRITICAL: Use sanitized input for API call
+        const placesData = await fetchPlacesRecommendations(sanitizedInput);
+        console.log('Places API response:', placesData);
+        const formattedResponse = formatPlacesRecommendations(placesData.places);
+        console.log('Formatted response:', formattedResponse);
+        
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: formattedResponse }
+        ]);
+        setLoading(false);
+        return;
+      } catch (error) {
+        console.error('Places recommendation error:', error);
+        // Fall back to regular AI response if places API fails
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Sorry, I had trouble getting places recommendations: ${error.message}. Let me try a different approach.` }
+        ]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Regular streaming response for non-restaurant/places queries - use SANITIZED input
     let streamedContent = '';
     let hasError = false;
     try {
-      await fetchStreamingResults(userInput, (chunk) => {
+      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
+      await fetchStreamingResults(sanitizedInput, (chunk) => {
         streamedContent += chunk;
         // If assistant message already exists, update it; else, add it
         setMessages((prev) => {

@@ -445,12 +445,25 @@ async def ai_istanbul_router(request: Request):
     data = await request.json()
     user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
 
+    # 🛡️ CRITICAL SECURITY: Validate and sanitize input FIRST
+    is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
+    if not is_safe:
+        print(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
+        return {
+            "message": "Sorry, your input contains invalid characters or patterns. Please try again with a different message.",
+            "error": "Invalid input"
+        }
+    
+    # Use sanitized input for all processing
+    user_input = sanitized_input
+    print(f"🛡️ Processing sanitized input: {user_input}")
+
     # Handle greetings and daily talk BEFORE any typo correction or enhancement
     user_input_clean = user_input.lower().strip()
     greeting_patterns = [
         'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon',
         'good evening', 'howdy', 'hiya', 'sup', "what's up", 'whats up',
-        'how are you', 'how are you doing', "how's it going", 'hows it going',
+        'how are you', 'how are u', 'how r u', 'how r you', 'how are you doing', "how's it going", 'hows it going',
         'nice to meet you', 'pleased to meet you', 'good to see you'
     ]
     daily_talk_patterns = [
@@ -465,7 +478,7 @@ async def ai_istanbul_router(request: Request):
         print(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
         if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
             return {"message": "Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?"}
-        elif 'how are you' in user_input_clean or 'how are you doing' in user_input_clean:
+        elif 'how are you' in user_input_clean or 'how are u' in user_input_clean or 'how r u' in user_input_clean or 'how r you' in user_input_clean or 'how are you doing' in user_input_clean:
             return {"message": "I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?"}
         elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
             return {"message": "Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?"}
@@ -1269,7 +1282,96 @@ async def ai_istanbul_stream(request: Request):
         return StreamingResponse(stream_response(error_message), media_type="text/plain")
 
 
-# Remove any duplicate or broken code fragments below this point
+# --- SECURITY FUNCTIONS ---
+def validate_and_sanitize_input(user_input):
+    """
+    Comprehensive input validation and sanitization for security.
+    Returns (is_safe, sanitized_input, error_message)
+    """
+    if not user_input or not isinstance(user_input, str):
+        return False, "", "Invalid input format"
+    
+    # Check input length - prevent DoS attacks
+    if len(user_input) > 1000:
+        return False, "", "Input too long (max 1000 characters)"
+    
+    # Detect and block SQL injection patterns
+    sql_patterns = [
+        r"[';]",                                 # Semicolons and quotes
+        r"--",                                   # SQL comments
+        r"/\*|\*/",                             # SQL block comments
+        r"\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b",
+        r"\b(OR|AND)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+['\"]?",  # OR '1'='1' patterns
+        r"['\"]?\s*(OR|AND)\s+['\"]\s*=",       # More specific: AND/OR with quotes and equals
+    ]
+    
+    # Detect and block XSS patterns  
+    xss_patterns = [
+        r"<script\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
+        r"<iframe\b[^<]*(?:(?!</iframe>)<[^<]*)*</iframe>", 
+        r"<object\b[^<]*(?:(?!</object>)<[^<]*)*</object>",
+        r"<embed\b[^>]*>", r"<link\b[^>]*>", r"<meta\b[^>]*>",
+        r"<style\b[^<]*(?:(?!</style>)<[^<]*)*</style>",
+        r"javascript:", r"vbscript:", r"data:",
+        r"on\w+\s*=",                           # Event handlers
+        r"expression\s*\(",                     # CSS expressions
+    ]
+    
+    # Detect and block command injection patterns
+    command_patterns = [
+        r"[;&|`]",                              # Command separators
+        r"\$\([^)]*\)",                         # Command substitution $()
+        r"`[^`]*`",                             # Command substitution ``
+        r"\${[^}]*}",                           # Variable substitution ${}
+        r"\|\s*\w+",                            # Pipe commands
+    ]
+    
+    # Detect template injection patterns
+    template_patterns = [
+        r"\{\{[^}]*\}\}",                       # Handlebars/Mustache
+        r"<%[^%]*%>",                           # EJS/ASP templates
+        r"\{%[^%]*%\}",                         # Twig/Django templates
+    ]
+    
+    # Path traversal patterns
+    path_patterns = [
+        r"\.\./",                               # Directory traversal
+        r"\.\.\\",                              # Windows directory traversal
+        r"~/",                                  # Home directory
+    ]
+    
+    # Check all patterns
+    import re
+    all_patterns = sql_patterns + xss_patterns + command_patterns + template_patterns + path_patterns
+    
+    for pattern in all_patterns:
+        if re.search(pattern, user_input, re.IGNORECASE):
+            print(f"🚨 SECURITY ALERT: Blocked malicious input pattern: {pattern}")
+            print(f"🚨 Input: {user_input[:200]}...")
+            return False, "", f"Input contains potentially malicious content"
+    
+    # Sanitize the input - be less aggressive to preserve legitimate queries
+    sanitized = user_input
+    
+    # Only remove clearly dangerous characters, keep most normal characters
+    # Remove: dangerous special chars but keep common punctuation and letters
+    dangerous_chars = r'[<>{}$`;\|\*]'  # Only remove clearly dangerous chars
+    sanitized = re.sub(dangerous_chars, ' ', sanitized)
+    
+    # Normalize whitespace
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    
+    # Final length check after sanitization
+    if len(sanitized) == 0:
+        return False, "", "Input became empty after sanitization"
+    
+    if len(sanitized) > 500:  # Reduced max length after sanitization
+        sanitized = sanitized[:500]
+    
+    print(f"✅ Input sanitized: '{user_input[:50]}...' -> '{sanitized[:50]}...'")
+    return True, sanitized, None
+
+# --- END SECURITY FUNCTIONS ---
 
 
 
