@@ -97,9 +97,8 @@ const formatRestaurantRecommendations = (restaurants, locationInfo = null) => {
 const isExplicitRestaurantRequest = (userInput) => {
   console.log('🔍 Checking for explicit restaurant request:', userInput);
   const input = userInput.toLowerCase();
-  
+
   // Only intercept very specific restaurant requests with location
-  // These are the ONLY phrases that trigger the restaurant API
   const explicitRestaurantRequests = [
     'restaurants in',        // "restaurants in Beyoglu"
     'where to eat in',       // "where to eat in Sultanahmet"
@@ -108,13 +107,88 @@ const isExplicitRestaurantRequest = (userInput) => {
     'best restaurants in',   // "best restaurants in Kadikoy"
     'restaurants near',      // "restaurants near Taksim Square"
     'where to eat near',     // "where to eat near Galata Tower"
-    'dining in',            // "dining in Beyoglu"
-    'food in'               // "food in Sultanahmet"
+    'dining in',             // "dining in Beyoglu"
+    'food in',               // "food in Sultanahmet"
+    'eat kebab in',          // "i want eat kebab in fatih"
+    'want kebab in',         // "i want kebab in beyoglu"
+    'eat turkish food in',   // "eat turkish food in taksim"
+    'eat in',                // "i want to eat in fatih"
+    'want to eat in',        // "i want to eat in sultanahmet"
+    'find restaurants in',   // "find restaurants in kadikoy"
+    'show me restaurants in',// "show me restaurants in galata"
+    'give me restaurants in',// "give me restaurants in taksim"
+    'best place to eat in',  // "best place to eat in besiktas"
+    'good place to eat in',  // "good place to eat in uskudar"
+    'recommend restaurants in', // "recommend restaurants in balat"
+    'suggest restaurants in',   // "suggest restaurants in eminonu"
+    'kebab in',              // "kebab in fatih"
+    'seafood in',            // "seafood in kadikoy"
+    'pizza in',              // "pizza in sisli"
+    'cafe in',               // "cafe in galata"
+    'breakfast in',          // "breakfast in ortakoy"
+    'brunch in',             // "brunch in bebek"
+    'dinner in',             // "dinner in taksim"
+    'lunch in',              // "lunch in sultanahmet"
+    'eat something in',      // "eat something in karakoy"
+    'hungry in',             // "hungry in balat"
+    'where can i eat in',    // "where can i eat in eminonu"
+    'where should i eat in', // "where should i eat in maltepe"
+    'food places in',        // "food places in kadikoy"
+    'local food in',         // "local food in fatih"
+    'authentic food in',     // "authentic food in balat"
+    'traditional food in',   // "traditional food in uskudar"
+    'vegetarian in',         // "vegetarian in sisli"
+    'vegan in',              // "vegan in besiktas"
+    'halal in',              // "halal in uskudar"
+    'rooftop in',            // "rooftop in galata"
+    'restaurants around',    // "restaurants around sultanahmet"
+    'eat around',            // "eat around taksim"
+    'food around',           // "food around galata"
+    'dining around',         // "dining around kadikoy"
+    'places to eat in',      // "places to eat in beyoglu"
+    'best food in',          // "best food in istanbul"
+    'good food in',          // "good food in istanbul"
+    'find food in',          // "find food in fatih"
+    'find a restaurant in',  // "find a restaurant in kadikoy"
+    'find me a restaurant in', // "find me a restaurant in sultanahmet"
+    'suggest a restaurant in', // "suggest a restaurant in galata"
+    'recommend a restaurant in', // "recommend a restaurant in taksim"
+    'show restaurants in',   // "show restaurants in besiktas"
+    'show me food in',       // "show me food in kadikoy"
+    'show me places to eat in', // "show me places to eat in fatih"
+    'give me food in',       // "give me food in uskudar"
+    'give me a restaurant in', // "give me a restaurant in balat"
+    'give me places to eat in', // "give me places to eat in eminonu"
+    'any restaurants in',    // "any restaurants in maltepe"
+    'any good restaurants in', // "any good restaurants in taksim"
+    'any food in',           // "any food in galata"
+    'any place to eat in',   // "any place to eat in kadikoy"
+    'any suggestions for food in', // "any suggestions for food in fatih"
+    'any suggestions for restaurants in', // "any suggestions for restaurants in sultanahmet"
   ];
   
+  // Only allow Istanbul or known districts
+  const istanbulDistricts = [
+    'istanbul', 'beyoglu', 'beyoğlu', 'galata', 'taksim', 'sultanahmet', 'fatih',
+    'kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'ortakoy',
+    'ortaköy', 'sisli', 'şişli', 'karakoy', 'karaköy', 'bebek', 'arnavutkoy',
+    'arnavutköy', 'balat', 'fener', 'eminonu', 'eminönü', 'bakirkoy', 'bakırköy', 'maltepe'
+  ];
+
   const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
-  console.log('🔍 Explicit restaurant detection result:', isExplicit);
-  return isExplicit;
+  if (!isExplicit) return false;
+  // Extract location and check if it's Istanbul or a known district
+  const { district, location } = extractLocationFromQuery(userInput);
+  if (!district && !location) return false;
+  // Use either district or location for matching
+  const normalized = (district || location || '').trim().toLowerCase();
+  // Only allow if normalized exactly matches a known Istanbul district (no partial matches)
+  const isIstanbul = istanbulDistricts.includes(normalized);
+  if (!isIstanbul) {
+    console.log('❌ Location is not Istanbul or a known district:', normalized);
+    return false;
+  }
+  return true;
 };
 
 function Chatbot({ onDarkModeToggle }) {
@@ -333,7 +407,9 @@ function Chatbot({ onDarkModeToggle }) {
                 }`}>🎭 Culture & Activities</div>
                 <div className={`text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>What are the best cultural experiences and activities in Istanbul?</div>
+                }`}>
+                  What are the best cultural experiences and activities in Istanbul?
+                </div>
               </div>
             </div>
           </div>
@@ -370,7 +446,7 @@ function Chatbot({ onDarkModeToggle }) {
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                       darkMode 
                         ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                        : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500'
+                        : 'bg-gradient-to-br from_blue-500 via-indigo-500 to-purple-500'
                     }`}>
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
@@ -398,7 +474,7 @@ function Chatbot({ onDarkModeToggle }) {
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
                   darkMode 
                     ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                    : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500'
+                    : 'bg-gradient-to-br from_blue-500 via-indigo-500 to-purple-500'
                 }`}>
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
