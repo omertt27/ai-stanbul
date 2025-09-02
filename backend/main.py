@@ -163,7 +163,15 @@ def safe_external_api_call(service: str, context: str = "API call"):
 
 def log_request_info(request: Request, user_input: str = ""):
     """Log request information for debugging"""
-    logger.info(f"Request from {request.client.host if request.client else 'unknown'}: {user_input[:100]}")
+    try:
+        client_host = getattr(request, 'client', None)
+        if client_host and hasattr(client_host, 'host'):
+            host = client_host.host
+        else:
+            host = 'unknown'
+        logger.info(f"Request from {host}: {user_input[:100]}")
+    except Exception:
+        logger.info(f"Request from unknown: {user_input[:100]}")
 
 def handle_unexpected_error(error: Exception, context: str = "") -> APIError:
     """Handle unexpected errors"""
@@ -1671,7 +1679,7 @@ async def stream_response(message: str):
 async def ai_istanbul_stream(request: Request):
     """Streaming version of the AI endpoint for ChatGPT-like responses"""
     data = await request.json()
-    user_input = data.get("user_input", "")
+    user_input = data.get("query", data.get("user_input", ""))
     speed = data.get("speed", 1.0)
     try:
         print(f"Received streaming user_input: '{user_input}' (length: {len(user_input)}) at speed: {speed}x")
@@ -1681,7 +1689,7 @@ async def ai_istanbul_stream(request: Request):
                 self._json = json_data
             async def json(self):
                 return self._json
-        dummy_request = DummyRequest({"user_input": user_input})
+        dummy_request = DummyRequest({"query": user_input, "user_input": user_input})
         ai_response = await ai_istanbul_router(dummy_request)
         message = ai_response["message"] if isinstance(ai_response, dict) and "message" in ai_response else str(ai_response)
         return StreamingResponse(stream_response(message), media_type="text/plain")
