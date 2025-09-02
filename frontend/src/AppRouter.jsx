@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import App from './App';
+import Chatbot from './Chatbot';
+import SimpleChatbot from './SimpleChatbot';
+import TestComponent from './TestComponent';
 import About from './pages/About';
 import Sources from './pages/Sources';
 import Donate from './pages/Donate';
@@ -79,6 +82,9 @@ const AppRouter = () => {
       <NavBar />
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="/test" element={<TestComponent />} />
+        <Route path="/simple" element={<SimpleChatbot />} />
+        <Route path="/chatbot" element={<Chatbot />} />
         <Route path="/about" element={<About />} />
         <Route path="/sources" element={<Sources />} />
         <Route path="/donate" element={<Donate />} />

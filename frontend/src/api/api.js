@@ -1,3 +1,13 @@
+import { 
+  fetchWithRetry, 
+  getUserFriendlyMessage, 
+  classifyError, 
+  ErrorTypes,
+  networkStatus,
+  createCircuitBreaker,
+  debounce
+} from '../utils/errorHandler.js';
+
 // API utility that works for both local and deployed environments
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'; // Use correct port 8001
 const API_URL = `${BASE_URL}/ai`;
@@ -14,70 +24,129 @@ console.log('API Configuration:', {
   VITE_API_URL: import.meta.env.VITE_API_URL
 });
 
+// Circuit breakers for different API endpoints
+const chatCircuitBreaker = createCircuitBreaker({
+  failureThreshold: 3,
+  resetTimeout: 30000 // 30 seconds
+});
+
+const restaurantsCircuitBreaker = createCircuitBreaker({
+  failureThreshold: 3,
+  resetTimeout: 30000
+});
+
+const placesCircuitBreaker = createCircuitBreaker({
+  failureThreshold: 3,
+  resetTimeout: 30000
+});
+
+// Enhanced error handling wrapper
+const handleApiError = (error, response = null, context = '') => {
+  const errorType = classifyError(error, response);
+  const userMessage = getUserFriendlyMessage(error, response);
+  
+  console.error(`${context} error:`, {
+    message: error.message,
+    type: errorType,
+    userMessage,
+    status: response?.status,
+    online: navigator.onLine
+  });
+  
+  // Create enhanced error object
+  const enhancedError = new Error(userMessage);
+  enhancedError.originalError = error;
+  enhancedError.type = errorType;
+  enhancedError.response = response;
+  enhancedError.isRetryable = [ErrorTypes.NETWORK, ErrorTypes.TIMEOUT, ErrorTypes.SERVER].includes(errorType);
+  
+  return enhancedError;
+};
+
 export const fetchResults = async (query) => {
-  try {
-    console.log('Making API request to:', API_URL, 'with query:', query);
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_input: query }),
-    });
-    console.log('Response status:', response.status, response.statusText);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error response:', errorText);
-      throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
+  return chatCircuitBreaker.call(async () => {
+    try {
+      console.log('🚀 Making chat API request to:', API_URL, 'with query:', query);
+      
+      const response = await fetchWithRetry(API_URL, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ user_input: query }),
+        timeout: 30000 // 30 second timeout
+      }, {
+        maxAttempts: 3,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      console.log('✅ Chat API response data:', data);
+      return data;
+      
+    } catch (error) {
+      throw handleApiError(error, null, 'Chat API');
     }
-    const data = await response.json();
-    console.log('API response data:', data);
-    return data;
-  } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
-  }
+  });
 };
 
 export const fetchStreamingResults = async (query, onChunk) => {
-  const response = await fetch(STREAM_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_input: query }),
-  });
-  
-  if (!response.ok) throw new Error('API error');
-  
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+  return chatCircuitBreaker.call(async () => {
+    try {
+      console.log('🌊 Starting streaming request to:', STREAM_API_URL);
       
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      const response = await fetchWithRetry(STREAM_API_URL, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify({ user_input: query }),
+        timeout: 60000 // 60 second timeout for streaming
+      }, {
+        maxAttempts: 2, // Fewer retries for streaming
+        baseDelay: 2000
+      });
       
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') {
-            return;
-          }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
           
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.delta && parsed.delta.content) {
-              onChunk(parsed.delta.content);
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                return;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.delta && parsed.delta.content) {
+                  onChunk(parsed.delta.content);
+                }
+              } catch (e) {
+                // Ignore parsing errors for malformed JSON
+                console.warn('Failed to parse streaming chunk:', e);
+              }
             }
-          } catch (e) {
-            // Ignore parsing errors for malformed JSON
           }
         }
+      } finally {
+        reader.releaseLock();
       }
+      
+    } catch (error) {
+      throw handleApiError(error, null, 'Streaming API');
     }
-  } finally {
-    reader.releaseLock();
-  }
+  });
 };
 
 // Helper function to extract location/district from user input
@@ -145,75 +214,122 @@ export const extractLocationFromQuery = (userInput) => {
 };
 
 export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) => {
-  try {
-    console.log('fetchRestaurantRecommendations called with userInput:', userInput);
-    const { district, keyword } = extractLocationFromQuery(userInput);
-    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
-    
-    const params = new URLSearchParams();
-    if (district) params.append('district', district);
-    if (keyword) params.append('keyword', keyword);
-    params.append('limit', limit.toString());
+  return restaurantsCircuitBreaker.call(async () => {
+    try {
+      console.log('🍽️ fetchRestaurantRecommendations called with userInput:', userInput);
+      const { district, keyword } = extractLocationFromQuery(userInput);
+      console.log('Extracted filters - District:', district, 'Keyword:', keyword);
+      
+      const params = new URLSearchParams();
+      if (district) params.append('district', district);
+      if (keyword) params.append('keyword', keyword);
+      params.append('limit', limit.toString());
 
-    const url = `${RESTAURANTS_API_URL}?${params}`;
-    console.log('Making restaurant API request to:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    
-    console.log('Restaurant API response status:', response.status, response.statusText);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Restaurant API error response:', errorText);
-      throw new Error(`Restaurant API error: ${response.status} ${response.statusText} - ${errorText}`);
+      const url = `${RESTAURANTS_API_URL}?${params}`;
+      console.log('Making restaurant API request to:', url);
+      
+      const response = await fetchWithRetry(url, {
+        method: 'GET',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 20000 // 20 second timeout
+      }, {
+        maxAttempts: 3,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      console.log('✅ Restaurant API response data:', data);
+      console.log('Number of restaurants returned:', data.restaurants?.length);
+      return data;
+      
+    } catch (error) {
+      throw handleApiError(error, null, 'Restaurant API');
     }
-    
-    const data = await response.json();
-    console.log('Restaurant API response data:', data);
-    console.log('Number of restaurants returned:', data.restaurants?.length);
-    return data;
-  } catch (error) {
-    console.error('Restaurant fetch error:', error);
-    throw error;
-  }
+  });
 };
 
 export const fetchPlacesRecommendations = async (userInput = '', limit = 6) => {
-  try {
-    console.log('fetchPlacesRecommendations called with userInput:', userInput);
-    const { district, keyword } = extractLocationFromQuery(userInput);
-    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
-    
-    const params = new URLSearchParams();
-    if (district) params.append('district', district);
-    if (keyword) params.append('keyword', keyword);
-    params.append('limit', limit.toString());
+  return placesCircuitBreaker.call(async () => {
+    try {
+      console.log('🏛️ fetchPlacesRecommendations called with userInput:', userInput);
+      const { district, keyword } = extractLocationFromQuery(userInput);
+      console.log('Extracted filters - District:', district, 'Keyword:', keyword);
+      
+      const params = new URLSearchParams();
+      if (district) params.append('district', district);
+      if (keyword) params.append('keyword', keyword);
+      params.append('limit', limit.toString());
 
-    const url = `${PLACES_API_URL}?${params}`;
-    console.log('Making places API request to:', url);
-    
-    const response = await fetch(url, {
+      const url = `${PLACES_API_URL}?${params}`;
+      console.log('Making places API request to:', url);
+      
+      const response = await fetchWithRetry(url, {
+        method: 'GET',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 20000 // 20 second timeout
+      }, {
+        maxAttempts: 3,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      console.log('✅ Places API response data:', data);
+      console.log('Number of places returned:', data.length);
+      return { places: data }; // Wrap in places object to match expected format
+      
+    } catch (error) {
+      throw handleApiError(error, null, 'Places API');
+    }
+  });
+};
+
+// Debounced versions for rapid successive calls
+export const debouncedFetchRestaurants = debounce(fetchRestaurantRecommendations, 300);
+export const debouncedFetchPlaces = debounce(fetchPlacesRecommendations, 300);
+
+// Health check utility
+export const checkApiHealth = async () => {
+  try {
+    const healthUrl = `${BASE_URL}/health`;
+    const response = await fetchWithRetry(healthUrl, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      timeout: 5000
+    }, {
+      maxAttempts: 1 // No retries for health checks
     });
     
-    console.log('Places API response status:', response.status, response.statusText);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Places API error response:', errorText);
-      throw new Error(`Places API error: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    const data = await response.json();
-    console.log('Places API response data:', data);
-    console.log('Number of places returned:', data.length);
-    return { places: data }; // Wrap in places object to match expected format
+    return { 
+      healthy: response.ok, 
+      status: response.status,
+      timestamp: new Date().toISOString()
+    };
   } catch (error) {
-    console.error('Places fetch error:', error);
-    throw error;
+    return { 
+      healthy: false, 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
   }
+};
+
+// Network status monitoring
+let networkStatusSubscription = null;
+
+export const subscribeToNetworkStatus = (callback) => {
+  networkStatusSubscription = callback;
+  networkStatus.addListener(callback);
+  
+  // Return unsubscribe function
+  return () => {
+    if (networkStatusSubscription) {
+      networkStatus.removeListener(networkStatusSubscription);
+      networkStatusSubscription = null;
+    }
+  };
 };

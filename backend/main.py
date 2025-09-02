@@ -5,11 +5,14 @@ import re
 import asyncio
 import json
 import time
+import traceback
+import logging
 from datetime import datetime
+from typing import Dict, Any, Optional, Tuple
 
 # --- Third-Party Imports ---
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Request, HTTPException, status
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
@@ -20,8 +23,305 @@ from models import Base, Restaurant, Museum, Place
 from routes import museums, restaurants, places
 from api_clients.google_places import GooglePlacesClient
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('ai_istanbul.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# --- ENHANCED ERROR HANDLING CLASSES AND FUNCTIONS ---
+
+class APIError(Exception):
+    """Custom API error class"""
+    def __init__(self, message: str, error_type: str = "API_ERROR", status_code: int = 500, details: Dict = None):
+        self.message = message
+        self.error_type = error_type
+        self.status_code = status_code
+        self.details = details or {}
+        super().__init__(self.message)
+
+class DatabaseError(APIError):
+    """Database-specific error"""
+    def __init__(self, message: str, original_error: Exception = None):
+        super().__init__(
+            message=message,
+            error_type="DATABASE_ERROR",
+            status_code=503,
+            details={"original_error": str(original_error) if original_error else None}
+        )
+
+class ExternalAPIError(APIError):
+    """External API error (OpenAI, Google Places)"""
+    def __init__(self, message: str, service: str, original_error: Exception = None):
+        super().__init__(
+            message=message,
+            error_type="EXTERNAL_API_ERROR",
+            status_code=502,
+            details={
+                "service": service,
+                "original_error": str(original_error) if original_error else None
+            }
+        )
+
+class ValidationError(APIError):
+    """Input validation error"""
+    def __init__(self, message: str, field: str = None):
+        super().__init__(
+            message=message,
+            error_type="VALIDATION_ERROR",
+            status_code=422,
+            details={"field": field}
+        )
+
+def handle_database_error(error: Exception, context: str = "") -> DatabaseError:
+    """Handle database-related errors"""
+    logger.error(f"Database error in {context}: {str(error)}")
+    logger.error(f"Database error traceback: {traceback.format_exc()}")
+    
+    if isinstance(error, SQLAlchemyError):
+        return DatabaseError(
+            message="Database operation failed. Please try again later.",
+            original_error=error
+        )
+    else:
+        return DatabaseError(
+            message="An unexpected database error occurred.",
+            original_error=error
+        )
+
+def handle_external_api_error(error: Exception, service: str, context: str = "") -> ExternalAPIError:
+    """Handle external API errors (OpenAI, Google Places, etc.)"""
+    logger.error(f"External API error ({service}) in {context}: {str(error)}")
+    logger.error(f"External API error traceback: {traceback.format_exc()}")
+    
+    # Determine user-friendly message based on error type
+    if "timeout" in str(error).lower():
+        message = f"{service} is taking too long to respond. Please try again."
+    elif "rate limit" in str(error).lower():
+        message = f"{service} rate limit exceeded. Please try again later."
+    elif "authentication" in str(error).lower() or "api key" in str(error).lower():
+        message = f"{service} authentication failed. Please contact support."
+    elif "network" in str(error).lower() or "connection" in str(error).lower():
+        message = f"Cannot connect to {service}. Please check your internet connection."
+    else:
+        message = f"{service} is currently unavailable. Please try again later."
+    
+    return ExternalAPIError(
+        message=message,
+        service=service,
+        original_error=error
+    )
+
+def create_error_response(error: APIError) -> JSONResponse:
+    """Create standardized error response"""
+    response_data = {
+        "error": {
+            "message": error.message,
+            "type": error.error_type,
+            "timestamp": datetime.now().isoformat(),
+            "details": error.details
+        }
+    }
+    
+    # Add request ID for tracing (in production)
+    if hasattr(error, 'request_id'):
+        response_data["error"]["request_id"] = error.request_id
+    
+    return JSONResponse(
+        status_code=error.status_code,
+        content=response_data
+    )
+
+def safe_database_operation(operation_func, context: str = "database operation"):
+    """Decorator for safe database operations"""
+    def wrapper(*args, **kwargs):
+        try:
+            return operation_func(*args, **kwargs)
+        except Exception as e:
+            raise handle_database_error(e, context)
+    return wrapper
+
+def safe_external_api_call(service: str, context: str = "API call"):
+    """Decorator for safe external API calls"""
+    def decorator(operation_func):
+        def wrapper(*args, **kwargs):
+            try:
+                return operation_func(*args, **kwargs)
+            except Exception as e:
+                raise handle_external_api_error(e, service, context)
+        return wrapper
+    return decorator
+
+def log_request_info(request: Request, user_input: str = ""):
+    """Log request information for debugging"""
+    logger.info(f"Request from {request.client.host if request.client else 'unknown'}: {user_input[:100]}")
+
+def handle_unexpected_error(error: Exception, context: str = "") -> APIError:
+    """Handle unexpected errors"""
+    logger.error(f"Unexpected error in {context}: {str(error)}")
+    logger.error(f"Unexpected error traceback: {traceback.format_exc()}")
+    
+    return APIError(
+        message="An unexpected error occurred. Please try again later.",
+        error_type="UNEXPECTED_ERROR",
+        status_code=500,
+        details={"context": context}
+    )
+
+# Retry decorator with exponential backoff
+def retry_with_backoff(max_attempts: int = 3, base_delay: float = 1.0, backoff_factor: float = 2.0):
+    """Retry decorator with exponential backoff"""
+    def decorator(func):
+        async def async_wrapper(*args, **kwargs):
+            last_exception = None
+            
+            for attempt in range(max_attempts):
+                try:
+                    if asyncio.iscoroutinefunction(func):
+                        return await func(*args, **kwargs)
+                    else:
+                        return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    
+                    if attempt == max_attempts - 1:  # Last attempt
+                        raise e
+                    
+                    delay = base_delay * (backoff_factor ** attempt)
+                    logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {str(e)}")
+                    
+                    if asyncio.iscoroutinefunction(func):
+                        await asyncio.sleep(delay)
+                    else:
+                        time.sleep(delay)
+            
+            raise last_exception
+        
+        def sync_wrapper(*args, **kwargs):
+            last_exception = None
+            
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    
+                    if attempt == max_attempts - 1:  # Last attempt
+                        raise e
+                    
+                    delay = base_delay * (backoff_factor ** attempt)
+                    logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {str(e)}")
+                    time.sleep(delay)
+            
+            raise last_exception
+        
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+    
+    return decorator
+
+# Circuit breaker pattern
+class CircuitBreaker:
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 60, expected_exception: type = Exception):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.expected_exception = expected_exception
+        
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = 'CLOSED'  # CLOSED, OPEN, HALF_OPEN
+    
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            if self.state == 'OPEN':
+                if time.time() - self.last_failure_time > self.recovery_timeout:
+                    self.state = 'HALF_OPEN'
+                    logger.info("Circuit breaker transitioning to HALF_OPEN")
+                else:
+                    raise APIError("Service temporarily unavailable (circuit breaker OPEN)")
+            
+            try:
+                result = func(*args, **kwargs)
+                self._on_success()
+                return result
+            except self.expected_exception as e:
+                self._on_failure()
+                raise e
+        
+        return wrapper
+    
+    def _on_success(self):
+        self.failure_count = 0
+        self.state = 'CLOSED'
+    
+    def _on_failure(self):
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        
+        if self.failure_count >= self.failure_threshold:
+            self.state = 'OPEN'
+            logger.warning("Circuit breaker opened due to repeated failures")
+
+# Create circuit breakers for external services
+openai_circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=30)
+google_places_circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60)
+
+# Health check endpoint data
+health_status = {
+    "database": True,
+    "openai": True,
+    "google_places": True,
+    "last_check": datetime.now().isoformat()
+}
+
+async def check_service_health():
+    """Check the health of all services"""
+    global health_status
+    
+    # Check database
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        health_status["database"] = True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        health_status["database"] = False
+    
+    # Check OpenAI (simple test)
+    try:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if openai_api_key and OpenAI:
+            # Just check if we have the key and library
+            health_status["openai"] = True
+        else:
+            health_status["openai"] = False
+    except Exception as e:
+        logger.error(f"OpenAI health check failed: {e}")
+        health_status["openai"] = False
+    
+    # Check Google Places (simple test)
+    try:
+        google_api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+        health_status["google_places"] = bool(google_api_key)
+    except Exception as e:
+        logger.error(f"Google Places health check failed: {e}")
+        health_status["google_places"] = False
+    
+    health_status["last_check"] = datetime.now().isoformat()
+
+# --- END ENHANCED ERROR HANDLING ---
 
 # --- OpenAI Import ---
 try:
@@ -98,7 +398,27 @@ def generate_restaurant_info(restaurant_name, location="Istanbul"):
     else:
         return "A well-regarded restaurant offering quality dining and local cuisine."
 
-app = FastAPI(title="AIstanbul API")
+app = FastAPI(title="AIstanbul API", debug=False)
+
+# Global exception handler
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError):
+    log_request_info(request, "Error occurred")
+    return create_error_response(exc)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    log_request_info(request, f"HTTP {exc.status_code} error")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"message": exc.detail, "type": "HTTP_ERROR"}}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    log_request_info(request, "Unexpected error")
+    error = handle_unexpected_error(exc, "global exception handler")
+    return create_error_response(error)
 
 # Add CORS middleware
 app.add_middleware(
@@ -109,8 +429,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create tables if needed
-Base.metadata.create_all(bind=engine)
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        await check_service_health()
+        
+        all_healthy = all(health_status[key] for key in ["database", "openai", "google_places"])
+        
+        return {
+            "status": "healthy" if all_healthy else "degraded",
+            "services": health_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+
+# Create tables if needed - with error handling
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Failed to create database tables: {e}")
+    # Continue startup but log the error
 
 def create_fallback_response(user_input, places):
     """Create intelligent fallback responses when OpenAI API is unavailable"""
@@ -442,52 +792,65 @@ async def receive_feedback(request: Request):
 
 @app.post("/ai")
 async def ai_istanbul_router(request: Request):
-    data = await request.json()
-    user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
-
-    # 🛡️ CRITICAL SECURITY: Validate and sanitize input FIRST
-    is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
-    if not is_safe:
-        print(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
-        return {
-            "message": "Sorry, your input contains invalid characters or patterns. Please try again with a different message.",
-            "error": "Invalid input"
-        }
-    
-    # Use sanitized input for all processing
-    user_input = sanitized_input
-    print(f"🛡️ Processing sanitized input: {user_input}")
-
-    # Handle greetings and daily talk BEFORE any typo correction or enhancement
-    user_input_clean = user_input.lower().strip()
-    greeting_patterns = [
-        'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon',
-        'good evening', 'howdy', 'hiya', 'sup', "what's up", 'whats up',
-        'how are you', 'how are u', 'how r u', 'how r you', 'how are you doing', "how's it going", 'hows it going',
-        'nice to meet you', 'pleased to meet you', 'good to see you'
-    ]
-    daily_talk_patterns = [
-        'how are things', "what's new", 'whats new', 'how have you been',
-        'long time no see', 'good to hear from you', "hope you're well",
-        "how's your day", 'hows your day', 'having a good day',
-        "what's happening", 'whats happening', "how's life", 'hows life'
-    ]
-    is_greeting = any(pattern in user_input_clean for pattern in greeting_patterns)
-    is_daily_talk = any(pattern in user_input_clean for pattern in daily_talk_patterns)
-    if is_greeting or is_daily_talk:
-        print(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
-        if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
-            return {"message": "Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?"}
-        elif 'how are you' in user_input_clean or 'how are u' in user_input_clean or 'how r u' in user_input_clean or 'how r you' in user_input_clean or 'how are you doing' in user_input_clean:
-            return {"message": "I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?"}
-        elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
-            return {"message": "Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?"}
-        elif any(phrase in user_input_clean for phrase in ["what's up", 'whats up', 'sup', "how's it going", 'hows it going']):
-            return {"message": "Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?"}
-        else:
-            return {"message": "It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?"}
+    """Enhanced AI endpoint with comprehensive error handling"""
+    db = None
     
     try:
+        # Log request for monitoring
+        log_request_info(request)
+        
+        # Parse request data with error handling
+        try:
+            data = await request.json()
+            user_input = data.get("query", data.get("user_input", ""))
+        except json.JSONDecodeError:
+            raise ValidationError("Invalid JSON in request body")
+        except Exception as e:
+            raise ValidationError(f"Failed to parse request: {str(e)}")
+
+        if not user_input:
+            raise ValidationError("Empty input provided")
+
+        # 🛡️ CRITICAL SECURITY: Validate and sanitize input FIRST
+        is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
+        if not is_safe:
+            logger.warning(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
+            raise ValidationError("Input contains invalid characters or patterns")
+        
+        # Use sanitized input for all processing
+        user_input = sanitized_input
+        logger.info(f"🛡️ Processing sanitized input: {user_input[:50]}...")
+
+        # Handle greetings and daily talk BEFORE any typo correction or enhancement
+        user_input_clean = user_input.lower().strip()
+        greeting_patterns = [
+            'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon',
+            'good evening', 'howdy', 'hiya', 'sup', "what's up", 'whats up',
+            'how are you', 'how are u', 'how r u', 'how r you', 'how are you doing', "how's it going", 'hows it going',
+            'nice to meet you', 'pleased to meet you', 'good to see you'
+        ]
+        daily_talk_patterns = [
+            'how are things', "what's new", 'whats new', 'how have you been',
+            'long time no see', 'good to hear from you', "hope you're well",
+            "how's your day", 'hows your day', 'having a good day',
+            "what's happening", 'whats happening', "how's life", 'hows life'
+        ]
+        is_greeting = any(pattern in user_input_clean for pattern in greeting_patterns)
+        is_daily_talk = any(pattern in user_input_clean for pattern in daily_talk_patterns)
+        if is_greeting or is_daily_talk:
+            logger.info(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
+            if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
+                return {"message": "Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?"}
+            elif 'how are you' in user_input_clean or 'how are u' in user_input_clean or 'how r u' in user_input_clean or 'how r you' in user_input_clean or 'how are you doing' in user_input_clean:
+                return {"message": "I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?"}
+            elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
+                return {"message": "Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?"}
+            elif any(phrase in user_input_clean for phrase in ["what's up", 'whats up', 'sup', "how's it going", 'hows it going']):
+                return {"message": "Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?"}
+            else:
+                return {"message": "It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?"}
+        
+        # Continue with main query processing
         # Debug logging
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
         
@@ -503,11 +866,19 @@ async def ai_istanbul_router(request: Request):
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not OpenAI or not openai_api_key:
             print("[ERROR] OpenAI API key not set or openai package missing.")
-            raise RuntimeError("OpenAI API key not set or openai package missing.")
-        client = OpenAI(api_key=openai_api_key)
+            raise ExternalAPIError("OpenAI API key not configured", "OpenAI")
+        
+        # Initialize OpenAI client with error handling
+        try:
+            client = OpenAI(api_key=openai_api_key)
+        except Exception as e:
+            raise ExternalAPIError("Failed to initialize OpenAI client", "OpenAI", e)
 
-        # Create database session
-        db = SessionLocal()
+        # Create database session with error handling
+        try:
+            db = SessionLocal()
+        except Exception as e:
+            raise DatabaseError("Failed to create database session", e)
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
@@ -710,8 +1081,21 @@ async def ai_istanbul_router(request: Request):
                                 search_location = f"{location}, Istanbul, Turkey"
                                 break
                     
-                    client = GooglePlacesClient()
-                    places_data = client.search_restaurants(location=search_location, keyword=user_input)
+                    # Initialize Google Places client with error handling
+                    try:
+                        client = GooglePlacesClient()
+                    except Exception as e:
+                        raise ExternalAPIError("Failed to initialize Google Places client", "Google Places", e)
+                    
+                    # Search for restaurants with retry mechanism
+                    @retry_with_backoff(max_attempts=2, base_delay=1.0)
+                    def search_restaurants_with_retry():
+                        return client.search_restaurants(location=search_location, keyword=user_input)
+                    
+                    try:
+                        places_data = search_restaurants_with_retry()
+                    except Exception as e:
+                        raise ExternalAPIError("Restaurant search failed", "Google Places", e)
                     
                     if places_data.get('results'):
                         location_text = user_input.lower().split("in ")[-1].strip().title() if "in " in user_input.lower() else "Istanbul"
@@ -752,17 +1136,20 @@ async def ai_istanbul_router(request: Request):
                         return {"message": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
                         
                 except Exception as e:
-                    print(f"Error fetching Google Places data: {e}")
-                    return {"message": "Sorry, I encountered an error while searching for restaurants. Please try again."}
+                    logger.error(f"Restaurant search error: {e}")
+                    raise ExternalAPIError("Failed to fetch restaurant recommendations", "Google Places", e)
             
             elif is_museum_query or is_attraction_query or is_district_query:
-                # Get data from manual database
-                places = db.query(Place).all()
+                # Get data from manual database with error handling
+                try:
+                    places = db.query(Place).all()
+                except Exception as e:
+                    raise DatabaseError("Failed to fetch places from database", e)
                 
                 # Extract location if this is a location-specific query
                 extracted_location = None
                 if is_location_place_query or is_location_museum_query:
-                    print(f"Location-based query detected: {user_input}")
+                    logger.info(f"Location-based query detected: {user_input}")
                     location_patterns = [
                         r'in\s+([a-zA-Z\s]+)',
                         r'at\s+([a-zA-Z\s]+)',
@@ -1199,40 +1586,62 @@ TONE & STYLE:
 When users need specific restaurant recommendations with location (like "restaurants in Beyoğlu"), the system will automatically fetch live data for you."""
 
                 try:
-                    print("Making OpenAI API call...")
-                    response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "system", "content": f"Database context:\n{places_context}"},
-                            {"role": "user", "content": user_input}
-                        ],
-                        max_tokens=500,
-                        temperature=0.7
-                    )
+                    logger.info("Making OpenAI API call...")
+                    
+                    @openai_circuit_breaker
+                    @retry_with_backoff(max_attempts=3, base_delay=1.0)
+                    def make_openai_request():
+                        return client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "system", "content": f"Database context:\n{places_context}"},
+                                {"role": "user", "content": user_input}
+                            ],
+                            max_tokens=500,
+                            temperature=0.7,
+                            timeout=30  # 30 second timeout
+                        )
+                    
+                    response = make_openai_request()
                     
                     ai_response = response.choices[0].message.content
-                    print(f"OpenAI response: {ai_response[:100]}...")
+                    logger.info(f"OpenAI response: {ai_response[:100]}...")
                     # Clean the response from any emojis, hashtags, or markdown
                     clean_response = clean_text_formatting(ai_response)
                     return {"message": clean_response}
                     
                 except Exception as e:
-                    print(f"OpenAI API error: {e}")
-                    # Smart fallback response based on user input
-                    fallback_response = create_fallback_response(user_input, places)
-                    # Clean the fallback response as well
-                    clean_response = clean_text_formatting(fallback_response)
-                    return {"message": clean_response}
+                    logger.error(f"OpenAI API error: {e}")
+                    # Try fallback response before raising error
+                    try:
+                        fallback_response = create_fallback_response(user_input, places)
+                        clean_response = clean_text_formatting(fallback_response)
+                        return {"message": clean_response}
+                    except Exception as fallback_error:
+                        logger.error(f"Fallback response failed: {fallback_error}")
+                        raise ExternalAPIError("AI chat service is temporarily unavailable", "OpenAI", e)
         
         finally:
-            db.close()
-            
+            if db:
+                db.close()
+                
+    except ValidationError as e:
+        logger.error(f"Validation error: {e}")
+        raise e
+    except DatabaseError as e:
+        logger.error(f"Database error: {e}")
+        raise e
+    except ExternalAPIError as e:
+        logger.error(f"External API error: {e}")
+        raise e
     except Exception as e:
-        print(f"[ERROR] Exception in /ai endpoint: {e}")
-        import traceback
-        traceback.print_exc()
-        return {"message": "Sorry, I couldn't understand. Can you type again? (Backend error: " + str(e) + ")"}
+        logger.error(f"[ERROR] Unexpected exception in /ai endpoint: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Create fallback response for unexpected errors
+        error = handle_unexpected_error(e, "AI endpoint")
+        raise error
 
 async def stream_response(message: str):
     """Stream response word by word like ChatGPT"""
