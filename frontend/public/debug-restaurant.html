@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Restaurant Detection Debug</title>
+</head>
+<body>
+    <h1>Restaurant Detection Debug Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Copy of the detection logic from Chatbot.jsx
+        const isRestaurantAdviceRequest = (userInput) => {
+          const input = userInput.toLowerCase();
+          const restaurantKeywords = [
+            'restaurant', 'restaurants', 'food', 'eat', 'dining', 'meal',
+            'recommend', 'suggestion', 'advice', 'where to eat',
+            'good food', 'best restaurant', 'restaurant recommendation',
+            'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
+            'restaurant advice', 'give me restaurant', 'find restaurant',
+            'show me restaurant', 'good restaurants', 'best places to eat',
+            'restaurants in', 'food in', 'dining in', 'eat in', 'places to eat in'
+          ];
+          
+          return restaurantKeywords.some(keyword => input.includes(keyword));
+        };
+
+        // Copy of the location extraction logic
+        const extractLocationFromQuery = (userInput) => {
+          const input = userInput.toLowerCase();
+          
+          // Istanbul districts (both Turkish and English variants)
+          const districts = {
+            'beyoğlu': 'Beyoglu',
+            'beyoglu': 'Beyoglu',
+            'galata': 'Beyoglu',
+            'taksim': 'Beyoglu',
+            'sultanahmet': 'Sultanahmet',
+            'fatih': 'Fatih',
+            'kadıköy': 'Kadikoy',
+            'kadikoy': 'Kadikoy',
+            'beşiktaş': 'Besiktas',
+            'besiktas': 'Besiktas',
+            'şişli': 'Sisli',
+            'sisli': 'Sisli',
+            'üsküdar': 'Uskudar',
+            'uskudar': 'Uskudar',
+            'ortaköy': 'Besiktas',
+            'ortakoy': 'Besiktas',
+            'karaköy': 'Beyoglu',
+            'karakoy': 'Beyoglu',
+            'eminönü': 'Fatih',
+            'eminonu': 'Fatih',
+            'bakırköy': 'Bakirkoy',
+            'bakirkoy': 'Bakirkoy'
+          };
+          
+          // Check for district matches
+          for (const [key, value] of Object.entries(districts)) {
+            if (input.includes(key)) {
+              return { district: value, keyword: null };
+            }
+          }
+          
+          return { district: null, keyword: null };
+        };
+
+        // Test the user's specific query
+        const testQuery = 'give me restrants in beyoglu';
+        
+        console.log('=== DEBUGGING USER QUERY ===');
+        console.log('Query:', testQuery);
+        console.log('Detected as restaurant request?', isRestaurantAdviceRequest(testQuery));
+        console.log('Location extraction:', extractLocationFromQuery(testQuery));
+        
+        // Test API call simulation
+        async function testAPI() {
+            const location = extractLocationFromQuery(testQuery);
+            const params = new URLSearchParams();
+            if (location.district) params.append('district', location.district);
+            params.append('limit', '4');
+            
+            const url = `http://localhost:8001/restaurants/search?${params}`;
+            console.log('API URL would be:', url);
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                document.getElementById('results').innerHTML = `
+                    <h2>Debug Results:</h2>
+                    <p><strong>Query:</strong> "${testQuery}"</p>
+                    <p><strong>Restaurant Detection:</strong> ${isRestaurantAdviceRequest(testQuery) ? '✅ YES' : '❌ NO'}</p>
+                    <p><strong>Location Extracted:</strong> ${location.district || 'None'}</p>
+                    <p><strong>API URL:</strong> ${url}</p>
+                    <p><strong>API Status:</strong> ${data.status}</p>
+                    <p><strong>Restaurants Found:</strong> ${data.total_found}</p>
+                    <div style="margin-top: 20px; padding: 10px; background: #f0f0f0;">
+                        <strong>First Restaurant:</strong><br>
+                        ${data.restaurants[0] ? data.restaurants[0].name : 'None'}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('API Error:', error);
+                document.getElementById('results').innerHTML = `<p style="color: red;">API Error: ${error.message}</p>`;
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>

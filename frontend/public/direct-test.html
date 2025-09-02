@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Restaurant Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; margin: 10px; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>🍽️ Direct Restaurant API Test</h1>
+    <button onclick="testRestaurantAPI()">Test "give me restrants in beyoglu"</button>
+    <button onclick="testDetection()">Test Detection Logic Only</button>
+    <div id="results"></div>
+
+    <script type="module">
+        // Direct API test without using the component
+        const BASE_URL = 'http://localhost:8001';
+        
+        window.testRestaurantAPI = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="result">Testing API...</div>';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/restaurants/search?district=Beyoglu&limit=4`);
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ API Test Successful</h3>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Location:</strong> ${data.location_searched}</p>
+                        <p><strong>Restaurants Found:</strong> ${data.total_found}</p>
+                        <h4>First Restaurant:</h4>
+                        <p>${data.restaurants[0]?.name || 'None'}</p>
+                        <p>Rating: ${data.restaurants[0]?.rating || 'N/A'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ API Test Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        };
+
+        window.testDetection = function() {
+            const testQuery = 'give me restrants in beyoglu';
+            
+            // Copy detection logic
+            const isRestaurantAdviceRequest = (userInput) => {
+                const input = userInput.toLowerCase();
+                const restaurantKeywords = [
+                    'restaurant', 'restaurants', 'restrant', 'restrants', 'food', 'eat', 'dining', 'meal',
+                    'recommend', 'suggestion', 'advice', 'where to eat',
+                    'good food', 'best restaurant', 'restaurant recommendation',
+                    'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
+                    'restaurant advice', 'give me restaurant', 'find restaurant',
+                    'show me restaurant', 'good restaurants', 'best places to eat',
+                    'restaurants in', 'food in', 'dining in', 'eat in', 'places to eat in'
+                ];
+                
+                return restaurantKeywords.some(keyword => input.includes(keyword));
+            };
+
+            // Copy location extraction logic
+            const extractLocationFromQuery = (userInput) => {
+                const input = userInput.toLowerCase();
+                
+                const districts = {
+                    'beyoğlu': 'Beyoglu',
+                    'beyoglu': 'Beyoglu',
+                    'galata': 'Beyoglu',
+                    'taksim': 'Beyoglu',
+                };
+                
+                for (const [key, value] of Object.entries(districts)) {
+                    if (input.includes(key)) {
+                        return { district: value, keyword: null };
+                    }
+                }
+                
+                return { district: null, keyword: null };
+            };
+            
+            const detected = isRestaurantAdviceRequest(testQuery);
+            const location = extractLocationFromQuery(testQuery);
+            
+            document.getElementById('results').innerHTML = `
+                <div class="result ${detected ? 'success' : 'error'}">
+                    <h3>🔍 Detection Test Results</h3>
+                    <p><strong>Query:</strong> "${testQuery}"</p>
+                    <p><strong>Restaurant Detected:</strong> ${detected ? '✅ YES' : '❌ NO'}</p>
+                    <p><strong>District Extracted:</strong> ${location.district || 'None'}</p>
+                    <p><strong>Keyword Extracted:</strong> ${location.keyword || 'None'}</p>
+                </div>
+            `;
+        };
+    </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
 
+console.log('🔄 Chatbot component loaded with restaurant functionality');
+
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
   // Convert Markdown-style links [text](url) to clickable HTML links
@@ -65,7 +67,10 @@ const renderMessageContent = (content, darkMode) => {
 
 // Helper function to format restaurant recommendations
 const formatRestaurantRecommendations = (restaurants, locationInfo = null) => {
+  console.log('formatRestaurantRecommendations called with:', { restaurants, count: restaurants?.length });
+  
   if (!restaurants || restaurants.length === 0) {
+    console.log('No restaurants found, returning error message');
     return "I'm sorry, I couldn't find any restaurant recommendations at the moment. Please try again or be more specific about your preferences.";
   }
 
@@ -88,20 +93,28 @@ const formatRestaurantRecommendations = (restaurants, locationInfo = null) => {
   return formattedResponse;
 };
 
-// Helper function to detect if user is asking for restaurant recommendations
-const isRestaurantAdviceRequest = (userInput) => {
+// Simplified helper function - only catch very explicit restaurant+location requests
+const isExplicitRestaurantRequest = (userInput) => {
+  console.log('🔍 Checking for explicit restaurant request:', userInput);
   const input = userInput.toLowerCase();
-  const restaurantKeywords = [
-    'restaurant', 'restaurants', 'food', 'eat', 'dining', 'meal',
-    'recommend', 'suggestion', 'advice', 'where to eat',
-    'good food', 'best restaurant', 'restaurant recommendation',
-    'places to eat', 'food recommendation', 'cuisine', 'turkish cuisine',
-    'restaurant advice', 'give me restaurant', 'find restaurant',
-    'show me restaurant', 'good restaurants', 'best places to eat',
-    'restaurants in', 'food in', 'dining in', 'eat in', 'places to eat in'
+  
+  // Only intercept very specific restaurant requests with location
+  // These are the ONLY phrases that trigger the restaurant API
+  const explicitRestaurantRequests = [
+    'restaurants in',        // "restaurants in Beyoglu"
+    'where to eat in',       // "where to eat in Sultanahmet"
+    'restaurant recommendations for', // "restaurant recommendations for Taksim"
+    'good restaurants in',   // "good restaurants in Galata"
+    'best restaurants in',   // "best restaurants in Kadikoy"
+    'restaurants near',      // "restaurants near Taksim Square"
+    'where to eat near',     // "where to eat near Galata Tower"
+    'dining in',            // "dining in Beyoglu"
+    'food in'               // "food in Sultanahmet"
   ];
   
-  return restaurantKeywords.some(keyword => input.includes(keyword));
+  const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
+  console.log('🔍 Explicit restaurant detection result:', isExplicit);
+  return isExplicit;
 };
 
 function Chatbot({ onDarkModeToggle }) {
@@ -130,11 +143,14 @@ function Chatbot({ onDarkModeToggle }) {
     setLoading(true);
 
     // Check if user is asking for restaurant recommendations
-    if (isRestaurantAdviceRequest(userInput)) {
+    if (isExplicitRestaurantRequest(userInput)) {
       try {
         console.log('Detected restaurant advice request, fetching recommendations...');
+        console.log('User input:', userInput);
         const restaurantData = await fetchRestaurantRecommendations(userInput);
+        console.log('Restaurant API response:', restaurantData);
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
+        console.log('Formatted response:', formattedResponse);
         
         setMessages((prev) => [
           ...prev,
@@ -145,6 +161,12 @@ function Chatbot({ onDarkModeToggle }) {
       } catch (error) {
         console.error('Restaurant recommendation error:', error);
         // Fall back to regular AI response if restaurant API fails
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Sorry, I had trouble getting restaurant recommendations: ${error.message}. Let me try a different approach.` }
+        ]);
+        setLoading(false);
+        return;
       }
     }
 

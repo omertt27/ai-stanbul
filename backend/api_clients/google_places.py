@@ -21,7 +21,7 @@ class GooglePlacesClient:
                          keyword: str = None,
                          min_rating: float = None) -> Dict:
         """
-        Search for restaurants using Google Places Nearby Search API.
+        Search for restaurants using Google Places Text Search API for better restaurant filtering.
         
         Args:
             location: Location name (e.g., "Istanbul, Turkey")
@@ -33,34 +33,36 @@ class GooglePlacesClient:
         Returns:
             Dictionary containing search results
         """
-        url = f"{self.base_url}/nearbysearch/json"
+        # Use text search for better restaurant filtering
+        url = f"{self.base_url}/textsearch/json"
+        
+        # Build search query
+        query_parts = ["restaurant"]
+        
+        if location:
+            query_parts.append(f"in {location}")
+        elif lat_lng:
+            # Convert coordinates to location if possible
+            geocode_result = self._reverse_geocode(lat_lng)
+            if geocode_result:
+                query_parts.append(f"in {geocode_result}")
+        else:
+            query_parts.append("in Istanbul, Turkey")
+            
+        if keyword:
+            query_parts.append(keyword)
+        
+        query = " ".join(query_parts)
         
         params = {
             "key": self.api_key,
+            "query": query,
             "type": "restaurant",
-            "radius": radius,
         }
         
-        # Use coordinates if provided, otherwise geocode location
-        if lat_lng:
-            params["location"] = lat_lng
-        elif location:
-            # Convert location name to coordinates
-            geocode_result = self._geocode_location(location)
-            if geocode_result:
-                lat = geocode_result["lat"]
-                lng = geocode_result["lng"]
-                params["location"] = f"{lat},{lng}"
-            else:
-                logger.error(f"Could not geocode location: {location}")
-                return {"status": "GEOCODING_ERROR", "results": []}
-        else:
-            # Default to Istanbul center
-            params["location"] = "41.0082,28.9784"
-            
-        if keyword:
-            params["keyword"] = keyword
-            
+        if radius and radius <= 50000:
+            params["radius"] = radius
+        
         if min_rating:
             params["min_price_level"] = 0  # This doesn't filter by rating, but we'll filter after
             
@@ -149,9 +151,27 @@ class GooglePlacesClient:
             return []
         
         restaurants = []
-        places = search_results.get("results", [])[:limit]
+        places = search_results.get("results", [])
         
+        # Filter out hotels and lodging establishments - be more strict
+        filtered_places = []
         for place in places:
+            place_types = place.get("types", [])
+            # Exclude places that are primarily lodging/accommodation
+            lodging_types = ['lodging', 'hotel', 'motel', 'inn', 'resort', 'hostel', 'guest_house']
+            is_lodging = any(lodging_type in place_types for lodging_type in lodging_types)
+            
+            # Only include if it's NOT lodging at all
+            if not is_lodging:
+                filtered_places.append(place)
+                logger.info(f"Included: {place.get('name', 'Unknown')} - types: {place_types}")
+            else:
+                logger.info(f"Excluded: {place.get('name', 'Unknown')} - lodging establishment with types: {place_types}")
+        
+        # Limit after filtering
+        filtered_places = filtered_places[:limit]
+        
+        for place in filtered_places:
             place_id = place.get("place_id")
             if not place_id:
                 continue
@@ -161,6 +181,16 @@ class GooglePlacesClient:
             
             if details.get("status") == "OK":
                 result = details.get("result", {})
+                
+                # Additional filter: Double-check that this is not primarily a lodging establishment
+                result_types = result.get("types", [])
+                lodging_types = ['lodging', 'hotel', 'motel', 'inn', 'resort', 'hostel', 'guest_house']
+                is_lodging = any(lodging_type in result_types for lodging_type in lodging_types)
+                
+                # Skip if it's primarily lodging
+                if is_lodging:
+                    logger.info(f"Skipping in details: {result.get('name', 'Unknown')} - lodging establishment with types: {result_types}")
+                    continue
                 
                 # Extract description from various sources
                 description = self._extract_description(result)
@@ -207,6 +237,27 @@ class GooglePlacesClient:
                 return {"lat": location_data["lat"], "lng": location_data["lng"]}
         except requests.RequestException as e:
             logger.error(f"Geocoding error: {e}")
+        
+        return None
+    
+    def _reverse_geocode(self, lat_lng: str) -> Optional[str]:
+        """Convert coordinates to location name using Google Reverse Geocoding API."""
+        url = "https://maps.googleapis.com/maps/api/geocode/json"
+        params = {
+            "key": self.api_key,
+            "latlng": lat_lng
+        }
+        
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get("status") == "OK" and data.get("results"):
+                # Get the first formatted address
+                return data["results"][0]["formatted_address"]
+        except requests.RequestException as e:
+            logger.error(f"Reverse geocoding error: {e}")
         
         return None
     

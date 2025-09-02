@@ -5,8 +5,60 @@ import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import ConnectionStatus from './components/ConnectionStatus';
 // import DebugInfo from './components/DebugInfo';
-import { fetchResults, fetchStreamingResults } from './api/api';
+import { fetchResults, fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
 import './App.css';
+
+// Simplified helper function - only catch very explicit restaurant+location requests
+const isExplicitRestaurantRequest = (userInput) => {
+  console.log('🔍 App.jsx: Checking for explicit restaurant request:', userInput);
+  const input = userInput.toLowerCase();
+  
+  // Only intercept very specific restaurant requests with location
+  // These are the ONLY phrases that trigger the restaurant API
+  const explicitRestaurantRequests = [
+    'restaurants in',        // "restaurants in Beyoglu"
+    'where to eat in',       // "where to eat in Sultanahmet" 
+    'restaurant recommendations for', // "restaurant recommendations for Taksim"
+    'good restaurants in',   // "good restaurants in Galata"
+    'best restaurants in',   // "best restaurants in Kadikoy"
+    'restaurants near',      // "restaurants near Taksim Square"
+    'where to eat near',     // "where to eat near Galata Tower"
+    'dining in',            // "dining in Beyoglu"
+    'food in'               // "food in Sultanahmet"
+  ];
+  
+  const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
+  console.log('🔍 App.jsx: Explicit restaurant detection result:', isExplicit);
+  return isExplicit;
+};
+
+// Helper function to format restaurant recommendations
+const formatRestaurantRecommendations = (restaurants) => {
+  console.log('App.jsx: formatRestaurantRecommendations called with:', { restaurants, count: restaurants?.length });
+  
+  if (!restaurants || restaurants.length === 0) {
+    console.log('App.jsx: No restaurants found, returning error message');
+    return "Sorry, I couldn't find any restaurants matching your request in Istanbul.";
+  }
+
+  let formattedResponse = "🍽️ Here are 4 great restaurant recommendations for you:\n\n";
+  
+  restaurants.slice(0, 4).forEach((restaurant, index) => {
+    const name = restaurant.name || 'Unknown Restaurant';
+    const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : '';
+    const address = restaurant.address || restaurant.vicinity || '';
+    const description = restaurant.description || 'A popular dining spot in Istanbul.';
+    
+    formattedResponse += `${index + 1}. ${name}\n`;
+    if (rating) formattedResponse += `${rating}\n`;
+    if (address) formattedResponse += `📍 ${address}\n`;
+    formattedResponse += `${description}\n\n`;
+  });
+
+  formattedResponse += "Would you like more details about any of these restaurants?";
+  
+  return formattedResponse;
+};
 
 const App = () => {
   const [query, setQuery] = useState('');
@@ -37,7 +89,47 @@ const App = () => {
     setTimeout(() => {
       document.getElementById('chat-animated-container')?.classList.add('expand-animate');
     }, 10);
-    // Streaming KAM response
+
+    // Check if user is making an explicit restaurant request (only very specific cases)
+    if (isExplicitRestaurantRequest(searchQuery)) {
+      console.log('🍽️ App.jsx: Detected restaurant request, fetching recommendations...');
+      setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
+      
+      try {
+        const restaurantData = await fetchRestaurantRecommendations(searchQuery);
+        console.log('🍽️ App.jsx: Restaurant API response:', restaurantData);
+        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
+        console.log('🍽️ App.jsx: Formatted response:', formattedResponse);
+        
+        setMessages(msgs => {
+          const updated = [...msgs];
+          // Find last KAM message and update its text
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].user === 'KAM') {
+              updated[i] = { ...updated[i], text: formattedResponse };
+              break;
+            }
+          }
+          return updated;
+        });
+        return; // Exit early, don't do regular AI chat
+      } catch (error) {
+        console.error('🍽️ App.jsx: Restaurant recommendation error:', error);
+        setMessages(msgs => {
+          const updated = [...msgs];
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].user === 'KAM') {
+              updated[i] = { ...updated[i], text: `Sorry, I had trouble getting restaurant recommendations: ${error.message}. Let me try a different approach.` };
+              break;
+            }
+          }
+          return updated;
+        });
+        return;
+      }
+    }
+
+    // Regular streaming KAM response for non-restaurant queries
     let aiMessage = '';
     setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
     try {

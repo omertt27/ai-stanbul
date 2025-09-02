@@ -144,7 +144,9 @@ export const extractLocationFromQuery = (userInput) => {
 
 export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) => {
   try {
+    console.log('fetchRestaurantRecommendations called with userInput:', userInput);
     const { district, keyword } = extractLocationFromQuery(userInput);
+    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
     
     const params = new URLSearchParams();
     if (district) params.append('district', district);
@@ -153,7 +155,6 @@ export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) 
 
     const url = `${RESTAURANTS_API_URL}?${params}`;
     console.log('Making restaurant API request to:', url);
-    console.log('Extracted filters - District:', district, 'Keyword:', keyword);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -170,6 +171,7 @@ export const fetchRestaurantRecommendations = async (userInput = '', limit = 4) 
     
     const data = await response.json();
     console.log('Restaurant API response data:', data);
+    console.log('Number of restaurants returned:', data.restaurants?.length);
     return data;
   } catch (error) {
     console.error('Restaurant fetch error:', error);
