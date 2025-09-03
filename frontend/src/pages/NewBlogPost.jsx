@@ -189,7 +189,7 @@ const NewBlogPost = () => {
 
   return (
     <div 
-      className={`min-h-screen pt-20 sm:pt-24 md:pt-28 px-4 pb-8 transition-colors duration-200 ${
+      className={`min-h-screen pt-20 sm:pt-24 md:pt-28 px-4 pb-8 transition-colors duration-200 overflow-y-auto ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
       style={{ scrollBehavior: 'smooth' }}
@@ -361,36 +361,34 @@ const NewBlogPost = () => {
             </p>
           </div>
 
-          {/* District Selection */}
-          <div className={`p-4 rounded-lg transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white shadow-sm border border-gray-200'
-          }`}>
-            <label htmlFor="district" className={`block text-base font-medium mb-2 transition-colors duration-200 ${
+          {/* District Selection - Compact */}
+          <div className="flex items-center gap-4">
+            <label htmlFor="district" className={`text-sm font-medium transition-colors duration-200 ${
               darkMode ? 'text-gray-200' : 'text-gray-700'
             }`}>
-              Istanbul District
+              District:
             </label>
             <select
               id="district"
               name="district"
               value={formData.district}
               onChange={handleInputChange}
-              className={`w-full px-3 py-3 border rounded-lg focus:outline-none text-base transition-all duration-200 ${
+              className={`px-3 py-2 border rounded-lg focus:outline-none text-sm transition-all duration-200 min-w-[180px] ${
                 darkMode
                   ? 'bg-gray-700/50 text-white border-gray-600 focus:border-orange-400 focus:ring-1 focus:ring-orange-400/20'
                   : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20'
               }`}
             >
-              <option value="">Select a district (optional)</option>
+              <option value="">Choose district...</option>
               {chatbotDistricts.map(district => (
                 <option key={district} value={district}>
                   {district}
                 </option>
               ))}
             </select>
-            <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Choose the main Istanbul district your story is about
-            </p>
+            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              (optional)
+            </span>
           </div>
 
           {/* Essay Section - Large */}
