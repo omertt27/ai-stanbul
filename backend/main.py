@@ -1115,6 +1115,9 @@ async def ai_istanbul_router(request: Request):
                 r'\w+\s+attractions',  # "kadikoy attractions"
                 r'what.*in\s+\w+',  # "what to do in beyoglu"
                 r'\w+\s+places?\s+to\s+visit',  # "kadikoy places to visit"
+                r'\w+\s+plases?\s+to\s+visit',  # "kadikoy plases to visit" - typo variation
+                r'\w+\s+places?$',  # "kadikoy places" - simple district + places
+                r'\w+\s+plases?$',  # "kadikoy plases" - simple district + places (typo)
                 r'\w+\s+to\s+places?\s+to\s+visit',  # "kadikoy to places to visit" - double "to" pattern
                 r'\w+\s+to\s+visit',  # "kadikoy to visit"
                 r'places?\s+to\s+visit\s+in\s+\w+',  # "places to visit in kadikoy"
@@ -1326,6 +1329,8 @@ async def ai_istanbul_router(request: Request):
                         r'^(\w+)\s+to\s+places\s+to\s+visit',  # "kadikoy to places to visit" - specific pattern first
                         r'^(\w+)\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
                         r'^(\w+)\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
+                        r'^(\w+)\s+places?$',  # "kadikoy places" - simple district + places
+                        r'^(\w+)\s+plases?$',  # "kadikoy plases" - simple district + places (typo)
                         r'^([a-zA-Z\s]+?)\s+to\s+visit',  # "kadikoy to visit" - more general
                         r'^([a-zA-Z\s]+)\s+attractions',  # "kadikoy attractions"
                         r'visit\s+([a-zA-Z\s]+)\s+places?',  # "visit kadikoy places"

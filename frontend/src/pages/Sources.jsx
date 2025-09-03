@@ -1,7 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import '../App.css';
 
 const Sources = () => (
   <div className="static-page">
+    {/* AI Istanbul Logo - Top Left */}
+    <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
+      <div className="logo-istanbul logo-move-top-left">
+        <span className="logo-text">
+          A/<span style={{fontWeight: 400}}>STANBUL</span>
+        </span>
+      </div>
+    </Link>
+    
     <h1>Sources & Technology</h1>
     <h2>Restaurant Data</h2>
     <ul>

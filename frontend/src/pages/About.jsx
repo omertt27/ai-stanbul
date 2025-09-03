@@ -1,7 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import '../App.css';
 
 const About = () => (
   <div className="static-page">
+    {/* AI Istanbul Logo - Top Left */}
+    <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
+      <div className="logo-istanbul logo-move-top-left">
+        <span className="logo-text">
+          A/<span style={{fontWeight: 400}}>STANBUL</span>
+        </span>
+      </div>
+    </Link>
+    
     <h1>About AIstanbul</h1>
     <p>
       <b>AIstanbul</b> is an AI-powered chatbot and city guide for Istanbul, designed to help locals and visitors discover the best restaurants, attractions, and experiences in the city. Powered by real-time data and modern AI, it aims to provide the most up-to-date and relevant recommendations.

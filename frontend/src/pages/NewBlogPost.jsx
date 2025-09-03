@@ -23,7 +23,6 @@ const NewBlogPost = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({});
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Istanbul districts that are supported by the AI chatbot
   const chatbotDistricts = [
@@ -32,21 +31,13 @@ const NewBlogPost = () => {
     'Üsküdar', 'Bakırköy', 'Galata', 'Taksim', 'Ortaköy', 'Karaköy', 'Eminönü'
   ];
 
-  // Handle scroll events for scroll-to-top button
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
+  const getWordCount = (text) => {
+    if (!text || text.trim().length === 0) return 0;
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+  const getCharacterCount = (text) => {
+    return text ? text.length : 0;
   };
 
   const handleInputChange = (e) => {
@@ -168,31 +159,51 @@ const NewBlogPost = () => {
 
   const insertText = (before, after = '') => {
     const textarea = document.querySelector('textarea[name="content"]');
+    if (!textarea) return;
+    
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = formData.content.substring(start, end);
+    
+    // If no text is selected, provide default text for demonstration
+    const textToWrap = selectedText || (
+      before === '**' ? 'bold text' :
+      before === '*' ? 'italic text' :
+      before === '\n## ' ? 'Your Heading' :
+      before === '\n- ' ? 'list item' :
+      'text'
+    );
+    
     const newText = formData.content.substring(0, start) + 
-                   before + selectedText + after + 
+                   before + textToWrap + after + 
                    formData.content.substring(end);
     
     setFormData(prev => ({ ...prev, content: newText }));
     
-    // Restore cursor position
+    // Restore cursor position and select the inserted text
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(
-        start + before.length,
-        end + before.length
-      );
+      if (selectedText) {
+        // If text was selected, place cursor after the formatting
+        textarea.setSelectionRange(
+          start + before.length + textToWrap.length + after.length,
+          start + before.length + textToWrap.length + after.length
+        );
+      } else {
+        // If no text was selected, select the default text so user can replace it
+        textarea.setSelectionRange(
+          start + before.length,
+          start + before.length + textToWrap.length
+        );
+      }
     }, 0);
   };
 
   return (
     <div 
-      className={`min-h-screen pt-20 sm:pt-24 md:pt-28 px-4 pb-8 transition-colors duration-200 overflow-y-auto ${
+      className={`min-h-screen pt-16 px-3 pb-6 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
-      style={{ scrollBehavior: 'smooth' }}
     >
       {/* AI Istanbul Logo - Top Left */}
       <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
@@ -204,38 +215,46 @@ const NewBlogPost = () => {
       </Link>
 
       <div className="max-w-4xl mx-auto">
-        {/* Simple Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Share Your Istanbul Story
-          </h1>
-          <p className={`text-base ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Create your travel blog post about Istanbul
+        {/* Share Your Story Section */}
+        <div className={`mb-4 p-4 rounded-xl border-2 transition-all duration-200 ${
+          darkMode 
+            ? 'bg-gray-800 border-gray-700' 
+            : 'bg-white border-blue-200 shadow-md'
+        }`}>
+          <h2 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            📝 Share Your Istanbul Story
+          </h2>
+          <p className={`text-sm transition-colors duration-200 ${
+            darkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            Create your travel blog post about Istanbul. Share your experiences, discoveries, and recommendations with fellow travelers.
           </p>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className={`mb-6 p-4 rounded-lg border-l-4 transition-colors duration-200 ${
+          <div className={`mb-2 p-2 rounded border-l-4 transition-colors duration-200 ${
             darkMode 
               ? 'bg-red-900/20 border-red-500 border-l-red-500'
               : 'bg-red-50 border-red-200 border-l-red-500'
           }`}>
-            <p className={`font-medium ${darkMode ? 'text-red-400' : 'text-red-800'}`}>
+            <p className={`text-sm font-medium ${darkMode ? 'text-red-400' : 'text-red-800'}`}>
               {error}
             </p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3">
           
-          {/* Username Input Row */}
-          <div className={`p-4 rounded-lg transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white shadow-sm border border-gray-200'
+          {/* Compact Username Row */}
+          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
-            <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <div className="flex items-center gap-3">
               <div className="flex-1">
-                <label htmlFor="authorName" className={`block text-base font-medium mb-2 transition-colors duration-200 ${
+                <label htmlFor="authorName" className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
                   darkMode ? 'text-gray-200' : 'text-gray-700'
                 }`}>
                   Your Name
@@ -246,72 +265,70 @@ const NewBlogPost = () => {
                   name="authorName"
                   value={formData.authorName}
                   onChange={handleInputChange}
-                  placeholder="Enter your name or username..."
-                  className={`w-full px-3 py-3 border rounded-lg focus:outline-none text-base transition-all duration-200 ${
+                  placeholder="Enter your name..."
+                  className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
                     darkMode
-                      ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 placeholder-gray-400'
-                      : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-gray-500'
+                      ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
+                      : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
                   }`}
                   required
-                  autoComplete="name"
                 />
               </div>
               
-              {/* Profile Photo Upload */}
+              {/* Compact Profile Photo */}
               <div className="flex flex-col items-center">
-                <label className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
-                  darkMode ? 'text-gray-200' : 'text-gray-700'
+                <label htmlFor="authorPhotoUpload" className={`text-xs mb-1 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
-                  Profile Photo
+                  Photo
                 </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    id="authorPhotoUpload"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormData(prev => ({ ...prev, authorPhoto: reader.result }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById('authorPhotoUpload').click()}
-                    className={`w-16 h-16 rounded-full border border-dashed flex items-center justify-center transition-all duration-200 ${
-                      darkMode
-                        ? 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
-                        : 'border-gray-300 hover:border-gray-400 bg-gray-100'
-                    }`}
-                  >
-                    {formData.authorPhoto ? (
-                      <img
-                        src={formData.authorPhoto}
-                        alt="Profile"
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <svg className={`w-6 h-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+                <input
+                  type="file"
+                  id="authorPhotoUpload"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setFormData(prev => ({ ...prev, authorPhoto: reader.result }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  accept="image/*"
+                  className="sr-only"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('authorPhotoUpload').click()}
+                  className={`w-10 h-10 rounded-full border border-dashed flex items-center justify-center transition-all duration-200 ${
+                    darkMode
+                      ? 'border-gray-600 hover:border-gray-500 bg-gray-700/50'
+                      : 'border-gray-300 hover:border-gray-400 bg-gray-100'
+                  }`}
+                  aria-label="Upload profile photo"
+                >
+                  {formData.authorPhoto ? (
+                    <img
+                      src={formData.authorPhoto}
+                      alt="Profile"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <svg className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Post Title Input Row */}
-          <div className={`p-4 rounded-lg transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white shadow-sm border border-gray-200'
+          {/* Compact Title Row */}
+          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
-            <label htmlFor="title" className={`block text-base font-medium mb-2 transition-colors duration-200 ${
+            <label htmlFor="title" className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
               darkMode ? 'text-gray-200' : 'text-gray-700'
             }`}>
               Post Title
@@ -322,25 +339,24 @@ const NewBlogPost = () => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              placeholder="Give your Istanbul story a compelling title..."
-              className={`w-full px-3 py-3 border rounded-lg focus:outline-none text-base transition-all duration-200 ${
+              placeholder="Your Istanbul story title..."
+              className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
                 darkMode 
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-purple-400 focus:ring-1 focus:ring-purple-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 placeholder-gray-500'
+                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
+                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
               }`}
               required
-              autoComplete="off"
             />
           </div>
 
-          {/* Heading Input Row */}
-          <div className={`p-4 rounded-lg transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-white shadow-sm border border-gray-200'
+          {/* Compact Heading Row */}
+          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
-            <label htmlFor="heading" className={`block text-base font-medium mb-2 transition-colors duration-200 ${
+            <label htmlFor="heading" className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
               darkMode ? 'text-gray-200' : 'text-gray-700'
             }`}>
-              Story Heading
+              Story Heading (optional)
             </label>
             <input
               type="text"
@@ -348,17 +364,13 @@ const NewBlogPost = () => {
               name="heading"
               value={formData.heading}
               onChange={handleInputChange}
-              placeholder="Add a catchy heading for your story content..."
-              className={`w-full px-3 py-3 border rounded-lg focus:outline-none text-base transition-all duration-200 ${
+              placeholder="Add a heading..."
+              className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
                 darkMode 
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 placeholder-gray-500'
+                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
+                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
               }`}
-              autoComplete="off"
             />
-            <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              This will appear as the main heading inside your story (optional)
-            </p>
           </div>
 
           {/* District Selection - Compact */}
@@ -373,10 +385,10 @@ const NewBlogPost = () => {
               name="district"
               value={formData.district}
               onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:outline-none text-sm transition-all duration-200 min-w-[180px] ${
+              className={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-all duration-200 min-w-[180px] ${
                 darkMode
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-orange-400 focus:ring-1 focus:ring-orange-400/20'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/20'
+                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20'
+                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20'
               }`}
             >
               <option value="">Choose district...</option>
@@ -391,115 +403,97 @@ const NewBlogPost = () => {
             </span>
           </div>
 
-          {/* Essay Section - Large */}
-          <div className={`p-6 rounded-xl transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white shadow-lg border border-gray-200'
+          {/* Compact Essay Section */}
+          <div className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
-            <div className="flex items-center justify-between mb-4">
-              <label htmlFor="content" className={`text-lg font-semibold transition-colors duration-200 ${
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="content" className={`text-sm font-medium transition-colors duration-200 ${
                 darkMode ? 'text-gray-200' : 'text-gray-700'
               }`}>
                 Your Story
               </label>
               
-              {/* Essay Settings */}
-              <div className="flex items-center space-x-4">
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Words: {formData.content.split(' ').filter(word => word.length > 0).length}
-                </div>
-                <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Characters: {formData.content.length}
-                </div>
-                <select
-                  onChange={(e) => {
-                    const fontSize = e.target.value;
-                    const textarea = document.querySelector('textarea[name="content"]');
-                    if (textarea) {
-                      textarea.style.fontSize = fontSize;
-                    }
-                  }}
-                  className={`text-sm px-3 py-1 rounded border ${
-                    darkMode
-                      ? 'bg-gray-700 text-white border-gray-600'
-                      : 'bg-white text-gray-900 border-gray-300'
-                  }`}
-                >
-                  <option value="16px">Normal</option>
-                  <option value="18px">Large</option>
-                  <option value="20px">Extra Large</option>
-                </select>
+              {/* Compact Settings */}
+              <div className="flex items-center space-x-4 text-xs">
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                  {getWordCount(formData.content)} words
+                </span>
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                  {getCharacterCount(formData.content)} characters
+                </span>
               </div>
             </div>
 
-            {/* Simple Formatting Tools */}
-            <div className={`mb-4 p-3 rounded-lg border transition-colors duration-200 ${
+            {/* Improved Formatting Tools */}
+            <div className={`mb-3 p-2 rounded border transition-colors duration-200 ${
               darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
             }`}>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => insertText('**', '**')}
-                  className={`px-3 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+                  className={`px-2 py-1 rounded text-xs font-bold transition-all duration-200 ${
                     darkMode
                       ? 'bg-gray-600 hover:bg-gray-500 text-white'
                       : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                   }`}
-                  title="Bold text"
+                  title="Make text bold (select text first, or click to add sample)"
                 >
-                  Bold
+                  <strong>Bold</strong>
                 </button>
                 <button
                   type="button"
                   onClick={() => insertText('*', '*')}
-                  className={`px-3 py-2 rounded-lg text-sm italic transition-all duration-200 ${
+                  className={`px-2 py-1 rounded text-xs italic transition-all duration-200 ${
                     darkMode
                       ? 'bg-gray-600 hover:bg-gray-500 text-white'
                       : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                   }`}
-                  title="Italic text"
+                  title="Make text italic (select text first, or click to add sample)"
                 >
-                  Italic
+                  <em>Italic</em>
                 </button>
                 <button
                   type="button"
                   onClick={() => insertText('\n## ', '')}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  className={`px-2 py-1 rounded text-xs transition-all duration-200 ${
                     darkMode
                       ? 'bg-gray-600 hover:bg-gray-500 text-white'
                       : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                   }`}
-                  title="Add heading"
+                  title="Add a heading"
                 >
-                  Heading
+                  📝 Heading
                 </button>
                 <button
                   type="button"
                   onClick={() => insertText('\n- ', '')}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  className={`px-2 py-1 rounded text-xs transition-all duration-200 ${
                     darkMode
                       ? 'bg-gray-600 hover:bg-gray-500 text-white'
                       : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                   }`}
-                  title="Add list item"
+                  title="Add a bullet point"
                 >
-                  List
+                  • List
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    const textarea = document.querySelector('textarea[name="content"]');
-                    textarea?.focus();
-                  }}
-                  className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  onClick={() => insertText('\n\n', '')}
+                  className={`px-2 py-1 rounded text-xs transition-all duration-200 ${
                     darkMode
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-gray-600 hover:bg-gray-500 text-white'
+                      : 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300'
                   }`}
-                  title="Focus on writing"
+                  title="Add a new paragraph"
                 >
-                  Focus
+                  ¶ Paragraph
                 </button>
               </div>
+              <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                💡 Tip: Select text first, then click formatting buttons. Or click buttons to insert examples.
+              </p>
             </div>
 
             <textarea
@@ -507,26 +501,29 @@ const NewBlogPost = () => {
               name="content"
               value={formData.content}
               onChange={handleInputChange}
-              placeholder="Start writing your Istanbul story here...
+              placeholder="Write your Istanbul story here...
 
-Share your experiences, discoveries, and recommendations. Tell us about the places you visited, the food you tried, the people you met, and any tips you have for other travelers.
+Use the formatting buttons above or type:
+**bold text** for bold
+*italic text* for italic  
+## Your Heading for headings
+- list item for bullet points
 
-Use **bold** and *italic* text to highlight important points, ## for headings, and - for lists."
-              rows={25}
-              className={`w-full px-4 py-4 border rounded-xl focus:outline-none resize-y text-base leading-relaxed transition-all duration-200 ${
+Share your experiences, discoveries, and recommendations!"
+              rows={10}
+              className={`w-full px-3 py-2 border rounded focus:outline-none resize-y text-sm leading-relaxed focus:ring-2 transition-all duration-200 ${
                 darkMode
-                  ? 'bg-gray-700 text-white border-gray-600 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 placeholder-gray-500'
+                  ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
+                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
               }`}
               required
-              autoComplete="off"
-              style={{ minHeight: '500px', fontSize: '16px' }}
+              style={{ minHeight: '250px' }}
             />
           </div>
 
-          {/* Add Image Button */}
-          <div className={`p-6 rounded-xl text-center transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white shadow-lg border border-gray-200'
+          {/* Compact Action Buttons */}
+          <div className={`p-3 rounded-xl border-2 text-center transition-all duration-200 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <input
               type="file"
@@ -536,49 +533,64 @@ Use **bold** and *italic* text to highlight important points, ## for headings, a
               onChange={handleImageSelect}
               accept="image/*"
               multiple
-              className="hidden"
+              className="sr-only"
               aria-label="Upload images for your blog post"
             />
             
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all duration-200 text-lg shadow-lg hover:shadow-xl mr-4"
-            >
-              <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {uploading ? 'Uploading Images...' : 'Add Images'}
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 disabled:opacity-50 text-white font-medium rounded text-sm transition-all duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z" />
+                </svg>
+              {uploading ? 'Uploading...' : 'Add Images'}
             </button>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={submitting || uploading}
-              className="inline-flex items-center px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl text-lg"
+              className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded text-sm transition-all duration-200"
             >
               {submitting ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   Publishing...
-                </div>
+                </>
               ) : (
-                <div className="flex items-center justify-center">
-                  <span className="mr-2">🚀</span>
+                <>
+                  <span className="mr-1">🚀</span>
                   Publish Story
-                </div>
+                </>
               )}
             </button>
 
-            <p className={`mt-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Upload photos to illustrate your story (JPG, PNG, WebP • Max 10MB each)
+            <button
+              type="button"
+              onClick={() => navigate('/blog')}
+              className={`px-4 py-2 rounded font-medium text-sm transition-all duration-200 ${
+                darkMode
+                  ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-800'
+              }`}
+            >
+              Cancel
+            </button>
+            </div>
+
+            <p className={`mt-3 text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Upload photos (JPG, PNG • Max 10MB each)
             </p>
           </div>
 
           {/* Upload Progress */}
           {Object.keys(uploadProgress).length > 0 && (
-            <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+            <div className={`p-4 rounded-xl border-2 ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
+            }`}>
               <h4 className={`text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 Uploading Images...
               </h4>
@@ -607,8 +619,8 @@ Use **bold** and *italic* text to highlight important points, ## for headings, a
 
           {/* Image Gallery */}
           {images.length > 0 && (
-            <div className={`p-6 rounded-xl transition-colors duration-200 ${
-              darkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white shadow-lg border border-gray-200'
+            <div className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
             }`}>
               <h4 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                 Your Images ({images.length})
@@ -653,97 +665,41 @@ Use **bold** and *italic* text to highlight important points, ## for headings, a
             </div>
           )}
 
-          {/* Hidden Author Photo Field - now handled by file upload above */}
+          {/* Hidden Author Photo Field */}
           <input type="hidden" name="authorPhoto" value={formData.authorPhoto} />
-
-          {/* Cancel Button */}
-          <div className="flex justify-center pt-4">
-            <button
-              type="button"
-              onClick={() => navigate('/blog')}
-              className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                darkMode
-                  ? 'bg-gray-600 hover:bg-gray-700 text-white shadow-lg'
-                  : 'bg-gray-300 hover:bg-gray-400 text-gray-800 shadow-lg hover:shadow-xl'
-              }`}
-            >
-              Cancel & Go Back
-            </button>
-          </div>
         </form>
       </div>
 
-      {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className={`fixed bottom-6 right-6 p-3 rounded-full shadow-lg transition-all duration-300 z-40 ${
-            darkMode
-              ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-          }`}
-          title="Scroll to top"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-        </button>
-      )}
-
-      {/* Simple Progress Indicator */}
-      <div className="fixed top-24 right-4 z-30 hidden lg:block">
-        <div className={`rounded-lg p-3 shadow-lg transition-all duration-200 ${
+      {/* Compact Progress Indicator - Mobile Hidden */}
+      <div className="fixed top-20 right-2 z-30 hidden lg:block">
+        <div className={`rounded-lg p-2 shadow-lg transition-all duration-200 ${
           darkMode ? 'bg-gray-800/90 text-white border border-gray-700' : 'bg-white text-gray-900 shadow-xl border border-gray-200'
         }`}>
-          <div className="text-sm font-medium mb-2">Progress</div>
-          <div className="space-y-2">
+          <div className="text-xs font-medium mb-1">Progress</div>
+          <div className="space-y-1">
             <div className={`flex items-center text-xs ${
               formData.authorName ? 'text-green-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
+              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                 formData.authorName ? 'bg-green-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
               }`}></div>
-              Name {formData.authorName && '✓'}
+              Name
             </div>
             <div className={`flex items-center text-xs ${
               formData.title ? 'text-green-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
+              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                 formData.title ? 'bg-green-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
               }`}></div>
-              Title {formData.title && '✓'}
-            </div>
-            <div className={`flex items-center text-xs ${
-              formData.heading ? 'text-indigo-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
-                formData.heading ? 'bg-indigo-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
-              }`}></div>
-              Heading {formData.heading && '✓'}
-            </div>
-            <div className={`flex items-center text-xs ${
-              formData.district ? 'text-orange-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
-                formData.district ? 'bg-orange-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
-              }`}></div>
-              District {formData.district && '✓'}
+              Title
             </div>
             <div className={`flex items-center text-xs ${
               formData.content.length > 50 ? 'text-green-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
+              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                 formData.content.length > 50 ? 'bg-green-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
               }`}></div>
-              Story {formData.content.length > 50 && '✓'}
-            </div>
-            <div className={`flex items-center text-xs ${
-              images.length > 0 ? 'text-blue-500' : darkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${
-                images.length > 0 ? 'bg-blue-500' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
-              }`}></div>
-              Images ({images.length})
+              Story
             </div>
           </div>
         </div>

@@ -1,7 +1,18 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import '../App.css';
 
 const Donate = () => (
   <div className="static-page">
+    {/* AI Istanbul Logo - Top Left */}
+    <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
+      <div className="logo-istanbul logo-move-top-left">
+        <span className="logo-text">
+          A/<span style={{fontWeight: 400}}>STANBUL</span>
+        </span>
+      </div>
+    </Link>
+    
     <h1>Support AIstanbul</h1>
     <p>
       If you find AIstanbul helpful, consider supporting the project! Your support helps cover server costs and enables further development.

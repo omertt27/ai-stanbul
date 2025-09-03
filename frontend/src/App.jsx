@@ -55,8 +55,6 @@ const formatRestaurantRecommendations = (restaurants) => {
     formattedResponse += `${description}\n\n`;
   });
 
-  formattedResponse += "Would you like more details about any of these restaurants?";
-  
   return formattedResponse;
 };
 
