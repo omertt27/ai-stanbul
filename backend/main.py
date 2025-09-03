@@ -14,13 +14,14 @@ from typing import Dict, Any, Optional, Tuple
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
 
 # --- Project Imports ---
 from database import engine, SessionLocal
-from models import Base, Restaurant, Museum, Place
-from routes import museums, restaurants, places
+from models import Base, Restaurant, Museum, Place, ChatHistory
+from routes import museums, restaurants, places, blog
 from api_clients.google_places import GooglePlacesClient
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -404,6 +405,20 @@ def generate_restaurant_info(restaurant_name, location="Istanbul"):
 
 app = FastAPI(title="AIstanbul API", debug=False)
 
+# Mount static files directory for serving uploaded images
+images_dir = "images"
+os.makedirs(images_dir, exist_ok=True)
+app.mount("/images", StaticFiles(directory=images_dir), name="images")
+
+# Serve static files for uploaded blog images
+uploads_dir = "uploads"
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+# Add blog router
+from routes import blog
+app.include_router(blog.router)
+
 # Global exception handler
 @app.exception_handler(APIError)
 async def api_error_handler(request: Request, exc: APIError):
@@ -763,6 +778,7 @@ def enhance_query_understanding(user_input):
 app.include_router(museums.router)
 app.include_router(restaurants.router)
 app.include_router(places.router)
+# Blog router is already included above
 
 @app.get("/")
 def root():
@@ -794,6 +810,85 @@ async def receive_feedback(request: Request):
         print(f"Error processing feedback: {e}")
         return {"status": "error", "message": str(e)}
 
+@app.get("/chat/history/{session_id}")
+async def get_chat_history(session_id: str):
+    """Get chat history for a session"""
+    try:
+        db = SessionLocal()
+        history = db.query(ChatHistory).filter(
+            ChatHistory.session_id == session_id
+        ).order_by(ChatHistory.timestamp.asc()).limit(50).all()
+        
+        messages = []
+        for record in history:
+            messages.append({
+                "type": "user",
+                "message": record.user_message,
+                "timestamp": record.timestamp.isoformat()
+            })
+            messages.append({
+                "type": "bot", 
+                "message": record.bot_response,
+                "timestamp": record.timestamp.isoformat()
+            })
+        
+        return {"status": "success", "messages": messages}
+    except Exception as e:
+        logger.error(f"Failed to get chat history: {e}")
+        return {"status": "error", "message": "Failed to retrieve chat history"}
+    finally:
+        if db:
+            db.close()
+
+@app.delete("/chat/history/{session_id}")
+async def clear_chat_history(session_id: str):
+    """Clear chat history for a session"""
+    try:
+        db = SessionLocal()
+        deleted_count = db.query(ChatHistory).filter(
+            ChatHistory.session_id == session_id
+        ).delete()
+        db.commit()
+        
+        return {"status": "success", "deleted_count": deleted_count}
+    except Exception as e:
+        logger.error(f"Failed to clear chat history: {e}")
+        db.rollback() if db else None
+        return {"status": "error", "message": "Failed to clear chat history"}
+    finally:
+        if db:
+            db.close()
+
+def save_chat_history(db, session_id: str, user_message: str, bot_response: str, user_ip: str = None):
+    """Save chat interaction to database"""
+    try:
+        chat_record = ChatHistory(
+            session_id=session_id,
+            user_message=user_message,
+            bot_response=bot_response,
+            user_ip=user_ip
+        )
+        db.add(chat_record)
+        db.commit()
+        logger.info(f"Saved chat history for session {session_id}")
+    except Exception as e:
+        logger.error(f"Failed to save chat history: {e}")
+        db.rollback()
+
+def create_ai_response(message: str, db, session_id: str, user_message: str, request: Request = None):
+    """Create AI response and save to chat history"""
+    try:
+        # Get user IP for logging
+        user_ip = request.client.host if request and hasattr(request, 'client') and request.client else 'unknown'
+        
+        # Save to chat history
+        save_chat_history(db, session_id, user_message, message, user_ip)
+        
+        return {"message": message, "session_id": session_id}
+    except Exception as e:
+        logger.error(f"Error creating AI response: {e}")
+        return {"message": message, "session_id": session_id}
+
 @app.post("/ai")
 async def ai_istanbul_router(request: Request):
     """Enhanced AI endpoint with comprehensive error handling"""
@@ -807,6 +902,7 @@ async def ai_istanbul_router(request: Request):
         try:
             data = await request.json()
             user_input = data.get("query", data.get("user_input", ""))
+            session_id = data.get("session_id", f"session_{int(time.time())}")
         except json.JSONDecodeError:
             raise ValidationError("Invalid JSON in request body")
         except Exception as e:
@@ -844,15 +940,15 @@ async def ai_istanbul_router(request: Request):
         if is_greeting or is_daily_talk:
             logger.info(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
             if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
-                return {"message": "Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?"}
+                return create_ai_response("Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?", db, session_id, user_input, request)
             elif 'how are you' in user_input_clean or 'how are u' in user_input_clean or 'how r u' in user_input_clean or 'how r you' in user_input_clean or 'how are you doing' in user_input_clean:
-                return {"message": "I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?"}
+                return create_ai_response("I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?", db, session_id, user_input, request)
             elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
-                return {"message": "Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?"}
+                return create_ai_response("Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?", db, session_id, user_input, request)
             elif any(phrase in user_input_clean for phrase in ["what's up", 'whats up', 'sup', "how's it going", 'hows it going']):
-                return {"message": "Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?"}
+                return create_ai_response("Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?", db, session_id, user_input, request)
             else:
-                return {"message": "It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?"}
+                return create_ai_response("It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?", db, session_id, user_input, request)
         
         # Continue with main query processing
         # Debug logging
@@ -886,7 +982,7 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restourant', 'restourants',  # Include corrected typos
+                'restaurant', 'restaurants', 'restourant', 'restaurents',  # Include corrected typos
                 'restarunt', 'restarunts',  # Add basic words and common misspellings first
                 'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
@@ -971,7 +1067,10 @@ async def ai_istanbul_router(request: Request):
                 'transport', 'transportation', 'metro', 'bus', 'ferry', 'taxi', 'uber',
                 'how to get', 'getting around', 'public transport', 'istanbulkart',
                 'airport', 'train', 'tram', 'dolmus', 'marmaray', 'metrobus',
-                'getting from', 'how to reach', 'travel to', 'transport options'
+                'getting from', 'how to reach', 'travel to', 'transport options',
+                'how can i go', 'how do i get', 'how to go', 'go from', 'get from',
+                'travel from', 'from', 'to', 'route', 'directions', 'way to',
+                'getting to', 'going to', 'going from'
             ]
             
             nightlife_keywords = [
@@ -1055,12 +1154,28 @@ async def ai_istanbul_router(request: Request):
             is_accommodation_query = any(keyword in user_input.lower() for keyword in accommodation_keywords)
             is_events_query = any(keyword in user_input.lower() for keyword in events_keywords)
             
+            # Enhanced transportation detection for "from X to Y" patterns
+            transportation_patterns = [
+                r'how\s+can\s+i\s+go\s+\w+\s+from\s+\w+',  # "how can i go beyoglu from kadikoy"
+                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from kadikoy to beyoglu"
+                r'how\s+to\s+go\s+from\s+\w+\s+to\s+\w+',   # "how to go from kadikoy to beyoglu"
+                r'from\s+\w+\s+to\s+\w+',                   # "from kadikoy to beyoglu"
+                r'\w+\s+to\s+\w+\s+transport',              # "kadikoy to beyoglu transport"
+                r'get\s+to\s+\w+\s+from\s+\w+',             # "get to beyoglu from kadikoy"
+                r'travel\s+from\s+\w+\s+to\s+\w+',          # "travel from kadikoy to beyoglu"
+                r'\w+\s+from\s+\w+',                        # "beyoglu from kadikoy" (simple pattern)
+            ]
+            
+            is_transportation_pattern = any(re.search(pattern, user_input.lower()) for pattern in transportation_patterns)
+            is_transportation_query = is_transportation_query or is_transportation_pattern
+            
             # Debug query categorization
             print(f"Query categorization:")
             print(f"  is_restaurant_query: {is_restaurant_query}")
             print(f"  is_museum_query: {is_museum_query}")
             print(f"  is_district_query: {is_district_query}")
             print(f"  is_attraction_query: {is_attraction_query}")
+            print(f"  is_transportation_query: {is_transportation_query}")
             print(f"  is_location_place_query: {is_location_place_query}")
             print(f"  is_location_museum_query: {is_location_museum_query}")
             print(f"  is_single_district_query: {is_single_district_query}")
@@ -1142,6 +1257,55 @@ async def ai_istanbul_router(request: Request):
                 except Exception as e:
                     logger.error(f"Restaurant search error: {e}")
                     raise ExternalAPIError("Failed to fetch restaurant recommendations", "Google Places", e)
+            
+            elif is_transportation_query:
+                # Enhanced transportation response with specific route information
+                transport_response = """🚇 **Getting Around Istanbul**
+
+**Istanbul Card (Istanbulkart):** 💳
+- Essential for ALL public transport
+- Buy at metro stations, airports, or kiosks
+- Works on metro, bus, tram, ferry, funicular
+- Significant discounts vs. single tickets
+
+**Popular Routes:**
+
+**Kadıköy ↔ Beyoğlu:**
+- **Ferry**: Kadıköy → Karaköy (15 min) + short walk/metro to Beyoğlu
+- **Ferry**: Kadıköy → Eminönü (20 min) + Metro M2 to Vezneciler/Şişli-Mecidiyeköy
+- **Metro + Ferry**: M4 to Ayrılık Çeşmesi → Ferry to Kabataş → Funicular to Taksim
+
+**Sultanahmet ↔ Beyoğlu:**
+- **Tram + Metro**: T1 tram to Karaköy → M2 metro to Şişli-Mecidiyeköy
+- **Tram + Walk**: T1 to Karaköy → Walk across Golden Horn Bridge (20 min)
+
+**Airport Connections:**
+- **Istanbul Airport**: M11 metro to Kağıthane → M7 to Mecidiyeköy → M2 to city
+- **Sabiha Gökçen**: M4 metro direct to Asian side, or HAVABUS to European side
+
+**Key Metro Lines:**
+- **M1A/M1B**: Airport ↔ Yenikapı ↔ Kirazlı
+- **M2**: Vezneciler ↔ Şişli ↔ Hacıosman (main European side line)
+- **M4**: Kadıköy ↔ Sabiha Gökçen Airport (Asian side)
+- **M5**: Üsküdar ↔ Çekmeköy
+
+**Ferry Routes (Scenic & Fast):**
+- Eminönü ↔ Kadıköy (20 min)
+- Karaköy ↔ Kadıköy (15 min)  
+- Beşiktaş ↔ Üsküdar (15 min)
+- Kabataş ↔ Üsküdar (20 min)
+
+**Transportation Apps:**
+- **Moovit** - Real-time public transport directions
+- **BiTaksi** - Local taxi app with fixed prices
+- **Uber** - Available throughout Istanbul
+
+**Tips:**
+- Rush hours: 8-10 AM, 5-7 PM (avoid if possible)
+- Ferries are often faster than traffic during rush hour
+- Keep your Istanbulkart topped up
+- Metro announcements in Turkish & English"""
+                return {"message": transport_response}
             
             elif is_museum_query or is_attraction_query or is_district_query:
                 # Get data from manual database with error handling
@@ -1291,7 +1455,6 @@ async def ai_istanbul_router(request: Request):
 **Shopping Tips:**
 - Bargaining is expected in bazaars (start at 30-50% of asking price)
 - Fixed prices in modern malls
-- Many shops close on Sundays
 - Ask for tax-free shopping receipts for purchases over 108 TL"""
                 return {"message": shopping_response}
             
@@ -1318,10 +1481,10 @@ async def ai_istanbul_router(request: Request):
 - **T4**: Topkapı ↔ Mescid-i Selam
 
 **Key Ferry Routes:**
-- Eminönü ↔ Kadıköy (20 min, scenic)
+- Eminönü ↔ Kadıköy (20 min)
 - Karaköy ↔ Kadıköy (15 min)
 - Beşiktaş ↔ Üsküdar (15 min)
-- Bosphorus tours from Eminönü
+- Kabataş ↔ Üsküdar (20 min)
 
 **Airports:**
 - **Istanbul Airport (IST)**: M11 metro to city center
@@ -1401,6 +1564,8 @@ async def ai_istanbul_router(request: Request):
 - **Istanbul Biennial** (Fall, odd years) - Contemporary art
 - **Ramadan** - Special atmosphere, iftar meals at sunset
 - **Turkish National Days** - Republic Day (Oct 29), Victory Day (Aug 30)
+
+
 
 **Cultural Customs:**
 - Remove shoes when entering mosques or homes

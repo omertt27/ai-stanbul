@@ -11,11 +11,11 @@ const NavBar = () => {
     display: 'flex',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: '2rem',
+    gap: '1.5rem',
     padding: '0',
     background: 'none',
     fontWeight: 600,
-    fontSize: '1.3rem',
+    fontSize: '1.2rem',
     letterSpacing: '0.03em',
     zIndex: 30,
     width: 'auto',
@@ -36,6 +36,7 @@ const NavBar = () => {
   return (
     <nav style={navStyle}>
       <Link to="/" style={linkStyle(location.pathname === '/')}>Home</Link>
+      <Link to="/blog" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
       <Link to="/about" style={linkStyle(location.pathname === '/about')}>About</Link>
       <Link to="/sources" style={linkStyle(location.pathname === '/sources')}>Sources</Link>
       <Link to="/donate" style={linkStyle(location.pathname === '/donate')}>Donate</Link>

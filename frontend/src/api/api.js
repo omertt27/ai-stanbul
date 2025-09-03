@@ -14,6 +14,27 @@ const API_URL = `${BASE_URL}/ai`;
 const STREAM_API_URL = `${BASE_URL}/ai/stream`;
 const RESTAURANTS_API_URL = `${BASE_URL}/restaurants/search`;
 const PLACES_API_URL = `${BASE_URL}/places/`;
+// Chat history endpoints
+const CHAT_HISTORY_API_URL = `${BASE_URL}/chat/history`;
+
+// Session management
+export const generateSessionId = () => {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+};
+
+export const getSessionId = () => {
+  let sessionId = localStorage.getItem('chat_session_id');
+  if (!sessionId) {
+    sessionId = generateSessionId();
+    localStorage.setItem('chat_session_id', sessionId);
+  }
+  return sessionId;
+};
+
+export const clearSession = () => {
+  localStorage.removeItem('chat_session_id');
+  localStorage.removeItem('chat-messages');
+};
 
 console.log('API Configuration:', {
   BASE_URL,
@@ -21,6 +42,7 @@ console.log('API Configuration:', {
   STREAM_API_URL,
   RESTAURANTS_API_URL,
   PLACES_API_URL,
+  CHAT_HISTORY_API_URL,
   VITE_API_URL: import.meta.env.VITE_API_URL
 });
 
@@ -63,10 +85,19 @@ const handleApiError = (error, response = null, context = '') => {
   return enhancedError;
 };
 
-export const fetchResults = async (query) => {
+export const fetchResults = async (query, sessionId = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🚀 Making chat API request to:', API_URL, 'with query:', query);
+      
+      const requestBody = { 
+        user_input: query 
+      };
+      
+      // Add session ID if provided
+      if (sessionId) {
+        requestBody.session_id = sessionId;
+      }
       
       const response = await fetchWithRetry(API_URL, {
         method: 'POST',
@@ -74,7 +105,7 @@ export const fetchResults = async (query) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ user_input: query }),
+        body: JSON.stringify(requestBody),
         timeout: 30000 // 30 second timeout
       }, {
         maxAttempts: 3,
@@ -91,10 +122,19 @@ export const fetchResults = async (query) => {
   });
 };
 
-export const fetchStreamingResults = async (query, onChunk) => {
+export const fetchStreamingResults = async (query, onChunk, sessionId = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
+      
+      const requestBody = { 
+        user_input: query 
+      };
+      
+      // Add session ID if provided
+      if (sessionId) {
+        requestBody.session_id = sessionId;
+      }
       
       const response = await fetchWithRetry(STREAM_API_URL, {
         method: 'POST',
@@ -102,7 +142,7 @@ export const fetchStreamingResults = async (query, onChunk) => {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream'
         },
-        body: JSON.stringify({ user_input: query }),
+        body: JSON.stringify(requestBody),
         timeout: 60000 // 60 second timeout for streaming
       }, {
         maxAttempts: 2, // Fewer retries for streaming
@@ -147,6 +187,56 @@ export const fetchStreamingResults = async (query, onChunk) => {
       throw handleApiError(error, null, 'Streaming API');
     }
   });
+};
+
+// New chat history management functions
+export const fetchChatHistory = async (sessionId) => {
+  try {
+    console.log('📚 Fetching chat history for session:', sessionId);
+    
+    const response = await fetchWithRetry(`${CHAT_HISTORY_API_URL}/${sessionId}`, {
+      method: 'GET',
+      headers: { 
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    }, {
+      maxAttempts: 2,
+      baseDelay: 500
+    });
+    
+    const data = await response.json();
+    console.log('✅ Chat history fetched:', data);
+    return data.messages || [];
+    
+  } catch (error) {
+    console.warn('⚠️ Failed to fetch chat history:', error.message);
+    return []; // Return empty array if history fetch fails
+  }
+};
+
+export const clearChatHistory = async (sessionId) => {
+  try {
+    console.log('🗑️ Clearing chat history for session:', sessionId);
+    
+    const response = await fetchWithRetry(`${CHAT_HISTORY_API_URL}/${sessionId}`, {
+      method: 'DELETE',
+      headers: { 
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    }, {
+      maxAttempts: 2,
+      baseDelay: 500
+    });
+    
+    const data = await response.json();
+    console.log('✅ Chat history cleared:', data);
+    return data;
+    
+  } catch (error) {
+    throw handleApiError(error, null, 'Clear Chat History');
+  }
 };
 
 // Helper function to extract location/district from user input

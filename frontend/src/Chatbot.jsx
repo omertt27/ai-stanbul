@@ -7,7 +7,13 @@ import {
   subscribeToNetworkStatus,
   checkApiHealth,
   debouncedFetchRestaurants,
-  debouncedFetchPlaces
+  debouncedFetchPlaces,
+  // New session and history functions
+  generateSessionId,
+  getSessionId,
+  clearSession,
+  fetchChatHistory,
+  clearChatHistory
 } from './api/api';
 import { 
   ErrorTypes, 
@@ -466,17 +472,12 @@ const isExplicitPlacesRequest = (userInput) => {
 };
 
 function Chatbot() {
-  // Enhanced state management
-  const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem('chat-messages');
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error('Failed to load messages from localStorage:', error);
-      return [];
-    }
-  });
+  // Session management
+  const [sessionId, setSessionId] = useState(() => getSessionId());
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   
+  // Enhanced state management with session support
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
@@ -492,78 +493,161 @@ function Chatbot() {
   // Enhanced UI state
   const [isTyping, setIsTyping] = useState(false);
   const [typingMessage, setTypingMessage] = useState('AI is thinking...');
+  const [typingStartTime, setTypingStartTime] = useState(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   
   // Enhanced error handling state
   const [currentError, setCurrentError] = useState(null);
   const [retryAction, setRetryAction] = useState(null);
   const [lastFailedMessage, setLastFailedMessage] = useState(null);
-  
-  // Network and health monitoring
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [apiHealth, setApiHealth] = useState('unknown');
 
-  // Enhanced message management
-  const addMessage = (text, sender = 'assistant', metadata = {}) => {
-    const newMessage = {
+  // Network and API health monitoring
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [apiHealth, setApiHealth] = useState('checking');
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      setIsHistoryLoading(true);
+      try {
+        console.log('Loading chat history for session:', sessionId);
+        const history = await fetchChatHistory(sessionId);
+        
+        if (history && history.length > 0) {
+          // Convert backend history format to frontend format
+          const convertedHistory = history.map(msg => ({
+            id: `history-${msg.id}`,
+            role: msg.role,
+            sender: msg.role, // For backward compatibility
+            text: msg.content,
+            content: msg.content,
+            timestamp: new Date(msg.created_at).getTime(),
+            type: 'history-loaded'
+          }));
+          
+          setMessages(convertedHistory);
+          console.log('Chat history loaded:', convertedHistory.length, 'messages');
+        } else {
+          // Clear any locally stored messages if no server history
+          setMessages([]);
+        }
+      } catch (error) {
+        console.warn('Failed to load chat history, starting fresh:', error);
+        setMessages([]);
+      } finally {
+        setIsHistoryLoading(false);
+      }
+    };
+
+    if (sessionId) {
+      loadChatHistory();
+    }
+  }, [sessionId]);
+
+  // Enhanced message management with session support
+  const addMessage = (content, role = 'assistant', metadata = {}) => {
+    const message = {
       id: Date.now() + Math.random(),
-      text: typeof text === 'string' ? text : '',
-      sender,
-      timestamp: new Date().toISOString(),
+      role,
+      sender: role, // For backward compatibility
+      text: content,
+      content,
+      timestamp: Date.now(),
       ...metadata
     };
     
-    setMessages(prev => {
-      const updated = [...prev, newMessage];
-      // Persist to localStorage
-      try {
-        localStorage.setItem('chat-messages', JSON.stringify(updated));
-      } catch (error) {
-        console.error('Failed to save messages to localStorage:', error);
-      }
-      return updated;
-    });
-  };
-
-  const clearChatHistory = () => {
-    setMessages([]);
-    try {
-      localStorage.removeItem('chat-messages');
-    } catch (error) {
-      console.error('Failed to clear messages from localStorage:', error);
-    }
-    console.log('🗑️ Chat history cleared');
-  };
-
-  // Enhanced clipboard and sharing
-  const copyMessageToClipboard = async (message) => {
-    try {
-      await navigator.clipboard.writeText(message.text);
-      console.log('📋 Message copied to clipboard');
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-
-  const shareMessage = async (message) => {
-    const shareText = `KAM AI Assistant: ${message.text}`;
+    setMessages(prev => [...prev, message]);
     
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'KAM AI Assistant Response',
-          text: shareText,
-        });
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error sharing:', error);
-          // Fallback to clipboard
-          await copyMessageToClipboard(message);
+    // Auto-scroll logic
+    setTimeout(() => {
+      const container = document.getElementById('chat-messages');
+      if (container) {
+        const shouldScroll = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+        if (shouldScroll) {
+          container.scrollTop = container.scrollHeight;
         }
       }
-    } else {
-      // Fallback to clipboard
-      await copyMessageToClipboard(message);
+    }, 100);
+    
+    return message;
+  };
+
+  // Enhanced clear chat history with backend integration
+  const clearChatHistoryLocal = async () => {
+    try {
+      console.log('Clearing chat history for session:', sessionId);
+      
+      // Clear from backend
+      await clearChatHistory(sessionId);
+      
+      // Clear from frontend
+      setMessages([]);
+      
+      // Clear local storage
+      localStorage.removeItem('chat-messages');
+      
+      console.log('Chat history cleared successfully');
+      
+      // Show success message
+      addMessage('Chat history has been cleared. Starting fresh!', 'assistant', {
+        type: 'system-message'
+      });
+      
+    } catch (error) {
+      console.error('Failed to clear chat history:', error);
+      addMessage('Failed to clear chat history from server. Local history cleared.', 'assistant', {
+        type: 'error-message'
+      });
+      
+      // Still clear local messages even if server fails
+      setMessages([]);
+      localStorage.removeItem('chat-messages');
+    }
+  };
+
+  // Enhanced copy message functionality
+  const copyMessageToClipboard = async (message) => {
+    try {
+      const textToCopy = message.text || message.content || '';
+      await navigator.clipboard.writeText(textToCopy);
+      console.log('Message copied to clipboard');
+      return true;
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = message.text || message.content || '';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return true;
+    }
+  };
+
+  // Enhanced share message functionality
+  const shareMessage = async (message) => {
+    const textToShare = message.text || message.content || '';
+    const shareTitle = 'Istanbul Travel Guide - KAM Assistant';
+    const shareText = `${shareTitle}\n\n${textToShare}\n\n---\nGenerated by AI Istanbul Travel Guide`;
+    
+    try {
+      // Try native sharing first
+      if (navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText
+        });
+        return true;
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareText);
+        console.log('Message copied to clipboard (share fallback)');
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to share message:', error);
+      throw error;
     }
   };
 
@@ -724,6 +808,7 @@ function Chatbot() {
     setInput('');
     setLoading(true);
     setIsTyping(true);
+    setTypingStartTime(Date.now());
 
     // Store failed message for retry purposes
     setLastFailedMessage({
@@ -735,7 +820,7 @@ function Chatbot() {
     try {
       // Check if user is asking for restaurant recommendations - using SANITIZED input
       if (isExplicitRestaurantRequest(originalUserInput)) {
-        setTypingMessage('Finding restaurants for you...');
+        setTypingMessage('🍽️ Finding restaurants for you...');
         console.log('Detected restaurant advice request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
@@ -759,7 +844,7 @@ function Chatbot() {
 
       // Check if user is asking for places/attractions recommendations - using SANITIZED input
       if (isExplicitPlacesRequest(originalUserInput)) {
-        setTypingMessage('Searching for places and attractions...');
+        setTypingMessage('🏛️ Searching for places and attractions...');
         console.log('Detected places/attractions request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
@@ -782,10 +867,10 @@ function Chatbot() {
       }
 
       // Regular streaming response for non-restaurant/places queries - use SANITIZED input
-      setTypingMessage('KAM is thinking...');
+      setTypingMessage('🤔 KAM is thinking...');
       let streamedContent = '';
       
-      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
+      console.log('🛡️ Sending SANITIZED input to GPT with session ID:', sanitizedInput, sessionId);
       await fetchStreamingResults(sanitizedInput, (chunk) => {
         streamedContent += chunk;
         // If assistant message already exists, update it; else, add it
@@ -794,16 +879,16 @@ function Chatbot() {
           if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
             return [
               ...prev.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true }
+              { role: 'assistant', content: streamedContent, streaming: true, text: streamedContent, sender: 'assistant' }
             ];
           } else {
             return [
               ...prev,
-              { role: 'assistant', content: streamedContent, streaming: true }
+              { role: 'assistant', content: streamedContent, streaming: true, text: streamedContent, sender: 'assistant' }
             ];
           }
         });
-      });
+      }, sessionId); // Pass session ID
       
       // Clear failed message on success
       setLastFailedMessage(null);
@@ -850,14 +935,16 @@ function Chatbot() {
       darkMode ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
       
-      {/* Enhanced Header with chat management */}
+      {/* Enhanced Header with session management */}
       <ChatHeader
         darkMode={darkMode}
         onDarkModeToggle={() => setDarkMode(!darkMode)}
-        onClearHistory={clearChatHistory}
+        onClearHistory={clearChatHistoryLocal}
         messageCount={messages.length}
         isOnline={isOnline}
         apiHealth={apiHealth}
+        sessionId={sessionId}
+        isHistoryLoading={isHistoryLoading}
       />
 
       {/* Chat Messages Container - Full screen like ChatGPT */}
@@ -1001,7 +1088,7 @@ function Chatbot() {
                         darkMode ? 'text-gray-300' : 'text-gray-600'
                       }`}>You</div>
                       <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
+                        darkMode ? 'text-white' : 'text-gray-800'
                       }`}>
                         {msg.text}
                       </div>
@@ -1036,7 +1123,7 @@ function Chatbot() {
                         darkMode ? 'text-gray-300' : 'text-gray-600'
                       }`}>KAM Assistant</div>
                       <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
+                        darkMode ? 'text-white' : 'text-gray-800'
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}
                       </div>
@@ -1077,6 +1164,7 @@ function Chatbot() {
             isTyping={isTyping} 
             message={typingMessage}
             darkMode={darkMode}
+            duration={typingStartTime ? Date.now() - typingStartTime : 0}
           />
         </div>
       </div>
@@ -1098,7 +1186,7 @@ function Chatbot() {
           <div className={`flex items-end space-x-3 p-4 rounded-xl border-2 transition-all duration-200 ${
             darkMode 
               ? 'bg-gray-800 border-gray-700 focus-within:border-gray-600' 
-              : 'bg-gray-50 border-gray-300 focus-within:border-blue-400 shadow-sm'
+              : 'bg-white border-gray-300 focus-within:border-blue-500 shadow-lg'
           }`}>
             <div className="flex-1">
               <input
@@ -1115,7 +1203,7 @@ function Chatbot() {
                 className={`w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
                   darkMode 
                     ? 'placeholder-gray-400 text-white' 
-                    : 'placeholder-gray-500 text-gray-900'
+                    : 'placeholder-gray-600 text-gray-900'
                 }`}
                 disabled={loading}
                 autoComplete="off"

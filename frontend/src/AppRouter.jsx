@@ -7,6 +7,9 @@ import TestComponent from './TestComponent';
 import About from './pages/About';
 import Sources from './pages/Sources';
 import Donate from './pages/Donate';
+import BlogList from './pages/BlogList';
+import BlogPost from './pages/BlogPost';
+import NewBlogPost from './pages/NewBlogPost';
 import NavBar from './components/NavBar';
 
 const AppRouter = () => {
@@ -88,6 +91,9 @@ const AppRouter = () => {
         <Route path="/about" element={<About />} />
         <Route path="/sources" element={<Sources />} />
         <Route path="/donate" element={<Donate />} />
+        <Route path="/blog" element={<BlogList />} />
+        <Route path="/blog/:id" element={<BlogPost />} />
+        <Route path="/blog/new" element={<NewBlogPost />} />
       </Routes>
     </Router>
   );
