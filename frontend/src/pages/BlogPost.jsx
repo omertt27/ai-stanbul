@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchBlogPost, likeBlogPost, checkLikeStatus } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import '../App.css';
 
 const BlogPost = () => {
   const { darkMode } = useTheme();
@@ -91,7 +92,9 @@ const BlogPost = () => {
 
   const formatContent = (content) => {
     return content.split('\n').map((paragraph, index) => (
-      <p key={index} className="mb-4 text-gray-300 leading-relaxed">
+      <p key={index} className={`mb-4 leading-relaxed ${
+        darkMode ? 'text-gray-300' : 'text-gray-700'
+      }`}>
         {paragraph}
       </p>
     ));
@@ -99,7 +102,7 @@ const BlogPost = () => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen pt-24 px-4 transition-colors duration-200 ${
+      <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
         <div className="max-w-4xl mx-auto">
@@ -115,7 +118,7 @@ const BlogPost = () => {
 
   if (error) {
     return (
-      <div className={`min-h-screen pt-24 px-4 transition-colors duration-200 ${
+      <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
         <div className="max-w-4xl mx-auto">
@@ -158,13 +161,21 @@ const BlogPost = () => {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white pt-24 px-4">
+      <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+      }`}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center py-20">
-            <h2 className="text-2xl font-bold text-gray-300 mb-4">Post not found</h2>
+            <h2 className={`text-2xl font-bold mb-4 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>Post not found</h2>
             <Link
               to="/blog"
-              className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200"
+              className={`inline-flex items-center px-6 py-3 font-semibold rounded-lg transition-colors duration-200 ${
+                darkMode
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -178,13 +189,28 @@ const BlogPost = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white pt-24 px-4">
+    <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
+      {/* AI Istanbul Logo - Top Left */}
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
+        <div className="logo-istanbul logo-move-top-left">
+          <span className="logo-text">
+            A/<span style={{fontWeight: 400}}>STANBUL</span>
+          </span>
+        </div>
+      </Link>
+
       <div className="max-w-4xl mx-auto">
         {/* Navigation */}
         <div className="mb-8">
           <Link
             to="/blog"
-            className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+            className={`inline-flex items-center transition-colors duration-200 ${
+              darkMode 
+                ? 'text-indigo-400 hover:text-indigo-300' 
+                : 'text-indigo-600 hover:text-indigo-500'
+            }`}
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -193,7 +219,9 @@ const BlogPost = () => {
           </Link>
         </div>
 
-        <article className="bg-gray-800 rounded-lg overflow-hidden">
+        <article className={`rounded-lg overflow-hidden transition-colors duration-200 ${
+          darkMode ? 'bg-gray-800' : 'bg-white shadow-lg'
+        }`}>
           {/* Featured Image */}
           {post.images && post.images.length > 0 && (
             <div className="aspect-video lg:aspect-[2/1] overflow-hidden">
@@ -208,7 +236,9 @@ const BlogPost = () => {
           <div className="p-8">
             {/* Author Info */}
             {post.author_name && (
-              <div className="flex items-center mb-6 pb-6 border-b border-gray-700">
+              <div className={`flex items-center mb-6 pb-6 border-b transition-colors duration-200 ${
+                darkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
                 {post.author_photo ? (
                   <img 
                     src={post.author_photo} 
@@ -224,19 +254,27 @@ const BlogPost = () => {
                   {post.author_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-200">{post.author_name}</p>
-                  <p className="text-sm text-gray-400">Travel Blogger</p>
+                  <p className={`text-lg font-semibold transition-colors duration-200 ${
+                    darkMode ? 'text-gray-200' : 'text-gray-800'
+                  }`}>{post.author_name}</p>
+                  <p className={`text-sm transition-colors duration-200 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>Travel Blogger</p>
                 </div>
               </div>
             )}
 
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 text-white leading-tight">
+            <h1 className={`text-3xl md:text-4xl font-bold mb-6 leading-tight transition-colors duration-200 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               {post.title}
             </h1>
 
             {/* Metadata */}
-            <div className="flex flex-wrap items-center gap-6 mb-8 text-gray-400 border-b border-gray-700 pb-6">
+            <div className={`flex flex-wrap items-center gap-6 mb-8 pb-6 border-b transition-colors duration-200 ${
+              darkMode ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-200'
+            }`}>
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -260,7 +298,9 @@ const BlogPost = () => {
                 className={`flex items-center transition-colors duration-200 disabled:opacity-50 ${
                   alreadyLiked 
                     ? 'text-red-500 cursor-not-allowed' 
-                    : 'text-gray-400 hover:text-red-400'
+                    : darkMode 
+                      ? 'text-gray-400 hover:text-red-400'
+                      : 'text-gray-600 hover:text-red-500'
                 }`}
                 title={alreadyLiked ? 'You have already liked this post' : 'Like this post'}
               >
@@ -291,8 +331,12 @@ const BlogPost = () => {
 
             {/* Additional Images */}
             {post.images && post.images.length > 1 && (
-              <div className="mt-8 border-t border-gray-700 pt-8">
-                <h3 className="text-xl font-semibold mb-4 text-white">More Photos</h3>
+              <div className={`mt-8 border-t pt-8 transition-colors duration-200 ${
+                darkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
+                <h3 className={`text-xl font-semibold mb-4 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>More Photos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {post.images.slice(1).map((image, index) => (
                     <div key={index} className="aspect-video overflow-hidden rounded-lg">
@@ -310,11 +354,17 @@ const BlogPost = () => {
         </article>
 
         {/* Call to Action */}
-        <div className="mt-12 text-center bg-gray-800 rounded-lg p-8">
-          <h2 className="text-2xl font-bold mb-4 text-white">
+        <div className={`mt-12 text-center rounded-lg p-8 transition-colors duration-200 ${
+          darkMode ? 'bg-gray-800' : 'bg-white shadow-lg'
+        }`}>
+          <h2 className={`text-2xl font-bold mb-4 transition-colors duration-200 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
             Inspired by this story?
           </h2>
-          <p className="text-gray-300 mb-6">
+          <p className={`mb-6 transition-colors duration-200 ${
+            darkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
             Share your own Istanbul experience and help other travelers discover amazing places.
           </p>
           <Link
