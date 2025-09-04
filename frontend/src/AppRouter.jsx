@@ -12,6 +12,7 @@ import Contact from './pages/Contact';
 import BlogList from './pages/BlogList';
 import BlogPost from './pages/BlogPost';
 import NewBlogPost from './pages/NewBlogPost';
+import EnhancedDemo from './pages/EnhancedDemo';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 
@@ -92,6 +93,7 @@ const AppRouter = () => {
         <Route path="/test" element={<TestComponent />} />
         <Route path="/simple" element={<SimpleChatbot />} />
         <Route path="/chatbot" element={<Chatbot />} />
+        <Route path="/demo" element={<EnhancedDemo />} />
         <Route path="/about" element={<About />} />
         <Route path="/sources" element={<Sources />} />
         <Route path="/donate" element={<Donate />} />

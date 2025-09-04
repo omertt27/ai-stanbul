@@ -420,7 +420,7 @@ app = FastAPI(title="AIstanbul API", debug=False)
 context_manager = EnhancedContextManager()
 query_understanding = EnhancedQueryUnderstanding()
 knowledge_base = EnhancedKnowledgeBase()
-response_generator = ContextAwareResponseGenerator()
+response_generator = ContextAwareResponseGenerator(context_manager, knowledge_base)
 
 logger.info("Enhanced chatbot components initialized successfully")
 
@@ -1038,14 +1038,16 @@ async def ai_istanbul_router(request: Request):
         context = context_manager.get_context(session_id)
         
         # Enhanced query understanding with context
-        enhanced_input = query_understanding.enhance_query(user_input, context)
+        enhanced_input = query_understanding.correct_and_enhance_query(user_input)
         print(f"Enhanced user_input: '{enhanced_input}'")
         
         # Detect if this is a follow-up question
-        is_followup = query_understanding.is_followup_question(user_input, context)
+        is_followup = context and len(context.previous_queries) > 0 and any(
+            word in user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+        )
         
         # Extract intent and entities
-        intent_info = query_understanding.extract_intent_and_entities(enhanced_input)
+        intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
         print(f"Intent detected: {intent_info}")
         
         # Use enhanced input for processing
@@ -2019,7 +2021,7 @@ async def test_enhanced_features():
     try:
         # Test query understanding
         test_query = "restorant recomendations in kadikoy"
-        enhanced_query = query_understanding.enhance_query(test_query)
+        enhanced_query = query_understanding.correct_and_enhance_query(test_query)
         
         # Test knowledge base
         knowledge_test = knowledge_base.get_knowledge_response("tell me about ottoman history")

@@ -344,6 +344,46 @@ class EnhancedKnowledgeBase:
     def get_cultural_advice(self, context: str) -> List[str]:
         """Get cultural etiquette advice for specific contexts"""
         return self.cultural_etiquette.get(context, [])
+    
+    def get_knowledge_response(self, query: str, intent_info: Dict[str, Any] = None) -> Optional[str]:
+        """Get knowledge-based response for queries about Istanbul"""
+        query_lower = query.lower()
+        
+        # Historical attractions
+        if any(word in query_lower for word in ['hagia sophia', 'aya sofya']):
+            info = self.get_historical_info('hagia_sophia')
+            if info:
+                return f"Hagia Sophia: {info['description']} {info['visiting_tips']}"
+        
+        elif any(word in query_lower for word in ['blue mosque', 'sultanahmet mosque']):
+            info = self.get_historical_info('blue_mosque')
+            if info:
+                return f"Blue Mosque: {info['description']} {info['visiting_tips']}"
+        
+        elif any(word in query_lower for word in ['topkapi palace', 'topkapi']):
+            info = self.get_historical_info('topkapi_palace')
+            if info:
+                return f"Topkapi Palace: {info['description']} {info['visiting_tips']}"
+        
+        # Cultural advice
+        elif any(word in query_lower for word in ['mosque etiquette', 'mosque rules', 'visiting mosque']):
+            advice = self.get_cultural_advice('mosque_etiquette')
+            return f"Mosque etiquette tips: {', '.join(advice)}"
+        
+        elif any(word in query_lower for word in ['dining etiquette', 'table manners', 'eating customs']):
+            advice = self.get_cultural_advice('dining_etiquette')
+            return f"Turkish dining etiquette: {', '.join(advice)}"
+        
+        # Ottoman history
+        elif any(word in query_lower for word in ['ottoman', 'ottoman empire', 'ottoman history']):
+            return "The Ottoman Empire ruled from Istanbul (Constantinople) for over 600 years (1299-1922). Key landmarks include Topkapi Palace (sultan's residence), Dolmabahce Palace (later imperial palace), and many mosques like Suleymaniye and Blue Mosque. The empire's cultural legacy is visible throughout Istanbul's architecture, cuisine, and traditions."
+        
+        # Byzantine history  
+        elif any(word in query_lower for word in ['byzantine', 'constantinople', 'byzantine empire']):
+            return "Byzantine Constantinople was the Eastern Roman Empire's capital for over 1,000 years (330-1453 AD). Major Byzantine landmarks include Hagia Sophia (originally a cathedral), the Hippodrome, Basilica Cistern, and city walls. The empire's Christian heritage merged with later Islamic culture to create Istanbul's unique character."
+        
+        return None
+        
 
 class ContextAwareResponseGenerator:
     """Generate context-aware responses that reference previous conversations"""
@@ -376,6 +416,50 @@ class ContextAwareResponseGenerator:
         
         # Generic follow-up
         return f"Based on our previous conversation about {context.last_recommendation_type}, I can provide more specific information. What would you like to know?"
+    
+    def generate_response(self, query: str, ai_response: str, context: Optional[ConversationContext], 
+                         intent_info: Dict[str, Any], places: List = None) -> str:
+        """Generate enhanced context-aware response"""
+        
+        # If we have context and this is a follow-up, enhance the response
+        if context and len(context.previous_queries) > 0:
+            follow_up_response = self.generate_follow_up_response(query, context, intent_info)
+            if follow_up_response and follow_up_response != ai_response:
+                return follow_up_response
+        
+        # Add context references to the AI response
+        enhanced_response = ai_response
+        
+        if context:
+            # Reference previous places mentioned
+            if context.mentioned_places and intent_info.get('intent') in ['restaurant', 'attraction', 'place']:
+                enhanced_response += f"\n\nSince you were asking about {', '.join(context.mentioned_places[-2:])}, you might also be interested in similar areas nearby."
+            
+            # Add personalized recommendations based on preferences
+            if context.user_preferences:
+                if 'vegetarian' in context.user_preferences and intent_info.get('intent') == 'restaurant':
+                    enhanced_response += "\n\n🌱 I noticed you prefer vegetarian options, so I've focused on restaurants with good vegetarian choices."
+                elif 'budget' in context.user_preferences:
+                    enhanced_response += "\n\n💰 I've considered your budget preferences in these recommendations."
+        
+        return enhanced_response
+    
+    def enhance_system_prompt(self, original_prompt: str, context: Optional[ConversationContext]) -> str:
+        """Enhance system prompt with conversation context"""
+        enhanced_prompt = original_prompt
+        
+        if context:
+            enhanced_prompt += f"\n\nCONVERSATION CONTEXT:"
+            if context.previous_queries:
+                enhanced_prompt += f"\nPrevious questions: {', '.join(context.previous_queries[-3:])}"
+            if context.mentioned_places:
+                enhanced_prompt += f"\nPreviously mentioned places: {', '.join(context.mentioned_places)}"
+            if context.user_preferences:
+                enhanced_prompt += f"\nUser preferences: {context.user_preferences}"
+            if context.last_recommendation_type:
+                enhanced_prompt += f"\nLast recommendation type: {context.last_recommendation_type}"
+        
+        return enhanced_prompt
     
     def generate_tipping_advice(self, context: ConversationContext) -> str:
         """Generate tipping advice based on previous restaurant recommendations"""
