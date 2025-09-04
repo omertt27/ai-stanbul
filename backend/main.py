@@ -1991,6 +1991,86 @@ When users need specific restaurant recommendations with location (like "restaur
         error = handle_unexpected_error(e, "AI endpoint")
         raise error
 
+# Streaming AI Response Endpoint
+@app.post("/ai/stream")
+async def stream_ai_response(request: Request):
+    """Streaming endpoint for AI responses"""
+    try:
+        data = await request.json()
+        user_input = data.get("user_input", "").strip()
+        session_id = data.get("session_id", f"session_{int(time.time())}")
+        
+        if not user_input:
+            raise ValidationError("Query is required", "user_input")
+
+        logger.info(f"Streaming AI request - Session: {session_id}, Query: {user_input[:100]}...")
+
+        async def generate_stream():
+            try:
+                # Use the same logic as the /ai endpoint
+                # Create a fake request object for the ai_istanbul_router 
+                from fastapi import Request
+                
+                # Create request data in the expected format
+                request_data = {"query": user_input, "session_id": session_id}
+                
+                # For simplicity, call the main AI logic directly without streaming first
+                # then we'll break it into chunks
+                enhanced_input = query_understanding.correct_and_enhance_query(user_input)
+                context = context_manager.get_context(session_id)
+                intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                
+                # Generate response using the context-aware generator
+                ai_response = response_generator.generate_contextual_response(
+                    enhanced_input, context, intent_info, knowledge_base
+                )
+                
+                # Update context
+                context_manager.update_context(session_id, user_input, ai_response, intent_info)
+                
+                response = {"message": ai_response, "session_id": session_id}
+                
+                # For streaming, we'll break down the response into chunks
+                message = response.get("message", "")
+                words = message.split()
+                
+                # Send the response in chunks of 3-5 words
+                chunk_size = 4
+                for i in range(0, len(words), chunk_size):
+                    chunk = " ".join(words[i:i + chunk_size])
+                    if chunk.strip():
+                        yield f"data: {json.dumps({'chunk': chunk + ' '})}\n\n"
+                        await asyncio.sleep(0.1)  # Small delay for streaming effect
+                
+                # Send completion signal
+                yield f"data: {json.dumps({'done': True})}\n\n"
+                
+            except Exception as e:
+                logger.error(f"Error in streaming response: {str(e)}")
+                error_msg = json.dumps({'error': 'Failed to generate response'})
+                yield f"data: {error_msg}\n\n"
+        
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+            }
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except Exception as e:
+        logger.error(f"Streaming AI endpoint error: {str(e)}")
+        logger.error(f"Streaming AI endpoint traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error in streaming endpoint"
+        )
+
 # Enhanced Chatbot Endpoints
 
 @app.get("/ai/context/{session_id}")

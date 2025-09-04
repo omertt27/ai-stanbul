@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Direct API Test</h1>
+    <p>Testing connection to backend at http://localhost:8001</p>
+    
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testEnhancedHealth()">Test Enhanced Health</button>
+    <button onclick="testAI()">Test AI Endpoint</button>
+    <button onclick="testContext()">Test Context Endpoint</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(test, success, data) {
+            const div = document.createElement('div');
+            div.className = `result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${test}</h3>
+                <p><strong>Status:</strong> ${success ? 'SUCCESS' : 'FAILED'}</p>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+        
+        async function testHealth() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                const data = await response.json();
+                addResult('Health Endpoint', response.ok, data);
+            } catch (error) {
+                addResult('Health Endpoint', false, { error: error.message });
+            }
+        }
+        
+        async function testEnhancedHealth() {
+            try {
+                const response = await fetch('http://localhost:8001/ai/enhanced/health');
+                const data = await response.json();
+                addResult('Enhanced Health Endpoint', response.ok, data);
+            } catch (error) {
+                addResult('Enhanced Health Endpoint', false, { error: error.message });
+            }
+        }
+        
+        async function testAI() {
+            try {
+                const response = await fetch('http://localhost:8001/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        query: 'test message from direct HTML test', 
+                        session_id: 'direct_test_session' 
+                    })
+                });
+                const data = await response.json();
+                addResult('AI Endpoint', response.ok, data);
+            } catch (error) {
+                addResult('AI Endpoint', false, { error: error.message });
+            }
+        }
+        
+        async function testContext() {
+            try {
+                const response = await fetch('http://localhost:8001/ai/context/direct_test_session');
+                const data = await response.json();
+                addResult('Context Endpoint', response.ok, data);
+            } catch (error) {
+                addResult('Context Endpoint', false, { error: error.message });
+            }
+        }
+    </script>
+</body>
+</html>
