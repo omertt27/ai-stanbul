@@ -13,6 +13,7 @@ import BlogList from './pages/BlogList';
 import BlogPost from './pages/BlogPost';
 import NewBlogPost from './pages/NewBlogPost';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 
 const AppRouter = () => {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -85,6 +86,7 @@ const AppRouter = () => {
 
       <div className="chatbot-outline"></div>
       <NavBar />
+      <Footer />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/test" element={<TestComponent />} />
@@ -96,8 +98,8 @@ const AppRouter = () => {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/blog" element={<BlogList />} />
-        <Route path="/blog/:id" element={<BlogPost />} />
         <Route path="/blog/new" element={<NewBlogPost />} />
+        <Route path="/blog/:id" element={<BlogPost />} />
       </Routes>
     </Router>
   );

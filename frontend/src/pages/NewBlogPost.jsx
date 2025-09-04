@@ -206,7 +206,7 @@ const NewBlogPost = () => {
       }`}
     >
       {/* AI Istanbul Logo - Top Left */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-6 left-4">
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
         <div className="chat-title logo-istanbul">
           <span className="logo-text">
             A/<span style={{fontWeight: 400}}>STANBUL</span>

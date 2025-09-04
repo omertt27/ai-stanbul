@@ -34,7 +34,7 @@ const Donate = () => {
       theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
     }`}>
       {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-6 left-4">
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
         <div className="chat-title logo-istanbul">
           <span className="logo-text">
             A/<span style={{fontWeight: 400}}>STANBUL</span>
@@ -43,7 +43,7 @@ const Donate = () => {
       </Link>
 
       {/* Scrollable Content */}
-      <div className="h-screen overflow-y-auto pt-40 pb-20">
+      <div className="pt-20 pb-20">
         {/* Hero Section */}
         <div className="pb-12">
         <div className="max-w-4xl mx-auto px-6 text-center">

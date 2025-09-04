@@ -29,6 +29,14 @@ from api_clients.google_places import GooglePlacesClient
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
+# Enhanced chatbot imports
+from enhanced_chatbot import (
+    EnhancedContextManager, 
+    EnhancedQueryUnderstanding, 
+    EnhancedKnowledgeBase, 
+    ContextAwareResponseGenerator
+)
+
 load_dotenv()
 
 # Configure logging
@@ -408,6 +416,14 @@ def generate_restaurant_info(restaurant_name, location="Istanbul"):
 
 app = FastAPI(title="AIstanbul API", debug=False)
 
+# Initialize enhanced chatbot components
+context_manager = EnhancedContextManager()
+query_understanding = EnhancedQueryUnderstanding()
+knowledge_base = EnhancedKnowledgeBase()
+response_generator = ContextAwareResponseGenerator()
+
+logger.info("Enhanced chatbot components initialized successfully")
+
 # Mount static files directory for serving uploaded images
 images_dir = "images"
 os.makedirs(images_dir, exist_ok=True)
@@ -739,6 +755,67 @@ def correct_typos(text, threshold=80):
         print(f"Error in typo correction: {e}")
         return text
 
+def validate_and_sanitize_input(user_input):
+    """
+    Validate and sanitize user input to prevent security attacks
+    Returns: (is_safe: bool, sanitized_input: str, error_msg: str)
+    """
+    if not user_input or not isinstance(user_input, str):
+        return False, "", "Invalid input format"
+    
+    # Check input length - prevent DoS attacks
+    if len(user_input) > 1000:
+        return False, "", "Input too long (max 1000 characters)"
+    
+    # Detect and block SQL injection patterns
+    sql_patterns = [
+        r"[';]",                                 # Semicolons and quotes
+        r"--",                                   # SQL comments
+        r"/\*|\*/",                             # SQL block comments
+        r"\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b",
+        r"\b(OR|AND)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+['\"]?",  # OR '1'='1' patterns
+    ]
+    
+    # Detect and block XSS patterns  
+    xss_patterns = [
+        r"<script\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
+        r"<iframe\b[^<]*(?:(?!</iframe>)<[^<]*)*</iframe>", 
+        r"javascript:", r"vbscript:", r"data:",
+        r"on\w+\s*=",                           # Event handlers
+    ]
+    
+    # Detect and block command injection patterns
+    command_patterns = [
+        r"[;&|`]",                              # Command separators
+        r"\$\([^)]*\)",                         # Command substitution $()
+        r"`[^`]*`",                             # Command substitution ``
+    ]
+    
+    # Check all patterns
+    import re
+    all_patterns = sql_patterns + xss_patterns + command_patterns
+    
+    for pattern in all_patterns:
+        if re.search(pattern, user_input, re.IGNORECASE):
+            print(f"🚨 SECURITY ALERT: Blocked malicious input pattern: {pattern}")
+            return False, "", f"Input contains potentially malicious content"
+    
+    # Sanitize the input - be less aggressive to preserve legitimate queries
+    sanitized = user_input
+    
+    # Only remove clearly dangerous characters, keep most normal characters
+    dangerous_chars = r'[<>{}$`;\|\*]'  # Only remove clearly dangerous chars
+    sanitized = re.sub(dangerous_chars, ' ', sanitized)
+    
+    # Normalize whitespace
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    
+    # Final length check after sanitization
+    if len(sanitized) == 0:
+        return False, "", "Input became empty after sanitization"
+    
+    return True, sanitized, ""
+
 def enhance_query_understanding(user_input):
     """Enhance query understanding by correcting typos and adding context"""
     try:
@@ -957,13 +1034,23 @@ async def ai_istanbul_router(request: Request):
         # Debug logging
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
         
-        # Correct typos and enhance query understanding
-        enhanced_user_input = enhance_query_understanding(user_input)
-        print(f"Enhanced user_input: '{enhanced_user_input}'")
+        # Get conversation context
+        context = context_manager.get_context(session_id)
+        
+        # Enhanced query understanding with context
+        enhanced_input = query_understanding.enhance_query(user_input, context)
+        print(f"Enhanced user_input: '{enhanced_input}'")
+        
+        # Detect if this is a follow-up question
+        is_followup = query_understanding.is_followup_question(user_input, context)
+        
+        # Extract intent and entities
+        intent_info = query_understanding.extract_intent_and_entities(enhanced_input)
+        print(f"Intent detected: {intent_info}")
         
         # Use enhanced input for processing
-        user_input = enhanced_user_input
-        print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
+        user_input = enhanced_input
+        print(f"Processing user_input: '{user_input}' (length: {len(user_input)})")
 
         # --- OpenAI API Key Check ---
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -1811,29 +1898,63 @@ TONE & STYLE:
 When users need specific restaurant recommendations with location (like "restaurants in Beyoğlu"), the system will automatically fetch live data for you."""
 
                 try:
-                    logger.info("Making OpenAI API call...")
+                    logger.info("Generating enhanced AI response...")
                     
-                    @openai_circuit_breaker
-                    @retry_with_backoff(max_attempts=3, base_delay=1.0)
-                    def make_openai_request():
-                        return client.chat.completions.create(
-                            model="gpt-3.5-turbo",
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "system", "content": f"Database context:\n{places_context}"},
-                                {"role": "user", "content": user_input}
-                            ],
-                            max_tokens=500,
-                            temperature=0.7,
-                            timeout=30  # 30 second timeout
-                        )
+                    # Check if we can provide a knowledge-based response first
+                    knowledge_response = knowledge_base.get_knowledge_response(user_input, intent_info)
                     
-                    response = make_openai_request()
+                    if knowledge_response:
+                        # Use knowledge base response
+                        ai_response = knowledge_response
+                        logger.info("Using knowledge base response")
+                    else:
+                        # Fall back to OpenAI for complex queries
+                        @openai_circuit_breaker
+                        @retry_with_backoff(max_attempts=3, base_delay=1.0)
+                        def make_openai_request():
+                            # Enhance system prompt with context
+                            enhanced_prompt = response_generator.enhance_system_prompt(system_prompt, context)
+                            
+                            messages = [
+                                {"role": "system", "content": enhanced_prompt},
+                                {"role": "system", "content": f"Database context:\n{places_context}"}
+                            ]
+                            
+                            # Add conversation history if available
+                            if context:
+                                for i, (prev_q, prev_r) in enumerate(zip(context.previous_queries[-3:], context.previous_responses[-3:])):
+                                    messages.append({"role": "user", "content": prev_q})
+                                    messages.append({"role": "assistant", "content": prev_r})
+                            
+                            messages.append({"role": "user", "content": user_input})
+                            
+                            return client.chat.completions.create(
+                                model="gpt-3.5-turbo",
+                                messages=messages,
+                                max_tokens=500,
+                                temperature=0.7,
+                                timeout=30  # 30 second timeout
+                            )
+                        
+                        response = make_openai_request()
+                        ai_response = response.choices[0].message.content
+                        logger.info(f"OpenAI response: {ai_response[:100]}...")
                     
-                    ai_response = response.choices[0].message.content
-                    logger.info(f"OpenAI response: {ai_response[:100]}...")
+                    # Generate context-aware enhanced response
+                    enhanced_response = response_generator.generate_response(
+                        user_input, ai_response, context, intent_info, places
+                    )
+                    
+                    # Update conversation context
+                    places_mentioned = intent_info.get('entities', {}).get('places', [])
+                    topic = intent_info.get('intent', 'general')
+                    context_manager.update_context(
+                        session_id, user_input, enhanced_response, 
+                        places_mentioned, topic
+                    )
+                    
                     # Clean the response from any emojis, hashtags, or markdown
-                    clean_response = clean_text_formatting(ai_response)
+                    clean_response = clean_text_formatting(enhanced_response)
                     return {"message": clean_response}
                     
                 except Exception as e:
@@ -1868,144 +1989,79 @@ When users need specific restaurant recommendations with location (like "restaur
         error = handle_unexpected_error(e, "AI endpoint")
         raise error
 
-async def stream_response(message: str):
-    """Stream response word by word like ChatGPT"""
-    words = message.split(' ')
-    
-    for i, word in enumerate(words):
-        chunk = {
-            "delta": {"content": word + (" " if i < len(words) - 1 else "")},
-            "finish_reason": None
-        }
-        yield f"data: {json.dumps(chunk)}\n\n"
-        await asyncio.sleep(0.1)  # ChatGPT-like delay between words
-    
-    # Send final chunk
-    final_chunk = {
-        "delta": {"content": ""},
-        "finish_reason": "stop"
-    }
-    yield f"data: {json.dumps(final_chunk)}\n\n"
-    yield "data: [DONE]\n\n"
+# Enhanced Chatbot Endpoints
 
-
-## Removed broken/incomplete generate_ai_response function for clarity and to avoid confusion.
-
-
-@app.post("/ai/stream")
-async def ai_istanbul_stream(request: Request):
-    """Streaming version of the AI endpoint for ChatGPT-like responses"""
-    data = await request.json()
-    user_input = data.get("user_input", "")
-    speed = data.get("speed", 1.0)
+@app.get("/ai/context/{session_id}")
+async def get_conversation_context(session_id: str):
+    """Get conversation context for a session"""
     try:
-        print(f"Received streaming user_input: '{user_input}' (length: {len(user_input)}) at speed: {speed}x")
-        # Reuse the /ai logic by making an internal call to ai_istanbul_router
-        class DummyRequest:
-            def __init__(self, json_data):
-                self._json = json_data
-            async def json(self):
-                return self._json
-        dummy_request = DummyRequest({"user_input": user_input})
-        ai_response = await ai_istanbul_router(dummy_request)
-        message = ai_response["message"] if isinstance(ai_response, dict) and "message" in ai_response else str(ai_response)
-        return StreamingResponse(stream_response(message), media_type="text/plain")
+        context = context_manager.get_context(session_id)
+        if context:
+            return {
+                "session_id": context.session_id,
+                "previous_queries": context.previous_queries[-5:],  # Last 5 queries
+                "mentioned_places": context.mentioned_places,
+                "user_preferences": context.user_preferences,
+                "last_recommendation_type": context.last_recommendation_type,
+                "conversation_topics": context.conversation_topics[-10:],  # Last 10 topics
+                "user_location": context.user_location,
+                "active": True
+            }
+        else:
+            return {"session_id": session_id, "active": False}
     except Exception as e:
-        print(f"Error in streaming AI endpoint: {e}")
-        error_message = "Sorry, I encountered an error. Please try again."
-        return StreamingResponse(stream_response(error_message), media_type="text/plain")
+        logger.error(f"Error getting context: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get conversation context")
 
+@app.get("/ai/test-enhancements")
+async def test_enhanced_features():
+    """Test endpoint to verify enhanced features are working"""
+    try:
+        # Test query understanding
+        test_query = "restorant recomendations in kadikoy"
+        enhanced_query = query_understanding.enhance_query(test_query)
+        
+        # Test knowledge base
+        knowledge_test = knowledge_base.get_knowledge_response("tell me about ottoman history")
+        
+        # Test intent extraction
+        intent_test = query_understanding.extract_intent_and_entities("I need vegetarian restaurants near Galata Tower")
+        
+        return {
+            "status": "enhanced_features_active",
+            "typo_correction": {
+                "original": test_query,
+                "corrected": enhanced_query
+            },
+            "knowledge_base": {
+                "available": knowledge_test is not None,
+                "sample_response": knowledge_test[:100] + "..." if knowledge_test else None
+            },
+            "intent_extraction": intent_test,
+            "context_manager": {
+                "active_sessions": len(context_manager.contexts)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Enhancement test error: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
-# --- SECURITY FUNCTIONS ---
-def validate_and_sanitize_input(user_input):
-    """
-    Comprehensive input validation and sanitization for security.
-    Returns (is_safe, sanitized_input, error_message)
-    """
-    if not user_input or not isinstance(user_input, str):
-        return False, "", "Invalid input format"
-    
-    # Check input length - prevent DoS attacks
-    if len(user_input) > 1000:
-        return False, "", "Input too long (max 1000 characters)"
-    
-    # Detect and block SQL injection patterns
-    sql_patterns = [
-        r"[';]",                                 # Semicolons and quotes
-        r"--",                                   # SQL comments
-        r"/\*|\*/",                             # SQL block comments
-        r"\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b",
-        r"\b(OR|AND)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+['\"]?",  # OR '1'='1' patterns
-        r"['\"]?\s*(OR|AND)\s+['\"]\s*=",       # More specific: AND/OR with quotes and equals
-    ]
-    
-    # Detect and block XSS patterns  
-    xss_patterns = [
-        r"<script\b[^<]*(?:(?!</script>)<[^<]*)*</script>",
-        r"<iframe\b[^<]*(?:(?!</iframe>)<[^<]*)*</iframe>", 
-        r"<object\b[^<]*(?:(?!</object>)<[^<]*)*</object>",
-        r"<embed\b[^>]*>", r"<link\b[^>]*>", r"<meta\b[^>]*>",
-        r"<style\b[^<]*(?:(?!</style>)<[^<]*)*</style>",
-        r"javascript:", r"vbscript:", r"data:",
-        r"on\w+\s*=",                           # Event handlers
-        r"expression\s*\(",                     # CSS expressions
-    ]
-    
-    # Detect and block command injection patterns
-    command_patterns = [
-        r"[;&|`]",                              # Command separators
-        r"\$\([^)]*\)",                         # Command substitution $()
-        r"`[^`]*`",                             # Command substitution ``
-        r"\${[^}]*}",                           # Variable substitution ${}
-        r"\|\s*\w+",                            # Pipe commands
-    ]
-    
-    # Detect template injection patterns
-    template_patterns = [
-        r"\{\{[^}]*\}\}",                       # Handlebars/Mustache
-        r"<%[^%]*%>",                           # EJS/ASP templates
-        r"\{%[^%]*%\}",                         # Twig/Django templates
-    ]
-    
-    # Path traversal patterns
-    path_patterns = [
-        r"\.\./",                               # Directory traversal
-        r"\.\.\\",                              # Windows directory traversal
-        r"~/",                                  # Home directory
-    ]
-    
-    # Check all patterns
-    import re
-    all_patterns = sql_patterns + xss_patterns + command_patterns + template_patterns + path_patterns
-    
-    for pattern in all_patterns:
-        if re.search(pattern, user_input, re.IGNORECASE):
-            print(f"🚨 SECURITY ALERT: Blocked malicious input pattern: {pattern}")
-            print(f"🚨 Input: {user_input[:200]}...")
-            return False, "", f"Input contains potentially malicious content"
-    
-    # Sanitize the input - be less aggressive to preserve legitimate queries
-    sanitized = user_input
-    
-    # Only remove clearly dangerous characters, keep most normal characters
-    # Remove: dangerous special chars but keep common punctuation and letters
-    dangerous_chars = r'[<>{}$`;\|\*]'  # Only remove clearly dangerous chars
-    sanitized = re.sub(dangerous_chars, ' ', sanitized)
-    
-    # Normalize whitespace
-    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
-    
-    # Final length check after sanitization
-    if len(sanitized) == 0:
-        return False, "", "Input became empty after sanitization"
-    
-    if len(sanitized) > 500:  # Reduced max length after sanitization
-        sanitized = sanitized[:500]
-    
-    print(f"✅ Input sanitized: '{user_input[:50]}...' -> '{sanitized[:50]}...'")
-    return True, sanitized, None
-
-# --- END SECURITY FUNCTIONS ---
+@app.get("/ai/enhanced/health")
+async def enhanced_health_check():
+    """Health check for enhanced chatbot features"""
+    return {
+        "status": "healthy",
+        "enhanced_features": {
+            "context_manager": "active",
+            "query_understanding": "active", 
+            "knowledge_base": "active",
+            "response_generator": "active"
+        },
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 

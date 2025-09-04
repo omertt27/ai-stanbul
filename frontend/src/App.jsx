@@ -189,15 +189,15 @@ const App = () => {
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12vh'}}>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="main-page">
             <div className="chat-title logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
             </div>
           </Link>
-          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '1rem auto 0', padding: '1rem'}}>
+          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '2rem auto 0', padding: '1rem'}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -208,7 +208,7 @@ const App = () => {
         </div>
       ) : (
         <>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="fixed z-[60] top-6 left-4">
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="fixed z-[60] top-4 left-6">
             <div className="chat-title logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIstanbul - Final Testing Suite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 70vh;
+        }
+        
+        .test-panel {
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .test-panel:last-child {
+            border-right: none;
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            margin: -30px -30px 20px -30px;
+            padding: 20px 30px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .panel-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .panel-description {
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 8px 8px 8px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        
+        .btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
+        
+        .results {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #dee2e6;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        
+        .log-entry {
+            margin-bottom: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .log-entry.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .log-entry.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .log-entry.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .test-input {
+            font-style: italic;
+            color: #6c757d;
+            word-break: break-all;
+        }
+        
+        .quick-links {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 2px solid #dee2e6;
+            text-align: center;
+        }
+        
+        .quick-links h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .link-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: white;
+            color: #2c3e50;
+            text-decoration: none;
+            border-radius: 20px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .link-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-panel {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .test-panel:last-child {
+                border-bottom: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AIstanbul Testing Suite</h1>
+            <p>Comprehensive testing for chatbot robustness and functionality</p>
+        </div>
+        
+        <div class="test-grid">
+            <!-- Chatbot Robustness Panel -->
+            <div class="test-panel">
+                <div class="panel-header">
+                    <div class="panel-title">🤖 Chatbot Robustness Tests</div>
+                    <div class="panel-description">Test problematic inputs, edge cases, and API reliability</div>
+                </div>
+                
+                <div class="test-controls">
+                    <button id="runChatbotTests" class="btn">🚀 Run Full Test Suite</button>
+                    <button id="runConcurrentTests" class="btn secondary">⚡ Test Concurrent</button>
+                    <button id="runQuickChatbot" class="btn success">⭐ Quick Test</button>
+                </div>
+                
+                <div id="chatbotStatus" class="status" style="display: none;"></div>
+                
+                <div id="chatbotProgress" style="display: none;">
+                    <div class="progress">
+                        <div id="chatbotProgressBar" class="progress-bar"></div>
+                    </div>
+                </div>
+                
+                <div id="chatbotStats" class="stats-grid" style="display: none;">
+                    <div class="stat-card">
+                        <div id="chatbotTotal" class="stat-value">0</div>
+                        <div class="stat-label">Total Tests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="chatbotSuccess" class="stat-value">0</div>
+                        <div class="stat-label">Successful</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="chatbotFailed" class="stat-value">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div id="chatbotRate" class="stat-value">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                
+                <div id="chatbotResults" class="results" style="display: none;"></div>
+            </div>
+            
+            <!-- UI Verification Panel -->
+            <div class="test-panel">
+                <div class="panel-header">
+                    <div class="panel-title">🎯 Manual Testing</div>
+                    <div class="panel-description">Interactive testing and verification tools</div>
+                </div>
+                
+                <div class="test-controls">
+                    <button id="testBasic" class="btn">💬 Test Normal Input</button>
+                    <button id="testEmpty" class="btn secondary">🔍 Test Empty Input</button>
+                    <button id="testLong" class="btn secondary">📏 Test Long Input</button>
+                    <button id="testSpecial" class="btn secondary">🔣 Test Special Chars</button>
+                    <button id="testUnicode" class="btn secondary">🌍 Test Unicode</button>
+                </div>
+                
+                <div id="manualStatus" class="status" style="display: none;"></div>
+                
+                <div id="manualResults" class="results" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="quick-links">
+            <h3>🔗 Quick Access Links</h3>
+            <a href="http://localhost:5179" target="_blank" class="link-btn">🏠 Main App</a>
+            <a href="http://localhost:5179/about" target="_blank" class="link-btn">ℹ️ About</a>
+            <a href="http://localhost:5179/blog" target="_blank" class="link-btn">📝 Blog</a>
+            <a href="http://localhost:8001/docs" target="_blank" class="link-btn">📚 API Docs</a>
+        </div>
+    </div>
+
+    <script>
+        // Test data with corrected endpoint format
+        const testInputs = [
+            { input: '', category: 'Empty' },
+            { input: '   ', category: 'Whitespace' },
+            { input: 'A'.repeat(1000), category: 'Long Input' },
+            { input: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;', category: 'XSS' },
+            { input: '🏛️🍽️ İstanbul müzeleri', category: 'Unicode' },
+            { input: 'asdfghjkl qwertyuiop', category: 'Nonsensical' },
+            { input: 'What restaurants do you recommend?', category: 'Normal' },
+            { input: 'Tell me about museums in Istanbul', category: 'Normal' }
+        ];
+
+        // DOM elements
+        const chatbotStatusEl = document.getElementById('chatbotStatus');
+        const chatbotProgressEl = document.getElementById('chatbotProgress');
+        const chatbotProgressBar = document.getElementById('chatbotProgressBar');
+        const chatbotStatsEl = document.getElementById('chatbotStats');
+        const chatbotResultsEl = document.getElementById('chatbotResults');
+        const manualStatusEl = document.getElementById('manualStatus');
+        const manualResultsEl = document.getElementById('manualResults');
+
+        let isRunning = false;
+
+        // Utility functions
+        function updateStatus(element, message, type = 'info') {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.display = 'block';
+        }
+
+        function addLogEntry(container, message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = message;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+            container.style.display = 'block';
+        }
+
+        function updateProgress(progressBar, current, total) {
+            const percentage = (current / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        // Test individual input
+        async function testChatbotInput(input, category) {
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch('http://localhost:8001/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: input,
+                        session_id: `test_${Date.now()}_${Math.random()}`
+                    })
+                });
+                
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                return {
+                    input,
+                    category,
+                    success: response.ok,
+                    responseTime,
+                    status: response.status,
+                    response: data,
+                    error: response.ok ? null : data.error?.message || 'Unknown error'
+                };
+                
+            } catch (error) {
+                const responseTime = Date.now() - startTime;
+                return {
+                    input,
+                    category,
+                    success: false,
+                    responseTime,
+                    status: null,
+                    response: null,
+                    error: error.message
+                };
+            }
+        }
+
+        // Full test suite
+        async function runChatbotTests() {
+            if (isRunning) return;
+            isRunning = true;
+
+            updateStatus(chatbotStatusEl, '🚀 Starting chatbot robustness tests...', 'info');
+            chatbotResultsEl.innerHTML = '';
+            chatbotProgressEl.style.display = 'block';
+
+            const results = [];
+            
+            for (let i = 0; i < testInputs.length; i++) {
+                const testCase = testInputs[i];
+                updateProgress(chatbotProgressBar, i, testInputs.length);
+                
+                addLogEntry(chatbotResultsEl, `📝 Test ${i + 1}/${testInputs.length}: ${testCase.category}`, 'info');
+                addLogEntry(chatbotResultsEl, `Input: <span class="test-input">"${testCase.input || '[empty]'}"</span>`, 'info');
+                
+                const result = await testChatbotInput(testCase.input, testCase.category);
+                results.push(result);
+                
+                if (result.success) {
+                    addLogEntry(chatbotResultsEl, `✅ Success (${result.responseTime}ms) - Status: ${result.status}`, 'success');
+                    if (result.response.message) {
+                        const preview = result.response.message.substring(0, 80);
+                        addLogEntry(chatbotResultsEl, `Response: ${preview}${result.response.message.length > 80 ? '...' : ''}`, 'info');
+                    }
+                } else {
+                    addLogEntry(chatbotResultsEl, `❌ Failed (${result.responseTime}ms) - ${result.error}`, 'error');
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            updateProgress(chatbotProgressBar, testInputs.length, testInputs.length);
+            
+            const successful = results.filter(r => r.success).length;
+            const successRate = (successful / results.length * 100).toFixed(1);
+            
+            document.getElementById('chatbotTotal').textContent = results.length;
+            document.getElementById('chatbotSuccess').textContent = successful;
+            document.getElementById('chatbotFailed').textContent = results.length - successful;
+            document.getElementById('chatbotRate').textContent = `${successRate}%`;
+            
+            chatbotStatsEl.style.display = 'grid';
+            updateStatus(chatbotStatusEl, `✅ Tests completed! Success rate: ${successRate}%`, 'success');
+            
+            isRunning = false;
+        }
+
+        async function runConcurrentTests() {
+            if (isRunning) return;
+            isRunning = true;
+
+            updateStatus(chatbotStatusEl, '⚡ Testing concurrent requests...', 'info');
+            
+            const promises = [];
+            for (let i = 0; i < 5; i++) {
+                promises.push(testChatbotInput(`Concurrent test ${i + 1}`, 'Concurrent'));
+            }
+            
+            try {
+                const results = await Promise.all(promises);
+                const successful = results.filter(r => r.success).length;
+                
+                addLogEntry(chatbotResultsEl, `✅ ${successful}/5 concurrent requests succeeded`, 'success');
+                updateStatus(chatbotStatusEl, '✅ Concurrent test completed!', 'success');
+            } catch (error) {
+                addLogEntry(chatbotResultsEl, `❌ Concurrent test failed: ${error.message}`, 'error');
+                updateStatus(chatbotStatusEl, '❌ Concurrent test failed!', 'error');
+            }
+            
+            isRunning = false;
+        }
+
+        async function runQuickChatbot() {
+            updateStatus(chatbotStatusEl, '⭐ Running quick chatbot test...', 'info');
+            
+            const result = await testChatbotInput('Hello! Can you recommend a restaurant?', 'Quick Test');
+            
+            if (result.success && result.response.message) {
+                addLogEntry(chatbotResultsEl, '✅ Quick test passed - Chatbot is responding normally', 'success');
+                updateStatus(chatbotStatusEl, '✅ Quick test successful!', 'success');
+            } else {
+                addLogEntry(chatbotResultsEl, `⚠️ Quick test issue: ${result.error || 'No response message'}`, 'error');
+                updateStatus(chatbotStatusEl, '⚠️ Quick test - Check chatbot functionality', 'warning');
+            }
+        }
+
+        // Manual testing functions
+        async function testSpecificInput(input, category) {
+            updateStatus(manualStatusEl, `🔍 Testing ${category} input...`, 'info');
+            
+            const result = await testChatbotInput(input, category);
+            
+            addLogEntry(manualResultsEl, `<br>📝 ${category} Test`, 'info');
+            addLogEntry(manualResultsEl, `Input: <span class="test-input">"${input || '[empty]'}"</span>`, 'info');
+            
+            if (result.success) {
+                addLogEntry(manualResultsEl, `✅ Success (${result.responseTime}ms)`, 'success');
+                if (result.response.message) {
+                    addLogEntry(manualResultsEl, `Response: ${result.response.message.substring(0, 150)}...`, 'info');
+                }
+                updateStatus(manualStatusEl, '✅ Test completed successfully!', 'success');
+            } else {
+                addLogEntry(manualResultsEl, `❌ Failed: ${result.error}`, 'error');
+                updateStatus(manualStatusEl, '❌ Test failed - Check error details', 'error');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('runChatbotTests').addEventListener('click', runChatbotTests);
+        document.getElementById('runConcurrentTests').addEventListener('click', runConcurrentTests);
+        document.getElementById('runQuickChatbot').addEventListener('click', runQuickChatbot);
+        
+        document.getElementById('testBasic').addEventListener('click', () => 
+            testSpecificInput('What restaurants do you recommend in Istanbul?', 'Basic'));
+        document.getElementById('testEmpty').addEventListener('click', () => 
+            testSpecificInput('', 'Empty'));
+        document.getElementById('testLong').addEventListener('click', () => 
+            testSpecificInput('Tell me about restaurants '.repeat(50), 'Long'));
+        document.getElementById('testSpecial').addEventListener('click', () => 
+            testSpecificInput('&lt;script&gt;alert(&quot;test&quot;)&lt;/script&gt;', 'Special Characters'));
+        document.getElementById('testUnicode').addEventListener('click', () => 
+            testSpecificInput('🏛️🍽️ İstanbul müzeleri nerede? 🇹🇷', 'Unicode'));
+
+        // Auto-check backend status on load
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                if (response.ok) {
+                    updateStatus(chatbotStatusEl, '✅ Backend server is running and ready', 'success');
+                } else {
+                    updateStatus(chatbotStatusEl, '⚠️ Backend server may have issues', 'warning');
+                }
+            } catch (error) {
+                updateStatus(chatbotStatusEl, '❌ Backend server not accessible', 'error');
+            }
+        }
+
+        // Initial status check
+        checkBackendStatus();
+        updateStatus(manualStatusEl, '🎯 Manual tests ready to run', 'info');
+    </script>
+</body>
+</html>
