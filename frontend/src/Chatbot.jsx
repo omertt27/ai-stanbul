@@ -26,6 +26,8 @@ import TypingIndicator from './components/TypingIndicator';
 import MessageActions from './components/MessageActions';
 import ScrollToBottom from './components/ScrollToBottom';
 import ChatHeader from './components/ChatHeader';
+import ActionButtons from './components/ActionButtons';
+import UserContextDisplay from './components/UserContextDisplay';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
 
@@ -852,14 +854,30 @@ function Chatbot() {
         // CRITICAL: Use sanitized input for API call
         const placesData = await fetchPlacesRecommendations(sanitizedInput);
         console.log('Places API response:', placesData);
-        const formattedResponse = formatPlacesRecommendations(placesData.places);
-        console.log('Formatted response:', formattedResponse);
         
-        addMessage(formattedResponse, 'assistant', {
-          type: 'places-recommendation',
-          dataSource: 'database',
-          resultCount: placesData?.places?.length || 0
-        });
+        // Check if response has enhanced format
+        if (placesData.personalized && placesData.message) {
+          // Enhanced personalized response
+          addMessage(placesData.message, 'assistant', {
+            type: 'personalized-places',
+            dataSource: 'database',
+            resultCount: placesData.places?.length || 0,
+            actions: placesData.actions || [],
+            context_actions: placesData.context_actions || [],
+            user_context: placesData.user_context || {},
+            personalized: true
+          });
+        } else {
+          // Fallback to original format
+          const formattedResponse = formatPlacesRecommendations(placesData.places);
+          console.log('Formatted response:', formattedResponse);
+          
+          addMessage(formattedResponse, 'assistant', {
+            type: 'places-recommendation',
+            dataSource: 'database',
+            resultCount: placesData?.places?.length || 0
+          });
+        }
         
         // Clear failed message on success
         setLastFailedMessage(null);
@@ -1127,6 +1145,19 @@ function Chatbot() {
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}
                       </div>
+                      
+                      {/* User context display */}
+                      {msg.user_context && (
+                        <UserContextDisplay userContext={msg.user_context} />
+                      )}
+                      
+                      {/* Action buttons */}
+                      {(msg.actions || msg.context_actions) && (
+                        <ActionButtons 
+                          actions={msg.actions || []} 
+                          contextActions={msg.context_actions || []} 
+                        />
+                      )}
                       {msg.timestamp && (
                         <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
                           darkMode ? 'text-gray-500' : 'text-gray-500'

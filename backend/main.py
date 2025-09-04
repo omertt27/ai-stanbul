@@ -21,6 +21,9 @@ from fuzzywuzzy import fuzz, process
 # --- Project Imports ---
 from database import engine, SessionLocal
 from models import Base, Restaurant, Museum, Place, ChatHistory
+from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips
+from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response
+from actionable_responses import enhance_response_with_actions, get_actionable_places_response
 from routes import museums, restaurants, places, blog
 from api_clients.google_places import GooglePlacesClient
 from sqlalchemy.orm import Session
@@ -1416,12 +1419,60 @@ async def ai_istanbul_router(request: Request):
                         print(f"DEBUG: No places found matching location '{extracted_location}'")
                 
                 if filtered_places:
-                    location_text = f" in {extracted_location.title()}" if extracted_location else " in Istanbul"
-                    places_info = f"Here are the {'museums' if is_museum_query else 'places'}{location_text}:\n\n"
-                    for i, place in enumerate(filtered_places[:8]):  # Top 8 results
-                        places_info += f"{i+1}. {place.name}\n"
-                        places_info += f"   Category: {place.category}\n\n"
-                    return {"message": places_info}
+                    # Initialize personalization engine
+                    personalization_engine = IstanbulPersonalizationEngine(db)
+                    
+                    # Extract and update user context
+                    user_context_updates = personalization_engine.extract_user_context(user_input, session_id)
+                    user_profile = personalization_engine.get_or_create_user_profile(session_id)
+                    
+                    # Get transportation options if user has accommodation info
+                    transport_info = []
+                    if user_profile.accommodation_district:
+                        for place in filtered_places[:3]:  # Get transport for first 3 places
+                            if hasattr(place, 'district') and place.district:
+                                ferry_routes = personalization_engine.get_ferry_schedule(
+                                    user_profile.accommodation_district, 
+                                    place.district
+                                )
+                                transport_info.extend(ferry_routes)
+                    
+                    # Get cultural context
+                    cultural_info = personalization_engine.get_cultural_context(user_input)
+                    
+                    # Generate enhanced response with actions
+                    enhanced_response = get_actionable_places_response(
+                        filtered_places[:6], 
+                        transport_info,
+                        user_profile.accommodation_district
+                    )
+                    
+                    # Format with personalization
+                    user_context = {
+                        'dietary': user_profile.dietary_restrictions,
+                        'staying_in': user_profile.accommodation_district,
+                        'days_left': user_profile.days_remaining,
+                        'budget': user_profile.budget_level
+                    }
+                    
+                    # Remove None values
+                    user_context = {k: v for k, v in user_context.items() if v is not None}
+                    
+                    personalized_response = format_personalized_response(
+                        enhanced_response['response'],
+                        user_context,
+                        transport_info[:2],  # Limit transport options
+                        cultural_info
+                    )
+                    
+                    # Return enhanced response
+                    return {
+                        "message": personalized_response,
+                        "actions": enhanced_response.get('actions', []),
+                        "context_actions": enhanced_response.get('context_actions', []),
+                        "personalized": True,
+                        "user_context": user_context
+                    }
                 else:
                     if extracted_location:
                         return {"message": f"Sorry, I couldn't find any {'museums' if is_museum_query else 'places'} in {extracted_location.title()} in my database. Try asking about a different district or general attractions in Istanbul."}

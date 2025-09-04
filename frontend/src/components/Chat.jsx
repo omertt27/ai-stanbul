@@ -127,9 +127,9 @@ const ActionButtons = ({ text }) => {
 
 const formatMessage = (text, isUser = false) => {
   // Check if it's a restaurant recommendation message
-  if (text.includes('🍽️') && text.includes('restaurants I found')) {
+  if ((text.includes('restaurant recommendations') || text.includes('restaurants I found')) && text.includes('Here are')) {
     const lines = text.split('\n');
-    const header = lines[0]; // The header with emoji
+    const header = lines[0]; // The header
     const restaurants = lines.slice(1).filter(line => line.trim().match(/^\d+\./));
     
     return (

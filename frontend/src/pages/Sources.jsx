@@ -1,40 +1,232 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import '../App.css';
+import { useTheme } from '../contexts/ThemeContext';
 
-const Sources = () => (
-  <div className="static-page">
-    {/* AI Istanbul Logo - Top Left */}
-    <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
-      <div className="logo-istanbul logo-move-top-left">
-        <span className="logo-text">
-          A/<span style={{fontWeight: 400}}>STANBUL</span>
-        </span>
+const Sources = () => {
+  const { theme } = useTheme();
+
+  const dataSource = (icon, title, items, color) => (
+    <div className={`rounded-xl p-6 transition-all duration-300 hover:scale-105 ${
+      theme === 'dark' 
+        ? 'bg-gray-800 border border-gray-700 hover:border-gray-600' 
+        : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
+    }`}>
+      <div className="flex items-center mb-4">
+        {icon && (
+          <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-r ${color} mr-4`}>
+            <span className="text-2xl">{icon}</span>
+          </div>
+        )}
+        <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+          theme === 'dark' ? 'text-white' : 'text-gray-800'
+        }`}>
+          {title}
+        </h3>
       </div>
-    </Link>
-    
-    <h1>Sources & Technology</h1>
-    <h2>Restaurant Data</h2>
-    <ul>
-      <li>Google Maps Places API for live restaurant and place data</li>
-      <li>OpenAI for conversational AI</li>
-      <li>Official Istanbul tourism and municipality resources</li>
-      <li>Community recommendations and user feedback</li>
-    </ul>
-    <h2>Cultural & Historical Data</h2>
-    <ul>
-      <li>Istanbul Metropolitan Municipality — Official tourism data</li>
-      <li>Turkish Ministry of Culture and Tourism — Cultural heritage information</li>
-      <li>Local Museums — Direct partnerships for accurate details</li>
-      <li>UNESCO World Heritage Sites — Historical significance data</li>
-      <li>Local Cultural Experts — Verified insights and recommendations</li>
-    </ul>
-    <h2>Technology Stack</h2>
-    <ul>
-      <li>React, Vite, Tailwind CSS for the frontend</li>
-      <li>FastAPI, SQLAlchemy, OpenAI, Google Maps API for the backend</li>
-    </ul>
-  </div>
-);
+      <ul className="space-y-2">
+        {items.map((item, index) => (
+          <li key={index} className={`flex items-start transition-colors duration-300 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            <span className="text-blue-500 mr-2 mt-1">•</span>
+            <span className="leading-relaxed">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  return (
+    <div className={`min-h-screen w-full transition-colors duration-300 ${
+      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
+    }`}>
+      {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-6 left-4">
+        <div className="chat-title logo-istanbul">
+          <span className="logo-text">
+            A/<span style={{fontWeight: 400}}>STANBUL</span>
+          </span>
+        </div>
+      </Link>
+
+      {/* Scrollable Content */}
+      <div className="h-screen overflow-y-auto pt-40 pb-20">
+        {/* Hero Section */}
+        <div className="pb-12">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-blue-600 mb-6">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-800'
+            }`}>
+              Sources & <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Technology</span>
+            </h1>
+            <p className={`text-xl leading-relaxed transition-colors duration-300 ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Trusted data sources and cutting-edge technology powering your Istanbul experience
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 pb-20">
+        {/* Data Sources Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          {dataSource(
+            '',
+            'Restaurant Data',
+            [
+              'Google Maps Places API for live restaurant data',
+              'Real-time ratings, reviews, and opening hours',
+              'OpenAI for intelligent recommendations',
+              'Community feedback and user reviews'
+            ],
+            'from-orange-500 to-red-500'
+          )}
+
+          {dataSource(
+            '',
+            'Cultural & Historical Data',
+            [
+              'Istanbul Metropolitan Municipality — Official tourism data',
+              'Turkish Ministry of Culture and Tourism',
+              'UNESCO World Heritage Sites information',
+              'Local museums and cultural institutions',
+              'Verified insights from cultural experts'
+            ],
+            'from-purple-500 to-pink-500'
+          )}
+
+          {dataSource(
+            '',
+            'Technology Stack',
+            [
+              'React & Vite for lightning-fast frontend',
+              'Tailwind CSS for beautiful, responsive design',
+              'FastAPI for high-performance backend',
+              'SQLAlchemy for robust data management',
+              'OpenAI GPT for intelligent conversations'
+            ],
+            'from-blue-500 to-cyan-500'
+          )}
+        </div>
+
+        {/* Quality Assurance Section */}
+        <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
+          theme === 'dark' 
+            ? 'bg-gray-800 border border-gray-700' 
+            : 'bg-white shadow-xl border border-gray-100'
+        }`}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
+              theme === 'dark' ? 'text-white' : 'text-gray-800'
+            }`}>
+              Quality Assurance
+            </h2>
+            <p className={`text-lg transition-colors duration-300 ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              How we ensure accurate, reliable, and up-to-date information
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}>
+                Data Accuracy
+              </h3>
+              <ul className="space-y-2">
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-green-500 mr-2 mt-1">✓</span>
+                  <span>Real-time data from Google Maps API</span>
+                </li>
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-green-500 mr-2 mt-1">✓</span>
+                  <span>Monthly database updates and reviews</span>
+                </li>
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-green-500 mr-2 mt-1">✓</span>
+                  <span>Cross-verified with official tourism sources</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+                theme === 'dark' ? 'text-white' : 'text-gray-800'
+              }`}>
+                Continuous Improvement
+              </h3>
+              <ul className="space-y-2">
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-blue-500 mr-2 mt-1">✓</span>
+                  <span>User feedback integration</span>
+                </li>
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-blue-500 mr-2 mt-1">✓</span>
+                  <span>AI model fine-tuning with Istanbul-specific data</span>
+                </li>
+                <li className={`flex items-start transition-colors duration-300 ${
+                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  <span className="text-blue-500 mr-2 mt-1">✓</span>
+                  <span>Local expert validation and insights</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Open Source Section */}
+        <div className={`rounded-xl p-6 text-center transition-colors duration-300 ${
+          theme === 'dark' 
+            ? 'bg-gradient-to-r from-gray-800 to-gray-700' 
+            : 'bg-gradient-to-r from-blue-50 to-indigo-50'
+        }`}>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 mb-4">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </div>
+          <h3 className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
+            theme === 'dark' ? 'text-white' : 'text-gray-800'
+          }`}>
+            Open Source & Transparent
+          </h3>
+          <p className={`transition-colors duration-300 ${
+            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Our commitment to transparency means all our data sources are documented and our methodology is open. 
+            We believe in building trust through openness.
+          </p>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+};
 
 export default Sources;

@@ -206,8 +206,8 @@ const NewBlogPost = () => {
       }`}
     >
       {/* AI Istanbul Logo - Top Left */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
-        <div className="logo-istanbul logo-move-top-left">
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-6 left-4">
+        <div className="chat-title logo-istanbul">
           <span className="logo-text">
             A/<span style={{fontWeight: 400}}>STANBUL</span>
           </span>
@@ -492,7 +492,7 @@ const NewBlogPost = () => {
                 </button>
               </div>
               <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                💡 Tip: Select text first, then click formatting buttons. Or click buttons to insert examples.
+                Tip: Select text first, then click formatting buttons. Or click buttons to insert examples.
               </p>
             </div>
 

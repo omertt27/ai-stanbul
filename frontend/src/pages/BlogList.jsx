@@ -94,9 +94,9 @@ const BlogList = () => {
     <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      {/* AI Istanbul Logo - Top Left */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-50">
-        <div className="logo-istanbul logo-move-top-left">
+      {/* AI Istanbul Logo - Top Left - Aligned with Nav */}
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-6 left-4">
+        <div className="chat-title logo-istanbul">
           <span className="logo-text">
             A/<span style={{fontWeight: 400}}>STANBUL</span>
           </span>

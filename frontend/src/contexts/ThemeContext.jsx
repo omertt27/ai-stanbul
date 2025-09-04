@@ -11,31 +11,35 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => {
+  const [theme, setTheme] = useState(() => {
     try {
-      const saved = localStorage.getItem('dark-mode');
-      return saved ? JSON.parse(saved) : true; // Default to dark mode
+      const saved = localStorage.getItem('theme');
+      return saved || 'dark'; // Default to dark theme
     } catch (error) {
-      console.error('Failed to load dark mode from localStorage:', error);
-      return true;
+      console.error('Failed to load theme from localStorage:', error);
+      return 'dark';
     }
   });
 
-  // Persist dark mode preference
+  // Persist theme preference
   useEffect(() => {
     try {
-      localStorage.setItem('dark-mode', JSON.stringify(darkMode));
+      localStorage.setItem('theme', theme);
     } catch (error) {
-      console.error('Failed to save dark mode to localStorage:', error);
+      console.error('Failed to save theme to localStorage:', error);
     }
-  }, [darkMode]);
+  }, [theme]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  // For backward compatibility
+  const darkMode = theme === 'dark';
+  const toggleDarkMode = toggleTheme;
+
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, darkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );

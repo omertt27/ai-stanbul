@@ -41,17 +41,17 @@ const formatRestaurantRecommendations = (restaurants) => {
     return "Sorry, I couldn't find any restaurants matching your request in Istanbul.";
   }
 
-  let formattedResponse = "🍽️ Here are 4 great restaurant recommendations for you:\n\n";
+  let formattedResponse = "Here are 4 great restaurant recommendations for you:\n\n";
   
   restaurants.slice(0, 4).forEach((restaurant, index) => {
     const name = restaurant.name || 'Unknown Restaurant';
-    const rating = restaurant.rating ? `⭐ ${restaurant.rating}` : '';
+    const rating = restaurant.rating ? `${restaurant.rating}` : '';
     const address = restaurant.address || restaurant.vicinity || '';
     const description = restaurant.description || 'A popular dining spot in Istanbul.';
     
     formattedResponse += `${index + 1}. ${name}\n`;
-    if (rating) formattedResponse += `${rating}\n`;
-    if (address) formattedResponse += `📍 ${address}\n`;
+    if (rating) formattedResponse += `Rating: ${rating}\n`;
+    if (address) formattedResponse += `Address: ${address}\n`;
     formattedResponse += `${description}\n\n`;
   });
 
@@ -76,6 +76,24 @@ const App = () => {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [messages, expanded]);
+
+  // Event listener for sample prompt clicks
+  useEffect(() => {
+    const handleSamplePromptClick = (event) => {
+      const promptText = event.detail;
+      setQuery(promptText);
+      // Auto-trigger search
+      setTimeout(() => {
+        const searchEvent = { preventDefault: () => {} };
+        handleSearch(searchEvent);
+      }, 100);
+    };
+
+    window.addEventListener('samplePromptClick', handleSamplePromptClick);
+    return () => {
+      window.removeEventListener('samplePromptClick', handleSamplePromptClick);
+    };
+  }, [query, messages]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -173,7 +191,7 @@ const App = () => {
       {!expanded ? (
         <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12vh'}}>
           <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
-            <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
+            <div className="chat-title logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
@@ -190,8 +208,8 @@ const App = () => {
         </div>
       ) : (
         <>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
-            <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="fixed z-[60] top-6 left-4">
+            <div className="chat-title logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
