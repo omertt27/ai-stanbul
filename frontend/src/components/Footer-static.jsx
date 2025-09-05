@@ -1,48 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Footer = () => {
   const location = useLocation();
-  const [showFooter, setShowFooter] = useState(false);
   
   // Don't show footer on main page unless chat is expanded
   if (location.pathname === '/') {
     return null;
   }
-
-  // Show/hide footer based on scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      // Show footer when scrolled down more than 100px
-      setShowFooter(window.scrollY > 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
   
   const isLightMode = document.body.classList.contains('light');
   
   const footerStyle = {
-    position: 'fixed',
-    bottom: '0',
-    left: '0',
-    right: '0',
-    width: '100vw',
+    position: 'relative', // Changed from 'fixed' to 'relative'
+    bottom: 'auto',
+    left: 'auto',
+    right: 'auto',
+    width: '100%',
     display: 'flex',
     justifyContent: 'center',
     gap: '2rem',
     fontSize: '0.875rem',
-    zIndex: 999999,
-    backgroundColor: 'rgba(75, 85, 99, 0.3)',
+    zIndex: 10,
+    backgroundColor: 'rgba(75, 85, 99, 0.9)',
     color: '#ffffff',
-    padding: '0.75rem 2rem',
+    padding: '1rem 2rem',
     backdropFilter: 'blur(8px)',
     borderTop: '1px solid rgba(156, 163, 175, 0.2)',
-    pointerEvents: 'auto',
-    transform: `translateY(${showFooter ? '0' : '100%'})`,
-    willChange: 'transform',
-    transition: 'transform 0.3s ease-in-out',
+    marginTop: '2rem', // Add some space above
   };
   
   const linkStyle = (isActive) => ({

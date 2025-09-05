@@ -1349,14 +1349,27 @@ async def ai_istanbul_router(request: Request):
                 'shopping centers', 'where to shop', 'shopping recommendations', 'best shopping'
             ]
             
+            # More specific transportation keywords - removed generic words like "to", "from", "go", "visit"
             transportation_keywords = [
                 'transport', 'transportation', 'metro', 'bus', 'ferry', 'taxi', 'uber',
                 'how to get', 'getting around', 'public transport', 'istanbulkart',
                 'airport', 'train', 'tram', 'dolmus', 'marmaray', 'metrobus',
                 'getting from', 'how to reach', 'travel to', 'transport options',
                 'how can i go', 'how do i get', 'how to go', 'go from', 'get from',
-                'travel from', 'from', 'to', 'route', 'directions', 'way to',
+                'travel from', 'route', 'directions', 'way to',
                 'getting to', 'going to', 'going from'
+            ]
+            
+            # Enhanced transportation detection for "from X to Y" patterns
+            transportation_patterns = [
+                r'how\s+can\s+i\s+go\s+\w+\s+from\s+\w+',  # "how can i go beyoglu from kadikoy"
+                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from kadikoy to beyoglu"
+                r'how\s+to\s+go\s+from\s+\w+\s+to\s+\w+',   # "how to go from kadikoy to beyoglu"
+                r'from\s+\w+\s+to\s+\w+',                   # "from kadikoy to beyoglu"
+                r'\w+\s+to\s+\w+\s+transport',              # "kadikoy to beyoglu transport"
+                r'get\s+to\s+\w+\s+from\s+\w+',             # "get to beyoglu from kadikoy"
+                r'travel\s+from\s+\w+\s+to\s+\w+',          # "travel from kadikoy to beyoglu"
+                r'\w+\s+from\s+\w+',                        # "beyoglu from kadikoy" (simple pattern)
             ]
             
             nightlife_keywords = [
@@ -1437,26 +1450,23 @@ async def ai_istanbul_router(request: Request):
             is_attraction_query = (any(keyword in user_input.lower() for keyword in attraction_keywords) or 
                                  is_location_place_query or is_single_district_query)
             is_shopping_query = any(keyword in user_input.lower() for keyword in shopping_keywords)
-            is_transportation_query = any(keyword in user_input.lower() for keyword in transportation_keywords)
+            
+            # Transportation detection - but exclude if it's clearly a place/attraction query
+            is_transportation_keyword_match = any(keyword in user_input.lower() for keyword in transportation_keywords)
+            is_transportation_pattern = any(re.search(pattern, user_input.lower()) for pattern in transportation_patterns)
+            
+            # Only mark as transportation if it matches keywords/patterns AND is NOT a clear place/attraction query
+            is_transportation_query = (is_transportation_keyword_match or is_transportation_pattern) and not (
+                is_location_place_query or 
+                is_attraction_query or 
+                is_single_district_query or
+                any(keyword in user_input.lower() for keyword in ['places to visit', 'things to do', 'attractions', 'sights'])
+            )
+            
             is_nightlife_query = any(keyword in user_input.lower() for keyword in nightlife_keywords)
             is_culture_query = any(keyword in user_input.lower() for keyword in culture_keywords)
             is_accommodation_query = any(keyword in user_input.lower() for keyword in accommodation_keywords)
             is_events_query = any(keyword in user_input.lower() for keyword in events_keywords)
-            
-            # Enhanced transportation detection for "from X to Y" patterns
-            transportation_patterns = [
-                r'how\s+can\s+i\s+go\s+\w+\s+from\s+\w+',  # "how can i go beyoglu from kadikoy"
-                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from kadikoy to beyoglu"
-                r'how\s+to\s+go\s+from\s+\w+\s+to\s+\w+',   # "how to go from kadikoy to beyoglu"
-                r'from\s+\w+\s+to\s+\w+',                   # "from kadikoy to beyoglu"
-                r'\w+\s+to\s+\w+\s+transport',              # "kadikoy to beyoglu transport"
-                r'get\s+to\s+\w+\s+from\s+\w+',             # "get to beyoglu from kadikoy"
-                r'travel\s+from\s+\w+\s+to\s+\w+',          # "travel from kadikoy to beyoglu"
-                r'\w+\s+from\s+\w+',                        # "beyoglu from kadikoy" (simple pattern)
-            ]
-            
-            is_transportation_pattern = any(re.search(pattern, user_input.lower()) for pattern in transportation_patterns)
-            is_transportation_query = is_transportation_query or is_transportation_pattern
             
             # Debug query categorization
             print(f"Query categorization:")
@@ -1694,18 +1704,18 @@ async def ai_istanbul_router(request: Request):
                 if is_location_place_query or is_location_museum_query:
                     logger.info(f"Location-based query detected: {user_input}")
                     location_patterns = [
-                        r'in\s+([a-zA-Z\s]+)',
-                        r'at\s+([a-zA-Z\s]+)',
-                        r'around\s+([a-zA-Z\s]+)',
-                        r'near\s+([a-zA-Z\s]+)',
+                        r'in\s+([a-zA-Z]+)(?:\s+to)?',  # "in fatih" or "in fatih to" - more specific
+                        r'at\s+([a-zA-Z]+)(?:\s+to)?',  # "at fatih" or "at fatih to" - more specific
+                        r'around\s+([a-zA-Z]+)(?:\s+to)?',  # "around fatih" or "around fatih to" - more specific
+                        r'near\s+([a-zA-Z]+)(?:\s+to)?',  # "near fatih" or "near fatih to" - more specific
                         r'^(\w+)\s+to\s+places\s+to\s+visit',  # "kadikoy to places to visit" - specific pattern first
                         r'^(\w+)\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
                         r'^(\w+)\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
                         r'^(\w+)\s+places?$',  # "kadikoy places" - simple district + places
                         r'^(\w+)\s+plases?$',  # "kadikoy plases" - simple district + places (typo)
-                        r'^([a-zA-Z\s]+?)\s+to\s+visit',  # "kadikoy to visit" - more general
-                        r'^([a-zA-Z\s]+)\s+attractions',  # "kadikoy attractions"
-                        r'visit\s+([a-zA-Z\s]+)\s+places?',  # "visit kadikoy places"
+                        r'^([a-zA-Z]+)\s+to\s+visit',  # "fatih to visit" - single word location
+                        r'^([a-zA-Z]+)\s+attractions',  # "kadikoy attractions"
+                        r'visit\s+([a-zA-Z]+)\s+places?',  # "visit kadikoy places"
                     ]
                     for pattern in location_patterns:
                         match = re.search(pattern, user_input.lower())
