@@ -2008,9 +2008,6 @@ async def stream_ai_response(request: Request):
         async def generate_stream():
             try:
                 # Use the same logic as the /ai endpoint
-                # Create a fake request object for the ai_istanbul_router 
-                from fastapi import Request
-                
                 # Create request data in the expected format
                 request_data = {"query": user_input, "session_id": session_id}
                 
@@ -2144,6 +2141,10 @@ async def enhanced_health_check():
         },
         "timestamp": datetime.now().isoformat()
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
 
 
 
