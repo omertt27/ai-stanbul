@@ -63,10 +63,35 @@ class EnhancedContextManager:
         context.previous_queries.append(query)
         context.previous_responses.append(response)
         
+        # Enhanced location extraction from query
+        istanbul_locations = [
+            'sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'uskudar',
+            'taksim', 'karakoy', 'ortakoy', 'bebek', 'fatih', 'sisli', 'eminonu'
+        ]
+        
+        # Check for locations mentioned in the current query
+        query_locations = []
+        for loc in istanbul_locations:
+            if loc in query.lower():
+                query_locations.append(loc.title())
+        
+        # Add provided places and extracted query locations
+        all_new_places = []
         if places:
-            context.mentioned_places.extend(places)
-            # Keep only unique places
-            context.mentioned_places = list(set(context.mentioned_places))
+            all_new_places.extend(places)
+        if query_locations:
+            all_new_places.extend(query_locations)
+        
+        if all_new_places:
+            context.mentioned_places.extend(all_new_places)
+            # Keep only unique places and maintain order (recent first)
+            seen = set()
+            unique_places = []
+            for place in reversed(context.mentioned_places):
+                if place.lower() not in seen:
+                    seen.add(place.lower())
+                    unique_places.append(place)
+            context.mentioned_places = list(reversed(unique_places))
         
         if topic:
             context.conversation_topics.append(topic)
@@ -152,8 +177,36 @@ class EnhancedQueryUnderstanding:
         return corrected
     
     def extract_intent_and_entities(self, query: str, context: Optional[ConversationContext] = None) -> Dict[str, Any]:
-        """Enhanced intent and entity extraction"""
+        """Enhanced intent and entity extraction with validation"""
         query_lower = query.lower()
+        
+        # First, validate the query for logical and geographic errors
+        validation_result = self.validate_query_logic(query)
+        
+        # If query has serious issues, return error intent
+        if not validation_result['is_valid']:
+            return {
+                'intent': 'validation_error',
+                'confidence': 0,
+                'entities': {},
+                'validation_errors': validation_result,
+                'all_scores': {},
+                'context_location': None
+            }
+        
+        # Check for ambiguous queries that might lead to wrong answers
+        ambiguity_result = self.detect_ambiguous_queries(query)
+        
+        # If query is too ambiguous, return clarification intent
+        if ambiguity_result['is_ambiguous']:
+            return {
+                'intent': 'clarification_needed',
+                'confidence': 0,
+                'entities': {},
+                'ambiguity_info': ambiguity_result,
+                'all_scores': {},
+                'context_location': None
+            }
         
         # Intent classification with confidence scores
         intents = {
@@ -169,26 +222,31 @@ class EnhancedQueryUnderstanding:
             'general_travel_info': 0
         }
         
-        # Calculate intent scores
-        restaurant_keywords = ['restaurant', 'eat', 'food', 'dining', 'meal', 'breakfast', 'lunch', 'dinner']
-        museum_keywords = ['museum', 'gallery', 'exhibition', 'art', 'history', 'cultural']
-        transport_keywords = ['transport', 'metro', 'bus', 'taxi', 'ferry', 'how to get', 'travel to']
-        place_keywords = ['place', 'attraction', 'visit', 'see', 'landmark', 'tourist']
+        # Calculate intent scores with improved pattern matching
+        restaurant_keywords = [r'\brestaurant\b', r'\beat\b', r'\bfood\b', r'\bdining\b', r'\bmeal\b', 
+                              r'\bbreakfast\b', r'\blunch\b', r'\bdinner\b', r'\bcafe\b', r'\bbistro\b']
+        museum_keywords = [r'\bmuseum\b', r'\bgallery\b', r'\bexhibition\b', r'\bart\b', r'\bhistory\b', 
+                          r'\bcultural\b', r'\bartwork\b', r'\bpaintings\b']
+        transport_keywords = [r'\btransport\b', r'\bmetro\b', r'\bbus\b', r'\btaxi\b', r'\bferry\b', 
+                             r'\bhow to get\b', r'\btravel to\b', r'\bcommute\b', r'\bdirections\b']
+        place_keywords = [r'\bplace\b', r'\battraction\b', r'\bvisit\b', r'\bsee\b', r'\blandmark\b', 
+                         r'\btourist\b', r'\bsightseeing\b', r'\bexplore\b']
         
-        for keyword in restaurant_keywords:
-            if keyword in query_lower:
+        # Use regex word boundaries to avoid false positives
+        for pattern in restaurant_keywords:
+            if re.search(pattern, query_lower):
                 intents['restaurant_search'] += 1
         
-        for keyword in museum_keywords:
-            if keyword in query_lower:
+        for pattern in museum_keywords:
+            if re.search(pattern, query_lower):
                 intents['museum_inquiry'] += 1
         
-        for keyword in transport_keywords:
-            if keyword in query_lower:
+        for pattern in transport_keywords:
+            if re.search(pattern, query_lower):
                 intents['transportation_info'] += 1
         
-        for keyword in place_keywords:
-            if keyword in query_lower:
+        for pattern in place_keywords:
+            if re.search(pattern, query_lower):
                 intents['place_recommendation'] += 1
         
         # Check for follow-up patterns
@@ -204,27 +262,40 @@ class EnhancedQueryUnderstanding:
             if re.search(pattern, query_lower):
                 intents['follow_up_question'] += 1
         
-        # Context-aware intent adjustment
+        # Context-aware intent adjustment and location inference
+        recent_locations = []
         if context:
+            # Get recent locations from context
+            recent_locations = context.mentioned_places[-3:] if context.mentioned_places else []
+            
             # If user previously asked about restaurants and now asks follow-up
             if context.last_recommendation_type == 'restaurant' and intents['follow_up_question'] > 0:
                 intents['restaurant_search'] += 2
-            # Similar logic for other types
+            
+            # ENHANCED: Check for context-aware location queries
+            # If user mentioned a location recently and now asks generic questions
+            if recent_locations and any(generic in query_lower for generic in ['places', 'restaurants', 'attractions', 'food', 'where']):
+                # Boost relevant intent based on what they're asking
+                if any(word in query_lower for word in ['place', 'attraction', 'visit', 'see']):
+                    intents['place_recommendation'] += 3
+                elif any(word in query_lower for word in ['restaurant', 'food', 'eat', 'dining']):
+                    intents['restaurant_search'] += 3
         
         # Find highest scoring intent
         primary_intent = max(intents.items(), key=lambda x: x[1])
         
         # Extract entities
-        entities = self.extract_entities(query)
+        entities = self.extract_entities(query, context)
         
         return {
             'intent': primary_intent[0] if primary_intent[1] > 0 else 'general_travel_info',
             'confidence': primary_intent[1],
             'entities': entities,
-            'all_scores': intents
+            'all_scores': intents,
+            'context_location': recent_locations[-1] if recent_locations else None  # Most recent location
         }
     
-    def extract_entities(self, query: str) -> Dict[str, List[str]]:
+    def extract_entities(self, query: str, context: Optional[ConversationContext] = None) -> Dict[str, List[str]]:
         """Extract entities like locations, preferences, etc."""
         entities = {
             'locations': [],
@@ -235,15 +306,40 @@ class EnhancedQueryUnderstanding:
             'features': []
         }
         
-        # Location patterns
+        # Location patterns with validation
         istanbul_locations = [
             'sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'uskudar',
             'taksim', 'karakoy', 'ortakoy', 'bebek', 'fatih', 'sisli', 'eminonu'
         ]
         
-        for location in istanbul_locations:
+        # Non-Istanbul locations that might cause confusion
+        non_istanbul_locations = [
+            'paris', 'london', 'rome', 'athens', 'madrid', 'berlin', 'moscow',
+            'new york', 'manhattan', 'brooklyn', 'chicago', 'los angeles',
+            'tokyo', 'bangkok', 'dubai', 'cairo', 'casablanca'
+        ]
+        
+        # Check for non-Istanbul locations first
+        for location in non_istanbul_locations:
             if location in query.lower():
+                # This is a geographic error - don't add to entities
+                return entities
+        
+        # Check explicit locations in current query
+        for location in istanbul_locations:
+            if re.search(r'\b' + location + r'\b', query.lower()):
                 entities['locations'].append(location.title())
+        
+        # ENHANCED: If no explicit location in query but context has recent locations
+        # and the query is generic (places, restaurants, etc.)
+        if not entities['locations'] and context and context.mentioned_places:
+            generic_queries = ['places', 'restaurants', 'attractions', 'museums', 'food', 'where to go', 'what to see']
+            if any(generic in query.lower() for generic in generic_queries):
+                # Use the most recent location from context
+                recent_location = context.mentioned_places[-1]
+                entities['locations'].append(recent_location)
+                # Mark this as context-derived so we can handle it specially
+                entities['context_derived_location'] = [recent_location]
         
         # Cuisine types
         cuisine_patterns = {
@@ -266,6 +362,164 @@ class EnhancedQueryUnderstanding:
             entities['price_range'].append('moderate')
         
         return entities
+    
+    def validate_query_logic(self, query: str) -> Dict[str, Any]:
+        """Validate query for logical inconsistencies and geographical errors"""
+        query_lower = query.lower()
+        
+        validation_result = {
+            'is_valid': True,
+            'issues': [],
+            'suggestions': [],
+            'error_type': None
+        }
+        
+        # Geographic validation - prevent confusion with other cities
+        geographic_issues = [
+            {
+                'pattern': r'\b(athens|greece).*istanbul|istanbul.*(athens|greece)\b',
+                'issue': 'Geographic confusion: Athens is in Greece, not Istanbul',
+                'suggestion': 'Did you mean Athens, Greece OR Istanbul, Turkey?'
+            },
+            {
+                'pattern': r'\b(eiffel tower|paris).*istanbul|istanbul.*(eiffel tower|paris)\b',
+                'issue': 'Geographic error: Eiffel Tower is in Paris, not Istanbul',
+                'suggestion': 'Istanbul has Galata Tower and other landmarks'
+            },
+            {
+                'pattern': r'\b(manhattan|new york|nyc)\b',
+                'issue': 'Geographic error: Manhattan is in New York, not Istanbul',
+                'suggestion': 'Istanbul districts include Beyoğlu, Kadıköy, Sultanahmet'
+            },
+            {
+                'pattern': r'\b(colosseum|rome)\b',
+                'issue': 'Geographic error: Colosseum is in Rome, not Istanbul',
+                'suggestion': 'Istanbul has Hagia Sophia, Blue Mosque, and other historic sites'
+            },
+            {
+                'pattern': r'\beiffel tower\b',
+                'issue': 'Geographic error: Eiffel Tower is in Paris, not Istanbul',
+                'suggestion': 'Istanbul has Galata Tower and other landmarks'
+            }
+        ]
+        
+        # Logical contradiction validation
+        logical_issues = [
+            {
+                'pattern': r'\b(vegetarian|vegan).*(steakhouse|meat only)\b|\b(steakhouse|meat only).*(vegetarian|vegan)\b',
+                'issue': 'Logical contradiction: Vegetarian restaurants don\'t serve meat',
+                'suggestion': 'Would you like vegetarian restaurants OR steakhouses?'
+            },
+            {
+                'pattern': r'\b(kosher|halal).*(pork|bacon|ham)\b|\b(pork|bacon|ham).*(kosher|halal)\b',
+                'issue': 'Religious dietary contradiction: Kosher/Halal doesn\'t include pork',
+                'suggestion': 'Would you like kosher/halal restaurants OR places serving pork?'
+            },
+            {
+                'pattern': r'\bunderwater.*mountaintop\b|\bmountaintop.*underwater\b',
+                'issue': 'Physical impossibility: Can\'t be underwater and on mountaintop',
+                'suggestion': 'Would you like waterfront OR mountain view restaurants?'
+            }
+        ]
+        
+        # Temporal validation
+        temporal_issues = [
+            {
+                'pattern': r'\byear (20[3-9]\d|2[1-9]\d\d|[3-9]\d{3})\b',
+                'issue': 'Temporal error: Cannot provide information about future years',
+                'suggestion': 'I can help with current or historical information'
+            },
+            {
+                'pattern': r'\bottoman.*(195\d|19[6-9]\d|20\d\d)\b',
+                'issue': 'Historical error: Ottoman Empire ended in 1922',
+                'suggestion': 'Ottoman era ended in 1922, Turkey became republic in 1923'
+            }
+        ]
+        
+        # Budget reality validation
+        budget_issues = [
+            {
+                'pattern': r'\b(free).*(luxury|expensive|high.?end)\b|\b(luxury|expensive).*(free)\b',
+                'issue': 'Unrealistic budget: Luxury services aren\'t free',
+                'suggestion': 'Budget restaurants start around 20-50 TRY per person'
+            },
+            {
+                'pattern': r'\b(million|billion).*dollars?.*(meal|restaurant|food)\b',
+                'issue': 'Excessive budget: Even luxury meals cost $200-500',
+                'suggestion': 'Would you like luxury restaurant recommendations?'
+            }
+        ]
+        
+        # Fictional content validation
+        fictional_issues = [
+            {
+                'pattern': r'\b(hogwarts|superman|batman|gotham|middle.?earth|wakanda)\b',
+                'issue': 'Fictional content: These are not real places',
+                'suggestion': 'I can help with real Istanbul locations and experiences'
+            },
+            {
+                'pattern': r'\b(flying car|time travel|teleport|magic carpet)\b',
+                'issue': 'Technology error: These technologies aren\'t available',
+                'suggestion': 'I can help with current transportation options like metro, bus, taxi'
+            }
+        ]
+        
+        # Check all issue types
+        all_issue_types = [
+            ('geographic', geographic_issues),
+            ('logical', logical_issues)
+        ]
+        
+        for issue_type, issue_list in all_issue_types:
+            for issue in issue_list:
+                if re.search(issue['pattern'], query_lower):
+                    validation_result['is_valid'] = False
+                    validation_result['error_type'] = issue_type
+                    validation_result['issues'].append(issue['issue'])
+                    validation_result['suggestions'].append(issue['suggestion'])
+                    break
+        
+        return validation_result
+    
+    def detect_ambiguous_queries(self, query: str) -> Dict[str, Any]:
+        """Detect queries that are too ambiguous or could be misinterpreted"""
+        query_lower = query.lower()
+        
+        ambiguity_result = {
+            'is_ambiguous': False,
+            'ambiguity_type': None,
+            'clarification_needed': None,
+            'suggested_questions': []
+        }
+        
+        # Ultra-short queries that are too vague
+        if len(query.strip()) < 3:
+            ambiguity_result.update({
+                'is_ambiguous': True,
+                'ambiguity_type': 'too_short',
+                'clarification_needed': 'Your query is too short to understand. Could you be more specific?',
+                'suggested_questions': [
+                    'What restaurants do you recommend in Sultanahmet?',
+                    'How do I get from Taksim to Kadıköy?'
+                ]
+            })
+            return ambiguity_result
+        
+        # Single word queries that could mean many things
+        single_word_ambiguous = ['good', 'best', 'nice', 'great', 'amazing']
+        if query.strip().lower() in single_word_ambiguous:
+            ambiguity_result.update({
+                'is_ambiguous': True,
+                'ambiguity_type': 'single_word_vague',
+                'clarification_needed': 'What specifically would you like to know about Istanbul?',
+                'suggested_questions': [
+                    'What are the best restaurants in Beyoğlu?',
+                    'Which museums are most beautiful?'
+                ]
+            })
+            return ambiguity_result
+        
+        return ambiguity_result
 
 class EnhancedKnowledgeBase:
     """Expanded knowledge base for Istanbul"""
@@ -414,8 +668,27 @@ class ContextAwareResponseGenerator:
             elif any(word in query.lower() for word in ['card', 'istanbulkart', 'ticket']):
                 return self.generate_istanbulkart_info()
         
+        # ENHANCED: Check if this is a location-based follow-up
+        # e.g., user said "beyoglu" and now asks "places"
+        if context.mentioned_places and any(generic in query.lower() for generic in ['places', 'attractions', 'things to see', 'what to visit']):
+            recent_location = context.mentioned_places[-1]
+            return self.generate_location_specific_places_response(recent_location, query)
+        
+        # ENHANCED: Check if this is a restaurant follow-up with location context
+        if context.mentioned_places and any(word in query.lower() for word in ['restaurants', 'food', 'where to eat', 'dining']):
+            recent_location = context.mentioned_places[-1]
+            return self.generate_location_specific_restaurant_response(recent_location, query)
+        
         # Generic follow-up
         return f"Based on our previous conversation about {context.last_recommendation_type}, I can provide more specific information. What would you like to know?"
+    
+    def generate_location_specific_places_response(self, location: str, query: str) -> str:
+        """Generate a location-specific response for places queries"""
+        return f"Since you were asking about {location}, here are some great places to visit in that area. Let me get you specific recommendations for {location}..."
+    
+    def generate_location_specific_restaurant_response(self, location: str, query: str) -> str:
+        """Generate a location-specific response for restaurant queries"""
+        return f"Perfect! Since you mentioned {location}, I'll recommend some excellent restaurants in that neighborhood. {location} has some fantastic dining options..."
     
     def generate_response(self, query: str, ai_response: str, context: Optional[ConversationContext], 
                          intent_info: Dict[str, Any], places: List = None) -> str:
@@ -640,7 +913,117 @@ def generate_day_itinerary(duration: int, interests: List[str], budget: str) -> 
     
     return itinerary_text
 
-def validate_query_logic(self, query: str) -> Dict[str, Any]:
+class ValidationErrorHandler:
+    """Handle various types of validation errors with helpful responses"""
+    
+    @staticmethod
+    def generate_error_response(validation_result: Dict[str, Any]) -> str:
+        """Generate helpful error responses for different validation failures"""
+        error_type = validation_result.get('error_type')
+        issues = validation_result.get('issues', [])
+        suggestions = validation_result.get('suggestions', [])
+        
+        if error_type == 'geographic':
+            return f"""🌍 **Geographic Clarification Needed**
+
+I noticed you mentioned locations outside of Istanbul. {issues[0] if issues else ''}
+
+{suggestions[0] if suggestions else ''}
+
+I specialize in Istanbul travel information. Could you please clarify what you'd like to know about Istanbul specifically?"""
+        
+        elif error_type == 'logical':
+            return f"""🤔 **Clarification Needed**
+
+{issues[0] if issues else 'There seems to be a contradiction in your request.'}
+
+{suggestions[0] if suggestions else ''}
+
+Could you help me understand what you're looking for?"""
+        
+        elif error_type == 'temporal':
+            return f"""⏰ **Time Period Issue**
+
+{issues[0] if issues else 'There seems to be a time-related issue with your query.'}
+
+{suggestions[0] if suggestions else ''}
+
+I can help with current Istanbul information or historical facts about the city."""
+        
+        elif error_type == 'budget':
+            return f"""💰 **Budget Clarification**
+
+{issues[0] if issues else 'There seems to be an issue with the budget range mentioned.'}
+
+{suggestions[0] if suggestions else ''}
+
+Could you share a realistic budget range for your Istanbul experience?"""
+        
+        elif error_type == 'fictional':
+            return f"""🎭 **Real World Focus**
+
+{issues[0] if issues else 'I focus on real-world Istanbul experiences.'}
+
+{suggestions[0] if suggestions else ''}
+
+I'd be happy to recommend actual Istanbul attractions, restaurants, and activities!"""
+        
+        elif error_type == 'inappropriate':
+            return f"""🛡️ **Content Guidelines**
+
+I focus on family-friendly travel recommendations for Istanbul.
+
+{suggestions[0] if suggestions else 'I can help with cultural attractions, restaurants, museums, and wholesome entertainment options.'}
+
+What aspects of Istanbul would you like to explore?"""
+        
+        elif error_type == 'impossibility':
+            return f"""🌟 **Realistic Recommendations**
+
+{issues[0] if issues else 'I focus on experiences that are actually available in Istanbul.'}
+
+{suggestions[0] if suggestions else ''}
+
+Let me help you find amazing real-world experiences in Istanbul!"""
+        
+        else:
+            return """❓ **Let me help clarify**
+
+I want to make sure I understand your request correctly. Could you provide a bit more detail about what you're looking for in Istanbul?
+
+I can help with:
+• Restaurant recommendations
+• Tourist attractions and museums  
+• Transportation information
+• Cultural experiences
+• Neighborhood guides"""
+
+    @staticmethod
+    def generate_clarification_response(ambiguity_info: Dict[str, Any]) -> str:
+        """Generate helpful clarification responses for ambiguous queries"""
+        ambiguity_type = ambiguity_info.get('ambiguity_type')
+        clarification = ambiguity_info.get('clarification_needed', '')
+        suggestions = ambiguity_info.get('suggested_questions', [])
+        
+        response = f"💭 **{clarification}**\n\n"
+        
+        if suggestions:
+            response += "Here are some example questions I can help with:\n\n"
+            for i, suggestion in enumerate(suggestions, 1):
+                response += f"{i}. {suggestion}\n"
+            response += "\n"
+        
+        response += "**I can help you with:**\n"
+        response += "🍽️ Restaurant recommendations by area or cuisine\n"
+        response += "🏛️ Museums, attractions, and historical sites\n"
+        response += "🚇 Transportation between different areas\n"
+        response += "🗺️ Neighborhood guides and what to see\n"
+        response += "🎭 Cultural experiences and local tips\n\n"
+        response += "Please let me know what specifically interests you!"
+        
+        return response
+    
+    def validate_query_logic(self, query: str) -> Dict[str, Any]:
         """Validate query for logical inconsistencies and geographical errors"""
         query_lower = query.lower()
         
@@ -651,25 +1034,25 @@ def validate_query_logic(self, query: str) -> Dict[str, Any]:
             'error_type': None
         }
         
-        # Geographical validation
+        # Geographic validation - prevent confusion with other cities
         geographic_issues = [
             {
-                'pattern': r'athens.*istanbul|istanbul.*athens',
+                'pattern': r'\b(athens|greece).*istanbul|istanbul.*(athens|greece)\b',
                 'issue': 'Geographic confusion: Athens is in Greece, not Istanbul',
                 'suggestion': 'Did you mean Athens, Greece OR Istanbul, Turkey?'
             },
             {
-                'pattern': r'eiffel tower.*istanbul|istanbul.*eiffel tower',
+                'pattern': r'\b(eiffel tower|paris).*istanbul|istanbul.*(eiffel tower|paris)\b',
                 'issue': 'Geographic error: Eiffel Tower is in Paris, not Istanbul',
                 'suggestion': 'Istanbul has Galata Tower and other landmarks'
             },
             {
-                'pattern': r'manhattan.*istanbul|istanbul.*manhattan',
+                'pattern': r'\b(manhattan|new york|nyc).*istanbul|istanbul.*(manhattan|new york|nyc)\b',
                 'issue': 'Geographic error: Manhattan is in New York, not Istanbul',
                 'suggestion': 'Istanbul districts include Beyoğlu, Kadıköy, Sultanahmet'
             },
             {
-                'pattern': r'colosseum.*istanbul|istanbul.*colosseum',
+                'pattern': r'\b(colosseum|rome).*istanbul|istanbul.*(colosseum|rome)\b',
                 'issue': 'Geographic error: Colosseum is in Rome, not Istanbul',
                 'suggestion': 'Istanbul has Hagia Sophia, Blue Mosque, and other historic sites'
             }
@@ -678,70 +1061,21 @@ def validate_query_logic(self, query: str) -> Dict[str, Any]:
         # Logical contradiction validation
         logical_issues = [
             {
-                'pattern': r'vegetarian.*steakhouse|steakhouse.*vegetarian',
-                'issue': 'Logical contradiction: Vegetarian restaurants don\'t serve steak',
+                'pattern': r'\b(vegetarian|vegan).*(steakhouse|meat only|beef only)\b|\b(steakhouse|meat only).*(vegetarian|vegan)\b',
+                'issue': 'Logical contradiction: Vegetarian restaurants don\'t serve meat',
                 'suggestion': 'Would you like vegetarian restaurants OR steakhouses?'
             },
             {
-                'pattern': r'vegetarian.*seafood.*only|seafood.*only.*vegetarian',
+                'pattern': r'\bvegetarian.*(seafood only|fish only)\b|\b(seafood only|fish only).*vegetarian\b',
                 'issue': 'Logical contradiction: Vegetarian places don\'t serve seafood',
                 'suggestion': 'Would you like vegetarian restaurants OR seafood restaurants?'
-            },
-            {
-                'pattern': r'underwater.*mountaintop|mountaintop.*underwater',
-                'issue': 'Physical impossibility: Can\'t be underwater and on mountaintop',
-                'suggestion': 'Would you like waterfront OR mountain view restaurants?'
             }
         ]
         
-        # Temporal validation
-        temporal_issues = [
-            {
-                'pattern': r'year 3024|3024|future.*year.*\d{4}',
-                'issue': 'Temporal error: Cannot provide information about future years',
-                'suggestion': 'I can help with current or historical information'
-            },
-            {
-                'pattern': r'ottoman.*195\d|ottoman.*20\d\d',
-                'issue': 'Historical error: Ottoman Empire ended in 1922',
-                'suggestion': 'Ottoman era ended in 1922, Turkey became republic in 1923'
-            }
-        ]
-        
-        # Budget reality validation
-        budget_issues = [
-            {
-                'pattern': r'1 cent|free.*luxury|luxury.*free|0 dollars?',
-                'issue': 'Unrealistic budget: Luxury services aren\'t free',
-                'suggestion': 'Budget restaurants start around 20-50 TRY per person'
-            },
-            {
-                'pattern': r'million.*dollars?.*meal|meal.*million.*dollars?',
-                'issue': 'Excessive budget: Even luxury meals cost $200-500',
-                'suggestion': 'Would you like luxury restaurant recommendations?'
-            }
-        ]
-        
-        # Fictional content validation
-        fictional_issues = [
-            {
-                'pattern': r'hogwarts|superman|batman|fictional.*character',
-                'issue': 'Fictional content: These are not real places or people',
-                'suggestion': 'I can help with real Istanbul locations and experiences'
-            },
-            {
-                'pattern': r'flying car|time travel|teleport',
-                'issue': 'Technology error: These technologies aren\'t available',
-                'suggestion': 'I can help with current transportation options'
-            }
-        ]
-        
+        # Check all issue types
         all_issue_types = [
             ('geographic', geographic_issues),
-            ('logical', logical_issues),
-            ('temporal', temporal_issues),
-            ('budget', budget_issues),
-            ('fictional', fictional_issues)
+            ('logical', logical_issues)
         ]
         
         for issue_type, issue_list in all_issue_types:
@@ -754,3 +1088,45 @@ def validate_query_logic(self, query: str) -> Dict[str, Any]:
                     break  # Only report first issue of each type
         
         return validation_result
+    
+    def detect_ambiguous_queries(self, query: str) -> Dict[str, Any]:
+        """Detect queries that are too ambiguous or could be misinterpreted"""
+        query_lower = query.lower()
+        
+        ambiguity_result = {
+            'is_ambiguous': False,
+            'ambiguity_type': None,
+            'clarification_needed': None,
+            'suggested_questions': []
+        }
+        
+        # Ultra-short queries that are too vague
+        if len(query.strip()) < 3:
+            ambiguity_result.update({
+                'is_ambiguous': True,
+                'ambiguity_type': 'too_short',
+                'clarification_needed': 'Your query is too short to understand. Could you be more specific?',
+                'suggested_questions': [
+                    'What restaurants do you recommend in Sultanahmet?',
+                    'How do I get from Taksim to Kadıköy?',
+                    'What are the best museums in Istanbul?'
+                ]
+            })
+            return ambiguity_result
+        
+        # Single word queries that could mean many things
+        single_word_ambiguous = ['good', 'best', 'nice', 'great', 'amazing', 'beautiful', 'awesome', 'cool']
+        if query.strip().lower() in single_word_ambiguous:
+            ambiguity_result.update({
+                'is_ambiguous': True,
+                'ambiguity_type': 'single_word_vague',
+                'clarification_needed': 'What specifically would you like to know about Istanbul?',
+                'suggested_questions': [
+                    'What are the best restaurants in Beyoğlu?',
+                    'Which museums are most beautiful?',
+                    'What are nice places to visit in Istanbul?'
+                ]
+            })
+            return ambiguity_result
+        
+        return ambiguity_result
