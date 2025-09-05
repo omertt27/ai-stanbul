@@ -1704,18 +1704,18 @@ async def ai_istanbul_router(request: Request):
                 if is_location_place_query or is_location_museum_query:
                     logger.info(f"Location-based query detected: {user_input}")
                     location_patterns = [
-                        r'in\s+([a-zA-Z]+)(?:\s+to)?',  # "in fatih" or "in fatih to" - more specific
-                        r'at\s+([a-zA-Z]+)(?:\s+to)?',  # "at fatih" or "at fatih to" - more specific
-                        r'around\s+([a-zA-Z]+)(?:\s+to)?',  # "around fatih" or "around fatih to" - more specific
-                        r'near\s+([a-zA-Z]+)(?:\s+to)?',  # "near fatih" or "near fatih to" - more specific
+                        r'in\s+([a-zA-Z\s]+)',
+                        r'at\s+([a-zA-Z\s]+)',
+                        r'around\s+([a-zA-Z\s]+)',
+                        r'near\s+([a-zA-Z\s]+)',
                         r'^(\w+)\s+to\s+places\s+to\s+visit',  # "kadikoy to places to visit" - specific pattern first
                         r'^(\w+)\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
                         r'^(\w+)\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
                         r'^(\w+)\s+places?$',  # "kadikoy places" - simple district + places
                         r'^(\w+)\s+plases?$',  # "kadikoy plases" - simple district + places (typo)
-                        r'^([a-zA-Z]+)\s+to\s+visit',  # "fatih to visit" - single word location
-                        r'^([a-zA-Z]+)\s+attractions',  # "kadikoy attractions"
-                        r'visit\s+([a-zA-Z]+)\s+places?',  # "visit kadikoy places"
+                        r'^([a-zA-Z\s]+?)\s+to\s+visit',  # "kadikoy to visit" - more general
+                        r'^([a-zA-Z\s]+)\s+attractions',  # "kadikoy attractions"
+                        r'visit\s+([a-zA-Z\s]+)\s+places?',  # "visit kadikoy places"
                     ]
                     for pattern in location_patterns:
                         match = re.search(pattern, user_input.lower())
