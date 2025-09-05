@@ -4,6 +4,7 @@ import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import ConnectionStatus from './components/ConnectionStatus';
+import TypingIndicator from './components/TypingIndicator';
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
 import './App.css';
@@ -63,6 +64,8 @@ const App = () => {
   const [results, setResults] = useState([]);
   const [messages, setMessages] = useState([]);
   const [expanded, setExpanded] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingMessage, setTypingMessage] = useState('KAM is thinking...');
   const chatScrollRef = useRef(null);
 
   useEffect(() => {
@@ -109,7 +112,8 @@ const App = () => {
     // Check if user is making an explicit restaurant request (only very specific cases)
     if (isExplicitRestaurantRequest(searchQuery)) {
       console.log('🍽️ App.jsx: Detected restaurant request, fetching recommendations...');
-      setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
+      setIsTyping(true);
+      setTypingMessage('Analyzing restaurant options in Istanbul...');
       
       try {
         const restaurantData = await fetchRestaurantRecommendations(searchQuery);
@@ -117,54 +121,59 @@ const App = () => {
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
         console.log('🍽️ App.jsx: Formatted response:', formattedResponse);
         
-        setMessages(msgs => {
-          const updated = [...msgs];
-          // Find last KAM message and update its text
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].user === 'KAM') {
-              updated[i] = { ...updated[i], text: formattedResponse };
-              break;
-            }
-          }
-          return updated;
-        });
+        setIsTyping(false);
+        setMessages(msgs => [...msgs, { user: 'KAM', text: formattedResponse }]);
         return; // Exit early, don't do regular AI chat
       } catch (error) {
         console.error('🍽️ App.jsx: Restaurant recommendation error:', error);
-        setMessages(msgs => {
-          const updated = [...msgs];
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].user === 'KAM') {
-              updated[i] = { ...updated[i], text: `Sorry, I had trouble getting restaurant recommendations: ${error.message}. Let me try a different approach.` };
-              break;
-            }
-          }
-          return updated;
-        });
+        setIsTyping(false);
+        setMessages(msgs => [...msgs, {
+          user: 'KAM',
+          text: `Sorry, I had trouble getting restaurant recommendations: ${error.message}. Let me try a different approach.`
+        }]);
         return;
       }
     }
 
-    // Regular streaming KAM response for non-restaurant queries
-    let aiMessage = '';
-    setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
+    // Regular KAM response for non-restaurant queries
+    setIsTyping(true);
+    setTypingMessage('Processing your inquiry...');
+    
     try {
-      await fetchStreamingResults(searchQuery, (chunk) => {
-        aiMessage += chunk;
-        setMessages(msgs => {
-          const updated = [...msgs];
-          // Find last KAM message and update its text
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].user === 'KAM') {
-              updated[i] = { ...updated[i], text: aiMessage };
-              break;
+      const response = await fetchResults(searchQuery);
+      setIsTyping(false);
+      
+      if (response && response.message) {
+        // Create word-by-word streaming effect
+        const words = response.message.split(' ');
+        let displayedText = '';
+        
+        // Add initial empty message
+        setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
+        
+        // Display words one by one
+        for (let i = 0; i < words.length; i++) {
+          displayedText += words[i] + ' ';
+          
+          setMessages(msgs => {
+            const updated = [...msgs];
+            // Find last KAM message and update its text
+            for (let j = updated.length - 1; j >= 0; j--) {
+              if (updated[j].user === 'KAM') {
+                updated[j] = { ...updated[j], text: displayedText.trim() };
+                break;
+              }
             }
-          }
-          return updated;
-        });
-      });
+            return updated;
+          });
+          
+          // Wait between words for streaming effect
+          await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+        }
+      }
     } catch (err) {
       console.error('API Error:', err);
+      setIsTyping(false);
       setMessages(msgs => [...msgs, {
         user: 'KAM',
         text: `Sorry, I encountered an error connecting to the server: ${err.message}. Please make sure the backend is running and try again.`
@@ -221,6 +230,7 @@ const App = () => {
               <div className="chat-container" style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)', position: 'relative'}}>
                 <div ref={chatScrollRef} className="chat-scroll-area" style={{flex: 1, overflowY: 'scroll', overflowX: 'hidden', marginBottom: '1rem', paddingBottom: '0.5rem', minHeight: 0, paddingTop: '0.5rem'}}>
                   <Chat messages={messages} />
+                  {isTyping && <TypingIndicator message={typingMessage} />}
                   {/* Remove or reduce margin below chat */}
                   <div style={{ marginTop: '0.5rem' }}>
                     {results.map((res, idx) => (

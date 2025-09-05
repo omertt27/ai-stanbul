@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import TypingIndicator from './components/TypingIndicator';
 import { 
-  fetchStreamingResults, 
+  fetchStreamingResults,
+  fetchResults, 
   fetchRestaurantRecommendations, 
   fetchPlacesRecommendations, 
   extractLocationFromQuery,
@@ -22,7 +24,6 @@ import {
   networkStatus 
 } from './utils/errorHandler';
 import ErrorNotification, { NetworkStatusIndicator, RetryButton } from './components/ErrorNotification';
-import TypingIndicator from './components/TypingIndicator';
 import MessageActions from './components/MessageActions';
 import ScrollToBottom from './components/ScrollToBottom';
 import ChatHeader from './components/ChatHeader';
@@ -822,7 +823,7 @@ function Chatbot() {
     try {
       // Check if user is asking for restaurant recommendations - using SANITIZED input
       if (isExplicitRestaurantRequest(originalUserInput)) {
-        setTypingMessage('🍽️ Finding restaurants for you...');
+        setTypingMessage('Analyzing restaurant options in Istanbul...');
         console.log('Detected restaurant advice request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
@@ -846,7 +847,7 @@ function Chatbot() {
 
       // Check if user is asking for places/attractions recommendations - using SANITIZED input
       if (isExplicitPlacesRequest(originalUserInput)) {
-        setTypingMessage('🏛️ Searching for places and attractions...');
+        setTypingMessage('Researching attractions and landmarks...');
         console.log('Detected places/attractions request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
@@ -884,29 +885,53 @@ function Chatbot() {
         return;
       }
 
-      // Regular streaming response for non-restaurant/places queries - use SANITIZED input
-      setTypingMessage('🤔 KAM is thinking...');
-      let streamedContent = '';
+      // Regular response for non-restaurant/places queries - use SANITIZED input
+      setTypingMessage('Processing your inquiry...');
       
-      console.log('🛡️ Sending SANITIZED input to GPT with session ID:', sanitizedInput, sessionId);
-      await fetchStreamingResults(sanitizedInput, (chunk) => {
-        streamedContent += chunk;
-        // If assistant message already exists, update it; else, add it
-        setMessages((prev) => {
-          // If last message is assistant and was streaming, update it
-          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-            return [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true, text: streamedContent, sender: 'assistant' }
-            ];
-          } else {
-            return [
-              ...prev,
-              { role: 'assistant', content: streamedContent, streaming: true, text: streamedContent, sender: 'assistant' }
-            ];
-          }
+      console.log('🛡️ Sending SANITIZED input to AI with session ID:', sanitizedInput, sessionId);
+      
+      const response = await fetchResults(sanitizedInput, sessionId);
+      
+      if (response && response.message) {
+        // Create word-by-word streaming effect
+        const words = response.message.split(' ');
+        let displayedText = '';
+        const tempMessageId = Date.now();
+        
+        // Add empty message that will be updated
+        addMessage('', 'assistant', {
+          id: tempMessageId,
+          type: 'general-response',
+          session_id: response.session_id || sessionId,
+          streaming: true
         });
-      }, sessionId); // Pass session ID
+        
+        // Display words one by one
+        for (let i = 0; i < words.length; i++) {
+          displayedText += words[i] + ' ';
+          
+          // Update the message
+          setMessages(prev => {
+            return prev.map(msg => 
+              msg.id === tempMessageId 
+                ? {...msg, text: displayedText.trim(), content: displayedText.trim()}
+                : msg
+            );
+          });
+          
+          // Wait between words for streaming effect
+          await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+        }
+        
+        // Mark streaming as complete
+        setMessages(prev => {
+          return prev.map(msg => 
+            msg.id === tempMessageId 
+              ? {...msg, streaming: false}
+              : msg
+          );
+        });
+      }
       
       // Clear failed message on success
       setLastFailedMessage(null);
@@ -1191,12 +1216,7 @@ function Chatbot() {
             </div>
           ))}
           
-          <TypingIndicator 
-            isTyping={isTyping} 
-            message={typingMessage}
-            darkMode={darkMode}
-            duration={typingStartTime ? Date.now() - typingStartTime : 0}
-          />
+          {isTyping && <TypingIndicator message={typingMessage} />}
         </div>
       </div>
 

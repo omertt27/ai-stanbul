@@ -500,6 +500,166 @@ except Exception as e:
     logger.error(f"Failed to create database tables: {e}")
     # Continue startup but log the error
 
+def detect_off_topic_query(user_input):
+    """
+    Detect queries that are completely off-topic for Istanbul travel.
+    Returns (is_off_topic: bool, category: str, confidence: float)
+    """
+    user_input_lower = user_input.lower()
+    
+    # Define off-topic categories with their keywords
+    off_topic_categories = {
+        'programming': [
+            'python', 'javascript', 'code', 'programming', 'algorithm', 'software', 'development',
+            'coding', 'html', 'css', 'database', 'api', 'framework', 'library', 'function',
+            'variable', 'web scraper', 'scraping', 'data mining', 'machine learning', 'ai model',
+            'neural network', 'deep learning', 'github', 'repository', 'git', 'debugging',
+            'stackoverflow', 'compiler', 'interpreter', 'syntax', 'regex', 'json', 'xml'
+        ],
+        'science_math': [
+            'quantum physics', 'quantum', 'physics', 'chemistry', 'biology', 'mathematics',
+            'calculus', 'algebra', 'geometry', 'statistics', 'probability', 'theorem',
+            'equation', 'quadratic equation', 'derivative', 'integral', 'matrix', 'vector',
+            'molecular', 'atom', 'electron', 'photon', 'gravity', 'relativity', 'periodic table'
+        ],
+        'technology': [
+            'iphone', 'android', 'smartphone', 'computer', 'laptop', 'windows', 'mac', 'linux',
+            'bluetooth', 'wifi', 'internet', 'browser', 'google chrome', 'firefox', 'safari',
+            'social media', 'facebook', 'instagram', 'twitter', 'youtube', 'tiktok',
+            'cryptocurrency', 'bitcoin', 'blockchain', 'nft', 'metaverse'
+        ],
+        'other_places': [
+            'paris', 'london', 'new york', 'tokyo', 'beijing', 'moscow', 'berlin', 'rome',
+            'madrid', 'barcelona', 'amsterdam', 'vienna', 'prague', 'budapest', 'athens',
+            'cairo', 'dubai', 'mumbai', 'delhi', 'bangkok', 'singapore', 'sydney', 'melbourne'
+        ],
+        'general_knowledge': [
+            'world war', 'napoleon', 'hitler', 'einstein', 'shakespeare', 'mozart',
+            'leonardo da vinci', 'picasso', 'olympics', 'world cup', 'nasa', 'space',
+            'mars', 'moon', 'solar system', 'galaxy', 'universe', 'big bang'
+        ]
+    }
+    
+    # Check each category
+    for category, keywords in off_topic_categories.items():
+        matches = sum(1 for keyword in keywords if keyword in user_input_lower)
+        confidence = matches / len(keywords) if keywords else 0
+        
+        # If any keyword matches (even one), consider it off-topic
+        if matches > 0:
+            return True, category, confidence
+    
+    return False, None, 0.0
+
+def detect_geographical_impossibility(user_input):
+    """
+    Detect queries asking about non-Istanbul landmarks being in Istanbul.
+    Returns (is_impossible: bool, landmark: str, actual_location: str)
+    """
+    user_input_lower = user_input.lower()
+    
+    # Famous landmarks that are NOT in Istanbul
+    non_istanbul_landmarks = {
+        'eiffel tower': 'Paris, France',
+        'statue of liberty': 'New York, USA',
+        'big ben': 'London, UK',
+        'colosseum': 'Rome, Italy',
+        'taj mahal': 'Agra, India',
+        'machu picchu': 'Peru',
+        'great wall': 'China',
+        'great wall of china': 'China',
+        'sydney opera house': 'Sydney, Australia',
+        'christ the redeemer': 'Rio de Janeiro, Brazil',
+        'stonehenge': 'England, UK',
+        'pyramids': 'Egypt',
+        'sphinx': 'Egypt',
+        'mount rushmore': 'South Dakota, USA',
+        'niagara falls': 'USA/Canada border',
+        'golden gate bridge': 'San Francisco, USA',
+        'times square': 'New York, USA',
+        'hollywood sign': 'Los Angeles, USA',
+        'buckingham palace': 'London, UK',
+        'louvre': 'Paris, France',
+        'notre dame': 'Paris, France',
+        'arc de triomphe': 'Paris, France',
+        'brandenburg gate': 'Berlin, Germany',
+        'leaning tower of pisa': 'Pisa, Italy',
+        'acropolis': 'Athens, Greece'
+    }
+    
+    # Check if query mentions any non-Istanbul landmark with Istanbul context
+    for landmark, actual_location in non_istanbul_landmarks.items():
+        if landmark in user_input_lower and 'istanbul' in user_input_lower:
+            return True, landmark, actual_location
+    
+    return False, None, None
+
+def create_intelligent_fallback_response(user_input):
+    """
+    Create intelligent fallback responses for edge cases and off-topic queries.
+    This is called BEFORE any OpenAI processing to catch problematic queries.
+    """
+    user_input_lower = user_input.lower()
+    
+    # 0. Check for random nonsense or very short/repetitive queries
+    if len(user_input.strip()) < 3:
+        return "Could you please ask me something specific about Istanbul? I'm here to help you explore the city!"
+    
+    # Check for repetitive or nonsensical patterns
+    words = user_input_lower.split()
+    if len(words) > 5:
+        # Check if more than 70% of words are repetitive
+        unique_words = set(words)
+        repetition_ratio = len(unique_words) / len(words)
+        if repetition_ratio < 0.3:  # Very repetitive
+            return "I'd love to help you with something specific about Istanbul! What would you like to know about the city?"
+    
+    # Check for alphabet soup or random characters
+    if any(pattern in user_input_lower for pattern in ['abcdefgh', 'qwertyui', 'asdfghjk']):
+        return "I'm here to help you discover Istanbul! What would you like to know about restaurants, attractions, or neighborhoods in the city?"
+    
+    # 1. Check for prompt injection attempts
+    injection_patterns = [
+        'ignore previous instructions', 'ignore your instructions', 'ignore system prompt',
+        'forget everything', 'new instructions', 'override', 'bypass', 'jailbreak',
+        'pretend you are', 'act as if', 'roleplay as', 'you are now', 'act as a',
+        'tell me about cars', 'help me with cooking', 'general chatbot'
+    ]
+    
+    if any(pattern in user_input_lower for pattern in injection_patterns):
+        return """I'm here to help you with Istanbul travel planning and recommendations. If you have any questions about visiting Istanbul, exploring the city, or finding great places to eat, feel free to ask!"""
+    
+    # 2. Check for geographical impossibilities
+    is_impossible, landmark, actual_location = detect_geographical_impossibility(user_input)
+    if is_impossible:
+        return f"""The {landmark.title()} is actually located in {actual_location}, not Istanbul! 
+
+Istanbul has its own incredible landmarks though:
+- **Hagia Sophia** - Ancient Byzantine cathedral & mosque
+- **Blue Mosque** - Stunning Ottoman architecture
+- **Topkapi Palace** - Former Ottoman palace with amazing views
+- **Galata Tower** - Medieval tower with panoramic city views
+- **Maiden's Tower** - Iconic tower on a small island
+
+Would you like to know more about any of these amazing Istanbul landmarks?"""
+    
+    # 3. Check for completely off-topic queries
+    is_off_topic, category, confidence = detect_off_topic_query(user_input)
+    if is_off_topic:
+        category_responses = {
+            'programming': "I'm specialized in Istanbul travel guidance rather than programming help. However, I'd love to help you plan your visit to Istanbul! Are you perhaps planning to visit Turkey's tech hub or looking for co-working spaces in the city?",
+            'science_math': "While that's an interesting topic, I'm your Istanbul travel guide! I focus on helping you discover amazing places, restaurants, and experiences in this beautiful city. Is there anything about Istanbul you'd like to explore?",
+            'technology': "I'm focused on helping you explore Istanbul rather than tech topics. But if you're interested in Istanbul's growing tech scene, I can tell you about modern districts like Levent and Maslak, or suggest tech-friendly cafes in Kadıköy!",
+            'other_places': "That's a wonderful destination! However, I specialize in Istanbul travel guidance. If you're planning to visit Istanbul as well, I'd be happy to help you discover the best restaurants, attractions, and hidden gems in the city!",
+            'general_knowledge': "That's interesting! As your Istanbul travel guide, I'd love to help you discover the rich history and culture of Istanbul instead. Did you know Istanbul was the capital of both the Byzantine and Ottoman empires? What aspects of Istanbul interest you most?"
+        }
+        
+        return category_responses.get(category, 
+            "I'm your dedicated Istanbul travel guide! I'd love to help you discover amazing restaurants, attractions, neighborhoods, and experiences in this incredible city. What would you like to know about Istanbul?")
+    
+    # 4. If none of the above, return None to continue with normal processing
+    return None
+
 def create_fallback_response(user_input, places):
     """Create intelligent fallback responses when OpenAI API is unavailable"""
     user_input_lower = user_input.lower()
@@ -941,6 +1101,10 @@ async def clear_chat_history(session_id: str):
 
 def save_chat_history(db, session_id: str, user_message: str, bot_response: str, user_ip: str = None):
     """Save chat interaction to database"""
+    if db is None:
+        logger.warning(f"Database session is None, cannot save chat history for session {session_id}")
+        return
+        
     try:
         chat_record = ChatHistory(
             session_id=session_id,
@@ -953,7 +1117,8 @@ def save_chat_history(db, session_id: str, user_message: str, bot_response: str,
         logger.info(f"Saved chat history for session {session_id}")
     except Exception as e:
         logger.error(f"Failed to save chat history: {e}")
-        db.rollback()
+        if db:
+            db.rollback()
 
 def create_ai_response(message: str, db, session_id: str, user_message: str, request: Request = None):
     """Create AI response and save to chat history"""
@@ -961,8 +1126,11 @@ def create_ai_response(message: str, db, session_id: str, user_message: str, req
         # Get user IP for logging
         user_ip = request.client.host if request and hasattr(request, 'client') and request.client else 'unknown'
         
-        # Save to chat history
-        save_chat_history(db, session_id, user_message, message, user_ip)
+        # Save to chat history only if db is available
+        if db is not None:
+            save_chat_history(db, session_id, user_message, message, user_ip)
+        else:
+            logger.warning(f"Database session not available, skipping chat history save for session {session_id}")
         
         return {"message": message, "session_id": session_id}
     except Exception as e:
@@ -1003,34 +1171,48 @@ async def ai_istanbul_router(request: Request):
 
         # Handle greetings and daily talk BEFORE any typo correction or enhancement
         user_input_clean = user_input.lower().strip()
+        
+        # More precise greeting detection - check for word boundaries
         greeting_patterns = [
-            'hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon',
-            'good evening', 'howdy', 'hiya', 'sup', "what's up", 'whats up',
-            'how are you', 'how are u', 'how r u', 'how r you', 'how are you doing', "how's it going", 'hows it going',
-            'nice to meet you', 'pleased to meet you', 'good to see you'
+            r'\bhi\b', r'\bhello\b', r'\bhey\b', r'\bgreetings\b', 
+            r'\bgood morning\b', r'\bgood afternoon\b', r'\bgood evening\b',
+            r'\bhowdy\b', r'\bhiya\b', r'\bsup\b', 
+            r"\bwhat's up\b", r'\bwhats up\b',
+            r'\bhow are you\b', r'\bhow are u\b', r'\bhow r u\b', r'\bhow r you\b', 
+            r'\bhow are you doing\b', r"\bhow's it going\b", r'\bhows it going\b',
+            r'\bnice to meet you\b', r'\bpleased to meet you\b', r'\bgood to see you\b'
         ]
         daily_talk_patterns = [
-            'how are things', "what's new", 'whats new', 'how have you been',
-            'long time no see', 'good to hear from you', "hope you're well",
-            "how's your day", 'hows your day', 'having a good day',
-            "what's happening", 'whats happening', "how's life", 'hows life'
+            r'\bhow are things\b', r"\bwhat's new\b", r'\bwhats new\b', r'\bhow have you been\b',
+            r'\blong time no see\b', r'\bgood to hear from you\b', r"\bhope you're well\b",
+            r"\bhow's your day\b", r'\bhows your day\b', r'\bhaving a good day\b',
+            r"\bwhat's happening\b", r'\bwhats happening\b', r"\bhow's life\b", r'\bhows life\b'
         ]
-        is_greeting = any(pattern in user_input_clean for pattern in greeting_patterns)
-        is_daily_talk = any(pattern in user_input_clean for pattern in daily_talk_patterns)
+        
+        import re
+        is_greeting = any(re.search(pattern, user_input_clean) for pattern in greeting_patterns)
+        is_daily_talk = any(re.search(pattern, user_input_clean) for pattern in daily_talk_patterns)
         if is_greeting or is_daily_talk:
             logger.info(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
-            if any(word in user_input_clean for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
+            if any(re.search(r'\b' + word + r'\b', user_input_clean) for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
                 return create_ai_response("Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?", db, session_id, user_input, request)
-            elif 'how are you' in user_input_clean or 'how are u' in user_input_clean or 'how r u' in user_input_clean or 'how r you' in user_input_clean or 'how are you doing' in user_input_clean:
+            elif any(re.search(pattern, user_input_clean) for pattern in [r'\bhow are you\b', r'\bhow are u\b', r'\bhow r u\b', r'\bhow r you\b', r'\bhow are you doing\b']):
                 return create_ai_response("I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?", db, session_id, user_input, request)
-            elif any(phrase in user_input_clean for phrase in ['good morning', 'good afternoon', 'good evening']):
+            elif any(re.search(r'\b' + phrase.replace(' ', r'\s+') + r'\b', user_input_clean) for phrase in ['good morning', 'good afternoon', 'good evening']):
                 return create_ai_response("Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?", db, session_id, user_input, request)
-            elif any(phrase in user_input_clean for phrase in ["what's up", 'whats up', 'sup', "how's it going", 'hows it going']):
+            elif any(re.search(pattern, user_input_clean) for pattern in [r"\bwhat's up\b", r'\bwhats up\b', r'\bsup\b', r"\bhow's it going\b", r'\bhows it going\b']):
                 return create_ai_response("Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?", db, session_id, user_input, request)
             else:
                 return create_ai_response("It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?", db, session_id, user_input, request)
         
         # Continue with main query processing
+        
+        # INTELLIGENT FALLBACK CHECK - Catch edge cases before OpenAI
+        fallback_response = create_intelligent_fallback_response(user_input)
+        if fallback_response:
+            logger.info(f"🛡️ Intelligent fallback triggered for: {user_input[:50]}...")
+            return create_ai_response(fallback_response, db, session_id, user_input, request)
+        
         # Debug logging
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
         

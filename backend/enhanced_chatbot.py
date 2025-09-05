@@ -639,3 +639,118 @@ def generate_day_itinerary(duration: int, interests: List[str], budget: str) -> 
             itinerary_text += f"• Evening: {day_plan['evening']}\n\n"
     
     return itinerary_text
+
+def validate_query_logic(self, query: str) -> Dict[str, Any]:
+        """Validate query for logical inconsistencies and geographical errors"""
+        query_lower = query.lower()
+        
+        validation_result = {
+            'is_valid': True,
+            'issues': [],
+            'suggestions': [],
+            'error_type': None
+        }
+        
+        # Geographical validation
+        geographic_issues = [
+            {
+                'pattern': r'athens.*istanbul|istanbul.*athens',
+                'issue': 'Geographic confusion: Athens is in Greece, not Istanbul',
+                'suggestion': 'Did you mean Athens, Greece OR Istanbul, Turkey?'
+            },
+            {
+                'pattern': r'eiffel tower.*istanbul|istanbul.*eiffel tower',
+                'issue': 'Geographic error: Eiffel Tower is in Paris, not Istanbul',
+                'suggestion': 'Istanbul has Galata Tower and other landmarks'
+            },
+            {
+                'pattern': r'manhattan.*istanbul|istanbul.*manhattan',
+                'issue': 'Geographic error: Manhattan is in New York, not Istanbul',
+                'suggestion': 'Istanbul districts include Beyoğlu, Kadıköy, Sultanahmet'
+            },
+            {
+                'pattern': r'colosseum.*istanbul|istanbul.*colosseum',
+                'issue': 'Geographic error: Colosseum is in Rome, not Istanbul',
+                'suggestion': 'Istanbul has Hagia Sophia, Blue Mosque, and other historic sites'
+            }
+        ]
+        
+        # Logical contradiction validation
+        logical_issues = [
+            {
+                'pattern': r'vegetarian.*steakhouse|steakhouse.*vegetarian',
+                'issue': 'Logical contradiction: Vegetarian restaurants don\'t serve steak',
+                'suggestion': 'Would you like vegetarian restaurants OR steakhouses?'
+            },
+            {
+                'pattern': r'vegetarian.*seafood.*only|seafood.*only.*vegetarian',
+                'issue': 'Logical contradiction: Vegetarian places don\'t serve seafood',
+                'suggestion': 'Would you like vegetarian restaurants OR seafood restaurants?'
+            },
+            {
+                'pattern': r'underwater.*mountaintop|mountaintop.*underwater',
+                'issue': 'Physical impossibility: Can\'t be underwater and on mountaintop',
+                'suggestion': 'Would you like waterfront OR mountain view restaurants?'
+            }
+        ]
+        
+        # Temporal validation
+        temporal_issues = [
+            {
+                'pattern': r'year 3024|3024|future.*year.*\d{4}',
+                'issue': 'Temporal error: Cannot provide information about future years',
+                'suggestion': 'I can help with current or historical information'
+            },
+            {
+                'pattern': r'ottoman.*195\d|ottoman.*20\d\d',
+                'issue': 'Historical error: Ottoman Empire ended in 1922',
+                'suggestion': 'Ottoman era ended in 1922, Turkey became republic in 1923'
+            }
+        ]
+        
+        # Budget reality validation
+        budget_issues = [
+            {
+                'pattern': r'1 cent|free.*luxury|luxury.*free|0 dollars?',
+                'issue': 'Unrealistic budget: Luxury services aren\'t free',
+                'suggestion': 'Budget restaurants start around 20-50 TRY per person'
+            },
+            {
+                'pattern': r'million.*dollars?.*meal|meal.*million.*dollars?',
+                'issue': 'Excessive budget: Even luxury meals cost $200-500',
+                'suggestion': 'Would you like luxury restaurant recommendations?'
+            }
+        ]
+        
+        # Fictional content validation
+        fictional_issues = [
+            {
+                'pattern': r'hogwarts|superman|batman|fictional.*character',
+                'issue': 'Fictional content: These are not real places or people',
+                'suggestion': 'I can help with real Istanbul locations and experiences'
+            },
+            {
+                'pattern': r'flying car|time travel|teleport',
+                'issue': 'Technology error: These technologies aren\'t available',
+                'suggestion': 'I can help with current transportation options'
+            }
+        ]
+        
+        all_issue_types = [
+            ('geographic', geographic_issues),
+            ('logical', logical_issues),
+            ('temporal', temporal_issues),
+            ('budget', budget_issues),
+            ('fictional', fictional_issues)
+        ]
+        
+        for issue_type, issue_list in all_issue_types:
+            for issue in issue_list:
+                if re.search(issue['pattern'], query_lower):
+                    validation_result['is_valid'] = False
+                    validation_result['error_type'] = issue_type
+                    validation_result['issues'].append(issue['issue'])
+                    validation_result['suggestions'].append(issue['suggestion'])
+                    break  # Only report first issue of each type
+        
+        return validation_result

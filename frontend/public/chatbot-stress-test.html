@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Stress Test - Hard Inputs</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-category {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .category-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #333;
+            color: white;
+            border-radius: 5px;
+        }
+        .test-input {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .test-input:hover {
+            background: #f0f8ff;
+            border-color: #007bff;
+            transform: translateX(5px);
+        }
+        .test-input .label {
+            font-weight: bold;
+            color: #d9534f;
+            margin-bottom: 5px;
+        }
+        .test-input .input {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .test-input .expected {
+            color: #5cb85c;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            border: 1px solid #b3d7ff;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .error { border-left-color: #dc3545; }
+        .warning { border-left-color: #ffc107; }
+        .success { border-left-color: #28a745; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover { background: #0056b3; }
+        .clear-btn { background: #dc3545; }
+        .clear-btn:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Chatbot Stress Test - Hard Inputs</h1>
+        <p>This page contains challenging inputs designed to test the chatbot's robustness, accuracy, and handling of edge cases.</p>
+        
+        <button onclick="testAllInputs()">🚀 Test All Inputs</button>
+        <button onclick="testRandomSelection()">🎲 Test Random Selection</button>
+        <button onclick="clearResults()" class="clear-btn">🗑️ Clear Results</button>
+
+        <!-- Geographical Confusion Tests -->
+        <div class="test-category">
+            <div class="category-title">🌍 Geographical Confusion & Wrong Locations</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Country - Greece Confusion</div>
+                <div class="input">What are the best restaurants in Athens, Istanbul?</div>
+                <div class="expected">Should clarify that Athens is in Greece, not Istanbul</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Country - Italy Confusion</div>
+                <div class="input">Tell me about the Colosseum in Istanbul</div>
+                <div class="expected">Should clarify that Colosseum is in Rome, not Istanbul</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Historical Facts</div>
+                <div class="input">When did the Eiffel Tower in Istanbul get built?</div>
+                <div class="expected">Should clarify that Eiffel Tower is in Paris, not Istanbul</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Non-existent Districts</div>
+                <div class="input">What restaurants are in Manhattan district of Istanbul?</div>
+                <div class="expected">Should clarify that Manhattan is in NYC, not Istanbul</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Mixed Cities</div>
+                <div class="input">How do I get from Taksim to Brooklyn by metro?</div>
+                <div class="expected">Should clarify geographical impossibility</div>
+            </div>
+        </div>
+
+        <!-- Factual Inaccuracies Tests -->
+        <div class="test-category">
+            <div class="category-title">📚 Factual Inaccuracies & Historical Errors</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Historical Dates</div>
+                <div class="input">Tell me about the Ottoman Empire that ruled Istanbul from 1950-2000</div>
+                <div class="expected">Should correct the dates (Ottoman Empire ended in 1922)</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Architectural Facts</div>
+                <div class="input">How many stories tall is the 50-floor Galata Tower?</div>
+                <div class="expected">Should correct that Galata Tower is not 50 floors</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Currency</div>
+                <div class="input">How much does a meal cost in Istanbul in Euros?</div>
+                <div class="expected">Should mention Turkish Lira as the local currency</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Language</div>
+                <div class="input">Do people in Istanbul speak Arabic as the main language?</div>
+                <div class="expected">Should clarify that Turkish is the main language</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Impossible Geography</div>
+                <div class="input">Which beaches in Istanbul have the best surfing waves?</div>
+                <div class="expected">Should clarify that Istanbul is not known for surfing</div>
+            </div>
+        </div>
+
+        <!-- Ambiguous and Nonsensical Queries -->
+        <div class="test-category">
+            <div class="category-title">🤔 Ambiguous & Nonsensical Queries</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Completely Nonsensical</div>
+                <div class="input">Purple elephants dancing restaurants Istanbul blue chicken tomorrow</div>
+                <div class="expected">Should ask for clarification or provide helpful response</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Mathematical Impossibility</div>
+                <div class="input">Find me 47 restaurants that are all exactly 0 meters apart in Istanbul</div>
+                <div class="expected">Should explain the impossibility</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Time Travel Query</div>
+                <div class="input">What restaurants were popular in Istanbul in the year 3024?</div>
+                <div class="expected">Should clarify that this is a future date</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Contradictory Requirements</div>
+                <div class="input">Find me a vegetarian steakhouse that serves only seafood in Istanbul</div>
+                <div class="expected">Should point out the contradiction</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Impossible Physical Requirements</div>
+                <div class="input">I need a restaurant in Istanbul that is simultaneously underwater and on a mountaintop</div>
+                <div class="expected">Should explain the physical impossibility</div>
+            </div>
+        </div>
+
+        <!-- Misleading Context Tests -->
+        <div class="test-category">
+            <div class="category-title">🎭 Misleading Context & False Premises</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">False Premise - Fictional Places</div>
+                <div class="input">What's the best restaurant in Hogwarts district of Istanbul?</div>
+                <div class="expected">Should clarify that Hogwarts is fictional</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">False Celebrity Association</div>
+                <div class="input">Which restaurant did Superman visit last week in Istanbul?</div>
+                <div class="expected">Should clarify that Superman is fictional</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">False News Premise</div>
+                <div class="input">Since Istanbul was moved to Asia last month, what are the new visa requirements?</div>
+                <div class="expected">Should clarify that Istanbul wasn't moved</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Future Events as Past</div>
+                <div class="input">How was the 2030 Olympics in Istanbul?</div>
+                <div class="expected">Should clarify this is a future date</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Assumed Fictional Tech</div>
+                <div class="input">Where can I park my flying car in Istanbul?</div>
+                <div class="expected">Should clarify that flying cars aren't commercially available</div>
+            </div>
+        </div>
+
+        <!-- Budget and Price Confusion -->
+        <div class="test-category">
+            <div class="category-title">💰 Budget & Price Confusion</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Unrealistic Budget</div>
+                <div class="input">Find me a luxury restaurant in Istanbul for 1 cent total</div>
+                <div class="expected">Should explain budget reality</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Currency Scale</div>
+                <div class="input">I have a budget of 1 million dollars for a single meal in Istanbul</div>
+                <div class="expected">Should provide perspective on realistic pricing</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Impossible Deals</div>
+                <div class="input">Where can I get a 5-star hotel room for free in Istanbul?</div>
+                <div class="expected">Should explain that luxury hotels aren't typically free</div>
+            </div>
+        </div>
+
+        <!-- Cultural and Religious Misunderstandings -->
+        <div class="test-category">
+            <div class="category-title">🕌 Cultural & Religious Misunderstandings</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Religious Practices</div>
+                <div class="input">Where can I find Buddhist temples in Islamic Istanbul?</div>
+                <div class="expected">Should clarify religious demographics and available options</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Cultural Stereotypes</div>
+                <div class="input">Why do all Turkish people ride camels to work in Istanbul?</div>
+                <div class="expected">Should correct the stereotype</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Cultural Assumptions</div>
+                <div class="input">What time do the pyramids close in Istanbul?</div>
+                <div class="expected">Should clarify that pyramids are in Egypt</div>
+            </div>
+        </div>
+
+        <!-- Technical and Modern Confusion -->
+        <div class="test-category">
+            <div class="category-title">💻 Technical & Modern Confusion</div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Outdated Technology</div>
+                <div class="input">Where can I buy a new VHS player in Istanbul?</div>
+                <div class="expected">Should mention that VHS is outdated technology</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Future Technology</div>
+                <div class="input">Where can I charge my teleporter in Istanbul?</div>
+                <div class="expected">Should clarify that teleporters don't exist</div>
+            </div>
+            
+            <div class="test-input" onclick="testInput(this)">
+                <div class="label">Wrong Tech Usage</div>
+                <div class="input">How do I use my smartphone to travel back in time to Ottoman Istanbul?</div>
+                <div class="expected">Should clarify that time travel isn't possible</div>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Test Results</h3>
+            <p>Click on test inputs above or use the test buttons to see results here.</p>
+            <div id="results-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+        let testResults = [];
+
+        function addResult(input, response, category, expectedBehavior, status = 'info') {
+            const resultItem = document.createElement('div');
+            resultItem.className = `result-item ${status}`;
+            resultItem.innerHTML = `
+                <strong>Input:</strong> ${input}<br>
+                <strong>Category:</strong> ${category}<br>
+                <strong>Expected:</strong> ${expectedBehavior}<br>
+                <strong>Response:</strong> ${response}<br>
+                <strong>Time:</strong> ${new Date().toLocaleTimeString()}
+            `;
+            document.getElementById('results-content').appendChild(resultItem);
+            
+            // Auto-scroll to latest result
+            resultItem.scrollIntoView({ behavior: 'smooth' });
+            
+            testResults.push({
+                input,
+                response,
+                category,
+                expectedBehavior,
+                status,
+                timestamp: new Date()
+            });
+        }
+
+        async function testInput(element) {
+            const input = element.querySelector('.input').textContent;
+            const expectedBehavior = element.querySelector('.expected').textContent;
+            const category = element.closest('.test-category').querySelector('.category-title').textContent;
+            
+            addResult(input, 'Testing...', category, expectedBehavior, 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_input: input,
+                        session_id: 'stress-test-' + Date.now()
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.message || 'No response message';
+                
+                // Simple heuristic to check if response seems appropriate
+                const isAppropriate = checkResponseAppropriateness(input, aiResponse, expectedBehavior);
+                const status = isAppropriate ? 'success' : 'warning';
+                
+                // Remove the "Testing..." entry
+                const resultsContent = document.getElementById('results-content');
+                resultsContent.removeChild(resultsContent.lastChild);
+                
+                addResult(input, aiResponse, category, expectedBehavior, status);
+                
+            } catch (error) {
+                // Remove the "Testing..." entry
+                const resultsContent = document.getElementById('results-content');
+                resultsContent.removeChild(resultsContent.lastChild);
+                
+                addResult(input, `Error: ${error.message}`, category, expectedBehavior, 'error');
+            }
+        }
+
+        function checkResponseAppropriateness(input, response, expected) {
+            const responseLower = response.toLowerCase();
+            
+            // Check for common good patterns
+            const goodPatterns = [
+                'clarify', 'correction', 'actually', 'however', 'i should mention',
+                'that\'s not accurate', 'let me correct', 'i need to clarify',
+                'sorry, but', 'i should point out', 'actually, that\'s not'
+            ];
+            
+            // Check for problematic patterns
+            const badPatterns = [
+                'purple elephants', 'flying cars are available', 'time travel',
+                'superman visited', 'hogwarts district', 'manhattan district of istanbul',
+                '50-floor galata tower', 'eiffel tower in istanbul', 'pyramids in istanbul'
+            ];
+            
+            // If response contains correction language, it's probably good
+            if (goodPatterns.some(pattern => responseLower.includes(pattern))) {
+                return true;
+            }
+            
+            // If response repeats problematic assumptions, it's bad
+            if (badPatterns.some(pattern => responseLower.includes(pattern))) {
+                return false;
+            }
+            
+            // For geographical errors, check if it mentions the correct location
+            if (input.includes('Eiffel Tower') && responseLower.includes('paris')) return true;
+            if (input.includes('Colosseum') && responseLower.includes('rome')) return true;
+            if (input.includes('Athens') && (responseLower.includes('greece') || responseLower.includes('clarify'))) return true;
+            
+            // Default to warning (needs manual review)
+            return false;
+        }
+
+        async function testAllInputs() {
+            const allInputs = document.querySelectorAll('.test-input');
+            let delay = 0;
+            
+            for (let input of allInputs) {
+                setTimeout(() => testInput(input), delay);
+                delay += 2000; // 2 second delay between tests
+            }
+        }
+
+        async function testRandomSelection() {
+            const allInputs = Array.from(document.querySelectorAll('.test-input'));
+            const randomInputs = allInputs.sort(() => 0.5 - Math.random()).slice(0, 10);
+            
+            let delay = 0;
+            for (let input of randomInputs) {
+                setTimeout(() => testInput(input), delay);
+                delay += 1500; // 1.5 second delay between tests
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results-content').innerHTML = '';
+            testResults = [];
+        }
+
+        // Export results function
+        function exportResults() {
+            const dataStr = JSON.stringify(testResults, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'chatbot-stress-test-results.json';
+            link.click();
+        }
+
+        // Add export button
+        document.querySelector('.container button').insertAdjacentHTML('afterend', 
+            '<button onclick="exportResults()">📋 Export Results</button>'
+        );
+    </script>
+</body>
+</html>

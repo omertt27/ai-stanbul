@@ -1,32 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 const TypingIndicator = ({ message = "KAM is thinking..." }) => {
   const isLightMode = document.body.classList.contains('light');
-
-  // Add the keyframes to the document head if not already present
-  useEffect(() => {
-    const styleId = 'typing-indicator-animation';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @keyframes typingDots {
-          0%, 80%, 100% {
-            transform: scale(0.8);
-            opacity: 0.5;
-          }
-          40% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        .typing-dot {
-          animation: typingDots 1.4s infinite ease-in-out;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
 
   const containerStyle = {
     display: 'flex',
@@ -81,11 +56,26 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
     borderRadius: '50%',
     background: isLightMode 
       ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-      : 'linear-gradient(135deg, #818cf8, #a78bfa)'
+      : 'linear-gradient(135deg, #818cf8, #a78bfa)',
+    animation: 'typingDots 1.4s infinite ease-in-out'
   };
 
   return (
     <div style={containerStyle}>
+      <style>
+        {`
+          @keyframes typingDots {
+            0%, 80%, 100% {
+              transform: scale(0.8);
+              opacity: 0.5;
+            }
+            40% {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
       <div style={avatarStyle}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
           <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
@@ -93,18 +83,9 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
       </div>
       <span style={textStyle}>{message}</span>
       <div style={dotsContainerStyle}>
-        <div 
-          className="typing-dot" 
-          style={{...dotStyle, animationDelay: '0s'}}
-        ></div>
-        <div 
-          className="typing-dot" 
-          style={{...dotStyle, animationDelay: '0.2s'}}
-        ></div>
-        <div 
-          className="typing-dot" 
-          style={{...dotStyle, animationDelay: '0.4s'}}
-        ></div>
+        <div style={{...dotStyle, animationDelay: '0s'}}></div>
+        <div style={{...dotStyle, animationDelay: '0.2s'}}></div>
+        <div style={{...dotStyle, animationDelay: '0.4s'}}></div>
       </div>
     </div>
   );
