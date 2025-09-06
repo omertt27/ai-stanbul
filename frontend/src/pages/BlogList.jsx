@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import '../App.css';
 
 const BlogList = () => {
+  console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,11 +24,14 @@ const BlogList = () => {
     'Üsküdar', 'Bakırköy', 'Galata', 'Taksim', 'Ortaköy', 'Karaköy', 'Eminönü'
   ];
 
-  useEffect(() => {
-    loadPosts();
-  }, [searchTerm, selectedDistrict, currentPage]);
-
   const loadPosts = async () => {
+    console.log('🔄 BlogList: Loading posts with params:', { 
+      currentPage, 
+      postsPerPage, 
+      searchTerm, 
+      selectedDistrict
+    });
+    
     setLoading(true);
     setError(null);
     
@@ -39,17 +43,49 @@ const BlogList = () => {
         ...(selectedDistrict && { district: selectedDistrict })
       };
 
+      console.log('📡 BlogList: Making API call with params:', params);
       const response = await fetchBlogPosts(params);
-      setPosts(response.posts);
-      setTotalPages(Math.ceil(response.total / postsPerPage));
-      setTotalPosts(response.total);
+      console.log('✅ BlogList: API response received:', response);
+      
+      if (response && response.posts) {
+        setPosts(response.posts);
+        setTotalPages(Math.ceil(response.total / postsPerPage));
+        setTotalPosts(response.total);
+        console.log('📝 BlogList: State updated with', response.posts.length, 'posts');
+      } else {
+        console.error('❌ BlogList: Invalid response structure:', response);
+        setError('Invalid response from server');
+      }
     } catch (err) {
+      console.error('❌ BlogList: API call failed:', err);
       setError(err.message || 'Failed to load blog posts');
-      console.error('Failed to load posts:', err);
     } finally {
       setLoading(false);
+      console.log('✅ BlogList: loadPosts completed');
     }
   };
+
+  // Load posts when component mounts or search parameters change
+  useEffect(() => {
+    console.log('🏠 BlogList: Component mounted or params changed, loading posts');
+    // Clear any existing state first
+    setPosts([]);
+    setError(null);
+    setLoading(true);
+    
+    // Small delay to ensure state is reset
+    const timer = setTimeout(() => {
+      loadPosts();
+    }, 10);
+    
+    return () => clearTimeout(timer);
+  }, [currentPage, searchTerm, selectedDistrict]); // Dependencies for reloading
+
+  // Also load on component mount
+  useEffect(() => {
+    console.log('🔄 BlogList: Initial mount, loading posts');
+    loadPosts();
+  }, []); // Run once on mount
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -82,7 +118,7 @@ const BlogList = () => {
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
         {/* AI Istanbul Logo - Top Left - Fixed - Outside of scroll area */}
-        <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
+        <Link to="/" style={{textDecoration: 'none'}} className="fixed-logo">
           <div className="chat-title logo-istanbul">
             <span className="logo-text">
               A/<span style={{fontWeight: 400}}>STANBUL</span>
@@ -91,7 +127,7 @@ const BlogList = () => {
         </Link>
         
         <div className="pt-32 sm:pt-36 px-2 sm:px-4 pb-20 transition-colors duration-200">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             <div className="flex justify-center items-center py-20">
               <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
                 darkMode ? 'border-indigo-500' : 'border-indigo-600'
@@ -107,8 +143,8 @@ const BlogList = () => {
     <div className={`min-h-screen ${
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      {/* AI Istanbul Logo - Top Left - Fixed - Outside of scroll area */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
+      {/* AI Istanbul Logo - Top Left - Fixed */}
+      <Link to="/" style={{textDecoration: 'none'}} className="fixed-logo">
         <div className="chat-title logo-istanbul">
           <span className="logo-text">
             A/<span style={{fontWeight: 400}}>STANBUL</span>
@@ -116,10 +152,10 @@ const BlogList = () => {
         </div>
       </Link>
 
-      <div className="pt-32 sm:pt-36 px-2 sm:px-4 pb-20 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto">
+      <div className="pt-20 md:pt-20 sm:pt-28 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-20 transition-colors duration-200">
+      <div className="w-full">
         {/* Header - Simplified */}
-        <div className="text-center mb-6 sm:mb-8 mt-2 sm:mt-4 px-2">
+        <div className="text-center mb-6 sm:mb-8 px-2 mt-2 sm:mt-4">
         </div>
 
         {/* Search and Filters */}
@@ -262,7 +298,7 @@ const BlogList = () => {
                  `${totalPosts} posts total`}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 mb-4 sm:mb-6">
             {posts.map((post) => (            <article
               key={post.id}
               className={`rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
@@ -356,44 +392,6 @@ const BlogList = () => {
           </>
         )}
         </div> {/* End debug wrapper */}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 pb-20 sm:pb-24 px-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`px-3 sm:px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-sm sm:text-base ${
-                darkMode
-                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <span className="hidden sm:inline">Previous</span>
-              <span className="sm:hidden">←</span>
-            </button>
-            
-            <span className={`px-2 sm:px-4 py-2 transition-colors duration-200 text-sm sm:text-base ${
-              darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              <span className="hidden sm:inline">Page </span>{currentPage}<span className="hidden sm:inline"> of {totalPages}</span>
-              <span className="sm:hidden">/{totalPages}</span>
-            </span>
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className={`px-3 sm:px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-sm sm:text-base ${
-                darkMode
-                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <span className="hidden sm:inline">Next</span>
-              <span className="sm:hidden">→</span>
-            </button>
-          </div>
-        )}
       </div>
       </div>
     </div>

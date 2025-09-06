@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import App from './App';
 import Chatbot from './Chatbot';
 import SimpleChatbot from './SimpleChatbot';
@@ -15,6 +15,7 @@ import NewBlogPost from './pages/NewBlogPost';
 import EnhancedDemo from './pages/EnhancedDemo';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import ForceRefreshRoute from './components/ForceRefreshRoute';
 
 const AppRouter = () => {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -41,7 +42,7 @@ const AppRouter = () => {
     position: 'fixed',
     top: '2.5rem',  // Same as NavBar
     right: '1.5rem',
-    zIndex: 1000,
+    zIndex: 9999,
     background: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
     border: isLightMode ? '1px solid #e2e8f0' : 'none',
     borderRadius: '50%',
@@ -61,6 +62,45 @@ const AppRouter = () => {
 
   return (
     <Router>
+      <AppContent 
+        isLightMode={isLightMode} 
+        toggleTheme={toggleTheme} 
+        buttonStyle={buttonStyle} 
+      />
+    </Router>
+  );
+};
+
+const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
+  const location = useLocation();
+  const [routeKey, setRouteKey] = useState(0);
+
+  // Global navigation handler to ensure clean state transitions
+  useEffect(() => {
+    console.log('🔄 AppRouter: Navigation detected to', location.pathname);
+    
+    // Force complete remount by updating key
+    setRouteKey(prev => prev + 1);
+    
+    // Force scroll to top on navigation
+    window.scrollTo(0, 0);
+    
+    // Clear any cached data that might interfere
+    if (window.performance && window.performance.clearMarks) {
+      window.performance.clearMarks();
+    }
+    
+    // Force a brief delay to ensure clean state
+    setTimeout(() => {
+      console.log('✅ AppRouter: Route transition complete for', location.pathname);
+    }, 100);
+  }, [location.pathname, location.search]);
+
+  // Create unique keys for each route to force remounting
+  const getRouteKey = (basePath) => `${basePath}-${routeKey}-${location.pathname}-${location.search}`;
+
+  return (
+    <>
       <button
         onClick={toggleTheme}
         style={buttonStyle}
@@ -85,25 +125,27 @@ const AppRouter = () => {
         )}
       </button>
 
-      <div className="chatbot-outline"></div>
+      {/* Show chatbot outline - keep it fixed on all pages */}
+      <div className="chatbot-outline" style={{ position: 'fixed', zIndex: 9998 }}></div>
+      
       <NavBar />
       <Footer />
       <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/test" element={<TestComponent />} />
-        <Route path="/simple" element={<SimpleChatbot />} />
-        <Route path="/chatbot" element={<Chatbot />} />
-        <Route path="/demo" element={<EnhancedDemo />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/sources" element={<Sources />} />
-        <Route path="/donate" element={<Donate />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/blog" element={<BlogList />} />
-        <Route path="/blog/new" element={<NewBlogPost />} />
-        <Route path="/blog/:id" element={<BlogPost />} />
+        <Route path="/" element={<ForceRefreshRoute component={App} routeName="Home" />} />
+        <Route path="/test" element={<TestComponent key={getRouteKey('test')} />} />
+        <Route path="/simple" element={<SimpleChatbot key={getRouteKey('simple')} />} />
+        <Route path="/chatbot" element={<Chatbot key={getRouteKey('chatbot')} />} />
+        <Route path="/demo" element={<EnhancedDemo key={getRouteKey('demo')} />} />
+        <Route path="/about" element={<ForceRefreshRoute component={About} routeName="About" />} />
+        <Route path="/sources" element={<ForceRefreshRoute component={Sources} routeName="Sources" />} />
+        <Route path="/donate" element={<ForceRefreshRoute component={Donate} routeName="Donate" />} />
+        <Route path="/faq" element={<ForceRefreshRoute component={FAQ} routeName="FAQ" />} />
+        <Route path="/contact" element={<ForceRefreshRoute component={Contact} routeName="Contact" />} />
+        <Route path="/blog" element={<ForceRefreshRoute component={BlogList} routeName="Blog" />} />
+        <Route path="/blog/new" element={<ForceRefreshRoute component={NewBlogPost} routeName="New Blog Post" />} />
+        <Route path="/blog/:id" element={<ForceRefreshRoute component={BlogPost} routeName="Blog Post" />} />
       </Routes>
-    </Router>
+    </>
   );
 };
 

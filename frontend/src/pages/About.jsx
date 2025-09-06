@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 const About = () => {
-  const { theme } = useTheme();
+  const { darkMode } = useTheme();
 
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
     }`}>
       {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
       <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
@@ -30,12 +30,12 @@ const About = () => {
               </svg>
             </div>
             <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               About <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">STANBUL</span>
             </h1>
             <p className={`text-xl leading-relaxed transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Your intelligent companion for exploring Istanbul's rich culture, cuisine, and hidden gems
             </p>
@@ -47,18 +47,18 @@ const About = () => {
       <div className="max-w-6xl mx-auto px-6 pb-20">
         {/* Mission Section */}
         <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-xl border border-gray-100'
         }`}>
           <div className="text-center mb-8">
             <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Our Mission
             </h2>
             <p className={`text-lg leading-relaxed transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               We believe every visitor to Istanbul deserves to experience the city like a local. Our AI assistant 
               provides personalized, culturally-aware recommendations that go beyond typical tourist guides.
@@ -125,24 +125,24 @@ const About = () => {
               }
             ].map((feature, index) => (
               <div key={index} className={`p-6 rounded-xl transition-all duration-300 ${
-                theme === 'dark' 
+                darkMode 
                   ? 'bg-gray-700 hover:bg-gray-600' 
                   : 'bg-gray-50 hover:bg-gray-100 hover:shadow-lg'
               }`}>
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
-                  theme === 'dark' 
+                  darkMode 
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' 
                     : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                 }`}>
                   {feature.icon}
                 </div>
                 <h3 className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  darkMode ? 'text-white' : 'text-gray-800'
                 }`}>
                   {feature.title}
                 </h3>
                 <p className={`text-sm leading-relaxed transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   {feature.description}
                 </p>
@@ -153,12 +153,12 @@ const About = () => {
 
         {/* What We Offer Section */}
         <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-xl border border-gray-100'
         }`}>
           <h2 className={`text-3xl font-bold mb-8 text-center transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             What We Offer
           </h2>
@@ -183,17 +183,17 @@ const About = () => {
               }
             ].map((item, index) => (
               <div key={index} className={`p-6 rounded-xl border transition-all duration-300 ${
-                theme === 'dark' 
+                darkMode 
                   ? 'bg-gray-700 border-gray-600 hover:border-blue-500' 
                   : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:shadow-md'
               }`}>
                 <h3 className={`text-xl font-semibold mb-3 transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-800'
+                  darkMode ? 'text-white' : 'text-gray-800'
                 }`}>
                   {item.title}
                 </h3>
                 <p className={`leading-relaxed transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   {item.description}
                 </p>
@@ -204,7 +204,7 @@ const About = () => {
 
         {/* Open Source Section */}
         <div className={`rounded-2xl p-8 text-center transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600' 
             : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl'
         }`}>
@@ -212,10 +212,10 @@ const About = () => {
             <svg className="w-16 h-16 mx-auto mb-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
-            <h2 className={`text-3xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-white'}`}>
+            <h2 className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-white'}`}>
               Open Source & Community-Driven
             </h2>
-            <p className={`text-lg mb-6 ${theme === 'dark' ? 'text-gray-200' : 'text-white'}`}>
+            <p className={`text-lg mb-6 ${darkMode ? 'text-gray-200' : 'text-white'}`}>
               This project is open source and community-driven. We welcome contributions, feedback, 
               and suggestions to make AIstanbul even better.
             </p>
@@ -225,7 +225,7 @@ const About = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                  theme === 'dark'
+                  darkMode
                     ? 'bg-blue-600 hover:bg-blue-700 text-white'
                     : 'bg-white text-blue-600 hover:bg-gray-100 hover:scale-105'
                 }`}
@@ -238,7 +238,7 @@ const About = () => {
               <Link
                 to="/"
                 className={`inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                  theme === 'dark'
+                  darkMode
                     ? 'bg-purple-600 hover:bg-purple-700 text-white'
                     : 'bg-white text-purple-600 hover:bg-gray-100 hover:scale-105'
                 }`}

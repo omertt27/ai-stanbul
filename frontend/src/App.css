@@ -250,6 +250,25 @@ body.light .searchbar input:focus {
   box-sizing: border-box;
 }
 
+/* Ensure no element can interfere with fixed positioning */
+* {
+  transform-style: preserve-3d;
+}
+
+/* Prevent any container from affecting fixed elements */
+.min-h-screen, .w-full, .transition-colors {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Force all fixed elements to stay on top */
+[style*="position: fixed"], .fixed, .fixed-logo {
+  z-index: 10000 !important;
+  position: fixed !important;
+  will-change: auto !important;
+  transform: translateZ(0) !important;
+}
+
 #root {
   width: 100vw;
   min-height: 100vh;
@@ -519,6 +538,15 @@ body.light .static-page code {
   border-radius: 0 0 60px 60px;
 }
 
+/* Static version for blog pages */
+.chatbot-outline.static-outline {
+  position: static !important;
+  top: auto !important;
+  transform: none !important;
+  border-radius: 0;
+  height: 2px;
+}
+
 /* Custom scrollbar styling for chat area */
 .chat-scroll-area {
   scrollbar-width: thin;
@@ -628,6 +656,88 @@ body.light .logo-text {
   }
 }
 
+/* Responsive navigation for small screens to avoid logo overlap */
+@media (max-width: 768px) {
+  /* Adjust NavBar positioning on smaller screens */
+  .nav-container .nav-content {
+    padding: 0.5rem 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .nav-links {
+    margin-left: 0;
+    margin-right: 0;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  /* Adjust page content padding to account for mobile nav position */
+  .static-page {
+    padding-top: 8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Make logo smaller on very small screens */
+  .fixed-logo {
+    top: 0.5rem !important;
+    left: 1rem !important;
+  }
+  
+  .fixed-logo .logo-text {
+    font-size: 1.5rem !important;
+    letter-spacing: 0.05em !important;
+  }
+  
+  /* Adjust nav links font size and spacing for mobile */
+  .nav-links {
+    gap: 0.75rem;
+  }
+  
+  /* Adjust page content padding for smaller mobile nav */
+  .static-page {
+    padding-top: 7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small screens - stack nav items or hide some */
+  .fixed-logo {
+    top: 0.25rem !important;
+    left: 0.75rem !important;
+  }
+  
+  .fixed-logo .logo-text {
+    font-size: 1.25rem !important;
+    letter-spacing: 0.03em !important;
+  }
+  
+  .nav-links {
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Adjust page content padding for extra small screens */
+  .static-page {
+    padding-top: 6.5rem;
+  }
+}
+
+@media (max-width: 320px) {
+  /* Very small screens - ultra compact */
+  .fixed-logo {
+    top: 0.125rem !important;
+    left: 0.5rem !important;
+  }
+  
+  .fixed-logo .logo-text {
+    font-size: 1rem !important;
+    letter-spacing: 0.02em !important;
+  }
+}
+
 /* Force footer to stay fixed at viewport bottom */
 footer[style*="position: fixed"] {
   position: fixed !important;
@@ -648,4 +758,40 @@ html, body {
 /* Ensure the main app container doesn't interfere with fixed positioning */
 #root {
   position: relative !important;
+}
+
+/* Force fixed logo to stay truly fixed */
+.fixed-logo {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 1.5rem !important;
+  z-index: 9999 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.fixed-logo .chat-title {
+  position: static !important;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Force chatbot outline to be truly fixed */
+.chatbot-outline {
+  position: fixed !important;
+  top: 5rem !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100vw !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, transparent 0%, #818cf8 20%, #6366f1 80%, transparent 100%) !important;
+  z-index: 9998 !important;
+  transform: none !important;
+  opacity: 0.6 !important;
+  border-radius: 0 0 50px 50px !important;
+  pointer-events: none !important;
 }

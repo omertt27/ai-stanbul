@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 const Sources = () => {
-  const { theme } = useTheme();
+  const { darkMode } = useTheme();
 
   const dataSource = (icon, title, items, color) => (
     <div className={`rounded-xl p-6 transition-all duration-300 hover:scale-105 ${
-      theme === 'dark' 
+      darkMode 
         ? 'bg-gray-800 border border-gray-700 hover:border-gray-600' 
         : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
     }`}>
@@ -18,7 +18,7 @@ const Sources = () => {
           </div>
         )}
         <h3 className={`text-xl font-semibold transition-colors duration-300 ${
-          theme === 'dark' ? 'text-white' : 'text-gray-800'
+          darkMode ? 'text-white' : 'text-gray-800'
         }`}>
           {title}
         </h3>
@@ -26,7 +26,7 @@ const Sources = () => {
       <ul className="space-y-2">
         {items.map((item, index) => (
           <li key={index} className={`flex items-start transition-colors duration-300 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
             <span className="text-blue-500 mr-2 mt-1">•</span>
             <span className="leading-relaxed">{item}</span>
@@ -38,7 +38,7 @@ const Sources = () => {
 
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
     }`}>
       {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
       <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
@@ -61,12 +61,12 @@ const Sources = () => {
               </svg>
             </div>
             <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Sources & <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Technology</span>
             </h1>
             <p className={`text-xl leading-relaxed transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Trusted data sources and cutting-edge technology powering your Istanbul experience
             </p>
@@ -119,7 +119,7 @@ const Sources = () => {
 
         {/* Quality Assurance Section */}
         <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-xl border border-gray-100'
         }`}>
@@ -130,12 +130,12 @@ const Sources = () => {
               </svg>
             </div>
             <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Quality Assurance
             </h2>
             <p className={`text-lg transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               How we ensure accurate, reliable, and up-to-date information
             </p>
@@ -144,25 +144,25 @@ const Sources = () => {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <h3 className={`text-xl font-semibold transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Data Accuracy
               </h3>
               <ul className="space-y-2">
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-green-500 mr-2 mt-1">✓</span>
                   <span>Real-time data from Google Maps API</span>
                 </li>
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-green-500 mr-2 mt-1">✓</span>
                   <span>Monthly database updates and reviews</span>
                 </li>
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-green-500 mr-2 mt-1">✓</span>
                   <span>Cross-verified with official tourism sources</span>
@@ -172,25 +172,25 @@ const Sources = () => {
 
             <div className="space-y-4">
               <h3 className={`text-xl font-semibold transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Continuous Improvement
               </h3>
               <ul className="space-y-2">
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-blue-500 mr-2 mt-1">✓</span>
                   <span>User feedback integration</span>
                 </li>
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-blue-500 mr-2 mt-1">✓</span>
                   <span>AI model fine-tuning with Istanbul-specific data</span>
                 </li>
                 <li className={`flex items-start transition-colors duration-300 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   <span className="text-blue-500 mr-2 mt-1">✓</span>
                   <span>Local expert validation and insights</span>
@@ -202,7 +202,7 @@ const Sources = () => {
 
         {/* Open Source Section */}
         <div className={`rounded-xl p-6 text-center transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gradient-to-r from-gray-800 to-gray-700' 
             : 'bg-gradient-to-r from-blue-50 to-indigo-50'
         }`}>
@@ -212,12 +212,12 @@ const Sources = () => {
             </svg>
           </div>
           <h3 className={`text-lg font-semibold mb-2 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             Open Source & Transparent
           </h3>
           <p className={`transition-colors duration-300 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
             Our commitment to transparency means all our data sources are documented and our methodology is open. 
             We believe in building trust through openness.

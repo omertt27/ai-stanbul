@@ -3,69 +3,15 @@ import { Link } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
-import ConnectionStatus from './components/ConnectionStatus';
-import TypingIndicator from './components/TypingIndicator';
 // import DebugInfo from './components/DebugInfo';
-import { fetchResults, fetchStreamingResults, fetchRestaurantRecommendations, extractLocationFromQuery } from './api/api';
+import { fetchResults, fetchStreamingResults } from './api/api';
 import './App.css';
-
-// Simplified helper function - only catch very explicit restaurant+location requests
-const isExplicitRestaurantRequest = (userInput) => {
-  console.log('🔍 App.jsx: Checking for explicit restaurant request:', userInput);
-  const input = userInput.toLowerCase();
-  
-  // Only intercept very specific restaurant requests with location
-  // These are the ONLY phrases that trigger the restaurant API
-  const explicitRestaurantRequests = [
-    'restaurants in',        // "restaurants in Beyoglu"
-    'where to eat in',       // "where to eat in Sultanahmet" 
-    'restaurant recommendations for', // "restaurant recommendations for Taksim"
-    'good restaurants in',   // "good restaurants in Galata"
-    'best restaurants in',   // "best restaurants in Kadikoy"
-    'restaurants near',      // "restaurants near Taksim Square"
-    'where to eat near',     // "where to eat near Galata Tower"
-    'dining in',            // "dining in Beyoglu"
-    'food in'               // "food in Sultanahmet"
-  ];
-  
-  const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
-  console.log('🔍 App.jsx: Explicit restaurant detection result:', isExplicit);
-  return isExplicit;
-};
-
-// Helper function to format restaurant recommendations
-const formatRestaurantRecommendations = (restaurants) => {
-  console.log('App.jsx: formatRestaurantRecommendations called with:', { restaurants, count: restaurants?.length });
-  
-  if (!restaurants || restaurants.length === 0) {
-    console.log('App.jsx: No restaurants found, returning error message');
-    return "Sorry, I couldn't find any restaurants matching your request in Istanbul.";
-  }
-
-  let formattedResponse = "Here are 4 great restaurant recommendations for you:\n\n";
-  
-  restaurants.slice(0, 4).forEach((restaurant, index) => {
-    const name = restaurant.name || 'Unknown Restaurant';
-    const rating = restaurant.rating ? `${restaurant.rating}` : '';
-    const address = restaurant.address || restaurant.vicinity || '';
-    const description = restaurant.description || 'A popular dining spot in Istanbul.';
-    
-    formattedResponse += `${index + 1}. ${name}\n`;
-    if (rating) formattedResponse += `Rating: ${rating}\n`;
-    if (address) formattedResponse += `Address: ${address}\n`;
-    formattedResponse += `${description}\n\n`;
-  });
-
-  return formattedResponse;
-};
 
 const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [messages, setMessages] = useState([]);
   const [expanded, setExpanded] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingMessage, setTypingMessage] = useState('KAM is thinking...');
   const chatScrollRef = useRef(null);
 
   useEffect(() => {
@@ -80,24 +26,6 @@ const App = () => {
     }
   }, [messages, expanded]);
 
-  // Event listener for sample prompt clicks
-  useEffect(() => {
-    const handleSamplePromptClick = (event) => {
-      const promptText = event.detail;
-      setQuery(promptText);
-      // Auto-trigger search
-      setTimeout(() => {
-        const searchEvent = { preventDefault: () => {} };
-        handleSearch(searchEvent);
-      }, 100);
-    };
-
-    window.addEventListener('samplePromptClick', handleSamplePromptClick);
-    return () => {
-      window.removeEventListener('samplePromptClick', handleSamplePromptClick);
-    };
-  }, [query, messages]);
-
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -108,72 +36,26 @@ const App = () => {
     setTimeout(() => {
       document.getElementById('chat-animated-container')?.classList.add('expand-animate');
     }, 10);
-
-    // Check if user is making an explicit restaurant request (only very specific cases)
-    if (isExplicitRestaurantRequest(searchQuery)) {
-      console.log('🍽️ App.jsx: Detected restaurant request, fetching recommendations...');
-      setIsTyping(true);
-      setTypingMessage('Analyzing restaurant options in Istanbul...');
-      
-      try {
-        const restaurantData = await fetchRestaurantRecommendations(searchQuery);
-        console.log('🍽️ App.jsx: Restaurant API response:', restaurantData);
-        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
-        console.log('🍽️ App.jsx: Formatted response:', formattedResponse);
-        
-        setIsTyping(false);
-        setMessages(msgs => [...msgs, { user: 'KAM', text: formattedResponse }]);
-        return; // Exit early, don't do regular AI chat
-      } catch (error) {
-        console.error('🍽️ App.jsx: Restaurant recommendation error:', error);
-        setIsTyping(false);
-        setMessages(msgs => [...msgs, {
-          user: 'KAM',
-          text: `Sorry, I had trouble getting restaurant recommendations: ${error.message}. Let me try a different approach.`
-        }]);
-        return;
-      }
-    }
-
-    // Regular KAM response for non-restaurant queries
-    setIsTyping(true);
-    setTypingMessage('Processing your inquiry...');
-    
+    // Streaming KAM response
+    let aiMessage = '';
+    setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
     try {
-      const response = await fetchResults(searchQuery);
-      setIsTyping(false);
-      
-      if (response && response.message) {
-        // Create word-by-word streaming effect
-        const words = response.message.split(' ');
-        let displayedText = '';
-        
-        // Add initial empty message
-        setMessages(msgs => [...msgs, { user: 'KAM', text: '' }]);
-        
-        // Display words one by one
-        for (let i = 0; i < words.length; i++) {
-          displayedText += words[i] + ' ';
-          
-          setMessages(msgs => {
-            const updated = [...msgs];
-            // Find last KAM message and update its text
-            for (let j = updated.length - 1; j >= 0; j--) {
-              if (updated[j].user === 'KAM') {
-                updated[j] = { ...updated[j], text: displayedText.trim() };
-                break;
-              }
+      await fetchStreamingResults(searchQuery, (chunk) => {
+        aiMessage += chunk;
+        setMessages(msgs => {
+          const updated = [...msgs];
+          // Find last KAM message and update its text
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].user === 'KAM') {
+              updated[i] = { ...updated[i], text: aiMessage };
+              break;
             }
-            return updated;
-          });
-          
-          // Wait between words for streaming effect
-          await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
-        }
-      }
+          }
+          return updated;
+        });
+      });
     } catch (err) {
       console.error('API Error:', err);
-      setIsTyping(false);
       setMessages(msgs => [...msgs, {
         user: 'KAM',
         text: `Sorry, I encountered an error connecting to the server: ${err.message}. Please make sure the backend is running and try again.`
@@ -192,21 +74,18 @@ const App = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
-      {/* Connection Status Indicator */}
-      <ConnectionStatus />
-      
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh'}}>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="main-page">
-            <div className="chat-title logo-istanbul">
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12vh'}}>
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
+            <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
             </div>
           </Link>
-          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '2rem auto 0', padding: '1rem'}}>
+          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '1rem auto 0', padding: '1rem'}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -217,8 +96,8 @@ const App = () => {
         </div>
       ) : (
         <>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick} className="fixed z-[60] top-4 left-6">
-            <div className="chat-title logo-istanbul">
+          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
+            <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
@@ -230,7 +109,6 @@ const App = () => {
               <div className="chat-container" style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)', position: 'relative'}}>
                 <div ref={chatScrollRef} className="chat-scroll-area" style={{flex: 1, overflowY: 'scroll', overflowX: 'hidden', marginBottom: '1rem', paddingBottom: '0.5rem', minHeight: 0, paddingTop: '0.5rem'}}>
                   <Chat messages={messages} />
-                  {isTyping && <TypingIndicator message={typingMessage} />}
                   {/* Remove or reduce margin below chat */}
                   <div style={{ marginTop: '0.5rem' }}>
                     {results.map((res, idx) => (

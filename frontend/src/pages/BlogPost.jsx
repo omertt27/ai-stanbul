@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchBlogPost, likeBlogPost, checkLikeStatus } from '../api/blogApi';
+import { 
+  fetchBlogPost, 
+  likeBlogPost, 
+  checkLikeStatus, 
+  fetchRelatedPosts 
+} from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import Comments from '../components/Comments';
 import '../App.css';
 
 const BlogPost = () => {
@@ -9,29 +15,53 @@ const BlogPost = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
+  const [relatedPosts, setRelatedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [relatedLoading, setRelatedLoading] = useState(true);
   const [error, setError] = useState(null);
   const [likeLoading, setLikeLoading] = useState(false);
   const [alreadyLiked, setAlreadyLiked] = useState(false);
   const [likeError, setLikeError] = useState(null);
 
   useEffect(() => {
+    console.log('🔄 BlogPost: Loading post with ID:', id);
     loadPost();
     checkUserLikeStatus();
   }, [id]);
 
+  useEffect(() => {
+    if (post) {
+      console.log('🔄 BlogPost: Loading related posts for:', post.title);
+      loadRelatedPosts();
+    }
+  }, [post]);
+
   const loadPost = async () => {
+    console.log('📖 BlogPost: Loading post with ID:', id);
     setLoading(true);
     setError(null);
     
     try {
       const fetchedPost = await fetchBlogPost(id);
       setPost(fetchedPost);
+      console.log('✅ BlogPost: Post loaded successfully:', fetchedPost?.title);
     } catch (err) {
       setError(err.message || 'Failed to load blog post');
-      console.error('Failed to load post:', err);
+      console.error('❌ BlogPost: Failed to load post:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRelatedPosts = async () => {
+    setRelatedLoading(true);
+    try {
+      const response = await fetchRelatedPosts(id, 4);
+      setRelatedPosts(response.related_posts || []);
+    } catch (err) {
+      console.error('Failed to load related posts:', err);
+    } finally {
+      setRelatedLoading(false);
     }
   };
 
@@ -189,21 +219,73 @@ const BlogPost = () => {
   }
 
   return (
-    <div className={`min-h-screen pt-20 sm:pt-28 md:pt-36 px-2 sm:px-4 pb-8 transition-colors duration-200 ${
-      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    <div className={`min-h-screen transition-colors duration-200 ${
+      darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
     }`}>
-      {/* AI Istanbul Logo - Top Left */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
-        <div className="chat-title logo-istanbul">
-          <span className="logo-text">
-            A/<span style={{fontWeight: 400}}>STANBUL</span>
-          </span>
+      {/* Static Header with Logo and Navigation */}
+      <header className={`w-full px-4 py-4 border-b transition-colors duration-200 backdrop-blur-sm ${
+        darkMode ? 'bg-gray-900/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'
+      }`}>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          {/* AI Istanbul Logo */}
+          <Link to="/" style={{textDecoration: 'none'}}>
+            <div className="chat-title logo-istanbul">
+              <span className="logo-text">
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
+          
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-6">
+            <Link 
+              to="/blog" 
+              className={`font-medium transition-colors duration-200 ${
+                darkMode 
+                  ? 'text-indigo-400 hover:text-indigo-300' 
+                  : 'text-indigo-600 hover:text-indigo-700'
+              }`}
+            >
+              Blog
+            </Link>
+            <Link 
+              to="/about" 
+              className={`font-medium transition-colors duration-200 ${
+                darkMode 
+                  ? 'text-gray-300 hover:text-white' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              About
+            </Link>
+            <Link 
+              to="/faq" 
+              className={`font-medium transition-colors duration-200 ${
+                darkMode 
+                  ? 'text-gray-300 hover:text-white' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              FAQ
+            </Link>
+            <Link 
+              to="/donate" 
+              className={`font-medium transition-colors duration-200 ${
+                darkMode 
+                  ? 'text-gray-300 hover:text-white' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Donate
+            </Link>
+          </nav>
         </div>
-      </Link>
+      </header>
 
+      <div className="px-2 sm:px-4 pb-8">
       <div className="max-w-4xl mx-auto">
         {/* Navigation */}
-        <div className="mb-8">
+        <div className="mb-8 pt-6">
           <Link
             to="/blog"
             className={`inline-flex items-center transition-colors duration-200 ${
@@ -219,8 +301,10 @@ const BlogPost = () => {
           </Link>
         </div>
 
-        <article className={`rounded-lg overflow-hidden transition-colors duration-200 ${
-          darkMode ? 'bg-gray-800' : 'bg-white shadow-lg'
+        <article className={`rounded-xl overflow-hidden transition-all duration-200 backdrop-blur-sm ${
+          darkMode 
+            ? 'bg-gray-800/80 border border-gray-700/50 shadow-2xl shadow-black/20' 
+            : 'bg-white/90 border border-gray-200/50 shadow-xl shadow-gray-900/10'
         }`}>
           {/* Featured Image */}
           {post.images && post.images.length > 0 && (
@@ -228,44 +312,44 @@ const BlogPost = () => {
               <img
                 src={`http://localhost:8001${post.images[0].url}`}
                 alt={post.images[0].alt_text || post.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
               />
             </div>
           )}
 
-          <div className="p-8">
+          <div className="p-6 sm:p-8">
             {/* Author Info */}
             {post.author_name && (
               <div className={`flex items-center mb-6 pb-6 border-b transition-colors duration-200 ${
-                darkMode ? 'border-gray-700' : 'border-gray-200'
+                darkMode ? 'border-gray-700/50' : 'border-gray-200/50'
               }`}>
                 {post.author_photo ? (
                   <img 
                     src={post.author_photo} 
                     alt={post.author_name}
-                    className="w-12 h-12 rounded-full mr-4 object-cover"
+                    className="w-12 h-12 rounded-full mr-4 object-cover border-2 border-indigo-500/20"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : null}
-                <div className={`w-12 h-12 rounded-full mr-4 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold ${post.author_photo ? 'hidden' : ''}`}>
+                <div className={`w-12 h-12 rounded-full mr-4 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold shadow-lg ${post.author_photo ? 'hidden' : ''}`}>
                   {post.author_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <p className={`text-lg font-semibold transition-colors duration-200 ${
-                    darkMode ? 'text-gray-200' : 'text-gray-800'
+                    darkMode ? 'text-gray-100' : 'text-gray-800'
                   }`}>{post.author_name}</p>
                   <p className={`text-sm transition-colors duration-200 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                    darkMode ? 'text-indigo-400' : 'text-indigo-600'
                   }`}>Travel Blogger</p>
                 </div>
               </div>
             )}
 
             {/* Title */}
-            <h1 className={`text-3xl md:text-4xl font-bold mb-6 leading-tight transition-colors duration-200 ${
+            <h1 className={`text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-tight transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>
               {post.title}
@@ -273,7 +357,7 @@ const BlogPost = () => {
 
             {/* Metadata */}
             <div className={`flex flex-wrap items-center gap-6 mb-8 pb-6 border-b transition-colors duration-200 ${
-              darkMode ? 'text-gray-400 border-gray-700' : 'text-gray-600 border-gray-200'
+              darkMode ? 'text-gray-300 border-gray-700/50' : 'text-gray-600 border-gray-200/50'
             }`}>
               <div className="flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,25 +409,27 @@ const BlogPost = () => {
             </div>
 
             {/* Content */}
-            <div className="prose prose-lg max-w-none">
+            <div className={`prose prose-lg max-w-none transition-colors duration-200 ${
+              darkMode ? 'prose-invert' : ''
+            }`}>
               {formatContent(post.content)}
             </div>
 
             {/* Additional Images */}
             {post.images && post.images.length > 1 && (
               <div className={`mt-8 border-t pt-8 transition-colors duration-200 ${
-                darkMode ? 'border-gray-700' : 'border-gray-200'
+                darkMode ? 'border-gray-700/50' : 'border-gray-200/50'
               }`}>
-                <h3 className={`text-xl font-semibold mb-4 transition-colors duration-200 ${
+                <h3 className={`text-xl font-semibold mb-6 transition-colors duration-200 ${
                   darkMode ? 'text-white' : 'text-gray-900'
-                }`}>More Photos</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                }`}>📸 More Photos</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {post.images.slice(1).map((image, index) => (
-                    <div key={index} className="aspect-video overflow-hidden rounded-lg">
+                    <div key={index} className="aspect-video overflow-hidden rounded-xl group">
                       <img
                         src={`http://localhost:8001${image.url}`}
                         alt={image.alt_text || `Photo ${index + 2}`}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
                     </div>
                   ))}
@@ -353,30 +439,125 @@ const BlogPost = () => {
           </div>
         </article>
 
-        {/* Call to Action */}
-        <div className={`mt-12 text-center rounded-lg p-8 transition-colors duration-200 ${
-          darkMode ? 'bg-gray-800' : 'bg-white shadow-lg'
+        {/* Comments Section */}
+        <Comments postId={id} />
+
+        {/* Related Posts */}
+        {relatedPosts.length > 0 && (
+          <div className={`mt-12 border-t pt-12 transition-colors duration-200 ${
+            darkMode ? 'border-gray-700/50' : 'border-gray-200/50'
+          }`}>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className={`text-2xl md:text-3xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                🔗 Related Stories
+              </h2>
+              {relatedLoading && (
+                <div className={`animate-spin rounded-full h-6 w-6 border-b-2 ${
+                  darkMode ? 'border-indigo-500' : 'border-indigo-600'
+                }`}></div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedPosts.map((relatedPost) => (
+                <Link
+                  key={relatedPost.id}
+                  to={`/blog/${relatedPost.id}`}
+                  className={`group block rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl ${
+                    darkMode
+                      ? 'bg-gray-800/80 hover:bg-gray-800 border border-gray-700/50 shadow-lg shadow-black/20'
+                      : 'bg-white/90 hover:bg-white border border-gray-200/50 shadow-lg shadow-gray-900/10 hover:shadow-2xl'
+                  }`}
+                >
+                  {relatedPost.images && relatedPost.images.length > 0 && (
+                    <div className="aspect-video overflow-hidden">
+                      <img
+                        src={`http://localhost:8001${relatedPost.images[0].url}`}
+                        alt={relatedPost.images[0].alt_text || relatedPost.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      {relatedPost.district && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          darkMode ? 'bg-gray-700/70 text-gray-300' : 'bg-gray-100/80 text-gray-600'
+                        }`}>
+                          📍 {relatedPost.district}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <h3 className={`font-bold text-sm mb-2 line-clamp-2 group-hover:text-indigo-500 transition-colors duration-200 ${
+                      darkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {relatedPost.title}
+                    </h3>
+                    
+                    <p className={`text-xs leading-relaxed line-clamp-2 mb-3 transition-colors duration-200 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      {relatedPost.content}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-medium ${
+                        darkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {relatedPost.author_name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span className={`text-xs ${
+                          darkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {relatedPost.likes_count}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Static Footer for Blog Post Page */}
+        <footer className={`w-full py-8 px-4 mt-12 border-t transition-colors duration-200 backdrop-blur-sm ${
+          darkMode
+            ? 'bg-gray-900/70 border-gray-700/50 text-gray-300'
+            : 'bg-white/70 border-gray-200/50 text-gray-600'
         }`}>
-          <h2 className={`text-2xl font-bold mb-4 transition-colors duration-200 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            Inspired by this story?
-          </h2>
-          <p className={`mb-6 transition-colors duration-200 ${
-            darkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            Share your own Istanbul experience and help other travelers discover amazing places.
-          </p>
-          <Link
-            to="/blog/new"
-            className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Write Your Story
-          </Link>
-        </div>
+          <div className="max-w-4xl mx-auto flex justify-center gap-8">
+            <Link 
+              to="/sources" 
+              className={`hover:underline transition-colors duration-200 ${
+                darkMode 
+                  ? 'hover:text-indigo-400' 
+                  : 'hover:text-indigo-600'
+              }`}
+            >
+              Sources
+            </Link>
+            <Link 
+              to="/contact" 
+              className={`hover:underline transition-colors duration-200 ${
+                darkMode 
+                  ? 'hover:text-indigo-400' 
+                  : 'hover:text-indigo-600'
+              }`}
+            >
+              Contact
+            </Link>
+          </div>
+        </footer>
+      </div>
       </div>
     </div>
   );

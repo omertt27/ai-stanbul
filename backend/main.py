@@ -386,37 +386,53 @@ def clean_text_formatting(text):
     
     return text.strip()
 
-def generate_restaurant_info(restaurant_name, location="Istanbul"):
-    """Generate a detailed, informative description for a restaurant based on its name"""
+def generate_restaurant_info(restaurant_name, location="Istanbul", place_data=None):
+    """Generate a concise, helpful description for a restaurant"""
     name_lower = restaurant_name.lower()
     
-    # Enhanced Turkish restaurant types and food indicators
-    if any(word in name_lower for word in ['kebap', 'kebab', 'çiğ köfte', 'döner', 'dürüm']):
-        return "Specializes in traditional Turkish kebabs, grilled meats, and authentic Ottoman cuisine. Perfect for experiencing Turkey's rich culinary heritage."
-    elif any(word in name_lower for word in ['pizza', 'pizzeria', 'italian']):
-        return "Authentic Italian restaurant featuring wood-fired pizzas, fresh pasta, and Mediterranean flavors with a Turkish twist."
-    elif any(word in name_lower for word in ['sushi', 'japanese', 'asian']):
-        return "Modern Japanese restaurant offering fresh sushi, sashimi, and traditional Asian dishes prepared with high-quality ingredients."
-    elif any(word in name_lower for word in ['burger', 'american', 'grill']):
-        return "Contemporary grill house known for gourmet burgers, steaks, and American-style comfort food with local ingredients."
+    # Use actual place data if available
+    if place_data:
+        types = place_data.get('types', [])
+        rating = place_data.get('rating', 0)
+        price_level = place_data.get('price_level', 0)
+        
+        # Generate description based on actual data
+        if 'restaurant' in types:
+            base_desc = "Popular local restaurant"
+        elif 'meal_takeaway' in types:
+            base_desc = "Great takeaway spot"
+        elif 'cafe' in types:
+            base_desc = "Cozy neighborhood cafe"
+        elif 'bakery' in types:
+            base_desc = "Fresh bakery"
+        else:
+            base_desc = "Local dining spot"
+            
+        # Add rating context
+        if rating >= 4.5:
+            base_desc = "Highly acclaimed " + base_desc.lower()
+        elif rating >= 4.0:
+            base_desc = "Well-rated " + base_desc.lower()
+            
+        return base_desc
+    
+    # Fallback to name-based descriptions (shorter)
+    if any(word in name_lower for word in ['kebap', 'kebab', 'döner']):
+        return "Traditional Turkish kebab house"
+    elif any(word in name_lower for word in ['pizza', 'italian']):
+        return "Italian restaurant with authentic flavors"
+    elif any(word in name_lower for word in ['sushi', 'japanese']):
+        return "Japanese restaurant with fresh sushi"
     elif any(word in name_lower for word in ['cafe', 'kahve', 'coffee']):
-        return "Charming cafe offering specialty coffee, Turkish tea, fresh pastries, and light meals in a cozy atmosphere perfect for relaxation."
-    elif any(word in name_lower for word in ['balık', 'fish', 'seafood', 'deniz']):
-        return "Fresh seafood restaurant featuring daily catches from the Bosphorus and Mediterranean, prepared with traditional Turkish cooking methods."
-    elif any(word in name_lower for word in ['ev yemeği', 'lokanta', 'traditional']):
-        return "Traditional Turkish lokanta serving home-style cooking, regional specialties, and authentic flavors passed down through generations."
-    elif any(word in name_lower for word in ['meze', 'rakı', 'taverna', 'meyhane']):
-        return "Classic Turkish meyhane offering an extensive selection of meze (small plates), fresh seafood, and premium rakı in a traditional setting."
-    elif any(word in name_lower for word in ['pastane', 'tatlı', 'dessert', 'bakery']):
-        return "Traditional Turkish pastry shop known for fresh baklava, Turkish delight, börek, and artisanal sweets made daily using time-honored recipes."
-    elif any(word in name_lower for word in ['steakhouse', 'et', 'meat']):
-        return "Premium steakhouse featuring the finest cuts of meat, expertly grilled and served with sophisticated sides in an elegant atmosphere."
-    elif any(word in name_lower for word in ['rooftop', 'terrace', 'view']):
-        return "Upscale dining destination with panoramic views of Istanbul, offering refined cuisine and cocktails in a stunning rooftop setting."
-    elif any(word in name_lower for word in ['fine dining', 'michelin', 'gourmet']):
-        return "Sophisticated fine dining establishment offering innovative cuisine, impeccable service, and an unforgettable culinary experience."
+        return "Local cafe perfect for coffee and conversation"
+    elif any(word in name_lower for word in ['balık', 'fish', 'seafood']):
+        return "Fresh seafood with Bosphorus views"
+    elif any(word in name_lower for word in ['meze', 'rakı', 'meyhane']):
+        return "Traditional meyhane with meze and rakı"
+    elif any(word in name_lower for word in ['rooftop', 'terrace']):
+        return "Stunning rooftop dining with city views"
     else:
-        return "Highly-rated restaurant known for quality cuisine, excellent service, and authentic flavors that capture the essence of Istanbul's diverse food scene."
+        return "Popular local restaurant with authentic flavors"
 
 app = FastAPI(title="AIstanbul API", debug=False)
 
@@ -848,7 +864,8 @@ def create_fuzzy_keywords():
             'places', 'place', 'plases', 'plases', 'plase', 'spots', 'locations', 'areas'
         ],
         'restaurants': [
-            'restaurants', 'restaurant', 'restourant', 'resturant', 'food', 
+            'restaurants', 'restaurant', 'restourant', 'resturant', 'restaurnts', 'restaurnt', 
+            'restarunt', 'restarunts', 'restaurents', 'restarants', 'restrants', 'food', 
             'eat', 'dining', 'eatery', 'cafe', 'cafes'
         ],
         'attractions': [
@@ -874,7 +891,7 @@ def create_fuzzy_keywords():
     }
     return keywords
 
-def correct_typos(text, threshold=80):
+def correct_typos(text, threshold=70):
     """Correct typos in user input using fuzzy matching"""
     try:
         keywords = create_fuzzy_keywords()
@@ -887,7 +904,10 @@ def correct_typos(text, threshold=80):
                      'above', 'below', 'between', 'among', 'a', 'an', 'the', 
                      'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 
                      'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-                     'what', 'where', 'when', 'how', 'why', 'which', 'who', 'whom'}
+                     'what', 'where', 'when', 'how', 'why', 'which', 'who', 'whom',
+                     'give', 'me', 'show'}
+        
+        print(f"🔍 Typo correction input: '{text}'")
         
         for word in words:
             # Skip common stop words
@@ -899,6 +919,12 @@ def correct_typos(text, threshold=80):
             best_score = 0
             best_category = None
             
+            # Special handling for restaurant typos
+            if word.lower() in ['restaurnts', 'restaurnt', 'restarants', 'restrants']:
+                corrected_words.append('restaurants')
+                print(f"🔧 Special typo correction: '{word}' -> 'restaurants'")
+                continue
+            
             # Check each category of keywords
             for category, keyword_list in keywords.items():
                 match = process.extractOne(word, keyword_list)
@@ -909,11 +935,15 @@ def correct_typos(text, threshold=80):
             
             if best_match and best_score >= threshold:
                 corrected_words.append(best_match)
-                print(f"Typo correction: '{word}' -> '{best_match}' (score: {best_score}, category: {best_category})")
+                print(f"🔧 Typo correction: '{word}' -> '{best_match}' (score: {best_score}, category: {best_category})")
             else:
                 corrected_words.append(word)
+                if len(word) > 3:  # Only debug longer words
+                    print(f"⚠️  No correction for: '{word}' (threshold: {threshold})")
         
         corrected_text = ' '.join(corrected_words)
+        if corrected_text != text.lower():
+            print(f"✅ Final correction: '{text}' -> '{corrected_text}'")
         return corrected_text
     except Exception as e:
         print(f"Error in typo correction: {e}")
@@ -933,11 +963,12 @@ def validate_and_sanitize_input(user_input):
     
     # Detect and block SQL injection patterns
     sql_patterns = [
-        r"[';]",                                 # Semicolons and quotes
+        r"[;]",                                  # Semicolons (but allow apostrophes for contractions)
         r"--",                                   # SQL comments
         r"/\*|\*/",                             # SQL block comments
         r"\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b",
         r"\b(OR|AND)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+['\"]?",  # OR '1'='1' patterns
+        r"['\"][^'\"]*['\"][^'\"]*=",           # Only block quotes that look like SQL injection patterns
     ]
     
     # Detect and block XSS patterns  
@@ -967,8 +998,8 @@ def validate_and_sanitize_input(user_input):
     # Sanitize the input - be less aggressive to preserve legitimate queries
     sanitized = user_input
     
-    # Only remove clearly dangerous characters, keep most normal characters
-    dangerous_chars = r'[<>{}$`;\|\*]'  # Only remove clearly dangerous chars
+    # Only remove clearly dangerous characters, keep most normal characters including apostrophes for contractions
+    dangerous_chars = r'[<>{}$`;\|\*]'  # Removed single quotes to allow contractions like "I'm"
     sanitized = re.sub(dangerous_chars, ' ', sanitized)
     
     # Normalize whitespace
@@ -1198,16 +1229,24 @@ async def ai_istanbul_router(request: Request):
         is_daily_talk = any(re.search(pattern, user_input_clean) for pattern in daily_talk_patterns)
         if is_greeting or is_daily_talk:
             logger.info(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
+            
+            # Check if we have previous conversation history
+            previous_context = context_manager.get_context(session_id) if context_manager else None
+            has_history = previous_context and len(previous_context.previous_queries) > 0
+            
             if any(re.search(r'\b' + word + r'\b', user_input_clean) for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
-                return create_ai_response("Hello there! 👋 I'm your friendly Istanbul travel guide. I'm here to help you discover amazing places, restaurants, attractions, and hidden gems in this beautiful city. What would you like to explore in Istanbul today?", db, session_id, user_input, request)
+                if has_history:
+                    return create_ai_response("Hey there! 👋 Welcome back! I remember we were talking about Istanbul. Ready to continue planning your adventure, or is there something new you'd like to explore in the city?", db, session_id, user_input, request)
+                else:
+                    return create_ai_response("Hello! 👋 I'm your Istanbul travel companion! Whether you're planning a visit or already here, I'll help you discover amazing restaurants, hidden gems, and local experiences. What brings you to Istanbul?", db, session_id, user_input, request)
             elif any(re.search(pattern, user_input_clean) for pattern in [r'\bhow are you\b', r'\bhow are u\b', r'\bhow r u\b', r'\bhow r you\b', r'\bhow are you doing\b']):
-                return create_ai_response("I'm doing great, thank you for asking! 😊 I'm excited to help you explore Istanbul. There's so much to discover in this incredible city - from historic sites like Hagia Sophia to delicious food in Kadıköy. What interests you most?", db, session_id, user_input, request)
+                return create_ai_response("I'm doing fantastic! 😊 I love helping people discover Istanbul's magic. The city never stops surprising me with its blend of history, culture, and amazing food. What's your Istanbul mood today - history, food, or adventure?", db, session_id, user_input, request)
             elif any(re.search(r'\b' + phrase.replace(' ', r'\s+') + r'\b', user_input_clean) for phrase in ['good morning', 'good afternoon', 'good evening']):
-                return create_ai_response("Good day to you too! ☀️ What a perfect time to plan your Istanbul adventure. Whether you're looking for restaurants, museums, or unique neighborhoods to explore, I'm here to help. What catches your interest?", db, session_id, user_input, request)
+                return create_ai_response("Good day! ☀️ Perfect timing to explore Istanbul! The city has different charms throughout the day - morning markets, afternoon tea culture, evening Bosphorus views. What sounds appealing to you right now?", db, session_id, user_input, request)
             elif any(re.search(pattern, user_input_clean) for pattern in [r"\bwhat's up\b", r'\bwhats up\b', r'\bsup\b', r"\bhow's it going\b", r'\bhows it going\b']):
-                return create_ai_response("Not much, just here ready to help you discover Istanbul! 🌟 This city has incredible energy - from the bustling Grand Bazaar to peaceful Bosphorus views. What would you like to know about?", db, session_id, user_input, request)
+                return create_ai_response("Just here living my best life helping people fall in love with Istanbul! 🌟 This city has such incredible energy. Are you looking to soak up some of that Istanbul vibe? What kind of experience interests you?", db, session_id, user_input, request)
             else:
-                return create_ai_response("It's so nice to chat with you! 😊 I love helping people discover Istanbul's wonders. From traditional Turkish cuisine to stunning architecture, there's something for everyone here. What aspect of Istanbul interests you most?", db, session_id, user_input, request)
+                return create_ai_response("So nice to chat! 😊 I'm passionate about helping people discover Istanbul's incredible layers - from Ottoman palaces to trendy neighborhoods. What aspect of this amazing city draws you in most?", db, session_id, user_input, request)
         
         # Continue with main query processing
         
@@ -1223,9 +1262,8 @@ async def ai_istanbul_router(request: Request):
         # Get conversation context
         context = context_manager.get_context(session_id)
         
-        # Enhanced query understanding with context
-        enhanced_input = query_understanding.correct_and_enhance_query(user_input)
-        print(f"Enhanced user_input: '{enhanced_input}'")
+        # Enhanced query understanding with context - use our comprehensive typo correction
+        enhanced_input = enhance_query_understanding(user_input)  # Use our fuzzy matching function instead
         
         # Detect if this is a follow-up question
         is_followup = context and len(context.previous_queries) > 0 and any(
@@ -1234,19 +1272,9 @@ async def ai_istanbul_router(request: Request):
         
         # Extract intent and entities
         intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
-        print(f"Intent detected: {intent_info}")
-        
-        # Debug context information
-        if context:
-            print(f"Context found - Previous queries: {context.previous_queries}")
-            print(f"Context found - Mentioned places: {context.mentioned_places}")
-            print(f"Context found - Last recommendation type: {context.last_recommendation_type}")
-        else:
-            print("No context found for this session")
         
         # Use enhanced input for processing
         user_input = enhanced_input
-        print(f"Processing user_input: '{user_input}' (length: {len(user_input)})")
 
         # --- OpenAI API Key Check ---
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -1268,8 +1296,8 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restourant', 'restaurents',  # Include corrected typos
-                'restarunt', 'restarunts',  # Add basic words and common misspellings first
+                'restaurant', 'restaurants', 'restourant', 'restaurents', 'restaurnts', 'restaurnt',  # Include corrected typos
+                'restarunt', 'restarunts', 'restarants', 'restrants', 'restrnt',  # Add basic words and common misspellings first
                 'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
                 'where to eat', 'best restaurants', 'good restaurants', 'top restaurants',
@@ -1293,6 +1321,7 @@ async def ai_istanbul_router(request: Request):
             location_restaurant_patterns = [
                 r'restaurants?\s+in\s+\w+',  # "restaurants in taksim"
                 r'restaurant\s+in\s+\w+',   # "restaurant in taksim"
+                r'restaurnts?\s+in\s+\w+',   # "restaurnts in taksim" - common misspelling
                 r'restarunts?\s+in\s+\w+',   # "restarunt in taksim" - common misspelling
                 r'restarunt\s+in\s+\w+',    # "restarunt in taksim" - common misspelling
                 r'resturant\s+in\s+\w+',    # Common misspelling
@@ -1305,6 +1334,7 @@ async def ai_istanbul_router(request: Request):
                 r'food\s+in\s+\w+',  # "food in kadikoy"
                 r'dining\s+in\s+\w+',  # "dining in taksim"
                 r'give\s+me\s+restaurants?\s+in\s+\w+',  # "give me restaurants in taksim"
+                r'give\s+me\s+restaurnts?\s+in\s+\w+',  # "give me restaurnts in taksim" - with typo
                 r'show\s+me\s+restaurants?\s+in\s+\w+'   # "show me restaurants in galata"
             ]
             museum_keywords = [
@@ -1434,8 +1464,49 @@ async def ai_istanbul_router(request: Request):
                                    'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe']
             is_single_district_query = (user_input.lower().strip() in single_district_names)
             
+            # Enhanced follow-up restaurant detection for context-aware queries
+            is_follow_up_restaurant_query = False
+            context_location_for_restaurants = None
+            
+            # Check for follow-up restaurant queries like "give me also restaurants in beyoglu"
+            follow_up_restaurant_patterns = [
+                r'give\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "give me also restaurants in beyoglu"
+                r'show\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "show me more restaurants in kadikoy"
+                r'any\s+(other|more)\s+restaurants?\s+(in\s+\w+)?',        # "any other restaurants in galata"
+                r'what\s+about\s+restaurants?\s+(in\s+\w+)?',              # "what about restaurants in taksim"
+                r'(also|more)\s*restaurants?\s+(in\s+\w+)?',               # "also restaurants in sultanahmet"
+                r'restaurants?\s+(also|too|as\s+well)',                    # "restaurants also"
+                # Add typo-tolerant patterns
+                r'(also|more)\s*resturants?\s+(in\s+\w+)?',                # "also resturants in sultanahmet"
+                r'resturants?\s+(also|too|as\s+well)',                     # "resturants also"
+                r'restarunts?\s+(also|too|as\s+well)',                     # "restarunts also"
+                r'restarunt\s+(also|too|as\s+well)',                       # "restarunt also"
+                r'(also|more)\s*restarunts?\s+(in\s+\w+)?',                # "also restarunts"
+            ]
+            
+            # Check if this is a follow-up restaurant query
+            for pattern in follow_up_restaurant_patterns:
+                match = re.search(pattern, user_input.lower())
+                if match:
+                    is_follow_up_restaurant_query = True
+                    # Try to extract location from the pattern
+                    if 'in ' in user_input.lower():
+                        location_match = re.search(r'in\s+(\w+)', user_input.lower())
+                        if location_match:
+                            context_location_for_restaurants = location_match.group(1)
+                    break
+            
+            # If it's a follow-up query but no location found in query, use conversation context
+            if is_follow_up_restaurant_query and not context_location_for_restaurants:
+                # Get the most recent location from conversation context
+                if intent_info.get('entities', {}).get('context_derived_location'):
+                    context_location_for_restaurants = intent_info['entities']['context_derived_location'][0]
+                    print(f"🔗 Follow-up restaurant query detected, using context location: '{context_location_for_restaurants}'")
+            
             # More specific matching for different query types - prioritize restaurant and museum queries
-            is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
+            is_restaurant_query = (any(keyword in user_input.lower() for keyword in restaurant_keywords) or 
+                                 is_location_restaurant_query or 
+                                 is_follow_up_restaurant_query)
             is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
             
             # Only consider it a district query if it's NOT a restaurant, museum, or location-based query and NOT a single district name
@@ -1468,16 +1539,9 @@ async def ai_istanbul_router(request: Request):
             is_accommodation_query = any(keyword in user_input.lower() for keyword in accommodation_keywords)
             is_events_query = any(keyword in user_input.lower() for keyword in events_keywords)
             
-            # Debug query categorization
-            print(f"Query categorization:")
-            print(f"  is_restaurant_query: {is_restaurant_query}")
-            print(f"  is_museum_query: {is_museum_query}")
-            print(f"  is_district_query: {is_district_query}")
-            print(f"  is_attraction_query: {is_attraction_query}")
-            print(f"  is_transportation_query: {is_transportation_query}")
-            print(f"  is_location_place_query: {is_location_place_query}")
-            print(f"  is_location_museum_query: {is_location_museum_query}")
-            print(f"  is_single_district_query: {is_single_district_query}")
+            # Debug query categorization (only for severe debugging)
+            # print(f"Query categorization:")
+            # print(f"  is_restaurant_query: {is_restaurant_query}")
             
             if is_restaurant_query:
                 # Get real restaurant data from Google Maps only
@@ -1487,7 +1551,13 @@ async def ai_istanbul_router(request: Request):
                     context_location = None
                     
                     # Check for context-derived location first (e.g., user said "beyoglu" then "restaurants")
-                    if intent_info.get('entities', {}).get('context_derived_location'):
+                    if context_location_for_restaurants:
+                        # Use the location from follow-up detection
+                        context_location = context_location_for_restaurants
+                        search_location = f"{context_location}, Istanbul, Turkey"
+                        print(f"Using follow-up query location for restaurant search: '{context_location}'")
+                        logger.info(f"🔗 Follow-up restaurant query: Searching in '{context_location}' from follow-up detection")
+                    elif intent_info.get('entities', {}).get('context_derived_location'):
                         context_location = intent_info['entities']['context_derived_location'][0]
                         search_location = f"{context_location}, Istanbul, Turkey"
                         print(f"Using context-derived location for restaurant search: '{context_location}'")
@@ -1524,107 +1594,88 @@ async def ai_istanbul_router(request: Request):
                         raise ExternalAPIError("Restaurant search failed", "Google Places", e)
                     
                     if places_data.get('results'):
-                        location_text = user_input.lower().split("in ")[-1].strip().title() if "in " in user_input.lower() else "Istanbul"
-                        restaurants_info = f"Here are some great restaurants in {location_text}:\n\n"
+                        # Enhanced context-aware response message
+                        location_text = ""
+                        if is_follow_up_restaurant_query and context_location_for_restaurants:
+                            location_text = context_location_for_restaurants.title()
+                            restaurants_info = f"Perfect! Here are some excellent restaurants in {location_text}:\n\n"
+                        elif is_follow_up_restaurant_query and context_location:
+                            location_text = context_location.title()
+                            restaurants_info = f"Great choice! Here are some excellent restaurants in {location_text}:\n\n"
+                        elif context_location:
+                            location_text = context_location.title()
+                            restaurants_info = f"Here are some fantastic restaurants in {location_text}:\n\n"
+                        else:
+                            location_text = user_input.lower().split("in ")[-1].strip().title() if "in " in user_input.lower() else "this area"
+                            restaurants_info = f"I found some great restaurants in {location_text}:\n\n"
                         
-                        for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
+                        for i, place in enumerate(places_data['results'][:4]):  # Show top 4 restaurants
                             name = place.get('name', 'Unknown')
                             rating = place.get('rating', 'N/A')
                             price_level = place.get('price_level', 'N/A')
-                            address = place.get('formatted_address', '')
-                            place_id = place.get('place_id', '')
                             types = place.get('types', [])
                             opening_hours = place.get('opening_hours', {})
                             
-                            # Generate detailed info about the restaurant
-                            restaurant_info = generate_restaurant_info(name, search_location)
+                            # Generate concise restaurant info
+                            restaurant_info = generate_restaurant_info(name, search_location, place)
                             
-                            # Format price level more user-friendly
-                            price_text = ''
-                            if price_level != 'N/A' and isinstance(price_level, int):
-                                if price_level == 1:
-                                    price_text = " • Budget-friendly"
-                                elif price_level == 2:
-                                    price_text = " • Moderate prices"
-                                elif price_level == 3:
-                                    price_text = " • Expensive"
-                                elif price_level == 4:
-                                    price_text = " • Very expensive"
-                            
-                            # Determine cuisine type from place types
-                            cuisine_type = ""
-                            if any(t in types for t in ['restaurant', 'food', 'establishment']):
-                                if 'turkish' in name.lower() or any(word in name.lower() for word in ['kebap', 'döner', 'köfte', 'pide', 'baklava']):
-                                    cuisine_type = "Turkish Cuisine"
-                                elif 'pizza' in name.lower() or 'italian' in name.lower():
-                                    cuisine_type = "Italian Cuisine"
-                                elif 'sushi' in name.lower() or 'japanese' in name.lower():
-                                    cuisine_type = "Japanese Cuisine"
-                                elif any(word in name.lower() for word in ['cafe', 'coffee', 'kahve']):
-                                    cuisine_type = "Cafe & Coffee"
-                                elif any(word in name.lower() for word in ['fish', 'seafood', 'balık']):
-                                    cuisine_type = "Seafood"
-                                else:
-                                    cuisine_type = "International Cuisine"
+                            # Simple price indicator
+                            price_indicator = ""
+                            if isinstance(price_level, int):
+                                price_indicator = "💰" * price_level
                             
                             # Opening status
-                            open_status = ""
+                            open_indicator = ""
                             if opening_hours.get('open_now') is True:
-                                open_status = " • Currently Open"
+                                open_indicator = " 🟢"
                             elif opening_hours.get('open_now') is False:
-                                open_status = " • Currently Closed"
+                                open_indicator = " 🔴"
                             
-                            # Format each restaurant entry with detailed information
-                            restaurants_info += f"{i+1}. **{name}**\n"
-                            if cuisine_type:
-                                restaurants_info += f"   Cuisine: {cuisine_type}\n"
+                            # Concise format
+                            restaurants_info += f"**{i+1}. {name}**{open_indicator}\n"
                             restaurants_info += f"   {restaurant_info}\n"
+                            
+                            # Compact info line
+                            info_line = ""
                             if rating != 'N/A':
-                                restaurants_info += f"   Rating: {rating}/5"
-                                if price_text:
-                                    restaurants_info += price_text
-                                if open_status:
-                                    restaurants_info += open_status
-                                restaurants_info += "\n"
-                            
-                            # Add simplified address (district/neighborhood)
-                            if address:
-                                # Extract just the district/neighborhood from full address
-                                address_parts = address.split(',')
-                                if len(address_parts) >= 2:
-                                    district = address_parts[-3].strip() if len(address_parts) >= 3 else address_parts[-2].strip()
-                                    restaurants_info += f"   Location: {district}\n"
-                            
+                                info_line += f"⭐ {rating}/5"
+                            if price_indicator:
+                                info_line += f"  {price_indicator}"
+                            if info_line:
+                                restaurants_info += f"   {info_line}\n"
                             restaurants_info += "\n"
                         
-                        restaurants_info += "💡 **Helpful Tips:**\n"
-                        restaurants_info += "• **Reservations:** Call ahead for popular restaurants, especially on weekends\n"
-                        restaurants_info += "• **Payment:** Most places accept cards, but cash is always welcomed\n"
-                        restaurants_info += "• **Timing:** Turkish dinner is typically served 7-10 PM\n"
-                        restaurants_info += "• **Language:** Basic Turkish phrases like 'Hesap, lütfen' (bill, please) are appreciated\n\n"
-                        restaurants_info += "🗺️ **Navigation:** Search these restaurant names on Google Maps for directions and phone numbers!"
+                        # Add follow-up suggestions
+                        restaurants_info += "💬 **Want more options?** Try asking:\n"
+                        restaurants_info += f"• \"Show me more restaurants in {location_text.lower()}\"\n"
+                        restaurants_info += f"• \"Turkish restaurants in {location_text.lower()}\"\n"
+                        restaurants_info += f"• \"Restaurants with view in {location_text.lower()}\"\n\n"
                         
-                        # Clean the response from any emojis, hashtags, or markdown if needed
-                        clean_response = clean_text_formatting(restaurants_info)
+                        restaurants_info += "� **Pro tip:** Search these names on Google Maps for directions, menus, and phone numbers!"
+                        
+                        # Don't clean formatting - keep it conversational
+                        response_message = restaurants_info
                         
                         # CRITICAL: Update conversation context for restaurant queries
                         places_mentioned = intent_info.get('entities', {}).get('locations', [])
                         if context_location:
                             places_mentioned.append(context_location)
+                        if context_location_for_restaurants and context_location_for_restaurants not in places_mentioned:
+                            places_mentioned.append(context_location_for_restaurants)
                         topic = 'restaurant_recommendation'
-                        print(f"🔗 DEBUG: Updating context after restaurant query with places_mentioned={places_mentioned}, topic={topic}")
                         context_manager.update_context(
-                            session_id, user_input, clean_response, 
+                            session_id, user_input, response_message, 
                             places_mentioned, topic
                         )
-                        print(f"🔗 DEBUG: Restaurant context updated successfully")
                         
-                        return {"message": clean_response}
+                        return {"message": response_message}
                     else:
                         # Update context even for error cases
                         places_mentioned = intent_info.get('entities', {}).get('locations', [])
                         if context_location:
                             places_mentioned.append(context_location)
+                        if context_location_for_restaurants and context_location_for_restaurants not in places_mentioned:
+                            places_mentioned.append(context_location_for_restaurants)
                         topic = 'restaurant_recommendation'
                         context_manager.update_context(
                             session_id, user_input, "Sorry, I couldn't find any restaurants matching your request in Istanbul.", 
@@ -1637,52 +1688,26 @@ async def ai_istanbul_router(request: Request):
                     raise ExternalAPIError("Failed to fetch restaurant recommendations", "Google Places", e)
             
             elif is_transportation_query:
-                # Enhanced transportation response with specific route information
+                # More concise and helpful transportation response
                 transport_response = """🚇 **Getting Around Istanbul**
 
-**Istanbul Card (Istanbulkart):** 💳
-- Essential for ALL public transport
-- Buy at metro stations, airports, or kiosks
-- Works on metro, bus, tram, ferry, funicular
-- Significant discounts vs. single tickets
+**Quick Routes:**
+• **Kadıköy ↔ Beyoğlu**: Ferry to Karaköy (15 min) + short walk
+• **Airport to City**: M11 metro → M2 metro to center
+• **Sultanahmet ↔ Taksim**: T1 tram → M2 metro
 
-**Popular Routes:**
+**Essential Card**: 
+🎫 **Istanbulkart** - Buy at any metro station, works on all transport
 
-**Kadıköy ↔ Beyoğlu:**
-- **Ferry**: Kadıköy → Karaköy (15 min) + short walk/metro to Beyoğlu
-- **Ferry**: Kadıköy → Eminönü (20 min) + Metro M2 to Vezneciler/Şişli-Mecidiyeköy
-- **Metro + Ferry**: M4 to Ayrılık Çeşmesi → Ferry to Kabataş → Funicular to Taksim
+**Best Apps**: 
+📱 Moovit (directions) • BiTaksi (taxi) • Uber
 
-**Sultanahmet ↔ Beyoğlu:**
-- **Tram + Metro**: T1 tram to Karaköy → M2 metro to Şişli-Mecidiyeköy
-- **Tram + Walk**: T1 to Karaköy → Walk across Golden Horn Bridge (20 min)
+**Pro Tips**: 
+⏰ Avoid rush hours (8-10 AM, 5-7 PM)
+🚢 Ferries are scenic AND fast!
+💡 Metro announcements in English too
 
-**Airport Connections:**
-- **Istanbul Airport**: M11 metro to Kağıthane → M7 to Mecidiyeköy → M2 to city
-- **Sabiha Gökçen**: M4 metro direct to Asian side, or HAVABUS to European side
-
-**Key Metro Lines:**
-- **M1A/M1B**: Airport ↔ Yenikapı ↔ Kirazlı
-- **M2**: Vezneciler ↔ Şişli ↔ Hacıosman (main European side line)
-- **M4**: Kadıköy ↔ Sabiha Gökçen Airport (Asian side)
-- **M5**: Üsküdar ↔ Çekmeköy
-
-**Ferry Routes (Scenic & Fast):**
-- Eminönü ↔ Kadıköy (20 min)
-- Karaköy ↔ Kadıköy (15 min)  
-- Beşiktaş ↔ Üsküdar (15 min)
-- Kabataş ↔ Üsküdar (20 min)
-
-**Transportation Apps:**
-- **Moovit** - Real-time public transport directions
-- **BiTaksi** - Local taxi app with fixed prices
-- **Uber** - Available throughout Istanbul
-
-**Tips:**
-- Rush hours: 8-10 AM, 5-7 PM (avoid if possible)
-- Ferries are often faster than traffic during rush hour
-- Keep your Istanbulkart topped up
-- Metro announcements in Turkish & English"""
+Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                 return {"message": transport_response}
             
             elif is_museum_query or is_attraction_query or is_district_query:
@@ -1824,8 +1849,12 @@ async def ai_istanbul_router(request: Request):
                                 )
                                 transport_info.extend(ferry_routes)
                     
-                    # Get cultural context
-                    cultural_info = personalization_engine.get_cultural_context(user_input)
+                    # Get cultural context with location awareness
+                    cultural_info = personalization_engine.get_cultural_context(
+                        user_input, 
+                        extracted_location or context_derived_location, 
+                        session_id
+                    )
                     
                     # Generate enhanced response with actions
                     enhanced_response = get_actionable_places_response(
@@ -1892,36 +1921,29 @@ async def ai_istanbul_router(request: Request):
             elif is_shopping_query:
                 shopping_response = """🛍️ **Shopping in Istanbul**
 
-**Traditional Markets:**
-- **Grand Bazaar** (Kapalıçarşı) - 4,000 shops, carpets, jewelry, spices
-  - Metro: Beyazıt-Kapalıçarşı (M1) or Vezneciler (M2)
-  - Hours: 9 AM - 7 PM (closed Sundays)
-  
-- **Spice Bazaar** (Mısır Çarşısı) - Turkish delight, spices, teas, nuts
-  - Location: Near Eminönü ferry terminal
-  - Great for food souvenirs and gifts
+**Must-Visit Markets:**
+🏛️ **Grand Bazaar** - 4,000 shops! Carpets, jewelry, spices
+📍 Metro: Beyazıt-Kapalıçarşı • Hours: 9 AM-7 PM (closed Sundays)
 
-**Modern Shopping Centers:**
-- **Istinye Park** - Luxury brands, beautiful architecture (European side)
-- **Kanyon** - Unique design in Levent business district
-- **Zorlu Center** - High-end shopping in Beşiktaş
-- **Mall of Istanbul** - Large shopping center on European side
-- **Palladium** - Popular mall in Ataşehir (Asian side)
+🌶️ **Spice Bazaar** - Turkish delight, teas, nuts, souvenirs  
+📍 Near Eminönü ferry terminal
+
+**Modern Malls:**
+• **Istinye Park** - Luxury brands, beautiful design
+• **Zorlu Center** - High-end shopping in Beşiktaş  
+• **Kanyon** - Unique architecture in Levent
 
 **What to Buy:**
-- Turkish carpets & kilims
-- Ceramic tiles and pottery
-- Evil eye (nazar) jewelry & charms
-- Turkish delight & baklava
-- Turkish tea & coffee
-- Leather goods & shoes
-- Traditional textiles
-- Handmade soaps
+🧿 Evil eye jewelry • 🍯 Turkish delight & baklava
+🏺 Ceramic tiles • ☕ Turkish tea & coffee
+👘 Turkish carpets • 🧴 Handmade soaps
 
 **Shopping Tips:**
-- Bargaining is expected in bazaars (start at 30-50% of asking price)
-- Fixed prices in modern malls
-- Ask for tax-free shopping receipts for purchases over 108 TL"""
+💰 Bargain in bazaars (start at 50% of asking price)
+🏷️ Fixed prices in malls
+📋 Tax-free shopping for purchases over 108 TL
+
+Want specific recommendations for carpets, jewelry, or souvenirs?"""
                 return {"message": shopping_response}
             
             elif is_transportation_query:

@@ -1,6 +1,1099 @@
-INFO:     Will watch for changes in these directories: ['/Users/omer/Desktop/ai-stanbul']
-ERROR:    [Errno 48] Address already in use
-INFO:     Will watch for changes in these directories: ['/Users/omer/Desktop/ai-stanbul']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [47752] using StatReload
-ERROR:    Error loading ASGI app. Could not import module "main".
+INFO:__main__:Enhanced chatbot components initialized successfully
+INFO:__main__:Database tables created successfully
+INFO:     Started server process [11509]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50016 - "GET / HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: I'm going to istanbul...
+Original user_input: 'I'm going to istanbul' (length: 21)
+Enhanced user_input: 'I'm going to istanbul'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'I'm going to istanbul' (length: 21)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: True
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50033 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: resturants also...
+Original user_input: 'resturants also' (length: 15)
+Enhanced user_input: 'resturants also'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'resturants also' (length: 15)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=[], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50035 - "POST /ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50042 - "GET / HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: places in sultanahmet...
+INFO:__main__:Location-based query detected: places in sultanahmet
+Original user_input: 'places in sultanahmet' (length: 21)
+Enhanced user_input: 'places in sultanahmet'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'places in sultanahmet' (length: 21)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'sultanahmet'
+DEBUG: Using location-based filtering for 'sultanahmet'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'sultanahmet'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: Mapping 'sultanahmet' to district 'fatih'
+DEBUG: After location filter: 17 places (from 78)
+DEBUG: Filtered places found:
+  - Suleymaniye Mosque in Fatih
+  - Chora Church in Fatih
+  - Fener Greek Patriarch in Fatih
+  - Golden Horn in Fatih
+  - Archeology Museum in Fatih
+  - Nuruosmaniye Mosque in Fatih
+  - Grand Bazaar in Fatih
+  - Basilica Cistern in Fatih
+  - Hagia Sophia Grand Mosque in Fatih
+  - Turkish & Islamic Arts Museum in Fatih
+  - The Blue Mosque in Fatih
+  - Sultanahmet Square in Fatih
+  - Topkapi Palace Museum in Fatih
+  - Cagaloglu Hammam in Fatih
+  - Egyptian Bazaar in Fatih
+  - Suleymaniye Mosque in Fatih
+  - Venerable Patriarchal Church of Saint George in Fatih
+🔗 DEBUG: Entering personalization section with 17 places
+DEBUG: Generated 2 contextual tips for location 'sultanahmet' and query 'places in sultanahmet'
+🔗 DEBUG: Updating context with places_mentioned=['Sultanahmet'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50046 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurants in beyoglu...
+Original user_input: 'restaurants in beyoglu' (length: 22)
+Enhanced user_input: 'restaurants in beyoglu'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Sultanahmet'}
+Context found - Previous queries: ['places in sultanahmet']
+Context found - Mentioned places: ['Sultanahmet']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'restaurants in beyoglu' (length: 22)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Beyoglu'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50049 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: kadikoy attractions...
+INFO:__main__:Location-based query detected: kadikoy attractions
+Original user_input: 'kadikoy attractions' (length: 19)
+Enhanced user_input: 'kadikoy attractions'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'kadikoy attractions' (length: 19)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'kadikoy'
+DEBUG: Using location-based filtering for 'kadikoy'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'kadikoy'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: After location filter: 7 places (from 78)
+DEBUG: Filtered places found:
+  - Moda Park in Kadikoy
+  - Kadikoy Market in Kadikoy
+  - Bahariye Street in Kadikoy
+  - Fenerbahce Park in Kadikoy
+  - Moda Pier in Kadikoy
+  - Kadikoy Fish Market in Kadikoy
+  - Mihrimah Sultan Mosque in Kadikoy
+🔗 DEBUG: Entering personalization section with 7 places
+DEBUG: Generated 2 contextual tips for location 'kadikoy' and query 'kadikoy attractions'
+🔗 DEBUG: Updating context with places_mentioned=['Kadikoy'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50052 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: what about restaurants there?...
+INFO:__main__:🔗 Follow-up restaurant query: Searching in 'Kadikoy' from follow-up detection
+Original user_input: 'what about restaurants there?' (length: 29)
+Enhanced user_input: 'what about restaurants there?'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Kadikoy']}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 1, 'general_travel_info': 0}, 'context_location': 'Kadikoy'}
+Context found - Previous queries: ['kadikoy attractions']
+Context found - Mentioned places: ['Kadikoy']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'what about restaurants there?' (length: 29)
+🔗 Follow-up restaurant query detected, using context location: 'Kadikoy'
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+Using follow-up query location for restaurant search: 'Kadikoy'
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Kadikoy', 'Kadikoy'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50054 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: taksim square...
+Original user_input: 'taksim square' (length: 13)
+Enhanced user_input: 'taksim square'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Taksim'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'taksim square' (length: 13)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'taksim square'
+🔗 DEBUG: Updating context with places_mentioned=['Taksim'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50057 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: also restaurants...
+INFO:__main__:🔗 Context-aware restaurant query: Searching in 'Taksim' from conversation context
+Original user_input: 'also restaurants' (length: 16)
+Enhanced user_input: 'also restaurants'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Taksim'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Taksim']}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Taksim'}
+Context found - Previous queries: ['taksim square']
+Context found - Mentioned places: ['Taksim']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'also restaurants' (length: 16)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+Using context-derived location for restaurant search: 'Taksim'
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Taksim', 'Taksim'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50059 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: places in galata...
+INFO:__main__:Location-based query detected: places in galata
+Original user_input: 'places in galata' (length: 16)
+Enhanced user_input: 'places in galata'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Galata'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'places in galata' (length: 16)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'galata'
+DEBUG: Using location-based filtering for 'galata'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'galata'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: Mapping 'galata' to district 'beyoglu'
+DEBUG: After location filter: 18 places (from 78)
+DEBUG: Filtered places found:
+  - Galata Tower in Beyoglu
+  - Istiklal Street in Beyoglu
+  - Taksim Square in Beyoglu
+  - Pera Museum in Beyoglu
+  - Galata Bridge in Beyoglu
+  - Istanbul Museum of Modern Art in Beyoglu
+  - Pera Museum in Beyoglu
+  - Church of Saint Anthony of Padua in Beyoglu
+  - Çiçek Pasajı in Beyoglu
+  - Hagia Triada Greek Orthodox Church in Beyoglu
+  - Galata Tower in Beyoglu
+  - Taksim Square in Beyoglu
+  - Istiklal Avenue in Beyoglu
+  - Museum Of Illusions Istanbul in Beyoglu
+  - Yapı Kredi Kültür Sanat Museum in Beyoglu
+  - Roman Catholic Church of Santa Maria Draperis in Beyoglu
+  - Taksim Mosque in Beyoglu
+  - Rahmi M. Koç Museum in Beyoglu
+🔗 DEBUG: Entering personalization section with 18 places
+DEBUG: Generated 2 contextual tips for location 'galata' and query 'places in galata'
+🔗 DEBUG: Updating context with places_mentioned=['Galata'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50063 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: no, I meant restaurants in sultanahmet...
+Original user_input: 'no, I meant restaurants in sultanahmet' (length: 38)
+Enhanced user_input: 'no, I meant restaurants in sultanahmet'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Galata'}
+Context found - Previous queries: ['places in galata']
+Context found - Mentioned places: ['Galata']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'no, I meant restaurants in sultanahmet' (length: 38)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Sultanahmet'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50065 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: beyoglu nightlife...
+Original user_input: 'beyoglu nightlife' (length: 17)
+Enhanced user_input: 'beyoglu nightlife'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'beyoglu nightlife' (length: 17)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'beyoglu nightlife'
+🔗 DEBUG: Updating context with places_mentioned=['Beyoglu'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50068 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: what else?...
+INFO:__main__:Generating enhanced AI response...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:OpenAI response: In addition to the lively nightlife spots in Beyoglu, you might also enjoy exploring these areas and...
+Original user_input: 'what else?' (length: 10)
+Enhanced user_input: 'what else?'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Beyoglu'}
+Context found - Previous queries: ['beyoglu nightlife']
+Context found - Mentioned places: ['Beyoglu']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'what else?' (length: 10)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50070 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: museums in sultanahmet...
+INFO:__main__:Location-based query detected: museums in sultanahmet
+Original user_input: 'museums in sultanahmet' (length: 22)
+Enhanced user_input: 'museums in sultanahmet'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'museums in sultanahmet' (length: 22)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: True
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: True
+  is_single_district_query: False
+Extracted location: 'sultanahmet'
+DEBUG: Using location-based museum filtering for 'sultanahmet'
+DEBUG: Before location filter: 17 places
+DEBUG: Looking for location: 'sultanahmet'
+DEBUG: Available districts: ['Beyoglu', 'Besiktas', 'Sisli', 'Bakirkoy', 'Fatih']
+DEBUG: Mapping 'sultanahmet' to district 'fatih'
+DEBUG: After location filter: 3 places (from 17)
+DEBUG: Filtered places found:
+  - Archeology Museum in Fatih
+  - Turkish & Islamic Arts Museum in Fatih
+  - Topkapi Palace Museum in Fatih
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'sultanahmet' and query 'museums in sultanahmet'
+🔗 DEBUG: Updating context with places_mentioned=['Sultanahmet'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50074 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: show me places to visit...
+INFO:__main__:Location-based query detected: show me places to visit
+Original user_input: 'show me places to visit' (length: 23)
+Enhanced user_input: 'show me places to visit'
+Intent detected: {'intent': 'place_recommendation', 'confidence': 4, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Sultanahmet']}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 4, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Sultanahmet'}
+Context found - Previous queries: ['museums in sultanahmet']
+Context found - Mentioned places: ['Sultanahmet']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'show me places to visit' (length: 23)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Context-derived location detected: 'Sultanahmet'
+Extracted location: 'show me places'
+DEBUG: Using location-based filtering for 'show me places'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'show me places'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: After location filter: 0 places (from 78)
+DEBUG: No places found matching location 'show me places'
+INFO:     127.0.0.1:50076 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurants in kadikoy...
+Original user_input: 'restaurants in kadikoy' (length: 22)
+Enhanced user_input: 'restaurants in kadikoy'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'restaurants in kadikoy' (length: 22)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Kadikoy'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50078 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: what about tomorrow?...
+INFO:__main__:Generating enhanced AI response...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:OpenAI response: For tomorrow, it's a good idea to check the opening hours and availability of the restaurants in Kad...
+Original user_input: 'what about tomorrow?' (length: 20)
+Enhanced user_input: 'what about tomorrow?'
+Intent detected: {'intent': 'follow_up_question', 'confidence': 1, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 1, 'general_travel_info': 0}, 'context_location': 'Kadikoy'}
+Context found - Previous queries: ['restaurants in kadikoy']
+Context found - Mentioned places: ['Kadikoy']
+Context found - Last recommendation type: restaurant_recommendation
+Processing user_input: 'what about tomorrow?' (length: 20)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50082 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: compare sultanahmet and beyoglu...
+Original user_input: 'compare sultanahmet and beyoglu' (length: 31)
+Enhanced user_input: 'compare sultanahmet and beyoglu'
+Intent detected: {'intent': 'follow_up_question', 'confidence': 1, 'entities': {'locations': ['Sultanahmet', 'Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 1, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'compare sultanahmet and beyoglu' (length: 31)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'compare sultanahmet and beyoglu'
+🔗 DEBUG: Updating context with places_mentioned=['Sultanahmet', 'Beyoglu'], topic=follow_up_question
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50086 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurants also...
+INFO:__main__:🔗 Follow-up restaurant query: Searching in 'Beyoglu' from follow-up detection
+Original user_input: 'restaurants also' (length: 16)
+Enhanced user_input: 'restaurants also'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Beyoglu']}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Beyoglu'}
+Context found - Previous queries: ['compare sultanahmet and beyoglu']
+Context found - Mentioned places: ['Sultanahmet', 'Beyoglu']
+Context found - Last recommendation type: follow_up_question
+Processing user_input: 'restaurants also' (length: 16)
+🔗 Follow-up restaurant query detected, using context location: 'Beyoglu'
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+Using follow-up query location for restaurant search: 'Beyoglu'
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Beyoglu', 'Beyoglu'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50088 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: places in galata...
+INFO:__main__:Location-based query detected: places in galata
+Original user_input: 'places in galata' (length: 16)
+Enhanced user_input: 'places in galata'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Galata'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'places in galata' (length: 16)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'galata'
+DEBUG: Using location-based filtering for 'galata'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'galata'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: Mapping 'galata' to district 'beyoglu'
+DEBUG: After location filter: 18 places (from 78)
+DEBUG: Filtered places found:
+  - Galata Tower in Beyoglu
+  - Istiklal Street in Beyoglu
+  - Taksim Square in Beyoglu
+  - Pera Museum in Beyoglu
+  - Galata Bridge in Beyoglu
+  - Istanbul Museum of Modern Art in Beyoglu
+  - Pera Museum in Beyoglu
+  - Church of Saint Anthony of Padua in Beyoglu
+  - Çiçek Pasajı in Beyoglu
+  - Hagia Triada Greek Orthodox Church in Beyoglu
+  - Galata Tower in Beyoglu
+  - Taksim Square in Beyoglu
+  - Istiklal Avenue in Beyoglu
+  - Museum Of Illusions Istanbul in Beyoglu
+  - Yapı Kredi Kültür Sanat Museum in Beyoglu
+  - Roman Catholic Church of Santa Maria Draperis in Beyoglu
+  - Taksim Mosque in Beyoglu
+  - Rahmi M. Koç Museum in Beyoglu
+🔗 DEBUG: Entering personalization section with 18 places
+DEBUG: Generated 2 contextual tips for location 'galata' and query 'places in galata'
+🔗 DEBUG: Updating context with places_mentioned=['Galata'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50091 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: resturants also...
+Original user_input: 'resturants also' (length: 15)
+Enhanced user_input: 'resturants also'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Galata'}
+Context found - Previous queries: ['places in galata']
+Context found - Mentioned places: ['Galata']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'resturants also' (length: 15)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=[], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50093 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: I'm going to istanbul...
+Original user_input: 'I'm going to istanbul' (length: 21)
+Enhanced user_input: 'I'm going to istanbul'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'I'm going to istanbul' (length: 21)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: True
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50096 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: where should I go?...
+INFO:__main__:Generating enhanced AI response...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:OpenAI response: Istanbul is a vibrant city with so much to offer! Are you looking to explore historical sites, enjoy...
+Original user_input: 'where should I go?' (length: 18)
+Enhanced user_input: 'where should I go?'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'where should I go?' (length: 18)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50098 - "POST /ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50101 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50129 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50146 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50199 - "GET / HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: places in galata...
+INFO:__main__:Location-based query detected: places in galata
+Original user_input: 'places in galata' (length: 16)
+Enhanced user_input: 'places in galata'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Galata'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'places in galata' (length: 16)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'galata'
+DEBUG: Using location-based filtering for 'galata'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'galata'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: Mapping 'galata' to district 'beyoglu'
+DEBUG: After location filter: 18 places (from 78)
+DEBUG: Filtered places found:
+  - Galata Tower in Beyoglu
+  - Istiklal Street in Beyoglu
+  - Taksim Square in Beyoglu
+  - Pera Museum in Beyoglu
+  - Galata Bridge in Beyoglu
+  - Istanbul Museum of Modern Art in Beyoglu
+  - Pera Museum in Beyoglu
+  - Church of Saint Anthony of Padua in Beyoglu
+  - Çiçek Pasajı in Beyoglu
+  - Hagia Triada Greek Orthodox Church in Beyoglu
+  - Galata Tower in Beyoglu
+  - Taksim Square in Beyoglu
+  - Istiklal Avenue in Beyoglu
+  - Museum Of Illusions Istanbul in Beyoglu
+  - Yapı Kredi Kültür Sanat Museum in Beyoglu
+  - Roman Catholic Church of Santa Maria Draperis in Beyoglu
+  - Taksim Mosque in Beyoglu
+  - Rahmi M. Koç Museum in Beyoglu
+🔗 DEBUG: Entering personalization section with 18 places
+DEBUG: Generated 2 contextual tips for location 'galata' and query 'places in galata'
+🔗 DEBUG: Updating context with places_mentioned=['Galata'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50202 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: resturants also...
+Original user_input: 'resturants also' (length: 15)
+Enhanced user_input: 'resturants also'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Galata'}
+Context found - Previous queries: ['places in galata']
+Context found - Mentioned places: ['Galata']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'resturants also' (length: 15)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=[], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50204 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: kadikoy attractions...
+INFO:__main__:Location-based query detected: kadikoy attractions
+Original user_input: 'kadikoy attractions' (length: 19)
+Enhanced user_input: 'kadikoy attractions'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'kadikoy attractions' (length: 19)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Extracted location: 'kadikoy'
+DEBUG: Using location-based filtering for 'kadikoy'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'kadikoy'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: After location filter: 7 places (from 78)
+DEBUG: Filtered places found:
+  - Moda Park in Kadikoy
+  - Kadikoy Market in Kadikoy
+  - Bahariye Street in Kadikoy
+  - Fenerbahce Park in Kadikoy
+  - Moda Pier in Kadikoy
+  - Kadikoy Fish Market in Kadikoy
+  - Mihrimah Sultan Mosque in Kadikoy
+🔗 DEBUG: Entering personalization section with 7 places
+DEBUG: Generated 2 contextual tips for location 'kadikoy' and query 'kadikoy attractions'
+🔗 DEBUG: Updating context with places_mentioned=['Kadikoy'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50207 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurants also...
+INFO:__main__:🔗 Follow-up restaurant query: Searching in 'Kadikoy' from follow-up detection
+Original user_input: 'restaurants also' (length: 16)
+Enhanced user_input: 'restaurants also'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Kadikoy']}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Kadikoy'}
+Context found - Previous queries: ['kadikoy attractions']
+Context found - Mentioned places: ['Kadikoy']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'restaurants also' (length: 16)
+🔗 Follow-up restaurant query detected, using context location: 'Kadikoy'
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+Using follow-up query location for restaurant search: 'Kadikoy'
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Kadikoy', 'Kadikoy'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50210 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: no, restaurants in sultanahmet...
+Original user_input: 'no, restaurants in sultanahmet' (length: 30)
+Enhanced user_input: 'no, restaurants in sultanahmet'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Kadikoy'}
+Context found - Previous queries: ['kadikoy attractions', 'restaurants also']
+Context found - Mentioned places: ['Kadikoy']
+Context found - Last recommendation type: restaurant_recommendation
+Processing user_input: 'no, restaurants in sultanahmet' (length: 30)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Sultanahmet'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50213 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: compare sultanahmet and beyoglu...
+Original user_input: 'compare sultanahmet and beyoglu' (length: 31)
+Enhanced user_input: 'compare sultanahmet and beyoglu'
+Intent detected: {'intent': 'follow_up_question', 'confidence': 1, 'entities': {'locations': ['Sultanahmet', 'Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 1, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'compare sultanahmet and beyoglu' (length: 31)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'compare sultanahmet and beyoglu'
+🔗 DEBUG: Updating context with places_mentioned=['Sultanahmet', 'Beyoglu'], topic=follow_up_question
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50216 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurants there...
+INFO:__main__:🔗 Context-aware restaurant query: Searching in 'Beyoglu' from conversation context
+Original user_input: 'restaurants there' (length: 17)
+Enhanced user_input: 'restaurants there'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 3, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Beyoglu']}, 'all_scores': {'restaurant_search': 3, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Beyoglu'}
+Context found - Previous queries: ['compare sultanahmet and beyoglu']
+Context found - Mentioned places: ['Sultanahmet', 'Beyoglu']
+Context found - Last recommendation type: follow_up_question
+Processing user_input: 'restaurants there' (length: 17)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+Using context-derived location for restaurant search: 'Beyoglu'
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Beyoglu', 'Beyoglu'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50218 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: museums in sultanahmet...
+INFO:__main__:Location-based query detected: museums in sultanahmet
+Original user_input: 'museums in sultanahmet' (length: 22)
+Enhanced user_input: 'museums in sultanahmet'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'museums in sultanahmet' (length: 22)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: True
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: True
+  is_single_district_query: False
+Extracted location: 'sultanahmet'
+DEBUG: Using location-based museum filtering for 'sultanahmet'
+DEBUG: Before location filter: 17 places
+DEBUG: Looking for location: 'sultanahmet'
+DEBUG: Available districts: ['Beyoglu', 'Besiktas', 'Sisli', 'Bakirkoy', 'Fatih']
+DEBUG: Mapping 'sultanahmet' to district 'fatih'
+DEBUG: After location filter: 3 places (from 17)
+DEBUG: Filtered places found:
+  - Archeology Museum in Fatih
+  - Turkish & Islamic Arts Museum in Fatih
+  - Topkapi Palace Museum in Fatih
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'sultanahmet' and query 'museums in sultanahmet'
+🔗 DEBUG: Updating context with places_mentioned=['Sultanahmet'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50222 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: what else?...
+INFO:__main__:Generating enhanced AI response...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:OpenAI response: For more exploration in Sultanahmet, you can also visit:
+
+4. **Basilica Cistern**
+   Category: Histo...
+Original user_input: 'what else?' (length: 10)
+Enhanced user_input: 'what else?'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Sultanahmet'}
+Context found - Previous queries: ['museums in sultanahmet']
+Context found - Mentioned places: ['Sultanahmet']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'what else?' (length: 10)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50224 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: museums in beyoglu...
+INFO:__main__:Location-based query detected: museums in beyoglu
+Original user_input: 'museums in beyoglu' (length: 18)
+Enhanced user_input: 'museums in beyoglu'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'museums in beyoglu' (length: 18)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: True
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: True
+  is_single_district_query: False
+Extracted location: 'beyoglu'
+DEBUG: Using location-based museum filtering for 'beyoglu'
+DEBUG: Before location filter: 17 places
+DEBUG: Looking for location: 'beyoglu'
+DEBUG: Available districts: ['Beyoglu', 'Besiktas', 'Sisli', 'Bakirkoy', 'Fatih']
+DEBUG: After location filter: 6 places (from 17)
+DEBUG: Filtered places found:
+  - Pera Museum in Beyoglu
+  - Istanbul Museum of Modern Art in Beyoglu
+  - Pera Museum in Beyoglu
+  - Museum Of Illusions Istanbul in Beyoglu
+  - Yapı Kredi Kültür Sanat Museum in Beyoglu
+  - Rahmi M. Koç Museum in Beyoglu
+🔗 DEBUG: Entering personalization section with 6 places
+DEBUG: Generated 2 contextual tips for location 'beyoglu' and query 'museums in beyoglu'
+🔗 DEBUG: Updating context with places_mentioned=['Beyoglu'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50227 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: places to visit also...
+INFO:__main__:Location-based query detected: places to visit also
+Original user_input: 'places to visit also' (length: 20)
+Enhanced user_input: 'places to visit also'
+Intent detected: {'intent': 'place_recommendation', 'confidence': 4, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': [], 'context_derived_location': ['Beyoglu']}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 4, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Beyoglu'}
+Context found - Previous queries: ['museums in beyoglu']
+Context found - Mentioned places: ['Beyoglu']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'places to visit also' (length: 20)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: True
+  is_transportation_query: False
+  is_location_place_query: True
+  is_location_museum_query: False
+  is_single_district_query: False
+Context-derived location detected: 'Beyoglu'
+Extracted location: 'places'
+DEBUG: Using location-based filtering for 'places'
+DEBUG: Before location filter: 78 places
+DEBUG: Looking for location: 'places'
+DEBUG: Available districts: ['Uskudar', 'Uskudar', 'Uskudar', 'Uskudar', 'Uskudar']
+DEBUG: After location filter: 0 places (from 78)
+DEBUG: No places found matching location 'places'
+INFO:     127.0.0.1:50229 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: I'm going to istanbul...
+Original user_input: 'I'm going to istanbul' (length: 21)
+Enhanced user_input: 'I'm going to istanbul'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'I'm going to istanbul' (length: 21)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: True
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50231 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: What's the best restaurant?...
+Original user_input: 'What's the best restaurant?' (length: 27)
+Enhanced user_input: 'What's the best restaurant?'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 1, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 1, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'What's the best restaurant?' (length: 27)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+INFO:     127.0.0.1:50233 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+WARNING:__main__:🚨 SECURITY: Rejected unsafe input: Input contains potentially malicious content
+ERROR:__main__:Validation error: Input contains invalid characters or patterns
+INFO:__main__:Request from 127.0.0.1: Error occurred
+🚨 SECURITY ALERT: Blocked malicious input pattern: [;]
+INFO:     127.0.0.1:50236 - "POST /ai HTTP/1.1" 422 Unprocessable Entity
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: restaurant recommendations...
+Original user_input: 'restaurant recommendations' (length: 26)
+Enhanced user_input: 'restaurant recommendations'
+Intent detected: {'intent': 'restaurant_search', 'confidence': 1, 'entities': {'locations': [], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 1, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'restaurant recommendations' (length: 26)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=[], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50238 - "POST /ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50251 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50269 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50278 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50278 - "OPTIONS /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: hi...
+INFO:__main__:[AIstanbul] Detected greeting/daily talk: hi
+WARNING:__main__:Database session not available, skipping chat history save for session session_1757148437
+INFO:     127.0.0.1:50278 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: give me restaurnts in beyoglu...
+Original user_input: 'give me restaurnts in beyoglu' (length: 29)
+Enhanced user_input: 'give me restaurnts in beyoglu'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'give me restaurnts in beyoglu' (length: 29)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'give me restaurnts in beyoglu'
+🔗 DEBUG: Updating context with places_mentioned=['Beyoglu'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50280 - "POST /ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50299 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50310 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50333 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50345 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50369 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50388 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50402 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50433 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50460 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50469 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50476 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50481 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50487 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50491 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50505 - "GET / HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: give me restaurnts in beyoglu...
+Original user_input: 'give me restaurnts in beyoglu' (length: 29)
+Enhanced user_input: 'give me restaurnts in beyoglu'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Beyoglu'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': None}
+No context found for this session
+Processing user_input: 'give me restaurnts in beyoglu' (length: 29)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'give me restaurnts in beyoglu'
+🔗 DEBUG: Updating context with places_mentioned=['Beyoglu'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50510 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: show me restaurnt near taksim...
+Original user_input: 'show me restaurnt near taksim' (length: 29)
+Enhanced user_input: 'show me restaurnt near taksim'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Taksim'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Beyoglu'}
+Context found - Previous queries: ['give me restaurnts in beyoglu']
+Context found - Mentioned places: ['Beyoglu']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'show me restaurnt near taksim' (length: 29)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'show me restaurnt near taksim'
+🔗 DEBUG: Updating context with places_mentioned=['Taksim'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50512 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: find restarants in kadikoy...
+Original user_input: 'find restarants in kadikoy' (length: 26)
+Enhanced user_input: 'find restarants in kadikoy'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Kadikoy'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Taksim'}
+Context found - Previous queries: ['give me restaurnts in beyoglu', 'show me restaurnt near taksim']
+Context found - Mentioned places: ['Beyoglu', 'Taksim']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'find restarants in kadikoy' (length: 26)
+Query categorization:
+  is_restaurant_query: False
+  is_museum_query: False
+  is_district_query: True
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Entering personalization section with 3 places
+DEBUG: Generated 2 contextual tips for location 'None' and query 'find restarants in kadikoy'
+🔗 DEBUG: Updating context with places_mentioned=['Kadikoy'], topic=general_travel_info
+🔗 DEBUG: Context updated successfully
+INFO:     127.0.0.1:50514 - "POST /ai HTTP/1.1" 200 OK
+INFO:__main__:Request from 127.0.0.1: 
+INFO:__main__:🛡️ Processing sanitized input: best restrants in sultanahmet...
+Original user_input: 'best restrants in sultanahmet' (length: 29)
+Enhanced user_input: 'best restrants in sultanahmet'
+Intent detected: {'intent': 'general_travel_info', 'confidence': 0, 'entities': {'locations': ['Sultanahmet'], 'cuisine_types': [], 'price_range': [], 'dietary_restrictions': [], 'times': [], 'features': []}, 'all_scores': {'restaurant_search': 0, 'museum_inquiry': 0, 'transportation_info': 0, 'place_recommendation': 0, 'shopping_info': 0, 'nightlife_info': 0, 'cultural_info': 0, 'accommodation_info': 0, 'follow_up_question': 0, 'general_travel_info': 0}, 'context_location': 'Kadikoy'}
+Context found - Previous queries: ['give me restaurnts in beyoglu', 'show me restaurnt near taksim', 'find restarants in kadikoy']
+Context found - Mentioned places: ['Beyoglu', 'Taksim', 'Kadikoy']
+Context found - Last recommendation type: general_travel_info
+Processing user_input: 'best restrants in sultanahmet' (length: 29)
+Query categorization:
+  is_restaurant_query: True
+  is_museum_query: False
+  is_district_query: False
+  is_attraction_query: False
+  is_transportation_query: False
+  is_location_place_query: False
+  is_location_museum_query: False
+  is_single_district_query: False
+🔗 DEBUG: Updating context after restaurant query with places_mentioned=['Sultanahmet'], topic=restaurant_recommendation
+🔗 DEBUG: Restaurant context updated successfully
+INFO:     127.0.0.1:50516 - "POST /ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50522 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50552 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50565 - "GET / HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [11509]

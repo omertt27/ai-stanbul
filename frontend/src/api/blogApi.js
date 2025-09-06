@@ -64,7 +64,8 @@ export const fetchBlogPosts = async (params = {}) => {
       });
       
       const data = await response.json();
-      console.log('✅ Blog posts fetched:', data.length, 'posts');
+      console.log('✅ Blog posts fetched:', data.posts?.length || 0, 'posts, total:', data.total);
+      console.log('📊 Blog API response structure:', Object.keys(data));
       return data;
       
     } catch (error) {
@@ -228,6 +229,162 @@ export const fetchBlogDistricts = async () => {
       
     } catch (error) {
       throw handleBlogApiError(error, null, 'Fetch Blog Districts');
+    }
+  });
+};
+
+export const fetchBlogTags = async () => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('📋 Fetching blog tags');
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/tags`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Blog tags fetched:', data.length, 'tags');
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Blog Tags');
+    }
+  });
+};
+
+export const fetchFeaturedPosts = async (limit = 3) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('⭐ Fetching featured posts');
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/featured?limit=${limit}`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Featured posts fetched:', data.featured_posts?.length || 0, 'posts');
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Featured Posts');
+    }
+  });
+};
+
+export const fetchTrendingPosts = async (limit = 5) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('🔥 Fetching trending posts');
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/trending?limit=${limit}`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Trending posts fetched:', data.trending_posts?.length || 0, 'posts');
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Trending Posts');
+    }
+  });
+};
+
+export const fetchBlogStats = async () => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('📊 Fetching blog stats');
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/stats`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Blog stats fetched:', data);
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Blog Stats');
+    }
+  });
+};
+
+export const fetchRelatedPosts = async (postId, limit = 4) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('🔗 Fetching related posts for:', postId);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/related?limit=${limit}`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Related posts fetched:', data.related_posts?.length || 0, 'posts');
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Related Posts');
+    }
+  });
+};
+
+export const seedSamplePosts = async () => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('🌱 Seeding sample blog posts');
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/seed-sample-posts`, {
+        method: 'POST',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 30000 // Longer timeout for seeding
+      }, {
+        maxAttempts: 1, // Don't retry seeding
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      console.log('✅ Sample posts seeded:', data);
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Seed Sample Posts');
     }
   });
 };

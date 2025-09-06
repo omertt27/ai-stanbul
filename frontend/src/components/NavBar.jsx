@@ -1,29 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const NavBar = () => {
   const location = useLocation();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
-  // Media query check for mobile
-  const isMobile = window.innerWidth < 768;
+  // Update window width on resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Media query checks
+  const isMobile = windowWidth < 768;
+  const isSmallMobile = windowWidth < 480;
+  const isUltraSmall = windowWidth < 320;
   
   const navStyle = {
     position: 'fixed',
-    top: '1.5rem',
-    right: '1rem',
-    display: 'flex',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: isMobile ? '0.75rem' : '1.5rem',
-    padding: '0.75rem',
-    background: 'none',
-    fontWeight: 500,
-    fontSize: isMobile ? '1rem' : '1.125rem',
-    letterSpacing: '0.02em',
+    // Adjust position based on screen size to avoid logo overlap
+    top: isMobile ? (isUltraSmall ? '2.5rem' : '3.5rem') : '1.1rem', // Move down on mobile to clear logo
+    right: isUltraSmall ? '0.25rem' : isSmallMobile ? '0.5rem' : '1.5rem',
+    left: isMobile ? (isUltraSmall ? '0.25rem' : '0.5rem') : 'auto', // Full width on mobile
     zIndex: 50,
-    width: 'auto',
+    display: 'flex',
+    justifyContent: isMobile ? 'center' : 'flex-end',
+    alignItems: 'center',
+    gap: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : isMobile ? '1rem' : '1.5rem',
+    padding: isMobile ? (isUltraSmall ? '0.5rem' : '0.75rem') : '0.5rem 0.75rem',
+    background: isMobile ? (isLightMode ? 'rgba(253, 253, 254, 0.95)' : 'rgba(15, 16, 17, 0.95)') : 'none', // Add background on mobile
+    backdropFilter: isMobile ? 'blur(10px)' : 'none',
+    borderRadius: isMobile ? '0.5rem' : '0',
+    border: isMobile ? (isLightMode ? '1px solid rgba(209, 213, 219, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)') : 'none',
+    fontWeight: 400,
+    fontSize: isUltraSmall ? '0.875rem' : isSmallMobile ? '1rem' : isMobile ? '1.1rem' : '1.25rem',
+    letterSpacing: '0.01em',
+    width: isMobile ? 'auto' : 'auto',
     flexWrap: 'wrap',
-    maxWidth: 'calc(100vw - 2rem)',
+    maxWidth: isMobile ? 'calc(100vw - 1rem)' : 'none',
   };
   
   const isLightMode = document.body.classList.contains('light');
@@ -33,15 +48,23 @@ const NavBar = () => {
       ? '#6366f1' 
       : (isLightMode ? '#475569' : '#c7c9e2'),
     textDecoration: 'none',
-    borderBottom: isActive ? '2.5px solid #6366f1' : '2.5px solid transparent',
-    paddingBottom: '0.375rem',
-    paddingTop: '0.375rem',
-    paddingLeft: '0.75rem',
-    paddingRight: '0.75rem',
-    borderRadius: '0.5rem',
+    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
+    paddingBottom: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
+    paddingTop: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
+    paddingLeft: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : '1.25rem',
+    paddingRight: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : '1.25rem',
+    borderRadius: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
     transition: 'all 0.2s ease',
-    minWidth: '3rem',
+    minWidth: isUltraSmall ? '2.5rem' : isSmallMobile ? '3rem' : '4rem',
     textAlign: 'center',
+    fontWeight: 'inherit',
+    whiteSpace: 'nowrap',
+    // Hover effects
+    cursor: 'pointer',
+    ':hover': {
+      backgroundColor: isLightMode ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.2)',
+      transform: 'translateY(-1px)',
+    }
   });
   
   const handleBlogClick = (e) => {

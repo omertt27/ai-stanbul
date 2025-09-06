@@ -156,14 +156,20 @@ class IstanbulPersonalizationEngine:
             ).time()
             return next_departure_time.strftime("%H:%M")
     
-    def get_cultural_context(self, query: str) -> List[Dict]:
-        """Get relevant cultural tips and Turkish phrases"""
+    def get_cultural_context(self, query: str, location: str = None, session_id: str = None) -> List[Dict]:
+        """Get relevant cultural tips and Turkish phrases with diversity and context-awareness"""
+        import random
+        from sqlalchemy import func
+        
         # Determine context from query
         context_keywords = {
-            'restaurant': ['food', 'restaurant', 'eating', 'dining'],
-            'shopping': ['shopping', 'bazaar', 'market', 'buying'],
-            'mosque': ['mosque', 'prayer', 'religious'],
-            'transportation': ['taxi', 'bus', 'metro', 'transport']
+            'restaurant': ['food', 'restaurant', 'eating', 'dining', 'meal', 'breakfast', 'lunch', 'dinner'],
+            'shopping': ['shopping', 'bazaar', 'market', 'buying', 'shop', 'souvenir'],
+            'mosque': ['mosque', 'prayer', 'religious', 'blue mosque', 'hagia sophia'],
+            'transportation': ['taxi', 'bus', 'metro', 'transport', 'ferry', 'tram'],
+            'places': ['places', 'visit', 'attraction', 'sightseeing', 'landmark', 'museum'],
+            'nightlife': ['nightlife', 'bar', 'club', 'drink', 'evening'],
+            'culture': ['culture', 'turkish', 'traditional', 'local', 'customs']
         }
         
         relevant_categories = []
@@ -175,18 +181,82 @@ class IstanbulPersonalizationEngine:
         
         # If no specific context, add general tips
         if not relevant_categories:
-            relevant_categories = ['general']
+            relevant_categories = ['general', 'culture']
         
-        # Get Turkish phrases
+        # Get location-specific tips if location is provided
+        location_specific_tips = []
+        if location:
+            location_keywords = {
+                'sultanahmet': ['mosque', 'culture', 'tourist'],
+                'beyoglu': ['nightlife', 'restaurant', 'culture'],
+                'galata': ['culture', 'restaurant', 'nightlife'],
+                'kadikoy': ['local', 'restaurant', 'shopping'],
+                'besiktas': ['local', 'nightlife', 'restaurant'],
+                'taksim': ['nightlife', 'shopping', 'transport']
+            }
+            
+            if location.lower() in location_keywords:
+                relevant_categories.extend(location_keywords[location.lower()])
+        
+        # Get diverse tips using randomization
+        all_tips = self.db.query(LocalTips).filter(
+            LocalTips.category.in_(relevant_categories + ['culture', 'general']),
+            LocalTips.importance_level.in_(['essential', 'helpful', 'interesting'])
+        ).all()
+        
+        # Create contextual tips based on query intent - do this first
+        contextual_tips = self._generate_contextual_tips(query_lower, location)
+        
+        # Randomize tip selection to provide variety
+        selected_tips = []
+        if len(all_tips) > 3:
+            # Group tips by category for better variety
+            tips_by_category = {}
+            for tip in all_tips:
+                if tip.category not in tips_by_category:
+                    tips_by_category[tip.category] = []
+                tips_by_category[tip.category].append(tip)
+            
+            # Prioritize contextual tips first
+            selected_tips.extend(contextual_tips[:2])  # Take up to 2 contextual tips
+            
+            # Fill remaining slots with database tips (avoiding duplicates)
+            remaining_slots = 3 - len(selected_tips)
+            if remaining_slots > 0:
+                # Select at most 1 tip per category for diversity
+                for category_tips in tips_by_category.values():
+                    if category_tips and remaining_slots > 0:
+                        selected_tips.append(random.choice(category_tips))
+                        remaining_slots -= 1
+                        if remaining_slots <= 0:
+                            break
+                
+                # If we still need more tips, randomly select from remaining
+                if remaining_slots > 0:
+                    remaining_tips = [tip for tip in all_tips if tip not in selected_tips]
+                    additional_needed = min(remaining_slots, len(remaining_tips))
+                    if additional_needed > 0:
+                        selected_tips.extend(random.sample(remaining_tips, additional_needed))
+        else:
+            # If we have few database tips, use contextual tips to fill
+            selected_tips.extend(contextual_tips)
+            selected_tips.extend(all_tips)
+        
+        # Combine all tips, ensuring we have unique tips
+        seen_titles = set()
+        final_tips = []
+        for tip in selected_tips:
+            title = tip.tip_title if hasattr(tip, 'tip_title') else tip['title']
+            if title not in seen_titles:
+                final_tips.append(tip)
+                seen_titles.add(title)
+                if len(final_tips) >= 3:
+                    break
+        
+        # Get contextual Turkish phrases
         phrases = self.db.query(TurkishPhrases).filter(
             TurkishPhrases.category.in_(relevant_categories + ['essential'])
-        ).limit(5).all()
-        
-        # Get local tips
-        tips = self.db.query(LocalTips).filter(
-            LocalTips.category.in_(relevant_categories + ['culture']),
-            LocalTips.importance_level.in_(['essential', 'helpful'])
-        ).limit(3).all()
+        ).order_by(func.random()).limit(4).all()
         
         cultural_info = {
             'phrases': [
@@ -199,14 +269,129 @@ class IstanbulPersonalizationEngine:
             ],
             'tips': [
                 {
-                    'title': tip.tip_title,
-                    'content': tip.tip_content,
-                    'importance': tip.importance_level
-                } for tip in tips
+                    'title': tip.tip_title if hasattr(tip, 'tip_title') else tip['title'],
+                    'content': tip.tip_content if hasattr(tip, 'tip_content') else tip['content'],
+                    'importance': getattr(tip, 'importance_level', 'helpful') if hasattr(tip, 'importance_level') else 'helpful'
+                } for tip in final_tips  # Use final_tips instead of all_tip_objects
             ]
         }
         
         return cultural_info
+    
+    def _generate_contextual_tips(self, query_lower: str, location: str = None) -> List[Dict]:
+        """Generate dynamic contextual tips based on the query and location"""
+        contextual_tips = []
+        
+        # Location-specific contextual tips
+        if location:
+            location_lower = location.lower()
+            if 'sultanahmet' in location_lower or 'fatih' in location_lower:
+                contextual_tips.append({
+                    'title': 'Sultanahmet Timing',
+                    'content': 'Visit Blue Mosque and Hagia Sophia early morning (8-9 AM) or late afternoon to avoid crowds. Both are within walking distance.',
+                    'source': 'contextual'
+                })
+                contextual_tips.append({
+                    'title': 'Historic Peninsula Tips',
+                    'content': 'Wear comfortable walking shoes in Sultanahmet - the area has cobblestone streets. Many attractions are clustered together.',
+                    'source': 'contextual'
+                })
+            elif 'beyoglu' in location_lower or 'galata' in location_lower:
+                contextual_tips.append({
+                    'title': 'Beyoğlu Exploration',
+                    'content': 'Walk down Istiklal Street in the evening when it\'s most vibrant. Don\'t miss the historic Galata Tower for panoramic views.',
+                    'source': 'contextual'
+                })
+                contextual_tips.append({
+                    'title': 'Galata Bridge Walk',
+                    'content': 'Walk across Galata Bridge at sunset for stunning Golden Horn views. Fishermen line the bridge all day.',
+                    'source': 'contextual'
+                })
+            elif 'kadikoy' in location_lower:
+                contextual_tips.append({
+                    'title': 'Kadıköy Local Experience',
+                    'content': 'Kadıköy Tuesday Market is perfect for authentic local shopping. Try balık ekmek (fish sandwich) at the waterfront.',
+                    'source': 'contextual'
+                })
+                contextual_tips.append({
+                    'title': 'Asian Side Culture',
+                    'content': 'Kadıköy has a more local, less touristy vibe. Great for experiencing authentic Istanbul culture and cuisine.',
+                    'source': 'contextual'
+                })
+            elif 'taksim' in location_lower:
+                contextual_tips.append({
+                    'title': 'Taksim Square Area',
+                    'content': 'Taksim is the main transport hub. From here you can easily reach Beyoğlu, Galata, and other European side neighborhoods.',
+                    'source': 'contextual'
+                })
+            elif 'besiktas' in location_lower:
+                contextual_tips.append({
+                    'title': 'Beşiktaş Waterfront',
+                    'content': 'Don\'t miss the Dolmabahçe Palace and the vibrant waterfront area. Great ferry connections to Asian side.',
+                    'source': 'contextual'
+                })
+        
+        # Query-specific contextual tips
+        if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'dining']):
+            contextual_tips.append({
+                'title': 'Turkish Dining Hours',
+                'content': 'Turks eat dinner late (8-10 PM). For lunch, try a "lokanta" (local restaurant) for authentic home-style cooking.',
+                'source': 'contextual'
+            })
+        
+        if any(word in query_lower for word in ['shopping', 'bazaar', 'market']):
+            contextual_tips.append({
+                'title': 'Market Timing',
+                'content': 'Visit markets in the morning for the freshest items. Neighborhood pazars (weekly markets) offer the most authentic experience.',
+                'source': 'contextual'
+            })
+        
+        if any(word in query_lower for word in ['nightlife', 'bar', 'club']):
+            contextual_tips.append({
+                'title': 'Istanbul Nightlife',
+                'content': 'Nightlife starts late in Istanbul (10 PM+). Rooftop bars offer amazing city views, especially in Beyoğlu and Karaköy.',
+                'source': 'contextual'
+            })
+        
+        if any(word in query_lower for word in ['transport', 'metro', 'ferry']):
+            contextual_tips.append({
+                'title': 'Ferry Experience',
+                'content': 'Take a ferry ride across the Bosphorus for scenic views. It\'s often faster than traffic and costs the same as metro.',
+                'source': 'contextual'
+            })
+        
+        # Add some general contextual tips based on time/season (these can be random)
+        general_tips = [
+            {
+                'title': 'Best Photo Times',
+                'content': 'Golden hour (sunset) from Galata Tower or Pierre Loti offers the most stunning Istanbul photos. Arrive 30 minutes early.',
+                'source': 'contextual'
+            },
+            {
+                'title': 'Local Etiquette',
+                'content': 'Turks are very hospitable. If invited for tea, it\'s polite to accept. Small gifts from your country are appreciated.',
+                'source': 'contextual'
+            },
+            {
+                'title': 'Currency Tips',
+                'content': 'Turkish Lira is the currency. Many places accept cards, but have some cash for street vendors and small shops.',
+                'source': 'contextual'
+            },
+            {
+                'title': 'Language Helper',
+                'content': 'Download Google Translate with Turkish offline. Many young people speak English, especially in tourist areas.',
+                'source': 'contextual'
+            }
+        ]
+        
+        # Add 1-2 random general tips if we don't have enough contextual ones
+        import random
+        if len(contextual_tips) < 2:
+            remaining_needed = 2 - len(contextual_tips)
+            contextual_tips.extend(random.sample(general_tips, min(remaining_needed, len(general_tips))))
+        
+        print(f"DEBUG: Generated {len(contextual_tips)} contextual tips for location '{location}' and query '{query_lower[:50]}'")
+        return contextual_tips
 
 def format_personalized_response(
     base_response: str, 

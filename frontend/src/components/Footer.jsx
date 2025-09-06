@@ -5,21 +5,29 @@ const Footer = () => {
   const location = useLocation();
   const [showFooter, setShowFooter] = useState(false);
   
-  // Don't show footer on main page unless chat is expanded
-  if (location.pathname === '/') {
-    return null;
-  }
-
+  // Always call hooks first, before any conditional returns
   // Show/hide footer based on scroll position
   useEffect(() => {
     const handleScroll = () => {
-      // Show footer when scrolled down more than 100px
-      setShowFooter(window.scrollY > 100);
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Only show footer when scrolled down significantly AND near the bottom of the page
+      const nearBottom = scrollY + windowHeight >= documentHeight - 200;
+      const scrolledEnough = scrollY > 200;
+      
+      setShowFooter(scrolledEnough && nearBottom);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
+  // Don't show footer on main page or blog pages (blog pages have their own static footer)
+  if (location.pathname === '/' || location.pathname.startsWith('/blog')) {
+    return null;
+  }
   
   const isLightMode = document.body.classList.contains('light');
   
@@ -33,7 +41,7 @@ const Footer = () => {
     justifyContent: 'center',
     gap: '2rem',
     fontSize: '0.875rem',
-    zIndex: 999999,
+    zIndex: 40,
     backgroundColor: 'rgba(75, 85, 99, 0.3)',
     color: '#ffffff',
     padding: '0.75rem 2rem',

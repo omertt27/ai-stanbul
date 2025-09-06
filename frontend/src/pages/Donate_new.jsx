@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 const Donate = () => {
-  const { theme } = useTheme();
+  const { darkMode } = useTheme();
 
   const benefitItem = (icon, title, description) => (
     <div className="flex items-start space-x-4">
@@ -16,12 +16,12 @@ const Donate = () => {
       )}
       <div>
         <h3 className={`font-semibold text-lg mb-2 transition-colors duration-300 ${
-          theme === 'dark' ? 'text-white' : 'text-gray-800'
+          darkMode ? 'text-white' : 'text-gray-800'
         }`}>
           {title}
         </h3>
         <p className={`transition-colors duration-300 ${
-          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          darkMode ? 'text-gray-300' : 'text-gray-600'
         }`}>
           {description}
         </p>
@@ -31,7 +31,7 @@ const Donate = () => {
 
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
     }`}>
       {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
       <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-0 left-4">
@@ -54,12 +54,12 @@ const Donate = () => {
               </svg>
             </div>
             <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Support <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent font-normal">STANBUL</span>
             </h1>
             <p className={`text-xl leading-relaxed transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Help us keep Istanbul's best AI travel guide free and amazing for everyone
             </p>
@@ -71,17 +71,17 @@ const Donate = () => {
       <div className="max-w-6xl mx-auto px-6 pb-20">
         {/* Buy Me a Coffee Section */}
         <div className={`rounded-2xl p-8 mb-12 text-center transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-800/50' 
             : 'bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-200'
         }`}>
           <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-yellow-300' : 'text-yellow-800'
+            darkMode ? 'text-yellow-300' : 'text-yellow-800'
           }`}>
             Buy Me a Coffee
           </h2>
           <p className={`text-lg mb-6 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-yellow-100' : 'text-yellow-700'
+            darkMode ? 'text-yellow-100' : 'text-yellow-700'
           }`}>
             The easiest way to show your appreciation and keep AIstanbul running
           </p>
@@ -97,12 +97,12 @@ const Donate = () => {
 
         {/* Benefits Section */}
         <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-lg border border-gray-100'
         }`}>
           <h2 className={`text-3xl font-bold text-center mb-8 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             How Your Support Helps
           </h2>
@@ -123,63 +123,63 @@ const Donate = () => {
 
         {/* Alternative Support Methods */}
         <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-lg border border-gray-100'
         }`}>
           <h2 className={`text-3xl font-bold text-center mb-8 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             Other Ways to Help
           </h2>
           
           <div className="grid md:grid-cols-3 gap-6">
             <div className={`p-6 rounded-lg border-2 border-dashed transition-colors duration-300 ${
-              theme === 'dark' 
+              darkMode 
                 ? 'border-gray-600 hover:border-blue-500' 
                 : 'border-gray-300 hover:border-blue-400'
             }`}>
               <h3 className={`font-semibold text-lg mb-2 transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Share with Friends
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 <span>Share AIstanbul with fellow travelers</span>
               </p>
             </div>
             
             <div className={`p-6 rounded-lg border-2 border-dashed transition-colors duration-300 ${
-              theme === 'dark' 
+              darkMode 
                 ? 'border-gray-600 hover:border-green-500' 
                 : 'border-gray-300 hover:border-green-400'
             }`}>
               <h3 className={`font-semibold text-lg mb-2 transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Feedback & Reviews
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 Help us improve with your valuable feedback
               </p>
             </div>
             
             <div className={`p-6 rounded-lg border-2 border-dashed transition-colors duration-300 ${
-              theme === 'dark' 
+              darkMode 
                 ? 'border-gray-600 hover:border-purple-500' 
                 : 'border-gray-300 hover:border-purple-400'
             }`}>
               <h3 className={`font-semibold text-lg mb-2 transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Contribute Code
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 Help improve AIstanbul on GitHub
               </p>
@@ -189,17 +189,17 @@ const Donate = () => {
 
         {/* Transparency Section */}
         <div className={`rounded-2xl p-8 transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gray-800 border border-gray-700' 
             : 'bg-white shadow-lg border border-gray-100'
         }`}>
           <h3 className={`text-xl font-bold mb-4 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             Our Transparency Promise
           </h3>
           <p className={`transition-colors duration-300 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
             All donations go directly to project expenses: server costs, API fees, and development resources. 
             We're committed to keeping AIstanbul free and accessible to everyone exploring beautiful Istanbul!

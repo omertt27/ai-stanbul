@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 function FAQ() {
-  const { theme } = useTheme();
+  const { darkMode } = useTheme();
   const [openIndex, setOpenIndex] = useState(null);
 
   const toggleFAQ = (index) => {
@@ -87,7 +87,7 @@ function FAQ() {
 
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50'
     }`}>
       {/* AI Istanbul Logo - Top Left - Fixed - Aligned with Nav */}
       <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
@@ -110,12 +110,12 @@ function FAQ() {
               </svg>
             </div>
             <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Frequently Asked <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Questions</span>
             </h1>
             <p className={`text-xl leading-relaxed transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Find answers to common questions about AI Istanbul Guide
             </p>
@@ -129,7 +129,7 @@ function FAQ() {
         <div className="space-y-4 mb-12">
           {faqs.map((faq, index) => (
             <div key={index} className={`rounded-xl transition-all duration-300 ${
-              theme === 'dark' 
+              darkMode 
                 ? 'bg-gray-800 border border-gray-700 hover:border-gray-600' 
                 : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
             }`}>
@@ -143,7 +143,7 @@ function FAQ() {
                       <span className="text-white text-lg">{getCategoryIcon(faq.category)}</span>
                     </div>
                     <h3 className={`text-lg font-semibold transition-colors duration-300 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      darkMode ? 'text-white' : 'text-gray-800'
                     }`}>
                       {faq.question}
                     </h3>
@@ -152,7 +152,7 @@ function FAQ() {
                     <svg 
                       className={`w-6 h-6 transition-transform duration-300 ${
                         openIndex === index ? 'rotate-180' : ''
-                      } ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} 
+                      } ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} 
                       fill="none" 
                       stroke="currentColor" 
                       viewBox="0 0 24 24"
@@ -169,7 +169,7 @@ function FAQ() {
                 <div className="px-6 pb-6">
                   <div className="ml-14">
                     <p className={`leading-relaxed transition-colors duration-300 ${
-                      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                      darkMode ? 'text-gray-300' : 'text-gray-600'
                     }`}>
                       {faq.answer}
                     </p>
@@ -183,7 +183,7 @@ function FAQ() {
         {/* Quick Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <div className={`text-center p-6 rounded-xl transition-colors duration-300 ${
-            theme === 'dark' 
+            darkMode 
               ? 'bg-gray-800 border border-gray-700' 
               : 'bg-white shadow-lg border border-gray-100'
           }`}>
@@ -193,19 +193,19 @@ function FAQ() {
               </svg>
             </div>
             <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Real-time Data
             </h3>
             <p className={`text-sm transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Live restaurant & place information via Google Maps API
             </p>
           </div>
 
           <div className={`text-center p-6 rounded-xl transition-colors duration-300 ${
-            theme === 'dark' 
+            darkMode 
               ? 'bg-gray-800 border border-gray-700' 
               : 'bg-white shadow-lg border border-gray-100'
           }`}>
@@ -215,19 +215,19 @@ function FAQ() {
               </svg>
             </div>
             <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               100% Free
             </h3>
             <p className={`text-sm transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Completely free to use, powered by community support
             </p>
           </div>
 
           <div className={`text-center p-6 rounded-xl transition-colors duration-300 ${
-            theme === 'dark' 
+            darkMode 
               ? 'bg-gray-800 border border-gray-700' 
               : 'bg-white shadow-lg border border-gray-100'
           }`}>
@@ -237,12 +237,12 @@ function FAQ() {
               </svg>
             </div>
             <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
-              theme === 'dark' ? 'text-white' : 'text-gray-800'
+              darkMode ? 'text-white' : 'text-gray-800'
             }`}>
               Mobile Optimized
             </h3>
             <p className={`text-sm transition-colors duration-300 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Perfect experience on any device, anywhere in Istanbul
             </p>
@@ -251,7 +251,7 @@ function FAQ() {
 
         {/* Still Have Questions */}
         <div className={`rounded-xl p-8 text-center transition-colors duration-300 ${
-          theme === 'dark' 
+          darkMode 
             ? 'bg-gradient-to-r from-gray-800 to-gray-700' 
             : 'bg-gradient-to-r from-indigo-50 to-purple-50'
         }`}>
@@ -261,12 +261,12 @@ function FAQ() {
             </svg>
           </div>
           <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
+            darkMode ? 'text-white' : 'text-gray-800'
           }`}>
             Still Have Questions?
           </h2>
           <p className={`text-lg mb-6 transition-colors duration-300 ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
             Can't find the answer you're looking for? Here are some ways to get help:
           </p>
@@ -275,19 +275,19 @@ function FAQ() {
             <Link
               to="/"
               className={`p-4 rounded-lg transition-all duration-300 hover:scale-105 ${
-                theme === 'dark' 
+                darkMode 
                   ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' 
                   : 'bg-white hover:bg-gray-50 shadow-lg border border-gray-100'
               }`}
             >
               <div className="text-2xl mb-2">💬</div>
               <h3 className={`font-semibold mb-1 transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Ask Our AI
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 Get instant answers from our AI assistant
               </p>
@@ -296,18 +296,18 @@ function FAQ() {
             <a
               href="mailto:help@aiistanbul.guide"
               className={`p-4 rounded-lg transition-all duration-300 hover:scale-105 ${
-                theme === 'dark' 
+                darkMode 
                   ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' 
                   : 'bg-white hover:bg-gray-50 shadow-lg border border-gray-100'
               }`}
             >
               <h3 className={`font-semibold mb-1 transition-colors duration-300 ${
-                theme === 'dark' ? 'text-white' : 'text-gray-800'
+                darkMode ? 'text-white' : 'text-gray-800'
               }`}>
                 Email Us
               </h3>
               <p className={`text-sm transition-colors duration-300 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 Direct support from our team
               </p>
