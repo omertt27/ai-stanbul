@@ -10,10 +10,33 @@ import re
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
+# Configure logging early
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Add current directory to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
+
+# Test for python-multipart availability early
+try:
+    import multipart
+    logger.info("✅ python-multipart is available")
+except ImportError as e:
+    print(f"❌ Warning: python-multipart not found: {e}")
+    print("📦 Installing python-multipart...")
+    import subprocess
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-multipart==0.0.6"])
+        import multipart
+        print("✅ python-multipart installed successfully")
+    except Exception as install_error:
+        print(f"❌ Failed to install python-multipart: {install_error}")
+        print("⚠️  Continuing without multipart support...")
 
 # Core imports
 from fastapi import FastAPI, Request, HTTPException, Depends

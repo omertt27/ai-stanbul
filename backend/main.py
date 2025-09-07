@@ -20,6 +20,22 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
+# Test for python-multipart early to prevent FastAPI errors
+try:
+    import multipart
+    print("✅ python-multipart is available")
+except ImportError as e:
+    print(f"❌ Warning: python-multipart not found: {e}")
+    print("📦 Attempting to install python-multipart...")
+    import subprocess
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-multipart==0.0.6"])
+        import multipart
+        print("✅ python-multipart installed successfully")
+    except Exception as install_error:
+        print(f"❌ Failed to install python-multipart: {install_error}")
+        print("⚠️  FastAPI may have limited functionality without python-multipart")
+
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -1006,7 +1022,7 @@ def create_fuzzy_keywords():
         ],
         'restaurants': [
             'restaurants', 'restaurant', 'restourant', 'resturant', 'restaurnts', 'restaurnt', 
-            'restarunt', 'restarunts', 'restaurents', 'restarants', 'restrants', 'food', 
+            'restarunt', 'restarunts', 'restarants', 'restrants', 'food', 
             'eat', 'dining', 'eatery', 'cafe', 'cafes'
         ],
         'attractions': [
@@ -1531,16 +1547,23 @@ async def ai_istanbul_router(request: Request):
                 'getting to', 'going to', 'going from'
             ]
             
-            # Enhanced transportation detection for "from X to Y" patterns
+            # Transportation patterns for more specific detection
             transportation_patterns = [
-                r'how\s+can\s+i\s+go\s+\w+\s+from\s+\w+',  # "how can i go beyoglu from kadikoy"
-                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from kadikoy to beyoglu"
-                r'how\s+to\s+go\s+from\s+\w+\s+to\s+\w+',   # "how to go from kadikoy to beyoglu"
-                r'from\s+\w+\s+to\s+\w+',                   # "from kadikoy to beyoglu"
-                r'\w+\s+to\s+\w+\s+transport',              # "kadikoy to beyoglu transport"
-                r'get\s+to\s+\w+\s+from\s+\w+',             # "get to beyoglu from kadikoy"
-                r'travel\s+from\s+\w+\s+to\s+\w+',          # "travel from kadikoy to beyoglu"
-                r'\w+\s+from\s+\w+',                        # "beyoglu from kadikoy" (simple pattern)
+                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from A to B"
+                r'getting\s+from\s+\w+\s+to\s+\w+',        # "getting from A to B"
+                r'travel\s+from\s+\w+\s+to\s+\w+',         # "travel from A to B"
+                r'go\s+from\s+\w+\s+to\s+\w+',             # "go from A to B"
+                r'from\s+\w+\s+to\s+\w+\s+by',             # "from A to B by metro"
+                r'metro\s+from\s+\w+\s+to\s+\w+',          # "metro from A to B"
+                r'bus\s+from\s+\w+\s+to\s+\w+',            # "bus from A to B"
+                r'ferry\s+from\s+\w+\s+to\s+\w+',          # "ferry from A to B"
+                r'how\s+long\s+does\s+it\s+take',          # "how long does it take"
+                r'how\s+much\s+does\s+it\s+cost',          # "how much does it cost"
+                r'fastest\s+way\s+to',                     # "fastest way to"
+                r'cheapest\s+way\s+to',                    # "cheapest way to"
+                r'best\s+way\s+to\s+get',                  # "best way to get"
+                r'route\s+to\s+\w+',                       # "route to destination"
+                r'directions\s+to\s+\w+',                  # "directions to destination"
             ]
             
             nightlife_keywords = [
@@ -1610,6 +1633,7 @@ async def ai_istanbul_router(request: Request):
             context_location_for_restaurants = None
             
             # Check for follow-up restaurant queries like "give me also restaurants in beyoglu"
+           
             follow_up_restaurant_patterns = [
                 r'give\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "give me also restaurants in beyoglu"
                 r'show\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "show me more restaurants in kadikoy"
@@ -2432,7 +2456,7 @@ When users need specific restaurant recommendations with location (like "restaur
                     )
                     
                     # Update conversation context
-                    places_mentioned = intent_info.get('entities', {}).get('places', [])
+                    places_mentioned = intent_info.get('entities', {}).get('locations', [])
                     topic = intent_info.get('intent', 'general')
                     context_manager.update_context(
                         session_id, user_input, enhanced_response, 
