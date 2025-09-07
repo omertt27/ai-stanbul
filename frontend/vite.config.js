@@ -7,8 +7,9 @@ export default defineConfig({
   root: '.',
   publicDir: 'public',
   server: {
-    port: 5173,
-    host: true
+    port: 3000,
+    host: true,
+    historyApiFallback: true
   },
   build: {
     outDir: 'dist'

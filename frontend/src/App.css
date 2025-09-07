@@ -1,18 +1,46 @@
 /* Main page logo - bigger version, centered */
-.main-page .logo-istanbul {
+.main-page-logo.logo-istanbul {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
 }
 
-.main-page .logo-istanbul .logo-text {
-  font-size: 5rem;
-  letter-spacing: 0.18em;
+.main-page-logo .logo-text {
+  font-size: 7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+}
+
+.main-page-logo .logo-text:hover {
+  transform: scale(1.05);
+  text-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
+}
+
+@media (max-width: 768px) {
+  .main-page-logo .logo-text {
+    font-size: 5rem;
+    letter-spacing: 0.15em;
+  }
 }
 
 @media (max-width: 640px) {
-  .main-page .logo-istanbul .logo-text {
-    font-size: 3.5rem;
-    letter-spacing: 0.15em;
+  .main-page-logo .logo-text {
+    font-size: 4rem;
+    letter-spacing: 0.12em;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-page-logo .logo-text {
+    font-size: 3rem;
+    letter-spacing: 0.1em;
   }
 }
 
@@ -763,11 +791,11 @@ html, body {
 /* Force fixed logo to stay truly fixed */
 .fixed-logo {
   position: fixed !important;
-  top: 1rem !important;
-  left: 1.5rem !important;
+  top: 1.5rem !important;
+  left: 2rem !important;
   z-index: 9999 !important;
   transform: none !important;
-  transition: none !important;
+  transition: all 0.3s ease !important;
 }
 
 .fixed-logo .chat-title {
@@ -778,6 +806,42 @@ html, body {
   background-clip: text !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+.fixed-logo .logo-text {
+  font-size: 3.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  text-shadow: 0 2px 10px rgba(99, 102, 241, 0.2) !important;
+}
+
+.fixed-logo:hover .logo-text {
+  transform: scale(1.05);
+  text-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+}
+
+@media (max-width: 768px) {
+  .fixed-logo .logo-text {
+    font-size: 2.8rem !important;
+    letter-spacing: 0.12em !important;
+  }
+  
+  .fixed-logo {
+    top: 1rem !important;
+    left: 1.5rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .fixed-logo .logo-text {
+    font-size: 2.2rem !important;
+    letter-spacing: 0.1em !important;
+  }
+  
+  .fixed-logo {
+    top: 0.75rem !important;
+    left: 1rem !important;
+  }
 }
 
 /* Force chatbot outline to be truly fixed */
@@ -794,4 +858,49 @@ html, body {
   opacity: 0.6 !important;
   border-radius: 0 0 50px 50px !important;
   pointer-events: none !important;
+}
+
+/* Header logo for BlogPost and other pages with header layout */
+.header-logo.logo-istanbul {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.header-logo .logo-text {
+  font-size: 4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  text-shadow: 0 3px 15px rgba(99, 102, 241, 0.25) !important;
+  transition: all 0.3s ease !important;
+}
+
+.header-logo .logo-text:hover {
+  transform: scale(1.05);
+  text-shadow: 0 5px 20px rgba(99, 102, 241, 0.4) !important;
+}
+
+@media (max-width: 768px) {
+  .header-logo .logo-text {
+    font-size: 3rem !important;
+    letter-spacing: 0.14em !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-logo .logo-text {
+    font-size: 2.5rem !important;
+    letter-spacing: 0.12em !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-logo .logo-text {
+    font-size: 2rem !important;
+    letter-spacing: 0.1em !important;
+  }
 }

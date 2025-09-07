@@ -173,6 +173,25 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null) =>
               
               try {
                 const parsed = JSON.parse(data);
+                
+                // Handle error response
+                if (parsed.error) {
+                  console.error('Backend streaming error:', parsed.error);
+                  throw new Error(parsed.error);
+                }
+                
+                // Handle completion signal
+                if (parsed.done) {
+                  console.log('✅ Streaming completed');
+                  return;
+                }
+                
+                // Handle chunk data - backend sends {chunk: "text"}
+                if (parsed.chunk) {
+                  onChunk(parsed.chunk);
+                }
+                
+                // Legacy: Handle OpenAI-style format if present
                 if (parsed.delta && parsed.delta.content) {
                   onChunk(parsed.delta.content);
                 }

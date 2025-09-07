@@ -2716,43 +2716,72 @@ async def stream_ai_response(request: Request):
 
         async def generate_stream():
             try:
-                # Use the same logic as the /ai endpoint
-                # Create request data in the expected format
-                request_data = {"query": user_input, "session_id": session_id}
+                # Use the same logic as the working /ai endpoint
+                # Parse and validate input
+                is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
+                if not is_safe:
+                    logger.warning(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
+                    yield f"data: {json.dumps({'error': 'Input contains invalid characters'})}\n\n"
+                    return
+
+                # Get database session
+                db = None
+                try:
+                    db = SessionLocal()
+                except Exception as db_error:
+                    logger.warning(f"Database connection failed: {db_error}")
+
+                # Generate AI response using the same logic as /ai endpoint
+                # Check for simple greetings first
+                user_input_clean = sanitized_input.lower().strip()
                 
-                # For simplicity, call the main AI logic directly without streaming first
-                # then we'll break it into chunks
-                enhanced_input = query_understanding.correct_and_enhance_query(user_input)
-                context = context_manager.get_context(session_id)
-                intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                response_message = ""
+                if any(greeting in user_input_clean for greeting in ['hi', 'hello', 'hey']):
+                    response_message = "Hello! 👋 I'm your Istanbul travel companion! Whether you're planning a visit or already here, I'll help you discover amazing restaurants, hidden gems, and local experiences. What brings you to Istanbul?"
+                else:
+                    # Check for fallback conditions
+                    fallback_response = create_intelligent_fallback_response(sanitized_input)
+                    if fallback_response:
+                        response_message = fallback_response
+                    else:
+                        # Use regular fallback with database query
+                        db_places = []
+                        if db:
+                            try:
+                                # Get some places from database
+                                places_query = db.query(Place).limit(5).all()
+                                db_places = [{"name": p.name, "category": p.category, "district": p.district} for p in places_query] if places_query else []
+                            except Exception as e:
+                                logger.warning(f"Database query failed: {e}")
+                        
+                        response_message = create_fallback_response(sanitized_input, db_places)
+
+                # For streaming, break down the response into chunks
+                words = response_message.split()
+                chunk_size = 3  # Smaller chunks for better streaming effect
                 
-                # Generate response using the context-aware generator
-                ai_response = response_generator.generate_contextual_response(
-                    enhanced_input, context, intent_info, knowledge_base
-                )
-                
-                # Update context
-                context_manager.update_context(session_id, user_input, ai_response, intent_info)
-                
-                response = {"message": ai_response, "session_id": session_id}
-                
-                # For streaming, we'll break down the response into chunks
-                message = response.get("message", "")
-                words = message.split()
-                
-                # Send the response in chunks of 3-5 words
-                chunk_size = 4
                 for i in range(0, len(words), chunk_size):
                     chunk = " ".join(words[i:i + chunk_size])
                     if chunk.strip():
                         yield f"data: {json.dumps({'chunk': chunk + ' '})}\n\n"
-                        await asyncio.sleep(0.1)  # Small delay for streaming effect
+                        await asyncio.sleep(0.05)  # Small delay for streaming effect
                 
                 # Send completion signal
                 yield f"data: {json.dumps({'done': True})}\n\n"
                 
+                # Save to chat history if database is available
+                if db:
+                    try:
+                        save_chat_history(db, session_id, user_input, response_message)
+                    except Exception as e:
+                        logger.warning(f"Failed to save chat history: {e}")
+                
+                if db:
+                    db.close()
+                
             except Exception as e:
                 logger.error(f"Error in streaming response: {str(e)}")
+                logger.error(f"Streaming error traceback: {traceback.format_exc()}")
                 error_msg = json.dumps({'error': 'Failed to generate response'})
                 yield f"data: {error_msg}\n\n"
         

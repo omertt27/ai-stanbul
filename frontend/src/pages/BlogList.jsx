@@ -123,16 +123,22 @@ const BlogList = () => {
       <div className={`min-h-screen ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
-        {/* AI Istanbul Logo - Top Left - Fixed - Outside of scroll area */}
-        <Link to="/" style={{textDecoration: 'none'}} className="fixed-logo">
-          <div className="chat-title logo-istanbul">
-            <span className="logo-text">
-              A/<span style={{fontWeight: 400}}>STANBUL</span>
-            </span>
+        {/* Header with Centered Logo */}
+        <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
+          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
+          <div className="max-w-6xl mx-auto flex justify-center">
+            <Link to="/" style={{textDecoration: 'none'}}>
+              <div className="header-logo chat-title logo-istanbul">
+                <span className="logo-text">
+                  A/<span style={{fontWeight: 400}}>STANBUL</span>
+                </span>
+              </div>
+            </Link>
           </div>
-        </Link>
+        </header>
         
-        <div className="pt-32 sm:pt-36 px-2 sm:px-4 pb-20 transition-colors duration-200">
+        <div className="pt-16 px-2 sm:px-4 pb-20 transition-colors duration-200">
           <div className="w-full">
             <div className="flex justify-center items-center py-20">
               <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
@@ -149,16 +155,22 @@ const BlogList = () => {
     <div className={`min-h-screen ${
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      {/* AI Istanbul Logo - Top Left - Fixed */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed-logo">
-        <div className="chat-title logo-istanbul">
-          <span className="logo-text">
-            A/<span style={{fontWeight: 400}}>STANBUL</span>
-          </span>
+      {/* Header with Centered Logo */}
+      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
+        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
+        <div className="max-w-6xl mx-auto flex justify-center">
+          <Link to="/" style={{textDecoration: 'none'}}>
+            <div className="header-logo chat-title logo-istanbul">
+              <span className="logo-text">
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
         </div>
-      </Link>
+      </header>
 
-      <div className="pt-20 md:pt-20 sm:pt-28 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-20 transition-colors duration-200">
+      <div className="pt-8 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-20 transition-colors duration-200">
       <div className="w-full">
         {/* Header - Simplified */}
         <div className="text-center mb-6 sm:mb-8 px-2 mt-2 sm:mt-4">

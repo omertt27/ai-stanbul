@@ -201,26 +201,33 @@ const NewBlogPost = () => {
 
   return (
     <div 
-      className={`min-h-screen pt-16 px-3 pb-6 transition-colors duration-200 ${
+      className={`min-h-screen transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
     >
-      {/* AI Istanbul Logo - Top Left */}
-      <Link to="/" style={{textDecoration: 'none'}} className="fixed z-[60] top-4 left-6">
-        <div className="chat-title logo-istanbul">
-          <span className="logo-text">
-            A/<span style={{fontWeight: 400}}>STANBUL</span>
-          </span>
+      {/* Header with Centered Logo */}
+      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
+        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
+        <div className="max-w-6xl mx-auto flex justify-center">
+          <Link to="/" style={{textDecoration: 'none'}}>
+            <div className="header-logo chat-title logo-istanbul">
+              <span className="logo-text">
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
         </div>
-      </Link>
+      </header>
 
-      <div className="max-w-4xl mx-auto">
-        {/* Share Your Story Section */}
-        <div className={`mb-4 p-4 rounded-xl border-2 transition-all duration-200 ${
-          darkMode 
-            ? 'bg-gray-800 border-gray-700' 
-            : 'bg-white border-blue-200 shadow-md'
-        }`}>
+      <div className="pt-8 px-3 pb-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Share Your Story Section */}
+          <div className={`mb-4 p-4 rounded-xl border-2 transition-all duration-200 ${
+            darkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-blue-200 shadow-md'
+          }`}>
           <h2 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
             darkMode ? 'text-white' : 'text-gray-900'
           }`}>
@@ -702,6 +709,7 @@ Share your experiences, discoveries, and recommendations!"
               Story
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -16,9 +16,10 @@ const App = () => {
   const chatScrollRef = useRef(null);
 
   useEffect(() => {
-    const audio = new Audio('/welcome_baskan.mp3');
-    audio.volume = 0.5;
-    audio.play().catch(() => {/* ignore audio errors */});
+    // Audio file temporarily disabled - uncomment when audio file is available
+    // const audio = new Audio('/welcome_baskan.mp3');
+    // audio.volume = 0.5;
+    // audio.play().catch(() => {/* ignore audio errors */});
   }, []);
 
   useEffect(() => {
@@ -94,9 +95,9 @@ const App = () => {
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12vh'}}>
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8vh'}}>
           <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
-            <div className={`chat-title logo-istanbul${expanded ? ' logo-move-top-left' : ''}`} id="logo-istanbul">
+            <div className="main-page-logo chat-title logo-istanbul" id="logo-istanbul">
               <span className="logo-text">
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
