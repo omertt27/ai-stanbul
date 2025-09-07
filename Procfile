@@ -1,2 +1,2 @@
 # Procfile for deployment platforms (Heroku, Railway, Render, etc.)
-web: python backend/start.py
+web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
