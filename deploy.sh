@@ -1,13 +1,62 @@
 #!/bin/bash
-# Production Deployment Script
 
-echo "🚀 Starting production deployment..."
+# AI-stanbul Production Deployment Script
+# This script handles the complete deployment process with error handling
 
-# Backend Setup
-echo "📦 Setting up backend..."
+echo "🚀 Starting AI-stanbul Production Deployment..."
+
+# Check if we're in the right directory
+if [ ! -f "backend/main.py" ]; then
+    echo "❌ Error: Please run this script from the project root directory"
+    exit 1
+fi
+
+# Backend deployment
+echo "📦 Setting up Backend..."
 cd backend
 
-# Install dependencies
+# Install Python dependencies with error handling
+echo "📦 Installing Python dependencies..."
+pip install -r requirements.txt || {
+    echo "❌ Failed to install Python dependencies"
+    exit 1
+}
+
+# Check if critical dependencies are installed
+echo "🔍 Verifying critical dependencies..."
+python -c "
+import sys
+try:
+    from fuzzywuzzy import fuzz
+    print('✅ fuzzywuzzy installed successfully')
+except ImportError:
+    print('⚠️  fuzzywuzzy not found, installing...')
+    import subprocess
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'fuzzywuzzy', 'python-levenshtein'])
+        print('✅ fuzzywuzzy installed successfully')
+    except subprocess.CalledProcessError:
+        print('⚠️  Could not install fuzzywuzzy, using fallback mode')
+
+try:
+    import fastapi
+    print('✅ FastAPI installed successfully')
+except ImportError:
+    print('❌ FastAPI not found - this is required!')
+    sys.exit(1)
+
+try:
+    import openai
+    print('✅ OpenAI client installed successfully')
+except ImportError:
+    print('⚠️  OpenAI client not found - some features may be limited')
+"
+
+# Initialize database
+echo "🗄️  Initializing database..."
+python init_db.py || {
+    echo "⚠️  Database initialization had issues, but continuing..."
+}
 pip install -r requirements.txt
 
 # Add production dependencies

@@ -139,10 +139,16 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/ai_stanbul_prod
 
 ### **Step 3: Deploy to Production**
 ```bash
+# Method 1: Use our deployment script (Recommended)
+chmod +x deploy.sh
+./deploy.sh
+
+# Method 2: Manual deployment
 # Backend
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+python init_db.py
+uvicorn main:app --host 0.0.0.0 --port 8001 --workers 4
 
 # Frontend  
 cd frontend
@@ -150,6 +156,19 @@ npm install
 npm run build
 # Deploy dist/ folder to your web server
 ```
+
+### **Step 3b: Handle Missing Dependencies (Production Fix)**
+If you encounter `ModuleNotFoundError` in production:
+
+```bash
+# Install missing dependencies
+pip install fuzzywuzzy python-levenshtein
+
+# Or use our updated requirements.txt with version pinning
+pip install -r requirements.txt --upgrade
+```
+
+**Note**: The code now includes fallback handling for missing dependencies, so the app will still work with reduced functionality if some packages are missing.
 
 ### **Step 4: Configure Domain & SSL**
 - Set up your domain name
@@ -213,3 +232,45 @@ The chatbot will provide real users with:
 - **Reliable, secure experience**
 
 **Ready to serve real users! 🚀**
+
+---
+
+## 🔧 **TROUBLESHOOTING DEPLOYMENT ISSUES**
+
+### **Issue: ModuleNotFoundError: No module named 'fuzzywuzzy'**
+
+**Quick Fix Options:**
+
+#### **Option 1: Use Minimal Requirements (Recommended)**
+```bash
+cd backend
+pip install -r requirements_minimal.txt
+python main.py
+```
+
+#### **Option 2: Install Missing Dependencies**
+```bash
+pip install fuzzywuzzy python-levenshtein
+# If that fails, try:
+pip install fuzzywuzzy[speedup]
+```
+
+#### **Option 3: Use Built-in Fallback**
+The app now includes a built-in fallback using Python's `difflib` module, so it will work even without fuzzywuzzy.
+
+#### **Option 4: Environment-Specific Issues**
+If you're deploying on Render, Heroku, or similar platforms:
+```bash
+# Make sure your requirements.txt is in the root directory
+# or specify the correct path in your deployment configuration
+```
+
+### **Production Environment Variables**
+Make sure these are set in your deployment environment:
+```bash
+ENVIRONMENT=production
+DEBUG=False
+OPENAI_API_KEY=your_key_here
+GOOGLE_PLACES_API_KEY=your_key_here
+DATABASE_URL=your_database_url
+```

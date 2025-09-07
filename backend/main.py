@@ -16,7 +16,30 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from fuzzywuzzy import fuzz, process
+
+# Import fuzzywuzzy with fallback
+try:
+    from fuzzywuzzy import fuzz, process
+    FUZZYWUZZY_AVAILABLE = True
+except ImportError:
+    print("Warning: fuzzywuzzy not available. Some fuzzy matching features will be disabled.")
+    FUZZYWUZZY_AVAILABLE = False
+    # Create dummy functions
+    class fuzz:
+        @staticmethod
+        def ratio(a, b):
+            return 100 if a.lower() == b.lower() else 0
+        @staticmethod
+        def partial_ratio(a, b):
+            return 100 if a.lower() in b.lower() or b.lower() in a.lower() else 0
+    
+    class process:
+        @staticmethod
+        def extractOne(query, choices, scorer=None):
+            for choice in choices:
+                if query.lower() in choice.lower():
+                    return (choice, 80)
+            return (choices[0] if choices else None, 0)
 
 # --- Project Imports ---
 from database import engine, SessionLocal
