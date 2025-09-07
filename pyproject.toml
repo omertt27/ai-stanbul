@@ -1,10 +1,10 @@
 [tool.pylance]
 include = ["backend"]
-exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv"]
+exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv", "**/Procfile"]
 
 [tool.pyright]
 include = ["backend"]
-exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv"]
+exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv", "**/Procfile"]
 pythonPath = "backend"
 venvPath = ".venv"
 

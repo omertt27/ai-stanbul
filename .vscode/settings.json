@@ -1,20 +1,9 @@
 {
-    "python.analysis.extraPaths": [
-        "./backend",
-        "."
-    ],
     "python.defaultInterpreterPath": "./.venv/bin/python",
-    "python.analysis.autoSearchPaths": true,
-    "python.analysis.autoImportCompletions": true,
     "pylance.insidersChannel": "off",
-    "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.include": [
-        "backend/**/*.py"
-    ],
-    "python.analysis.exclude": [
-        "**/__pycache__",
-        "**/node_modules",
-        ".venv/**",
-        "venv/**"
-    ]
+    "files.associations": {
+        "Procfile": "plaintext",
+        "procfile": "plaintext",
+        "Procfile.*": "plaintext"
+    }
 }
