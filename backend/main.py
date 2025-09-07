@@ -2851,14 +2851,28 @@ async def enhanced_health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-if __name__ == "__main__":
+# Production deployment configuration
+def start_server():
+    """Start the FastAPI server with proper configuration"""
     import os
-    # Get port from environment variable (for deployment) or default to 8000
-    port = int(os.environ.get("PORT", 8000))
-
-    # If using FastAPI with uvicorn:
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    
+    # Get configuration from environment variables
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 8000))
+    
+    print(f"🚀 Starting AIstanbul backend on {host}:{port}")
+    
+    uvicorn.run(
+        app, 
+        host=host, 
+        port=port,
+        log_level="info",
+        access_log=True
+    )
+
+if __name__ == "__main__":
+    start_server()
 
 
 
