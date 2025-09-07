@@ -32,7 +32,7 @@ def test_imports():
     
     return len(missing_modules) == 0
 
-if __name__ == "__main__":
+def main():
     # Get port from environment variable (Render sets this)
     port = int(os.environ.get("PORT", 8000))
     host = "0.0.0.0"
@@ -73,3 +73,6 @@ if __name__ == "__main__":
             )
         else:
             raise e
+
+if __name__ == "__main__":
+    main()
