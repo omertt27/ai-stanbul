@@ -1848,7 +1848,8 @@ async def ai_istanbul_router(request: Request):  # type: ignore
                     if 'in ' in user_input.lower():
                         location_match = re.search(r'in\s+(\w+)', user_input.lower())
                         if location_match:
-                            context_location_for_restaurants = location_match.group(1)
+                            location = location_match.group(1).strip()
+                            context_location_for_restaurants = location
                     break
             
             # If it's a follow-up query but no location found in query, use conversation context
@@ -2648,7 +2649,7 @@ When users need specific restaurant recommendations with location (like "restaur
                         
                         response = make_openai_request()
                         ai_response = response.choices[0].message.content
-                        logger.info(f"OpenAI response: {ai_response[:100] if ai_response else 'None'}...")
+                        logger.info(f"OpenAI response: {ai_response[:100] if ai_response else 'None'}")
                     
                     # Generate context-aware enhanced response
                     enhanced_response = response_generator.generate_response(
@@ -2851,8 +2852,13 @@ async def enhanced_health_check():
     }
 
 if __name__ == "__main__":
+    import os
+    # Get port from environment variable (for deployment) or default to 8000
+    port = int(os.environ.get("PORT", 8000))
+
+    # If using FastAPI with uvicorn:
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 
