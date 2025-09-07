@@ -12,6 +12,15 @@ import importlib
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
+def check_dependencies():
+    """Quick dependency check"""
+    try:
+        from check_dependencies import check_and_install_dependencies
+        return check_and_install_dependencies()
+    except Exception as e:
+        print(f"⚠️  Dependency checker not available: {e}")
+        return True  # Continue anyway
+
 def test_imports():
     """Test if all required modules can be imported"""
     modules_to_test = [
@@ -38,6 +47,12 @@ if __name__ == "__main__":
     host = "0.0.0.0"
     
     print("🚀 AI-stanbul Backend Starting...")
+    
+    # Check dependencies first
+    deps_ok = check_dependencies()
+    if not deps_ok:
+        print("⚠️  Some dependencies missing, but continuing...")
+    
     print("🔍 Testing module imports...")
     
     # Test if we can use the full main.py

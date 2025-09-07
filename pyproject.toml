@@ -1,0 +1,17 @@
+[tool.pylance]
+include = ["backend"]
+exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv"]
+
+[tool.pyright]
+include = ["backend"]
+exclude = ["**/__pycache__", "**/node_modules", ".venv", "venv"]
+pythonPath = "backend"
+venvPath = ".venv"
+
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

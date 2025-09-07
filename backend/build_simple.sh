@@ -31,8 +31,12 @@ python -m pip install openai==1.3.0
 echo "📦 Installing remaining dependencies..."
 python -m pip install -r requirements.txt
 
+# Run dependency checker
+echo "🔍 Running dependency verification..."
+python check_dependencies.py
+
 # Verify installation
-echo "🔍 Verifying installation..."
+echo "🔍 Final verification..."
 python -c "
 try:
     import fastapi

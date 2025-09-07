@@ -1,4 +1,5 @@
 import os
+import json
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -26,4 +27,13 @@ def parse_user_input(user_input: str) -> dict:
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+    
+    # Parse the JSON response string into a dictionary
+    try:
+        response_text = response.choices[0].message.content
+        if response_text is None:
+            return {"intent": "unknown", "entities": {}}
+        return json.loads(response_text)
+    except (json.JSONDecodeError, IndexError) as e:
+        # Fallback if JSON parsing fails
+        return {"intent": "unknown", "entities": {}}

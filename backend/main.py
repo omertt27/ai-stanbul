@@ -8,7 +8,7 @@ import time
 import traceback
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List, Union
 
 # Add current directory to Python path for production deployment
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,21 +20,26 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
+# Ensure the backend directory is in the path for module resolution
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 # Test for python-multipart early to prevent FastAPI errors
 try:
     import multipart
-    print("✅ python-multipart is available")
-except ImportError as e:
-    print(f"❌ Warning: python-multipart not found: {e}")
-    print("📦 Attempting to install python-multipart...")
+    print("✅ python-multipart available")
+except ImportError:
+    print("📦 Installing python-multipart...")
     import subprocess
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-multipart==0.0.6"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-multipart==0.0.6"], 
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         import multipart
         print("✅ python-multipart installed successfully")
     except Exception as install_error:
         print(f"❌ Failed to install python-multipart: {install_error}")
-        print("⚠️  FastAPI may have limited functionality without python-multipart")
+        print("⚠️  FastAPI may have limited functionality")
 
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, HTTPException, status
@@ -42,30 +47,58 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from sqlalchemy import text  # <-- Ensure this import is present
 
-# Import fuzzywuzzy with fallback
+# Import fuzzywuzzy with fallback and auto-install
+from typing import Any, Optional, Tuple, List as ListType
+import sys
+import subprocess
+
+# Type hints for fuzzywuzzy modules
+fuzz: Any = None  # type: ignore
+process: Any = None  # type: ignore
+FUZZYWUZZY_AVAILABLE = False
+
 try:
-    from fuzzywuzzy import fuzz, process
+    from fuzzywuzzy import fuzz as _fuzz, process as _process  # type: ignore
+    fuzz = _fuzz  # type: ignore
+    process = _process  # type: ignore
     FUZZYWUZZY_AVAILABLE = True
+    print("✅ fuzzywuzzy available")
 except ImportError:
-    print("Warning: fuzzywuzzy not available. Some fuzzy matching features will be disabled.")
-    FUZZYWUZZY_AVAILABLE = False
-    # Create dummy functions
-    class fuzz:
-        @staticmethod
-        def ratio(a, b):
-            return 100 if a.lower() == b.lower() else 0
-        @staticmethod
-        def partial_ratio(a, b):
-            return 100 if a.lower() in b.lower() or b.lower() in a.lower() else 0
-    
-    class process:
-        @staticmethod
-        def extractOne(query, choices, scorer=None):
-            for choice in choices:
-                if query.lower() in choice.lower():
-                    return (choice, 80)
-            return (choices[0] if choices else None, 0)
+    print("📦 Installing fuzzywuzzy...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "fuzzywuzzy==0.18.0", "python-levenshtein==0.20.9"], 
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        from fuzzywuzzy import fuzz as _fuzz, process as _process  # type: ignore
+        fuzz = _fuzz  # type: ignore
+        process = _process  # type: ignore
+        FUZZYWUZZY_AVAILABLE = True
+        print("✅ fuzzywuzzy installed successfully")
+    except Exception:
+        print("⚠️  Using simple fuzzy matching fallback")
+        FUZZYWUZZY_AVAILABLE = False
+        # Create dummy functions with proper types
+        class _FuzzFallback:
+            @staticmethod
+            def ratio(a: str, b: str) -> int:
+                return 100 if a.lower() == b.lower() else 0
+            @staticmethod
+            def partial_ratio(a: str, b: str) -> int:
+                return 100 if a.lower() in b.lower() or b.lower() in a.lower() else 0
+        
+        class _ProcessFallback:
+            @staticmethod
+            def extractOne(query: str, choices: List[str], scorer=None) -> Optional[Tuple[str, int]]:
+                for choice in choices:
+                    if query.lower() in choice.lower():
+                        return (choice, 80)
+                if choices:
+                    return (choices[0], 0)
+                return None
+        
+        fuzz = _FuzzFallback()  # type: ignore
+        process = _ProcessFallback()  # type: ignore
 
 # --- Project Imports with Error Handling ---
 try:
@@ -92,13 +125,53 @@ except ImportError as e:
     
     # Define minimal model classes
     class Restaurant:
-        pass
+        def __init__(self):
+            self.name = None
+            self.cuisine = None
+            self.location = None
+            self.rating = None
+    
     class Museum:
-        pass
+        def __init__(self):
+            self.name = None
+            self.location = None
+            self.hours = None
+    
     class Place:
-        pass
+        def __init__(self):
+            self.name = None
+            self.category = None
+            self.district = None
+    
     class ChatHistory:
-        pass
+        # SQLAlchemy-style class attributes for fallback
+        class _TimestampAttribute:
+            def __init__(self, value=None):
+                from datetime import datetime
+                self.value = value or datetime.now()
+                
+            def asc(self):
+                return self
+                
+            def isoformat(self):
+                return self.value.isoformat() if self.value else ""
+                
+            def __bool__(self):
+                return self.value is not None
+                
+        session_id = None
+        user_message = None  
+        bot_response = None
+        timestamp = _TimestampAttribute()
+        user_ip = None
+        
+        def __init__(self, session_id=None, user_message=None, bot_response=None, user_ip=None):
+            from datetime import datetime
+            self.session_id = session_id
+            self.user_message = user_message
+            self.bot_response = bot_response
+            self.timestamp = self._TimestampAttribute(datetime.now())
+            self.user_ip = user_ip
 
 try:
     from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips
@@ -115,24 +188,40 @@ except ImportError as e:
         pass
 
 try:
-    from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response
+    from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response  # type: ignore
 except ImportError as e:
     print(f"Warning: Could not import personalization_engine: {e}")
     # Create minimal fallback functions
-    class IstanbulPersonalizationEngine:
-        pass
-    def format_personalized_response(response):
-        return response
+    class IstanbulPersonalizationEngine:  # type: ignore
+        def __init__(self, db=None):
+            self.db = db
+        def extract_user_context(self, user_input: str, session_id: str) -> Dict[str, Any]:
+            return {}
+        def get_or_create_user_profile(self, session_id: str) -> Dict[str, Any]:
+            return {}
+        def get_cultural_context(self, *args, **kwargs) -> Dict[str, Any]:
+            return {}
+        def get_ferry_schedule(self, *args, **kwargs) -> List[Dict[str, Any]]:
+            return []
+    def format_personalized_response(base_response: str, user_context: Optional[Dict[str, Any]] = None, 
+                                   transportation: Optional[List[Dict[str, Any]]] = None, 
+                                   cultural_info: Optional[Dict[str, Any]] = None) -> str:
+        return base_response
 
 try:
-    from actionable_responses import enhance_response_with_actions, get_actionable_places_response
+    from actionable_responses import enhance_response_with_actions, get_actionable_places_response  # type: ignore
 except ImportError as e:
     print(f"Warning: Could not import actionable_responses: {e}")
     # Create minimal fallback functions
-    def enhance_response_with_actions(response):
-        return response
-    def get_actionable_places_response(query):
-        return "Sorry, place recommendations are temporarily unavailable."
+    def enhance_response_with_actions(base_response: str, query: str = "", 
+                                    location_data: Optional[List[Dict[str, Any]]] = None,
+                                    transport_data: Optional[List[Dict[str, Any]]] = None,
+                                    user_location: Optional[str] = None) -> Dict[str, Any]:
+        return {"response": base_response}
+    def get_actionable_places_response(places: List[Dict[str, Any]], 
+                                     transport_info: Optional[List[Dict[str, Any]]] = None,
+                                     user_location: Optional[str] = None) -> Dict[str, Any]:
+        return {"places": places}
 
 try:
     from routes import museums, restaurants, places
@@ -141,58 +230,73 @@ except ImportError as e:
     museums = restaurants = places = None
 
 try:
-    from api_clients.google_places import GooglePlacesClient
+    from api_clients.google_places import GooglePlacesClient  # type: ignore
 except ImportError as e:
     print(f"Warning: Could not import GooglePlacesClient: {e}")
-    class GooglePlacesClient:
+    class GooglePlacesClient:  # type: ignore
         def __init__(self, api_key=None):
             pass
+        def search_restaurants(self, location: str = "", keyword: str = "") -> Dict[str, Any]:
+            return {"results": []}
 
 try:
-    from sqlalchemy.orm import Session
-    from sqlalchemy.exc import SQLAlchemyError
+    from sqlalchemy.orm import Session  # type: ignore
+    from sqlalchemy.exc import SQLAlchemyError  # type: ignore
 except ImportError:
     print("Warning: Could not import SQLAlchemy components")
-    class Session:
+    class Session:  # type: ignore
         pass
-    class SQLAlchemyError(Exception):
+    class SQLAlchemyError(Exception):  # type: ignore
         pass
 
 try:
-    from enhanced_chatbot import (
-        EnhancedContextManager, 
-        EnhancedQueryUnderstanding, 
-        EnhancedKnowledgeBase, 
-        ContextAwareResponseGenerator
+    from enhanced_chatbot import (  # type: ignore
+        EnhancedContextManager,  # type: ignore
+        EnhancedQueryUnderstanding,  # type: ignore
+        EnhancedKnowledgeBase,  # type: ignore
+        ContextAwareResponseGenerator  # type: ignore
     )
 except ImportError as e:
     print(f"Warning: Could not import enhanced_chatbot: {e}")
     # Create minimal fallback classes
-    class EnhancedContextManager:
+    class EnhancedContextManager:  # type: ignore
         def __init__(self):
-            pass
+            self.contexts = {}
         def add_context(self, *args, **kwargs):
             pass
         def get_context(self, *args, **kwargs):
             return {}
+        def update_context(self, *args, **kwargs):
+            pass
     
-    class EnhancedQueryUnderstanding:
+    class EnhancedQueryUnderstanding:  # type: ignore
         def __init__(self):
             pass
         def understand_query(self, query):
             return {"intent": "general", "entities": []}
+        def extract_intent_and_entities(self, query: str, context: Any = None) -> Dict[str, Any]:
+            return {"intent": "general", "entities": [], "confidence": 0.5}
+        def correct_and_enhance_query(self, query: str) -> str:
+            return query
     
-    class EnhancedKnowledgeBase:
+    class EnhancedKnowledgeBase:  # type: ignore
         def __init__(self):
             pass
         def search(self, query):
             return []
+        def get_knowledge_response(self, query: str, intent_info: Dict[str, Any]) -> str:
+            return "I'm sorry, I don't have that information available right now."
     
-    class ContextAwareResponseGenerator:
+    class ContextAwareResponseGenerator:  # type: ignore
         def __init__(self, context_manager=None, knowledge_base=None):
             pass
-        def generate_response(self, query, context=None):
-            return "I'm currently running in minimal mode. Please try again later."
+        def enhance_system_prompt(self, prompt: str, context: Any) -> str:
+            return prompt
+        def generate_contextual_response(self, *args, **kwargs) -> Optional[str]:
+            return None
+            pass
+        def generate_response(self, query, response=None, context=None, intent_info=None, places=None):
+            return response or "I'm currently running in minimal mode. Please try again later."
 
 load_dotenv()
 
@@ -211,16 +315,17 @@ logger = logging.getLogger(__name__)
 
 class APIError(Exception):
     """Custom API error class"""
-    def __init__(self, message: str, error_type: str = "API_ERROR", status_code: int = 500, details: Dict = None):
+    def __init__(self, message: str, error_type: str = "API_ERROR", status_code: int = 500, details: Optional[Dict[str, Any]] = None):
         self.message = message
         self.error_type = error_type
         self.status_code = status_code
         self.details = details or {}
+        self.request_id: Optional[str] = None  # Add this attribute
         super().__init__(self.message)
 
 class DatabaseError(APIError):
     """Database-specific error"""
-    def __init__(self, message: str, original_error: Exception = None):
+    def __init__(self, message: str, original_error: Optional[Exception] = None):
         super().__init__(
             message=message,
             error_type="DATABASE_ERROR",
@@ -230,7 +335,7 @@ class DatabaseError(APIError):
 
 class ExternalAPIError(APIError):
     """External API error (OpenAI, Google Places)"""
-    def __init__(self, message: str, service: str, original_error: Exception = None):
+    def __init__(self, message: str, service: str, original_error: Optional[Exception] = None):
         super().__init__(
             message=message,
             error_type="EXTERNAL_API_ERROR",
@@ -243,7 +348,7 @@ class ExternalAPIError(APIError):
 
 class ValidationError(APIError):
     """Input validation error"""
-    def __init__(self, message: str, field: str = None):
+    def __init__(self, message: str, field: Optional[str] = None):
         super().__init__(
             message=message,
             error_type="VALIDATION_ERROR",
@@ -302,7 +407,7 @@ def create_error_response(error: APIError) -> JSONResponse:
     }
     
     # Add request ID for tracing (in production)
-    if hasattr(error, 'request_id'):
+    if hasattr(error, 'request_id') and error.request_id:
         response_data["error"]["request_id"] = error.request_id
     
     return JSONResponse(
@@ -355,7 +460,7 @@ def retry_with_backoff(max_attempts: int = 3, base_delay: float = 1.0, backoff_f
     """Retry decorator with exponential backoff"""
     def decorator(func):
         async def async_wrapper(*args, **kwargs):
-            last_exception = None
+            last_exception: Optional[Exception] = None
             
             for attempt in range(max_attempts):
                 try:
@@ -377,10 +482,13 @@ def retry_with_backoff(max_attempts: int = 3, base_delay: float = 1.0, backoff_f
                     else:
                         time.sleep(delay)
             
-            raise last_exception
+            # This should never be reached, but just in case
+            if last_exception:
+                raise last_exception
+            raise Exception("Retry decorator failed unexpectedly")
         
         def sync_wrapper(*args, **kwargs):
-            last_exception = None
+            last_exception: Optional[Exception] = None
             
             for attempt in range(max_attempts):
                 try:
@@ -395,7 +503,10 @@ def retry_with_backoff(max_attempts: int = 3, base_delay: float = 1.0, backoff_f
                     logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s: {str(e)}")
                     time.sleep(delay)
             
-            raise last_exception
+            # This should never be reached, but just in case
+            if last_exception:
+                raise last_exception
+            raise Exception("Retry decorator failed unexpectedly")
         
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
@@ -412,13 +523,13 @@ class CircuitBreaker:
         self.expected_exception = expected_exception
         
         self.failure_count = 0
-        self.last_failure_time = None
+        self.last_failure_time: Optional[float] = None
         self.state = 'CLOSED'  # CLOSED, OPEN, HALF_OPEN
     
     def __call__(self, func):
         def wrapper(*args, **kwargs):
             if self.state == 'OPEN':
-                if time.time() - self.last_failure_time > self.recovery_timeout:
+                if self.last_failure_time and time.time() - self.last_failure_time > self.recovery_timeout:
                     self.state = 'HALF_OPEN'
                     logger.info("Circuit breaker transitioning to HALF_OPEN")
                 else:
@@ -428,8 +539,9 @@ class CircuitBreaker:
                 result = func(*args, **kwargs)
                 self._on_success()
                 return result
-            except self.expected_exception as e:
-                self._on_failure()
+            except Exception as e:
+                if isinstance(e, self.expected_exception):
+                    self._on_failure()
                 raise e
         
         return wrapper
@@ -465,7 +577,7 @@ async def check_service_health():
     # Check database
     try:
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))  # type: ignore
         db.close()
         health_status["database"] = True
     except Exception as e:
@@ -594,10 +706,10 @@ def generate_restaurant_info(restaurant_name, location="Istanbul", place_data=No
 app = FastAPI(title="AIstanbul API", debug=False)
 
 # Initialize enhanced chatbot components
-context_manager = EnhancedContextManager()
-query_understanding = EnhancedQueryUnderstanding()
-knowledge_base = EnhancedKnowledgeBase()
-response_generator = ContextAwareResponseGenerator(context_manager, knowledge_base)
+context_manager = EnhancedContextManager()  # type: ignore
+query_understanding = EnhancedQueryUnderstanding()  # type: ignore
+knowledge_base = EnhancedKnowledgeBase()  # type: ignore
+response_generator = ContextAwareResponseGenerator(context_manager, knowledge_base)  # type: ignore
 
 logger.info("Enhanced chatbot components initialized successfully")
 
@@ -808,7 +920,7 @@ def create_intelligent_fallback_response(user_input):
     
     # 2. Check for geographical impossibilities
     is_impossible, landmark, actual_location = detect_geographical_impossibility(user_input)
-    if is_impossible:
+    if is_impossible and landmark:
         return f"""The {landmark.title()} is actually located in {actual_location}, not Istanbul! 
 
 Istanbul has its own incredible landmarks though:
@@ -831,7 +943,7 @@ Would you like to know more about any of these amazing Istanbul landmarks?"""
             'general_knowledge': "That's interesting! As your Istanbul travel guide, I'd love to help you discover the rich history and culture of Istanbul instead. Did you know Istanbul was the capital of both the Byzantine and Ottoman empires? What aspects of Istanbul interest you most?"
         }
         
-        return category_responses.get(category, 
+        return category_responses.get(category or "default", 
             "I'm your dedicated Istanbul travel guide! I'd love to help you discover amazing restaurants, attractions, neighborhoods, and experiences in this incredible city. What would you like to know about Istanbul?")
     
     # 4. If none of the above, return None to continue with normal processing
@@ -1025,12 +1137,16 @@ def create_fuzzy_keywords():
             'restarunt', 'restarunts', 'restarants', 'restrants', 'food', 
             'eat', 'dining', 'eatery', 'cafe', 'cafes'
         ],
+        'hotels': [
+            'hotels', 'hotel', 'accommodation', 
+            'stay', 'lodge', 'lodging', 'inn', 'pension', 'hostel', 'hostels'
+        ],
         'attractions': [
             'attractions', 'attraction', 'atraction', 'sights', 'sites', 
             'tourist', 'visit', 'see', 'things to do', 'activities'
         ],
         'museums': [
-            'museums', 'museum', 'musem', 'gallery', 'galleries', 'art', 
+            'museums', 'museum', 'gallery', 'galleries', 'art', 
             'culture', 'cultural', 'history', 'historical'
         ],
         'nightlife': [
@@ -1048,9 +1164,39 @@ def create_fuzzy_keywords():
     }
     return keywords
 
-def correct_typos(text, threshold=70):
+def correct_typos(text, threshold=70):  # type: ignore
     """Correct typos in user input using fuzzy matching"""
     try:
+        # If fuzzywuzzy is not available, fall back to basic typo correction
+        if not FUZZYWUZZY_AVAILABLE:
+            print("⚠️  fuzzywuzzy not available, using basic typo correction")
+            # Basic typo corrections for common restaurant misspellings
+            basic_corrections = {
+                'restaurnts': 'restaurants',
+                'restaurnt': 'restaurants', 
+                'restarants': 'restaurants',
+                'restrants': 'restaurants',
+                'musem': 'museum',
+                'musems': 'museums',
+                'hotal': 'hotel',
+                'hotals': 'hotels',
+                'resturant': 'restaurant',
+                'resturants': 'restaurants'
+            }
+            
+            words = text.lower().split()
+            corrected_words = []
+            
+            for word in words:
+                if word in basic_corrections:
+                    corrected_words.append(basic_corrections[word])
+                    print(f"🔧 Basic typo correction: '{word}' -> '{basic_corrections[word]}'")
+                else:
+                    corrected_words.append(word)
+            
+            return ' '.join(corrected_words)
+        
+        # Use fuzzy matching when available
         keywords = create_fuzzy_keywords()
         words = text.lower().split()
         corrected_words = []
@@ -1062,7 +1208,11 @@ def correct_typos(text, threshold=70):
                      'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 
                      'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
                      'what', 'where', 'when', 'how', 'why', 'which', 'who', 'whom',
-                     'give', 'me', 'show'}
+                     'give', 'me', 'show', 'good', 'best', 'great', 'nice', 'cool',
+                     'amazing', 'beautiful', 'popular', 'famous', 'top', 'near',
+                     'close', 'around', 'some', 'many', 'few', 'most', 'all',
+                     'opening', 'hours', 'times', 'schedule', 'options', 'choices',
+                     'view', 'views', 'find', 'search', 'look', 'want', 'need'}
         
         print(f"🔍 Typo correction input: '{text}'")
         
@@ -1076,13 +1226,29 @@ def correct_typos(text, threshold=70):
             best_score = 0
             best_category = None
             
-            # Special handling for restaurant typos
+            # Special handling for common typos
             if word.lower() in ['restaurnts', 'restaurnt', 'restarants', 'restrants']:
                 corrected_words.append('restaurants')
                 print(f"🔧 Special typo correction: '{word}' -> 'restaurants'")
                 continue
+            elif word.lower() in ['hotals', 'hotal']:
+                corrected_words.append('hotels' if word.lower() == 'hotals' else 'hotel')
+                print(f"🔧 Special typo correction: '{word}' -> '{'hotels' if word.lower() == 'hotals' else 'hotel'}'")
+                continue
+            elif word.lower() in ['musem', 'musems']:
+                corrected_words.append('museums' if word.lower() == 'musems' else 'museum')
+                print(f"🔧 Special typo correction: '{word}' -> '{'museums' if word.lower() == 'musems' else 'museum'}'")
+                continue
+            elif word.lower() in ['accomodation']:
+                corrected_words.append('accommodation')
+                print(f"🔧 Special typo correction: '{word}' -> 'accommodation'")
+                continue
+            elif word.lower() in ['transporttion']:
+                corrected_words.append('transportation')
+                print(f"🔧 Special typo correction: '{word}' -> 'transportation'")
+                continue
             
-            # Check each category of keywords
+            # Check each category of keywords using fuzzywuzzy
             for category, keyword_list in keywords.items():
                 match = process.extractOne(word, keyword_list)
                 if match and match[1] > best_score and match[1] >= threshold:
@@ -1206,10 +1372,13 @@ def enhance_query_understanding(user_input):
         print(f"Error in query enhancement: {e}")
         return user_input
 
-# Routers
-app.include_router(museums.router)
-app.include_router(restaurants.router)
-app.include_router(places.router)
+# Routers (with fallback handling)
+if museums and hasattr(museums, 'router'):
+    app.include_router(museums.router)
+if restaurants and hasattr(restaurants, 'router'):
+    app.include_router(restaurants.router)
+if places and hasattr(places, 'router'):
+    app.include_router(places.router)
 # Blog router is already included above
 
 @app.get("/")
@@ -1245,23 +1414,24 @@ async def receive_feedback(request: Request):
 @app.get("/chat/history/{session_id}")
 async def get_chat_history(session_id: str):
     """Get chat history for a session"""
+    db = None
     try:
         db = SessionLocal()
         history = db.query(ChatHistory).filter(
             ChatHistory.session_id == session_id
-        ).order_by(ChatHistory.timestamp.asc()).limit(50).all()
+        ).order_by(ChatHistory.timestamp.asc()).limit(50).all()  # type: ignore
         
         messages = []
         for record in history:
             messages.append({
                 "type": "user",
-                "message": record.user_message,
-                "timestamp": record.timestamp.isoformat()
+                "message": record.user_message,  # type: ignore
+                "timestamp": record.timestamp.isoformat() if record.timestamp else ""  # type: ignore
             })
             messages.append({
                 "type": "bot", 
-                "message": record.bot_response,
-                "timestamp": record.timestamp.isoformat()
+                "message": record.bot_response,  # type: ignore
+                "timestamp": record.timestamp.isoformat() if record.timestamp else ""  # type: ignore
             })
         
         return {"status": "success", "messages": messages}
@@ -1269,12 +1439,16 @@ async def get_chat_history(session_id: str):
         logger.error(f"Failed to get chat history: {e}")
         return {"status": "error", "message": "Failed to retrieve chat history"}
     finally:
-        if db:
-            db.close()
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
 
 @app.delete("/chat/history/{session_id}")
 async def clear_chat_history(session_id: str):
     """Clear chat history for a session"""
+    db = None
     try:
         db = SessionLocal()
         deleted_count = db.query(ChatHistory).filter(
@@ -1285,20 +1459,27 @@ async def clear_chat_history(session_id: str):
         return {"status": "success", "deleted_count": deleted_count}
     except Exception as e:
         logger.error(f"Failed to clear chat history: {e}")
-        db.rollback() if db else None
+        if db is not None:
+            try:
+                db.rollback()
+            except Exception:
+                pass
         return {"status": "error", "message": "Failed to clear chat history"}
     finally:
-        if db:
-            db.close()
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
 
-def save_chat_history(db, session_id: str, user_message: str, bot_response: str, user_ip: str = None):
+def save_chat_history(db, session_id: str, user_message: str, bot_response: str, user_ip: Optional[str] = None):  # type: ignore
     """Save chat interaction to database"""
     if db is None:
         logger.warning(f"Database session is None, cannot save chat history for session {session_id}")
         return
         
     try:
-        chat_record = ChatHistory(
+        chat_record = ChatHistory(  # type: ignore
             session_id=session_id,
             user_message=user_message,
             bot_response=bot_response,
@@ -1312,7 +1493,7 @@ def save_chat_history(db, session_id: str, user_message: str, bot_response: str,
         if db:
             db.rollback()
 
-def create_ai_response(message: str, db, session_id: str, user_message: str, request: Request = None):
+def create_ai_response(message: str, db, session_id: str, user_message: str, request: Optional[Request] = None):  # type: ignore
     """Create AI response and save to chat history"""
     try:
         # Get user IP for logging
@@ -1330,7 +1511,7 @@ def create_ai_response(message: str, db, session_id: str, user_message: str, req
         return {"message": message, "session_id": session_id}
 
 @app.post("/ai")
-async def ai_istanbul_router(request: Request):
+async def ai_istanbul_router(request: Request):  # type: ignore
     """Enhanced AI endpoint with comprehensive error handling"""
     db = None
     
@@ -1389,7 +1570,7 @@ async def ai_istanbul_router(request: Request):
             
             # Check if we have previous conversation history
             previous_context = context_manager.get_context(session_id) if context_manager else None
-            has_history = previous_context and len(previous_context.previous_queries) > 0
+            has_history = previous_context and len(previous_context.get('previous_queries', [])) > 0
             
             if any(re.search(r'\b' + word + r'\b', user_input_clean) for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
                 if has_history:
@@ -1423,7 +1604,7 @@ async def ai_istanbul_router(request: Request):
         enhanced_input = enhance_query_understanding(user_input)  # Use our fuzzy matching function instead
         
         # Detect if this is a follow-up question
-        is_followup = context and len(context.previous_queries) > 0 and any(
+        is_followup = context and len(context.get('previous_queries', [])) > 0 and any(
             word in user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
         )
         
@@ -1453,7 +1634,7 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restourant', 'restaurents', 'restaurnts', 'restaurnt',  # Include corrected typos
+                'restaurant', 'restaurants', 'restourant', 'restaurents', 'restaurnts', 'restaurnt', 
                 'restarunt', 'restarunts', 'restarants', 'restrants', 'restrnt',  # Add basic words and common misspellings first
                 'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
@@ -1485,7 +1666,7 @@ async def ai_istanbul_router(request: Request):
                 r'restrnt\s+in\s+\w+',      # Abbreviated form
                 r'estrnt\s+in\s+\w+',       # Abbreviated form
                 r'restrant\s+in\s+\w+',     # Common misspelling
-                r'restaurants?\s+near\s+\w+',  # "restaurants near galata"
+                r'restaurants?\s'
                 r'restaurants?\s+around\s+\w+',  # "restaurants around sultanahmet"
                 r'eat\s+in\s+\w+',  # "eat in beyoglu"
                 r'food\s+in\s+\w+',  # "food in kadikoy"
@@ -1547,25 +1728,6 @@ async def ai_istanbul_router(request: Request):
                 'getting to', 'going to', 'going from'
             ]
             
-            # Transportation patterns for more specific detection
-            transportation_patterns = [
-                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',  # "how to get from A to B"
-                r'getting\s+from\s+\w+\s+to\s+\w+',        # "getting from A to B"
-                r'travel\s+from\s+\w+\s+to\s+\w+',         # "travel from A to B"
-                r'go\s+from\s+\w+\s+to\s+\w+',             # "go from A to B"
-                r'from\s+\w+\s+to\s+\w+\s+by',             # "from A to B by metro"
-                r'metro\s+from\s+\w+\s+to\s+\w+',          # "metro from A to B"
-                r'bus\s+from\s+\w+\s+to\s+\w+',            # "bus from A to B"
-                r'ferry\s+from\s+\w+\s+to\s+\w+',          # "ferry from A to B"
-                r'how\s+long\s+does\s+it\s+take',          # "how long does it take"
-                r'how\s+much\s+does\s+it\s+cost',          # "how much does it cost"
-                r'fastest\s+way\s+to',                     # "fastest way to"
-                r'cheapest\s+way\s+to',                    # "cheapest way to"
-                r'best\s+way\s+to\s+get',                  # "best way to get"
-                r'route\s+to\s+\w+',                       # "route to destination"
-                r'directions\s+to\s+\w+',                  # "directions to destination"
-            ]
-            
             nightlife_keywords = [
                 'nightlife', 'bars', 'clubs', 'night out', 'drinks', 'pub', 'lounge',
                 'rooftop bar', 'live music', 'dancing', 'cocktails', 'beer', 'wine',
@@ -1607,8 +1769,8 @@ async def ai_istanbul_router(request: Request):
                 r'go\s+in\s+\w+',  # "go in fatih"
                 r'\w+\s+attractions',  # "kadikoy attractions"
                 r'what.*in\s+\w+',  # "what to do in beyoglu"
-                r'\w+\s+places?\s+to\s+visit',  # "kadikoy places to visit"
-                r'\w+\s+plases?\s+to\s+visit',  # "kadikoy plases to visit" - typo variation
+                r'\w+\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
+                r'\w+\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
                 r'\w+\s+places?$',  # "kadikoy places" - simple district + places
                 r'\w+\s+plases?$',  # "kadikoy plases" - simple district + places (typo)
                 r'\w+\s+to\s+places?\s+to\s+visit',  # "kadikoy to places to visit" - double "to" pattern
@@ -1634,6 +1796,34 @@ async def ai_istanbul_router(request: Request):
             
             # Check for follow-up restaurant queries like "give me also restaurants in beyoglu"
            
+            # Regex patterns for transportation-related queries (e.g., "how to get from X to Y", "directions from A to B")
+            transportation_patterns = [
+                r'how\s+to\s+get\s+from\s+\w+\s+to\s+\w+',   # "how to get from kadikoy to taksim"
+                r'how\s+do\s+i\s+get\s+from\s+\w+\s+to\s+\w+', # "how do I get from airport to sultanahmet"
+                r'getting\s+from\s+\w+\s+to\s+\w+',              # "getting from besiktas to galata"
+                r'go\s+from\s+\w+\s+to\s+\w+',                   # "go from taksim to kadikoy"
+                r'travel\s+from\s+\w+\s+to\s+\w+',               # "travel from airport to city center"
+                r'route\s+from\s+\w+\s+to\s+\w+',                # "route from sultanahmet to besiktas"
+                r'directions?\s+from\s+\w+\s+to\s+\w+',          # "directions from galata to airport"
+                r'way\s+to\s+get\s+from\s+\w+\s+to\s+\w+',       # "way to get from kadikoy to taksim"
+                r'how\s+can\s+i\s+go\s+from\s+\w+\s+to\s+\w+',   # "how can I go from x to y"
+                r'how\s+to\s+go\s+from\s+\w+\s+to\s+\w+',        # "how to go from a to b"
+                r'from\s+\w+\s+to\s+\w+\s+transport',            # "from kadikoy to taksim transport"
+                r'from\s+\w+\s+to\s+\w+\s+by\s+\w+',             # "from airport to city by metro"
+                r'\w+\s+to\s+\w+\s+by\s+\w+',                    # "taksim to kadikoy by ferry"
+                r'\w+\s+to\s+\w+\s+transport',                   # "besiktas to galata transport"
+                r'\w+\s+to\s+\w+\s+directions',                  # "airport to sultanahmet directions"
+                r'\w+\s+to\s+\w+\s+route',                       # "kadikoy to taksim route"
+                r'\w+\s+to\s+\w+\s+metro',                       # "taksim to sultanahmet metro"
+                r'\w+\s+to\s+\w+\s+tram',                        # "kabatas to bagcilar tram"
+                r'\w+\s+to\s+\w+\s+bus',                         # "besiktas to kadikoy bus"
+                r'\w+\s+to\s+\w+\s+ferry',                       # "eminonu to kadikoy ferry"
+                r'\w+\s+to\s+\w+\s+taxi',                        # "airport to taksim taxi"
+                r'\w+\s+to\s+\w+\s+dolmus',                      # "besiktas to ortakoy dolmus"
+                r'\w+\s+to\s+\w+\s+marmaray',                    # "sirkeci to uskudar marmaray"
+                r'\w+\s+to\s+\w+\s+metrobus',                    # "zincirlikuyu to avcilar metrobus"
+            ]
+
             follow_up_restaurant_patterns = [
                 r'give\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "give me also restaurants in beyoglu"
                 r'show\s+me\s+(also|more)?\s*restaurants?\s+(in\s+\w+)?',  # "show me more restaurants in kadikoy"
@@ -2005,11 +2195,12 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                     
                     # Get transportation options if user has accommodation info
                     transport_info = []
-                    if user_profile.accommodation_district:
+                    accommodation_district = user_profile.get('accommodation_district') if isinstance(user_profile, dict) else getattr(user_profile, 'accommodation_district', None)
+                    if accommodation_district:
                         for place in filtered_places[:3]:  # Get transport for first 3 places
                             if hasattr(place, 'district') and place.district:
                                 ferry_routes = personalization_engine.get_ferry_schedule(
-                                    user_profile.accommodation_district, 
+                                    accommodation_district, 
                                     place.district
                                 )
                                 transport_info.extend(ferry_routes)
@@ -2021,19 +2212,28 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                         session_id
                     )
                     
-                    # Generate enhanced response with actions
+                    # Generate enhanced response with actions - convert Place objects to dicts
+                    places_as_dicts = []
+                    for place in filtered_places[:6]:
+                        place_dict = {
+                            'name': getattr(place, 'name', ''),
+                            'category': getattr(place, 'category', ''),
+                            'district': getattr(place, 'district', ''),
+                        }
+                        places_as_dicts.append(place_dict)
+                    
                     enhanced_response = get_actionable_places_response(
-                        filtered_places[:6], 
+                        places_as_dicts, 
                         transport_info,
-                        user_profile.accommodation_district
+                        user_profile.get('accommodation_district') if isinstance(user_profile, dict) else getattr(user_profile, 'accommodation_district', None)
                     )
                     
                     # Format with personalization
                     user_context = {
-                        'dietary': user_profile.dietary_restrictions,
-                        'staying_in': user_profile.accommodation_district,
-                        'days_left': user_profile.days_remaining,
-                        'budget': user_profile.budget_level
+                        'dietary': user_profile.get('dietary_restrictions') if isinstance(user_profile, dict) else getattr(user_profile, 'dietary_restrictions', None),
+                        'staying_in': user_profile.get('accommodation_district') if isinstance(user_profile, dict) else getattr(user_profile, 'accommodation_district', None),
+                        'days_left': user_profile.get('days_remaining') if isinstance(user_profile, dict) else getattr(user_profile, 'days_remaining', None),
+                        'budget': user_profile.get('budget_level') if isinstance(user_profile, dict) else getattr(user_profile, 'budget_level', None)
                     }
                     
                     # Remove None values
@@ -2432,7 +2632,7 @@ When users need specific restaurant recommendations with location (like "restaur
                             
                             # Add conversation history if available
                             if context:
-                                for i, (prev_q, prev_r) in enumerate(zip(context.previous_queries[-3:], context.previous_responses[-3:])):
+                                for i, (prev_q, prev_r) in enumerate(zip(context.get('previous_queries', [])[-3:], context.get('previous_responses', [])[-3:])):
                                     messages.append({"role": "user", "content": prev_q})
                                     messages.append({"role": "assistant", "content": prev_r})
                             
@@ -2440,7 +2640,7 @@ When users need specific restaurant recommendations with location (like "restaur
                             
                             return client.chat.completions.create(
                                 model="gpt-3.5-turbo",
-                                messages=messages,
+                                messages=messages,  # type: ignore
                                 max_tokens=500,
                                 temperature=0.7,
                                 timeout=30  # 30 second timeout
@@ -2448,7 +2648,7 @@ When users need specific restaurant recommendations with location (like "restaur
                         
                         response = make_openai_request()
                         ai_response = response.choices[0].message.content
-                        logger.info(f"OpenAI response: {ai_response[:100]}...")
+                        logger.info(f"OpenAI response: {ai_response[:100] if ai_response else 'None'}...")
                     
                     # Generate context-aware enhanced response
                     enhanced_response = response_generator.generate_response(
@@ -2585,13 +2785,13 @@ async def get_conversation_context(session_id: str):
         context = context_manager.get_context(session_id)
         if context:
             return {
-                "session_id": context.session_id,
-                "previous_queries": context.previous_queries[-5:],  # Last 5 queries
-                "mentioned_places": context.mentioned_places,
-                "user_preferences": context.user_preferences,
-                "last_recommendation_type": context.last_recommendation_type,
-                "conversation_topics": context.conversation_topics[-10:],  # Last 10 topics
-                "user_location": context.user_location,
+                "session_id": context.get('session_id', ''),
+                "previous_queries": context.get('previous_queries', [])[-5:],  # Last 5 queries
+                "mentioned_places": context.get('mentioned_places', []),
+                "user_preferences": context.get('user_preferences', {}),
+                "last_recommendation_type": context.get('last_recommendation_type', ''),
+                "conversation_topics": context.get('conversation_topics', [])[-10:],  # Last 10 topics
+                "user_location": context.get('user_location', ''),
                 "active": True
             }
         else:
@@ -2609,7 +2809,7 @@ async def test_enhanced_features():
         enhanced_query = query_understanding.correct_and_enhance_query(test_query)
         
         # Test knowledge base
-        knowledge_test = knowledge_base.get_knowledge_response("tell me about ottoman history")
+        knowledge_test = knowledge_base.get_knowledge_response("tell me about ottoman history", {"intent": "test"})
         
         # Test intent extraction
         intent_test = query_understanding.extract_intent_and_entities("I need vegetarian restaurants near Galata Tower")

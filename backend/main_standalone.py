@@ -47,7 +47,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 
 # Database imports
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -288,7 +288,7 @@ async def health_check():
     try:
         # Test database connection
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         db_status = True
     except Exception:
@@ -331,8 +331,8 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         # Generate response
         if openai and OPENAI_API_KEY:
             try:
-                # Use OpenAI for intelligent responses
-                response = openai.ChatCompletion.create(
+                # Use OpenAI for intelligent responses (OpenAI v1.x+ syntax)
+                response = openai.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
                         {
@@ -365,7 +365,7 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
             # Continue without saving if DB fails
         
         return ChatResponse(
-            response=ai_response,
+            response=ai_response or "",
             timestamp=datetime.now().isoformat(),
             session_id=session_id
         )
@@ -384,7 +384,7 @@ async def get_blog_posts(db: Session = Depends(get_db)):
                 {
                     "id": post.id,
                     "title": post.title,
-                    "content": post.content[:200] + "..." if len(post.content) > 200 else post.content,
+                    "content": (post.content[:200] + "...") if isinstance(post.content, str) and len(post.content) > 200 else post.content,
                     "author": post.author,
                     "district": post.district,
                     "created_at": post.created_at.isoformat(),
