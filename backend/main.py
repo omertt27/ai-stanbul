@@ -10,6 +10,16 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
+# Add current directory to Python path for production deployment
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Add parent directory to path as well (for cases where backend is in a subdirectory)
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -41,24 +51,132 @@ except ImportError:
                     return (choice, 80)
             return (choices[0] if choices else None, 0)
 
-# --- Project Imports ---
-from database import engine, SessionLocal
-from models import Base, Restaurant, Museum, Place, ChatHistory
-from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips
-from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response
-from actionable_responses import enhance_response_with_actions, get_actionable_places_response
-from routes import museums, restaurants, places, blog
-from api_clients.google_places import GooglePlacesClient
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+# --- Project Imports with Error Handling ---
+try:
+    from database import engine, SessionLocal
+except ImportError as e:
+    print(f"Warning: Could not import database module: {e}")
+    # Create minimal database setup as fallback
+    from sqlalchemy import create_engine
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import sessionmaker
+    
+    Base = declarative_base()
+    DB_URL = "sqlite:///./app.db"
+    engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Enhanced chatbot imports
-from enhanced_chatbot import (
-    EnhancedContextManager, 
-    EnhancedQueryUnderstanding, 
-    EnhancedKnowledgeBase, 
-    ContextAwareResponseGenerator
-)
+try:
+    from models import Base, Restaurant, Museum, Place, ChatHistory
+except ImportError as e:
+    print(f"Warning: Could not import models: {e}")
+    # Create minimal models as fallback
+    from sqlalchemy.ext.declarative import declarative_base
+    Base = declarative_base()
+    
+    # Define minimal model classes
+    class Restaurant:
+        pass
+    class Museum:
+        pass
+    class Place:
+        pass
+    class ChatHistory:
+        pass
+
+try:
+    from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips
+except ImportError as e:
+    print(f"Warning: Could not import specialized_models: {e}")
+    # Create minimal classes as fallback
+    class UserProfile:
+        pass
+    class TransportRoute:
+        pass
+    class TurkishPhrases:
+        pass
+    class LocalTips:
+        pass
+
+try:
+    from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response
+except ImportError as e:
+    print(f"Warning: Could not import personalization_engine: {e}")
+    # Create minimal fallback functions
+    class IstanbulPersonalizationEngine:
+        pass
+    def format_personalized_response(response):
+        return response
+
+try:
+    from actionable_responses import enhance_response_with_actions, get_actionable_places_response
+except ImportError as e:
+    print(f"Warning: Could not import actionable_responses: {e}")
+    # Create minimal fallback functions
+    def enhance_response_with_actions(response):
+        return response
+    def get_actionable_places_response(query):
+        return "Sorry, place recommendations are temporarily unavailable."
+
+try:
+    from routes import museums, restaurants, places
+except ImportError as e:
+    print(f"Warning: Could not import routes: {e}")
+    museums = restaurants = places = None
+
+try:
+    from api_clients.google_places import GooglePlacesClient
+except ImportError as e:
+    print(f"Warning: Could not import GooglePlacesClient: {e}")
+    class GooglePlacesClient:
+        def __init__(self, api_key=None):
+            pass
+
+try:
+    from sqlalchemy.orm import Session
+    from sqlalchemy.exc import SQLAlchemyError
+except ImportError:
+    print("Warning: Could not import SQLAlchemy components")
+    class Session:
+        pass
+    class SQLAlchemyError(Exception):
+        pass
+
+try:
+    from enhanced_chatbot import (
+        EnhancedContextManager, 
+        EnhancedQueryUnderstanding, 
+        EnhancedKnowledgeBase, 
+        ContextAwareResponseGenerator
+    )
+except ImportError as e:
+    print(f"Warning: Could not import enhanced_chatbot: {e}")
+    # Create minimal fallback classes
+    class EnhancedContextManager:
+        def __init__(self):
+            pass
+        def add_context(self, *args, **kwargs):
+            pass
+        def get_context(self, *args, **kwargs):
+            return {}
+    
+    class EnhancedQueryUnderstanding:
+        def __init__(self):
+            pass
+        def understand_query(self, query):
+            return {"intent": "general", "entities": []}
+    
+    class EnhancedKnowledgeBase:
+        def __init__(self):
+            pass
+        def search(self, query):
+            return []
+    
+    class ContextAwareResponseGenerator:
+        def __init__(self, context_manager=None, knowledge_base=None):
+            pass
+        def generate_response(self, query, context=None):
+            return "I'm currently running in minimal mode. Please try again later."
 
 load_dotenv()
 

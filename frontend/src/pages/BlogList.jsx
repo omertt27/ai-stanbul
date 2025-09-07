@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBlogPosts } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import '../App.css';
 
 const BlogList = () => {
@@ -90,6 +91,11 @@ const BlogList = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     setCurrentPage(1);
+    
+    // Track blog search
+    trackSearch(`blog: ${searchTerm} ${selectedDistrict}`.trim());
+    trackBlogEvent('search', `${searchTerm} ${selectedDistrict}`.trim());
+    
     loadPosts();
   };
 

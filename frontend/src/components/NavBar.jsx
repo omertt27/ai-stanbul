@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { trackNavigation } from '../utils/analytics';
 
 const NavBar = () => {
   const location = useLocation();
@@ -68,6 +69,9 @@ const NavBar = () => {
   });
   
   const handleBlogClick = (e) => {
+    // Track navigation click
+    trackNavigation('blog');
+    
     // If we're already on the main blog list page, reload it
     if (location.pathname === '/blog') {
       e.preventDefault();
@@ -78,6 +82,9 @@ const NavBar = () => {
   };
 
   const handleAboutClick = (e) => {
+    // Track navigation click
+    trackNavigation('about');
+    
     // If we're already on the About page, reload it
     if (location.pathname === '/about') {
       e.preventDefault();
@@ -85,12 +92,34 @@ const NavBar = () => {
     }
   };
 
+  const handleFAQClick = () => {
+    trackNavigation('faq');
+  };
+
+  const handleDonateClick = () => {
+    trackNavigation('donate');
+  };
+
+  // Track navigation for analytics
+  useEffect(() => {
+    const handleClick = (e) => {
+      const target = e.target.closest('a');
+      if (target) {
+        const { pathname } = new URL(target.href);
+        trackNavigation(pathname);
+      }
+    };
+
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
   return (
     <nav style={navStyle}>
       <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
       <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
-      <Link to="/faq" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-      <Link to="/donate" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+      <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+      <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
     </nav>
   );
 };

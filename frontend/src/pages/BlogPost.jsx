@@ -7,6 +7,7 @@ import {
   fetchRelatedPosts 
 } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { trackBlogEvent } from '../utils/analytics';
 import Comments from '../components/Comments';
 import '../App.css';
 
@@ -45,6 +46,19 @@ const BlogPost = () => {
       const fetchedPost = await fetchBlogPost(id);
       setPost(fetchedPost);
       console.log('✅ BlogPost: Post loaded successfully:', fetchedPost?.title);
+
+      // Track blog post view event
+      if (fetchedPost) {
+        trackBlogEvent('view_post', fetchedPost.title);
+      }
+      trackBlogEvent('view', {
+        id: fetchedPost.id,
+        title: fetchedPost.title,
+        author: fetchedPost.author_name,
+        category: fetchedPost.category || 'Uncategorized',
+        tags: fetchedPost.tags || [],
+        url: window.location.href
+      });
     } catch (err) {
       setError(err.message || 'Failed to load blog post');
       console.error('❌ BlogPost: Failed to load post:', err);
@@ -82,6 +96,9 @@ const BlogPost = () => {
       
       // Mark as already liked
       setAlreadyLiked(true);
+      
+      // Track like event
+      trackBlogEvent('like_post', post?.title || 'Unknown Post');
       
     } catch (err) {
       console.error('Failed to like post:', err);

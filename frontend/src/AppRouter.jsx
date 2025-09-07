@@ -16,6 +16,7 @@ import EnhancedDemo from './pages/EnhancedDemo';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import ForceRefreshRoute from './components/ForceRefreshRoute';
+import GoogleAnalytics, { trackNavigation } from './utils/analytics';
 
 const AppRouter = () => {
   const [isLightMode, setIsLightMode] = useState(false);
@@ -79,6 +80,13 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
   useEffect(() => {
     console.log('🔄 AppRouter: Navigation detected to', location.pathname);
     
+    // Track page view with Google Analytics
+    trackNavigation(location.pathname);
+
+    // Track page navigation
+    const pageName = location.pathname.split('/')[1] || 'home';
+    trackNavigation(pageName);
+
     // Force complete remount by updating key
     setRouteKey(prev => prev + 1);
     
@@ -101,6 +109,7 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
 
   return (
     <>
+      <GoogleAnalytics />
       <button
         onClick={toggleTheme}
         style={buttonStyle}

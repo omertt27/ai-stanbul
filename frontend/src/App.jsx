@@ -5,6 +5,7 @@ import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults } from './api/api';
+import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
 
 const App = () => {
@@ -29,6 +30,10 @@ const App = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
+    
+    // Track the search event
+    trackChatEvent('search_initiated', query);
+    
     setMessages([...messages, { user: 'You', text: query }]);
     setExpanded(true);
     const searchQuery = query;
@@ -54,8 +59,16 @@ const App = () => {
           return updated;
         });
       });
+      
+      // Track successful response completion
+      trackChatEvent('response_completed', aiMessage.substring(0, 50));
+      
     } catch (err) {
       console.error('API Error:', err);
+      
+      // Track error
+      trackEvent('api_error', 'error', err.message);
+      
       setMessages(msgs => [...msgs, {
         user: 'KAM',
         text: `Sorry, I encountered an error connecting to the server: ${err.message}. Please make sure the backend is running and try again.`
@@ -65,6 +78,9 @@ const App = () => {
   };
 
   const handleLogoClick = () => {
+    // Track navigation back to home
+    trackEvent('logo_click', 'navigation', 'home');
+    
     // Reset chat state to go back to homepage
     setExpanded(false);
     setMessages([]);
@@ -74,6 +90,7 @@ const App = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+      <GoogleAnalytics />
       {/* <DebugInfo /> */}
 
       {!expanded ? (
