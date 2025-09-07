@@ -42,7 +42,7 @@ except ImportError:
         print("⚠️  FastAPI may have limited functionality")
 
 # --- Third-Party Imports ---
-from fastapi import FastAPI, Request, HTTPException, status
+from fastapi import FastAPI, Request, HTTPException, status, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -747,12 +747,12 @@ async def general_exception_handler(request: Request, exc: Exception):
     error = handle_unexpected_error(exc, "global exception handler")
     return create_error_response(error)
 
-# Add CORS middleware
+# Add CORS middleware - Allow all origins for deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"],
+    allow_credentials=False,  # Must be False when allow_origins=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
