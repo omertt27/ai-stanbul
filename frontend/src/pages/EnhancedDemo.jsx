@@ -45,7 +45,9 @@ const EnhancedDemo = () => {
 
   const fetchContext = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/ai/context/${sessionId}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+      const response = await fetch(`${cleanApiUrl}/ai/context/${sessionId}`);
       const data = await response.json();
       setContext(data);
     } catch (error) {
@@ -59,7 +61,9 @@ const EnhancedDemo = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://localhost:8001/ai', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+      const response = await fetch(`${cleanApiUrl}/ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

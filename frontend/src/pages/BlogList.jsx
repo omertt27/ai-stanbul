@@ -316,7 +316,7 @@ const BlogList = () => {
                 {post.images && post.images.length > 0 && (
                   <div className="aspect-video overflow-hidden">
                     <img
-                      src={`http://localhost:8001${post.images[0].url}`}
+                      src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${post.images[0].url}`}
                       alt={post.images[0].alt_text || post.title}
                       className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
                     />

@@ -22,7 +22,8 @@ const RestaurantDescriptions = () => {
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-      let url = `${apiUrl}/restaurants/search`;
+      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+      let url = `${cleanApiUrl}/restaurants/search`;
       const params = new URLSearchParams();
       
       if (searchParams.district) {
@@ -60,7 +61,8 @@ const RestaurantDescriptions = () => {
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-      const response = await fetch(`${apiUrl}/restaurants/popular?min_rating=4.0&limit=12`);
+      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+      const response = await fetch(`${cleanApiUrl}/restaurants/popular?min_rating=4.0&limit=12`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -10,12 +10,16 @@ import {
 
 // API utility that works for both local and deployed environments
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'; // Use correct port 8001
-const API_URL = `${BASE_URL}/ai`;
-const STREAM_API_URL = `${BASE_URL}/ai/stream`;
-const RESTAURANTS_API_URL = `${BASE_URL}/restaurants/search`;
-const PLACES_API_URL = `${BASE_URL}/places/`;
+
+// Ensure BASE_URL doesn't end with /ai to prevent double /ai/ai paths
+const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
+
+const API_URL = `${cleanBaseUrl}/ai`;
+const STREAM_API_URL = `${cleanBaseUrl}/ai/stream`;
+const RESTAURANTS_API_URL = `${cleanBaseUrl}/restaurants/search`;
+const PLACES_API_URL = `${cleanBaseUrl}/places/`;
 // Chat history endpoints
-const CHAT_HISTORY_API_URL = `${BASE_URL}/chat/history`;
+const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/chat/history`;
 
 // Session management
 export const generateSessionId = () => {
@@ -37,7 +41,7 @@ export const clearSession = () => {
 };
 
 console.log('API Configuration:', {
-  BASE_URL,
+  BASE_URL: cleanBaseUrl,
   API_URL,
   STREAM_API_URL,
   RESTAURANTS_API_URL,
@@ -386,7 +390,7 @@ export const debouncedFetchPlaces = debounce(fetchPlacesRecommendations, 300);
 // Health check utility
 export const checkApiHealth = async () => {
   try {
-    const healthUrl = `${BASE_URL}/health`;
+    const healthUrl = `${cleanBaseUrl}/health`;
     const response = await fetchWithRetry(healthUrl, {
       method: 'GET',
       timeout: 5000

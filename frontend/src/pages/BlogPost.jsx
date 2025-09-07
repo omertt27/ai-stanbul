@@ -327,7 +327,7 @@ const BlogPost = () => {
           {post.images && post.images.length > 0 && (
             <div className="aspect-video lg:aspect-[2/1] overflow-hidden">
               <img
-                src={`http://localhost:8001${post.images[0].url}`}
+                src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${post.images[0].url}`}
                 alt={post.images[0].alt_text || post.title}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
               />
@@ -444,7 +444,7 @@ const BlogPost = () => {
                   {post.images.slice(1).map((image, index) => (
                     <div key={index} className="aspect-video overflow-hidden rounded-xl group">
                       <img
-                        src={`http://localhost:8001${image.url}`}
+                        src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${image.url}`}
                         alt={image.alt_text || `Photo ${index + 2}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />
@@ -491,7 +491,7 @@ const BlogPost = () => {
                   {relatedPost.images && relatedPost.images.length > 0 && (
                     <div className="aspect-video overflow-hidden">
                       <img
-                        src={`http://localhost:8001${relatedPost.images[0].url}`}
+                        src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${relatedPost.images[0].url}`}
                         alt={relatedPost.images[0].alt_text || relatedPost.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       />

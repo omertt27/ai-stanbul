@@ -13,12 +13,13 @@ const ConnectionTest = () => {
     setDetails([]);
     
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-    addDetail(`Testing API URL: ${apiUrl}`, 'info');
+    const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+    addDetail(`Testing API URL: ${cleanApiUrl}`, 'info');
 
     try {
       // Test 1: Basic connection
       addDetail('Test 1: Basic connection to backend', 'info');
-      const basicResponse = await fetch(`${apiUrl}/`);
+      const basicResponse = await fetch(`${cleanApiUrl}/`);
       if (basicResponse.ok) {
         const data = await basicResponse.json();
         addDetail(`✅ Basic connection successful: ${data.message}`, 'success');
@@ -28,7 +29,7 @@ const ConnectionTest = () => {
 
       // Test 2: Restaurant API
       addDetail('Test 2: Restaurant search API', 'info');
-      const restaurantResponse = await fetch(`${apiUrl}/restaurants/search?limit=1`);
+      const restaurantResponse = await fetch(`${cleanApiUrl}/restaurants/search?limit=1`);
       if (restaurantResponse.ok) {
         const data = await restaurantResponse.json();
         addDetail(`✅ Restaurant API working: Found ${data.total_found} restaurants`, 'success');
@@ -38,7 +39,7 @@ const ConnectionTest = () => {
 
       // Test 3: Main chat API
       addDetail('Test 3: Chat API', 'info');
-      const chatResponse = await fetch(`${apiUrl}/ai`, {
+      const chatResponse = await fetch(`${cleanApiUrl}/ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_input: 'test' }),

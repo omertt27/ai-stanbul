@@ -106,7 +106,9 @@ class FeedbackLogger {
   // Optional: Send feedback to backend
   async sendToBackend(feedback) {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001'}/feedback`, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
+      const response = await fetch(`${cleanApiUrl}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feedback)

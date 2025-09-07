@@ -8,7 +8,8 @@ import {
 
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-const BLOG_API_URL = `${BASE_URL}/blog`;
+const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
+const BLOG_API_URL = `${cleanBaseUrl}/blog`;
 
 // Circuit breaker for blog API
 const blogCircuitBreaker = createCircuitBreaker({
