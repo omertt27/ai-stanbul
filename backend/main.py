@@ -2445,7 +2445,6 @@ Want specific recommendations for carpets, jewelry, or souvenirs?"""
 - **Banyan** - Asian-inspired rooftop bar
 - **The Marmara Pera** - Hotel rooftop with panoramic views
 
-**Tips:**
 - Most venues open after 9 PM
 - Dress code: Smart casual to upscale
 - Credit cards widely accepted
