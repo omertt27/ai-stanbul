@@ -1659,10 +1659,23 @@ async def ai_istanbul_router(request: Request):  # type: ignore
         # Enhanced query understanding with context - use our comprehensive typo correction
         enhanced_input = enhance_query_understanding(user_input)  # Use our fuzzy matching function instead
         
-        # Detect if this is a follow-up question
-        is_followup = context and len(context.get('previous_queries', [])) > 0 and any(
-            word in user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
-        )
+        # Detect if this is a follow-up question - handle both dict and object context
+        is_followup = False
+        if context:
+            try:
+                # Handle dict context
+                if hasattr(context, 'get'):
+                    is_followup = len(context.get('previous_queries', [])) > 0 and any(
+                        word in user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+                    )
+                # Handle object context
+                elif hasattr(context, 'previous_queries'):
+                    is_followup = len(getattr(context, 'previous_queries', [])) > 0 and any(
+                        word in user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+                    )
+            except Exception as ctx_error:
+                logger.warning(f"Context access error: {ctx_error}")
+                is_followup = False
         
         # Extract intent and entities
         intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
@@ -2612,7 +2625,13 @@ Want specific recommendations for carpets, jewelry, or souvenirs?"""
             else:
                 # Use OpenAI for intelligent responses about Istanbul
                 # Get context from database
-                places = db.query(Place).all()
+                places = []
+                try:
+                    places = db.query(Place).all()
+                except Exception as db_error:
+                    logger.warning(f"Database query failed: {db_error}")
+                    places = []
+                    
                 restaurants_context = "Available restaurants data from Google Maps API."
                 places_context = ""
                 

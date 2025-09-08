@@ -1,12 +1,50 @@
+/* Main page background with Istan.main-page-logo .logo-text {
+  font-size: 7.5rem !important;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s ease;
+}mage */
+.main-page-background {
+  position: relative;
+}
+
+.main-page-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/istanbul-bridge-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.08; /* Very low opacity */
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Light mode - even lower opacity for better readability */
+body.light .main-page-background::before {
+  opacity: 0.05;
+}
+
 /* Main page logo - bigger version, centered */
 .main-page-logo.logo-istanbul {
   text-align: center;
   margin-bottom: 2rem;
+  margin-top: 4rem;
   padding: 1rem;
 }
 
 .main-page-logo .logo-text {
-  font-size: 7rem;
+  font-size: 9rem !important;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -25,21 +63,21 @@
 
 @media (max-width: 768px) {
   .main-page-logo .logo-text {
-    font-size: 5rem;
+    font-size: 4.5rem;
     letter-spacing: 0.15em;
   }
 }
 
 @media (max-width: 640px) {
   .main-page-logo .logo-text {
-    font-size: 4rem;
+    font-size: 3.5rem;
     letter-spacing: 0.12em;
   }
 }
 
 @media (max-width: 480px) {
   .main-page-logo .logo-text {
-    font-size: 3rem;
+    font-size: 2.8rem;
     letter-spacing: 0.1em;
   }
 }
@@ -56,10 +94,31 @@
   background-clip: text;
 }
 
+/* Chat page logo - smaller size, positioned at top */
+.logo-move-top-left.logo-istanbul .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 0;
+  padding-top: 1rem;
+}
+
+/* Base logo styling for chat pages (when not main page) */
+.chat-title.logo-istanbul:not(.main-page-logo) .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
 /* Responsive logo scaling for fixed positioned logos */
 @media (max-width: 640px) {
   .logo-istanbul .logo-text {
     font-size: 2rem;
+    letter-spacing: 0.08em;
+  }
+  
+  .logo-move-top-left.logo-istanbul .logo-text {
+    font-size: 2.2rem !important;
     letter-spacing: 0.08em;
   }
 }
@@ -96,10 +155,14 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   padding: 2rem 0 1.5rem 0;
-  font-size: 2.2rem;
   font-weight: 700;
   text-align: center;
   margin-bottom: 0;
+}
+
+/* Default chat title size - only apply when not main page logo */
+.chat-title:not(.main-page-logo) {
+  font-size: 2.2rem;
 }
 
 .chat-container {
@@ -773,7 +836,6 @@ footer[style*="position: fixed"] {
   left: 0 !important;
   right: 0 !important;
   z-index: 999999 !important;
-  transform: translateZ(0) !important;
 }
 
 /* Ensure body and html allow fixed positioning */
@@ -902,5 +964,280 @@ html, body {
   .header-logo .logo-text {
     font-size: 2rem !important;
     letter-spacing: 0.1em !important;
+  }
+}
+
+/* Enhanced Blog Page Styling - More ergonomic and aesthetic */
+.blog-page {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  min-height: 100vh;
+}
+
+body.light .blog-page {
+  background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%);
+}
+
+.blog-page.dark {
+  background: linear-gradient(135deg, #0f1419 0%, #1a202c 100%);
+}
+
+.blog-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.blog-header.dark {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 20, 25, 0.95);
+}
+
+.blog-header:not(.dark) {
+  background: rgba(248, 250, 252, 0.95);
+  border-bottom: 1px solid rgba(209, 213, 219, 0.4);
+}
+
+.blog-content {
+  padding: 2rem 1rem;
+  max-width: 50rem;
+  margin: 0 auto;
+}
+
+.blog-article {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.blog-article:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.blog-article.dark {
+  background: rgba(26, 32, 44, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.blog-article.dark:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+.blog-text-content {
+  padding: 2.5rem;
+  line-height: 1.8;
+  font-size: 1.125rem;
+}
+
+.blog-text-content p {
+  margin-bottom: 1.75rem;
+  color: #374151;
+}
+
+.blog-text-content.dark p {
+  color: #d1d5db;
+}
+
+.blog-author-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(248, 250, 252, 0.5);
+}
+
+.blog-author-section.dark {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(45, 55, 72, 0.5);
+}
+
+.blog-author-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+}
+
+.blog-author-info h4 {
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.25rem;
+}
+
+.blog-author-info.dark h4 {
+  color: #e2e8f0;
+}
+
+.blog-author-info span {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.blog-author-info.dark span {
+  color: #a0aec0;
+}
+
+.blog-navigation {
+  margin-bottom: 2rem;
+}
+
+.blog-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border-radius: 0.75rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.blog-back-link:hover {
+  background: rgba(99, 102, 241, 0.2);
+  transform: translateX(-2px);
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+}
+
+.blog-back-link.dark {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.blog-back-link.dark:hover {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+/* Fixed navbar positioning for all pages except chatbot and main */
+.page-with-fixed-nav {
+  padding-top: 5rem; /* Space for fixed navbar */
+}
+
+.fixed-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  background: rgba(248, 250, 252, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.4) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s ease !important;
+  padding: 1rem 2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+body.light .fixed-navbar {
+  background: rgba(253, 253, 254, 0.95) !important;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.4) !important;
+}
+
+.fixed-navbar.dark {
+  background: rgba(15, 20, 25, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.fixed-navbar-logo {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.fixed-navbar-links {
+  position: absolute;
+  right: 2rem;
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.fixed-navbar-link {
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  color: #4a5568;
+}
+
+.fixed-navbar-link:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  transform: translateY(-1px);
+}
+
+.fixed-navbar-link.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.fixed-navbar.dark .fixed-navbar-link {
+  color: #cbd5e0;
+}
+
+.fixed-navbar.dark .fixed-navbar-link:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.fixed-navbar.dark .fixed-navbar-link.active {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+
+/* Responsive navbar for mobile */
+@media (max-width: 768px) {
+  .fixed-navbar {
+    padding: 0.75rem 1rem !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .fixed-navbar-logo {
+    flex: none !important;
+  }
+  
+  .fixed-navbar-links {
+    position: static !important;
+    right: auto !important;
+    gap: 1rem !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+  
+  .page-with-fixed-nav {
+    padding-top: 7rem; /* More space on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .fixed-navbar-links {
+    gap: 0.75rem !important;
+  }
+  
+  .fixed-navbar-link {
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .page-with-fixed-nav {
+    padding-top: 8rem; /* Even more space on small mobile */
   }
 }

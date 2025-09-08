@@ -95,7 +95,7 @@ const App = () => {
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8vh'}}>
+        <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8vh'}}>
           <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
             <div className="main-page-logo chat-title logo-istanbul" id="logo-istanbul">
               <span className="logo-text">

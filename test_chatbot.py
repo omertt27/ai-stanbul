@@ -3,7 +3,7 @@ import requests
 import json
 
 def test_chatbot():
-    url = "http://localhost:8001/ai"
+    url = "http://localhost:8000/ai"
     
     # Test restaurant recommendation query
     test_data = {
@@ -29,7 +29,7 @@ def test_chatbot():
             print(f"Error Response: {response.text}")
             
     except requests.exceptions.ConnectionError:
-        print("❌ Connection error - is the server running on port 8001?")
+        print("❌ Connection error - is the server running on port 8000?")
     except requests.exceptions.Timeout:
         print("❌ Request timeout")
     except Exception as e:

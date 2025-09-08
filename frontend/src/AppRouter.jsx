@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
 import App from './App';
 import Chatbot from './Chatbot';
 import SimpleChatbot from './SimpleChatbot';
@@ -76,6 +76,9 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
   const location = useLocation();
   const [routeKey, setRouteKey] = useState(0);
 
+  // Determine if current page should show fixed navbar
+  const shouldShowFixedNavbar = !['/chatbot', '/'].includes(location.pathname);
+
   // Global navigation handler to ensure clean state transitions
   useEffect(() => {
     console.log('🔄 AppRouter: Navigation detected to', location.pathname);
@@ -137,8 +140,59 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
       {/* Show chatbot outline - keep it fixed on all pages */}
       <div className="chatbot-outline" style={{ position: 'fixed', zIndex: 9998 }}></div>
       
-      <NavBar />
-      <Footer />
+      {/* Conditionally show NavBar and Footer - only for pages that need them */}
+      {shouldShowFixedNavbar ? (
+        <>
+          {/* Fixed navbar for pages other than chatbot and main */}
+          <div className={`fixed-navbar ${isLightMode ? '' : 'dark'}`}>
+            {/* AI Istanbul Logo - Centered */}
+            <div className="fixed-navbar-logo">
+              <Link to="/" style={{textDecoration: 'none'}}>
+                <div className="header-logo logo-istanbul">
+                  <span className="logo-text">
+                    A/<span style={{fontWeight: 400}}>STANBUL</span>
+                  </span>
+                </div>
+              </Link>
+            </div>
+            
+            {/* Navigation Links */}
+            <nav className="fixed-navbar-links">
+              <Link 
+                to="/blog" 
+                className={`fixed-navbar-link ${location.pathname.startsWith('/blog') ? 'active' : ''}`}
+              >
+                Blog
+              </Link>
+              <Link 
+                to="/about" 
+                className={`fixed-navbar-link ${location.pathname === '/about' ? 'active' : ''}`}
+              >
+                About
+              </Link>
+              <Link 
+                to="/faq" 
+                className={`fixed-navbar-link ${location.pathname === '/faq' ? 'active' : ''}`}
+              >
+                FAQ
+              </Link>
+              <Link 
+                to="/donate" 
+                className={`fixed-navbar-link ${location.pathname === '/donate' ? 'active' : ''}`}
+              >
+                Donate
+              </Link>
+            </nav>
+          </div>
+          <Footer />
+        </>
+      ) : (
+        <>
+          {/* Regular NavBar for main page and chatbot */}
+          <NavBar />
+          <Footer />
+        </>
+      )}
       <Routes>
         <Route path="/" element={<ForceRefreshRoute component={App} routeName="Home" />} />
         <Route path="/test" element={<TestComponent key={getRouteKey('test')} />} />
