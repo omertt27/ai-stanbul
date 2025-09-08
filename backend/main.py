@@ -887,38 +887,38 @@ def create_intelligent_fallback_response(user_input):
     """
     Create intelligent fallback responses for edge cases and off-topic queries.
     This is called BEFORE any OpenAI processing to catch problematic queries.
+    Only intercept truly problematic or dangerous queries - let most go to OpenAI.
     """
     user_input_lower = user_input.lower()
     
-    # 0. Check for random nonsense or very short/repetitive queries
-    if len(user_input.strip()) < 3:
+    # 0. Check for random nonsense or very short/repetitive queries (be more lenient)
+    if len(user_input.strip()) < 2:  # Changed from 3 to 2
         return "Could you please ask me something specific about Istanbul? I'm here to help you explore the city!"
     
-    # Check for repetitive or nonsensical patterns
+    # Check for repetitive or nonsensical patterns (be more lenient)
     words = user_input_lower.split()
-    if len(words) > 5:
-        # Check if more than 70% of words are repetitive
+    if len(words) > 10:  # Changed from 5 to 10
+        # Check if more than 80% of words are repetitive (changed from 70%)
         unique_words = set(words)
         repetition_ratio = len(unique_words) / len(words)
-        if repetition_ratio < 0.3:  # Very repetitive
+        if repetition_ratio < 0.2:  # Changed from 0.3 to 0.2 - only very repetitive
             return "I'd love to help you with something specific about Istanbul! What would you like to know about the city?"
     
     # Check for alphabet soup or random characters
     if any(pattern in user_input_lower for pattern in ['abcdefgh', 'qwertyui', 'asdfghjk']):
         return "I'm here to help you discover Istanbul! What would you like to know about restaurants, attractions, or neighborhoods in the city?"
     
-    # 1. Check for prompt injection attempts
+    # 1. Check for prompt injection attempts (keep this security check)
     injection_patterns = [
         'ignore previous instructions', 'ignore your instructions', 'ignore system prompt',
         'forget everything', 'new instructions', 'override', 'bypass', 'jailbreak',
-        'pretend you are', 'act as if', 'roleplay as', 'you are now', 'act as a',
-        'tell me about cars', 'help me with cooking', 'general chatbot'
+        'pretend you are', 'act as if', 'roleplay as', 'you are now', 'act as a'
     ]
     
     if any(pattern in user_input_lower for pattern in injection_patterns):
         return """I'm here to help you with Istanbul travel planning and recommendations. If you have any questions about visiting Istanbul, exploring the city, or finding great places to eat, feel free to ask!"""
     
-    # 2. Check for geographical impossibilities
+    # 2. Check for geographical impossibilities (keep this)
     is_impossible, landmark, actual_location = detect_geographical_impossibility(user_input)
     if is_impossible and landmark:
         return f"""The {landmark.title()} is actually located in {actual_location}, not Istanbul! 
@@ -932,21 +932,10 @@ Istanbul has its own incredible landmarks though:
 
 Would you like to know more about any of these amazing Istanbul landmarks?"""
     
-    # 3. Check for completely off-topic queries
-    is_off_topic, category, confidence = detect_off_topic_query(user_input)
-    if is_off_topic:
-        category_responses = {
-            'programming': "I'm specialized in Istanbul travel guidance rather than programming help. However, I'd love to help you plan your visit to Istanbul! Are you perhaps planning to visit Turkey's tech hub or looking for co-working spaces in the city?",
-            'science_math': "While that's an interesting topic, I'm your Istanbul travel guide! I focus on helping you discover amazing places, restaurants, and experiences in this beautiful city. Is there anything about Istanbul you'd like to explore?",
-            'technology': "I'm focused on helping you explore Istanbul rather than tech topics. But if you're interested in Istanbul's growing tech scene, I can tell you about modern districts like Levent and Maslak, or suggest tech-friendly cafes in Kadıköy!",
-            'other_places': "That's a wonderful destination! However, I specialize in Istanbul travel guidance. If you're planning to visit Istanbul as well, I'd be happy to help you discover the best restaurants, attractions, and hidden gems in the city!",
-            'general_knowledge': "That's interesting! As your Istanbul travel guide, I'd love to help you discover the rich history and culture of Istanbul instead. Did you know Istanbul was the capital of both the Byzantine and Ottoman empires? What aspects of Istanbul interest you most?"
-        }
-        
-        return category_responses.get(category or "default", 
-            "I'm your dedicated Istanbul travel guide! I'd love to help you discover amazing restaurants, attractions, neighborhoods, and experiences in this incredible city. What would you like to know about Istanbul?")
+    # 3. Removed off-topic query detection - let OpenAI handle these naturally
+    # This was too aggressive and preventing normal conversational queries
     
-    # 4. If none of the above, return None to continue with normal processing
+    # 4. Return None to continue with normal OpenAI processing for most queries
     return None
 
 def create_fallback_response(user_input, places):
@@ -1167,6 +1156,52 @@ def create_fuzzy_keywords():
 def correct_typos(text, threshold=70):  # type: ignore
     """Correct typos in user input using fuzzy matching"""
     try:
+        # Check if this is a conversational query that shouldn't be corrected
+        text_lower = text.lower().strip()
+        
+        # Patterns that indicate conversational queries - don't apply location corrections
+        conversational_patterns = [
+            r'\bhow\s+(are\s+)?you\b', r'\bhow\s+(are\s+)?u\b', r'\bhow\s+r\s+u\b', r'\bhow\s+r\s+you\b',
+            r'\bwho\s+are\s+you\b', r'\bwhat\s+are\s+you\b', r'\bwhat\s+is\s+your\b',
+            r'\bhello\b', r'\bhi\b', r'\bhey\b', r'\bgreetings\b',
+            r'\bthanks?\b', r'\bthank\s+you\b', r'\bgoodbye\b', r'\bbye\b',
+            r'\bgood\s+(morning|afternoon|evening|night)\b',
+            r'\bnice\s+to\s+meet\s+you\b', r'\bpleasure\s+to\s+meet\s+you\b'
+        ]
+        
+        import re
+        is_conversational = any(re.search(pattern, text_lower) for pattern in conversational_patterns)
+        
+        if is_conversational:
+            print(f"🗣️ Conversational query detected, skipping location typo correction: '{text}'")
+            # Only apply basic typo corrections for obvious misspellings, not location matching
+            basic_corrections = {
+                'restaurnts': 'restaurants',
+                'restaurnt': 'restaurant', 
+                'restarants': 'restaurants',
+                'restrants': 'restaurants',
+                'musem': 'museum',
+                'musems': 'museums',
+                'hotal': 'hotel',
+                'hotals': 'hotels',
+                'resturant': 'restaurant',
+                'resturants': 'restaurants',
+                'accomodation': 'accommodation',
+                'transporttion': 'transportation'
+            }
+            
+            words = text_lower.split()
+            corrected_words = []
+            
+            for word in words:
+                if word in basic_corrections:
+                    corrected_words.append(basic_corrections[word])
+                    print(f"🔧 Basic typo correction: '{word}' -> '{basic_corrections[word]}'")
+                else:
+                    corrected_words.append(word)
+            
+            return ' '.join(corrected_words)
+        
         # If fuzzywuzzy is not available, fall back to basic typo correction
         if not FUZZYWUZZY_AVAILABLE:
             print("⚠️  fuzzywuzzy not available, using basic typo correction")
@@ -1212,7 +1247,14 @@ def correct_typos(text, threshold=70):  # type: ignore
                      'amazing', 'beautiful', 'popular', 'famous', 'top', 'near',
                      'close', 'around', 'some', 'many', 'few', 'most', 'all',
                      'opening', 'hours', 'times', 'schedule', 'options', 'choices',
-                     'view', 'views', 'find', 'search', 'look', 'want', 'need'}
+                     'view', 'views', 'find', 'search', 'look', 'want', 'need',
+                     # Add more conversational words that shouldn't be location-corrected
+                     'i', 'you', 'we', 'they', 'he', 'she', 'it', 'my', 'your', 'our', 'their',
+                     'tell', 'say', 'speak', 'talk', 'ask', 'answer', 'reply', 'think', 'know',
+                     'like', 'love', 'hate', 'prefer', 'enjoy', 'can', 'could', 'would', 'should',
+                     'will', 'shall', 'may', 'might', 'must', 'today', 'tomorrow', 'yesterday',
+                     'now', 'then', 'here', 'there', 'this', 'that', 'these', 'those',
+                     'very', 'really', 'quite', 'pretty', 'too', 'so', 'such', 'much', 'more'}
         
         print(f"🔍 Typo correction input: '{text}'")
         
@@ -1221,6 +1263,13 @@ def correct_typos(text, threshold=70):  # type: ignore
             if word.lower() in stop_words:
                 corrected_words.append(word)
                 continue
+                
+            # For very short words (1-2 characters), require very high similarity score
+            min_threshold = threshold
+            if len(word) <= 2:
+                min_threshold = 95  # Much higher threshold for short words
+            elif len(word) == 3:
+                min_threshold = 85  # Higher threshold for 3-letter words
                 
             best_match = None
             best_score = 0
@@ -1251,12 +1300,12 @@ def correct_typos(text, threshold=70):  # type: ignore
             # Check each category of keywords using fuzzywuzzy
             for category, keyword_list in keywords.items():
                 match = process.extractOne(word, keyword_list)
-                if match and match[1] > best_score and match[1] >= threshold:
+                if match and match[1] > best_score and match[1] >= min_threshold:
                     best_match = match[0]
                     best_score = match[1]
                     best_category = category
             
-            if best_match and best_score >= threshold:
+            if best_match and best_score >= min_threshold:
                 corrected_words.append(best_match)
                 print(f"🔧 Typo correction: '{word}' -> '{best_match}' (score: {best_score}, category: {best_category})")
             else:
@@ -1542,49 +1591,28 @@ async def ai_istanbul_router(request: Request):  # type: ignore
         user_input = sanitized_input
         logger.info(f"🛡️ Processing sanitized input: {user_input[:50]}...")
 
-        # Handle greetings and daily talk BEFORE any typo correction or enhancement
+        # Handle only very basic greetings - let other queries go to AI
         user_input_clean = user_input.lower().strip()
         
-        # More precise greeting detection - check for word boundaries
-        greeting_patterns = [
-            r'\bhi\b', r'\bhello\b', r'\bhey\b', r'\bgreetings\b', 
-            r'\bgood morning\b', r'\bgood afternoon\b', r'\bgood evening\b',
-            r'\bhowdy\b', r'\bhiya\b', r'\bsup\b', 
-            r"\bwhat's up\b", r'\bwhats up\b',
-            r'\bhow are you\b', r'\bhow are u\b', r'\bhow r u\b', r'\bhow r you\b', 
-            r'\bhow are you doing\b', r"\bhow's it going\b", r'\bhows it going\b',
-            r'\bnice to meet you\b', r'\bpleased to meet you\b', r'\bgood to see you\b'
-        ]
-        daily_talk_patterns = [
-            r'\bhow are things\b', r"\bwhat's new\b", r'\bwhats new\b', r'\bhow have you been\b',
-            r'\blong time no see\b', r'\bgood to hear from you\b', r"\bhope you're well\b",
-            r"\bhow's your day\b", r'\bhows your day\b', r'\bhaving a good day\b',
-            r"\bwhat's happening\b", r'\bwhats happening\b', r"\bhow's life\b", r'\bhows life\b'
+        # Only intercept very simple greetings - let everything else go to OpenAI
+        basic_greetings = [
+            r'^\s*hi\s*$', r'^\s*hello\s*$', r'^\s*hey\s*$', 
+            r'^\s*good morning\s*$', r'^\s*good afternoon\s*$', r'^\s*good evening\s*$'
         ]
         
         import re
-        is_greeting = any(re.search(pattern, user_input_clean) for pattern in greeting_patterns)
-        is_daily_talk = any(re.search(pattern, user_input_clean) for pattern in daily_talk_patterns)
-        if is_greeting or is_daily_talk:
-            logger.info(f"[AIstanbul] Detected greeting/daily talk: {user_input}")
+        is_basic_greeting = any(re.search(pattern, user_input_clean) for pattern in basic_greetings)
+        if is_basic_greeting:
+            logger.info(f"[AIstanbul] Detected basic greeting: {user_input}")
             
             # Check if we have previous conversation history
             previous_context = context_manager.get_context(session_id) if context_manager else None
             has_history = previous_context and len(previous_context.get('previous_queries', [])) > 0
             
-            if any(re.search(r'\b' + word + r'\b', user_input_clean) for word in ['hi', 'hello', 'hey', 'greetings', 'howdy', 'hiya']):
-                if has_history:
-                    return create_ai_response("Hey there! 👋 Welcome back! I remember we were talking about Istanbul. Ready to continue planning your adventure, or is there something new you'd like to explore in the city?", db, session_id, user_input, request)
-                else:
-                    return create_ai_response("Hello! 👋 I'm your Istanbul travel companion! Whether you're planning a visit or already here, I'll help you discover amazing restaurants, hidden gems, and local experiences. What brings you to Istanbul?", db, session_id, user_input, request)
-            elif any(re.search(pattern, user_input_clean) for pattern in [r'\bhow are you\b', r'\bhow are u\b', r'\bhow r u\b', r'\bhow r you\b', r'\bhow are you doing\b']):
-                return create_ai_response("I'm doing fantastic! 😊 I love helping people discover Istanbul's magic. The city never stops surprising me with its blend of history, culture, and amazing food. What's your Istanbul mood today - history, food, or adventure?", db, session_id, user_input, request)
-            elif any(re.search(r'\b' + phrase.replace(' ', r'\s+') + r'\b', user_input_clean) for phrase in ['good morning', 'good afternoon', 'good evening']):
-                return create_ai_response("Good day! ☀️ Perfect timing to explore Istanbul! The city has different charms throughout the day - morning markets, afternoon tea culture, evening Bosphorus views. What sounds appealing to you right now?", db, session_id, user_input, request)
-            elif any(re.search(pattern, user_input_clean) for pattern in [r"\bwhat's up\b", r'\bwhats up\b', r'\bsup\b', r"\bhow's it going\b", r'\bhows it going\b']):
-                return create_ai_response("Just here living my best life helping people fall in love with Istanbul! 🌟 This city has such incredible energy. Are you looking to soak up some of that Istanbul vibe? What kind of experience interests you?", db, session_id, user_input, request)
+            if has_history:
+                return create_ai_response("Hey there! 👋 Welcome back! I remember we were talking about Istanbul. Ready to continue planning your adventure, or is there something new you'd like to explore in the city?", db, session_id, user_input, request)
             else:
-                return create_ai_response("So nice to chat! 😊 I'm passionate about helping people discover Istanbul's incredible layers - from Ottoman palaces to trendy neighborhoods. What aspect of this amazing city draws you in most?", db, session_id, user_input, request)
+                return create_ai_response("Hello! 👋 I'm your Istanbul travel companion! Whether you're planning a visit or already here, I'll help you discover amazing restaurants, hidden gems, and local experiences. What brings you to Istanbul?", db, session_id, user_input, request)
         
         # Continue with main query processing
         
@@ -2717,44 +2745,200 @@ async def stream_ai_response(request: Request):
         async def generate_stream():
             try:
                 # Use the same logic as the working /ai endpoint
-                # Parse and validate input
+                # Validate and sanitize input
                 is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
                 if not is_safe:
                     logger.warning(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
                     yield f"data: {json.dumps({'error': 'Input contains invalid characters'})}\n\n"
                     return
 
-                # Get database session
-                db = None
-                try:
-                    db = SessionLocal()
-                except Exception as db_error:
-                    logger.warning(f"Database connection failed: {db_error}")
+                # Use sanitized input for all processing
+                sanitized_user_input = sanitized_input
+                logger.info(f"🛡️ Processing sanitized input: {sanitized_user_input[:50]}...")
 
-                # Generate AI response using the same logic as /ai endpoint
-                # Check for simple greetings first
-                user_input_clean = sanitized_input.lower().strip()
+                # Handle only very basic greetings - let other queries go to OpenAI
+                user_input_clean = sanitized_user_input.lower().strip()
                 
-                response_message = ""
-                if any(greeting in user_input_clean for greeting in ['hi', 'hello', 'hey']):
+                # Only intercept very simple greetings - let everything else go to OpenAI
+                basic_greetings = [
+                    r'^\s*hi\s*$', r'^\s*hello\s*$', r'^\s*hey\s*$', 
+                    r'^\s*good morning\s*$', r'^\s*good afternoon\s*$', r'^\s*good evening\s*$'
+                ]
+                
+                import re
+                is_basic_greeting = any(re.search(pattern, user_input_clean) for pattern in basic_greetings)
+                if is_basic_greeting:
+                    logger.info(f"[AIstanbul] Detected basic greeting: {sanitized_user_input}")
                     response_message = "Hello! 👋 I'm your Istanbul travel companion! Whether you're planning a visit or already here, I'll help you discover amazing restaurants, hidden gems, and local experiences. What brings you to Istanbul?"
                 else:
-                    # Check for fallback conditions
-                    fallback_response = create_intelligent_fallback_response(sanitized_input)
+                    # INTELLIGENT FALLBACK CHECK - Catch edge cases before OpenAI
+                    fallback_response = create_intelligent_fallback_response(sanitized_user_input)
                     if fallback_response:
+                        logger.info(f"🛡️ Intelligent fallback triggered for: {sanitized_user_input[:50]}...")
                         response_message = fallback_response
                     else:
-                        # Use regular fallback with database query
-                        db_places = []
-                        if db:
-                            try:
-                                # Get some places from database
-                                places_query = db.query(Place).limit(5).all()
-                                db_places = [{"name": p.name, "category": p.category, "district": p.district} for p in places_query] if places_query else []
-                            except Exception as e:
-                                logger.warning(f"Database query failed: {e}")
+                        # Continue with full AI processing like the /ai endpoint
+                        # Get enhanced query understanding with context
+                        enhanced_input = enhance_query_understanding(sanitized_user_input)
                         
-                        response_message = create_fallback_response(sanitized_input, db_places)
+                        # Get conversation context
+                        context = context_manager.get_context(session_id)
+                        
+                        # Detect if this is a follow-up question
+                        is_followup = context and len(context.get('previous_queries', [])) > 0 and any(
+                            word in sanitized_user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+                        )
+                        
+                        # Extract intent and entities
+                        intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                        
+                        # Use enhanced input for processing
+                        processed_input = enhanced_input
+
+                        # --- OpenAI API Key Check ---
+                        openai_api_key = os.getenv("OPENAI_API_KEY")
+                        if not OpenAI or not openai_api_key:
+                            logger.error("[ERROR] OpenAI API key not set or openai package missing.")
+                            yield f"data: {json.dumps({'error': 'AI service temporarily unavailable'})}\n\n"
+                            return
+                        
+                        # Initialize OpenAI client with error handling
+                        try:
+                            client = OpenAI(api_key=openai_api_key)
+                        except Exception as e:
+                            logger.error(f"Failed to initialize OpenAI client: {e}")
+                            yield f"data: {json.dumps({'error': 'AI service temporarily unavailable'})}\n\n"
+                            return
+
+                        # Create database session with error handling
+                        db = None
+                        try:
+                            db = SessionLocal()
+                        except Exception as e:
+                            logger.warning(f"Failed to create database session: {e}")
+
+                        try:
+                            # Get places context from database
+                            places_context = "No specific places context available."
+                            places = []
+                            if db:
+                                try:
+                                    # Simple database query to get context
+                                    places_query = db.query(Place).limit(20).all()
+                                    if places_query:
+                                        places = [{"name": p.name, "category": p.category, "district": p.district} for p in places_query]
+                                        places_context = f"Found {len(places)} places in the database for context."
+                                except Exception as e:
+                                    logger.warning(f"Database query failed: {e}")
+
+                            # System prompt for Istanbul AI
+                            system_prompt = """You are KAM, Istanbul's intelligent AI travel guide with smart routing capabilities. You help visitors and locals discover the best of Istanbul with personalized recommendations.
+
+CORE PERSONALITY:
+- Enthusiastic and knowledgeable about Istanbul
+- Friendly and conversational
+- Helpful with practical advice
+- Passionate about sharing Istanbul's culture, food, and hidden gems
+
+KEY CAPABILITIES:
+- Restaurant recommendations with cuisine types and locations
+- Museum and attraction guidance with historical context
+- Neighborhood insights and local tips
+- Transportation advice and route planning
+- Cultural experiences and local events
+- Shopping destinations from markets to modern malls
+- Nightlife and entertainment suggestions
+
+RESPONSE STYLE:
+- Be warm and welcoming
+- Provide specific, actionable recommendations
+- Include practical details (locations, timing, costs when relevant)
+- Share insider tips and local knowledge
+- Ask follow-up questions to better assist
+- Always be enthusiastic about Istanbul while being genuinely helpful
+
+TONE & STYLE:
+- Friendly, conversational, and welcoming
+- Ask follow-up questions to provide better assistance
+- Relate general topics back to Istanbul experiences
+- Offer specific, actionable advice
+- Be inclusive and helpful to all visitors and locals
+
+When users need specific restaurant recommendations with location (like "restaurants in Beyoğlu"), the system will automatically fetch live data for you."""
+
+                            try:
+                                logger.info("Generating enhanced AI response...")
+                                
+                                # Check if we can provide a knowledge-based response first
+                                knowledge_response = knowledge_base.get_knowledge_response(user_input, intent_info)
+                                
+                                if knowledge_response:
+                                    # Use knowledge base response
+                                    response_message = knowledge_response
+                                    logger.info("Using knowledge base response")
+                                else:
+                                    # Fall back to OpenAI for complex queries
+                                    @openai_circuit_breaker
+                                    @retry_with_backoff(max_attempts=3, base_delay=1.0)
+                                    def make_openai_request():
+                                        # Enhance system prompt with context
+                                        enhanced_prompt = response_generator.enhance_system_prompt(system_prompt, context)
+                                        
+                                        messages = [
+                                            {"role": "system", "content": enhanced_prompt},
+                                            {"role": "system", "content": f"Database context:\n{places_context}"}
+                                        ]
+                                        
+                                        # Add conversation history if available
+                                        if context:
+                                            for i, (prev_q, prev_r) in enumerate(zip(context.get('previous_queries', [])[-3:], context.get('previous_responses', [])[-3:])):
+                                                messages.append({"role": "user", "content": prev_q})
+                                                messages.append({"role": "assistant", "content": prev_r})
+                                        
+                                        messages.append({"role": "user", "content": processed_input})
+                                        
+                                        return client.chat.completions.create(
+                                            model="gpt-3.5-turbo",
+                                            messages=messages,  # type: ignore
+                                            max_tokens=500,
+                                            temperature=0.7,
+                                            timeout=30  # 30 second timeout
+                                        )
+                                    
+                                    response = make_openai_request()
+                                    ai_response = response.choices[0].message.content
+                                    logger.info(f"OpenAI response: {ai_response[:100] if ai_response else 'None'}")
+                                    
+                                    # Generate context-aware enhanced response
+                                    enhanced_response = response_generator.generate_response(
+                                        processed_input, ai_response, context, intent_info, places
+                                    )
+                                    
+                                    # Update conversation context
+                                    places_mentioned = intent_info.get('entities', {}).get('locations', [])
+                                    topic = intent_info.get('intent', 'general')
+                                    context_manager.update_context(
+                                        session_id, processed_input, enhanced_response, 
+                                        places_mentioned, topic
+                                    )
+                                    
+                                    # Clean the response from any emojis, hashtags, or markdown
+                                    response_message = clean_text_formatting(enhanced_response)
+                                
+                            except Exception as e:
+                                logger.error(f"OpenAI API error: {e}")
+                                # Try fallback response before raising error
+                                try:
+                                    fallback_response = create_fallback_response(processed_input, places)
+                                    response_message = clean_text_formatting(fallback_response)
+                                except Exception as fallback_error:
+                                    logger.error(f"Fallback response failed: {fallback_error}")
+                                    yield f"data: {json.dumps({'error': 'AI chat service is temporarily unavailable'})}\n\n"
+                                    return
+                        
+                        finally:
+                            if db:
+                                db.close()
 
                 # For streaming, break down the response into chunks
                 words = response_message.split()
@@ -2768,16 +2952,6 @@ async def stream_ai_response(request: Request):
                 
                 # Send completion signal
                 yield f"data: {json.dumps({'done': True})}\n\n"
-                
-                # Save to chat history if database is available
-                if db:
-                    try:
-                        save_chat_history(db, session_id, user_input, response_message)
-                    except Exception as e:
-                        logger.warning(f"Failed to save chat history: {e}")
-                
-                if db:
-                    db.close()
                 
             except Exception as e:
                 logger.error(f"Error in streaming response: {str(e)}")
