@@ -1,0 +1,14 @@
+[tool.pylance]
+include = [
+    ".",
+    "routes",
+    "api_clients"
+]
+
+[tool.pyright]
+include = [
+    ".",
+    "routes",
+    "api_clients"
+]
+pythonPath = "."

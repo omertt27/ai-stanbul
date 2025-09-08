@@ -25,6 +25,10 @@ backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
+# Print paths for debugging
+print(f"Current directory: {current_dir}")
+print(f"Python path includes: {[p for p in sys.path if 'ai-stanbul' in p]}")
+
 # Test for python-multipart early to prevent FastAPI errors
 try:
     import multipart
@@ -101,35 +105,46 @@ except ImportError:
         process = _ProcessFallback()  # type: ignore
 
 # --- Project Imports with Error Handling ---
+# Import modules explicitly for better IDE support
 try:
-    from database import engine, SessionLocal
-except ImportError as e:
-    print(f"Warning: Could not import database module: {e}")
-    # Create minimal database setup as fallback
-    from sqlalchemy import create_engine
-    from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy.orm import sessionmaker
-    
-    Base = declarative_base()
-    DB_URL = "sqlite:///./app.db"
-    engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    from . import database  # type: ignore
+    from .database import engine, SessionLocal  # type: ignore
+except ImportError:
+    try:
+        import database  # type: ignore
+        from database import engine, SessionLocal  # type: ignore
+    except ImportError as e:
+        print(f"Warning: Could not import database module: {e}")
+        # Create minimal database setup as fallback
+        from sqlalchemy import create_engine
+        from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.orm import sessionmaker
+        
+        Base = declarative_base()
+        DB_URL = "sqlite:///./app.db"
+        engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 try:
-    from models import Base, Restaurant, Museum, Place, ChatHistory
-except ImportError as e:
-    print(f"Warning: Could not import models: {e}")
-    # Create minimal models as fallback
-    from sqlalchemy.ext.declarative import declarative_base
-    Base = declarative_base()
-    
-    # Define minimal model classes
-    class Restaurant:
-        def __init__(self):
-            self.name = None
-            self.cuisine = None
-            self.location = None
-            self.rating = None
+    from . import models  # type: ignore
+    from .models import Base, Restaurant, Museum, Place, ChatHistory  # type: ignore
+except ImportError:
+    try:
+        import models  # type: ignore
+        from models import Base, Restaurant, Museum, Place, ChatHistory  # type: ignore
+    except ImportError as e:
+        print(f"Warning: Could not import models: {e}")
+        # Create minimal models as fallback
+        from sqlalchemy.ext.declarative import declarative_base
+        Base = declarative_base()
+        
+        # Define minimal model classes
+        class Restaurant:
+            def __init__(self):
+                self.name = None
+                self.cuisine = None
+                self.location = None
+                self.rating = None
     
     class Museum:
         def __init__(self):
@@ -174,18 +189,23 @@ except ImportError as e:
             self.user_ip = user_ip
 
 try:
-    from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips
-except ImportError as e:
-    print(f"Warning: Could not import specialized_models: {e}")
-    # Create minimal classes as fallback
-    class UserProfile:
-        pass
-    class TransportRoute:
-        pass
-    class TurkishPhrases:
-        pass
-    class LocalTips:
-        pass
+    from . import specialized_models  # type: ignore
+    from .specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips  # type: ignore
+except ImportError:
+    try:
+        import specialized_models  # type: ignore
+        from specialized_models import UserProfile, TransportRoute, TurkishPhrases, LocalTips  # type: ignore
+    except ImportError as e:
+        print(f"Warning: Could not import specialized_models: {e}")
+        # Create minimal classes as fallback
+        class UserProfile:
+            pass
+        class TransportRoute:
+            pass
+        class TurkishPhrases:
+            pass
+        class LocalTips:
+            pass
 
 try:
     from personalization_engine import IstanbulPersonalizationEngine, format_personalized_response  # type: ignore
@@ -224,10 +244,15 @@ except ImportError as e:
         return {"places": places}
 
 try:
-    from routes import museums, restaurants, places
-except ImportError as e:
-    print(f"Warning: Could not import routes: {e}")
-    museums = restaurants = places = None
+    from . import routes
+    from .routes import museums, restaurants, places
+except ImportError:
+    try:
+        import routes
+        from routes import museums, restaurants, places
+    except ImportError as e:
+        print(f"Warning: Could not import routes: {e}")
+        museums = restaurants = places = None
 
 try:
     from api_clients.google_places import GooglePlacesClient  # type: ignore
@@ -724,8 +749,11 @@ os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Add blog router
-from routes import blog
-app.include_router(blog.router)
+try:
+    import routes.blog as blog  # type: ignore
+    app.include_router(blog.router)
+except ImportError as e:
+    print(f"Warning: Could not import blog router: {e}")
 
 # Global exception handler
 @app.exception_handler(APIError)
@@ -2742,11 +2770,14 @@ async def stream_ai_response(request: Request):
 
         logger.info(f"Streaming AI request - Session: {session_id}, Query: {user_input[:100]}...")
 
+        # Capture user_input in the outer scope to avoid closure issues
+        original_user_input = user_input
+
         async def generate_stream():
             try:
                 # Use the same logic as the working /ai endpoint
                 # Validate and sanitize input
-                is_safe, sanitized_input, error_msg = validate_and_sanitize_input(user_input)
+                is_safe, sanitized_input, error_msg = validate_and_sanitize_input(original_user_input)
                 if not is_safe:
                     logger.warning(f"🚨 SECURITY: Rejected unsafe input: {error_msg}")
                     yield f"data: {json.dumps({'error': 'Input contains invalid characters'})}\n\n"
