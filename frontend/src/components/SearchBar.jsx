@@ -39,7 +39,7 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder }) => {
           background: 'transparent',
           border: 'none',
           outline: 'none',
-          color: '#fff',
+          color: isLightMode ? '#1f2937' : '#fff',
           fontSize: '1.1rem',
           padding: '0.3rem 0',
           fontWeight: 500,

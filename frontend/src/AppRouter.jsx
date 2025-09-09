@@ -20,8 +20,29 @@ import ForceRefreshRoute from './components/ForceRefreshRoute';
 import GoogleAnalytics, { trackNavigation } from './utils/analytics';
 
 const AppRouter = () => {
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(() => {
+    // Load saved light mode preference
+    try {
+      const saved = localStorage.getItem('light-mode');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
   const [chatExpanded, setChatExpanded] = useState(false);
+
+  // Apply saved light mode immediately on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('light-mode');
+      if (saved) {
+        const savedMode = JSON.parse(saved);
+        setIsLightMode(savedMode);
+      }
+    } catch (error) {
+      console.log('Could not load light mode preference');
+    }
+  }, []);
 
   // Listen for chat state changes
   useEffect(() => {
@@ -44,41 +65,109 @@ const AppRouter = () => {
   // Toggle light mode on both body and chat containers
   useEffect(() => {
     const body = document.body;
+    const root = document.getElementById('root');
+    const mainPageBg = document.querySelector('.main-page-background');
     const chatContainers = document.querySelectorAll('.chat-container');
+    const searchBars = document.querySelectorAll('.searchbar');
     
     if (isLightMode) {
       body.classList.add('light');
+      if (root) root.classList.add('light');
       chatContainers.forEach(el => el.classList.add('light-chat'));
+      
+      // Force pure white background for light mode on all elements
+      body.style.background = '#ffffff !important';
+      body.style.backgroundColor = '#ffffff';
+      body.style.color = '#2d3748 !important';
+      
+      if (root) {
+        root.style.background = '#ffffff !important';
+        root.style.backgroundColor = '#ffffff';
+      }
+      
+      // Force main page background to white
+      if (mainPageBg) {
+        mainPageBg.style.background = '#ffffff !important';
+        mainPageBg.style.backgroundColor = '#ffffff !important';
+        mainPageBg.style.backgroundImage = 'none !important';
+      }
+      
+      // Update CSS custom properties for pure white background
+      document.documentElement.style.setProperty('--bg-primary', '#ffffff');
+      document.documentElement.style.setProperty('--bg-secondary', '#f8fafc');
+      document.documentElement.style.setProperty('--text-primary', '#2d3748');
+      document.documentElement.style.setProperty('--text-secondary', '#4a5568');
+      
     } else {
       body.classList.remove('light');
+      if (root) root.classList.remove('light');
       chatContainers.forEach(el => el.classList.remove('light-chat'));
+      
+      // Restore dark mode styles
+      body.style.background = 'linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important';
+      body.style.backgroundColor = '';
+      body.style.color = '#e5e7eb !important';
+      
+      if (root) {
+        root.style.background = '';
+        root.style.backgroundColor = '';
+      }
+      
+      // Restore main page background
+      if (mainPageBg) {
+        mainPageBg.style.background = '';
+        mainPageBg.style.backgroundColor = '';
+        mainPageBg.style.backgroundImage = '';
+      }
+      
+      // Update CSS custom properties for dark mode
+      document.documentElement.style.setProperty('--bg-primary', '#0f1011');
+      document.documentElement.style.setProperty('--bg-secondary', '#1a1b1d');
+      document.documentElement.style.setProperty('--text-primary', '#e5e7eb');
+      document.documentElement.style.setProperty('--text-secondary', '#c7c9e2');
     }
+    
+    // Force repaint
+    body.style.display = 'none';
+    body.offsetHeight; // Trigger reflow
+    body.style.display = '';
+    
   }, [isLightMode]);
 
   const toggleTheme = () => {
-    setIsLightMode(!isLightMode);
+    const newMode = !isLightMode;
+    setIsLightMode(newMode);
+    // Save to localStorage
+    localStorage.setItem('light-mode', JSON.stringify(newMode));
   };
 
   const buttonStyle = {
     position: 'fixed',
-    top: '2.5rem',  // Same as NavBar
-    right: '1.5rem',
+    top: '0.5rem',  
+    right: '0.5rem', // Moved closer to edge for easier access
     zIndex: 9999,
-    background: isLightMode ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-    border: isLightMode ? '1px solid #e2e8f0' : 'none',
-    borderRadius: '50%',
-    padding: 0,
+    background: isLightMode 
+      ? 'rgba(255, 255, 255, 0.9)' 
+      : 'rgba(0, 0, 0, 0.7)', // Added background for better clickability
+    border: isLightMode 
+      ? '1px solid #e2e8f0' 
+      : '1px solid #4b5563',
+    borderRadius: '8px',
+    padding: '16px', // Much bigger padding for easier clicking
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    color: isLightMode ? '#475569' : '#e5e7eb',
-    boxShadow: isLightMode ? '0 2px 8px rgba(99, 102, 241, 0.15)' : 'none',
-    width: '32px',
-    height: '32px',
-    minWidth: '32px',
-    minHeight: '32px',
+    color: isLightMode ? '#374151' : '#e5e7eb',
+    width: '60px', // Much bigger clickable area
+    height: '60px',
+    minWidth: '60px',
+    minHeight: '60px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transform: 'scale(1)',
+    boxShadow: isLightMode 
+      ? '0 2px 8px rgba(0, 0, 0, 0.1)' 
+      : '0 2px 8px rgba(255, 255, 255, 0.1)',
   };
 
   return (
@@ -100,8 +189,8 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle, chatExpanded }) => 
   // Determine if current page should show fixed navbar - only for specific pages that need it
   const shouldShowFixedNavbar = false; // Disable fixed navbar for now to make all pages consistent
   
-  // Hide logo on main page to avoid duplicate with the big centered logo
-  const shouldHideLogo = location.pathname === '/' && !chatExpanded;
+  // Hide navbar logo on main page only, show on all other pages
+  const shouldHideLogo = location.pathname === '/';
 
   // Global navigation handler to ensure clean state transitions
   useEffect(() => {
@@ -140,25 +229,38 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle, chatExpanded }) => 
       <button
         onClick={toggleTheme}
         style={buttonStyle}
-        title={`Switch to ${isLightMode ? 'dark' : 'light'} mode`}
+        title={`Click to switch to ${isLightMode ? 'dark' : 'light'} mode`}
+        aria-label={`Switch to ${isLightMode ? 'dark' : 'light'} mode`}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'scale(1.1)';
+          e.target.style.backgroundColor = isLightMode 
+            ? 'rgba(255, 255, 255, 1)' 
+            : 'rgba(0, 0, 0, 0.9)';
+          e.target.style.boxShadow = isLightMode 
+            ? '0 4px 12px rgba(0, 0, 0, 0.2)' 
+            : '0 4px 12px rgba(255, 255, 255, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'scale(1)';
+          e.target.style.backgroundColor = isLightMode 
+            ? 'rgba(255, 255, 255, 0.9)' 
+            : 'rgba(0, 0, 0, 0.7)';
+          e.target.style.boxShadow = isLightMode 
+            ? '0 2px 8px rgba(0, 0, 0, 0.1)' 
+            : '0 2px 8px rgba(255, 255, 255, 0.1)';
+        }}
       >
-        {isLightMode ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-        )}
+        {/* Extra big stick symbol with better visibility */}
+        <div style={{
+          width: '8px', // Even thicker for better clicking
+          height: '36px', // Even taller
+          backgroundColor: 'currentColor',
+          borderRadius: '4px',
+          transition: 'all 0.3s ease',
+          boxShadow: isLightMode 
+            ? '0 2px 4px rgba(0, 0, 0, 0.3)' 
+            : '0 2px 4px rgba(255, 255, 255, 0.5)'
+        }} />
       </button>
 
       {/* Show chatbot outline - keep it fixed on all pages */}
@@ -218,7 +320,7 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle, chatExpanded }) => 
         </>
       )}
       <Routes>
-        <Route path="/" element={<ForceRefreshRoute component={TestApp} routeName="Home" />} />
+        <Route path="/" element={<ForceRefreshRoute component={App} routeName="Home" />} />
         <Route path="/test" element={<TestComponent key={getRouteKey('test')} />} />
         <Route path="/simple" element={<SimpleChatbot key={getRouteKey('simple')} />} />
         <Route path="/chatbot" element={<Chatbot key={getRouteKey('chatbot')} />} />

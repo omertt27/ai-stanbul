@@ -56,10 +56,10 @@ const NavBar = ({ hideLogo = false }) => {
     display: 'flex',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: isMobile ? '1.5rem' : '3rem', // Increased gap even more for bigger appearance
+    gap: isMobile ? '1rem' : '1.5rem', // Reduced gap for closer buttons
     padding: '0.75rem 1rem', // Increased padding for bigger appearance
     fontWeight: 400,
-    fontSize: isMobile ? '1.3rem' : '1.6rem', // Increased font size even more for bigger buttons
+    fontSize: isMobile ? '1.2rem' : '1.4rem', // Increased font size for bigger buttons
     letterSpacing: '0.01em',
     flexWrap: 'wrap',
   };
@@ -69,16 +69,16 @@ const NavBar = ({ hideLogo = false }) => {
       : (isLightMode ? '#475569' : '#c7c9e2'),
     textDecoration: 'none',
     borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: '0.8rem', // Increased padding for bigger buttons
-    paddingTop: '0.8rem',
-    paddingLeft: '1.5rem', // Increased padding for bigger buttons
-    paddingRight: '1.5rem',
+    paddingBottom: '0.7rem', // Increased padding for bigger buttons
+    paddingTop: '0.7rem',
+    paddingLeft: '1.2rem', // Increased padding for bigger buttons
+    paddingRight: '1.2rem',
     borderRadius: '0.5rem',
     transition: 'all 0.2s ease',
     fontWeight: 'inherit',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    minWidth: '6rem', // Increased minimum width for bigger buttons
+    minWidth: '5rem', // Increased minimum width for bigger buttons
   });
   
   const handleLogoClick = () => {

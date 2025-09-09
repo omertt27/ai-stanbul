@@ -131,15 +131,28 @@ const App = () => {
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8vh'}}>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
-            <div className="main-page-logo chat-title logo-istanbul" id="logo-istanbul">
-              <span className="logo-text">
+        <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh', paddingTop: '8rem'}}>
+          {/* Centered logo - bigger than navbar logo */}
+          <div style={{textAlign: 'center', marginBottom: '3rem'}}>
+            <div className="chat-title logo-istanbul">
+              <span className="logo-text" style={{
+                fontSize: window.innerWidth < 768 ? '4rem' : '6rem', // Much bigger than navbar (was 2.5rem/3.5rem)
+                fontWeight: 700,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 4px 20px rgba(99, 102, 241, 0.8), 0 0 40px rgba(255, 255, 255, 0.5)', // Enhanced shadow for visibility
+                transition: 'all 0.3s ease',
+                cursor: 'default'
+              }}>
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
             </div>
-          </Link>
-          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '1rem auto 0', padding: '1rem'}}>
+          </div>
+          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
