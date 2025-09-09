@@ -219,45 +219,149 @@ const BlogList = () => {
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <div className="text-center py-8 sm:py-12">
+          <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 transition-colors duration-200 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            Istanbul Stories
+          </h1>
+          <p className={`text-lg sm:text-xl mb-6 max-w-3xl mx-auto transition-colors duration-200 ${
+            darkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+            Discover authentic experiences and hidden gems through the eyes of locals and travelers
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <span className={`text-sm font-medium transition-colors duration-200 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              {totalPosts} stories shared • Join the community
+            </span>
+          </div>
+        </div>
+
+        {/* Recent/Featured Posts Section */}
+        {posts.length > 0 && !searchTerm && !selectedDistrict && (
+          <div className="mb-8">
+            <h2 className={`text-2xl sm:text-3xl font-bold mb-6 transition-colors duration-200 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Recent Stories
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {posts.slice(0, 2).map((post) => (
+                <article
+                  key={`featured-${post.id}`}
+                  className={`rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 ${
+                    darkMode
+                      ? 'bg-gray-800 hover:bg-gray-750 shadow-2xl'
+                      : 'bg-white hover:bg-gray-50 shadow-xl hover:shadow-2xl border border-gray-100'
+                  }`}
+                >
+                  <div className="p-6 sm:p-8">
+                    {/* Author Info */}
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                        {post.author_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-4">
+                        <p className={`font-semibold transition-colors duration-200 ${
+                          darkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>{post.author_name}</p>
+                        <p className={`text-sm transition-colors duration-200 ${
+                          darkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>{formatDate(post.created_at)}</p>
+                      </div>
+                    </div>
+
+                    <h3 className={`text-2xl font-bold mb-3 leading-tight transition-colors duration-200 ${
+                      darkMode 
+                        ? 'text-white hover:text-indigo-300' 
+                        : 'text-gray-900 hover:text-indigo-600'
+                    }`}>
+                      <Link to={`/blog/${post.id}`} className="hover:underline">
+                        {post.title}
+                      </Link>
+                    </h3>
+                    
+                    <p className={`mb-4 text-lg leading-relaxed transition-colors duration-200 ${
+                      darkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      {truncateText(post.content, 200)}
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="font-medium">{post.district}</span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 mr-1 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span className="font-medium">{post.likes_count || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search and Filters */}
-        <div className={`mb-4 sm:mb-6 rounded-lg p-3 sm:p-4 transition-colors duration-200 relative mt-4 sm:mt-6 ${
-          darkMode ? 'bg-gray-800' : 'bg-white shadow-lg border border-gray-200'
+        <div className={`mb-6 sm:mb-8 rounded-xl p-4 sm:p-6 transition-colors duration-200 relative ${
+          darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white shadow-xl border border-gray-200'
         }`}>
-          <form onSubmit={handleSearch} className="mb-2 sm:mb-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+          <form onSubmit={handleSearch} className="mb-3 sm:mb-4">
+            <div className="text-center mb-4">
+              <h3 className={`text-xl font-semibold transition-colors duration-200 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>Find Your Perfect Story</h3>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Search by location, experience, or keyword</p>
+            </div>
+            
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <div className="flex-1">
                 <label htmlFor="search-posts" className="sr-only">Search posts</label>
                 <input
                   type="text"
                   id="search-posts"
                   name="search-posts"
-                  placeholder="Search posts..."
+                  placeholder="Search stories, locations, experiences..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none transition-colors duration-200 text-sm ${
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
                     darkMode 
-                      ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500' 
-                      : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                      ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20' 
+                      : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
                   }`}
                   autoComplete="off"
                 />
               </div>
               <button
                 type="submit"
-                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm ${
-                  darkMode
-                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                }`}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 whitespace-nowrap shadow-lg hover:shadow-xl transform hover:scale-105"
               >
+                <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
                 Search
               </button>
             </div>
           </form>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-            <div className="flex-1 min-w-0 sm:min-w-40 sm:max-w-48">
-              <label htmlFor="district-filter" className="sr-only">Filter by district</label>
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-6 sm:items-center">
+            <div className="flex-1 min-w-0 sm:min-w-48 sm:max-w-72">
+              <label htmlFor="district-filter" className={`block text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Filter by District</label>
               <select
                 id="district-filter"
                 name="district-filter"
@@ -266,10 +370,10 @@ const BlogList = () => {
                   setSelectedDistrict(e.target.value);
                   setCurrentPage(1);
                 }}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none transition-colors duration-200 text-sm ${
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
                   darkMode 
-                    ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500'
-                    : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                    ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                    : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
                 }`}
                 autoComplete="address-level2"
               >
@@ -280,33 +384,38 @@ const BlogList = () => {
               </select>
             </div>
 
-            {(searchTerm || selectedDistrict) && (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className={`px-3 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm ${
-                  darkMode
-                    ? 'bg-gray-600 hover:bg-gray-700 text-white'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                }`}
+            {/* Share Your Story Button - moved here next to district filter */}
+            <div className="sm:self-end">
+              <Link
+                to="/blog/new"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 whitespace-nowrap"
               >
-                Clear Filters
-              </button>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Share Your Story
+              </Link>
+            </div>
+
+            {(searchTerm || selectedDistrict) && (
+              <div className="sm:self-end">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
+                    darkMode
+                      ? 'bg-gray-600 hover:bg-gray-700 text-white border border-gray-500'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear Filters
+                </button>
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Share Your Story Button */}
-        <div className="text-center mb-4 sm:mb-6">
-          <Link
-            to="/blog/new"
-            className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors duration-200 text-sm sm:text-base shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Share Your Story
-          </Link>
         </div>
 
         {/* Error State */}
@@ -450,6 +559,80 @@ const BlogList = () => {
               </article>
             ))}
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-8 gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  currentPage === 1
+                    ? darkMode 
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : darkMode
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'
+                }`}
+              >
+                <svg className="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                        currentPage === pageNum
+                          ? 'bg-indigo-600 text-white shadow-lg'
+                          : darkMode
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  currentPage === totalPages
+                    ? darkMode 
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : darkMode
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                      : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'
+                }`}
+              >
+                Next
+                <svg className="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
           </>
         )}
         </div> {/* End debug wrapper */}
