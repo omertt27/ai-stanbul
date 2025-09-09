@@ -1635,7 +1635,12 @@ async def ai_istanbul_router(request: Request):  # type: ignore
             
             # Check if we have previous conversation history
             previous_context = context_manager.get_context(session_id) if context_manager else None
-            has_history = previous_context and len(previous_context.get('previous_queries', [])) > 0
+            has_history = False
+            if previous_context:
+                if hasattr(previous_context, 'previous_queries'):
+                    has_history = len(getattr(previous_context, 'previous_queries', [])) > 0
+                elif hasattr(previous_context, 'get'):
+                    has_history = len(previous_context.get('previous_queries', [])) > 0
             
             if has_history:
                 return create_ai_response("Hey there! 👋 Welcome back! I remember we were talking about Istanbul. Ready to continue planning your adventure, or is there something new you'd like to explore in the city?", db, session_id, user_input, request)
@@ -2707,7 +2712,18 @@ When users need specific restaurant recommendations with location (like "restaur
                             
                             # Add conversation history if available
                             if context:
-                                for i, (prev_q, prev_r) in enumerate(zip(context.get('previous_queries', [])[-3:], context.get('previous_responses', [])[-3:])):
+                                # Handle both ConversationContext object and dict context
+                                if hasattr(context, 'previous_queries') and hasattr(context, 'previous_responses'):
+                                    prev_queries = getattr(context, 'previous_queries', [])[-3:]
+                                    prev_responses = getattr(context, 'previous_responses', [])[-3:]
+                                elif hasattr(context, 'get'):
+                                    prev_queries = context.get('previous_queries', [])[-3:]
+                                    prev_responses = context.get('previous_responses', [])[-3:]
+                                else:
+                                    prev_queries = []
+                                    prev_responses = []
+                                
+                                for prev_q, prev_r in zip(prev_queries, prev_responses):
                                     messages.append({"role": "user", "content": prev_q})
                                     messages.append({"role": "assistant", "content": prev_r})
                             
@@ -2837,9 +2853,17 @@ async def stream_ai_response(request: Request):
                         context = context_manager.get_context(session_id)
                         
                         # Detect if this is a follow-up question
-                        is_followup = context and len(context.get('previous_queries', [])) > 0 and any(
-                            word in sanitized_user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
-                        )
+                        is_followup = False
+                        if context:
+                            # Handle both ConversationContext object and dict context
+                            if hasattr(context, 'previous_queries'):
+                                prev_queries = getattr(context, 'previous_queries', [])
+                            else:
+                                prev_queries = context.get('previous_queries', []) if hasattr(context, 'get') else []
+                            
+                            is_followup = len(prev_queries) > 0 and any(
+                                word in sanitized_user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+                            )
                         
                         # Extract intent and entities
                         intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)

@@ -17,7 +17,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.65; /* Reduced opacity for less vivid wallpaper */
+  opacity: 0.85; /* Increased opacity for more visible wallpaper */
   z-index: -1;
   pointer-events: none;
 }
@@ -315,13 +315,14 @@ body.light .message-bubble.bot {
 
 .searchbar input {
   flex: 1;
-  padding: 0.75rem 1rem;
-  border-radius: 1rem;
+  padding: 1.25rem 1.5rem; /* Bigger padding (was 0.75rem 1rem) */
+  border-radius: 1.25rem; /* Slightly more rounded */
   border: 1px solid #3a3b3d;
-  font-size: 1rem;
+  font-size: 1.25rem; /* Bigger font size (was 1rem) */
   background: #1a1b1d;
   color: #e5e7eb;
   transition: border 0.2s;
+  min-height: 3.5rem; /* Ensure minimum height */
 }
 
 /* Light mode input - softer and more comfortable */
@@ -345,15 +346,15 @@ body.light .searchbar input:focus {
   color: #fff;
   border: none;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  min-height: 36px;
+  width: 48px; /* Bigger button (was 36px) */
+  height: 48px; /* Bigger button (was 36px) */
+  min-width: 48px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font-size: 1.1rem;
+  font-size: 1.3rem; /* Bigger icon (was 1.1rem) */
   cursor: pointer;
   transition: background 0.2s;
 }

@@ -150,7 +150,7 @@ const App = () => {
           <div style={{textAlign: 'center', marginBottom: '3rem'}}>
             <div className="chat-title logo-istanbul">
               <span className="logo-text" style={{
-                fontSize: window.innerWidth < 768 ? '4rem' : '6rem', // Much bigger than navbar (was 2.5rem/3.5rem)
+                fontSize: window.innerWidth < 768 ? '5rem' : '8rem', // Much bigger (was 4rem/6rem)
                 fontWeight: 700,
                 letterSpacing: '0.15em',
                 textTransform: 'uppercase',
@@ -166,7 +166,7 @@ const App = () => {
               </span>
             </div>
           </div>
-          <div style={{width: '100%', maxWidth: 950, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
+          <div style={{width: '100%', maxWidth: 1100, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
