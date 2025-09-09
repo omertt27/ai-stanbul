@@ -18,8 +18,6 @@ const NavBar = ({ hideLogo = false }) => {
   const isSmallMobile = windowWidth < 480;
   const isUltraSmall = windowWidth < 320;
   
-  const isLightMode = document.body.classList.contains('light');
-
   // Logo style - positioned higher up
   const logoStyle = {
     position: 'fixed',
@@ -66,7 +64,7 @@ const NavBar = ({ hideLogo = false }) => {
   const linkStyle = isActive => ({
     color: isActive 
       ? '#6366f1' 
-      : (isLightMode ? '#475569' : '#c7c9e2'),
+      : '#c7c9e2', // Always use dark mode colors
     textDecoration: 'none',
     borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
     paddingBottom: '0.7rem', // Increased padding for bigger buttons
