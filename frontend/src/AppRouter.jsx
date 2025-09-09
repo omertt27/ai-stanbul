@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+import TestApp from './TestApp';
 import App from './App';
 import Chatbot from './Chatbot';
 import SimpleChatbot from './SimpleChatbot';
@@ -20,6 +21,25 @@ import GoogleAnalytics, { trackNavigation } from './utils/analytics';
 
 const AppRouter = () => {
   const [isLightMode, setIsLightMode] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(false);
+
+  // Listen for chat state changes
+  useEffect(() => {
+    const handleChatStateChange = (event) => {
+      setChatExpanded(event.detail.expanded || event.detail.hasMessages);
+    };
+    
+    window.addEventListener('chatStateChanged', handleChatStateChange);
+    
+    // Check initial state
+    const hasActiveChat = localStorage.getItem('chat-messages') && 
+                         JSON.parse(localStorage.getItem('chat-messages') || '[]').length > 0;
+    setChatExpanded(hasActiveChat);
+    
+    return () => {
+      window.removeEventListener('chatStateChanged', handleChatStateChange);
+    };
+  }, []);
 
   // Toggle light mode on both body and chat containers
   useEffect(() => {
@@ -66,18 +86,22 @@ const AppRouter = () => {
       <AppContent 
         isLightMode={isLightMode} 
         toggleTheme={toggleTheme} 
-        buttonStyle={buttonStyle} 
+        buttonStyle={buttonStyle}
+        chatExpanded={chatExpanded}
       />
     </Router>
   );
 };
 
-const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
+const AppContent = ({ isLightMode, toggleTheme, buttonStyle, chatExpanded }) => {
   const location = useLocation();
   const [routeKey, setRouteKey] = useState(0);
 
-  // Determine if current page should show fixed navbar
-  const shouldShowFixedNavbar = !['/chatbot', '/'].includes(location.pathname);
+  // Determine if current page should show fixed navbar - only for specific pages that need it
+  const shouldShowFixedNavbar = false; // Disable fixed navbar for now to make all pages consistent
+  
+  // Hide logo on main page to avoid duplicate with the big centered logo
+  const shouldHideLogo = location.pathname === '/' && !chatExpanded;
 
   // Global navigation handler to ensure clean state transitions
   useEffect(() => {
@@ -188,13 +212,13 @@ const AppContent = ({ isLightMode, toggleTheme, buttonStyle }) => {
         </>
       ) : (
         <>
-          {/* Regular NavBar for main page and chatbot */}
-          <NavBar />
+          {/* Regular NavBar for all pages with conditional logo hiding */}
+          <NavBar hideLogo={shouldHideLogo} />
           <Footer />
         </>
       )}
       <Routes>
-        <Route path="/" element={<ForceRefreshRoute component={App} routeName="Home" />} />
+        <Route path="/" element={<ForceRefreshRoute component={TestApp} routeName="Home" />} />
         <Route path="/test" element={<TestComponent key={getRouteKey('test')} />} />
         <Route path="/simple" element={<SimpleChatbot key={getRouteKey('simple')} />} />
         <Route path="/chatbot" element={<Chatbot key={getRouteKey('chatbot')} />} />

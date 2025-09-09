@@ -120,31 +120,14 @@ const BlogList = () => {
 
   if (loading && posts.length === 0) {
     return (
-      <div className={`min-h-screen ${
+      <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}>
-        {/* Header with Centered Logo */}
-        <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
-          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
-          <div className="max-w-6xl mx-auto flex justify-center">
-            <Link to="/" style={{textDecoration: 'none'}}>
-              <div className="header-logo chat-title logo-istanbul">
-                <span className="logo-text">
-                  A/<span style={{fontWeight: 400}}>STANBUL</span>
-                </span>
-              </div>
-            </Link>
-          </div>
-        </header>
-        
-        <div className="pt-16 px-2 sm:px-4 pb-20 transition-colors duration-200">
-          <div className="w-full">
-            <div className="flex justify-center items-center py-20">
-              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
-                darkMode ? 'border-indigo-500' : 'border-indigo-600'
-              }`}></div>
-            </div>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-center items-center py-20">
+            <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
+              darkMode ? 'border-indigo-500' : 'border-indigo-600'
+            }`}></div>
           </div>
         </div>
       </div>
@@ -152,30 +135,10 @@ const BlogList = () => {
   }
 
   return (
-    <div className={`min-h-screen ${
+    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      {/* Header with Centered Logo */}
-      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <div className="max-w-6xl mx-auto flex justify-center">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo chat-title logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
-
-      <div className="pt-8 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-20 transition-colors duration-200">
-      <div className="w-full">
-        {/* Header - Simplified */}
-        <div className="text-center mb-6 sm:mb-8 px-2 mt-2 sm:mt-4">
-        </div>
-
+      <div className="max-w-6xl mx-auto">
         {/* Search and Filters */}
         <div className={`mb-4 sm:mb-6 rounded-lg p-3 sm:p-4 transition-colors duration-200 relative mt-4 sm:mt-6 ${
           darkMode ? 'bg-gray-800' : 'bg-white shadow-lg border border-gray-200'
@@ -410,7 +373,6 @@ const BlogList = () => {
           </>
         )}
         </div> {/* End debug wrapper */}
-      </div>
       </div>
     </div>
   );

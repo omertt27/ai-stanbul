@@ -201,24 +201,11 @@ const NewBlogPost = () => {
 
   return (
     <div 
-      className={`min-h-screen transition-colors duration-200 ${
+      className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
     >
-      {/* Header with Centered Logo */}
-      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <div className="max-w-6xl mx-auto flex justify-center">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo chat-title logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
+      <div className="max-w-6xl mx-auto">
 
       <div className="pt-8 px-3 pb-6">
         <div className="max-w-4xl mx-auto">
@@ -711,6 +698,7 @@ Share your experiences, discoveries, and recommendations!"
           </div>
         </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from '../utils/analytics';
 
-const NavBar = () => {
+const NavBar = ({ hideLogo = false }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
@@ -18,56 +18,83 @@ const NavBar = () => {
   const isSmallMobile = windowWidth < 480;
   const isUltraSmall = windowWidth < 320;
   
+  const isLightMode = document.body.classList.contains('light');
+
+  // Logo style - positioned higher up
+  const logoStyle = {
+    position: 'fixed',
+    top: '0.5rem', // Move up even more from 1rem to 0.5rem
+    left: '2rem',
+    zIndex: 60,
+    textDecoration: 'none',
+    textAlign: 'center',
+    cursor: 'pointer', // Ensure it's clickable
+    pointerEvents: 'auto', // Ensure click events work
+    transition: 'transform 0.2s ease, opacity 0.2s ease',
+  };
+
+  const logoTextStyle = {
+    fontSize: isMobile ? '2.5rem' : '3.5rem',
+    fontWeight: 700,
+    letterSpacing: '0.15em',
+    textTransform: 'uppercase',
+    background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer', // Make sure text cursor indicates clickability
+  };
+
+  // Navigation style - positioned higher up with bigger buttons
   const navStyle = {
     position: 'fixed',
-    // Adjust position based on screen size to avoid logo overlap
-    top: isMobile ? (isUltraSmall ? '2.5rem' : '3.5rem') : '1.1rem', // Move down on mobile to clear logo
-    right: isUltraSmall ? '0.25rem' : isSmallMobile ? '0.5rem' : '1.5rem',
-    left: isMobile ? (isUltraSmall ? '0.25rem' : '0.5rem') : 'auto', // Full width on mobile
+    top: '0.5rem', // Move up even more from 1rem to 0.5rem
+    right: '1.5rem',
     zIndex: 50,
     display: 'flex',
-    justifyContent: isMobile ? 'center' : 'flex-end',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : isMobile ? '1rem' : '1.5rem',
-    padding: isMobile ? (isUltraSmall ? '0.5rem' : '0.75rem') : '0.5rem 0.75rem',
-    background: isMobile ? (isLightMode ? 'rgba(253, 253, 254, 0.95)' : 'rgba(15, 16, 17, 0.95)') : 'none', // Add background on mobile
-    backdropFilter: isMobile ? 'blur(10px)' : 'none',
-    borderRadius: isMobile ? '0.5rem' : '0',
-    border: isMobile ? (isLightMode ? '1px solid rgba(209, 213, 219, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)') : 'none',
+    gap: isMobile ? '1.5rem' : '3rem', // Increased gap even more for bigger appearance
+    padding: '0.75rem 1rem', // Increased padding for bigger appearance
     fontWeight: 400,
-    fontSize: isUltraSmall ? '0.875rem' : isSmallMobile ? '1rem' : isMobile ? '1.1rem' : '1.25rem',
+    fontSize: isMobile ? '1.3rem' : '1.6rem', // Increased font size even more for bigger buttons
     letterSpacing: '0.01em',
-    width: isMobile ? 'auto' : 'auto',
     flexWrap: 'wrap',
-    maxWidth: isMobile ? 'calc(100vw - 1rem)' : 'none',
   };
-  
-  const isLightMode = document.body.classList.contains('light');
-  
   const linkStyle = isActive => ({
     color: isActive 
       ? '#6366f1' 
       : (isLightMode ? '#475569' : '#c7c9e2'),
     textDecoration: 'none',
     borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
-    paddingTop: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
-    paddingLeft: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : '1.25rem',
-    paddingRight: isUltraSmall ? '0.5rem' : isSmallMobile ? '0.75rem' : '1.25rem',
-    borderRadius: isUltraSmall ? '0.3rem' : isSmallMobile ? '0.4rem' : '0.625rem',
+    paddingBottom: '0.8rem', // Increased padding for bigger buttons
+    paddingTop: '0.8rem',
+    paddingLeft: '1.5rem', // Increased padding for bigger buttons
+    paddingRight: '1.5rem',
+    borderRadius: '0.5rem',
     transition: 'all 0.2s ease',
-    minWidth: isUltraSmall ? '2.5rem' : isSmallMobile ? '3rem' : '4rem',
-    textAlign: 'center',
     fontWeight: 'inherit',
     whiteSpace: 'nowrap',
-    // Hover effects
     cursor: 'pointer',
-    ':hover': {
-      backgroundColor: isLightMode ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.2)',
-      transform: 'translateY(-1px)',
-    }
+    minWidth: '6rem', // Increased minimum width for bigger buttons
   });
   
+  const handleLogoClick = () => {
+    // Track navigation click
+    trackNavigation('/');
+    
+    // Clear any active chat session when going back to main page
+    localStorage.removeItem('chat_session_id');
+    localStorage.removeItem('chat-messages');
+    
+    // Trigger chat state change event
+    window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+      detail: { expanded: false, hasMessages: false } 
+    }));
+  };
+
   const handleBlogClick = (e) => {
     // Track navigation click
     trackNavigation('blog');
@@ -115,12 +142,30 @@ const NavBar = () => {
   }, []);
 
   return (
-    <nav style={navStyle}>
-      <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-      <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
-      <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-      <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
-    </nav>
+    <>
+      {/* Logo in top-left corner with main page styling - conditionally rendered */}
+      {!hideLogo && (
+        <Link 
+          to="/" 
+          style={logoStyle} 
+          onClick={handleLogoClick}
+        >
+          <div className="chat-title logo-istanbul">
+            <span className="logo-text" style={logoTextStyle}>
+              A/<span style={{fontWeight: 400}}>STANBUL</span>
+            </span>
+          </div>
+        </Link>
+      )}
+      
+      {/* Navigation in top-right corner */}
+      <nav style={navStyle}>
+        <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
+        <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
+        <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+        <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+      </nav>
+    </>
   );
 };
 

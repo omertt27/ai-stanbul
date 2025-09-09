@@ -152,7 +152,7 @@ const BlogPost = () => {
       <div className={`blog-page min-h-screen flex items-center justify-center ${
         darkMode ? 'dark' : ''
       }`}>
-        <div className="text-center">
+        <div className="pt-16 sm:pt-20 md:pt-24 px-2 sm:px-4 pb-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <h3 className={`text-lg font-medium ${
             darkMode ? 'text-gray-200' : 'text-gray-600'
@@ -167,7 +167,7 @@ const BlogPost = () => {
       <div className={`blog-page min-h-screen flex items-center justify-center ${
         darkMode ? 'dark' : ''
       }`}>
-        <div className="text-center">
+        <div className="pt-16 sm:pt-20 md:pt-24 px-2 sm:px-4 pb-8 text-center">
           <h2 className={`text-2xl font-bold mb-4 ${
             darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>Error loading post</h2>
@@ -193,7 +193,7 @@ const BlogPost = () => {
       <div className={`blog-page min-h-screen flex items-center justify-center ${
         darkMode ? 'dark' : ''
       }`}>
-        <div className="text-center">
+        <div className="pt-16 sm:pt-20 md:pt-24 px-2 sm:px-4 pb-8 text-center">
           <h2 className={`text-2xl font-bold mb-4 ${
             darkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>Post not found</h2>
@@ -212,54 +212,12 @@ const BlogPost = () => {
   }
 
   return (
-    <div className={`blog-page min-h-screen transition-colors duration-200 ${
-      darkMode ? 'dark' : ''
+    <div className={`blog-page min-h-screen w-full transition-colors duration-200 ${
+      darkMode ? 'dark bg-gray-900' : 'bg-gray-50'
     }`}>
-      {/* Fixed Navigation Header */}
-      <header className={`fixed-navbar ${darkMode ? 'dark' : ''}`}>
-        {/* AI Istanbul Logo - Centered */}
-        <div className="fixed-navbar-logo">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-        
-        {/* Navigation Links */}
-        <nav className="fixed-navbar-links">
-          <Link 
-            to="/blog" 
-            className={`fixed-navbar-link ${location.pathname.startsWith('/blog') ? 'active' : ''}`}
-          >
-            Blog
-          </Link>
-          <Link 
-            to="/about" 
-            className={`fixed-navbar-link ${location.pathname === '/about' ? 'active' : ''}`}
-          >
-            About
-          </Link>
-          <Link 
-            to="/faq" 
-            className={`fixed-navbar-link ${location.pathname === '/faq' ? 'active' : ''}`}
-          >
-            FAQ
-          </Link>
-          <Link 
-            to="/donate" 
-            className={`fixed-navbar-link ${location.pathname === '/donate' ? 'active' : ''}`}
-          >
-            Donate
-          </Link>
-        </nav>
-      </header>
-
       {/* Main Content with proper spacing */}
-      <main className="page-with-fixed-nav">
-        <div className="blog-content">
+      <main className="pt-16 px-4 pb-8">
+        <div className="max-w-6xl mx-auto">
           {/* Navigation Breadcrumb */}
           <div className="blog-navigation">
             <Link

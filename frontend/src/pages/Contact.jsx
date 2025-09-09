@@ -7,26 +7,10 @@ function Contact() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
+    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
       darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      {/* Header with Centered Logo */}
-      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <div className="max-w-6xl mx-auto flex justify-center">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo chat-title logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <NavBar />
+      <div className="max-w-6xl mx-auto">
 
       {/* Main Content */}
       <div className="pt-8 px-4 pb-20">
@@ -179,8 +163,9 @@ function Contact() {
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
-}
+};
 
 export default Contact;

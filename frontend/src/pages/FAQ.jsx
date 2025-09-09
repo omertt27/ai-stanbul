@@ -86,26 +86,10 @@ function FAQ() {
   };
 
   return (
-    <div className={`min-h-screen w-full transition-colors duration-300 ${
+    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
       darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50'
     }`}>
-      {/* Header with Centered Logo */}
-      <header className={`w-full px-4 py-6 border-b transition-colors duration-200 ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/80 backdrop-blur-sm border-gray-200'
-      }`}>
-        <div className="max-w-6xl mx-auto flex justify-center">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo chat-title logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
-
-      {/* Scrollable Content */}
-      <div className="pt-8 pb-20">
+      <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="pb-12">
         <div className="max-w-4xl mx-auto px-6 text-center">

@@ -4,16 +4,48 @@ import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 // import DebugInfo from './components/DebugInfo';
-import { fetchResults, fetchStreamingResults } from './api/api';
+import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
 
 const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [expanded, setExpanded] = useState(false);
+  const [messages, setMessages] = useState(() => {
+    // Load saved messages from localStorage
+    try {
+      const saved = localStorage.getItem('chat-messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [expanded, setExpanded] = useState(() => {
+    // If there are saved messages, start in expanded mode
+    try {
+      const saved = localStorage.getItem('chat-messages');
+      return saved ? JSON.parse(saved).length > 0 : false;
+    } catch {
+      return false;
+    }
+  });
+  const [sessionId] = useState(() => getSessionId()); // Get persistent session ID
   const chatScrollRef = useRef(null);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chat-messages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Notify AppRouter when chat state changes
+  useEffect(() => {
+    // Dispatch custom event when expanded state changes
+    window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+      detail: { expanded, hasMessages: messages.length > 0 } 
+    }));
+  }, [expanded, messages.length]);
 
   useEffect(() => {
     // Audio file temporarily disabled - uncomment when audio file is available
@@ -59,7 +91,7 @@ const App = () => {
           }
           return updated;
         });
-      });
+      }, sessionId); // Pass sessionId for chat history
       
       // Track successful response completion
       trackChatEvent('response_completed', aiMessage.substring(0, 50));
@@ -87,6 +119,10 @@ const App = () => {
     setMessages([]);
     setResults([]);
     setQuery('');
+    
+    // Clear session storage to start fresh conversation
+    localStorage.removeItem('chat_session_id');
+    localStorage.removeItem('chat-messages');
   };
 
   return (
@@ -114,13 +150,6 @@ const App = () => {
         </div>
       ) : (
         <>
-          <Link to="/" style={{textDecoration: 'none'}} onClick={handleLogoClick}>
-            <div className={`chat-title logo-istanbul logo-move-top-left`} id="logo-istanbul">
-              <span className="logo-text">
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '6rem', paddingBottom: '2rem' }}>
             <div style={{ width: '100%', maxWidth: 950, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 12rem)', minHeight: '400px' }}>
               {/* Unified chat area and search bar */}

@@ -1,17 +1,8 @@
-/* Main page background with Istan.main-page-logo .logo-text {
-  font-size: 7.5rem !important;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-  transition: all 0.3s ease;
-}mage */
+/* Main page background with Istanbul image */
 .main-page-background {
   position: relative;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
+  min-height: 100vh;
 }
 
 .main-page-background::before {
@@ -35,6 +26,11 @@ body.light .main-page-background::before {
   opacity: 0.05;
 }
 
+/* Light mode background for main page */
+body.light .main-page-background {
+  background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%) !important;
+}
+
 /* Main page logo - bigger version, centered */
 .main-page-logo.logo-istanbul {
   text-align: center;
@@ -44,7 +40,7 @@ body.light .main-page-background::before {
 }
 
 .main-page-logo .logo-text {
-  font-size: 9rem !important;
+  font-size: 6rem !important;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -63,21 +59,21 @@ body.light .main-page-background::before {
 
 @media (max-width: 768px) {
   .main-page-logo .logo-text {
-    font-size: 4.5rem;
+    font-size: 3.5rem;
     letter-spacing: 0.15em;
   }
 }
 
 @media (max-width: 640px) {
   .main-page-logo .logo-text {
-    font-size: 3.5rem;
+    font-size: 2.8rem;
     letter-spacing: 0.12em;
   }
 }
 
 @media (max-width: 480px) {
   .main-page-logo .logo-text {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
     letter-spacing: 0.1em;
   }
 }
@@ -203,9 +199,6 @@ body.light {
 
 #root {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: none;
 }
 
@@ -1003,7 +996,7 @@ body.light .blog-page {
 
 .blog-content {
   padding: 2rem 1rem;
-  max-width: 50rem;
+  max-width: 100%;
   margin: 0 auto;
 }
 

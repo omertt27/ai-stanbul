@@ -131,14 +131,15 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null) =>
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
       
+      // Use provided sessionId or get current session
+      const currentSessionId = sessionId || getSessionId();
+      
       const requestBody = { 
-        user_input: query 
+        user_input: query,
+        session_id: currentSessionId  // Always include session ID
       };
       
-      // Add session ID if provided
-      if (sessionId) {
-        requestBody.session_id = sessionId;
-      }
+      console.log('📋 Request body:', { ...requestBody, user_input: query.substring(0, 50) + '...' });
       
       const response = await fetchWithRetry(STREAM_API_URL, {
         method: 'POST',

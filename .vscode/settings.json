@@ -5,5 +5,44 @@
         "Procfile": "plaintext",
         "procfile": "plaintext",
         "Procfile.*": "plaintext"
-    }
+    },
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/build/**": true,
+        "**/dist/**": true,
+        "**/.next/**": true,
+        "**/.cache/**": true,
+        "**/coverage/**": true,
+        "**/__pycache__/**": true,
+        "**/*.pyc": true,
+        "**/venv/**": true,
+        "**/env/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.next": true,
+        "**/__pycache__": true,
+        "**/venv": true,
+        "**/env": true
+    },
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    "typescript.preferences.includePackageJsonAutoImports": "off",
+    "typescript.surveys.enabled": false,
+    "typescript.suggest.autoImports": false,
+    "python.analysis.autoImportCompletions": false,
+    "python.analysis.indexing": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.parameterHints.enabled": false,
+    "workbench.settings.enableNaturalLanguageSearch": false,
+    "extensions.autoUpdate": false,
+    "telemetry.telemetryLevel": "off"
 }
