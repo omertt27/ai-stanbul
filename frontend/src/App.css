@@ -13,14 +13,29 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('/pexels-weekendplayer-45189.jpg');
+  background-image: url('/istanbul-bridge-bg.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.85; /* High opacity as requested */
+  opacity: 0.65; /* Reduced opacity for less vivid wallpaper */
   z-index: -1;
   pointer-events: none;
 }
+
+/* Add overlay for better text contrast */
+.main-page-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+
 
 /* Light mode - high opacity as well */
 body.light .main-page-background::before {
@@ -50,10 +65,12 @@ body.light .main-page-background,
   margin-bottom: 2rem;
   margin-top: 4rem;
   padding: 1rem;
+  position: relative;
+  z-index: 1; /* Ensure logo is above wallpaper */
 }
 
 .main-page-logo .logo-text {
-  font-size: 6rem !important;
+  font-size: 9rem !important; /* Made logo even bigger */
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -63,6 +80,10 @@ body.light .main-page-background,
   background-clip: text;
   text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 2; /* Ensure logo text is above everything */
+  /* Add text stroke for better visibility on wallpaper */
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
 }
 
 .main-page-logo .logo-text:hover {
@@ -72,21 +93,21 @@ body.light .main-page-background,
 
 @media (max-width: 768px) {
   .main-page-logo .logo-text {
-    font-size: 3.5rem;
+    font-size: 5.5rem;
     letter-spacing: 0.15em;
   }
 }
 
 @media (max-width: 640px) {
   .main-page-logo .logo-text {
-    font-size: 2.8rem;
+    font-size: 4.2rem;
     letter-spacing: 0.12em;
   }
 }
 
 @media (max-width: 480px) {
   .main-page-logo .logo-text {
-    font-size: 2.2rem;
+    font-size: 3.2rem;
     letter-spacing: 0.1em;
   }
 }

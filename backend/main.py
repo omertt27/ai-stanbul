@@ -2793,6 +2793,9 @@ async def stream_ai_response(request: Request):
 
         async def generate_stream():
             try:
+                # Initialize response_message to avoid NameError
+                response_message = "I'm sorry, I couldn't process your request. Please try again."
+                
                 # Use the same logic as the working /ai endpoint
                 # Validate and sanitize input
                 is_safe, sanitized_input, error_msg = validate_and_sanitize_input(original_user_input)
@@ -2982,8 +2985,7 @@ When users need specific restaurant recommendations with location (like "restaur
                                     response_message = clean_text_formatting(fallback_response)
                                 except Exception as fallback_error:
                                     logger.error(f"Fallback response failed: {fallback_error}")
-                                    yield f"data: {json.dumps({'error': 'AI chat service is temporarily unavailable'})}\n\n"
-                                    return
+                                    response_message = "I'm sorry, I'm having trouble connecting to my services right now. Please try again in a moment."
                         
                         finally:
                             if db:

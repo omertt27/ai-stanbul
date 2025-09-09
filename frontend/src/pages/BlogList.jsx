@@ -1,21 +1,85 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchBlogPosts } from '../api/blogApi';
+// import { fetchBlogPosts } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import '../App.css';
 
+// Mock blog data for demo purposes
+const mockBlogPosts = [
+  {
+    id: 1,
+    title: "Hidden Gems in Sultanahmet: Beyond the Tourist Trail",
+    content: "Discover the secret courtyards, ancient cisterns, and local eateries that most visitors miss in Istanbul's historic heart. From the peaceful Soğukçeşme Sokağı to the underground wonders of Şerefiye Cistern...",
+    author_name: "Mehmet Yılmaz",
+    district: "Sultanahmet",
+    created_at: "2024-12-01T10:00:00Z",
+    likes_count: 47,
+    images: []
+  },
+  {
+    id: 2,
+    title: "Best Rooftop Views for Sunset in Galata",
+    content: "Experience Istanbul's magic hour from the best rooftop terraces in Galata. From trendy bars to quiet cafes, here are the spots where locals go to watch the sun set over the Golden Horn...",
+    author_name: "Ayşe Demir",
+    district: "Galata",
+    created_at: "2024-11-28T15:30:00Z",
+    likes_count: 73,
+    images: []
+  },
+  {
+    id: 3,
+    title: "Street Food Paradise: Kadıköy's Culinary Adventures",
+    content: "Dive into the vibrant food scene of Kadıköy, where traditional Turkish flavors meet modern creativity. From the famous fish sandwich vendors to hidden meyhanes serving authentic mezze...",
+    author_name: "Can Özkan",
+    district: "Kadıköy",
+    created_at: "2024-11-25T12:15:00Z",
+    likes_count: 92,
+    images: []
+  },
+  {
+    id: 4,
+    title: "Shopping Like a Local: Beyoğlu's Alternative Markets",
+    content: "Skip the tourist shops and discover where Istanbulites really shop. From vintage treasures in Çukurcuma to artisan crafts in the backstreets of Galata, here's your insider guide...",
+    author_name: "Zeynep Kaya",
+    district: "Beyoğlu",
+    created_at: "2024-11-20T09:45:00Z",
+    likes_count: 64,
+    images: []
+  },
+  {
+    id: 5,
+    title: "Early Morning Magic: Bosphorus at Dawn",
+    content: "Join the fishermen and early risers for a completely different perspective of Istanbul. The city awakens slowly along the Bosphorus shores, offering peaceful moments and stunning photography opportunities...",
+    author_name: "Emre Şahin",
+    district: "Beşiktaş",
+    created_at: "2024-11-18T06:00:00Z",
+    likes_count: 38,
+    images: []
+  },
+  {
+    id: 6,
+    title: "Traditional Hammam Experience: A First-Timer's Guide",
+    content: "Nervous about trying a Turkish bath? This comprehensive guide covers everything from what to expect to proper etiquette, helping you enjoy this centuries-old Istanbul tradition with confidence...",
+    author_name: "Fatma Arslan",
+    district: "Fatih",
+    created_at: "2024-11-15T14:20:00Z",
+    likes_count: 156,
+    images: []
+  }
+];
+
 const BlogList = () => {
   console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState(mockBlogPosts);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalPosts, setTotalPosts] = useState(0);
+  const [totalPosts, setTotalPosts] = useState(mockBlogPosts.length);
 
   const postsPerPage = 6;
 
@@ -37,29 +101,45 @@ const BlogList = () => {
     setError(null);
     
     try {
-      const params = {
-        page: currentPage,
-        limit: postsPerPage,
-        ...(searchTerm && { search: searchTerm }),
-        ...(selectedDistrict && { district: selectedDistrict })
-      };
-
-      console.log('📡 BlogList: Making API call with params:', params);
-      const response = await fetchBlogPosts(params);
-      console.log('✅ BlogList: API response received:', response);
+      // Simulate loading delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      if (response && response.posts) {
-        setPosts(response.posts);
-        setTotalPages(Math.ceil(response.total / postsPerPage));
-        setTotalPosts(response.total);
-        console.log('📝 BlogList: State updated with', response.posts.length, 'posts');
-      } else {
-        console.error('❌ BlogList: Invalid response structure:', response);
-        setError('Invalid response from server');
+      // Filter mock posts based on search and district
+      let filteredPosts = mockBlogPosts;
+      
+      if (searchTerm) {
+        filteredPosts = filteredPosts.filter(post => 
+          post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.author_name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
       }
+      
+      if (selectedDistrict && selectedDistrict !== 'Istanbul (general)') {
+        filteredPosts = filteredPosts.filter(post => 
+          post.district === selectedDistrict
+        );
+      }
+      
+      // Pagination
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const endIndex = startIndex + postsPerPage;
+      const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+      
+      setPosts(paginatedPosts);
+      setTotalPosts(filteredPosts.length);
+      setTotalPages(Math.ceil(filteredPosts.length / postsPerPage));
+      
+      console.log('✅ BlogList: Posts loaded successfully', {
+        total: filteredPosts.length,
+        page: currentPage,
+        showing: paginatedPosts.length
+      });
+      
     } catch (err) {
-      console.error('❌ BlogList: API call failed:', err);
-      setError(err.message || 'Failed to load blog posts');
+      console.error('❌ BlogList: Error loading posts:', err);
+      setError('Failed to load blog posts. Please try again.');
+      setPosts([]);
     } finally {
       setLoading(false);
       console.log('✅ BlogList: loadPosts completed');
@@ -159,7 +239,7 @@ const BlogList = () => {
                       ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500' 
                       : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
                   }`}
-                  autocomplete="off"
+                  autoComplete="off"
                 />
               </div>
               <button
@@ -191,7 +271,7 @@ const BlogList = () => {
                     ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500'
                     : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
                 }`}
-                autocomplete="address-level2"
+                autoComplete="address-level2"
               >
                 <option value="">All Districts</option>
                 {chatbotDistricts.map((district) => (

@@ -91,7 +91,21 @@ const App = () => {
           }
           return updated;
         });
-      }, sessionId); // Pass sessionId for chat history
+      }, sessionId, (error) => {
+        // Handle streaming errors
+        console.error('Streaming error:', error);
+        setMessages(msgs => {
+          const updated = [...msgs];
+          // Find last KAM message and set error text
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].user === 'KAM') {
+              updated[i] = { ...updated[i], text: 'Sorry, I encountered an error. Please try again.' };
+              break;
+            }
+          }
+          return updated;
+        });
+      }); // Pass sessionId for chat history
       
       // Track successful response completion
       trackChatEvent('response_completed', aiMessage.substring(0, 50));
@@ -164,6 +178,25 @@ const App = () => {
       ) : (
         <>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', transition: 'all 0.4s', height: '100vh', paddingTop: '6rem', paddingBottom: '2rem' }}>
+            {/* Logo for chatbot view */}
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem', cursor: 'pointer' }} onClick={handleLogoClick}>
+              <div className="chat-title logo-istanbul">
+                <span className="logo-text" style={{
+                  fontSize: window.innerWidth < 768 ? '2.5rem' : '3.5rem', // Smaller than main page but visible
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}>
+                  A/<span style={{fontWeight: 400}}>STANBUL</span>
+                </span>
+              </div>
+            </div>
             <div style={{ width: '100%', maxWidth: 950, flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 12rem)', minHeight: '400px' }}>
               {/* Unified chat area and search bar */}
               <div className="chat-container" style={{display: 'flex', flexDirection: 'column', height: '100%', background: 'none', borderRadius: '1.5rem', boxShadow: '0 4px 24px 0 rgba(20, 20, 40, 0.18)', position: 'relative'}}>

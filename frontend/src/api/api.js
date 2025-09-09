@@ -126,7 +126,7 @@ export const fetchResults = async (query, sessionId = null) => {
   });
 };
 
-export const fetchStreamingResults = async (query, onChunk, sessionId = null) => {
+export const fetchStreamingResults = async (query, onChunk, sessionId = null, onError = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
@@ -178,7 +178,8 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null) =>
                 // Handle error response
                 if (parsed.error) {
                   console.error('Backend streaming error:', parsed.error);
-                  throw new Error(parsed.error);
+                  onError?.(new Error(parsed.error));
+                  return;
                 }
                 
                 // Handle completion signal
@@ -197,8 +198,10 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null) =>
                   onChunk(parsed.delta.content);
                 }
               } catch (e) {
-                // Ignore parsing errors for malformed JSON
-                console.warn('Failed to parse streaming chunk:', e);
+                // Only warn for non-empty data that failed to parse
+                if (data.trim()) {
+                  console.warn('Failed to parse streaming chunk:', data, e);
+                }
               }
             }
           }
