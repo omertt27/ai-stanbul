@@ -7,7 +7,7 @@ import {
 } from '../utils/errorHandler.js';
 
 // API configuration
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
 const BLOG_API_URL = `${cleanBaseUrl}/blog`;
 
@@ -50,7 +50,7 @@ export const fetchBlogPosts = async (params = {}) => {
         }
       });
       
-      const url = `${BLOG_API_URL}/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      const url = `${BLOG_API_URL}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
       console.log('🔍 Fetching blog posts from:', url);
       
       const response = await fetchWithRetry(url, {
@@ -80,7 +80,7 @@ export const fetchBlogPost = async (postId) => {
     try {
       console.log('📖 Fetching blog post:', postId);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -106,7 +106,7 @@ export const createBlogPost = async (postData) => {
     try {
       console.log('✍️ Creating blog post:', postData.title);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -161,7 +161,7 @@ export const likeBlogPost = async (postId) => {
     try {
       console.log('❤️ Liking blog post:', postId);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/like`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json'
@@ -183,29 +183,8 @@ export const likeBlogPost = async (postId) => {
 };
 
 export const checkLikeStatus = async (postId) => {
-  return blogCircuitBreaker.call(async () => {
-    try {
-      console.log('🔍 Checking like status for post:', postId);
-      
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/like-status`, {
-        method: 'GET',
-        headers: { 
-          'Accept': 'application/json'
-        },
-        timeout: 5000
-      }, {
-        maxAttempts: 2,
-        baseDelay: 500
-      });
-      
-      const data = await response.json();
-      console.log('✅ Like status checked:', data);
-      return data;
-      
-    } catch (error) {
-      throw handleBlogApiError(error, null, 'Check Like Status');
-    }
-  });
+  // Backend doesn't have like-status endpoint, return default
+  return { isLiked: false, likes: 0 };
 };
 
 export const fetchBlogDistricts = async () => {
@@ -339,53 +318,37 @@ export const fetchBlogStats = async () => {
 };
 
 export const fetchRelatedPosts = async (postId, limit = 4) => {
-  return blogCircuitBreaker.call(async () => {
-    try {
-      console.log('🔗 Fetching related posts for:', postId);
-      
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/related?limit=${limit}`, {
-        method: 'GET',
-        headers: { 
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      }, {
-        maxAttempts: 2,
-        baseDelay: 500
-      });
-      
-      const data = await response.json();
-      console.log('✅ Related posts fetched:', data.related_posts?.length || 0, 'posts');
-      return data;
-      
-    } catch (error) {
-      throw handleBlogApiError(error, null, 'Fetch Related Posts');
+  try {
+    console.log('🔗 Fetching related posts for:', postId);
+    
+    // Get all posts and filter client-side since backend doesn't have related endpoint
+    const allPosts = await fetchBlogPosts();
+    const currentPost = allPosts.posts?.find(p => p.id === postId);
+    
+    if (!currentPost) {
+      return { related_posts: [] };
     }
-  });
+    
+    // Simple related posts logic: same category or shared tags
+    const related = allPosts.posts
+      ?.filter(p => p.id !== postId)
+      ?.filter(p => 
+        p.category === currentPost.category || 
+        p.tags?.some(tag => currentPost.tags?.includes(tag))
+      )
+      ?.slice(0, limit) || [];
+    
+    console.log('✅ Related posts fetched:', related.length, 'posts');
+    return { related_posts: related };
+    
+  } catch (error) {
+    console.error('❌ Failed to fetch related posts:', error);
+    return { related_posts: [] };
+  }
 };
 
 export const seedSamplePosts = async () => {
-  return blogCircuitBreaker.call(async () => {
-    try {
-      console.log('🌱 Seeding sample blog posts');
-      
-      const response = await fetchWithRetry(`${BLOG_API_URL}/seed-sample-posts`, {
-        method: 'POST',
-        headers: { 
-          'Accept': 'application/json'
-        },
-        timeout: 30000 // Longer timeout for seeding
-      }, {
-        maxAttempts: 1, // Don't retry seeding
-        baseDelay: 1000
-      });
-      
-      const data = await response.json();
-      console.log('✅ Sample posts seeded:', data);
-      return data;
-      
-    } catch (error) {
-      throw handleBlogApiError(error, null, 'Seed Sample Posts');
-    }
-  });
+  // Backend automatically seeds sample posts on startup
+  console.log('🌱 Sample posts are automatically seeded by backend');
+  return { message: 'Sample posts already available' };
 };

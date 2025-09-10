@@ -147,20 +147,20 @@ const App = () => {
       {!expanded ? (
         <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh', paddingTop: '8rem'}}>
           {/* Centered logo - bigger than navbar logo */}
-          <div style={{textAlign: 'center', marginBottom: '3rem'}}>
-            <div className="chat-title logo-istanbul">
+          <div style={{textAlign: 'center', marginBottom: '2rem'}} onClick={handleLogoClick}>
+            <div className="chat-title logo-istanbul main-page-logo">
               <span className="logo-text" style={{
-                fontSize: window.innerWidth < 768 ? '5rem' : '8rem', // Much bigger (was 4rem/6rem)
+                fontSize: window.innerWidth < 768 ? '2.5rem' : '4rem', // Half the original size (was 5rem/8rem)
                 fontWeight: 700,
                 letterSpacing: '0.15em',
                 textTransform: 'uppercase',
-                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)', // Same as other pages
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                textShadow: '0 4px 20px rgba(99, 102, 241, 0.8), 0 0 40px rgba(255, 255, 255, 0.5)', // Enhanced shadow for visibility
+                textShadow: '0 4px 20px rgba(99, 102, 241, 0.8)', // Reduced shadow
                 transition: 'all 0.3s ease',
-                cursor: 'default'
+                cursor: 'pointer'
               }}>
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>

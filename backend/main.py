@@ -136,57 +136,41 @@ except ImportError:
         print(f"Warning: Could not import models: {e}")
         # Create minimal models as fallback
         from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+        
         Base = declarative_base()
         
-        # Define minimal model classes
-        class Restaurant:
-            def __init__(self):
-                self.name = None
-                self.cuisine = None
-                self.location = None
-                self.rating = None
+        # Define minimal model classes that work with SQLAlchemy
+        class Restaurant(Base):
+            __tablename__ = 'restaurants'
+            id = Column(Integer, primary_key=True)
+            name = Column(String(255))
+            cuisine = Column(String(100))
+            location = Column(String(255))
+            rating = Column(Float)
     
-    class Museum:
-        def __init__(self):
-            self.name = None
-            self.location = None
-            self.hours = None
+        class Museum(Base):
+            __tablename__ = 'museums'
+            id = Column(Integer, primary_key=True)
+            name = Column(String(255))
+            location = Column(String(255))
+            hours = Column(String(100))
     
-    class Place:
-        def __init__(self):
-            self.name = None
-            self.category = None
-            self.district = None
-    
-    class ChatHistory:
-        # SQLAlchemy-style class attributes for fallback
-        class _TimestampAttribute:
-            def __init__(self, value=None):
-                from datetime import datetime
-                self.value = value or datetime.now()
-                
-            def asc(self):
-                return self
-                
-            def isoformat(self):
-                return self.value.isoformat() if self.value else ""
-                
-            def __bool__(self):
-                return self.value is not None
-                
-        session_id = None
-        user_message = None  
-        bot_response = None
-        timestamp = _TimestampAttribute()
-        user_ip = None
+        class Place(Base):
+            __tablename__ = 'places'
+            id = Column(Integer, primary_key=True)
+            name = Column(String(255))
+            category = Column(String(100))
+            district = Column(String(100))
         
-        def __init__(self, session_id=None, user_message=None, bot_response=None, user_ip=None):
-            from datetime import datetime
-            self.session_id = session_id
-            self.user_message = user_message
-            self.bot_response = bot_response
-            self.timestamp = self._TimestampAttribute(datetime.now())
-            self.user_ip = user_ip
+        class ChatHistory(Base):
+            __tablename__ = 'chat_history'
+            id = Column(Integer, primary_key=True)
+            session_id = Column(String(255))
+            user_message = Column(Text)
+            bot_response = Column(Text)
+            timestamp = Column(DateTime)
+            user_ip = Column(String(50))
 
 try:
     from . import specialized_models  # type: ignore
@@ -323,7 +307,143 @@ except ImportError as e:
         def generate_response(self, query, response=None, context=None, intent_info=None, places=None):
             return response or "I'm currently running in minimal mode. Please try again later."
 
+# Import advanced AI orchestrator and ultra knowledge base
+try:
+    from advanced_ai_orchestrator import AdvancedAIOrchestrator as _AdvancedAIOrchestrator, QueryContext as _QueryContext, AIProvider as _AIProvider
+    from ultra_knowledge_base import UltraKnowledgeBase as _UltraKnowledgeBase, KnowledgeCategory as _KnowledgeCategory
+    from competitive_advantages import create_unbeatable_response
+    AdvancedAIOrchestrator = _AdvancedAIOrchestrator  # type: ignore
+    QueryContext = _QueryContext  # type: ignore
+    AIProvider = _AIProvider  # type: ignore
+    UltraKnowledgeBase = _UltraKnowledgeBase  # type: ignore
+    KnowledgeCategory = _KnowledgeCategory  # type: ignore
+    ADVANCED_AI_AVAILABLE = True
+    print("🚀 Advanced AI Orchestrator, Ultra Knowledge Base, and Competitive Advantages loaded successfully!")
+except ImportError as e:
+    print(f"⚠️ Advanced AI features not available: {e}")
+    ADVANCED_AI_AVAILABLE = False
+    # Create minimal fallback classes
+    class AdvancedAIOrchestrator:  # type: ignore
+        def __init__(self):
+            pass
+        async def generate_response(self, *args, **kwargs):
+            return None
+    
+    class UltraKnowledgeBase:  # type: ignore
+        def __init__(self):
+            pass
+        def get_knowledge_response(self, *args, **kwargs):
+            return None
+    
+    class QueryContext:  # type: ignore
+        def __init__(self, *args, **kwargs):
+            pass
+    
+    class AIProvider:  # type: ignore
+        pass
+    
+    class KnowledgeCategory:  # type: ignore
+        pass
+    
+    def create_unbeatable_response(query: str, session_id: str, base_response: str, user_context=None) -> str:
+        return base_response
+
 load_dotenv()
+
+def get_specific_route_info(origin: str, destination: str) -> Optional[str]:
+    """Get specific route information between two locations in Istanbul"""
+    
+    # Normalize location names
+    location_aliases = {
+        'beyoglu': ['beyoglu', 'beyoğlu', 'galata', 'taksim', 'istiklal'],
+        'kadikoy': ['kadikoy', 'kadıköy', 'kadıkoy', 'kadikoy'],
+        'sultanahmet': ['sultanahmet', 'eminonu', 'eminönü', 'fatih'],
+        'besiktas': ['besiktas', 'beşiktaş', 'besiktas'],
+        'uskudar': ['uskudar', 'üsküdar', 'uskudar'],
+        'airport': ['airport', 'sabiha', 'sabiha gokcen', 'ist airport', 'new airport'],
+        'taksim': ['taksim', 'beyoglu', 'istiklal']
+    }
+    
+    def normalize_location(loc: str) -> str:
+        loc = loc.lower().strip()
+        for canonical, aliases in location_aliases.items():
+            if loc in aliases:
+                return canonical
+        return loc
+    
+    origin_norm = normalize_location(origin)
+    destination_norm = normalize_location(destination)
+    
+    # Route information database
+    routes = {
+        ('beyoglu', 'kadikoy'): """🚢 **Beyoğlu to Kadıköy** (25-30 min)
+
+**Best Option - Ferry** 🚢
+1. Walk to Karaköy ferry terminal (10 min from Galata/Taksim)
+2. Take Karaköy → Kadıköy ferry (15 min)
+3. Arrive at Kadıköy ferry terminal
+
+**Alternative - Metro + Ferry** 🚇🚢
+1. M2 Metro: Taksim → Şişhane (1 stop)
+2. Walk to Karaköy (8 min)
+3. Ferry to Kadıköy (15 min)
+
+**Cost**: ~15-20 TL | **Frequency**: Every 20-30 min
+💡 *Ferries offer amazing Bosphorus views!*""",
+        
+        ('kadikoy', 'beyoglu'): """🚢 **Kadıköy to Beyoğlu** (25-30 min)
+
+**Best Option - Ferry** 🚢
+1. Take Kadıköy → Karaköy ferry (15 min)
+2. Walk to Galata/Taksim area (10 min)
+
+**Alternative - Marmaray + Metro** 🚊🚇
+1. Walk to Ayrılık Çeşmesi (10 min)
+2. Marmaray: Ayrılık Çeşmesi → Sirkeci (14 min)
+3. T1 Tram: Eminönü → Karaköy (3 min)
+4. Walk to destination (5-10 min)
+
+**Cost**: ~15-20 TL | **Frequency**: Every 20-30 min
+💡 *Ferry is faster and more scenic!*""",
+        
+        ('sultanahmet', 'taksim'): """🚇 **Sultanahmet to Taksim** (30-35 min)
+
+**Best Route - Tram + Metro** 🚋🚇
+1. T1 Tram: Sultanahmet → Karaköy (15 min)
+2. M2 Metro: Karaköy → Taksim (10 min)
+
+**Alternative - Bus** 🚌
+1. Take 28, 28T, or 30D bus from Sultanahmet
+2. Direct to Taksim (25-40 min depending on traffic)
+
+**Cost**: ~15 TL | **Frequency**: Very frequent
+💡 *Metro is faster during rush hours*""",
+        
+        ('taksim', 'sultanahmet'): """🚇 **Taksim to Sultanahmet** (30-35 min)
+
+**Best Route - Metro + Tram** 🚇🚋
+1. M2 Metro: Taksim → Karaköy (10 min)
+2. T1 Tram: Karaköy → Sultanahmet (15 min)
+
+**Alternative - Bus** 🚌
+1. Take 28, 28T bus from Taksim
+2. Direct to Sultanahmet (25-40 min)
+
+**Cost**: ~15 TL | **Frequency**: Very frequent
+💡 *Tram passes beautiful historic areas*"""
+    }
+    
+    # Check both directions
+    route_key = (origin_norm, destination_norm)
+    reverse_key = (destination_norm, origin_norm)
+    
+    if route_key in routes:
+        return routes[route_key]
+    elif reverse_key in routes:
+        return routes[reverse_key]
+    
+    return None
+
 
 # Configure logging
 logging.basicConfig(
@@ -736,6 +856,22 @@ query_understanding = EnhancedQueryUnderstanding()  # type: ignore
 knowledge_base = EnhancedKnowledgeBase()  # type: ignore
 response_generator = ContextAwareResponseGenerator(context_manager, knowledge_base)  # type: ignore
 
+# Initialize advanced AI orchestrator and ultra knowledge base
+if ADVANCED_AI_AVAILABLE:
+    try:
+        advanced_orchestrator = AdvancedAIOrchestrator()  # type: ignore
+        ultra_knowledge = UltraKnowledgeBase()  # type: ignore
+        logger.info("🚀 Advanced AI Orchestrator and Ultra Knowledge Base initialized successfully!")
+        print("🚀 Advanced AI Orchestrator and Ultra Knowledge Base initialized successfully!")
+    except Exception as e:
+        logger.error(f"Failed to initialize advanced AI components: {e}")
+        print(f"❌ Failed to initialize advanced AI components: {e}")
+        advanced_orchestrator = None  # type: ignore
+        ultra_knowledge = None  # type: ignore
+else:
+    advanced_orchestrator = None  # type: ignore
+    ultra_knowledge = None  # type: ignore
+
 logger.info("Enhanced chatbot components initialized successfully")
 
 # Mount static files directory for serving uploaded images
@@ -1121,6 +1257,30 @@ Ask me about specific areas or activities for more detailed information!"""
         if len(user_input.strip()) < 3 or not any(char.isalpha() for char in user_input):
             return "Sorry, I couldn't understand. Can you type again?"
         
+        # Check if it's a known district name that should be handled specially
+        user_input_lower = user_input.lower().strip()
+        known_districts = ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'uskudar',
+                          'fatih', 'sisli', 'taksim', 'karakoy', 'ortakoy', 'bebek', 'arnavutkoy',
+                          'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe']
+        
+        if user_input_lower in known_districts:
+            district_name = user_input_lower.title()
+            return f"""✨ **{district_name} District**
+
+{district_name} is a wonderful area to explore in Istanbul! Here are some highlights:
+
+🏛️ **What to expect:**
+- Historic architecture and cultural sites
+- Local restaurants and cafes
+- Traditional Turkish atmosphere
+- Great for walking and photography
+
+🍽️ **For restaurants:** Ask me "restaurants in {district_name.lower()}"
+🏛️ **For attractions:** Ask me "places to visit in {district_name.lower()}"
+🚇 **For transport:** Ask me "how to get to {district_name.lower()}"
+
+What specific type of information about {district_name} would you like to know?"""
+        
         return f"""Sorry, I couldn't understand your request about "{user_input}". Can you type again?
 
 I can help you with:
@@ -1130,7 +1290,7 @@ I can help you with:
 🏘️ **Districts** - "best neighborhoods" or "Sultanahmet area"
 🚇 **Transportation** - "how to get around" or "metro system"
 🛍️ **Shopping** - "Grand Bazaar" or "where to shop"
-� **Nightlife** - "best bars" or "Beyoğlu nightlife"
+🌃 **Nightlife** - "best bars" or "Beyoğlu nightlife"
 
 Please ask me something more specific about Istanbul!"""
 
@@ -1264,7 +1424,7 @@ def correct_typos(text, threshold=70):  # type: ignore
         words = text.lower().split()
         corrected_words = []
         
-        # Common words that should not be corrected
+        # Common words that should NEVER be corrected (including weather/time words)
         stop_words = {'in', 'to', 'at', 'on', 'for', 'with', 'by', 'from', 'up', 
                      'about', 'into', 'through', 'during', 'before', 'after', 
                      'above', 'below', 'between', 'among', 'a', 'an', 'the', 
@@ -1282,7 +1442,11 @@ def correct_typos(text, threshold=70):  # type: ignore
                      'like', 'love', 'hate', 'prefer', 'enjoy', 'can', 'could', 'would', 'should',
                      'will', 'shall', 'may', 'might', 'must', 'today', 'tomorrow', 'yesterday',
                      'now', 'then', 'here', 'there', 'this', 'that', 'these', 'those',
-                     'very', 'really', 'quite', 'pretty', 'too', 'so', 'such', 'much', 'more'}
+                     'very', 'really', 'quite', 'pretty', 'too', 'so', 'such', 'much', 'more',
+                     # CRITICAL: Add weather and time words that should NEVER be corrected
+                     'weather', 'temperature', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 'warm',
+                     'current', 'today', 'now', 'time', 'climate', 'forecast', 'season',
+                     'wind', 'humidity', 'snow', 'storm', 'sunshine', 'degrees', 'celsius', 'fahrenheit'}
         
         print(f"🔍 Typo correction input: '{text}'")
         
@@ -1297,7 +1461,9 @@ def correct_typos(text, threshold=70):  # type: ignore
             if len(word) <= 2:
                 min_threshold = 95  # Much higher threshold for short words
             elif len(word) == 3:
-                min_threshold = 85  # Higher threshold for 3-letter words
+                min_threshold = 90  # Higher threshold for 3-letter words
+            elif len(word) <= 6:
+                min_threshold = 85  # Higher threshold for shorter words to prevent "weather"->"eat" mistakes
                 
             best_match = None
             best_score = 0
@@ -1619,7 +1785,7 @@ async def ai_istanbul_router(request: Request):  # type: ignore
         user_input = sanitized_input
         logger.info(f"🛡️ Processing sanitized input: {user_input[:50]}...")
 
-        # Handle only very basic greetings - let other queries go to AI
+        # Handle only very basic greetings - let other queries go to OpenAI
         user_input_clean = user_input.lower().strip()
         
         # Only intercept very simple greetings - let everything else go to OpenAI
@@ -1654,6 +1820,40 @@ async def ai_istanbul_router(request: Request):  # type: ignore
         if fallback_response:
             logger.info(f"🛡️ Intelligent fallback triggered for: {user_input[:50]}...")
             return create_ai_response(fallback_response, db, session_id, user_input, request)
+        
+        # 🚀 ADVANCED AI ORCHESTRATOR - Try the greatest AI system first
+        if ADVANCED_AI_AVAILABLE and advanced_orchestrator and ultra_knowledge:
+            try:
+                logger.info(f"🚀 Attempting advanced AI orchestrator for: {user_input[:50]}...")
+                
+                # Get conversation context
+                context = context_manager.get_context(session_id)
+                
+                # First, try ultra knowledge base for instant responses
+                enhanced_input = enhance_query_understanding(user_input)
+                intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                
+                # Check ultra knowledge base first
+                ultra_response = ultra_knowledge.get_knowledge_response(enhanced_input, intent_info)
+                if ultra_response and len(ultra_response) > 50:  # Only use if substantial
+                    logger.info("✨ Ultra Knowledge Base provided comprehensive response")
+                    return create_ai_response(ultra_response, db, session_id, user_input, request)
+                
+                # If no knowledge base response, use advanced AI orchestrator
+                query_context = QueryContext(
+                    user_query=enhanced_input,
+                    session_id=session_id,
+                    location="Istanbul, Turkey",
+                    conversation_history=getattr(context, 'previous_queries', [])[-5:] if context else []
+                )
+                
+                advanced_response = await advanced_orchestrator.generate_response(query_context)
+                if advanced_response and len(advanced_response) > 20:
+                    logger.info(f"🎯 Advanced AI Orchestrator provided response")
+                    return create_ai_response(advanced_response, db, session_id, user_input, request)
+                
+            except Exception as advanced_error:
+                logger.warning(f"Advanced AI orchestrator failed, falling back: {advanced_error}")
         
         # Debug logging
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
@@ -1864,6 +2064,11 @@ async def ai_istanbul_router(request: Request):  # type: ignore
                                    'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe']
             is_single_district_query = (user_input.lower().strip() in single_district_names)
             
+            # Log if this is a single district query
+            if is_single_district_query:
+                logger.info(f"🏘️ Single district query detected: '{user_input.lower().strip()}'")
+                print(f"🏘️ Single district query detected: '{user_input.lower().strip()}'")
+            
             # Enhanced follow-up restaurant detection for context-aware queries
             is_follow_up_restaurant_query = False
             context_location_for_restaurants = None
@@ -1888,6 +2093,15 @@ async def ai_istanbul_router(request: Request):  # type: ignore
                 r'\w+\s+to\s+\w+\s+transport',                   # "besiktas to galata transport"
                 r'\w+\s+to\s+\w+\s+directions',                  # "airport to sultanahmet directions"
                 r'\w+\s+to\s+\w+\s+route',                       # "kadikoy to taksim route"
+                # New patterns for more natural language
+                r'i\s+want\s+to\s+go\s+(\w+\s+)?from\s+\w+\s+to\s+\w+',     # "i want to go from beyoglu to kadikoy"
+                r'i\s+want\s+to\s+go\s+\w+\s+from\s+\w+',                   # "i want to go kadikoy from beyoglu"
+                r'want\s+to\s+go\s+(\w+\s+)?from\s+\w+\s+to\s+\w+',         # "want to go from x to y"
+                r'want\s+to\s+go\s+\w+\s+from\s+\w+',                       # "want to go kadikoy from beyoglu"
+                r'need\s+to\s+go\s+(\w+\s+)?from\s+\w+\s+to\s+\w+',         # "need to go from x to y"
+                r'need\s+to\s+go\s+\w+\s+from\s+\w+',                       # "need to go kadikoy from beyoglu"
+                r'going\s+(\w+\s+)?from\s+\w+\s+to\s+\w+',                  # "going from beyoglu to kadikoy"
+                r'going\s+\w+\s+from\s+\w+',                                # "going kadikoy from beyoglu"
                 r'\w+\s+to\s+\w+\s+metro',                       # "taksim to sultanahmet metro"
                 r'\w+\s+to\s+\w+\s+tram',                        # "kabatas to bagcilar tram"
                 r'\w+\s+to\s+\w+\s+bus',                         # "besiktas to kadikoy bus"
@@ -2098,6 +2312,26 @@ async def ai_istanbul_router(request: Request):  # type: ignore
                             places_mentioned, topic
                         )
                         
+                        # 🚀 Apply competitive advantages to restaurant response
+                        if ADVANCED_AI_AVAILABLE:
+                            try:
+                                user_context = {
+                                    'session_id': session_id,
+                                    'query_type': 'restaurant',
+                                    'location_mentioned': places_mentioned,
+                                    'intent': 'restaurant_recommendation'
+                                }
+                                
+                                unbeatable_restaurant_response = create_unbeatable_response(
+                                    user_input, session_id, response_message, user_context
+                                )
+                                
+                                response_message = unbeatable_restaurant_response
+                                logger.info("🚀 Restaurant response enhanced with competitive advantages!")
+                                
+                            except Exception as comp_error:
+                                logger.warning(f"Restaurant competitive advantages failed: {comp_error}")
+                        
                         return {"message": response_message}
                     else:
                         # Update context even for error cases
@@ -2118,7 +2352,36 @@ async def ai_istanbul_router(request: Request):  # type: ignore
                     raise ExternalAPIError("Failed to fetch restaurant recommendations", "Google Places", e)
             
             elif is_transportation_query:
-                # More concise and helpful transportation response
+                # Extract origin and destination from the query
+                origin = None
+                destination = None
+                
+                # Try to extract locations from common patterns
+                import re
+                
+                # Pattern: "from X to Y" or "go Y from X"
+                from_to_match = re.search(r'(?:from\s+|go\s+)(\w+)(?:\s+from\s+(\w+)|\s+to\s+(\w+))', user_input.lower())
+                if from_to_match:
+                    if from_to_match.group(2):  # "go Y from X" pattern
+                        origin = from_to_match.group(2)
+                        destination = from_to_match.group(1)
+                    elif from_to_match.group(3):  # "from X to Y" pattern
+                        origin = from_to_match.group(1)
+                        destination = from_to_match.group(3)
+                
+                # Pattern: "want to go X from Y"
+                want_go_match = re.search(r'want\s+to\s+go\s+(\w+)\s+from\s+(\w+)', user_input.lower())
+                if want_go_match:
+                    destination = want_go_match.group(1)
+                    origin = want_go_match.group(2)
+                
+                # Specific route information
+                if origin and destination:
+                    route_info = get_specific_route_info(origin.lower(), destination.lower())
+                    if route_info:
+                        return {"message": route_info}
+                
+                # General transportation response
                 transport_response = """🚇 **Getting Around Istanbul**
 
 **Quick Routes:**
@@ -2204,24 +2467,25 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                 elif is_location_museum_query and extracted_location:
                     # For location-specific museum queries, filter for museums first
                     print(f"DEBUG: Using location-based museum filtering for '{extracted_location}'")
-                    filtered_places = [p for p in places if p.category and 'museum' in p.category.lower()]
+                    filtered_places = [p for p in places if getattr(p, 'category', None) and 'museum' in str(getattr(p, 'category', '')).lower()]
                 elif is_museum_query:
-                    filtered_places = [p for p in places if p.category and 'museum' in p.category.lower()]
+                    filtered_places = [p for p in places if getattr(p, 'category', None) and 'museum' in str(getattr(p, 'category', '')).lower()]
                 elif is_district_query:
-                    filtered_places = [p for p in places if p.category and 'district' in p.category.lower()]
+                    filtered_places = [p for p in places if getattr(p, 'category', None) and 'district' in str(getattr(p, 'category', '')).lower()]
                     # Also include places by district
                     if not filtered_places:
-                        districts = set([p.district for p in places if p.district])
+                        districts = set([str(getattr(p, 'district', '')) for p in places if getattr(p, 'district', None)])
+                        districts = {d for d in districts if d}  # Remove empty strings
                         district_info = f"Here are the main districts in Istanbul:\n\n"
                         for district in sorted(districts):
-                            places_in_district = [p for p in places if p.district == district]
+                            places_in_district = [p for p in places if str(getattr(p, 'district', '')) == district]
                             district_info += f"**{district}**:\n"
                             for place in places_in_district[:3]:  # Top 3 places per district
-                                district_info += f"   - {place.name} ({place.category})\n"
+                                district_info += f"   - {getattr(place, 'name', 'Unknown')} ({getattr(place, 'category', 'Unknown')})\n"
                             district_info += "\n"
                         return {"message": district_info}
                 else:  # general attraction query
-                    filtered_places = [p for p in places if p.category and p.category.lower() in ['historical place', 'mosque', 'church', 'park', 'museum', 'market', 'cultural center', 'art', 'landmark']]
+                    filtered_places = [p for p in places if getattr(p, 'category', None) and str(getattr(p, 'category', '')).lower() in ['historical place', 'mosque', 'church', 'park', 'museum', 'market', 'cultural center', 'art', 'landmark']]
                 
                 # Apply location filter if location was extracted
                 if extracted_location and filtered_places:
@@ -2249,7 +2513,7 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                         district_to_search = location_lower
                     
                     original_count = len(filtered_places)
-                    filtered_places = [p for p in filtered_places if p.district and district_to_search in p.district.lower()]
+                    filtered_places = [p for p in filtered_places if getattr(p, 'district', None) and district_to_search in str(getattr(p, 'district', '')).lower()]
                     print(f"DEBUG: After location filter: {len(filtered_places)} places (from {original_count})")
                     
                     if filtered_places:
@@ -2273,10 +2537,10 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                     accommodation_district = user_profile.get('accommodation_district') if isinstance(user_profile, dict) else getattr(user_profile, 'accommodation_district', None)
                     if accommodation_district:
                         for place in filtered_places[:3]:  # Get transport for first 3 places
-                            if hasattr(place, 'district') and place.district:
+                            if hasattr(place, 'district') and getattr(place, 'district', None):
                                 ferry_routes = personalization_engine.get_ferry_schedule(
                                     accommodation_district, 
-                                    place.district
+                                    str(getattr(place, 'district', ''))
                                 )
                                 transport_info.extend(ferry_routes)
                     
@@ -2339,6 +2603,28 @@ Need specific directions? Just ask me "how to get from [A] to [B]"!"""
                         places_mentioned, topic
                     )
                     print(f"🔗 DEBUG: Context updated successfully")
+                    
+                    # 🚀 Apply competitive advantages to places response
+                    if ADVANCED_AI_AVAILABLE:
+                        try:
+                            user_context = {
+                                'session_id': session_id,
+                                'query_type': 'places',
+                                'location_mentioned': places_mentioned,
+                                'intent': topic,
+                                'museum_query': is_museum_query
+                            }
+                            
+                            unbeatable_places_response = create_unbeatable_response(
+                                user_input, session_id, personalized_response, user_context
+                            )
+                            
+                            # Update the response in response_data
+                            response_data["message"] = unbeatable_places_response
+                            logger.info("🚀 Places response enhanced with competitive advantages!")
+                            
+                        except Exception as comp_error:
+                            logger.warning(f"Places competitive advantages failed: {comp_error}")
                     
                     return response_data
                 else:
@@ -2754,6 +3040,29 @@ When users need specific restaurant recommendations with location (like "restaur
                         places_mentioned, topic
                     )
                     
+                    # 🚀 APPLY COMPETITIVE ADVANTAGES - Make this response unbeatable!
+                    if ADVANCED_AI_AVAILABLE:
+                        try:
+                            # Create user context for personalization
+                            user_context = {
+                                'session_id': session_id,
+                                'query_type': topic,
+                                'location_mentioned': places_mentioned,
+                                'intent': intent_info.get('intent', 'general')
+                            }
+                            
+                            # Apply all competitive advantages
+                            unbeatable_response = create_unbeatable_response(
+                                user_input, session_id, enhanced_response, user_context
+                            )
+                            
+                            logger.info("🚀 Applied competitive advantages - response enhanced!")
+                            enhanced_response = unbeatable_response
+                            
+                        except Exception as comp_error:
+                            logger.warning(f"Competitive advantages failed: {comp_error}")
+                            # Continue with regular enhanced response
+                    
                     # Clean the response from any emojis, hashtags, or markdown
                     clean_response = clean_text_formatting(enhanced_response)
                     return {"message": clean_response}
@@ -2845,31 +3154,75 @@ async def stream_ai_response(request: Request):
                         logger.info(f"🛡️ Intelligent fallback triggered for: {sanitized_user_input[:50]}...")
                         response_message = fallback_response
                     else:
-                        # Continue with full AI processing like the /ai endpoint
-                        # Get enhanced query understanding with context
-                        enhanced_input = enhance_query_understanding(sanitized_user_input)
+                        # 🚀 ADVANCED AI ORCHESTRATOR - Try the greatest AI system first
+                        advanced_response_used = False
+                        if ADVANCED_AI_AVAILABLE and advanced_orchestrator and ultra_knowledge:
+                            try:
+                                logger.info(f"🚀 Streaming: Attempting advanced AI orchestrator for: {sanitized_user_input[:50]}...")
+                                
+                                # Get conversation context
+                                context = context_manager.get_context(session_id)
+                                
+                                # Enhanced query understanding
+                                enhanced_input = enhance_query_understanding(sanitized_user_input)
+                                intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                                
+                                # Check ultra knowledge base first
+                                ultra_response = ultra_knowledge.get_knowledge_response(enhanced_input, intent_info)
+                                if ultra_response and len(ultra_response) > 50:  # Only use if substantial
+                                    logger.info("✨ Streaming: Ultra Knowledge Base provided comprehensive response")
+                                    response_message = ultra_response
+                                    advanced_response_used = True
+                                elif advanced_orchestrator:
+                                    # Use advanced AI orchestrator
+                                    query_context = QueryContext(
+                                        user_query=enhanced_input,
+                                        session_id=session_id,
+                                        location="Istanbul, Turkey",
+                                        conversation_history=getattr(context, 'previous_queries', [])[-5:] if context else []
+                                    )
+                                    
+                                    advanced_response = await advanced_orchestrator.generate_response(query_context)
+                                    if advanced_response and len(advanced_response) > 20:
+                                        logger.info(f"🎯 Streaming: Advanced AI Orchestrator provided response")
+                                        response_message = advanced_response
+                                        advanced_response_used = True
+                                
+                            except Exception as advanced_error:
+                                logger.warning(f"Streaming: Advanced AI orchestrator failed, falling back: {advanced_error}")
                         
-                        # Get conversation context
-                        context = context_manager.get_context(session_id)
-                        
-                        # Detect if this is a follow-up question
-                        is_followup = False
-                        if context:
-                            # Handle both ConversationContext object and dict context
-                            if hasattr(context, 'previous_queries'):
-                                prev_queries = getattr(context, 'previous_queries', [])
-                            else:
-                                prev_queries = context.get('previous_queries', []) if hasattr(context, 'get') else []
+                        if not advanced_response_used:
+                            # Continue with full AI processing like the /ai endpoint
+                            # Get enhanced query understanding with context
+                            enhanced_input = enhance_query_understanding(sanitized_user_input)
                             
-                            is_followup = len(prev_queries) > 0 and any(
-                                word in sanitized_user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
-                            )
-                        
-                        # Extract intent and entities
-                        intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
-                        
-                        # Use enhanced input for processing
-                        processed_input = enhanced_input
+                            # Get conversation context
+                            context = context_manager.get_context(session_id)
+                            
+                            # Detect if this is a follow-up question
+                            is_followup = False
+                            if context:
+                                # Handle both ConversationContext object and dict context
+                                if hasattr(context, 'previous_queries'):
+                                    prev_queries = getattr(context, 'previous_queries', [])
+                                else:
+                                    prev_queries = context.get('previous_queries', []) if hasattr(context, 'get') else []
+                                
+                                is_followup = len(prev_queries) > 0 and any(
+                                    word in sanitized_user_input.lower() for word in ['more', 'other', 'different', 'what about', 'how about', 'also', 'additionally']
+                                )
+                            
+                            # Extract intent and entities
+                            intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                            
+                            # Use enhanced input for processing
+                            processed_input = enhanced_input
+                        else:
+                            # If advanced response was used, we still need these variables for context
+                            enhanced_input = enhance_query_understanding(sanitized_user_input)
+                            context = context_manager.get_context(session_id)
+                            intent_info = query_understanding.extract_intent_and_entities(enhanced_input, context)
+                            processed_input = enhanced_input
 
                         # --- OpenAI API Key Check ---
                         openai_api_key = os.getenv("OPENAI_API_KEY")

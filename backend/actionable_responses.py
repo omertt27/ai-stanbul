@@ -151,11 +151,17 @@ class ActionableResponseGenerator:
 def enhance_response_with_actions(
     base_response: str,
     query: str, 
-    location_data: List[Dict],
-    transport_data: List[Dict] = None,
-    user_location: str = None
+    location_data: Optional[List[Dict]] = None,
+    transport_data: Optional[List[Dict]] = None,
+    user_location: Optional[str] = None
 ) -> Dict:
     """Main function to enhance any response with actionable elements"""
+    
+    # Provide default empty list if None
+    if location_data is None:
+        location_data = []
+    if transport_data is None:
+        transport_data = []
     
     action_gen = ActionableResponseGenerator()
     
@@ -163,10 +169,10 @@ def enhance_response_with_actions(
     enhanced_response = action_gen.add_action_buttons(base_response, location_data)
     
     # Add transportation actions if relevant
-    if transport_data and user_location:
+    if transport_data and user_location and location_data:
         for location in location_data[:2]:  # Limit to first 2 locations
             transport_actions = action_gen.generate_transportation_actions(
-                user_location, 
+                user_location or "", 
                 location.get('name', ''),
                 transport_data
             )
@@ -206,7 +212,7 @@ def enhance_response_with_actions(
     return enhanced_response
 
 # Example usage functions that can be called from main.py
-def get_actionable_restaurant_response(restaurants: List[Dict], user_location: str = None) -> Dict:
+def get_actionable_restaurant_response(restaurants: List[Dict], user_location: Optional[str] = None) -> Dict:
     """Generate restaurant response with booking and navigation actions"""
     base_response = "Here are some great restaurant recommendations:\n\n"
     
@@ -228,22 +234,32 @@ def get_actionable_restaurant_response(restaurants: List[Dict], user_location: s
         user_location=user_location
     )
 
-def get_actionable_places_response(places: List[Dict], transport_info: List[Dict] = None, user_location: str = None) -> Dict:
+def get_actionable_places_response(places: List[Dict], transport_info: Optional[List[Dict]] = None, user_location: Optional[str] = None) -> Dict:
     """Generate places response with navigation and tour booking actions"""
     base_response = "Here are some amazing places to visit:\n\n"
     
     location_data = []
     for i, place in enumerate(places[:5], 1):
-        base_response += f"{i}. **{place.name}**\n"
-        base_response += f"   Category: {place.category}\n"
-        if hasattr(place, 'district') and place.district:
-            base_response += f"   District: {place.district}\n"
+        # Handle both dict and object formats
+        if isinstance(place, dict):
+            name = place.get('name', 'Unknown')
+            category = place.get('category', 'Unknown')
+            district = place.get('district', '')
+        else:
+            name = getattr(place, 'name', 'Unknown')
+            category = getattr(place, 'category', 'Unknown')
+            district = getattr(place, 'district', '')
+        
+        base_response += f"{i}. **{name}**\n"
+        base_response += f"   Category: {category}\n"
+        if district:
+            base_response += f"   District: {district}\n"
         base_response += "\n"
         
         location_data.append({
-            "name": place.name,
-            "district": getattr(place, 'district', ''),
-            "category": place.category
+            "name": name,
+            "district": district,
+            "category": category
         })
     
     return enhance_response_with_actions(

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-// import { fetchBlogPosts } from '../api/blogApi';
+import { fetchBlogPosts } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import '../App.css';
@@ -101,39 +101,30 @@ const BlogList = () => {
     setError(null);
     
     try {
-      // Simulate loading delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Filter mock posts based on search and district
-      let filteredPosts = mockBlogPosts;
+      // Use real API
+      const apiParams = {
+        limit: postsPerPage,
+        offset: (currentPage - 1) * postsPerPage
+      };
       
       if (searchTerm) {
-        filteredPosts = filteredPosts.filter(post => 
-          post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          post.author_name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        apiParams.search = searchTerm;
       }
       
       if (selectedDistrict && selectedDistrict !== 'Istanbul (general)') {
-        filteredPosts = filteredPosts.filter(post => 
-          post.district === selectedDistrict
-        );
+        apiParams.category = selectedDistrict; // Map district to category
       }
       
-      // Pagination
-      const startIndex = (currentPage - 1) * postsPerPage;
-      const endIndex = startIndex + postsPerPage;
-      const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+      const data = await fetchBlogPosts(apiParams);
       
-      setPosts(paginatedPosts);
-      setTotalPosts(filteredPosts.length);
-      setTotalPages(Math.ceil(filteredPosts.length / postsPerPage));
+      setPosts(data.posts || []);
+      setTotalPosts(data.total || 0);
+      setTotalPages(Math.ceil((data.total || 0) / postsPerPage));
       
       console.log('✅ BlogList: Posts loaded successfully', {
-        total: filteredPosts.length,
+        total: data.total || 0,
         page: currentPage,
-        showing: paginatedPosts.length
+        showing: (data.posts || []).length
       });
       
     } catch (err) {

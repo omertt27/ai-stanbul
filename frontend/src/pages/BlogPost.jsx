@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-// import { 
-//   fetchBlogPost, 
-//   likeBlogPost, 
-//   checkLikeStatus, 
-//   fetchRelatedPosts 
-// } from '../api/blogApi';
+import { 
+  fetchBlogPost, 
+  likeBlogPost, 
+  checkLikeStatus, 
+  fetchRelatedPosts 
+} from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackBlogEvent } from '../utils/analytics';
 import Comments from '../components/Comments';
@@ -129,15 +129,16 @@ const BlogPost = () => {
     setError(null);
     
     try {
-      // Use mock data to avoid circuit breaker errors
-      const mockPost = mockBlogPosts.find(p => p.id === parseInt(id));
+      // Use real API
+      const response = await fetchBlogPost(id);
+      const postData = response.post || response; // Handle both response formats
       
-      if (mockPost) {
-        setPost(mockPost);
-        console.log('✅ BlogPost: Mock post loaded successfully:', mockPost?.title);
+      if (postData) {
+        setPost(postData);
+        console.log('✅ BlogPost: Post loaded successfully:', postData?.title);
         
         // Track blog post view event
-        trackBlogEvent('view_post', mockPost.title);
+        trackBlogEvent('view_post', postData.title);
       } else {
         setError('Post not found. This post may have been removed or the link may be incorrect.');
       }
@@ -156,12 +157,11 @@ const BlogPost = () => {
     setRelatedLoading(true);
     
     try {
-      // Use mock data for related posts
-      const related = mockBlogPosts
-        .filter(p => p.id !== post.id && p.district === post.district)
-        .slice(0, 3);
+      // Use real API for related posts
+      const relatedData = await fetchRelatedPosts(post.id, 3);
+      const related = relatedData.related_posts || [];
       
-      setRelatedPosts(related || []);
+      setRelatedPosts(related);
       console.log('✅ BlogPost: Related posts loaded:', related?.length || 0, 'posts');
     } catch (err) {
       console.error('❌ BlogPost: Failed to load related posts:', err);
@@ -179,14 +179,13 @@ const BlogPost = () => {
     setLikeError(null);
     
     try {
-      // Simulate like functionality with mock data
-      const newLikeCount = (post.likes || 0) + 1;
+      // Use real API for liking
+      const likeResult = await likeBlogPost(post.id);
       
       // Update the post with new like count
       setPost(prev => ({
         ...prev,
-        likes: newLikeCount,
-        likes_count: newLikeCount
+        likes: likeResult.likes || (prev.likes || 0) + 1
       }));
       
       setAlreadyLiked(true);

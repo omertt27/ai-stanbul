@@ -1,882 +1,894 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, or_, func
-from typing import List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel
+#!/usr/bin/env python3
+"""
+Blog Routes for AIstanbul
+Handles blog posts, travel guides, and content management
+"""
+
 import os
-import uuid
-import logging
 import json
-import math
-import random
+import uuid
+import shutil
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from pathlib import Path
 
-from database import get_db
-from models import BlogPost, BlogImage, BlogLike
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, validator
+import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize router
 router = APIRouter(prefix="/blog", tags=["blog"])
 
-# Upload directory
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Pydantic models for requests/responses
-class ImageCreate(BaseModel):
-    url: str
-    alt_text: Optional[str] = None
+# Blog post data model
+class BlogPost(BaseModel):
+    id: str
+    title: str
+    content: str
+    author: str
+    category: str
+    tags: List[str]
+    featured_image: Optional[str] = None
+    published: bool = True
+    created_at: datetime
+    updated_at: datetime
+    views: int = 0
+    likes: int = 0
+    
+    @validator('title')
+    def title_must_not_be_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Title cannot be empty')
+        return v.strip()
+    
+    @validator('content')
+    def content_must_not_be_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Content cannot be empty')
+        return v.strip()
 
 class BlogPostCreate(BaseModel):
     title: str
     content: str
-    tags: Optional[List[str]] = None
-    district: Optional[str] = None
-    author_name: Optional[str] = None
-    author_photo: Optional[str] = None
-    images: Optional[List[ImageCreate]] = None
+    author: str
+    category: str
+    tags: List[str] = []
+    featured_image: Optional[str] = None
+    published: bool = True
 
-class BlogPostResponse(BaseModel):
-    id: int
-    title: str
-    content: str
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    author: Optional[str] = None
+    category: Optional[str] = None
     tags: Optional[List[str]] = None
-    district: Optional[str] = None
-    author_name: Optional[str] = None
-    author_photo: Optional[str] = None
-    likes_count: int = 0
-    created_at: datetime
-    images: Optional[List[dict]] = None
-    
-    class Config:
-        from_attributes = True
+    featured_image: Optional[str] = None
+    published: Optional[bool] = None
 
-@router.get("/posts")
-async def get_blog_posts(
-    page: int = 1,
-    limit: int = 10,
-    search: Optional[str] = None,
-    tag: Optional[str] = None,
-    district: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """Get paginated list of blog posts with optional filtering"""
+# Blog storage (in production, this would be a database)
+BLOG_DATA_FILE = "blog_posts.json"
+UPLOAD_DIRECTORY = "uploads"
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
+
+def load_blog_posts() -> List[Dict[str, Any]]:
+    """Load blog posts from JSON file"""
     try:
-        # Calculate offset for pagination
-        offset = (page - 1) * limit
+        if os.path.exists(BLOG_DATA_FILE):
+            with open(BLOG_DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception as e:
+        logger.error(f"Error loading blog posts: {e}")
+        return []
+
+def save_blog_posts(posts: List[Dict[str, Any]]) -> bool:
+    """Save blog posts to JSON file"""
+    try:
+        with open(BLOG_DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(posts, f, indent=2, ensure_ascii=False, default=str)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving blog posts: {e}")
+        return False
+
+def get_default_blog_posts() -> List[Dict[str, Any]]:
+    """Create default blog posts if none exist"""
+    return [
+        {
+            "id": "1",
+            "title": "Ultimate Guide to Istanbul's Hidden Gems",
+            "content": """# Discover Istanbul's Secret Treasures
+
+Istanbul is a city of endless discoveries, where every corner holds a story waiting to be unveiled. Beyond the famous landmarks lies a world of hidden gems that only locals know about.
+
+## 🔮 Secret Neighborhoods
+
+### Fener & Balat
+These colorful Byzantine neighborhoods offer:
+- **Historic Greek Houses**: Painted in vibrant colors
+- **Antique Shops**: Treasure hunting opportunities
+- **Local Cafes**: Authentic Turkish coffee culture
+- **Photography Paradise**: Instagram-worthy streets
+
+### Kuzguncuk
+A peaceful village on the Asian side:
+- **Multi-cultural Heritage**: Churches, synagogues, and mosques side by side
+- **Wooden Houses**: Ottoman-era architecture
+- **Artisan Workshops**: Local craftspeople at work
+- **Quiet Cafes**: Perfect for reading and relaxation
+
+## 🍽️ Hidden Food Spots
+
+### Local Lokantas
+- **Develi Restaurant** (Samatya): Famous lamb dishes
+- **Pandeli** (Eminönü): Historic Ottoman cuisine
+- **Kiva Han** (Beyoğlu): Traditional meze selection
+
+### Street Food Secrets
+- **Balık Ekmek** at Galata Bridge: Fresh fish sandwiches
+- **Dönerci Engin** (Aksaray): Best döner in the city
+- **Kokorec at Ortaköy**: Late-night specialty
+
+## 🎨 Cultural Discoveries
+
+### Underground Cisterns
+- **Basilica Cistern**: Famous but magical
+- **Binbirdirek Cistern**: Less crowded alternative
+- **Theodosius Cistern**: Hidden underground palace
+
+### Art Galleries
+- **Istanbul Modern**: Contemporary Turkish art
+- **Pera Museum**: Orientalist paintings
+- **Salt Galata**: Innovative cultural center
+
+## 🚶‍♂️ Walking Routes
+
+### Golden Horn Walk
+1. Start at Galata Bridge
+2. Walk along the waterfront
+3. Discover hidden stairs and passages
+4. End at Pierre Loti Hill
+
+### Bosphorus Village Tour
+1. Ortaköy → Arnavutköy → Bebek
+2. Explore waterfront mansions
+3. Stop at local fish restaurants
+4. Take ferry back
+
+## 💡 Insider Tips
+
+### Best Times to Visit
+- **Early Morning**: Peaceful neighborhood exploration
+- **Late Afternoon**: Perfect light for photography
+- **Evening**: Local life comes alive
+
+### Transportation Secrets
+- **Vapur (Ferry)**: Most scenic way to travel
+- **Dolmuş**: Shared taxis for local experience
+- **Walking**: Best way to discover hidden spots
+
+### Cultural Etiquette
+- **Greet Shopkeepers**: A simple "Merhaba" goes far
+- **Accept Tea**: Turkish hospitality tradition
+- **Dress Modestly**: Especially in religious areas
+- **Learn Basic Turkish**: Locals appreciate effort
+
+Ready to explore Istanbul like a local? These hidden gems will give you authentic experiences that most tourists never discover!""",
+            "author": "Istanbul Explorer",
+            "category": "Travel Guide",
+            "tags": ["hidden gems", "local culture", "neighborhoods", "insider tips"],
+            "featured_image": None,
+            "published": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "views": 156,
+            "likes": 23
+        },
+        {
+            "id": "2", 
+            "title": "Best Turkish Street Food You Must Try",
+            "content": """# Turkish Street Food Adventure
+
+Turkish street food is a culinary journey that will tantalize your taste buds and introduce you to the heart of Turkish culture. Here's your guide to the must-try street foods in Istanbul.
+
+## 🥙 Essential Street Foods
+
+### Döner Kebab
+The king of Turkish street food:
+- **Best Places**: Öz Konyalı, Karadeniz Döner
+- **What to Order**: Döner in bread or lavash
+- **Pro Tip**: Ask for extra salad and sauce
+
+### Balık Ekmek (Fish Sandwich)
+Istanbul's iconic sandwich:
+- **Where**: Eminönü waterfront, Galata Bridge
+- **Fish**: Usually mackerel, grilled fresh
+- **Sides**: Pickled vegetables, onions
+
+### Simit
+Turkish bagel, perfect for breakfast:
+- **Toppings**: Plain, sesame, or with cheese
+- **Best With**: Turkish tea
+- **Where**: Street vendors everywhere
+
+## 🍢 Grilled Specialties
+
+### Kokoreç
+Adventurous choice - grilled lamb intestines:
+- **Flavor**: Rich and spiced
+- **Best At**: Ortaköy, late-night spots
+- **Served**: In bread with spices
+
+### Midye Dolma (Stuffed Mussels)
+Popular seaside snack:
+- **Filling**: Rice, pine nuts, spices
+- **Eaten**: With lemon juice
+- **Caution**: Only from busy vendors
+
+### İskender Kebab
+Not exactly street food, but a must:
+- **Components**: Döner, yogurt, tomato sauce, bread
+- **Origin**: Bursa (invented here!)
+- **Best**: Kebabçı İskender (original)
+
+## 🧆 Vegetarian Options
+
+### Stuffed Grape Leaves (Dolma)
+- **Filling**: Rice, herbs, pine nuts
+- **Served**: Cold with lemon
+- **Perfect**: Light lunch option
+
+### Gözleme
+Thin flatbread with various fillings:
+- **Popular**: Cheese, spinach, potato
+- **Made**: Fresh on griddle
+- **Best**: At Çanakkale restaurants
+
+### Börek
+Flaky pastry layers:
+- **Types**: Su böreği, sigara böreği
+- **Fillings**: Cheese, spinach, meat
+- **Where**: Bakeries and street stalls
+
+## 🍰 Sweet Street Treats
+
+### Turkish Delight (Lokum)
+- **Flavors**: Rose, lemon, pomegranate
+- **Quality**: Avoid tourist traps
+- **Best**: Hacı Bekir, Koska
+
+### Baklava
+Layered phyllo with nuts:
+- **Types**: Pistachios, walnuts
+- **Best**: Güllüoğlu, Karaköy Güllüoğlu
+- **Served**: With Turkish tea
+
+### Tavuk Göğsü
+Sweet pudding made with chicken:
+- **Texture**: Creamy and unique
+- **Flavor**: Subtle and sweet
+- **Try**: At traditional milk shops
+
+## 🥤 Street Drinks
+
+### Turkish Tea (Çay)
+- **Served**: In small glasses
+- **Sugar**: On the side
+- **Culture**: Social bonding drink
+
+### Turkish Coffee
+- **Preparation**: Slow-cooked in sand
+- **Served**: With Turkish delight
+- **UNESCO**: Intangible cultural heritage
+
+### Şalgam Suyu
+Fermented turnip juice:
+- **Taste**: Salty and tangy
+- **Popular**: In Adana region
+- **Acquired**: Taste for most foreigners
+
+## 📍 Best Street Food Areas
+
+### Eminönü
+- **Specialty**: Balık ekmek, döner
+- **Atmosphere**: Busy, authentic
+- **Best Time**: Lunch hours
+
+### Ortaköy
+- **Famous**: Kumpir (stuffed potatoes)
+- **View**: Bosphorus waterfront
+- **Evening**: Perfect for sunset
+
+### Beyoğlu/Galata
+- **Variety**: International and Turkish
+- **Scene**: Young and vibrant
+- **Late Night**: Many options open
+
+### Kadıköy
+- **Local**: Less touristy
+- **Quality**: High, local standards
+- **Exploration**: Great for wandering
+
+## 💰 Budget Tips
+
+### Prices
+- **Simit**: 3-5 TL
+- **Döner**: 15-25 TL
+- **Balık Ekmek**: 10-15 TL
+- **Turkish Tea**: 2-3 TL
+
+### Money-Saving Tips
+- **Lunch Hours**: Better portions
+- **Local Areas**: Better prices
+- **Cash**: Often preferred
+- **Share**: Many portions are large
+
+Turkish street food is not just about eating—it's about experiencing Turkish culture, hospitality, and the joy of simple, delicious food shared with friends!""",
+            "author": "Food Explorer",
+            "category": "Food & Cuisine",
+            "tags": ["street food", "turkish cuisine", "local food", "budget eating"],
+            "featured_image": None,
+            "published": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "views": 89,
+            "likes": 15
+        },
+        {
+            "id": "3",
+            "title": "Navigating Istanbul's Transport System Like a Pro",
+            "content": """# Master Istanbul's Transportation
+
+Istanbul's transport system can seem overwhelming at first, but with the right knowledge, you'll be navigating the city like a true Istanbullu. Here's your complete guide.
+
+## 🎫 Istanbul Card (Istanbulkart)
+
+### The Essential Card
+Your key to all public transport:
+- **Where to Buy**: Metro stations, kiosks, post offices
+- **Cost**: 13 TL card + credit you add
+- **Works On**: Metro, bus, tram, ferry, Marmaray
+- **Discounts**: Transfers within 2 hours
+
+### Loading Your Card
+- **Machines**: Available at all stations
+- **Languages**: Turkish and English
+- **Payment**: Cash or card
+- **Tip**: Load enough for several days
+
+## 🚇 Metro System
+
+### Main Lines
+**M1 Red Line**: Airport to city center
+- **Route**: Airport → Zeytinburnu → Aksaray
+- **Useful**: Airport connection
+- **Travel Time**: 45 minutes to center
+
+**M2 Green Line**: European side north-south
+- **Key Stops**: Şişhane (Galata), Vezneciler (Grand Bazaar), Taksim
+- **Most Used**: By tourists and locals
+- **Frequency**: 2-4 minutes peak hours
+
+**M4 Pink Line**: Asian side
+- **Route**: Kadıköy to Tavşantepe
+- **Connects**: Asian side neighborhoods
+- **Useful**: Exploring Asian Istanbul
+
+### Metro Tips
+- **Rush Hours**: 7:30-9:30 AM, 5:30-7:30 PM
+- **Direction**: Check end station names
+- **Platforms**: Separate for each direction
+- **Accessibility**: Most stations wheelchair accessible
+
+## 🚋 Tram Lines
+
+### T1 Historic Tram
+**Golden Route**: Kabataş → Zeytinburnu
+- **Tourist Stops**: Karaköy, Eminönü, Sultanahmet, Beyazıt
+- **Frequency**: 5-10 minutes
+- **Scenic**: Travels through historic peninsula
+
+### T4 Topkapı Line
+- **Route**: Topkapı → Mescid-i Selam
+- **Connects**: Historic areas
+- **Less Crowded**: Good alternative
+
+### Nostalgic Tram
+- **Route**: Short Taksim-Tünel line
+- **Purpose**: Historic preservation
+- **Tourist**: Fun experience, limited practical use
+
+## 🚢 Ferry System
+
+### Essential Routes
+**European to Asian Side**:
+- **Karaköy ↔ Kadıköy**: Most popular
+- **Eminönü ↔ Üsküdar**: Historic route
+- **Kabataş ↔ Üsküdar**: Quick connection
+
+**Bosphorus Tours**:
+- **Short Tour**: Eminönü to Anadolu Kavağı
+- **Long Tour**: Full Bosphorus (1.5 hours)
+- **Price**: Tourist boats vs public ferries
+
+### Ferry Tips
+- **Weather**: Can be cancelled in storms
+- **Views**: Best from upper deck
+- **Timing**: Check schedules (seasonal)
+- **Tea**: Available on board
+
+## 🚌 Bus System
+
+### Types of Buses
+**Public Buses (İETT)**:
+- **Coverage**: Extensive city network
+- **Payment**: Istanbulkart only
+- **Route Numbers**: Displayed clearly
+
+**Metrobüs**:
+- **Route**: Dedicated rapid transit
+- **Useful**: Long-distance travel
+- **Crowded**: Peak hours very busy
+
+**Private Buses**:
+- **Payment**: Cash to driver
+- **Routes**: Supplementary to public
+- **Comfort**: Varies widely
+
+### Bus Navigation
+- **Apps**: Moovit, Citymapper, IBB
+- **Real-time**: Bus tracking available
+- **Route Maps**: At bus stops
+- **Night Buses**: Limited service
+
+## 🚊 Marmaray
+
+### Underground Rail
+**Cross-Continental**:
+- **Route**: Connects Europe and Asia underground
+- **Stations**: Sirkeci, Üsküdar, Ayrılık Çeşmesi
+- **Historic**: Tunnel under Bosphorus
+- **Fast**: Direct connection between sides
+
+### Marmaray Tips
+- **Frequency**: 10-15 minutes
+- **Integration**: Connects with other transport
+- **Crowded**: Rush hours
+- **Archaeological**: Station displays historical artifacts
+
+## 🚖 Taxis and Ride-sharing
+
+### Traditional Taxis
+**Yellow Taxis**:
+- **Meter**: Always insist on meter
+- **Tips**: Round up fare
+- **Rush Hour**: Traffic can be expensive
+- **Night**: 50% surcharge after midnight
+
+### App-based Services
+**BiTaksi**:
+- **Popular**: Local Turkish app
+- **Payment**: Cash or card
+- **Features**: GPS tracking
+
+**Uber**:
+- **Available**: Limited areas
+- **Payment**: Card only
+- **Convenience**: English interface
+
+## 🚶‍♂️ Walking and Biking
+
+### Pedestrian Areas
+**Istiklal Avenue**:
+- **Length**: 1.4 km pedestrian street
+- **Transport**: Nostalgic tram
+- **Shopping**: Main commercial area
+
+**Historic Peninsula**:
+- **Walkable**: Between major sites
+- **Distances**: 15-20 minutes between attractions
+- **Surface**: Some cobblestones
+
+### Bike Sharing
+**İSBİKE**:
+- **Stations**: Throughout the city
+- **Cost**: Hourly rates
+- **Areas**: Best in Kadıköy, Beşiktaş
+
+## 📱 Essential Apps
+
+### Navigation
+- **Citymapper**: Best overall transport app
+- **Google Maps**: Works well for Istanbul
+- **Moovit**: Real-time public transport
+- **IBB**: Official city transport app
+
+### Helpful Features
+- **Real-time**: Live departure times
+- **Route Planning**: Multiple transport modes
+- **Offline**: Download maps
+- **Language**: English support
+
+## 💰 Cost Guide
+
+### Daily Transport Budget
+- **Tourist**: 30-50 TL per day
+- **Local Style**: 20-30 TL per day
+- **Heavy User**: 50-70 TL per day
+
+### Individual Costs
+- **Metro/Bus/Tram**: 4 TL per ride
+- **Ferry**: 4-7 TL depending on distance
+- **Taxi**: 15 TL starting fare
+- **Transfer Discount**: Cheaper consecutive rides
+
+## ⚡ Pro Tips
+
+### Rush Hour Strategy
+- **Avoid**: 7:30-9:30 AM, 5:30-7:30 PM
+- **Alternative**: Walk or work from cafes
+- **Ferry**: Less affected by rush hour
+
+### Tourist Traps
+- **Airport Taxi**: Use Havabus or metro instead
+- **Tourist Boats**: More expensive than public ferries
+- **Unlicensed Taxis**: Stick to official yellow taxis
+
+### Rainy Day Options
+- **Underground**: Metro and Marmaray
+- **Covered**: Tram and bus
+- **Ferry**: Can be cancelled in storms
+
+### Cultural Notes
+- **Priority Seats**: For elderly, pregnant, disabled
+- **Quiet**: Talking softly is appreciated
+- **Helping**: Locals often help tourists
+- **Payment**: Always have Istanbulkart ready
+
+With this guide, you'll master Istanbul's transport system and travel efficiently around this amazing city!""",
+            "author": "Transport Expert",
+            "category": "Transportation",
+            "tags": ["transport", "metro", "ferry", "istanbulkart", "travel tips"],
+            "featured_image": None,
+            "published": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "views": 134,
+            "likes": 19
+        }
+    ]
+
+# Initialize blog posts if file doesn't exist
+def initialize_blog_posts():
+    """Initialize blog posts with default content if none exist"""
+    posts = load_blog_posts()
+    if not posts:
+        default_posts = get_default_blog_posts()
+        save_blog_posts(default_posts)
+        logger.info("Initialized blog with default posts")
+        return default_posts
+    return posts
+
+# API Endpoints
+
+@router.get("/")
+async def get_all_posts(
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    published: bool = True,
+    limit: int = 10,
+    offset: int = 0
+):
+    """Get all blog posts with optional filtering"""
+    try:
+        posts = load_blog_posts()
         
-        # Base query
-        query = db.query(BlogPost).filter(BlogPost.is_published == True)
-        total_query = db.query(BlogPost).filter(BlogPost.is_published == True)
-        
-        # Apply search filter
-        if search:
-            search_filter = f"%{search}%"
-            query = query.filter(
-                or_(
-                    BlogPost.title.ilike(search_filter),
-                    BlogPost.content.ilike(search_filter)
-                )
-            )
-            total_query = total_query.filter(
-                or_(
-                    BlogPost.title.ilike(search_filter),
-                    BlogPost.content.ilike(search_filter)
-                )
-            )
-        
-        # Apply tag filter
-        if tag:
-            # Convert stored tags JSON to searchable format
-            query = query.filter(BlogPost.tags != None)
-            query = query.filter(BlogPost.tags.contains(f'"{tag}"'))
-            total_query = total_query.filter(BlogPost.tags != None)
-            total_query = total_query.filter(BlogPost.tags.contains(f'"{tag}"'))
-            
-        # Apply district filter
-        if district:
-            query = query.filter(BlogPost.district == district)
-            total_query = total_query.filter(BlogPost.district == district)
-        
-        # Get total count for pagination
-        total = total_query.count()
-        
-        # Get posts for current page
-        posts = query.order_by(desc(BlogPost.created_at)).offset(offset).limit(limit).all()
-        
-        # Convert to response format
-        response_posts = []
+        # Filter posts
+        filtered_posts = []
         for post in posts:
-            # Parse tags from JSON
-            tags = []
-            if post.tags:
-                try:
-                    tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-                except:
-                    pass
-            
-            # Get associated images
-            images = []
-            for img in post.images:
-                images.append({
-                    'id': img.id,
-                    'url': img.url,
-                    'alt_text': img.alt_text
-                })
-            
-            response_posts.append({
-                'id': post.id,
-                'title': post.title,
-                'content': post.content,
-                'tags': tags,
-                'district': post.district,
-                'author_name': post.author_name,
-                'author_photo': post.author_photo,
-                'likes_count': post.likes_count,
-                'created_at': post.created_at,
-                'images': images
-            })
+            if published and not post.get('published', True):
+                continue
+            if category and post.get('category', '').lower() != category.lower():
+                continue
+            if tag and tag.lower() not in [t.lower() for t in post.get('tags', [])]:
+                continue
+            filtered_posts.append(post)
+        
+        # Sort by creation date (newest first)
+        filtered_posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Apply pagination
+        total = len(filtered_posts)
+        paginated_posts = filtered_posts[offset:offset + limit]
         
         return {
-            "posts": response_posts,
+            "posts": paginated_posts,
             "total": total,
-            "page": page,
             "limit": limit,
-            "total_pages": math.ceil(total / limit) if limit > 0 else 1
+            "offset": offset,
+            "has_more": offset + limit < total
         }
-        
+    
     except Exception as e:
-        logger.error(f"Error fetching blog posts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch blog posts")
+        logger.error(f"Error getting blog posts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve blog posts")
 
-@router.get("/posts/{post_id}", response_model=BlogPostResponse)
-async def get_blog_post(post_id: int, db: Session = Depends(get_db)):
+@router.get("/featured")
+async def get_featured_posts(limit: int = 3):
+    """Get featured blog posts (most viewed/liked)"""
+    try:
+        posts = load_blog_posts()
+        published_posts = [p for p in posts if p.get('published', True)]
+        
+        # Sort by views + likes for featured
+        featured_posts = sorted(
+            published_posts,
+            key=lambda x: x.get('views', 0) + x.get('likes', 0) * 5,
+            reverse=True
+        )[:limit]
+        
+        return {"featured_posts": featured_posts}
+    
+    except Exception as e:
+        logger.error(f"Error getting featured posts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve featured posts")
+
+@router.get("/categories")
+async def get_categories():
+    """Get all available categories"""
+    try:
+        posts = load_blog_posts()
+        categories = list(set(post.get('category', '') for post in posts if post.get('published', True)))
+        categories = [cat for cat in categories if cat]  # Remove empty categories
+        return {"categories": sorted(categories)}
+    
+    except Exception as e:
+        logger.error(f"Error getting categories: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve categories")
+
+@router.get("/tags")
+async def get_tags():
+    """Get all available tags"""
+    try:
+        posts = load_blog_posts()
+        all_tags = []
+        for post in posts:
+            if post.get('published', True):
+                all_tags.extend(post.get('tags', []))
+        
+        unique_tags = list(set(all_tags))
+        return {"tags": sorted(unique_tags)}
+    
+    except Exception as e:
+        logger.error(f"Error getting tags: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve tags")
+
+@router.get("/{post_id}")
+async def get_post(post_id: str):
     """Get a specific blog post by ID"""
     try:
-        post = db.query(BlogPost).filter(BlogPost.id == post_id, BlogPost.is_published == True).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Blog post not found")
+        posts = load_blog_posts()
         
-        # Parse tags from JSON
-        tags = []
-        if post.tags:
-            try:
-                tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-            except:
-                pass
+        for i, post in enumerate(posts):
+            if post.get('id') == post_id:
+                # Increment view count
+                posts[i]['views'] = post.get('views', 0) + 1
+                save_blog_posts(posts)
+                return {"post": posts[i]}
         
-        # Get associated images
-        images = []
-        for img in post.images:
-            images.append({
-                'id': img.id,
-                'url': img.url,
-                'alt_text': img.alt_text
-            })
-        
-        return {
-            'id': post.id,
-            'title': post.title,
-            'content': post.content,
-            'tags': tags,
-            'district': post.district,
-            'author_name': post.author_name,
-            'author_photo': post.author_photo,
-            'likes_count': post.likes_count,
-            'created_at': post.created_at,
-            'images': images
-        }
-        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching blog post {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch blog post")
+        logger.error(f"Error getting blog post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve blog post")
 
-@router.post("/posts", response_model=BlogPostResponse)
-async def create_blog_post(post_data: BlogPostCreate, db: Session = Depends(get_db)):
+@router.post("/")
+async def create_post(post_data: BlogPostCreate):
     """Create a new blog post"""
     try:
-        # Convert tags to JSON string
-        tags_json = None
-        if post_data.tags:
-            tags_json = json.dumps(post_data.tags)
+        posts = load_blog_posts()
         
-        # Create new blog post
-        new_post = BlogPost(
-            title=post_data.title,
-            content=post_data.content,
-            tags=tags_json,
-            district=post_data.district,
-            author_name=post_data.author_name,
-            author_photo=post_data.author_photo,
-            is_published=True,
-            likes_count=0
-        )
+        # Create new post
+        new_post = {
+            "id": str(uuid.uuid4()),
+            "title": post_data.title,
+            "content": post_data.content,
+            "author": post_data.author,
+            "category": post_data.category,
+            "tags": post_data.tags,
+            "featured_image": post_data.featured_image,
+            "published": post_data.published,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "views": 0,
+            "likes": 0
+        }
         
-        db.add(new_post)
-        db.flush()  # To get the post ID
+        posts.append(new_post)
         
-        # Add images if provided
-        if post_data.images:
-            for img_data in post_data.images:
-                image = BlogImage(
-                    blog_post_id=new_post.id,
-                    url=img_data.url,
-                    alt_text=img_data.alt_text
-                )
-                db.add(image)
-        
-        db.commit()
-        db.refresh(new_post)
-        
-        # Return created post
-        return await get_blog_post(new_post.id, db)
-        
+        if save_blog_posts(posts):
+            return {"message": "Blog post created successfully", "post": new_post}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save blog post")
+    
     except Exception as e:
-        db.rollback()
         logger.error(f"Error creating blog post: {e}")
         raise HTTPException(status_code=500, detail="Failed to create blog post")
 
-@router.post("/posts/{post_id}/like")
-async def like_blog_post(post_id: int, request: Request, db: Session = Depends(get_db)):
-    """Like a blog post (increment like count) - one like per user"""
+@router.put("/{post_id}")
+async def update_post(post_id: str, post_data: BlogPostUpdate):
+    """Update an existing blog post"""
     try:
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Blog post not found")
+        posts = load_blog_posts()
         
-        # Use client IP address as user identifier
-        # In a real app, you'd use authenticated user ID
-        user_identifier = request.client.host
+        for i, post in enumerate(posts):
+            if post.get('id') == post_id:
+                # Update only provided fields
+                if post_data.title is not None:
+                    posts[i]['title'] = post_data.title
+                if post_data.content is not None:
+                    posts[i]['content'] = post_data.content
+                if post_data.author is not None:
+                    posts[i]['author'] = post_data.author
+                if post_data.category is not None:
+                    posts[i]['category'] = post_data.category
+                if post_data.tags is not None:
+                    posts[i]['tags'] = post_data.tags
+                if post_data.featured_image is not None:
+                    posts[i]['featured_image'] = post_data.featured_image
+                if post_data.published is not None:
+                    posts[i]['published'] = post_data.published
+                
+                posts[i]['updated_at'] = datetime.now().isoformat()
+                
+                if save_blog_posts(posts):
+                    return {"message": "Blog post updated successfully", "post": posts[i]}
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to save blog post")
         
-        # Check if user already liked this post
-        existing_like = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id,
-            BlogLike.user_identifier == user_identifier
-        ).first()
-        
-        if existing_like:
-            raise HTTPException(status_code=400, detail="You have already liked this post")
-        
-        # Create new like record
-        new_like = BlogLike(
-            blog_post_id=post_id,
-            user_identifier=user_identifier
-        )
-        db.add(new_like)
-        
-        # Increment like count
-        post.likes_count += 1
-        db.commit()
-        
-        return {
-            "message": "Post liked successfully", 
-            "likes_count": post.likes_count,
-            "already_liked": False
-        }
-        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
     except HTTPException:
         raise
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error liking post {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to like post")
+        logger.error(f"Error updating blog post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update blog post")
+
+@router.delete("/{post_id}")
+async def delete_post(post_id: str):
+    """Delete a blog post"""
+    try:
+        posts = load_blog_posts()
+        
+        for i, post in enumerate(posts):
+            if post.get('id') == post_id:
+                deleted_post = posts.pop(i)
+                
+                if save_blog_posts(posts):
+                    return {"message": "Blog post deleted successfully", "deleted_post": deleted_post}
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to save changes")
+        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting blog post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete blog post")
+
+@router.post("/{post_id}/like")
+async def like_post(post_id: str):
+    """Like a blog post"""
+    try:
+        posts = load_blog_posts()
+        
+        for i, post in enumerate(posts):
+            if post.get('id') == post_id:
+                posts[i]['likes'] = post.get('likes', 0) + 1
+                
+                if save_blog_posts(posts):
+                    return {
+                        "message": "Post liked successfully",
+                        "likes": posts[i]['likes']
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to save like")
+        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error liking blog post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to like blog post")
 
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
     """Upload an image for blog posts"""
     try:
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+            
         # Validate file type
-        if not file.content_type.startswith('image/'):
+        if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
         # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
+        file_extension = Path(file.filename).suffix
         unique_filename = f"{uuid.uuid4()}{file_extension}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
         
         # Save file
         with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+            shutil.copyfileobj(file.file, buffer)
         
-        # Return the URL path
+        # Return file URL
+        file_url = f"/uploads/{unique_filename}"
         return {
-            "url": f"/uploads/{unique_filename}",
+            "message": "Image uploaded successfully",
+            "file_url": file_url,
             "filename": unique_filename
         }
-        
+    
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error uploading image: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload image")
 
-@router.get("/tags")
-async def get_popular_tags(limit: int = 20, db: Session = Depends(get_db)):
-    """Get popular tags from blog posts"""
+@router.get("/search/{query}")
+async def search_posts(query: str, limit: int = 10):
+    """Search blog posts by title and content"""
     try:
-        posts = db.query(BlogPost).filter(
-            BlogPost.is_published == True,
-            BlogPost.tags != None
-        ).all()
+        posts = load_blog_posts()
+        published_posts = [p for p in posts if p.get('published', True)]
         
-        tag_count = {}
-        for post in posts:
-            if post.tags:
-                try:
-                    tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-                    if isinstance(tags, list):
-                        for tag in tags:
-                            tag_count[tag] = tag_count.get(tag, 0) + 1
-                except:
-                    pass
+        query_lower = query.lower()
+        matching_posts = []
         
-        # Sort by count and return top tags
-        popular_tags = sorted(tag_count.items(), key=lambda x: x[1], reverse=True)
-        return [tag for tag, count in popular_tags[:limit]]
+        for post in published_posts:
+            title_match = query_lower in post.get('title', '').lower()
+            content_match = query_lower in post.get('content', '').lower()
+            tag_match = any(query_lower in tag.lower() for tag in post.get('tags', []))
+            category_match = query_lower in post.get('category', '').lower()
+            
+            if title_match or content_match or tag_match or category_match:
+                # Calculate relevance score
+                score = 0
+                if title_match:
+                    score += 3
+                if tag_match:
+                    score += 2
+                if category_match:
+                    score += 2
+                if content_match:
+                    score += 1
+                
+                post['relevance_score'] = score
+                matching_posts.append(post)
         
-    except Exception as e:
-        logger.error(f"Error fetching tags: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch tags")
-
-@router.get("/districts")
-async def get_popular_districts(limit: int = 20, db: Session = Depends(get_db)):
-    """Get popular districts from blog posts"""
-    try:
-        result = db.query(BlogPost.district, func.count(BlogPost.district).label('count')).filter(
-            BlogPost.is_published == True,
-            BlogPost.district != None
-        ).group_by(BlogPost.district).order_by(desc('count')).limit(limit).all()
-        
-        return [district for district, count in result]
-        
-    except Exception as e:
-        logger.error(f"Error fetching districts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch districts")
-
-@router.get("/posts/{post_id}/like-status")
-async def get_like_status(post_id: int, request: Request, db: Session = Depends(get_db)):
-    """Check if current user has liked this post"""
-    try:
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Blog post not found")
-        
-        # Use client IP address as user identifier
-        user_identifier = request.client.host
-        
-        # Check if user has liked this post
-        existing_like = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id,
-            BlogLike.user_identifier == user_identifier
-        ).first()
+        # Sort by relevance score
+        matching_posts.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
         
         return {
-            "already_liked": existing_like is not None,
-            "likes_count": post.likes_count
+            "query": query,
+            "results": matching_posts[:limit],
+            "total_found": len(matching_posts)
         }
-        
-    except HTTPException:
-        raise
+    
     except Exception as e:
-        logger.error(f"Error checking like status for post {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to check like status")
+        logger.error(f"Error searching blog posts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to search blog posts")
 
-@router.get("/featured")
-async def get_featured_posts(limit: int = 3, db: Session = Depends(get_db)):
-    """Get featured blog posts (most liked posts from last 30 days)"""
-    try:
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        
-        featured_posts = db.query(BlogPost).filter(
-            BlogPost.is_published == True,
-            BlogPost.created_at >= thirty_days_ago
-        ).order_by(desc(BlogPost.likes_count), desc(BlogPost.created_at)).limit(limit).all()
-        
-        # If not enough recent popular posts, fill with most recent
-        if len(featured_posts) < limit:
-            recent_posts = db.query(BlogPost).filter(
-                BlogPost.is_published == True
-            ).order_by(desc(BlogPost.created_at)).limit(limit - len(featured_posts)).all()
-            
-            # Avoid duplicates
-            featured_ids = {p.id for p in featured_posts}
-            for post in recent_posts:
-                if post.id not in featured_ids:
-                    featured_posts.append(post)
-                    if len(featured_posts) >= limit:
-                        break
-        
-        # Convert to response format
-        response_posts = []
-        for post in featured_posts:
-            tags = []
-            if post.tags:
-                try:
-                    tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-                except:
-                    pass
-            
-            images = []
-            for img in post.images:
-                images.append({
-                    'id': img.id,
-                    'url': img.url,
-                    'alt_text': img.alt_text
-                })
-            
-            response_posts.append({
-                'id': post.id,
-                'title': post.title,
-                'content': post.content[:200] + '...' if len(post.content) > 200 else post.content,
-                'tags': tags,
-                'district': post.district,
-                'author_name': post.author_name,
-                'author_photo': post.author_photo,
-                'likes_count': post.likes_count,
-                'created_at': post.created_at,
-                'images': images[:1]  # Only include first image for featured
-            })
-        
-        return {"featured_posts": response_posts}
-        
-    except Exception as e:
-        logger.error(f"Error fetching featured posts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch featured posts")
+# Initialize blog posts when module is imported
+initialize_blog_posts()
 
-@router.get("/trending")
-async def get_trending_posts(limit: int = 5, db: Session = Depends(get_db)):
-    """Get trending blog posts (posts with most likes in last 7 days)"""
-    try:
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        
-        # Get posts with likes in the last 7 days
-        trending_query = db.query(BlogPost).join(BlogLike).filter(
-            BlogPost.is_published == True,
-            BlogLike.created_at >= seven_days_ago
-        ).group_by(BlogPost.id).order_by(
-            desc(func.count(BlogLike.id)),
-            desc(BlogPost.created_at)
-        ).limit(limit)
-        
-        trending_posts = trending_query.all()
-        
-        # If not enough trending posts, fill with recent posts
-        if len(trending_posts) < limit:
-            recent_posts = db.query(BlogPost).filter(
-                BlogPost.is_published == True
-            ).order_by(desc(BlogPost.created_at)).limit(limit).all()
-            
-            # Combine and remove duplicates
-            trending_ids = {p.id for p in trending_posts}
-            for post in recent_posts:
-                if post.id not in trending_ids:
-                    trending_posts.append(post)
-                    if len(trending_posts) >= limit:
-                        break
-        
-        response_posts = []
-        for post in trending_posts:
-            tags = []
-            if post.tags:
-                try:
-                    tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-                except:
-                    pass
-            
-            response_posts.append({
-                'id': post.id,
-                'title': post.title,
-                'content': post.content[:150] + '...' if len(post.content) > 150 else post.content,
-                'tags': tags,
-                'district': post.district,
-                'author_name': post.author_name,
-                'likes_count': post.likes_count,
-                'created_at': post.created_at
-            })
-        
-        return {"trending_posts": response_posts}
-        
-    except Exception as e:
-        logger.error(f"Error fetching trending posts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch trending posts")
-
-@router.get("/stats")
-async def get_blog_stats(db: Session = Depends(get_db)):
-    """Get blog statistics for dashboard"""
-    try:
-        total_posts = db.query(BlogPost).filter(BlogPost.is_published == True).count()
-        total_likes = db.query(func.sum(BlogPost.likes_count)).scalar() or 0
-        total_authors = db.query(BlogPost.author_name).filter(
-            BlogPost.is_published == True,
-            BlogPost.author_name != None
-        ).distinct().count()
-        
-        # Recent activity (last 7 days)
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        recent_posts = db.query(BlogPost).filter(
-            BlogPost.is_published == True,
-            BlogPost.created_at >= seven_days_ago
-        ).count()
-        
-        recent_likes = db.query(BlogLike).filter(
-            BlogLike.created_at >= seven_days_ago
-        ).count()
-        
-        return {
-            "total_posts": total_posts,
-            "total_likes": total_likes,
-            "total_authors": total_authors,
-            "recent_posts": recent_posts,
-            "recent_likes": recent_likes
-        }
-        
-    except Exception as e:
-        logger.error(f"Error fetching blog stats: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch blog stats")
-
-@router.get("/posts/{post_id}/related")
-async def get_related_posts(post_id: int, limit: int = 4, db: Session = Depends(get_db)):
-    """Get related posts based on district and tags"""
-    try:
-        # Get the original post
-        original_post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        if not original_post:
-            raise HTTPException(status_code=404, detail="Blog post not found")
-        
-        # Find related posts by district first
-        related_posts = []
-        if original_post.district:
-            district_posts = db.query(BlogPost).filter(
-                BlogPost.is_published == True,
-                BlogPost.district == original_post.district,
-                BlogPost.id != post_id
-            ).order_by(desc(BlogPost.likes_count), desc(BlogPost.created_at)).limit(limit).all()
-            related_posts.extend(district_posts)
-        
-        # If we need more posts, find by similar tags
-        if len(related_posts) < limit and original_post.tags:
-            try:
-                original_tags = json.loads(original_post.tags) if isinstance(original_post.tags, str) else original_post.tags
-                if original_tags:
-                    existing_ids = {p.id for p in related_posts} | {post_id}
-                    
-                    for tag in original_tags:
-                        tag_posts = db.query(BlogPost).filter(
-                            BlogPost.is_published == True,
-                            BlogPost.tags.contains(f'"{tag}"'),
-                            ~BlogPost.id.in_(existing_ids)
-                        ).order_by(desc(BlogPost.likes_count)).limit(limit - len(related_posts)).all()
-                        
-                        for post in tag_posts:
-                            if len(related_posts) < limit:
-                                related_posts.append(post)
-                                existing_ids.add(post.id)
-            except:
-                pass
-        
-        # If still need more, get recent posts
-        if len(related_posts) < limit:
-            existing_ids = {p.id for p in related_posts} | {post_id}
-            recent_posts = db.query(BlogPost).filter(
-                BlogPost.is_published == True,
-                ~BlogPost.id.in_(existing_ids)
-            ).order_by(desc(BlogPost.created_at)).limit(limit - len(related_posts)).all()
-            related_posts.extend(recent_posts)
-        
-        # Convert to response format
-        response_posts = []
-        for post in related_posts[:limit]:
-            tags = []
-            if post.tags:
-                try:
-                    tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
-                except:
-                    pass
-            
-            images = []
-            for img in post.images[:1]:  # Only first image for related posts
-                images.append({
-                    'id': img.id,
-                    'url': img.url,
-                    'alt_text': img.alt_text
-                })
-            
-            response_posts.append({
-                'id': post.id,
-                'title': post.title,
-                'content': post.content[:120] + '...' if len(post.content) > 120 else post.content,
-                'tags': tags,
-                'district': post.district,
-                'author_name': post.author_name,
-                'likes_count': post.likes_count,
-                'created_at': post.created_at,
-                'images': images
-            })
-        
-        return {"related_posts": response_posts}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching related posts for {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch related posts")
-
-@router.post("/seed-sample-posts")
-async def seed_sample_posts(db: Session = Depends(get_db)):
-    """Seed the blog with sample Istanbul travel posts"""
-    try:
-        # Check if posts already exist
-        existing_posts = db.query(BlogPost).filter(BlogPost.author_name == "AI Istanbul Team").count()
-        if existing_posts > 0:
-            return {"message": "Sample posts already exist", "posts_created": 0}
-        
-        sample_posts = [
-            {
-                "title": "Hidden Gems of Beyoğlu: Beyond Istiklal Street",
-                "content": """Beyoğlu district offers so much more than the famous Istiklal Street! During my recent exploration, I discovered incredible spots that most tourists miss.
-
-**Galata Mevlevihanesi (Whirling Dervish Museum)**
-This 15th-century monastery offers an authentic glimpse into Sufi culture. The weekend ceremonies are mesmerizing, and the peaceful courtyard provides a perfect escape from the bustling streets.
-
-**Kamondo Stairs**
-These Art Nouveau stairs from 1870 connect Galata to Karaköy. Perfect for photography and a unique perspective of the Golden Horn. Best visited during golden hour for amazing light.
-
-**Balat Neighborhood**
-Wander through this colorful historic district with its rainbow houses, antique shops, and cozy cafes. Don't miss Fener Orthodox Patriarchate and the stunning Church of St. Stephen.
-
-**Local Food Spots:**
-- Pandeli Restaurant (1901) - Ottoman cuisine in a historic setting
-- Çiya Sofrası - Amazing traditional Anatolian dishes
-- Hamdi Restaurant - Best lahmacun in the city
-
-**Pro Tips:**
-- Visit Galata Tower early morning (9 AM) to avoid crowds
-- Take the nostalgic tram for a fun way to navigate Istiklal
-- Explore the side streets - that's where the real character lies!
-
-The authentic charm of old Istanbul lives on in these neighborhoods. Each corner tells a story spanning centuries of history.""",
-                "tags": ["beyoğlu", "hidden gems", "local spots", "galata", "balat", "food", "culture"],
-                "district": "Beyoğlu",
-                "author_name": "AI Istanbul Team",
-                "author_photo": None
-            },
-            {
-                "title": "Kadıköy Food Tour: Asian Side's Culinary Treasures",
-                "content": """Kadıköy on Istanbul's Asian side is a food lover's paradise! This vibrant district offers some of the best authentic Turkish cuisine away from tourist crowds.
-
-**Must-Visit Food Spots:**
-
-**Kadıköy Fish Market (Balık Pazarı)**
-Fresh seafood heaven! Watch fishmongers prepare your catch while you sip tea. The surrounding meyhanes (taverns) serve the freshest fish with stunning Bosphorus views.
-
-**Çiya Sofrası**
-This legendary restaurant showcases regional Turkish cuisine you won't find elsewhere. Try their weekly specials featuring dishes from different Anatolian regions.
-
-**Fazıl Bey Turkish Coffee**
-Since 1923, this tiny shop has been roasting the perfect Turkish coffee. The owner still operates the original copper roaster!
-
-**Moda Neighborhood**
-Stroll along the seaside promenade, then explore the trendy cafes and bistros. Perfect for a sunset dinner with Asian side vibes.
-
-**Local Delicacies to Try:**
-- Kumru (special İzmir sandwich)
-- Turkish breakfast at Dem Karakoy
-- Artisanal ice cream at Mini Dondurma
-- Fresh döner at Pandeli
-
-**Getting There:**
-Take the ferry from Eminönü to Kadıköy (20 minutes) - the journey itself is part of the experience with stunning city views!
-
-**Best Times:**
-Weekday mornings for authentic local atmosphere, or weekend evenings for the vibrant nightlife scene.
-
-Kadıköy proves that Istanbul's best food experiences often lie off the beaten path.""",
-                "tags": ["kadıköy", "food tour", "asian side", "fish market", "local cuisine", "ferry", "authentic"],
-                "district": "Kadıköy",
-                "author_name": "Food Explorer",
-                "author_photo": None
-            },
-            {
-                "title": "Sultanahmet After Dark: When the Crowds Go Home",
-                "content": """Most visitors see Sultanahmet during peak hours, but the real magic happens after sunset when the ancient district transforms into something truly special.
-
-**Evening Experiences:**
-
-**Blue Mosque at Sunset**
-The evening call to prayer echoing through the courtyard is deeply moving. The warm lighting creates an ethereal atmosphere that photos can't capture.
-
-**Hagia Sophia Night Illumination**
-After dark, this architectural marvel is beautifully lit, revealing details invisible during crowded daytime visits. The surrounding park becomes peaceful and perfect for reflection.
-
-**Traditional Turkish Baths (Hamam)**
-End your day at Cagaloglu Hamami (1584) - one of the oldest operating baths in the world. The evening sessions are less crowded and more relaxing.
-
-**Rooftop Dining**
-Several hotels offer rooftop restaurants with incredible views of illuminated monuments. Try:
-- Seven Hills Restaurant - Blue Mosque views
-- Pandeli - Historic restaurant since 1901
-- Matbah Ottoman Palace Cuisine
-
-**Night Photography Tips:**
-- Blue hour (30 minutes after sunset) provides the best lighting
-- Bring a tripod for long exposures
-- The fountain in Sultanahmet Square creates beautiful reflections
-
-**Safety & Logistics:**
-The area is very safe at night with good police presence. Most attractions are walkable, and taxis are readily available.
-
-**Local Secret:**
-Visit the small tea gardens behind the Blue Mosque where locals gather for evening tea and backgammon games.""",
-                "tags": ["sultanahmet", "evening", "night photography", "blue mosque", "hagia sophia", "hamam", "rooftop dining"],
-                "district": "Sultanahmet",
-                "author_name": "Night Explorer",
-                "author_photo": None
-            },
-            {
-                "title": "Bosphorus Ferry Guide: Best Routes and Hidden Stops",
-                "content": """The Bosphorus ferry isn't just transportation - it's one of Istanbul's greatest experiences! Here's your complete guide to making the most of these scenic journeys.
-
-**Best Ferry Routes:**
-
-**Long Bosphorus Tour (6 hours round trip)**
-- Start: Eminönü 
-- Stops: Beşiktaş, Ortaköy, Bebek, Rumeli Kavağı, Anadolu Kavağı
-- Perfect for a full day exploring both European and Asian coastlines
-
-**Short Bosphorus Cruise (2 hours)**
-- Circular route from Eminönü
-- Great for photography and first-time visitors
-- Operates multiple times daily
-
-**Hidden Gem Stops:**
-
-**Anadolu Kavağı**
-This charming fishing village at the Black Sea entrance offers:
-- Fresh fish restaurants with sea views
-- Yoros Castle ruins for hiking enthusiasts
-- Peaceful beaches away from city crowds
-
-**Bebek**
-Upscale neighborhood perfect for:
-- Waterfront cafes and restaurants
-- Beautiful art nouveau architecture
-- Weekend markets with local crafts
-
-**Çengelköy**
-Asian side gem featuring:
-- Historic wooden mansions (yalıs)
-- Traditional Turkish breakfast spots
-- Peaceful walking paths along the water
-
-**Pro Ferry Tips:**
-- Buy Istanbulkart for significant savings
-- Sit on the right side when going north for best European side views
-- Bring warm clothes - it gets windy on deck!
-- Pack snacks or buy simit (Turkish bagel) and tea on board
-
-**Best Times:**
-- Morning (8-10 AM): Clear views, fewer crowds
-- Sunset (6-8 PM): Magical lighting, romantic atmosphere
-- Winter: Dramatic stormy seas, cozy cabin atmosphere
-
-**Photography Spots:**
-Upper deck provides unobstructed 360° views of palaces, mosques, and modern Istanbul skyline.""",
-                "tags": ["bosphorus", "ferry", "cruise", "bebek", "ortaköy", "transportation", "scenic routes"],
-                "district": "General",
-                "author_name": "Ferry Captain",
-                "author_photo": None
-            },
-            {
-                "title": "Grand Bazaar Insider Tips: Navigate Like a Local",
-                "content": """The Grand Bazaar can be overwhelming, but with these insider tips, you'll shop like a pro and discover treasures beyond the tourist traps.
-
-**Navigation Strategy:**
-
-**Main Entrances:**
-- Beyazıt Gate: Less crowded, leads to authentic carpet section
-- Nuruosmaniye Gate: Tourist entrance, but good for initial orientation
-- Mahmutpaşa Gate: Local entrance, leads to gold jewelry section
-
-**What to Buy & Where:**
-
-**Authentic Turkish Carpets**
-- Look for hand-knotted pieces (feel the back for knots)
-- Best shops: Around Beyazıt Gate area
-- Negotiate: Start at 40% of asking price
-
-**Jewelry & Gold**
-- Turkey has strict gold purity standards
-- Check for government hallmarks
-- Kuyumcular Çarşısı section has best selection
-
-**Leather Goods**
-- High-quality leather jackets and bags
-- Ask to see the leather's flexibility and stitching quality
-- Bargaining is expected and part of the experience
-
-**Turkish Delight & Spices**
-- Sample before buying - quality varies greatly
-- Avoid pre-packaged tourist versions
-- Ask for recommendations from local shoppers
-
-**Bargaining Rules:**
-1. Always negotiate - starting prices are inflated
-2. Be prepared to walk away (often brings better offers)
-3. Cash payments get better discounts
-4. Bundle multiple items for better deals
-
-**Hidden Gems:**
-- Şark Kahvesi: Historic coffee house for authentic atmosphere
-- Zincirli Han: Antique books and vintage items
-- Cevahir Bedesteni: High-end antiques and collectibles
-
-**Best Times to Visit:**
-- Early morning (9-10 AM): Fewer crowds, better attention from shopkeepers
-- Late afternoon: Good lighting for photos, locals doing shopping
-
-**Cultural Tips:**
-- Accept offered tea - it's hospitality, not pressure to buy
-- Learn basic Turkish greetings - shopkeepers appreciate the effort
-- Dress modestly and comfortably for walking on uneven surfaces""",
-                "tags": ["grand bazaar", "shopping", "carpets", "jewelry", "bargaining", "local tips", "authentic"],
-                "district": "Fatih",
-                "author_name": "Bazaar Expert",
-                "author_photo": None
-            }
-        ]
-        
-        created_posts = []
-        for post_data in sample_posts:
-            # Create new blog post
-            new_post = BlogPost(
-                title=post_data["title"],
-                content=post_data["content"],
-                tags=json.dumps(post_data["tags"]),
-                district=post_data["district"],
-                author_name=post_data["author_name"],
-                author_photo=post_data["author_photo"],
-                is_published=True,
-                likes_count=random.randint(5, 25)  # Random initial likes for demo
-            )
-            
-            db.add(new_post)
-            created_posts.append(new_post.title)
-        
-        db.commit()
-        
-        return {
-            "message": "Sample posts created successfully", 
-            "posts_created": len(created_posts),
-            "titles": created_posts
-        }
-        
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error seeding sample posts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create sample posts")
+logger.info("Blog router initialized successfully")

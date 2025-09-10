@@ -83,14 +83,27 @@ const NavBar = ({ hideLogo = false }) => {
     // Track navigation click
     trackNavigation('/');
     
-    // Clear any active chat session when going back to main page
-    localStorage.removeItem('chat_session_id');
-    localStorage.removeItem('chat-messages');
+    // Check if there's an active chat session
+    const hasActiveChat = localStorage.getItem('chat-messages');
+    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
     
-    // Trigger chat state change event
-    window.dispatchEvent(new CustomEvent('chatStateChanged', { 
-      detail: { expanded: false, hasMessages: false } 
-    }));
+    // If there's an active chat with messages, go back to chat view instead of main page
+    if (parsedMessages && parsedMessages.length > 0) {
+      // Trigger chat state change event to expand chat
+      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+        detail: { expanded: true, hasMessages: true } 
+      }));
+      // Don't clear session - preserve chat history
+    } else {
+      // No active chat, go to main page and clear any leftover data
+      localStorage.removeItem('chat_session_id');
+      localStorage.removeItem('chat-messages');
+      
+      // Trigger chat state change event to go to main page
+      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+        detail: { expanded: false, hasMessages: false } 
+      }));
+    }
   };
 
   const handleBlogClick = (e) => {

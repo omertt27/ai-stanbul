@@ -63,5 +63,7 @@
     "editor.minimap.enabled": false,
     "breadcrumbs.enabled": false,
     "editor.renderLineHighlight": "none",
-    "workbench.tree.renderIndentGuides": "none"
+    "workbench.tree.renderIndentGuides": "none",
+    "files.maxMemoryForLargeFilesMB": 8192,
+    "typescript.tsserver.maxTsServerMemory": 8192
 }
