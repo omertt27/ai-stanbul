@@ -177,14 +177,14 @@ function Chatbot({ onDarkModeToggle }) {
             <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>How can I help you today?</h2>
-            <p className={`text-center max-w-3xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
+            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
               darkMode ? 'text-gray-300' : 'text-gray-500'
             }`}>
               I'm your AI assistant for exploring Istanbul. Ask me about restaurants, attractions, 
               neighborhoods, culture, history, or anything else about this amazing city!
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-7xl w-full px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
               <div 
                 onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
                 className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
@@ -252,7 +252,7 @@ function Chatbot({ onDarkModeToggle }) {
           </div>
         )}
             
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-full mx-auto px-4">
           {messages.map((msg, index) => (
             <div key={index} className="group py-4">
               <div className="flex items-start space-x-3">
@@ -345,7 +345,7 @@ function Chatbot({ onDarkModeToggle }) {
           ? 'border-gray-700 bg-gray-900' 
           : 'border-gray-200 bg-white'
       }`}>
-        <div className="w-full max-w-7xl mx-auto">
+        <div className="w-full max-w-4xl mx-auto">
           <div className="relative">
             <div className={`flex items-center space-x-3 rounded-xl px-4 py-3 transition-colors duration-200 border ${
               darkMode 
