@@ -145,12 +145,12 @@ const App = () => {
       {/* <DebugInfo /> */}
 
       {!expanded ? (
-        <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100vw', height: '100vh', paddingTop: '8rem'}}>
+        <div className="main-page-background" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12rem'}}>
           {/* Centered logo - bigger than navbar logo */}
-          <div style={{textAlign: 'center', marginBottom: '2rem'}} onClick={handleLogoClick}>
+          <div style={{textAlign: 'center', marginBottom: '3rem'}} onClick={handleLogoClick}>
             <div className="chat-title logo-istanbul main-page-logo">
               <span className="logo-text" style={{
-                fontSize: window.innerWidth < 768 ? '2.5rem' : '4rem', // Half the original size (was 5rem/8rem)
+                fontSize: window.innerWidth < 768 ? '3rem' : '5rem', // Increased from 2.5rem/4rem
                 fontWeight: 700,
                 letterSpacing: '0.15em',
                 textTransform: 'uppercase',
@@ -166,7 +166,7 @@ const App = () => {
               </span>
             </div>
           </div>
-          <div style={{width: '100%', maxWidth: 1100, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
+          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}

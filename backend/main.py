@@ -23,7 +23,7 @@ from database import engine, SessionLocal
 from models import Base, Restaurant, Museum, Place
 from routes import museums, restaurants, places
 from api_clients.google_places import GooglePlacesClient
-from api_clients.weather import WeatherClient
+from api_clients.weather_enhanced import WeatherClient
 from sqlalchemy.orm import Session
 
 load_dotenv()
@@ -46,11 +46,11 @@ logging.basicConfig(level=logging.INFO)
 # (Removed duplicate project imports and load_dotenv)
 
 def clean_text_formatting(text):
-    """Remove emojis, hashtags, and markdown formatting from text while preserving line breaks"""
+    """Advanced text cleaning with expanded regex coverage and multi-pass filtering"""
     if not text:
         return text
     
-    # Remove emojis (Unicode emoji ranges)
+    # Remove emojis (Unicode emoji ranges - comprehensive coverage)
     emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -62,34 +62,53 @@ def clean_text_formatting(text):
         u"\U0001FA70-\U0001FAFF"  # symbols and pictographs extended-a
         u"\U00002600-\U000026FF"  # miscellaneous symbols
         u"\U00002700-\U000027BF"  # dingbats
+        u"\U0001F780-\U0001F7FF"  # geometric shapes extended
+        u"\U0001F800-\U0001F8FF"  # supplemental arrows-c
         "]+", flags=re.UNICODE)
     
     text = emoji_pattern.sub(r'', text)
     
-    # Remove pricing and cost information more aggressively
-    text = re.sub(r'\$\d+[\d.,]*', '', text)      # Remove $20, $15.50
-    text = re.sub(r'€\d+[\d.,]*', '', text)       # Remove €20, €15.50
-    text = re.sub(r'₺\d+[\d.,]*', '', text)       # Remove ₺20, ₺15.50
-    text = re.sub(r'\d+₺', '', text)              # Remove standalone 50₺
-    text = re.sub(r'\d+\s*(?:lira|euro|dollar)s?', '', text, flags=re.IGNORECASE)  # Remove "20 lira"
+    # PHASE 1: Remove explicit currency amounts (all formats)
+    text = re.sub(r'\$\d+[\d.,]*', '', text)      # $20, $15.50
+    text = re.sub(r'€\d+[\d.,]*', '', text)       # €20, €15.50
+    text = re.sub(r'₺\d+[\d.,]*', '', text)       # ₺20, ₺15.50
+    text = re.sub(r'\d+₺', '', text)              # 50₺
+    text = re.sub(r'\d+\s*(?:\$|€|₺)', '', text)  # 20$, 50 €
+    text = re.sub(r'(?:\$|€|₺)\s*\d+[\d.,]*', '', text)  # $ 20, € 15.50
     
-    # Remove cost-related phrases with prices  
-    text = re.sub(r'(?:cost|price|fee|entrance|admission|ticket)s?\s*:?\s*\$?\€?₺?\d+[\d.,]*', '', text, flags=re.IGNORECASE)  # Remove "cost: $20"
-    text = re.sub(r'(?:cost|price|fee|entrance|admission|ticket)s?.*?(?:\$|€|₺)\d+', '', text, flags=re.IGNORECASE)  # Remove complex pricing patterns
+    # PHASE 2: Remove currency words and phrases
+    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds)s?', '', text, flags=re.IGNORECASE)  # "20 lira", "15 euros"
+    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)  # "lira 50", "turkish lira 20"
     
-    # Remove specific patterns like "costs $20"
-    text = re.sub(r'\b(?:cost|price|fee)s?\s+\$?\€?₺?\d+[\d.,]*', '', text, flags=re.IGNORECASE)  # Remove "costs $20"
-    text = re.sub(r'\b(?:cost|price|fee)s?\s+(?:around\s+|about\s+|approximately\s+)?\$?\€?₺?\d+', '', text, flags=re.IGNORECASE)  # Remove "costs around $20"
+    # PHASE 3: Remove cost-related phrases with amounts
+    cost_patterns = [
+        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+)?\$?\€?₺?\d+[\d.,]*',  # "cost: $20", "price around €15"
+        r'(?:entrance|admission|ticket)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?\d+',  # "entrance fee: $20"
+        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?\d+',  # "starting from $20"
+        r'(?:only|just)\s+\$?\€?₺?\d+[\d.,]*',  # "only $15", "just €20"
+        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?\d+',  # "per person: $25"
+        r'\$?\€?₺?\d+[\d.,]*\s*(?:per\s+person|each|pp)',  # "$25 per person"
+    ]
     
-    # Remove remaining pricing references
-    text = re.sub(r'\bentrance\s+fee\b', '', text, flags=re.IGNORECASE)  # Remove "entrance fee"
-    text = re.sub(r'\bticket\s+price\b', '', text, flags=re.IGNORECASE)  # Remove "ticket price"
+    for pattern in cost_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # Remove standalone cost/price words only when they're likely referring to pricing
-    text = re.sub(r'\b(?:cost|price|fee)\b(?=\s*(?:is|are|will be|\$|€|₺|\d))', '', text, flags=re.IGNORECASE)  # Remove cost words only when followed by pricing indicators
+    # PHASE 4: Remove pricing context words when followed by amounts
+    text = re.sub(r'(?:budget|cheap|expensive|affordable)\s*:?\s*\$?\€?₺?\d+', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:range|ranges)\s*:?\s*\$?\€?₺?\d+', '', text, flags=re.IGNORECASE)
     
-    # Clean up extra spaces
+    # PHASE 5: Remove common pricing symbols and indicators
+    text = re.sub(r'💰|💵|💴|💶|💷', '', text)  # Money emojis (backup)
+    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨]', '', text)  # All currency symbols
+    
+    # PHASE 6: Remove pricing-related standalone words in context
+    text = re.sub(r'\b(?:cost|price|fee|charge)\b(?=\s*(?:is|are|will\s+be|\d|\$|€|₺))', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(?:entrance|admission|ticket)\s+(?:fee|cost|price)\b', 'entry', text, flags=re.IGNORECASE)  # Replace with neutral word
+    
+    # PHASE 7: Clean up extra spaces and normalize
     text = re.sub(r'\s+', ' ', text)  # Multiple spaces to single space
+    text = re.sub(r'\s*[:;,]\s*[:;,]+', ',', text)  # Clean up multiple punctuation
+    text = re.sub(r'\s*[,:]\s*$', '', text)  # Remove trailing punctuation
     
     # Remove markdown formatting
     text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold**
@@ -101,6 +120,33 @@ def clean_text_formatting(text):
     lines = text.split('\n')
     cleaned_lines = [' '.join(line.split()) for line in lines]
     text = '\n'.join(cleaned_lines)
+    
+    return text.strip()
+
+def post_llm_cleanup(text):
+    """Post-LLM cleanup pass to catch any remaining pricing or unwanted content"""
+    if not text:
+        return text
+    
+    # Catch any remaining pricing patterns that might have been generated
+    post_patterns = [
+        r'\b(?:costs?|prices?)\s+(?:around\s+|about\s+)?\d+', # "costs around 20"
+        r'\d+\s*(?:lira|euro|dollar)s?\s*(?:per|each|only)', # "20 lira per"
+        r'(?:only|just|around)\s+\d+\s*(?:lira|euro|dollar)', # "only 20 lira"
+        r'budget\s*:\s*\d+', # "budget: 50"
+        r'price\s+range\s*:\s*\d+', # "price range: 30"
+        r'\b\d+\s*(?:-|to)\s*\d+\s*(?:lira|euro|dollar)', # "20-30 lira"
+    ]
+    
+    for pattern in post_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    # Remove any remaining standalone numbers that might be pricing
+    text = re.sub(r'\b\d{2,3}\s*(?=\s|$|[.,!?])', '', text)  # Remove standalone 2-3 digit numbers (likely prices)
+    
+    # Final cleanup
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\s*[,:]\s*$', '', text)
     
     return text.strip()
 
@@ -163,6 +209,88 @@ Base.metadata.create_all(bind=engine)
 def create_fallback_response(user_input, places):
     """Create intelligent fallback responses when OpenAI API is unavailable"""
     user_input_lower = user_input.lower()
+    
+    # District-specific responses
+    if 'kadıköy' in user_input_lower or 'kadikoy' in user_input_lower:
+        response = """Kadıköy District Guide
+
+Kadıköy is Istanbul's vibrant Asian side cultural hub!
+
+Top Attractions in Kadıköy:
+- Moda Seaside - Waterfront promenade with cafes
+- Kadıköy Market - Bustling local market 
+- Fenerbahçe Park - Green space by the sea
+- Barlar Sokağı - Famous bar street for nightlife
+- Yeldeğirmeni - Artsy neighborhood with murals
+- Haydarpaşa Train Station - Historic Ottoman architecture
+
+What to Do:
+- Stroll along Moda seafront
+- Browse vintage shops and bookstores
+- Try local street food at the market
+- Experience authentic Turkish neighborhood life
+- Take ferry to European side for Bosphorus views
+
+Getting There:
+- Ferry from Eminönü or Beşiktaş (most scenic)
+- Metro from Ayrılık Çeşmesi station
+- Bus connections from major areas
+
+Kadıköy offers an authentic Istanbul experience away from tourist crowds!"""
+        return clean_text_formatting(response)
+    
+    elif 'sultanahmet' in user_input_lower:
+        response = """Sultanahmet Historic District
+
+Istanbul's historic heart with UNESCO World Heritage sites!
+
+Major Attractions:
+- Hagia Sophia - Former Byzantine church and Ottoman mosque
+- Blue Mosque - Stunning Ottoman architecture  
+- Topkapi Palace - Ottoman imperial palace
+- Grand Bazaar - Historic covered market
+- Basilica Cistern - Underground Byzantine cistern
+- Hippodrome - Ancient Roman chariot racing arena
+
+Walking Distance Sites:
+- Gülhane Park - Historic park
+- Turkish and Islamic Arts Museum
+- Soğukçeşme Street - Ottoman houses
+- Archaeological Museums
+
+Tips:
+- Start early to avoid crowds
+- Comfortable walking shoes essential
+- Many sites within 10-minute walk
+- Free WiFi in most cafes and museums"""
+        return clean_text_formatting(response)
+    
+    elif 'beyoğlu' in user_input_lower or 'beyoglu' in user_input_lower:
+        response = """Beyoğlu Cultural District
+
+Modern Istanbul's cultural and nightlife center!
+
+Key Areas:
+- Istiklal Avenue - Main pedestrian street
+- Galata Tower - Iconic medieval tower
+- Taksim Square - Central meeting point
+- Karaköy - Trendy waterfront area
+- Cihangir - Bohemian neighborhood
+
+Attractions:
+- Galata Tower views
+- Pera Museum
+- Istanbul Modern Art Museum
+- Historic trams on Istiklal
+- Rooftop bars and restaurants
+
+Activities:
+- Walk the length of Istiklal Avenue
+- Take nostalgic tram ride
+- Explore art galleries in Karaköy
+- Experience Istanbul's nightlife
+- Browse vintage shops and bookstores"""
+        return clean_text_formatting(response)
     
     # History and culture questions
     if any(word in user_input_lower for word in ['history', 'historical', 'culture', 'byzantine', 'ottoman']):
@@ -644,10 +772,61 @@ def enhance_query_understanding(user_input):
         corrected_input = correct_typos(user_input)
         
         # Add common query pattern recognition
-        enhanced_input = corrected_input.lower()
+        enhanced_input = corrected_input.lower().strip()
+        
+        # Handle very vague queries by adding context
+        vague_patterns = {
+            'something fun': 'fun activities in istanbul',
+            'anything': 'things to do in istanbul',
+            'somewhere': 'places to visit in istanbul',
+            'good place': 'good places in istanbul',
+            'nice spot': 'nice spots in istanbul',
+            'cool': 'cool places in istanbul',
+            'interesting': 'interesting places in istanbul'
+        }
+        
+        for vague, enhanced in vague_patterns.items():
+            if vague in enhanced_input:
+                enhanced_input = enhanced_input.replace(vague, enhanced)
+                print(f"Vague query enhancement: '{corrected_input}' -> '{enhanced_input}'")
+        
+        # Handle single word location queries
+        if len(enhanced_input.split()) == 1 and len(enhanced_input) > 2:
+            # Check if it's a known location
+            locations = ['kadikoy', 'kadıköy', 'sultanahmet', 'beyoglu', 'beyoğlu', 'galata', 
+                        'taksim', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'fatih']
+            if any(enhanced_input in loc or loc in enhanced_input for loc in locations):
+                enhanced_input = f"places to visit in {enhanced_input}"
+                print(f"Single location enhancement: '{corrected_input}' -> '{enhanced_input}'")
+        
+        # Fix broken grammar patterns
+        grammar_fixes = [
+            # "museums kids friendly" -> "family friendly museums"
+            (r'(\w+)\s+(kids?|children|family)\s+(friendly)', r'family friendly \1'),
+            # "restaurants good cheap" -> "good cheap restaurants"
+            (r'(\w+)\s+(good|great|nice)\s+(cheap|affordable)', r'\2 \3 \1'),
+            # "places romantic couples" -> "romantic places for couples"
+            (r'(\w+)\s+(romantic|nice)\s+(couples?)', r'\2 \1 for \3'),
+            # "food turkish traditional" -> "traditional turkish food"
+            (r'(food|restaurant)\s+(\w+)\s+(traditional|authentic)', r'\3 \2 \1'),
+        ]
+        
+        for pattern, replacement in grammar_fixes:
+            if re.search(pattern, enhanced_input):
+                enhanced_input = re.sub(pattern, replacement, enhanced_input)
+                print(f"Grammar fix: '{corrected_input}' -> '{enhanced_input}'")
+                break
         
         # Handle common patterns and add missing words
         patterns = [
+            # Travel intention patterns - handle "i want to go [location]"
+            (r'i\s+want\s+to\s+go\s+(?:to\s+)?(\w+)', r'places to visit in \1'),
+            (r'going\s+to\s+(\w+)', r'places to visit in \1'),
+            (r'visit\s+(\w+)', r'places to visit in \1'),
+            (r'explore\s+(\w+)', r'places to visit in \1'),
+            (r'see\s+(\w+)', r'places to visit in \1'),
+            (r'travel\s+to\s+(\w+)', r'places to visit in \1'),
+            
             # Location + activity patterns
             (r'^(\w+)\s+(restaurant|food|eat)$', r'restaurants in \1'),
             (r'^(\w+)\s+(place|spot)$', r'places in \1'),
@@ -727,10 +906,13 @@ async def receive_feedback(request: Request):
 async def ai_istanbul_router(request: Request):
     data = await request.json()
     user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
+    session_id = data.get("session_id", "default")
+    conversation_history = data.get("conversation_history", [])  # List of previous messages
     
     try:
         # Debug logging
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
+        print(f"Session ID: {session_id}, History length: {len(conversation_history)}")
         
         # Correct typos and enhance query understanding
         enhanced_user_input = enhance_query_understanding(user_input)
@@ -738,7 +920,26 @@ async def ai_istanbul_router(request: Request):
         
         # Use enhanced input for processing
         user_input = enhanced_user_input
-        print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
+        
+        # Enhanced input validation and processing
+        if not user_input or len(user_input.strip()) < 1:
+            return {"message": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more."}
+        
+        # Check for very short input
+        if len(user_input.strip()) < 2:
+            return {"message": "Please be more specific. Ask me about places to visit, restaurants, or anything else about Istanbul!"}
+        
+        # Check for spam-like input (repeated characters)
+        if re.search(r'(.)\1{4,}', user_input):
+            return {"message": "Please ask a meaningful question about Istanbul. I'm here to help with travel advice!"}
+        
+        # Check for only special characters or numbers
+        if not re.search(r'[a-zA-Z]', user_input):
+            return {"message": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"}
+        
+        # Sanitize and clean user input
+        user_input = clean_text_formatting(user_input)
+        print(f"🛡️ Processing sanitized input: {user_input}")
 
         # --- OpenAI API Key Check ---
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -874,9 +1075,11 @@ async def ai_istanbul_router(request: Request):
             location_place_patterns = [
                 r'place\s+in\s+\w+',  # "place in kadikoy"
                 r'places\s+in\s+\w+',  # "places in sultanahmet"
+                r'places\s+to\s+visit\s+in\s+\w+',  # "places to visit in kadikoy"
+                r'visit\s+in\s+\w+',  # "visit in taksim"
+                r'to\s+visit\s+in\s+\w+',  # "to visit in kadikoy"
                 r'attractions?\s+in\s+\w+',  # "attractions in beyoglu"
                 r'things?\s+to\s+do\s+in\s+\w+',  # "things to do in galata"
-                r'visit\s+in\s+\w+',  # "visit in taksim"
                 r'see\s+in\s+\w+',  # "see in kadikoy"
                 r'go\s+in\s+\w+',  # "go in fatih"
                 r'\w+\s+attractions',  # "kadikoy attractions"
@@ -884,7 +1087,6 @@ async def ai_istanbul_router(request: Request):
                 r'\w+\s+places?\s+to\s+visit',  # "kadikoy places to visit"
                 r'\w+\s+to\s+places?\s+to\s+visit',  # "kadikoy to places to visit" - double "to" pattern
                 r'\w+\s+to\s+visit',  # "kadikoy to visit"
-                r'places?\s+to\s+visit\s+in\s+\w+',  # "places to visit in kadikoy"
                 r'visit\s+\w+\s+places?',  # "visit kadikoy places"
             ]
             
@@ -1467,14 +1669,29 @@ Use current weather information to enhance your recommendations when appropriate
 
                 try:
                     print("Making OpenAI API call...")
+                    
+                    # Build conversation messages with history
+                    messages = [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": f"Database context:\n{places_context}"},
+                        {"role": "system", "content": weather_context},
+                    ]
+                    
+                    # Add conversation history (limit to last 6 messages to manage token usage)
+                    if conversation_history:
+                        recent_history = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
+                        for msg in recent_history:
+                            role = msg.get("role", "")
+                            content = msg.get("content", "")
+                            if role in ["user", "assistant"] and content:
+                                messages.append({"role": role, "content": content})
+                    
+                    # Add current user message
+                    messages.append({"role": "user", "content": user_input})
+                    
                     response = client.chat.completions.create(
                         model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "system", "content": f"Database context:\n{places_context}"},
-                            {"role": "system", "content": weather_context},
-                            {"role": "user", "content": user_input}
-                        ],
+                        messages=messages,  # type: ignore
                         max_tokens=500,
                         temperature=0.7
                     )
@@ -1482,22 +1699,25 @@ Use current weather information to enhance your recommendations when appropriate
                     ai_response = response.choices[0].message.content
                     if ai_response:
                         print(f"OpenAI response: {ai_response[:100]}...")
-                        # Clean the response from any emojis, hashtags, or markdown
+                        # Two-pass cleaning: pre-clean + post-LLM cleanup
                         clean_response = clean_text_formatting(ai_response)
-                        return {"message": clean_response}
+                        final_response = post_llm_cleanup(clean_response)
+                        return {"message": final_response}
                     else:
                         print("OpenAI returned empty response")
                         # Smart fallback response based on user input
                         fallback_response = create_fallback_response(user_input, places)
-                        return {"message": fallback_response}
+                        final_fallback = post_llm_cleanup(fallback_response)
+                        return {"message": final_fallback}
                     
                 except Exception as e:
                     print(f"OpenAI API error: {e}")
                     # Smart fallback response based on user input
                     fallback_response = create_fallback_response(user_input, places)
-                    # Clean the fallback response as well
+                    # Two-pass cleaning: pre-clean + post-LLM cleanup
                     clean_response = clean_text_formatting(fallback_response)
-                    return {"message": clean_response}
+                    final_response = post_llm_cleanup(clean_response)
+                    return {"message": final_response}
         
         finally:
             db.close()

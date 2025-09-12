@@ -1,5 +1,144 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
+import { Link, useLocation } from 'react-router-dom';
+import { trackNavigation } from './utils/analytics';
+
+// NavBar component for Chatbot
+const ChatbotNavBar = () => {
+  const location = useLocation();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  
+  // Update window width on resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Handle scroll to show/hide navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 100); // Show navbar after scrolling 100px
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const isMobile = windowWidth < 768;
+  
+  // Logo style
+  const logoStyle = {
+    textDecoration: 'none',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, opacity 0.2s ease',
+  };
+
+  const logoTextStyle = {
+    fontSize: isMobile ? '1.8rem' : '2.2rem',
+    fontWeight: 700,
+    letterSpacing: '0.15em',
+    textTransform: 'uppercase',
+    background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+    textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+  };
+
+  const linkStyle = (isActive) => ({
+    color: isActive ? '#6366f1' : '#c7c9e2',
+    textDecoration: 'none',
+    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
+    paddingBottom: '0.5rem',
+    paddingTop: '0.5rem',
+    paddingLeft: '1rem',
+    paddingRight: '1rem',
+    borderRadius: '0.5rem',
+    transition: 'all 0.2s ease',
+    fontWeight: 'inherit',
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    fontSize: isMobile ? '0.9rem' : '1rem',
+  });
+  
+  const handleLogoClick = () => {
+    trackNavigation('/');
+    const hasActiveChat = localStorage.getItem('chat-messages');
+    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
+    
+    if (parsedMessages && parsedMessages.length > 0) {
+      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+        detail: { expanded: true, hasMessages: true } 
+      }));
+    } else {
+      localStorage.removeItem('chat_session_id');
+      localStorage.removeItem('chat-messages');
+    }
+  };
+
+  return (
+    <nav 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transform translate-y-0' 
+          : 'transform -translate-y-full'
+      }`}
+      style={{ 
+        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : 'none'
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link to="/" style={logoStyle} onClick={handleLogoClick}>
+            <div style={logoTextStyle}>
+              AI Istanbul
+            </div>
+          </Link>
+          
+          {/* Navigation Links */}
+          <div className="flex items-center space-x-4">
+            <Link 
+              to="/about" 
+              style={linkStyle(location.pathname === '/about')}
+              onClick={() => trackNavigation('/about')}
+            >
+              About
+            </Link>
+            <Link 
+              to="/sources" 
+              style={linkStyle(location.pathname === '/sources')}
+              onClick={() => trackNavigation('/sources')}
+            >
+              Sources
+            </Link>
+            <Link 
+              to="/faq" 
+              style={linkStyle(location.pathname === '/faq')}
+              onClick={() => trackNavigation('/faq')}
+            >
+              FAQ
+            </Link>
+            <Link 
+              to="/contact" 
+              style={linkStyle(location.pathname === '/contact')}
+              onClick={() => trackNavigation('/contact')}
+            >
+              Contact
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -68,6 +207,25 @@ function Chatbot({ onDarkModeToggle }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(true)
+  const [suggestions, setSuggestions] = useState([])
+  const [inputError, setInputError] = useState('')
+  const messagesEndRef = useRef(null)
+
+  // Enhanced input suggestions for better user guidance
+  const inputSuggestions = [
+    "restaurants in Kadıköy",
+    "places to visit in Sultanahmet", 
+    "Turkish food recommendations",
+    "museums in Istanbul",
+    "nightlife in Beyoğlu",
+    "transportation in Istanbul",
+    "shopping at Grand Bazaar",
+    "Bosphorus cruise options",
+    "family friendly places",
+    "romantic restaurants",
+    "budget travel tips",
+    "weather in Istanbul"
+  ]
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -78,15 +236,72 @@ function Chatbot({ onDarkModeToggle }) {
     }
   }, [darkMode])
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  // Show suggestions when input is empty or short
+  useEffect(() => {
+    if (input.length === 0) {
+      setSuggestions(inputSuggestions.slice(0, 6))
+    } else if (input.length > 0 && input.length < 3) {
+      // Filter suggestions based on input
+      const filtered = inputSuggestions.filter(suggestion => 
+        suggestion.toLowerCase().includes(input.toLowerCase())
+      ).slice(0, 4)
+      setSuggestions(filtered)
+    } else {
+      setSuggestions([])
+    }
+  }, [input])
+
+  // Enhanced input validation and processing
+  const validateInput = (userInput) => {
+    const trimmedInput = userInput.trim()
+    
+    // Check for empty input
+    if (!trimmedInput) {
+      setInputError('Please enter a question about Istanbul!')
+      return false
+    }
+    
+    // Check for very short input
+    if (trimmedInput.length < 2) {
+      setInputError('Please enter a more detailed question.')
+      return false
+    }
+    
+    // Check for spam-like input (repeated characters)
+    if (/(.)\1{4,}/.test(trimmedInput)) {
+      setInputError('Please enter a meaningful question.')
+      return false
+    }
+    
+    // Check for only special characters
+    if (!/[a-zA-Z0-9]/.test(trimmedInput)) {
+      setInputError('Please use letters and words in your question.')
+      return false
+    }
+    
+    setInputError('')
+    return true
+  }
+
   const handleSend = async (customInput = null) => {
     const userInput = customInput || input.trim();
-    if (!userInput) return;
+    
+    // Enhanced input validation
+    if (!validateInput(userInput)) {
+      return;
+    }
 
     const userMessage = { role: 'user', content: userInput };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
     setLoading(true);
+    setSuggestions([]) // Clear suggestions when sending
 
     // Start streaming response
     let streamedContent = '';
@@ -112,9 +327,12 @@ function Chatbot({ onDarkModeToggle }) {
       });
     } catch (error) {
       hasError = true;
+      const errorMessage = error.message?.includes('network') 
+        ? 'Network error. Please check your connection and try again.'
+        : 'Sorry, I encountered an error. Please try rephrasing your question.'
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Sorry, there was a network error. Please try again.' }
+        { role: 'assistant', content: errorMessage }
       ]);
     } finally {
       setLoading(false);
@@ -137,40 +355,55 @@ function Chatbot({ onDarkModeToggle }) {
   }
 
   return (
-    <div className={`flex flex-col h-screen w-full pt-16 transition-colors duration-200 ${
-      darkMode ? 'bg-gray-900' : 'bg-white'
-    }`}>
+    <>
+      {/* Scrollable Navbar */}
+      <ChatbotNavBar />
       
-      {/* Header - Simplified since nav is handled by parent */}
-      <div className={`flex items-center justify-center px-4 py-3 border-b transition-colors duration-200 ${
-        darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+      <div className={`flex flex-col h-screen w-full transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-white'
       }`}>
-        <div className="flex items-center space-x-3">
-          <div className={`w-8 h-8 rounded-sm flex items-center justify-center transition-colors duration-200 ${
-            darkMode ? 'bg-white' : 'bg-black'
-          }`}>
-            <svg className={`w-5 h-5 transition-colors duration-200 ${
-              darkMode ? 'text-black' : 'text-white'
-            }`} fill="currentColor" viewBox="0 0 24 24">
-              <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-            </svg>
-          </div>
-          <h1 className={`text-lg font-semibold transition-colors duration-200 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>Your AI Istanbul Assistant</h1>
-        </div>
-      </div>
-
-      {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center px-4">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
-              darkMode ? 'bg-white' : 'bg-black'
+        
+        {/* Header - Enhanced with better branding */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b transition-colors duration-200 ${
+          darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
+        }`}>
+          <div className="flex items-center space-x-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+              darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
             }`}>
-              <svg className={`w-8 h-8 transition-colors duration-200 ${
-                darkMode ? 'text-black' : 'text-white'
-              }`} fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 className={`text-xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>KAM - Istanbul Assistant</h1>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Your AI guide to Istanbul</p>
+            </div>
+          </div>
+          
+          {/* Enhanced help indicator */}
+          <div className={`hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg ${
+            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-100 border border-gray-200'
+          }`}>
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className={`text-sm font-medium ${
+              darkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>Online & Ready</span>
+          </div>
+        </div>
+
+        {/* Chat Messages Container - Enhanced with better structure */}
+        <div className="flex-1 overflow-y-auto">
+          {messages.length === 0 && (
+            <div className="h-full flex flex-col items-center justify-center px-4 py-8">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+                darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
+              }`}>
+                <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
               </svg>
             </div>
@@ -336,6 +569,9 @@ function Chatbot({ onDarkModeToggle }) {
               </div>
             </div>
           )}
+          
+          {/* Scroll anchor for auto-scrolling */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
@@ -346,24 +582,67 @@ function Chatbot({ onDarkModeToggle }) {
           : 'border-gray-200 bg-white'
       }`}>
         <div className="w-full max-w-4xl mx-auto">
+          {/* Input suggestions when typing or no input */}
+          {suggestions.length > 0 && (
+            <div className={`mb-3 p-3 rounded-lg ${
+              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
+            }`}>
+              <div className={`text-xs font-medium mb-2 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>💡 Suggestions:</div>
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setInput(suggestion)
+                      setSuggestions([])
+                    }}
+                    className={`px-3 py-1 text-sm rounded-full transition-colors duration-200 ${
+                      darkMode 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white' 
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700 hover:text-gray-900'
+                    }`}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Error message */}
+          {inputError && (
+            <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
+              <div className="text-sm text-red-700 dark:text-red-300">
+                ⚠️ {inputError}
+              </div>
+            </div>
+          )}
+          
           <div className="relative">
-            <div className={`flex items-center space-x-3 rounded-xl px-4 py-3 transition-colors duration-200 border ${
-              darkMode 
-                ? 'bg-gray-800 border-gray-600' 
-                : 'bg-white border-gray-300'
+            <div className={`flex items-center space-x-3 rounded-xl px-4 py-3 transition-all duration-200 border ${
+              inputError 
+                ? 'border-red-400 dark:border-red-600' 
+                : darkMode 
+                  ? 'bg-gray-800 border-gray-600 focus-within:border-blue-500' 
+                  : 'bg-white border-gray-300 focus-within:border-blue-500'
             }`}>
               <div className="flex-1 min-h-[20px] max-h-[100px] overflow-y-auto">
                 <input
                   type="text"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    setInputError('') // Clear error when typing
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSend();
                     }
                   }}
-                  placeholder="Ask about Istanbul..."
+                  placeholder="Ask me anything about Istanbul... (restaurants, attractions, districts, culture, etc.)"
                   className={`w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
                     darkMode 
                       ? 'placeholder-gray-400 text-white' 
@@ -376,11 +655,11 @@ function Chatbot({ onDarkModeToggle }) {
               <button 
                 onClick={handleSend} 
                 disabled={loading || !input.trim()}
-                className={`p-2 rounded-lg transition-all duration-200 ${
+                className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
                   darkMode 
                     ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600' 
                     : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -399,8 +678,9 @@ function Chatbot({ onDarkModeToggle }) {
           </div>
         </div>
       </div>
-    </div>
-  )
+      </div>
+    </>
+  );
 }
 
-export default Chatbot
+export default Chatbot;

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 
-const CopyButton = ({ text }) => {
+const CopyButton = memo(({ text }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -11,7 +11,7 @@ const CopyButton = ({ text }) => {
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
-  };
+  }, [text]);
 
   const isLightMode = document.body.classList.contains('light');
 
@@ -62,9 +62,9 @@ const CopyButton = ({ text }) => {
       )}
     </button>
   );
-};
+});
 
-const ActionButtons = ({ text }) => {
+const ActionButtons = memo(({ text }) => {
   const handleReadAloud = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -123,7 +123,7 @@ const ActionButtons = ({ text }) => {
       </button>
     </div>
   );
-};
+});
 
 const formatMessage = (text, isUser = false) => {
   // Check if it's a restaurant recommendation message

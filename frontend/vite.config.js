@@ -9,9 +9,28 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    historyApiFallback: true
+    historyApiFallback: true,
+    hmr: {
+      overlay: false
+    },
+    watch: {
+      usePolling: false,
+      interval: 1000
+    }
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom']
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom']
   }
 })

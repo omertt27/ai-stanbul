@@ -9,7 +9,7 @@ import {
 } from '../utils/errorHandler.js';
 
 // API utility that works for both local and deployed environments
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // Use correct port 8000
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'; // Use correct port 8001
 
 // Ensure BASE_URL doesn't end with /ai to prevent double /ai/ai paths
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
