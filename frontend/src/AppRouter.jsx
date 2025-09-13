@@ -155,6 +155,7 @@ const AppContent = ({ chatExpanded }) => {
       )}
       <Routes>
         <Route path="/" element={<ForceRefreshRoute component={App} routeName="Home" />} />
+        <Route path="/chat" element={<ForceRefreshRoute component={App} routeName="Chat" />} />
         <Route path="/test" element={<TestComponent key={getRouteKey('test')} />} />
         <Route path="/simple" element={<SimpleChatbot key={getRouteKey('simple')} />} />
         <Route path="/chatbot" element={<Chatbot key={getRouteKey('chatbot')} />} />

@@ -5,34 +5,58 @@ import { trackNavigation } from '../utils/analytics';
 const NavBar = ({ hideLogo = false }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Update window width on resize
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      // Close mobile menu when resizing to desktop
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
+  // Handle body scroll lock for mobile menu
+  useEffect(() => {
+    if (isMobile && isMobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [isMobile, isMobileMenuOpen]);
+  
   // Media query checks
   const isMobile = windowWidth < 768;
-  const isSmallMobile = windowWidth < 480;
-  const isUltraSmall = windowWidth < 320;
   
-  // Logo style - positioned higher up
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+  
+  // Logo style - responsive positioning
   const logoStyle = {
     position: 'fixed',
-    top: '0.5rem', // Move up even more from 1rem to 0.5rem
-    left: '2rem',
+    top: isMobile ? '0.75rem' : '0.5rem',
+    left: isMobile ? '1rem' : '2rem',
     zIndex: 60,
     textDecoration: 'none',
     textAlign: 'center',
-    cursor: 'pointer', // Ensure it's clickable
-    pointerEvents: 'auto', // Ensure click events work
+    cursor: 'pointer',
+    pointerEvents: 'auto',
     transition: 'transform 0.2s ease, opacity 0.2s ease',
   };
 
   const logoTextStyle = {
-    fontSize: isMobile ? '2.5rem' : '3.5rem',
+    fontSize: isMobile ? '1.8rem' : '3.5rem',
     fontWeight: 700,
     letterSpacing: '0.15em',
     textTransform: 'uppercase',
@@ -42,41 +66,25 @@ const NavBar = ({ hideLogo = false }) => {
     backgroundClip: 'text',
     textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
     transition: 'all 0.3s ease',
-    cursor: 'pointer', // Make sure text cursor indicates clickability
+    cursor: 'pointer',
   };
 
-  // Navigation style - positioned higher up with bigger buttons
-  const navStyle = {
-    position: 'fixed',
-    top: '0.5rem', // Move up even more from 1rem to 0.5rem
-    right: '1.5rem',
-    zIndex: 50,
-    display: 'flex',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: isMobile ? '1rem' : '1.5rem', // Reduced gap for closer buttons
-    padding: '0.75rem 1rem', // Increased padding for bigger appearance
-    fontWeight: 400,
-    fontSize: isMobile ? '1.2rem' : '1.4rem', // Increased font size for bigger buttons
-    letterSpacing: '0.01em',
-    flexWrap: 'wrap',
-  };
-  const linkStyle = isActive => ({
-    color: isActive 
-      ? '#6366f1' 
-      : '#c7c9e2', // Always use dark mode colors
+  // Link style for navigation items
+  const linkStyle = (isActive) => ({
+    color: isActive ? '#6366f1' : '#c7c9e2',
     textDecoration: 'none',
     borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: '0.7rem', // Increased padding for bigger buttons
-    paddingTop: '0.7rem',
-    paddingLeft: '1.2rem', // Increased padding for bigger buttons
-    paddingRight: '1.2rem',
+    paddingBottom: '0.5rem',
+    paddingTop: '0.5rem',
+    paddingLeft: '1rem',
+    paddingRight: '1rem',
     borderRadius: '0.5rem',
     transition: 'all 0.2s ease',
     fontWeight: 'inherit',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    minWidth: '5rem', // Increased minimum width for bigger buttons
+    fontSize: isMobile ? '0.9rem' : '1rem',
+    display: 'block',
   });
   
   const handleLogoClick = () => {
@@ -138,6 +146,10 @@ const NavBar = ({ hideLogo = false }) => {
     trackNavigation('donate');
   };
 
+  const handleChatClick = () => {
+    trackNavigation('chat');
+  };
+
   // Track navigation for analytics
   useEffect(() => {
     const handleClick = (e) => {
@@ -169,13 +181,161 @@ const NavBar = ({ hideLogo = false }) => {
         </Link>
       )}
       
-      {/* Navigation in top-right corner */}
-      <nav style={navStyle}>
-        <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-        <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
-        <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-        <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
-      </nav>
+      {/* Desktop Navigation */}
+      {!isMobile && (
+        <nav style={{
+          position: 'fixed',
+          top: '0.5rem',
+          right: '1.5rem',
+          zIndex: 50,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: '1.5rem',
+          padding: '0.75rem 1rem',
+          fontWeight: 400,
+          fontSize: '1rem',
+          letterSpacing: '0.01em',
+        }}>
+          <Link to="/chat" onClick={handleChatClick} style={linkStyle(location.pathname === '/chat')}>Chat</Link>
+          <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
+          <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
+          <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+          <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+        </nav>
+      )}
+
+      {/* Mobile Hamburger Menu Button */}
+      {isMobile && (
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="navbar-hamburger"
+          style={{
+            position: 'fixed',
+            top: '1rem',
+            right: '1rem',
+            zIndex: 62,
+            background: 'rgba(99, 102, 241, 0.9)',
+            border: 'none',
+            borderRadius: '0.5rem',
+            padding: '0.75rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            minHeight: '44px',
+            minWidth: '44px',
+          }}
+          aria-label="Toggle navigation menu"
+        >
+          <svg 
+            width="24" 
+            height="24" 
+            fill="none" 
+            stroke="white" 
+            viewBox="0 0 24 24"
+            style={{
+              transform: isMobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+            }}
+          >
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      )}
+
+      {/* Mobile Navigation Menu */}
+      {isMobile && isMobileMenuOpen && (
+        <nav 
+          className="navbar-mobile-menu"
+          style={{
+            position: 'fixed',
+            top: '0',
+            right: '0',
+            bottom: '0',
+            left: '0',
+            zIndex: 61,
+            background: 'rgba(17, 24, 39, 0.95)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '2rem',
+            padding: '2rem',
+            fontSize: '1.25rem',
+            fontWeight: 400,
+          }}
+        >
+          <Link 
+            to="/chat" 
+            onClick={handleChatClick} 
+            style={{
+              ...linkStyle(location.pathname === '/chat'),
+              fontSize: '1.25rem',
+              padding: '1rem 2rem',
+              textAlign: 'center',
+              minWidth: '8rem',
+            }}
+          >
+            Chat
+          </Link>
+          <Link 
+            to="/blog" 
+            onClick={handleBlogClick} 
+            style={{
+              ...linkStyle(location.pathname.startsWith('/blog')),
+              fontSize: '1.25rem',
+              padding: '1rem 2rem',
+              textAlign: 'center',
+              minWidth: '8rem',
+            }}
+          >
+            Blog
+          </Link>
+          <Link 
+            to="/about" 
+            onClick={handleAboutClick} 
+            style={{
+              ...linkStyle(location.pathname === '/about'),
+              fontSize: '1.25rem',
+              padding: '1rem 2rem',
+              textAlign: 'center',
+              minWidth: '8rem',
+            }}
+          >
+            About
+          </Link>
+          <Link 
+            to="/faq" 
+            onClick={handleFAQClick} 
+            style={{
+              ...linkStyle(location.pathname === '/faq'),
+              fontSize: '1.25rem',
+              padding: '1rem 2rem',
+              textAlign: 'center',
+              minWidth: '8rem',
+            }}
+          >
+            FAQ
+          </Link>
+          <Link 
+            to="/donate" 
+            onClick={handleDonateClick} 
+            style={{
+              ...linkStyle(location.pathname === '/donate'),
+              fontSize: '1.25rem',
+              padding: '1rem 2rem',
+              textAlign: 'center',
+              minWidth: '8rem',
+            }}
+          >
+            Donate
+          </Link>
+        </nav>
+      )}
     </>
   );
 };

@@ -88,11 +88,11 @@ const ChatbotNavBar = () => {
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transform translate-y-0' 
-          : 'transform -translate-y-full'
+          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg' 
+          : 'bg-gray-900 bg-opacity-80 backdrop-blur-sm'
       }`}
       style={{ 
-        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : 'none'
+        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(255, 255, 255, 0.1)'
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -210,6 +210,9 @@ function Chatbot({ onDarkModeToggle }) {
   const [darkMode, setDarkMode] = useState(true)
   const [suggestions, setSuggestions] = useState([])
   const [inputError, setInputError] = useState('')
+  const [chatSessions, setChatSessions] = useState([])
+  const [currentSessionId, setCurrentSessionId] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
   // Enhanced input suggestions for better user guidance
@@ -227,6 +230,82 @@ function Chatbot({ onDarkModeToggle }) {
     "budget travel tips",
     "weather in Istanbul"
   ]
+
+  // Load chat sessions from localStorage
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('chat-sessions');
+    if (savedSessions) {
+      try {
+        const sessions = JSON.parse(savedSessions);
+        setChatSessions(sessions);
+      } catch (error) {
+        console.error('Error loading chat sessions:', error);
+      }
+    }
+  }, []);
+
+  // Save chat sessions to localStorage
+  const saveChatSessions = (sessions) => {
+    localStorage.setItem('chat-sessions', JSON.stringify(sessions));
+    setChatSessions(sessions);
+  };
+
+  // Create a new chat session
+  const createNewChat = () => {
+    const newSessionId = Date.now().toString();
+    setCurrentSessionId(newSessionId);
+    setMessages([]);
+    setInput('');
+    setInputError('');
+    setSuggestions(inputSuggestions.slice(0, 6));
+  };
+
+  // Load a specific chat session
+  const loadChatSession = (sessionId) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (session) {
+      setCurrentSessionId(sessionId);
+      setMessages(session.messages);
+      setInput('');
+      setInputError('');
+      setSuggestions([]);
+    }
+  };
+
+  // Save current chat session
+  const saveCurrentSession = (newMessages) => {
+    if (!currentSessionId || newMessages.length === 0) return;
+
+    const sessionTitle = newMessages[0]?.content?.substring(0, 50) + '...' || 'New Chat';
+    const updatedSession = {
+      id: currentSessionId,
+      title: sessionTitle,
+      messages: newMessages,
+      lastUpdated: new Date().toISOString()
+    };
+
+    const existingIndex = chatSessions.findIndex(s => s.id === currentSessionId);
+    let updatedSessions;
+    
+    if (existingIndex >= 0) {
+      updatedSessions = [...chatSessions];
+      updatedSessions[existingIndex] = updatedSession;
+    } else {
+      updatedSessions = [updatedSession, ...chatSessions].slice(0, 50); // Keep only last 50 sessions
+    }
+
+    saveChatSessions(updatedSessions);
+  };
+
+  // Delete a chat session
+  const deleteChatSession = (sessionId) => {
+    const updatedSessions = chatSessions.filter(s => s.id !== sessionId);
+    saveChatSessions(updatedSessions);
+    
+    if (currentSessionId === sessionId) {
+      createNewChat();
+    }
+  };
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -297,6 +376,12 @@ function Chatbot({ onDarkModeToggle }) {
       return;
     }
 
+    // Create new session if none exists
+    if (!currentSessionId) {
+      const newSessionId = Date.now().toString();
+      setCurrentSessionId(newSessionId);
+    }
+
     const userMessage = { role: 'user', content: userInput };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -307,23 +392,24 @@ function Chatbot({ onDarkModeToggle }) {
     // Start streaming response
     let streamedContent = '';
     let hasError = false;
+    let finalMessages = newMessages;
+    
     try {
       await fetchStreamingResults(userInput, (chunk) => {
         streamedContent += chunk;
         // If assistant message already exists, update it; else, add it
         setMessages((prev) => {
-          // If last message is assistant and was streaming, update it
-          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-            return [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
-          } else {
-            return [
-              ...prev,
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
-          }
+          const updatedMessages = prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming
+            ? [
+                ...prev.slice(0, -1),
+                { role: 'assistant', content: streamedContent, streaming: true }
+              ]
+            : [
+                ...prev,
+                { role: 'assistant', content: streamedContent, streaming: true }
+              ];
+          finalMessages = updatedMessages;
+          return updatedMessages;
         });
       });
     } catch (error) {
@@ -331,21 +417,29 @@ function Chatbot({ onDarkModeToggle }) {
       const errorMessage = error.message?.includes('network') 
         ? 'Network error. Please check your connection and try again.'
         : 'Sorry, I encountered an error. Please try rephrasing your question.'
-      setMessages((prev) => [
-        ...prev,
+      const errorMessages = [
+        ...newMessages,
         { role: 'assistant', content: errorMessage }
-      ]);
+      ];
+      setMessages(errorMessages);
+      finalMessages = errorMessages;
     } finally {
       setLoading(false);
-      // Remove streaming flag on last assistant message
+      // Remove streaming flag on last assistant message and save session
       setMessages((prev) => {
-        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-          return [
-            ...prev.slice(0, -1),
-            { role: 'assistant', content: prev[prev.length - 1].content }
-          ];
+        const cleanedMessages = prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming
+          ? [
+              ...prev.slice(0, -1),
+              { role: 'assistant', content: prev[prev.length - 1].content }
+            ]
+          : prev;
+        
+        // Save the session with final messages
+        if (currentSessionId && cleanedMessages.length > 0) {
+          setTimeout(() => saveCurrentSession(cleanedMessages), 100);
         }
-        return prev;
+        
+        return cleanedMessages;
       });
     }
   }
@@ -370,48 +464,139 @@ function Chatbot({ onDarkModeToggle }) {
     handleSend(question);
   }
 
+  // Format date for chat sessions
+  const formatSessionDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 168) {
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
   return (
     <>
       {/* Scrollable Navbar */}
       <ChatbotNavBar />
       
-      {/* Logo positioned like other pages */}
-      <div style={{
-        position: 'fixed',
-        top: '0.5rem',
-        left: '2rem',
-        zIndex: 60,
-        textDecoration: 'none',
-        textAlign: 'center',
-        cursor: 'pointer',
-        pointerEvents: 'auto',
-        transition: 'transform 0.2s ease, opacity 0.2s ease',
-      }}>
-        <Link to="/" onClick={handleLogoClick}>
-          <div style={{
-            fontSize: window.innerWidth < 768 ? '2.5rem' : '3.5rem',
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer',
-          }}>
-            AI Istanbul
+      {/* Chat History Sidebar */}
+      <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-800 border-r border-gray-700 transition-all duration-300 z-40 ${
+        sidebarOpen ? 'w-full md:w-80' : 'w-0'
+      } overflow-hidden`}>
+        <div className="flex flex-col h-full">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Chat History</h2>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="p-1 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <button
+              onClick={createNewChat}
+              className="w-full mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              New Chat
+            </button>
           </div>
-        </Link>
+          
+          {/* Chat Sessions List */}
+          <div className="flex-1 overflow-y-auto p-2">
+            {chatSessions.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p className="text-sm">No chat history yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {chatSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className={`group relative rounded-lg p-3 cursor-pointer transition-colors duration-200 ${
+                      currentSessionId === session.id
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-700'
+                    }`}
+                    onClick={() => loadChatSession(session.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{session.title}</p>
+                        <p className="text-xs opacity-70 mt-1">{formatSessionDate(session.lastUpdated)}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteChatSession(session.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-600 transition-all duration-200 ml-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      
-      <div className="chatbot-background flex flex-col min-h-screen w-full transition-colors duration-200 pt-16">
+
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed left-4 top-20 z-50 p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Main Chat Container */}
+      <div className={`chatbot-background flex flex-col min-h-screen w-full transition-all duration-300 pt-16 ${
+        sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
+      }`}>
 
         {/* Chat Messages Container - Enhanced with better structure and longer height */}
-        <div className="flex-1 min-h-[calc(100vh-6rem)] overflow-y-auto">
+        <div className="flex-1 min-h-[calc(100vh-12rem)] overflow-y-auto">{/* Made taller: increased from 6rem to 12rem */}
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center px-4 py-8">
+              {/* Logo positioned like other pages at the top center */}
+              <div className="mb-8">
+                <Link to="/" onClick={handleLogoClick}>
+                  <div className={`text-6xl font-bold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">AI</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">/STANBUL</span>
+                  </div>
+                </Link>
+              </div>
+              
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
                 darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
               }`}>
@@ -587,8 +772,8 @@ function Chatbot({ onDarkModeToggle }) {
         </div>
       </div>
 
-      {/* Input Area - Made thinner */}
-      <div className={`border-t p-2 transition-colors duration-200 ${
+      {/* Input Area - Made thinner with more padding for longer chat outline */}
+      <div className={`border-t p-4 transition-colors duration-200 ${
         darkMode 
           ? 'border-gray-700 bg-gray-900' 
           : 'border-gray-200 bg-white'

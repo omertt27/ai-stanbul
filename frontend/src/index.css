@@ -36,6 +36,13 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
+  /* Ensure content doesn't get hidden behind fixed navbar */
+  padding-top: 4rem;
+}
+
+/* Remove top padding on main page where navbar should be integrated differently */
+body.main-page {
+  padding-top: 0;
 }
 
 h1 {
@@ -64,6 +71,40 @@ button:focus-visible {
 
 #root {
   min-height: 100vh;
+}
+
+/* Mobile navbar improvements */
+@media (max-width: 767px) {
+  /* Prevent body scroll when mobile menu is open */
+  body.mobile-menu-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+  
+  /* Ensure mobile elements don't overlap */
+  .mobile-nav-safe-area {
+    padding-top: 4rem;
+  }
+  
+  /* Mobile-friendly touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Navbar z-index management */
+.navbar-overlay {
+  z-index: 1000;
+}
+
+.navbar-mobile-menu {
+  z-index: 1001;
+}
+
+.navbar-hamburger {
+  z-index: 1002;
 }
 
 @media (prefers-color-scheme: light) {

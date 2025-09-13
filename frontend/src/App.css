@@ -1334,3 +1334,103 @@ body.light .chatbot-background::before {
 .light .chatbot-background {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
 }
+
+/* Chat History Sidebar Styles */
+.chat-sidebar {
+  position: fixed;
+  left: 0;
+  top: 4rem;
+  height: calc(100vh - 4rem);
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  border-right: 1px solid #374151;
+  z-index: 40;
+  transition: width 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.chat-sidebar-open {
+  width: 20rem;
+}
+
+.chat-sidebar-closed {
+  width: 0;
+}
+
+.chat-session-item {
+  position: relative;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.chat-session-item:hover {
+  background-color: #374151;
+  border-color: #4B5563;
+}
+
+.chat-session-item.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #6366f1;
+  color: white;
+}
+
+.chat-session-item .delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chat-session-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.sidebar-toggle {
+  position: fixed;
+  left: 1rem;
+  top: 5rem;
+  z-index: 50;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle:hover {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  transform: scale(1.05);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .chat-sidebar-open {
+    width: 100vw;
+  }
+  
+  .sidebar-toggle {
+    left: 0.5rem;
+    top: 4.5rem;
+  }
+}
+
+/* Smooth content transition when sidebar opens/closes */
+.chat-content-area {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+.chat-content-sidebar-open {
+  margin-left: 20rem;
+}
+
+.chat-content-sidebar-closed {
+  margin-left: 0;
+}
+
+@media (max-width: 768px) {
+  .chat-content-sidebar-open {
+    margin-left: 0;
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
@@ -9,6 +9,7 @@ import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
 
 const App = () => {
+  const location = useLocation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [messages, setMessages] = useState(() => {
@@ -21,6 +22,10 @@ const App = () => {
     }
   });
   const [expanded, setExpanded] = useState(() => {
+    // If accessed via /chat route, auto-expand
+    if (window.location.pathname === '/chat') {
+      return true;
+    }
     // If there are saved messages, start in expanded mode
     try {
       const saved = localStorage.getItem('chat-messages');
@@ -31,6 +36,27 @@ const App = () => {
   });
   const [sessionId] = useState(() => getSessionId()); // Get persistent session ID
   const chatScrollRef = useRef(null);
+
+  // Auto-expand when navigating to /chat route
+  useEffect(() => {
+    if (location.pathname === '/chat') {
+      setExpanded(true);
+    }
+  }, [location.pathname]);
+
+  // Add/remove main-page class on body
+  useEffect(() => {
+    if (location.pathname === '/') {
+      document.body.classList.add('main-page');
+    } else {
+      document.body.classList.remove('main-page');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('main-page');
+    };
+  }, [location.pathname]);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {

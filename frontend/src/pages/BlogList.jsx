@@ -260,7 +260,9 @@ const BlogList = () => {
 
   if (loading && posts.length === 0) {
     return (
-      <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200">
+      <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
+        darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
+      }`}>
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-center items-center py-20">
             <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
@@ -273,7 +275,9 @@ const BlogList = () => {
   }
 
   return (
-    <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200">
+    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
+    }`}>
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center py-8 sm:py-12">
