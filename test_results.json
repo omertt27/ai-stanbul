@@ -1,0 +1,62 @@
+[
+  {
+    "test_id": 1,
+    "category": "Restaurants",
+    "input": "Best Turkish restaurants in Sultanahmet",
+    "success": true,
+    "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. Rating: 4.9/5 \u2022 Moderate Turgut Kebab Restaurant -Sultanahmet- A popular kebab restaurant serving traditional Turkish grilled meats and specialties. Rating: 4.8/5 \u2022 Budget-friendly 3. Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. Rating: 4.8/5 4. Ruvia Restaurant Sultanahmet A steakhouse specializing in premium cuts of meat and grilled dishes. Rating: 4.9/5 5. Old Sultanahmet Cuisine Restaurant A steakhouse specializing in premium cuts of meat and grilled dishes. Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+    "response_length": 744,
+    "contains_keywords": true,
+    "is_meaningful": true,
+    "status_code": 200,
+    "timestamp": "2025-09-13T15:25:12.603473"
+  },
+  {
+    "test_id": 2,
+    "category": "Museums",
+    "input": "Best museums in Istanbul",
+    "success": true,
+    "response": "Here are the museums in Istanbul:\n\n1. Pera Museum\n   Category: Museum\n\n2. Naval Museum\n   Category: Museum\n\n3. Military Museum\n   Category: Museum\n\n4. Ataturk Airport Museum\n   Category: Museum\n\n5. Archeology Museum\n   Category: Museum\n\n6. Turkish & Islamic Arts Museum\n   Category: Museum\n\n7. Topkapi Palace Museum\n   Category: Museum\n\n8. Istanbul Museum of Modern Art\n   Category: Museum\n\n",
+    "response_length": 391,
+    "contains_keywords": true,
+    "is_meaningful": true,
+    "status_code": 200,
+    "timestamp": "2025-09-13T15:25:13.630427"
+  },
+  {
+    "test_id": 3,
+    "category": "Districts",
+    "input": "Kadikoy",
+    "success": true,
+    "response": "Sorry, I couldn't find any places in In Kadikoy in my database. Try asking about a different district or general attractions in Istanbul.",
+    "response_length": 137,
+    "contains_keywords": true,
+    "is_meaningful": false,
+    "status_code": 200,
+    "timestamp": "2025-09-13T15:25:14.657394"
+  },
+  {
+    "test_id": 4,
+    "category": "Attractions",
+    "input": "things to do in Istanbul",
+    "success": true,
+    "response": "Here are the places in Istanbul:\n\n1. Mihrimah Sultan Mosque\n   Category: Mosque\n\n2. Semsi Pasha Mosque\n   Category: Mosque\n\n3. Atik Valide Mosque\n   Category: Mosque\n\n4. Moda Park\n   Category: Park\n\n5. Kadikoy Market\n   Category: Market\n\n6. Fenerbahce Park\n   Category: Park\n\n7. Kadikoy Fish Market\n   Category: Market\n\n8. Blue Mosque\n   Category: Mosque\n\n",
+    "response_length": 356,
+    "contains_keywords": true,
+    "is_meaningful": true,
+    "status_code": 200,
+    "timestamp": "2025-09-13T15:25:15.681576"
+  },
+  {
+    "test_id": 5,
+    "category": "Transportation",
+    "input": "How to get from airport to city center",
+    "success": true,
+    "response": "Getting Around Istanbul Istanbul Card (Istanbulkart): - Essential for ALL public transport - Buy at metro stations, airports, or kiosks - Works on metro, bus, tram, ferry, funicular - Significant discounts vs. single tickets Metro Lines: - M1A/M1B: Airport \u2194 Yenikap\u0131 \u2194 Kirazl\u0131 - M2: Vezneciler \u2194 \u015ei\u015fli \u2194 Hac\u0131osman - M3: Kirazl\u0131 \u2194 Ba\u015fak\u015fehir - M4: Kad\u0131k\u00f6y \u2194 Sabiha G\u00f6k\u00e7en Airport - M5: \u00dcsk\u00fcdar \u2194 \u00c7ekmek\u00f6y - M6: Levent \u2194 Bo\u011fazi\u00e7i \u00dcniversitesi - M7: Mecidiyek\u00f6y \u2194 Mahmutbey Trams: - T1: Kabata\u015f \u2194 Ba\u011fc\u0131lar (passes through Sultanahmet) - T4: Topkap\u0131 \u2194 Mescid-i Selam Key Ferry Routes: - Emin\u00f6n\u00fc \u2194 Kad\u0131k\u00f6y (20 min, scenic) - Karak\u00f6y \u2194 Kad\u0131k\u00f6y (15 min) - Be\u015fikta\u015f \u2194 \u00dcsk\u00fcdar (15 min) - Bosphorus tours from Emin\u00f6n\u00fc Airports: - Istanbul Airport (IST): M11 metro to city center - Sabiha G\u00f6k\u00e7en (SAW): M4 metro or HAVABUS Apps to Download: - Moovit - Real-time public transport - BiTaksi - Local taxi app - Uber - Available in Istanbul Tips: - Rush hours: 8-10 AM, 5-7 PM - Metro announcements in Turkish & English - Keep your Istanbulkart with you always!",
+    "response_length": 1047,
+    "contains_keywords": true,
+    "is_meaningful": true,
+    "status_code": 200,
+    "timestamp": "2025-09-13T15:25:16.704493"
+  }
+]

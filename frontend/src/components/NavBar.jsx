@@ -20,6 +20,9 @@ const NavBar = ({ hideLogo = false }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
+  // Media query checks
+  const isMobile = windowWidth < 768;
+  
   // Handle body scroll lock for mobile menu
   useEffect(() => {
     if (isMobile && isMobileMenuOpen) {
@@ -34,9 +37,6 @@ const NavBar = ({ hideLogo = false }) => {
     };
   }, [isMobile, isMobileMenuOpen]);
   
-  // Media query checks
-  const isMobile = windowWidth < 768;
-  
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -45,7 +45,7 @@ const NavBar = ({ hideLogo = false }) => {
   // Logo style - responsive positioning
   const logoStyle = {
     position: 'fixed',
-    top: isMobile ? '0.75rem' : '0.5rem',
+    top: isMobile ? '0.5rem' : '0.25rem',
     left: isMobile ? '1rem' : '2rem',
     zIndex: 60,
     textDecoration: 'none',
@@ -185,7 +185,7 @@ const NavBar = ({ hideLogo = false }) => {
       {!isMobile && (
         <nav style={{
           position: 'fixed',
-          top: '0.5rem',
+          top: '0.25rem',
           right: '1.5rem',
           zIndex: 50,
           display: 'flex',

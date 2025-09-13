@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
+import QuickTester from './QuickTester';
 import './App.css';
 
 // NavBar component for Chatbot
@@ -88,11 +89,14 @@ const ChatbotNavBar = () => {
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg' 
-          : 'bg-gray-900 bg-opacity-80 backdrop-blur-sm'
+          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transform translate-y-0' 
+          : 'bg-gray-900 bg-opacity-90 backdrop-blur-sm transform translate-y-0'
       }`}
       style={{ 
-        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(255, 255, 255, 0.1)'
+        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(255, 255, 255, 0.1)',
+        position: 'fixed',
+        top: 0,
+        zIndex: 1000
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -570,7 +574,8 @@ function Chatbot({ onDarkModeToggle }) {
       {/* Sidebar Toggle Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed left-4 top-20 z-50 p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200"
+        className="fixed left-4 top-20 z-50 p-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200 border border-gray-600"
+        style={{ zIndex: 1001 }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -578,12 +583,12 @@ function Chatbot({ onDarkModeToggle }) {
       </button>
 
       {/* Main Chat Container */}
-      <div className={`chatbot-background flex flex-col min-h-screen w-full transition-all duration-300 pt-16 ${
+      <div className={`chatbot-background flex flex-col min-h-screen w-full transition-all duration-300 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      }`}>
+      }`} style={{ paddingTop: '4rem' }}>
 
         {/* Chat Messages Container - Enhanced with better structure and longer height */}
-        <div className="flex-1 min-h-[calc(100vh-12rem)] overflow-y-auto">{/* Made taller: increased from 6rem to 12rem */}
+        <div className="flex-1 min-h-[calc(100vh-20rem)] overflow-y-auto px-4 py-6 pb-24">{/* Added bottom padding for input area */}
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center px-4 py-8">
               {/* Logo positioned like other pages at the top center */}
@@ -772,12 +777,14 @@ function Chatbot({ onDarkModeToggle }) {
         </div>
       </div>
 
-      {/* Input Area - Made thinner with more padding for longer chat outline */}
-      <div className={`border-t p-4 transition-colors duration-200 ${
+      {/* Input Area - Fixed positioning to avoid dark bars */}
+      <div className={`fixed bottom-0 left-0 right-0 border-t p-4 transition-colors duration-200 ${
+        sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
+      } ${
         darkMode 
-          ? 'border-gray-700 bg-gray-900' 
-          : 'border-gray-200 bg-white'
-      }`}>
+          ? 'border-gray-700 bg-gray-900 bg-opacity-95 backdrop-blur-md' 
+          : 'border-gray-200 bg-white bg-opacity-95 backdrop-blur-md'
+      }`} style={{ zIndex: 40 }}>
         <div className="w-full max-w-4xl mx-auto">
           {/* Input suggestions when typing or no input */}
           {suggestions.length > 0 && (
@@ -876,6 +883,12 @@ function Chatbot({ onDarkModeToggle }) {
         </div>
       </div>
       </div>
+      
+      {/* Quick Tester Component */}
+      <QuickTester onTestInput={(input) => {
+        setInput(input);
+        setTimeout(() => handleSend(input), 100);
+      }} />
     </>
   );
 }

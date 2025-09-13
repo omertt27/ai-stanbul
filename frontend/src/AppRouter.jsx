@@ -5,6 +5,7 @@ import App from './App';
 import Chatbot from './Chatbot';
 import SimpleChatbot from './SimpleChatbot';
 import TestComponent from './TestComponent';
+import ChatbotTester from './ChatbotTester';
 import About from './pages/About';
 import Sources from './pages/Sources';
 import Donate from './pages/Donate';
@@ -160,6 +161,7 @@ const AppContent = ({ chatExpanded }) => {
         <Route path="/simple" element={<SimpleChatbot key={getRouteKey('simple')} />} />
         <Route path="/chatbot" element={<Chatbot key={getRouteKey('chatbot')} />} />
         <Route path="/demo" element={<EnhancedDemo key={getRouteKey('demo')} />} />
+        <Route path="/test-chatbot" element={<ChatbotTester key={getRouteKey('test-chatbot')} />} />
         <Route path="/about" element={<ForceRefreshRoute component={About} routeName="About" />} />
         <Route path="/sources" element={<ForceRefreshRoute component={Sources} routeName="Sources" />} />
         <Route path="/donate" element={<ForceRefreshRoute component={Donate} routeName="Donate" />} />

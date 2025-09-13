@@ -13,7 +13,7 @@ html {
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: transparent;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -36,8 +36,13 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
-  /* Ensure content doesn't get hidden behind fixed navbar */
-  padding-top: 4rem;
+  /* Remove default padding that was causing dark bars */
+  padding: 0;
+}
+
+/* Only add padding for pages that need it, not chatbot */
+body.page-with-navbar {
+  padding-top: 1rem;
 }
 
 /* Remove top padding on main page where navbar should be integrated differently */
@@ -105,6 +110,25 @@ button:focus-visible {
 
 .navbar-hamburger {
   z-index: 1002;
+}
+
+/* Navbar background overlay to prevent dark background bleed */
+.navbar-background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  background: transparent;
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* Ensure main content starts below navbar */
+.page-content {
+  padding-top: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 @media (prefers-color-scheme: light) {
