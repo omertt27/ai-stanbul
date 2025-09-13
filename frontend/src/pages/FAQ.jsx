@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import '../App.css';
 
 function FAQ() {
   const { darkMode } = useTheme();
@@ -87,7 +88,7 @@ function FAQ() {
 
   return (
     <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
     }`}>
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
@@ -270,7 +271,7 @@ function FAQ() {
                   : 'bg-white hover:bg-gray-50 shadow-lg border border-gray-100'
               }`}
             >
-              <div className="text-2xl mb-2">💬</div>
+              <div className="text-2xl mb-2">�</div>
               <h3 className={`font-semibold mb-1 transition-colors duration-300 ${
                 darkMode ? 'text-white' : 'text-gray-800'
               }`}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import '../App.css';
 
 const Sources = () => {
   const { darkMode } = useTheme();
@@ -37,9 +38,7 @@ const Sources = () => {
   );
 
   return (
-    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50'
-    }`}>
+    <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="pb-12">

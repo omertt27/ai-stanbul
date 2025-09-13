@@ -66,22 +66,82 @@ const mockBlogPosts = [
     created_at: "2024-11-15T14:20:00Z",
     likes_count: 156,
     images: []
+  },
+  {
+    id: 7,
+    title: "Art & Culture in Karaköy: Where Creativity Meets History",
+    content: "Explore the vibrant art scene in Karaköy district, where contemporary galleries blend with historic Ottoman architecture. From the Istanbul Modern to hidden artist studios...",
+    author_name: "Selin Yücel",
+    district: "Karaköy",
+    created_at: "2024-11-12T16:45:00Z",
+    likes_count: 82,
+    images: []
+  },
+  {
+    id: 8,
+    title: "Ferry Adventures: Island Hopping from Eminönü",
+    content: "Take the scenic route to Büyükada and Heybeliada. This guide covers the best ferry schedules, what to see on each island, and local seafood restaurants you shouldn't miss...",
+    author_name: "Burak Şen",
+    district: "Eminönü",
+    created_at: "2024-11-10T11:30:00Z",
+    likes_count: 95,
+    images: []
+  },
+  {
+    id: 9,
+    title: "Night Markets and Street Life in Şişli",
+    content: "When the sun goes down, Şişli comes alive with bustling night markets, late-night eateries, and vibrant street culture. Here's your guide to experiencing Istanbul after dark...",
+    author_name: "Deniz Aktaş",
+    district: "Şişli",
+    created_at: "2024-11-08T20:15:00Z",
+    likes_count: 67,
+    images: []
+  },
+  {
+    id: 10,
+    title: "Historic Churches and Mosques: A Spiritual Journey",
+    content: "Discover the religious heritage of Istanbul through its magnificent churches and mosques. From Hagia Sophia to Chora Church, explore the spiritual heart of the city...",
+    author_name: "Prof. Ahmet Güler",
+    district: "Fatih",
+    created_at: "2024-11-05T13:00:00Z",
+    likes_count: 134,
+    images: []
+  },
+  {
+    id: 11,
+    title: "Coffee Culture: From Traditional to Third Wave",
+    content: "Journey through Istanbul's evolving coffee scene, from traditional Turkish coffee ceremonies to modern specialty coffee shops. Discover the best cafes in every district...",
+    author_name: "Elif Özdemir",
+    district: "Beyoğlu",
+    created_at: "2024-11-02T08:30:00Z",
+    likes_count: 113,
+    images: []
+  },
+  {
+    id: 12,
+    title: "Weekend Escape: Üsküdar's Asian Side Charm",
+    content: "Cross the Bosphorus to discover Üsküdar's peaceful atmosphere, historic sites, and stunning views of the European side. Perfect for a relaxing weekend exploration...",
+    author_name: "Murat Kaya",
+    district: "Üsküdar",
+    created_at: "2024-10-30T15:45:00Z",
+    likes_count: 78,
+    images: []
   }
 ];
 
 const BlogList = () => {
   console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
-  const [posts, setPosts] = useState(mockBlogPosts);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalPosts, setTotalPosts] = useState(mockBlogPosts.length);
+  const [totalPosts, setTotalPosts] = useState(0);
 
-  const postsPerPage = 6;
+  const postsPerPage = 8; // Show 8 posts per page
 
   // Istanbul districts that are supported by the AI chatbot
   const chatbotDistricts = [
@@ -91,8 +151,8 @@ const BlogList = () => {
 
   const loadPosts = async () => {
     console.log('🔄 BlogList: Loading posts with params:', { 
-      currentPage, 
-      postsPerPage, 
+      currentPage,
+      postsPerPage,
       searchTerm, 
       selectedDistrict
     });
@@ -101,30 +161,39 @@ const BlogList = () => {
     setError(null);
     
     try {
-      // Use real API
-      const apiParams = {
-        limit: postsPerPage,
-        offset: (currentPage - 1) * postsPerPage
-      };
+      // Use mock data with pagination (8 posts per page)
+      let filteredPosts = mockBlogPosts;
       
+      // Apply search filter
       if (searchTerm) {
-        apiParams.search = searchTerm;
+        filteredPosts = filteredPosts.filter(post => 
+          post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (post.author_name && post.author_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
       }
       
+      // Apply district filter
       if (selectedDistrict && selectedDistrict !== 'Istanbul (general)') {
-        apiParams.category = selectedDistrict; // Map district to category
+        filteredPosts = filteredPosts.filter(post => 
+          post.district && post.district.toLowerCase() === selectedDistrict.toLowerCase()
+        );
       }
       
-      const data = await fetchBlogPosts(apiParams);
+      // Calculate pagination
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const endIndex = startIndex + postsPerPage;
+      const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
       
-      setPosts(data.posts || []);
-      setTotalPosts(data.total || 0);
-      setTotalPages(Math.ceil((data.total || 0) / postsPerPage));
+      setPosts(paginatedPosts);
+      setTotalPosts(filteredPosts.length);
+      setTotalPages(Math.ceil(filteredPosts.length / postsPerPage));
       
       console.log('✅ BlogList: Posts loaded successfully', {
-        total: data.total || 0,
+        total: filteredPosts.length,
         page: currentPage,
-        showing: (data.posts || []).length
+        showing: paginatedPosts.length,
+        totalPages: Math.ceil(filteredPosts.length / postsPerPage)
       });
       
     } catch (err) {
@@ -151,7 +220,7 @@ const BlogList = () => {
     }, 10);
     
     return () => clearTimeout(timer);
-  }, [currentPage, searchTerm, selectedDistrict]); // Dependencies for reloading
+  }, [currentPage, searchTerm, selectedDistrict]); // Added currentPage back for pagination
 
   // Also load on component mount
   useEffect(() => {
@@ -161,7 +230,7 @@ const BlogList = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when searching
     
     // Track blog search
     trackSearch(`blog: ${searchTerm} ${selectedDistrict}`.trim());
@@ -173,7 +242,7 @@ const BlogList = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedDistrict('');
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   const formatDate = (dateString) => {
@@ -191,9 +260,7 @@ const BlogList = () => {
 
   if (loading && posts.length === 0) {
     return (
-      <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
-        darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
-      }`}>
+      <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-center items-center py-20">
             <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
@@ -206,9 +273,7 @@ const BlogList = () => {
   }
 
   return (
-    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
-      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center py-8 sm:py-12">
@@ -253,12 +318,12 @@ const BlogList = () => {
                     {/* Author Info */}
                     <div className="flex items-center mb-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg">
-                        {post.author_name.charAt(0).toUpperCase()}
+                        {(post.author || post.author_name || 'Unknown Author').charAt(0).toUpperCase()}
                       </div>
                       <div className="ml-4">
                         <p className={`font-semibold transition-colors duration-200 ${
                           darkMode ? 'text-gray-200' : 'text-gray-800'
-                        }`}>{post.author_name}</p>
+                        }`}>{post.author || post.author_name || 'Unknown Author'}</p>
                         <p className={`text-sm transition-colors duration-200 ${
                           darkMode ? 'text-gray-400' : 'text-gray-500'
                         }`}>{formatDate(post.created_at)}</p>
@@ -359,7 +424,7 @@ const BlogList = () => {
                 value={selectedDistrict}
                 onChange={(e) => {
                   setSelectedDistrict(e.target.value);
-                  setCurrentPage(1);
+                  setCurrentPage(1); // Reset to first page when changing district
                 }}
                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
                   darkMode 
@@ -480,12 +545,12 @@ const BlogList = () => {
                 
                 <div className="p-5 sm:p-7">
                   {/* Author Info */}
-                  {post.author_name && (
+                  {(post.author || post.author_name) && (
                     <div className="flex items-center mb-4">
                       {post.author_photo ? (
                         <img 
                           src={post.author_photo} 
-                          alt={post.author_name}
+                          alt={post.author || post.author_name}
                           className="w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-3 sm:mr-4 object-cover ring-2 ring-indigo-500/20"
                           onError={(e) => {
                             e.target.style.display = 'none';
@@ -494,12 +559,12 @@ const BlogList = () => {
                         />
                       ) : null}
                       <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-3 sm:mr-4 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-content text-white text-sm sm:text-base font-bold shadow-lg ${post.author_photo ? 'hidden' : ''}`}>
-                        {post.author_name.charAt(0).toUpperCase()}
+                        {(post.author || post.author_name || 'Unknown Author').charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className={`text-sm sm:text-base font-semibold transition-colors duration-200 ${
                           darkMode ? 'text-gray-200' : 'text-gray-800'
-                        }`}>{post.author_name}</p>
+                        }`}>{post.author || post.author_name || 'Unknown Author'}</p>
                       </div>
                     </div>
                   )}

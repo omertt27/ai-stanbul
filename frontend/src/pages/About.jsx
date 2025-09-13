@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
+import '../App.css';
 
 const About = () => {
   const { darkMode } = useTheme();
 
   return (
     <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
+      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
     }`}>
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}

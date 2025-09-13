@@ -2,14 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import NavBar from '../components/NavBar';
+import '../App.css';
 
 function Contact() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
+    <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
 
       {/* Main Content */}

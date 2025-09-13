@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../App.css';
 
 const EnhancedDemo = () => {
   const [messages, setMessages] = useState([]);
@@ -119,7 +120,7 @@ const EnhancedDemo = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="chatbot-background min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}

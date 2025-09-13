@@ -218,7 +218,7 @@ const NewBlogPost = () => {
           <h2 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
             darkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            📝 Share Your Istanbul Story
+            Share Your Istanbul Story
           </h2>
           <p className={`text-sm transition-colors duration-200 ${
             darkMode ? 'text-gray-300' : 'text-gray-700'
@@ -458,7 +458,7 @@ const NewBlogPost = () => {
                   }`}
                   title="Add a heading"
                 >
-                  📝 Heading
+                  Heading
                 </button>
                 <button
                   type="button"

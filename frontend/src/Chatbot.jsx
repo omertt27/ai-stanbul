@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
+import './App.css';
 
 // NavBar component for Chatbot
 const ChatbotNavBar = () => {
@@ -349,6 +350,21 @@ function Chatbot({ onDarkModeToggle }) {
     }
   }
 
+  const handleLogoClick = () => {
+    trackNavigation('/');
+    const hasActiveChat = localStorage.getItem('chat-messages');
+    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
+    
+    if (parsedMessages && parsedMessages.length > 0) {
+      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
+        detail: { expanded: true, hasMessages: true } 
+      }));
+    } else {
+      localStorage.removeItem('chat_session_id');
+      localStorage.removeItem('chat-messages');
+    }
+  };
+
   const handleSampleClick = (question) => {
     // Automatically send the message
     handleSend(question);
@@ -359,45 +375,41 @@ function Chatbot({ onDarkModeToggle }) {
       {/* Scrollable Navbar */}
       <ChatbotNavBar />
       
-      <div className={`flex flex-col h-screen w-full transition-colors duration-200 ${
-        darkMode ? 'bg-gray-900' : 'bg-white'
-      }`}>
-        
-        {/* Header - Enhanced with better branding */}
-        <div className={`flex items-center justify-between px-6 py-4 border-b transition-colors duration-200 ${
-          darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'
-        }`}>
-          <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-200 ${
-              darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
-            }`}>
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-              </svg>
-            </div>
-            <div>
-              <h1 className={`text-xl font-bold transition-colors duration-200 ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`}>KAM - Istanbul Assistant</h1>
-              <p className={`text-sm transition-colors duration-200 ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>Your AI guide to Istanbul</p>
-            </div>
+      {/* Logo positioned like other pages */}
+      <div style={{
+        position: 'fixed',
+        top: '0.5rem',
+        left: '2rem',
+        zIndex: 60,
+        textDecoration: 'none',
+        textAlign: 'center',
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+        transition: 'transform 0.2s ease, opacity 0.2s ease',
+      }}>
+        <Link to="/" onClick={handleLogoClick}>
+          <div style={{
+            fontSize: window.innerWidth < 768 ? '2.5rem' : '3.5rem',
+            fontWeight: 700,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+            background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer',
+          }}>
+            AI Istanbul
           </div>
-          
-          {/* Enhanced help indicator */}
-          <div className={`hidden sm:flex items-center space-x-2 px-3 py-2 rounded-lg ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-100 border border-gray-200'
-          }`}>
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className={`text-sm font-medium ${
-              darkMode ? 'text-gray-300' : 'text-gray-700'
-            }`}>Online & Ready</span>
-          </div>
-        </div>
+        </Link>
+      </div>
+      
+      <div className="chatbot-background flex flex-col min-h-screen w-full transition-colors duration-200 pt-16">
 
-        {/* Chat Messages Container - Enhanced with better structure */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Chat Messages Container - Enhanced with better structure and longer height */}
+        <div className="flex-1 min-h-[calc(100vh-6rem)] overflow-y-auto">
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center px-4 py-8">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
@@ -575,8 +587,8 @@ function Chatbot({ onDarkModeToggle }) {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className={`border-t p-4 transition-colors duration-200 ${
+      {/* Input Area - Made thinner */}
+      <div className={`border-t p-2 transition-colors duration-200 ${
         darkMode 
           ? 'border-gray-700 bg-gray-900' 
           : 'border-gray-200 bg-white'
@@ -621,14 +633,14 @@ function Chatbot({ onDarkModeToggle }) {
           )}
           
           <div className="relative">
-            <div className={`flex items-center space-x-3 rounded-xl px-4 py-3 transition-all duration-200 border ${
+            <div className={`flex items-center space-x-2 rounded-xl px-2 py-1 transition-all duration-200 border ${
               inputError 
                 ? 'border-red-400 dark:border-red-600' 
                 : darkMode 
                   ? 'bg-gray-800 border-gray-600 focus-within:border-blue-500' 
                   : 'bg-white border-gray-300 focus-within:border-blue-500'
             }`}>
-              <div className="flex-1 min-h-[20px] max-h-[100px] overflow-y-auto">
+              <div className="flex-1 min-h-[16px] max-h-[80px] overflow-y-auto">
                 <input
                   type="text"
                   value={input}
