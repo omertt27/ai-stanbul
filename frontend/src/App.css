@@ -1341,8 +1341,8 @@ body.light .chatbot-background::before {
 .chat-sidebar {
   position: fixed;
   left: 0;
-  top: 4rem;
-  height: calc(100vh - 4rem);
+  top: 64px; /* Start below the navbar */
+  height: calc(100vh - 64px); /* Full height minus navbar */
   background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
   border-right: 1px solid #374151;
   z-index: 40;
@@ -1390,7 +1390,7 @@ body.light .chatbot-background::before {
 .sidebar-toggle {
   position: fixed;
   left: 1rem;
-  top: 5rem;
+  top: 80px; /* Position below the navbar */
   z-index: 50;
   padding: 0.5rem;
   background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
@@ -1406,33 +1406,34 @@ body.light .chatbot-background::before {
   transform: scale(1.05);
 }
 
-/* Responsive adjustments for mobile */
-@media (max-width: 768px) {
-  .chat-sidebar-open {
-    width: 100vw;
-  }
-  
-  .sidebar-toggle {
-    left: 0.5rem;
-    top: 4.5rem;
-  }
+/* Chatbot Navbar - Ensure it stays sticky */
+.chatbot-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  height: 64px !important;
+  background: rgba(17, 24, 39, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(0) !important; /* Prevent any transforms that might hide it */
 }
 
-/* Smooth content transition when sidebar opens/closes */
-.chat-content-area {
-  transition: margin-left 0.3s ease-in-out;
+/* Ensure chatbot content starts below navbar */
+.chatbot-main-content {
+  padding-top: 64px !important;
+  min-height: calc(100vh - 64px) !important;
 }
 
-.chat-content-sidebar-open {
-  margin-left: 20rem;
-}
-
-.chat-content-sidebar-closed {
-  margin-left: 0;
-}
-
-@media (max-width: 768px) {
-  .chat-content-sidebar-open {
-    margin-left: 0;
-  }
+/* Override any competing styles */
+.chatbot-background {
+  position: relative;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  min-height: 100vh;
+  transition: background 0.3s ease;
+  padding: 0;
+  margin: 0;
 }

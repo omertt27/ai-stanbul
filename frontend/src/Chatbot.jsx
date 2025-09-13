@@ -9,7 +9,6 @@ import './App.css';
 // NavBar component for Chatbot
 const ChatbotNavBar = () => {
   const location = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
   // Update window width on resize
@@ -17,17 +16,6 @@ const ChatbotNavBar = () => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  
-  // Handle scroll to show/hide navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 100); // Show navbar after scrolling 100px
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
   const isMobile = windowWidth < 768;
@@ -87,16 +75,13 @@ const ChatbotNavBar = () => {
 
   return (
     <nav 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transform translate-y-0' 
-          : 'bg-gray-900 bg-opacity-90 backdrop-blur-sm transform translate-y-0'
-      }`}
+      className="chatbot-navbar fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transition-all duration-300"
       style={{ 
-        borderBottom: isScrolled ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(255, 255, 255, 0.1)',
-        position: 'fixed',
-        top: 0,
-        zIndex: 1000
+        borderBottom: '1px solid rgba(99, 102, 241, 0.2)',
+        position: 'fixed !important',
+        top: '0 !important',
+        zIndex: 1000,
+        width: '100%'
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -575,7 +560,7 @@ function Chatbot({ onDarkModeToggle }) {
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed left-4 top-20 z-50 p-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200 border border-gray-600"
-        style={{ zIndex: 1001 }}
+        style={{ zIndex: 1001, top: '80px' }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -583,24 +568,15 @@ function Chatbot({ onDarkModeToggle }) {
       </button>
 
       {/* Main Chat Container */}
-      <div className={`chatbot-background flex flex-col min-h-screen w-full transition-all duration-300 ${
+      <div className={`chatbot-background chatbot-main-content flex flex-col min-h-screen w-full transition-all duration-300 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      }`} style={{ paddingTop: '4rem' }}>
+      }`}>
 
         {/* Chat Messages Container - Enhanced with better structure and longer height */}
         <div className="flex-1 min-h-[calc(100vh-20rem)] overflow-y-auto px-4 py-6 pb-24">{/* Added bottom padding for input area */}
           {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center px-4 py-8">
-              {/* Logo positioned like other pages at the top center */}
-              <div className="mb-8">
-                <Link to="/" onClick={handleLogoClick}>
-                  <div className={`text-6xl font-bold transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-800'
-                  }`}>
-                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">AI</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">/STANBUL</span>
-                  </div>
-                </Link>
-              </div>
+            <div className="h-full flex flex-col items-center justify-center px-4 py-4">
+              {/* Removed the large logo - making chatbot closer to navbar */}
               
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
                 darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
