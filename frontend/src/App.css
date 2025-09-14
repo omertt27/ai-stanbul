@@ -465,7 +465,10 @@ body.light .nav-container {
 }
 
 .nav-logo {
-  font
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
 /* Light mode logo - better contrast */
 body.light .nav-logo {
   color: #2d3748;
@@ -1015,333 +1018,59 @@ html, body {
   pointer-events: none !important;
 }
 
-/* Header logo for BlogPost and other pages with header layout */
-.header-logo.logo-istanbul {
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.header-logo .logo-text {
-  font-size: 4rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.16em !important;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  text-shadow: 0 3px 15px rgba(99, 102, 241, 0.25) !important;
-  transition: all 0.3s ease !important;
-}
-
-.header-logo .logo-text:hover {
-  transform: scale(1.05);
-  text-shadow: 0 5px 20px rgba(99, 102, 241, 0.4) !important;
-}
-
-@media (max-width: 768px) {
-  .header-logo .logo-text {
-    font-size: 3rem !important;
-    letter-spacing: 0.14em !important;
-  }
-}
-
-@media (max-width: 640px) {
-  .header-logo .logo-text {
-    font-size: 2.5rem !important;
-    letter-spacing: 0.12em !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .header-logo .logo-text {
-    font-size: 2rem !important;
-    letter-spacing: 0.1em !important;
-  }
-}
-
-/* Enhanced Blog Page Styling - More ergonomic and aesthetic */
-.blog-page {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  min-height: 100vh;
-}
-
-body.light .blog-page {
-  background: linear-gradient(135deg, #fafbfc 0%, #f0f4f8 100%);
-}
-
-.blog-page.dark {
-  background: linear-gradient(135deg, #0f1419 0%, #1a202c 100%);
-}
-
-.blog-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.blog-header.dark {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 20, 25, 0.95);
-}
-
-.blog-header:not(.dark) {
-  background: rgba(248, 250, 252, 0.95);
-  border-bottom: 1px solid rgba(209, 213, 219, 0.4);
-}
-
-.blog-content {
-  padding: 2rem 1rem;
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-.blog-article {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.blog-article:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.blog-article.dark {
-  background: rgba(26, 32, 44, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-}
-
-.blog-article.dark:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-}
-
-.blog-text-content {
-  padding: 2.5rem;
-  line-height: 1.8;
-  font-size: 1.125rem;
-}
-
-.blog-text-content p {
-  margin-bottom: 1.75rem;
-  color: #374151;
-}
-
-.blog-text-content.dark p {
-  color: #d1d5db;
-}
-
-.blog-author-section {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  background: rgba(248, 250, 252, 0.5);
-}
-
-.blog-author-section.dark {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(45, 55, 72, 0.5);
-}
-
-.blog-author-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(99, 102, 241, 0.3);
-}
-
-.blog-author-info h4 {
-  font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 0.25rem;
-}
-
-.blog-author-info.dark h4 {
-  color: #e2e8f0;
-}
-
-.blog-author-info span {
-  font-size: 0.875rem;
-  color: #718096;
-}
-
-.blog-author-info.dark span {
-  color: #a0aec0;
-}
-
-.blog-navigation {
-  margin-bottom: 2rem;
-}
-
-.blog-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-  border-radius: 0.75rem;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-}
-
-.blog-back-link:hover {
-  background: rgba(99, 102, 241, 0.2);
-  transform: translateX(-2px);
-  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
-}
-
-.blog-back-link.dark {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-}
-
-.blog-back-link.dark:hover {
-  background: rgba(99, 102, 241, 0.25);
-}
-
-/* Fixed navbar positioning for all pages except chatbot and main */
-.page-with-fixed-nav {
-  padding-top: 5rem; /* Space for fixed navbar */
-}
-
-.fixed-navbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 1000 !important;
-  background: rgba(248, 250, 252, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(209, 213, 219, 0.4) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.3s ease !important;
-  padding: 1rem 2rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-}
-
-body.light .fixed-navbar {
-  background: rgba(253, 253, 254, 0.95) !important;
-  border-bottom: 1px solid rgba(209, 213, 219, 0.4) !important;
-}
-
-.fixed-navbar.dark {
-  background: rgba(15, 20, 25, 0.95) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.fixed-navbar-logo {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.fixed-navbar-links {
+/* Purple slide effect for navbar bottom */
+.nav-container::after {
+  content: '';
   position: absolute;
-  right: 2rem;
-  display: flex;
-  gap: 1.2rem; /* Reduced gap for closer buttons */
-  align-items: center;
-}
-
-.fixed-navbar-link {
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  padding: 0.6rem 1.2rem; /* Increased padding for bigger buttons */
-  border-radius: 0.5rem;
-  color: #4a5568;
-  font-size: 1.1rem; /* Increased font size for bigger buttons */
-}
-
-.fixed-navbar-link:hover {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-  transform: translateY(-1px);
-}
-
-.fixed-navbar-link.active {
-  background: rgba(99, 102, 241, 0.15);
-  color: #6366f1;
-  font-weight: 600;
-}
-
-.fixed-navbar.dark .fixed-navbar-link {
-  color: #cbd5e0;
-}
-
-.fixed-navbar.dark .fixed-navbar-link:hover {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-}
-
-.fixed-navbar.dark .fixed-navbar-link.active {
-  background: rgba(99, 102, 241, 0.25);
-  color: #a5b4fc;
-}
-
-/* Chatbot Navbar - Ensure it stays sticky with bigger buttons */
-.chatbot-navbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 1000 !important;
-  width: 100% !important;
-  height: 72px !important; /* Increased height for bigger buttons */
-  background: rgba(17, 24, 39, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(0) !important;
-}
-
-/* Ensure chatbot content starts below navbar */
-.chatbot-main-content {
-  padding-top: 72px !important;
-  min-height: calc(100vh - 72px) !important;
-}
-
-/* Update sidebar positioning for new navbar height */
-.chat-sidebar {
-  position: fixed;
+  bottom: 0;
   left: 0;
-  top: 72px; /* Updated for new navbar height */
-  height: calc(100vh - 72px);
-  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-  border-right: 1px solid #374151;
-  z-index: 40;
-  transition: width 0.3s ease-in-out;
-  overflow: hidden;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
 }
 
-.sidebar-toggle {
-  position: fixed;
-  left: 1rem;
-  top: 88px; /* Updated for new navbar height */
-  z-index: 50;
-  padding: 0.5rem;
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  border: 1px solid #374151;
-  border-radius: 0.5rem;
-  color: white;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.nav-container:hover::after {
+  transform: scaleX(1);
 }
+
+/* Enhanced purple slide for fixed navbar */
+.fixed-navbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
+}
+
+.fixed-navbar:hover::after {
+  transform: scaleX(1);
+}
+
+/* Chatbot navbar purple slide */
+.chatbot-navbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.chatbot-navbar:hover::after {
+  transform: scaleX(1);
 }

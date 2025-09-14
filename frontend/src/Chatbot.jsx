@@ -5,125 +5,50 @@ import { trackNavigation } from './utils/analytics';
 import QuickTester from './QuickTester';
 import './App.css';
 
-// Minimal navbar for chatbot page
+// GPT/Gemini style navbar for chatbot page
 const ChatbotNavBar = () => {
-  const location = useLocation();
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-  
-  const isMobile = windowWidth < 768;
-  
-  const logoStyle = {
-    textDecoration: 'none',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, opacity 0.2s ease',
-  };
-
-  const logoTextStyle = {
-    fontSize: isMobile ? '1.4rem' : '1.8rem',
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-    textShadow: '0 2px 8px rgba(99, 102, 241, 0.2)',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-  };
-
-  const linkStyle = (isActive) => ({
-    color: isActive ? '#6366f1' : '#c7c9e2',
-    textDecoration: 'none',
-    borderBottom: isActive ? '1px solid #6366f1' : '1px solid transparent',
-    paddingBottom: '0.25rem',
-    paddingTop: '0.25rem',
-    paddingLeft: '0.75rem',
-    paddingRight: '0.75rem',
-    borderRadius: '0.25rem',
-    transition: 'all 0.3s ease',
-    fontWeight: isActive ? '600' : '500',
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    fontSize: isMobile ? '0.8rem' : '0.9rem', // Smaller buttons for chatbot
-    minHeight: 'auto',
-    minWidth: 'auto',
-    textAlign: 'center',
-    lineHeight: '1.2',
-    transform: 'scale(1)',
-    margin: '0 0.125rem',
-    boxShadow: 'none',
-    background: 'transparent',
-    border: 'none',
-  });
-  
-  const handleLogoClick = () => {
-    trackNavigation('/');
-  };
-
   return (
-    <nav 
-      className="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transition-all duration-300"
-      style={{ 
-        borderBottom: '1px solid rgba(99, 102, 241, 0.2)',
-        height: '64px',
-        width: '100%'
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" style={logoStyle} onClick={handleLogoClick}>
-            <div style={logoTextStyle}>
-              AI Istanbul
-            </div>
+    <div className="nav-container" style={{ 
+      background: 'rgba(255, 255, 255, 0.95)',
+      borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+      backdropFilter: 'blur(12px)'
+    }}>
+      <div className="nav-content" style={{ justifyContent: 'space-between' }}>
+        <Link 
+          to="/" 
+          className="nav-logo"
+          style={{
+            fontSize: '1.25rem',
+            fontWeight: '600',
+            color: '#1f2937',
+            textDecoration: 'none'
+          }}
+        >
+          AI Istanbul
+        </Link>
+        
+        <div className="nav-links">
+          <Link to="/about" className="nav-link" style={{ 
+            color: '#6b7280',
+            fontSize: '0.9rem',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            transition: 'all 0.2s ease'
+          }}>
+            About
           </Link>
-          
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-2">
-            <Link 
-              to="/about" 
-              className="navbar-link"
-              style={linkStyle(location.pathname === '/about')}
-              onClick={() => trackNavigation('/about')}
-            >
-              About
-            </Link>
-            <Link 
-              to="/sources" 
-              className="navbar-link"
-              style={linkStyle(location.pathname === '/sources')}
-              onClick={() => trackNavigation('/sources')}
-            >
-              Sources
-            </Link>
-            <Link 
-              to="/faq" 
-              className="navbar-link"
-              style={linkStyle(location.pathname === '/faq')}
-              onClick={() => trackNavigation('/faq')}
-            >
-              FAQ
-            </Link>
-            <Link 
-              to="/contact" 
-              className="navbar-link"
-              style={linkStyle(location.pathname === '/contact')}
-              onClick={() => trackNavigation('/contact')}
-            >
-              Contact
-            </Link>
-          </div>
+          <Link to="/faq" className="nav-link" style={{ 
+            color: '#6b7280',
+            fontSize: '0.9rem',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            transition: 'all 0.2s ease'
+          }}>
+            FAQ
+          </Link>
         </div>
       </div>
-    </nav>
+    </div>
   );
 };
 
@@ -193,7 +118,7 @@ function Chatbot({ onDarkModeToggle }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [darkMode, setDarkMode] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [inputError, setInputError] = useState('')
   const [chatSessions, setChatSessions] = useState([])
@@ -292,15 +217,6 @@ function Chatbot({ onDarkModeToggle }) {
       createNewChat();
     }
   };
-
-  // Apply dark mode class to document
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }, [darkMode])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -429,21 +345,6 @@ function Chatbot({ onDarkModeToggle }) {
       });
     }
   }
-
-  const handleLogoClick = () => {
-    trackNavigation('/');
-    const hasActiveChat = localStorage.getItem('chat-messages');
-    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
-    
-    if (parsedMessages && parsedMessages.length > 0) {
-      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
-        detail: { expanded: true, hasMessages: true } 
-      }));
-    } else {
-      localStorage.removeItem('chat_session_id');
-      localStorage.removeItem('chat-messages');
-    }
-  };
 
   const handleSampleClick = (question) => {
     // Automatically send the message
@@ -587,201 +488,192 @@ function Chatbot({ onDarkModeToggle }) {
         </svg>
       </button>
 
-      {/* Main Chat Container */}
-      <div className={`chatbot-background chatbot-main-content flex flex-col min-h-screen w-full transition-all duration-300 pt-16 ${
+      {/* Main Chat Container - GPT/Gemini Style */}
+      <div className={`flex flex-col h-screen transition-all duration-300 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      }`}>
+      }`} style={{ 
+        background: darkMode ? '#212121' : '#ffffff',
+        paddingTop: '60px' // Space for fixed navbar
+      }}>
 
-        {/* Chat Messages Container - Enhanced with better structure and longer height */}
-        <div className="flex-1 min-h-[calc(100vh-20rem)] overflow-y-auto px-4 py-6 pb-24">{/* Added bottom padding for input area */}
-          {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center px-4 py-4">
-              {/* Removed the large logo - making chatbot closer to navbar */}
-              
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
-                darkMode ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-blue-600 to-purple-700'
-              }`}>
-                <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-              </svg>
-            </div>
-            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>How can I help you today?</h2>
-            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
-              darkMode ? 'text-gray-300' : 'text-gray-500'
-            }`}>
-              I'm your AI assistant for exploring Istanbul. Ask me about restaurants, attractions, 
-              neighborhoods, culture, history, or anything else about this amazing city!
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
-              <div 
-                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className={`font-semibold mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>�️ Top Attractions</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Show me the best attractions and landmarks in Istanbul</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('Find authentic Turkish restaurants in Istanbul')}
-                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className={`font-semibold mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🍽️ Turkish Cuisine</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Find authentic Turkish restaurants in Istanbul</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
-                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className={`font-semibold mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>�️ Neighborhoods</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
-                className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:shadow-md ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' 
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className={`font-semibold mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🎭 Culture & Activities</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>What are the best cultural experiences and activities in Istanbul?</div>
-              </div>
-            </div>
-          </div>
-        )}
-            
-        <div className="max-w-full mx-auto px-4">
-          {messages.map((msg, index) => (
-            <div key={index} className="group py-4">
-              <div className="flex items-start space-x-3">
-                {msg.role === 'user' ? (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
-                        : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500'
-                    }`}>
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>You</div>
-                      <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-800'
-                      }`}>
-                        {renderMessageContent(msg.content, darkMode)}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                        : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500'
-                    }`}>
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>AI Assistant</div>
-                      <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-800'
-                      }`}>
-                        {renderMessageContent(msg.content, darkMode)}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+        {/* Chat Messages Area */}
+        <div className="flex-1 overflow-y-auto" style={{ 
+          maxWidth: '768px', 
+          margin: '0 auto', 
+          width: '100%',
+          padding: '0 1rem'
+        }}>
           
-          {loading && (
-            <div className="group py-4">
-              <div className="flex items-start space-x-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
-                  darkMode 
-                    ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                    : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500'
-                }`}>
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>AI Assistant</div>
-                  <div className="flex items-center space-x-1">
-                    <div className={`w-1.5 h-1.5 rounded-full animate-bounce transition-colors duration-200 ${
-                      darkMode ? 'bg-indigo-400' : 'bg-indigo-500'
-                    }`}></div>
-                    <div className={`w-1.5 h-1.5 rounded-full animate-bounce transition-colors duration-200 ${
-                      darkMode ? 'bg-indigo-400' : 'bg-indigo-500'
-                    }`} style={{animationDelay: '0.1s'}}></div>
-                    <div className={`w-1.5 h-1.5 rounded-full animate-bounce transition-colors duration-200 ${
-                      darkMode ? 'bg-indigo-400' : 'bg-indigo-500'
-                    }`} style={{animationDelay: '0.2s'}}></div>
+          {/* Welcome Screen - GPT Style */}
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full py-12">
+              
+              {/* Main Title */}
+              <h1 className={`text-4xl font-semibold mb-12 text-center ${
+                darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                How can I help you today?
+              </h1>
+              
+              {/* Example Prompts Grid - GPT Style */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
+                <button 
+                  onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
+                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
+                  }`}
+                  style={{ 
+                    borderRadius: '12px',
+                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div className="font-medium mb-1">🏛️ Top Attractions</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Discover Istanbul's must-visit landmarks
                   </div>
-                </div>
+                </button>
+                
+                <button 
+                  onClick={() => handleSampleClick('Find authentic Turkish restaurants in Istanbul')}
+                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
+                  }`}
+                  style={{ 
+                    borderRadius: '12px',
+                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div className="font-medium mb-1">🍽️ Turkish Cuisine</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Find authentic local restaurants
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
+                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
+                  }`}
+                  style={{ 
+                    borderRadius: '12px',
+                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div className="font-medium mb-1">🏙️ Neighborhoods</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Explore different districts of the city
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
+                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
+                  }`}
+                  style={{ 
+                    borderRadius: '12px',
+                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div className="font-medium mb-1">🎭 Culture & Activities</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Cultural experiences and activities
+                  </div>
+                </button>
               </div>
             </div>
           )}
           
-          {/* Scroll anchor for auto-scrolling */}
-          <div ref={messagesEndRef} />
+          {/* Chat Messages - GPT/Gemini Style */}
+          <div className="py-4">
+            {messages.map((msg, index) => (
+              <div key={index} className="mb-6" style={{ maxWidth: '100%' }}>
+                <div className={`flex items-start gap-3 ${
+                  msg.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}>
+                  {msg.role === 'assistant' && (
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                    }`}>
+                      <svg className={`w-4 h-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                      </svg>
+                    </div>
+                  )}
+                  
+                  <div className={`max-w-[80%] ${
+                    msg.role === 'user' 
+                      ? 'bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2'
+                      : darkMode 
+                        ? 'text-gray-100' 
+                        : 'text-gray-900'
+                  }`}>
+                    <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
+                      {renderMessageContent(msg.content, darkMode)}
+                    </div>
+                  </div>
+                  
+                  {msg.role === 'user' && (
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode ? 'bg-blue-600' : 'bg-blue-600'
+                    }`}>
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {loading && (
+              <div className="mb-6">
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                  }`}>
+                    <svg className={`w-4 h-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                    </svg>
+                  </div>
+                  <div className="flex items-center space-x-1 py-2">
+                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`}></div>
+                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.1s'}}></div>
+                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
-      {/* Input Area - Fixed positioning to avoid dark bars */}
-      <div className={`fixed bottom-0 left-0 right-0 border-t p-4 transition-colors duration-200 ${
-        sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      } ${
-        darkMode 
-          ? 'border-gray-700 bg-gray-900 bg-opacity-95 backdrop-blur-md' 
-          : 'border-gray-200 bg-white bg-opacity-95 backdrop-blur-md'
-      }`} style={{ zIndex: 40 }}>
-        <div className="w-full max-w-4xl mx-auto">
+        {/* Input Area - GPT/Gemini Style */}
+        <div className={`border-t p-4 transition-colors duration-200 ${
+          sidebarOpen ? 'md:ml-0 ml-0' : 'ml-0'
+        } ${
+          darkMode 
+            ? 'border-gray-700 bg-gray-900' 
+            : 'border-gray-200 bg-white'
+        }`} style={{ 
+          maxWidth: '768px', 
+          margin: '0 auto', 
+          width: '100%'
+        }}>
+          
           {/* Input suggestions when typing or no input */}
           {suggestions.length > 0 && (
             <div className={`mb-3 p-3 rounded-lg ${
@@ -820,64 +712,61 @@ function Chatbot({ onDarkModeToggle }) {
             </div>
           )}
           
+          {/* Input Box */}
           <div className="relative">
-            <div className={`flex items-center space-x-2 rounded-xl px-2 py-1 transition-all duration-200 border ${
+            <div className={`flex items-center space-x-3 rounded-2xl px-4 py-3 transition-all duration-200 border ${
               inputError 
                 ? 'border-red-400 dark:border-red-600' 
                 : darkMode 
                   ? 'bg-gray-800 border-gray-600 focus-within:border-blue-500' 
                   : 'bg-white border-gray-300 focus-within:border-blue-500'
-            }`}>
-              <div className="flex-1 min-h-[16px] max-h-[80px] overflow-y-auto">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value)
-                    setInputError('') // Clear error when typing
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder="Ask me anything about Istanbul... (restaurants, attractions, districts, culture, etc.)"
-                  className={`w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
-                    darkMode 
-                      ? 'placeholder-gray-400 text-white' 
-                      : 'placeholder-gray-500 text-gray-900'
-                  }`}
-                  disabled={loading}
-                  autoComplete="off"
-                />
-              </div>
+            }`} style={{
+              borderRadius: '24px',
+              boxShadow: darkMode ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.1)'
+            }}>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value)
+                  setInputError('') // Clear error when typing
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Message AI Istanbul"
+                className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
+                  darkMode 
+                    ? 'placeholder-gray-400 text-white' 
+                    : 'placeholder-gray-500 text-gray-900'
+                }`}
+                disabled={loading}
+                autoComplete="off"
+              />
               <button 
                 onClick={handleSend} 
                 disabled={loading || !input.trim()}
-                className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
-                  darkMode 
-                    ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600' 
-                    : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400'
-                } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+                className={`p-2 rounded-full transition-all duration-200 ${
+                  loading || !input.trim()
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                } text-white`}
+                style={{ borderRadius: '50%' }}
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                   </svg>
                 )}
               </button>
             </div>
           </div>
-          <div className={`text-xs text-center mt-2 transition-colors duration-200 ${
-            darkMode ? 'text-gray-500' : 'text-gray-500'
-          }`}>
-            Your AI-powered Istanbul guide
-          </div>
         </div>
-      </div>
       </div>
       
       {/* Quick Tester Component */}
