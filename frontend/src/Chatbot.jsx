@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
@@ -6,12 +5,11 @@ import { trackNavigation } from './utils/analytics';
 import QuickTester from './QuickTester';
 import './App.css';
 
-// NavBar component for Chatbot
+// Minimal navbar for chatbot page
 const ChatbotNavBar = () => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
-  // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
@@ -20,7 +18,6 @@ const ChatbotNavBar = () => {
   
   const isMobile = windowWidth < 768;
   
-  // Logo style
   const logoStyle = {
     textDecoration: 'none',
     textAlign: 'center',
@@ -29,7 +26,7 @@ const ChatbotNavBar = () => {
   };
 
   const logoTextStyle = {
-    fontSize: isMobile ? '1.8rem' : '2.2rem',
+    fontSize: isMobile ? '1.6rem' : '2rem',
     fontWeight: 700,
     letterSpacing: '0.15em',
     textTransform: 'uppercase',
@@ -51,36 +48,32 @@ const ChatbotNavBar = () => {
     paddingLeft: '1rem',
     paddingRight: '1rem',
     borderRadius: '0.5rem',
-    transition: 'all 0.2s ease',
-    fontWeight: 'inherit',
+    transition: 'all 0.3s ease',
+    fontWeight: isActive ? '600' : '500',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: isMobile ? '0.9rem' : '1rem',
+    fontSize: isMobile ? '0.9rem' : '1rem', // Smaller buttons as requested
+    minHeight: '36px', // Smaller touch targets
+    minWidth: '36px',
+    textAlign: 'center',
+    lineHeight: '1.2',
+    transform: 'scale(1)',
+    margin: '0 0.15rem',
+    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
+    background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'rgba(0, 0, 0, 0.03)',
+    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
   });
   
   const handleLogoClick = () => {
     trackNavigation('/');
-    const hasActiveChat = localStorage.getItem('chat-messages');
-    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
-    
-    if (parsedMessages && parsedMessages.length > 0) {
-      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
-        detail: { expanded: true, hasMessages: true } 
-      }));
-    } else {
-      localStorage.removeItem('chat_session_id');
-      localStorage.removeItem('chat-messages');
-    }
   };
 
   return (
     <nav 
-      className="chatbot-navbar fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transition-all duration-300"
+      className="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-blur-md shadow-lg transition-all duration-300"
       style={{ 
         borderBottom: '1px solid rgba(99, 102, 241, 0.2)',
-        position: 'fixed !important',
-        top: '0 !important',
-        zIndex: 1000,
+        height: '64px',
         width: '100%'
       }}
     >
@@ -94,9 +87,10 @@ const ChatbotNavBar = () => {
           </Link>
           
           {/* Navigation Links */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
             <Link 
               to="/about" 
+              className="navbar-link"
               style={linkStyle(location.pathname === '/about')}
               onClick={() => trackNavigation('/about')}
             >
@@ -104,6 +98,7 @@ const ChatbotNavBar = () => {
             </Link>
             <Link 
               to="/sources" 
+              className="navbar-link"
               style={linkStyle(location.pathname === '/sources')}
               onClick={() => trackNavigation('/sources')}
             >
@@ -111,6 +106,7 @@ const ChatbotNavBar = () => {
             </Link>
             <Link 
               to="/faq" 
+              className="navbar-link"
               style={linkStyle(location.pathname === '/faq')}
               onClick={() => trackNavigation('/faq')}
             >
@@ -118,6 +114,7 @@ const ChatbotNavBar = () => {
             </Link>
             <Link 
               to="/contact" 
+              className="navbar-link"
               style={linkStyle(location.pathname === '/contact')}
               onClick={() => trackNavigation('/contact')}
             >
@@ -468,9 +465,32 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
+  // Handle pending chat query from main page
+  useEffect(() => {
+    const pendingQuery = localStorage.getItem('pending_chat_query');
+    if (pendingQuery) {
+      // Clear the pending query
+      localStorage.removeItem('pending_chat_query');
+      
+      // Set the input and automatically send the query
+      setInput(pendingQuery);
+      
+      // Create a new session if needed
+      if (!currentSessionId) {
+        const newSessionId = Date.now().toString();
+        setCurrentSessionId(newSessionId);
+      }
+      
+      // Automatically send the query after a brief delay
+      setTimeout(() => {
+        handleSend(pendingQuery);
+      }, 500);
+    }
+  }, []);
+
   return (
     <>
-      {/* Scrollable Navbar */}
+      {/* Chatbot Navbar */}
       <ChatbotNavBar />
       
       {/* Chat History Sidebar */}
@@ -560,7 +580,7 @@ function Chatbot({ onDarkModeToggle }) {
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed left-4 top-20 z-50 p-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200 border border-gray-600"
-        style={{ zIndex: 1001, top: '80px' }}
+        style={{ zIndex: 1001 }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -568,7 +588,7 @@ function Chatbot({ onDarkModeToggle }) {
       </button>
 
       {/* Main Chat Container */}
-      <div className={`chatbot-background chatbot-main-content flex flex-col min-h-screen w-full transition-all duration-300 ${
+      <div className={`chatbot-background chatbot-main-content flex flex-col min-h-screen w-full transition-all duration-300 pt-16 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
       }`}>
 

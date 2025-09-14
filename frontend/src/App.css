@@ -391,6 +391,12 @@ body.light .searchbar input:focus {
   background: #6366f1;
 }
 
+/* Button press animation for better UX */
+.button-press-animation {
+  transform: scale(0.95) !important;
+  transition: transform 0.1s ease !important;
+}
+
 /* Reset and full-screen layout */
 * {
   margin: 0;
@@ -459,13 +465,7 @@ body.light .nav-container {
 }
 
 .nav-logo {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #ffffff;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
+  font
 /* Light mode logo - better contrast */
 body.light .nav-logo {
   color: #2d3748;
@@ -516,6 +516,58 @@ body.light .nav-link.active {
 .nav-link.dark:hover,
 .nav-link.dark.active {
   color: #60a5fa;
+}
+
+/* Enhanced Navigation Button Styles */
+.navbar-link {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.navbar-link:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.navbar-link:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.navbar-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.navbar-link:hover::before {
+  left: 100%;
+}
+
+/* Mobile navbar improvements */
+@media (max-width: 767px) {
+  .navbar-link {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 0.5rem;
+    margin: 0.25rem 0;
+  }
+}
+
+/* Desktop navbar improvements */
+@media (min-width: 768px) {
+  .navbar-link {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.2rem;
+    border-radius: 0.75rem;
+    margin: 0 0.25rem;
+  }
 }
 
 /* Page content */
@@ -1260,89 +1312,34 @@ body.light .fixed-navbar {
   color: #a5b4fc;
 }
 
-/* Responsive navbar for mobile */
-@media (max-width: 768px) {
-  .fixed-navbar {
-    padding: 0.75rem 1rem !important;
-    flex-direction: column !important;
-    gap: 1rem !important;
-  }
-  
-  .fixed-navbar-logo {
-    flex: none !important;
-  }
-  
-  .fixed-navbar-links {
-    position: static !important;
-    right: auto !important;
-    gap: 1rem !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-  }
-  
-  .page-with-fixed-nav {
-    padding-top: 7rem; /* More space on mobile */
-  }
+/* Chatbot Navbar - Ensure it stays sticky with bigger buttons */
+.chatbot-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  height: 72px !important; /* Increased height for bigger buttons */
+  background: rgba(17, 24, 39, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(0) !important;
 }
 
-@media (max-width: 480px) {
-  .fixed-navbar-links {
-    gap: 0.75rem !important;
-  }
-  
-  .fixed-navbar-link {
-    padding: 0.375rem 0.75rem !important;
-    font-size: 0.9rem !important;
-  }
-  
-  .page-with-fixed-nav {
-    padding-top: 8rem; /* Even more space on small mobile */
-  }
+/* Ensure chatbot content starts below navbar */
+.chatbot-main-content {
+  padding-top: 72px !important;
+  min-height: calc(100vh - 72px) !important;
 }
 
-/* Chatbot specific background - clean, modern, dark theme */
-.chatbot-background {
-  position: relative;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-  min-height: 100vh;
-  transition: background 0.3s ease;
-  padding: 0;
-  margin: 0;
-}
-
-.chatbot-background::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(129, 140, 248, 0.1) 0%, transparent 50%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Light mode for chatbot background */
-body.light .chatbot-background {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
-}
-
-body.light .chatbot-background::before {
-  background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(129, 140, 248, 0.05) 0%, transparent 50%);
-}
-
-.light .chatbot-background {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
-}
-
-/* Chat History Sidebar Styles */
+/* Update sidebar positioning for new navbar height */
 .chat-sidebar {
   position: fixed;
   left: 0;
-  top: 64px; /* Start below the navbar */
-  height: calc(100vh - 64px); /* Full height minus navbar */
+  top: 72px; /* Updated for new navbar height */
+  height: calc(100vh - 72px);
   background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
   border-right: 1px solid #374151;
   z-index: 40;
@@ -1350,47 +1347,10 @@ body.light .chatbot-background::before {
   overflow: hidden;
 }
 
-.chat-sidebar-open {
-  width: 20rem;
-}
-
-.chat-sidebar-closed {
-  width: 0;
-}
-
-.chat-session-item {
-  position: relative;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-.chat-session-item:hover {
-  background-color: #374151;
-  border-color: #4B5563;
-}
-
-.chat-session-item.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-color: #6366f1;
-  color: white;
-}
-
-.chat-session-item .delete-btn {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.chat-session-item:hover .delete-btn {
-  opacity: 1;
-}
-
 .sidebar-toggle {
   position: fixed;
   left: 1rem;
-  top: 80px; /* Position below the navbar */
+  top: 88px; /* Updated for new navbar height */
   z-index: 50;
   padding: 0.5rem;
   background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
@@ -1400,40 +1360,4 @@ body.light .chatbot-background::before {
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-
-.sidebar-toggle:hover {
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-  transform: scale(1.05);
-}
-
-/* Chatbot Navbar - Ensure it stays sticky */
-.chatbot-navbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 1000 !important;
-  width: 100% !important;
-  height: 64px !important;
-  background: rgba(17, 24, 39, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(99, 102, 241, 0.2) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(0) !important; /* Prevent any transforms that might hide it */
-}
-
-/* Ensure chatbot content starts below navbar */
-.chatbot-main-content {
-  padding-top: 64px !important;
-  min-height: calc(100vh - 64px) !important;
-}
-
-/* Override any competing styles */
-.chatbot-background {
-  position: relative;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-  min-height: 100vh;
-  transition: background 0.3s ease;
-  padding: 0;
-  margin: 0;
 }

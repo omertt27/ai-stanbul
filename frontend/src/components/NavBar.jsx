@@ -69,22 +69,31 @@ const NavBar = ({ hideLogo = false }) => {
     cursor: 'pointer',
   };
 
-  // Link style for navigation items
+  // Link style for navigation items - Made bigger and more prominent
   const linkStyle = (isActive) => ({
     color: isActive ? '#6366f1' : '#c7c9e2',
     textDecoration: 'none',
-    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: '0.5rem',
-    paddingTop: '0.5rem',
-    paddingLeft: '1rem',
-    paddingRight: '1rem',
-    borderRadius: '0.5rem',
-    transition: 'all 0.2s ease',
-    fontWeight: 'inherit',
+    borderBottom: isActive ? '3px solid #6366f1' : '3px solid transparent',
+    paddingBottom: '1rem',
+    paddingTop: '1rem',
+    paddingLeft: '2rem',
+    paddingRight: '2rem',
+    borderRadius: '0.75rem',
+    transition: 'all 0.3s ease',
+    fontWeight: isActive ? '600' : '500',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: isMobile ? '0.9rem' : '1rem',
+    fontSize: isMobile ? '1rem' : '1.1rem', // Smaller font size as requested
     display: 'block',
+    minHeight: '42px', // Smaller touch targets
+    minWidth: '42px',
+    textAlign: 'center',
+    lineHeight: '1.2',
+    transform: 'scale(1)',
+    margin: '0 0.25rem', // Reduced margin
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)', // Lighter shadow
+    background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'rgba(0, 0, 0, 0.05)', // Lighter background
+    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)', // Thinner border
   });
   
   const handleLogoClick = () => {
@@ -128,6 +137,10 @@ const NavBar = ({ hideLogo = false }) => {
   };
 
   const handleAboutClick = (e) => {
+    // Add button press animation
+    e.target.classList.add('button-press-animation');
+    setTimeout(() => e.target.classList.remove('button-press-animation'), 200);
+    
     // Track navigation click
     trackNavigation('about');
     
@@ -138,16 +151,28 @@ const NavBar = ({ hideLogo = false }) => {
     }
   };
 
-  const handleFAQClick = () => {
+  const handleFAQClick = (e) => {
+    // Add button press animation
+    e.target.classList.add('button-press-animation');
+    setTimeout(() => e.target.classList.remove('button-press-animation'), 200);
+    
     trackNavigation('faq');
   };
 
-  const handleDonateClick = () => {
+  const handleDonateClick = (e) => {
+    // Add button press animation
+    e.target.classList.add('button-press-animation');
+    setTimeout(() => e.target.classList.remove('button-press-animation'), 200);
+    
     trackNavigation('donate');
   };
 
-  const handleChatClick = () => {
-    trackNavigation('chat');
+  const handleChatClick = (e) => {
+    // Add button press animation
+    e.target.classList.add('button-press-animation');
+    setTimeout(() => e.target.classList.remove('button-press-animation'), 200);
+    
+    trackNavigation('chatbot');
   };
 
   // Track navigation for analytics
@@ -185,23 +210,22 @@ const NavBar = ({ hideLogo = false }) => {
       {!isMobile && (
         <nav style={{
           position: 'fixed',
-          top: '0.25rem',
+          top: '0.5rem',
           right: '1.5rem',
           zIndex: 50,
           display: 'flex',
           justifyContent: 'flex-end',
           alignItems: 'center',
-          gap: '1.5rem',
-          padding: '0.75rem 1rem',
+          gap: '0.25rem', // Further reduced gap to let button margins work
+          padding: '1rem 0.5rem', // Adjusted padding
           fontWeight: 400,
-          fontSize: '1rem',
           letterSpacing: '0.01em',
         }}>
-          <Link to="/chat" onClick={handleChatClick} style={linkStyle(location.pathname === '/chat')}>Chat</Link>
-          <Link to="/blog" onClick={handleBlogClick} style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-          <Link to="/about" onClick={handleAboutClick} style={linkStyle(location.pathname === '/about')}>About</Link>
-          <Link to="/faq" onClick={handleFAQClick} style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-          <Link to="/donate" onClick={handleDonateClick} style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+          <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
+          <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
+          <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
+          <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+          <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
         </nav>
       )}
 
@@ -270,40 +294,43 @@ const NavBar = ({ hideLogo = false }) => {
           }}
         >
           <Link 
-            to="/chat" 
-            onClick={handleChatClick} 
+            to="/chatbot" 
+            onClick={handleChatClick}
+            className="navbar-link"
             style={{
-              ...linkStyle(location.pathname === '/chat'),
-              fontSize: '1.25rem',
+              ...linkStyle(location.pathname === '/chatbot'),
+              fontSize: '1.2rem',
               padding: '1rem 2rem',
               textAlign: 'center',
-              minWidth: '8rem',
+              minWidth: '10rem',
             }}
           >
             Chat
           </Link>
           <Link 
             to="/blog" 
-            onClick={handleBlogClick} 
+            onClick={handleBlogClick}
+            className="navbar-link"
             style={{
               ...linkStyle(location.pathname.startsWith('/blog')),
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               padding: '1rem 2rem',
               textAlign: 'center',
-              minWidth: '8rem',
+              minWidth: '10rem',
             }}
           >
             Blog
           </Link>
           <Link 
             to="/about" 
-            onClick={handleAboutClick} 
+            onClick={handleAboutClick}
+            className="navbar-link"
             style={{
               ...linkStyle(location.pathname === '/about'),
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               padding: '1rem 2rem',
               textAlign: 'center',
-              minWidth: '8rem',
+              minWidth: '10rem',
             }}
           >
             About
@@ -313,10 +340,10 @@ const NavBar = ({ hideLogo = false }) => {
             onClick={handleFAQClick} 
             style={{
               ...linkStyle(location.pathname === '/faq'),
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               padding: '1rem 2rem',
               textAlign: 'center',
-              minWidth: '8rem',
+              minWidth: '10rem',
             }}
           >
             FAQ
@@ -326,10 +353,10 @@ const NavBar = ({ hideLogo = false }) => {
             onClick={handleDonateClick} 
             style={{
               ...linkStyle(location.pathname === '/donate'),
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               padding: '1rem 2rem',
               textAlign: 'center',
-              minWidth: '8rem',
+              minWidth: '10rem',
             }}
           >
             Donate
