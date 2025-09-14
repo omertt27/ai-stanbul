@@ -208,7 +208,7 @@ const NavBar = ({ hideLogo = false }) => {
       
       {/* Desktop Navigation */}
       {!isMobile && (
-        <nav style={{
+        <nav className="navbar-with-slide" style={{
           position: 'fixed',
           top: '0.5rem',
           right: '1.5rem',
@@ -220,6 +220,10 @@ const NavBar = ({ hideLogo = false }) => {
           padding: '1rem 0.5rem', // Adjusted padding
           fontWeight: 400,
           letterSpacing: '0.01em',
+          borderRadius: '1rem',
+          background: 'rgba(15, 16, 17, 0.95)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
         }}>
           <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
           <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
