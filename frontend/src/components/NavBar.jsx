@@ -56,44 +56,44 @@ const NavBar = ({ hideLogo = false }) => {
   };
 
   const logoTextStyle = {
-    fontSize: isMobile ? '1.8rem' : '3.5rem',
+    fontSize: isMobile ? '1.5rem' : '2.5rem',
     fontWeight: 700,
-    letterSpacing: '0.15em',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
     background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
-    textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
+    textShadow: '0 2px 10px rgba(99, 102, 241, 0.2)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
   };
 
-  // Link style for navigation items - Made bigger and more prominent
+  // Link style for navigation items - Original style restored
   const linkStyle = (isActive) => ({
     color: isActive ? '#6366f1' : '#c7c9e2',
     textDecoration: 'none',
-    borderBottom: isActive ? '3px solid #6366f1' : '3px solid transparent',
-    paddingBottom: '1rem',
-    paddingTop: '1rem',
-    paddingLeft: '2rem',
-    paddingRight: '2rem',
-    borderRadius: '0.75rem',
+    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
+    paddingBottom: '0.5rem',
+    paddingTop: '0.5rem',
+    paddingLeft: '1rem',
+    paddingRight: '1rem',
+    borderRadius: '0.5rem',
     transition: 'all 0.3s ease',
     fontWeight: isActive ? '600' : '500',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: isMobile ? '1rem' : '1.1rem', // Smaller font size as requested
+    fontSize: isMobile ? '0.9rem' : '1rem', // Original smaller size
     display: 'block',
-    minHeight: '42px', // Smaller touch targets
-    minWidth: '42px',
+    minHeight: 'auto',
+    minWidth: 'auto',
     textAlign: 'center',
     lineHeight: '1.2',
     transform: 'scale(1)',
-    margin: '0 0.25rem', // Reduced margin
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)', // Lighter shadow
-    background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'rgba(0, 0, 0, 0.05)', // Lighter background
-    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)', // Thinner border
+    margin: '0 0.5rem',
+    boxShadow: 'none', // No shadow like original
+    background: 'transparent', // Transparent background like original
+    border: 'none', // No border like original
   });
   
   const handleLogoClick = () => {
@@ -299,10 +299,10 @@ const NavBar = ({ hideLogo = false }) => {
             className="navbar-link"
             style={{
               ...linkStyle(location.pathname === '/chatbot'),
-              fontSize: '1.2rem',
-              padding: '1rem 2rem',
+              fontSize: '1rem',
+              padding: '0.75rem 1.5rem',
               textAlign: 'center',
-              minWidth: '10rem',
+              minWidth: '8rem',
             }}
           >
             Chat
@@ -313,10 +313,10 @@ const NavBar = ({ hideLogo = false }) => {
             className="navbar-link"
             style={{
               ...linkStyle(location.pathname.startsWith('/blog')),
-              fontSize: '1.2rem',
-              padding: '1rem 2rem',
+              fontSize: '1rem',
+              padding: '0.75rem 1.5rem',
               textAlign: 'center',
-              minWidth: '10rem',
+              minWidth: '8rem',
             }}
           >
             Blog
@@ -327,10 +327,10 @@ const NavBar = ({ hideLogo = false }) => {
             className="navbar-link"
             style={{
               ...linkStyle(location.pathname === '/about'),
-              fontSize: '1.2rem',
-              padding: '1rem 2rem',
+              fontSize: '1rem',
+              padding: '0.75rem 1.5rem',
               textAlign: 'center',
-              minWidth: '10rem',
+              minWidth: '8rem',
             }}
           >
             About
@@ -340,10 +340,10 @@ const NavBar = ({ hideLogo = false }) => {
             onClick={handleFAQClick} 
             style={{
               ...linkStyle(location.pathname === '/faq'),
-              fontSize: '1.2rem',
-              padding: '1rem 2rem',
+              fontSize: '1rem',
+              padding: '0.75rem 1.5rem',
               textAlign: 'center',
-              minWidth: '10rem',
+              minWidth: '8rem',
             }}
           >
             FAQ
@@ -353,10 +353,10 @@ const NavBar = ({ hideLogo = false }) => {
             onClick={handleDonateClick} 
             style={{
               ...linkStyle(location.pathname === '/donate'),
-              fontSize: '1.2rem',
-              padding: '1rem 2rem',
+              fontSize: '1rem',
+              padding: '0.75rem 1.5rem',
               textAlign: 'center',
-              minWidth: '10rem',
+              minWidth: '8rem',
             }}
           >
             Donate

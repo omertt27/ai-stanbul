@@ -26,15 +26,15 @@ const ChatbotNavBar = () => {
   };
 
   const logoTextStyle = {
-    fontSize: isMobile ? '1.6rem' : '2rem',
+    fontSize: isMobile ? '1.4rem' : '1.8rem',
     fontWeight: 700,
-    letterSpacing: '0.15em',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
     background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
-    textShadow: '0 4px 20px rgba(99, 102, 241, 0.3)',
+    textShadow: '0 2px 8px rgba(99, 102, 241, 0.2)',
     transition: 'all 0.3s ease',
     cursor: 'pointer',
   };
@@ -42,26 +42,26 @@ const ChatbotNavBar = () => {
   const linkStyle = (isActive) => ({
     color: isActive ? '#6366f1' : '#c7c9e2',
     textDecoration: 'none',
-    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: '0.5rem',
-    paddingTop: '0.5rem',
-    paddingLeft: '1rem',
-    paddingRight: '1rem',
-    borderRadius: '0.5rem',
+    borderBottom: isActive ? '1px solid #6366f1' : '1px solid transparent',
+    paddingBottom: '0.25rem',
+    paddingTop: '0.25rem',
+    paddingLeft: '0.75rem',
+    paddingRight: '0.75rem',
+    borderRadius: '0.25rem',
     transition: 'all 0.3s ease',
     fontWeight: isActive ? '600' : '500',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: isMobile ? '0.9rem' : '1rem', // Smaller buttons as requested
-    minHeight: '36px', // Smaller touch targets
-    minWidth: '36px',
+    fontSize: isMobile ? '0.8rem' : '0.9rem', // Smaller buttons for chatbot
+    minHeight: 'auto',
+    minWidth: 'auto',
     textAlign: 'center',
     lineHeight: '1.2',
     transform: 'scale(1)',
-    margin: '0 0.15rem',
-    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
-    background: isActive ? 'rgba(99, 102, 241, 0.1)' : 'rgba(0, 0, 0, 0.03)',
-    border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+    margin: '0 0.125rem',
+    boxShadow: 'none',
+    background: 'transparent',
+    border: 'none',
   });
   
   const handleLogoClick = () => {
