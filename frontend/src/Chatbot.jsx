@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
-import QuickTester from './QuickTester';
 import NavBar from './components/NavBar';
 import './App.css';
 
@@ -13,8 +12,6 @@ const renderMessageContent = (content, darkMode) => {
   // Convert Markdown-style links [text](url) to clickable HTML links
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   
-  console.log('Rendering content:', content.substring(0, 100) + '...');
-  
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -22,8 +19,6 @@ const renderMessageContent = (content, darkMode) => {
   while ((match = linkRegex.exec(content)) !== null) {
     const linkText = match[1];
     const linkUrl = match[2];
-    
-    console.log('Found link:', linkText, '->', linkUrl);
     
     // Add text before the link
     if (match.index > lastIndex) {
@@ -46,9 +41,6 @@ const renderMessageContent = (content, darkMode) => {
             ? 'text-blue-400 hover:text-blue-300' 
             : 'text-blue-600 hover:text-blue-700'
         }`}
-        onClick={(e) => {
-          console.log('Link clicked:', linkUrl);
-        }}
       >
         {linkText}
       </a>
@@ -66,7 +58,6 @@ const renderMessageContent = (content, darkMode) => {
     );
   }
   
-  console.log('Generated parts:', parts.length);
   return parts.length > 0 ? parts : content;
 };
 
@@ -82,21 +73,15 @@ function Chatbot({ onDarkModeToggle }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
-  // Enhanced input suggestions for better user guidance
-  const inputSuggestions = [
-    "restaurants in Kadıköy",
-    "places to visit in Sultanahmet", 
-    "Turkish food recommendations",
-    "museums in Istanbul",
-    "nightlife in Beyoğlu",
-    "transportation in Istanbul",
-    "shopping at Grand Bazaar",
-    "Bosphorus cruise options",
-    "family friendly places",
-    "romantic restaurants",
-    "budget travel tips",
-    "weather in Istanbul"
-  ]
+  // Removed input suggestions as requested
+
+  // Add chatbot-page class to body for proper styling
+  useEffect(() => {
+    document.body.classList.add('chatbot-page');
+    return () => {
+      document.body.classList.remove('chatbot-page');
+    };
+  }, []);
 
   // Load chat sessions from localStorage
   useEffect(() => {
@@ -105,11 +90,19 @@ function Chatbot({ onDarkModeToggle }) {
       try {
         const sessions = JSON.parse(savedSessions);
         setChatSessions(sessions);
+        
+        // Auto-load the most recent session if no current session and sessions exist
+        if (!currentSessionId && sessions.length > 0) {
+          const mostRecentSession = sessions[0]; // Sessions are ordered by most recent first
+          setCurrentSessionId(mostRecentSession.id);
+          setMessages(mostRecentSession.messages);
+        }
       } catch (error) {
         console.error('Error loading chat sessions:', error);
       }
     }
-  }, []);
+    // Don't auto-create sessions here - let handleSend create them when needed
+  }, []); // Empty dependency array to run only once on mount
 
   // Save chat sessions to localStorage
   const saveChatSessions = (sessions) => {
@@ -124,7 +117,7 @@ function Chatbot({ onDarkModeToggle }) {
     setMessages([]);
     setInput('');
     setInputError('');
-    setSuggestions(inputSuggestions.slice(0, 6));
+    // Removed suggestions setting as suggestions are removed
   };
 
   // Load a specific chat session
@@ -135,7 +128,7 @@ function Chatbot({ onDarkModeToggle }) {
       setMessages(session.messages);
       setInput('');
       setInputError('');
-      setSuggestions([]);
+      // Removed suggestions clearing as suggestions are removed
     }
   };
 
@@ -174,35 +167,14 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive - optimized
   useEffect(() => {
-    const scrollToBottom = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-    
-    // Immediate scroll
-    scrollToBottom()
-    
-    // Also scroll after a short delay to ensure DOM is updated
-    const timeoutId = setTimeout(scrollToBottom, 100)
-    
-    return () => clearTimeout(timeoutId)
-  }, [messages, loading])
+  }, [messages.length]); // Only trigger on message count change, not content changes
 
-  // Show suggestions when input is empty or short
-  useEffect(() => {
-    if (input.length === 0) {
-      setSuggestions(inputSuggestions.slice(0, 6))
-    } else if (input.length > 0 && input.length < 3) {
-      // Filter suggestions based on input
-      const filtered = inputSuggestions.filter(suggestion => 
-        suggestion.toLowerCase().includes(input.toLowerCase())
-      ).slice(0, 4)
-      setSuggestions(filtered)
-    } else {
-      setSuggestions([])
-    }
-  }, [input])
+  // Removed suggestions functionality as requested
 
   // Enhanced input validation and processing
   const validateInput = (userInput) => {
@@ -239,88 +211,92 @@ function Chatbot({ onDarkModeToggle }) {
   const handleSend = async (customInput = null) => {
     const userInput = customInput || input.trim();
     
+    // Prevent sending if already loading
+    if (loading) {
+      return;
+    }
+    
     // Enhanced input validation
     if (!validateInput(userInput)) {
       return;
     }
 
-    // Create new session if none exists
+    // Only create new session if none exists
     if (!currentSessionId) {
       const newSessionId = Date.now().toString();
       setCurrentSessionId(newSessionId);
     }
 
     const userMessage = { role: 'user', content: userInput };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    
+    // Immediately update messages and clear input for ChatGPT-like experience
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
-    setSuggestions([]) // Clear suggestions when sending
+    setInputError('');
 
-    // Start streaming response
+    // Start streaming response immediately
     let streamedContent = '';
-    let hasError = false;
-    let finalMessages = newMessages;
     
     try {
       await fetchStreamingResults(userInput, (chunk) => {
         streamedContent += chunk;
-        // If assistant message already exists, update it; else, add it
-        setMessages((prev) => {
-          const updatedMessages = prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming
-            ? [
-                ...prev.slice(0, -1),
-                { role: 'assistant', content: streamedContent, streaming: true }
-              ]
-            : [
-                ...prev,
-                { role: 'assistant', content: streamedContent, streaming: true }
-              ];
-          finalMessages = updatedMessages;
-          return updatedMessages;
+        
+        // Update messages in real-time as chunks come in
+        setMessages((prevMessages) => {
+          const lastMessage = prevMessages[prevMessages.length - 1];
+          
+          // If last message is assistant and streaming, update it
+          if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
+            return [
+              ...prevMessages.slice(0, -1),
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          } else {
+            // Add new assistant message
+            return [
+              ...prevMessages,
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          }
         });
       });
     } catch (error) {
-      hasError = true;
       const errorMessage = error.message?.includes('network') 
         ? 'Network error. Please check your connection and try again.'
-        : 'Sorry, I encountered an error. Please try rephrasing your question.'
-      const errorMessages = [
-        ...newMessages,
+        : 'Sorry, I encountered an error. Please try rephrasing your question.';
+      
+      setMessages(prev => [
+        ...prev,
         { role: 'assistant', content: errorMessage }
-      ];
-      setMessages(errorMessages);
-      finalMessages = errorMessages;
+      ]);
     } finally {
       setLoading(false);
       
-      // Scroll to bottom after loading finishes
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 200);
-      
-      // Remove streaming flag on last assistant message and save session
-      setMessages((prev) => {
-        const cleanedMessages = prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming
-          ? [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: prev[prev.length - 1].content }
-            ]
-          : prev;
-        
-        // Save the session with final messages
-        if (currentSessionId && cleanedMessages.length > 0) {
-          setTimeout(() => saveCurrentSession(cleanedMessages), 100);
+      // Finalize the last message by removing streaming flag
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
+          const finalMessages = [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: lastMessage.content }
+          ];
+          
+          // Save session with final messages
+          if (currentSessionId && finalMessages.length > 0) {
+            setTimeout(() => saveCurrentSession(finalMessages), 100);
+          }
+          
+          return finalMessages;
         }
-        
-        return cleanedMessages;
+        return prev;
       });
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
-  }
-
-  const handleSampleClick = (question) => {
-    // Automatically send the message
-    handleSend(question);
   }
 
   // Format date for chat sessions
@@ -338,46 +314,73 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
-  // Handle pending chat query from main page
+  // Handle pending chat query from main page - START NEW CHAT
   useEffect(() => {
     const pendingQuery = localStorage.getItem('pending_chat_query');
     if (pendingQuery) {
-      // Clear the pending query
+      // Clear the pending query immediately
       localStorage.removeItem('pending_chat_query');
       
-      // Set the input and automatically send the query
+      // Create a completely new chat session for main page queries
+      const newSessionId = Date.now().toString();
+      setCurrentSessionId(newSessionId);
+      setMessages([]); // Start with empty messages
+      setInput(''); // Clear input
+      setInputError(''); // Clear any errors
+      
+      // Set the input with the pending query
       setInput(pendingQuery);
       
-      // Create a new session if needed
-      if (!currentSessionId) {
-        const newSessionId = Date.now().toString();
-        setCurrentSessionId(newSessionId);
-      }
-      
-      // Automatically send the query after a brief delay
+      // Automatically send the query after a brief delay to allow state to update
       setTimeout(() => {
         handleSend(pendingQuery);
-      }, 500);
+      }, 100);
     }
-  }, []);
+  }, []); // Run only once on mount to check for pending queries
 
   return (
     <div className="chatbot-page">
       {/* Standard Site Navigation */}
       <NavBar />
       
-      {/* Chat History Sidebar */}
-      <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-800 border-r border-gray-700 transition-all duration-300 z-40 ${
+      {/* Chat History Sidebar - Modern Design */}
+      <div className={`fixed left-0 top-12 h-[calc(100vh-3rem)] transition-all duration-300 z-40 ${
         sidebarOpen ? 'w-full md:w-80' : 'w-0'
-      } overflow-hidden`}>
+      } overflow-hidden`} style={{
+        background: 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(26, 27, 29, 0.98) 100%)',
+        backdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(139, 92, 246, 0.3)',
+        boxShadow: '4px 0 20px rgba(139, 92, 246, 0.15)'
+      }}>
         <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-700">
+          {/* Sidebar Header - Modern Style */}
+          <div className="p-6" style={{
+            borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)'
+          }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Chat History</h2>
+              <h2 className="text-xl font-bold text-white" style={{
+                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>Chat History</h2>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-1 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                className="p-2 rounded-xl transition-all duration-200"
+                style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  color: '#e5e7eb'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(139, 92, 246, 0.2)';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(139, 92, 246, 0.1)';
+                  e.target.style.transform = 'scale(1)';
+                }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -386,47 +389,114 @@ function Chatbot({ onDarkModeToggle }) {
             </div>
             <button
               onClick={createNewChat}
-              className="w-full mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
+              className="mt-4 px-4 py-2 text-white rounded-xl transition-all duration-200 flex items-center justify-center font-semibold mx-auto"
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                border: '1px solid rgba(139, 92, 246, 0.5)',
+                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
+                width: 'auto', // Auto width instead of full width
+                minWidth: '120px', // Minimum width for usability
+                maxWidth: '160px' // Maximum width to keep it compact
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px) scale(1.02)';
+                e.target.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0) scale(1)';
+                e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.3)';
+              }}
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               New Chat
             </button>
           </div>
           
-          {/* Chat Sessions List */}
-          <div className="flex-1 overflow-y-auto p-2">
+          {/* Chat Sessions List - Modern Design */}
+          <div className="flex-1 overflow-y-auto p-4">
             {chatSessions.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <p className="text-sm">No chat history yet</p>
+              <div className="text-center py-12" style={{color: '#9ca3af'}}>
+                <div className="mb-4" style={{
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
+                  borderRadius: '50%',
+                  width: '80px',
+                  height: '80px',
+                  margin: '0 auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(139, 92, 246, 0.3)'
+                }}>
+                  <svg className="w-8 h-8" style={{color: '#8b5cf6'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium">No conversations yet</p>
+                <p className="text-xs mt-1 opacity-70">Start a new chat to see your history</p>
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {chatSessions.map((session) => (
                   <div
                     key={session.id}
-                    className={`group relative rounded-lg p-3 cursor-pointer transition-colors duration-200 ${
-                      currentSessionId === session.id
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    }`}
+                    className="group relative cursor-pointer transition-all duration-200"
+                    style={{
+                      background: currentSessionId === session.id 
+                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.2) 100%)'
+                        : 'rgba(139, 92, 246, 0.05)',
+                      border: `1px solid ${currentSessionId === session.id ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.1)'}`,
+                      borderRadius: '12px',
+                      padding: '16px',
+                      boxShadow: currentSessionId === session.id 
+                        ? '0 4px 16px rgba(139, 92, 246, 0.25)'
+                        : '0 2px 8px rgba(139, 92, 246, 0.1)'
+                    }}
                     onClick={() => loadChatSession(session.id)}
+                    onMouseEnter={(e) => {
+                      if (currentSessionId !== session.id) {
+                        e.target.style.background = 'rgba(139, 92, 246, 0.1)';
+                        e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (currentSessionId !== session.id) {
+                        e.target.style.background = 'rgba(139, 92, 246, 0.05)';
+                        e.target.style.borderColor = 'rgba(139, 92, 246, 0.1)';
+                        e.target.style.transform = 'translateY(0)';
+                      }
+                    }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{session.title}</p>
-                        <p className="text-xs opacity-70 mt-1">{formatSessionDate(session.lastUpdated)}</p>
+                        <p className="text-sm font-semibold truncate" style={{
+                          color: currentSessionId === session.id ? '#ffffff' : '#e5e7eb'
+                        }}>{session.title}</p>
+                        <p className="text-xs mt-1" style={{
+                          color: currentSessionId === session.id ? 'rgba(255,255,255,0.8)' : 'rgba(229,231,235,0.6)'
+                        }}>{formatSessionDate(session.lastUpdated)}</p>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteChatSession(session.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-600 transition-all duration-200 ml-2"
+                        className="opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ml-2"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'rgba(239, 68, 68, 0.2)';
+                          e.target.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
+                          e.target.style.transform = 'scale(1)';
+                        }}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -449,11 +519,28 @@ function Chatbot({ onDarkModeToggle }) {
         />
       )}
 
-      {/* Sidebar Toggle Button */}
+      {/* Sidebar Toggle Button - Modern Design */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed left-4 top-20 z-50 p-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg shadow-lg transition-all duration-200 border border-gray-600"
-        style={{ zIndex: 1001 }}
+        className="fixed left-4 top-16 z-50 transition-all duration-200"
+        style={{ 
+          zIndex: 1001,
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(99, 102, 241, 0.9) 100%)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(139, 92, 246, 0.5)',
+          borderRadius: '12px',
+          padding: '12px',
+          boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
+          color: '#ffffff'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.transform = 'translateY(-2px) scale(1.05)';
+          e.target.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.transform = 'translateY(0) scale(1)';
+          e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.3)';
+        }}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -465,157 +552,88 @@ function Chatbot({ onDarkModeToggle }) {
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
       }`}>
 
-        {/* Chat Messages Area */}
+        {/* Chat Messages Area - Separate from Input */}
         <div className="chatbot-messages">
           
-          {/* Welcome Screen - GPT Style */}
+          {/* Welcome Screen - Clean and modern */}
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full py-12">
+            <div className="flex flex-col items-center justify-start h-full pt-4 px-4">
               
               {/* Main Title */}
-              <h1 className={`text-4xl font-semibold mb-12 text-center ${
+              <h1 className={`text-4xl font-bold mb-4 text-center max-w-2xl ${
                 darkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                How can I help you today?
+              }`} style={{
+                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Hello! I'm KAM
               </h1>
               
-              {/* Example Prompts Grid - GPT Style */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
-                <button 
-                  onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
-                    darkMode 
-                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
-                  }`}
-                  style={{ 
-                    borderRadius: '12px',
-                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div className="font-medium mb-1">🏛️ Top Attractions</div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Discover Istanbul's must-visit landmarks
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={() => handleSampleClick('Find authentic Turkish restaurants in Istanbul')}
-                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
-                    darkMode 
-                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
-                  }`}
-                  style={{ 
-                    borderRadius: '12px',
-                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div className="font-medium mb-1">🍽️ Turkish Cuisine</div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Find authentic local restaurants
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
-                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
-                    darkMode 
-                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
-                  }`}
-                  style={{ 
-                    borderRadius: '12px',
-                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div className="font-medium mb-1">🏙️ Neighborhoods</div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Explore different districts of the city
-                  </div>
-                </button>
-                
-                <button 
-                  onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
-                  className={`p-4 rounded-lg border text-left transition-all duration-200 ${
-                    darkMode 
-                      ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 text-gray-200' 
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700'
-                  }`}
-                  style={{ 
-                    borderRadius: '12px',
-                    border: darkMode ? '1px solid #374151' : '1px solid #e5e7eb',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div className="font-medium mb-1">🎭 Culture & Activities</div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Cultural experiences and activities
-                  </div>
-                </button>
-              </div>
+              {/* Subtitle */}
+              <p className={`text-lg mb-6 text-center max-w-xl ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
+              </p>
+              
             </div>
           )}
           
-          {/* Chat Messages - GPT/Gemini Style */}
-          <div className="py-4">
+          {/* Chat Messages - Clean Style without Profile Photos */}
+          <div className="py-1">
             {messages.map((msg, index) => (
-              <div key={index} className="mb-6" style={{ maxWidth: '100%' }}>
-                <div className={`flex items-start gap-3 ${
+              <div key={index} className="mb-4" style={{ maxWidth: '100%' }}>
+                <div className={`flex ${
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}>
                   {msg.role === 'assistant' && (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      darkMode ? 'bg-gray-700' : 'bg-gray-100'
+                    <div className={`text-xs font-medium mb-1 ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      <svg className={`w-4 h-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                      </svg>
+                      KAM
                     </div>
                   )}
-                  
+                </div>
+                <div className={`flex ${
+                  msg.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}>
                   <div className={`max-w-[80%] ${
                     msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2'
+                      ? 'bg-purple-600 text-white rounded-2xl rounded-br-md px-4 py-3'
                       : darkMode 
-                        ? 'text-gray-100' 
-                        : 'text-gray-900'
+                        ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700' 
+                        : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-200'
                   }`}>
                     <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
                       {renderMessageContent(msg.content, darkMode)}
                     </div>
                   </div>
-                  
-                  {msg.role === 'user' && (
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      darkMode ? 'bg-blue-600' : 'bg-blue-600'
-                    }`}>
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
             
             {loading && (
-              <div className="mb-6">
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    darkMode ? 'bg-gray-700' : 'bg-gray-100'
+              <div className="mb-4">
+                <div className="flex justify-start">
+                  <div className={`text-xs font-medium mb-1 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    <svg className={`w-4 h-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                    </svg>
+                    KAM
                   </div>
-                  <div className="flex items-center space-x-1 py-2">
-                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`}></div>
-                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.1s'}}></div>
-                    <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.2s'}}></div>
+                </div>
+                <div className="flex justify-start">
+                  <div className={`max-w-[80%] ${
+                    darkMode 
+                      ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700' 
+                      : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-200'
+                  }`}>
+                    <div className="flex items-center space-x-1">
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.1s'}}></div>
+                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.2s'}}></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -623,110 +641,82 @@ function Chatbot({ onDarkModeToggle }) {
             
             <div ref={messagesEndRef} />
           </div>
+        </div>
 
-          {/* Input Area - GPT/Gemini Style */}
-          <div className="chatbot-input-area">
-            
-            {/* Input suggestions when typing or no input */}
-            {suggestions.length > 0 && (
-              <div className={`mb-3 p-3 rounded-lg ${
-                darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-600 border border-gray-700'
-              }`}>
-                <div className={`text-xs font-medium mb-2 ${
-                  darkMode ? 'text-gray-300' : 'text-gray-200'
-                }`}>💡 Suggestions:</div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setInput(suggestion)
-                        setSuggestions([])
-                      }}
-                      className={`px-3 py-1 text-sm rounded-full transition-colors duration-200 ${
-                        darkMode 
-                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white' 
-                          : 'bg-gray-700 hover:bg-gray-600 text-gray-200 hover:text-white'
-                      }`}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
+        {/* Input Area - Separate Section at Bottom */}
+        <div className="chatbot-input-area">
+          
+          {/* Error message */}
+          {inputError && (
+            <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
+              <div className="text-sm text-red-700 dark:text-red-300">
+                ⚠️ {inputError}
               </div>
-            )}
-            
-            {/* Error message */}
-            {inputError && (
-              <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
-                <div className="text-sm text-red-700 dark:text-red-300">
-                  ⚠️ {inputError}
-                </div>
-              </div>
-            )}
-            
-            {/* Input Box */}
-            <div className="relative">            <div className={`flex items-center space-x-3 rounded-2xl px-4 py-3 transition-all duration-200 border ${
+            </div>
+          )}
+          
+          {/* Input Box */}
+          <div className="relative mb-2">
+            <div className={`flex items-center space-x-3 px-4 py-3 transition-all duration-200 border ${
               inputError 
                 ? 'border-red-400 dark:border-red-600' 
-                : darkMode 
-                  ? 'bg-gray-800 border-gray-700 focus-within:border-gray-600' 
-                  : 'bg-gray-500 border-gray-600 focus-within:border-gray-700'
+                : 'border-gray-600 focus-within:border-purple-500'
             }`} style={{
-              borderRadius: '24px',
-              boxShadow: 'none'
+              borderRadius: '28px',
+              boxShadow: '0 2px 8px rgba(139, 92, 246, 0.1)',
+              background: 'transparent'
             }}>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value)
-                    setInputError('') // Clear error when typing
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (inputError) setInputError(''); // Clear error when typing
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && !loading) {
+                    e.preventDefault();
+                    if (input.trim()) {
                       handleSend();
                     }
-                  }}
-                  placeholder="Message AI Istanbul"
-                  className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
-                    darkMode 
-                      ? 'placeholder-gray-300 text-white' 
-                      : 'placeholder-gray-300 text-white'
-                  }`}
-                  disabled={loading}
-                  autoComplete="off"
-                />
-                <button 
-                  onClick={handleSend} 
-                  disabled={loading || !input.trim()}
-                  className={`p-2 rounded-full transition-all duration-200 ${
-                    loading || !input.trim()
-                      ? 'bg-gray-300 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                  } text-white`}
-                  style={{ borderRadius: '50%' }}
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+                  }
+                }}
+                placeholder="Ask KAM about Istanbul..."
+                className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
+                  darkMode 
+                    ? 'placeholder-gray-400 text-white' 
+                    : 'placeholder-gray-500 text-gray-900'
+                }`}
+                disabled={loading}
+                autoComplete="off"
+                autoFocus={false}
+              />
+              <button 
+                onClick={() => {
+                  if (!loading && input.trim()) {
+                    handleSend();
+                  }
+                }} 
+                disabled={loading || !input.trim()}
+                className={`p-2.5 rounded-full transition-all duration-200 ${
+                  loading || !input.trim()
+                    ? 'bg-gray-300 cursor-not-allowed opacity-50'
+                    : 'bg-purple-600 hover:bg-purple-700 cursor-pointer shadow-lg hover:shadow-purple-500/25'
+                } text-white flex items-center justify-center`}
+                style={{ borderRadius: '50%', minWidth: '40px', minHeight: '40px' }}
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Quick Tester Component */}
-      <QuickTester onTestInput={(input) => {
-        setInput(input);
-        setTimeout(() => handleSend(input), 100);
-      }} />
     </div>
   );
 }

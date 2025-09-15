@@ -5,16 +5,11 @@ import { trackNavigation } from '../utils/analytics';
 const NavBar = ({ hideLogo = false }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Update window width on resize
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      // Close mobile menu when resizing to desktop
-      if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false);
-      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -23,52 +18,6 @@ const NavBar = ({ hideLogo = false }) => {
   // Media query checks
   const isMobile = windowWidth < 768;
   
-  // Handle body scroll lock for mobile menu
-  useEffect(() => {
-    if (isMobile && isMobileMenuOpen) {
-      document.body.classList.add('mobile-menu-open');
-    } else {
-      document.body.classList.remove('mobile-menu-open');
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      document.body.classList.remove('mobile-menu-open');
-    };
-  }, [isMobile, isMobileMenuOpen]);
-  
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-  
-  // Logo style - responsive positioning - BIGGER, properly positioned
-  const logoStyle = {
-    position: 'fixed',
-    top: isMobile ? '-0.2rem' : '-0.2rem', // Much higher position
-    left: isMobile ? '1rem' : '2rem',
-    zIndex: 60,
-    textDecoration: 'none',
-    textAlign: 'center',
-    cursor: 'pointer',
-    pointerEvents: 'auto',
-    transition: 'transform 0.2s ease, opacity 0.2s ease',
-  };
-
-  const logoTextStyle = {
-    fontSize: isMobile ? '1.8rem' : '2.5rem', // Smaller, more reasonable size
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
-    textShadow: '0 2px 10px rgba(99, 102, 241, 0.2)',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-  };
-
   // Modern cleaner button style for navigation items - no boxes, more compact
   const linkStyle = (isActive) => ({
     color: isActive ? '#8b5cf6' : '#c7c9e2',
@@ -95,30 +44,12 @@ const NavBar = ({ hideLogo = false }) => {
   });
   
   const handleLogoClick = () => {
+    console.log('Logo clicked!'); // Debug log
     // Track navigation click
     trackNavigation('/');
     
-    // Check if there's an active chat session
-    const hasActiveChat = localStorage.getItem('chat-messages');
-    const parsedMessages = hasActiveChat ? JSON.parse(hasActiveChat) : [];
-    
-    // If there's an active chat with messages, go back to chat view instead of main page
-    if (parsedMessages && parsedMessages.length > 0) {
-      // Trigger chat state change event to expand chat
-      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
-        detail: { expanded: true, hasMessages: true } 
-      }));
-      // Don't clear session - preserve chat history
-    } else {
-      // No active chat, go to main page and clear any leftover data
-      localStorage.removeItem('chat_session_id');
-      localStorage.removeItem('chat-messages');
-      
-      // Trigger chat state change event to go to main page
-      window.dispatchEvent(new CustomEvent('chatStateChanged', { 
-        detail: { expanded: false, hasMessages: false } 
-      }));
-    }
+    // Navigate to main page when logo is clicked
+    window.location.href = '/';
   };
 
   const handleBlogClick = (e) => {
@@ -189,60 +120,130 @@ const NavBar = ({ hideLogo = false }) => {
 
   return (
     <>
-      {/* Logo with purple bar underneath */}
-      {!hideLogo && (
-        <div style={{position: 'fixed', top: 0, left: 0, zIndex: 60}}>
-          <Link 
-            to="/" 
-            style={logoStyle} 
-            onClick={handleLogoClick}
-          >
-            <div className="chat-title logo-istanbul">
-              <span className="logo-text" style={logoTextStyle}>
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-          {/* Purple bar under logo */}
-          <div style={{
-            position: 'absolute',
-            bottom: isMobile ? '-0.5rem' : '-0.7rem', // Moved down a bit more
-            left: isMobile ? '1rem' : '2rem',
-            width: isMobile ? '100px' : '140px', // Adjusted to logo size
-            height: '3px',
-            background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)',
-            borderRadius: '2px',
-            boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)',
-          }} />
-        </div>
-      )}
-      
-      {/* Desktop Navigation - Clean with purple separator */}
+      {/* Desktop Navigation - Clean with purple separator - Sticky */}
       {!isMobile && (
-        <div style={{position: 'fixed', top: 0, right: 0, left: 0, zIndex: 50}}>
+        <div style={{
+          position: 'fixed', 
+          top: 0, // Start at the very top
+          right: 0, 
+          left: 0, 
+          zIndex: 50,
+          background: 'rgba(15, 16, 17, 0.95)', // Semi-transparent background for visibility while scrolling
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
+          height: '70px', // Fixed height for navbar
+        }}>
           <nav style={{
-            position: 'relative',
-            top: '0.8rem', // Reduced top spacing
-            right: '1.5rem',
+            position: 'absolute',
+            top: '1rem', // Centered in the 70px navbar
+            left: '1.5rem', // Start from left
+            right: '1.5rem', // Extend to right
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between', // Always keep consistent layout: logo on left, links on right
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.8rem 1rem', // Reduced padding
+            padding: '0.6rem 1rem', // Slightly reduced padding
             fontWeight: 500,
             letterSpacing: '0.01em',
             background: 'transparent',
           }}>
-            <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
-            <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-            <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
-            <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-            <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+            {/* Logo in navbar */}
+            {!hideLogo && (
+              <div 
+                style={{
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  transition: 'transform 0.2s ease, opacity 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                onClick={handleLogoClick}
+              >
+                <span style={{
+                  fontSize: '2.6rem', // Even bigger logo size for desktop
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}>
+                  A/<span style={{fontWeight: 400}}>STANBUL</span>
+                </span>
+              </div>
+            )}
+            
+            {/* Navigation links on the right */}
+            <div style={{
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'center',
+            }}>
+              <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
+              <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
+              <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
+              <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+              <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+            </div>
           </nav>
-          {/* Purple separator line across full width */}
+        </div>
+      )}
+
+      {/* Mobile Bottom Tab Bar - Modern Alternative to Hamburger Menu */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          left: 0,
+          zIndex: 1005,
+          background: 'rgba(15, 16, 17, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
+          padding: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          height: '70px',
+        }}>
+          {/* Logo in mobile navbar */}
+          {!hideLogo && (
+            <div 
+              style={{
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                transition: 'transform 0.2s ease, opacity 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              onClick={handleLogoClick}
+            >
+              <span style={{
+                fontSize: '2.2rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+              }}>
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          )}
+          
+          {/* Purple separator line positioned much lower */}
           <div style={{
             position: 'absolute',
-            bottom: '-0.7rem', // Moved down a bit more
+            bottom: '-15px', // Move the line much further down
             left: 0,
             right: 0,
             height: '2px',
@@ -252,140 +253,138 @@ const NavBar = ({ hideLogo = false }) => {
         </div>
       )}
 
-      {/* Mobile Hamburger Menu Button - positioned for smaller navbar */}
+      {/* Mobile Bottom Tab Bar Navigation */}
       {isMobile && (
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="navbar-hamburger"
-          style={{
-            position: 'fixed',
-            top: '1rem', // Adjusted for smaller navbar
-            right: '1rem',
-            zIndex: 62,
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-            border: '2px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: '12px',
-            padding: '0.8rem', // Slightly smaller
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            minHeight: '46px', // Smaller button
-            minWidth: '46px',
-            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
-          }}
-          aria-label="Toggle navigation menu"
-        >
-          <svg 
-            width="24" 
-            height="24" 
-            fill="none" 
-            stroke="white" 
-            viewBox="0 0 24 24"
-            style={{
-              transform: isMobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease',
-            }}
-          >
-            {isMobileMenuOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
-      )}
-
-      {/* Mobile Navigation Menu */}
-      {isMobile && isMobileMenuOpen && (
-        <nav 
-          className="navbar-mobile-menu"
-          style={{
-            position: 'fixed',
-            top: '0',
-            right: '0',
-            bottom: '0',
-            left: '0',
-            zIndex: 61,
-            background: 'rgba(17, 24, 39, 0.95)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '2rem',
-            padding: '2rem',
-            fontSize: '1.25rem',
-            fontWeight: 400,
-          }}
-        >
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1006,
+          background: 'rgba(15, 16, 17, 0.98)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(139, 92, 246, 0.3)',
+          padding: '0.8rem 1rem 1.2rem',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)',
+        }}>
+          {/* Chat Tab */}
           <Link 
             to="/chatbot" 
             onClick={handleChatClick}
-            className="navbar-link"
             style={{
-              ...linkStyle(location.pathname === '/chatbot'),
-              fontSize: '1rem',
-              padding: '0.75rem 1.5rem',
-              textAlign: 'center',
-              minWidth: '8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem',
+              textDecoration: 'none',
+              color: location.pathname === '/chatbot' ? '#8b5cf6' : '#9ca3af',
+              transition: 'all 0.2s ease',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              minWidth: '50px',
             }}
           >
-            Chat
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Chat</span>
           </Link>
+
+          {/* Blog Tab */}
           <Link 
             to="/blog" 
             onClick={handleBlogClick}
-            className="navbar-link"
             style={{
-              ...linkStyle(location.pathname.startsWith('/blog')),
-              fontSize: '1rem',
-              padding: '0.75rem 1.5rem',
-              textAlign: 'center',
-              minWidth: '8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem',
+              textDecoration: 'none',
+              color: location.pathname.startsWith('/blog') ? '#8b5cf6' : '#9ca3af',
+              transition: 'all 0.2s ease',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              minWidth: '50px',
             }}
           >
-            Blog
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+            </svg>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Blog</span>
           </Link>
+
+          {/* About Tab */}
           <Link 
             to="/about" 
             onClick={handleAboutClick}
-            className="navbar-link"
             style={{
-              ...linkStyle(location.pathname === '/about'),
-              fontSize: '1rem',
-              padding: '0.75rem 1.5rem',
-              textAlign: 'center',
-              minWidth: '8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem',
+              textDecoration: 'none',
+              color: location.pathname === '/about' ? '#8b5cf6' : '#9ca3af',
+              transition: 'all 0.2s ease',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              minWidth: '50px',
             }}
           >
-            About
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>About</span>
           </Link>
+
+          {/* FAQ Tab */}
           <Link 
             to="/faq" 
-            onClick={handleFAQClick} 
+            onClick={handleFAQClick}
             style={{
-              ...linkStyle(location.pathname === '/faq'),
-              fontSize: '1rem',
-              padding: '0.75rem 1.5rem',
-              textAlign: 'center',
-              minWidth: '8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem',
+              textDecoration: 'none',
+              color: location.pathname === '/faq' ? '#8b5cf6' : '#9ca3af',
+              transition: 'all 0.2s ease',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              minWidth: '50px',
             }}
           >
-            FAQ
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>FAQ</span>
           </Link>
+
+          {/* Donate Tab */}
           <Link 
             to="/donate" 
-            onClick={handleDonateClick} 
+            onClick={handleDonateClick}
             style={{
-              ...linkStyle(location.pathname === '/donate'),
-              fontSize: '1rem',
-              padding: '0.75rem 1.5rem',
-              textAlign: 'center',
-              minWidth: '8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem',
+              textDecoration: 'none',
+              color: location.pathname === '/donate' ? '#8b5cf6' : '#9ca3af',
+              transition: 'all 0.2s ease',
+              padding: '0.5rem',
+              borderRadius: '8px',
+              minWidth: '50px',
             }}
           >
-            Donate
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+            </svg>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Donate</span>
           </Link>
-        </nav>
+        </div>
       )}
     </>
   );

@@ -103,6 +103,9 @@ const App = () => {
     // Track navigation back to home
     trackEvent('logo_click', 'navigation', 'home');
     
+    // Navigate to home page
+    navigate('/');
+    
     // Reset chat state to go back to homepage
     setExpanded(false);
     setMessages([]);
