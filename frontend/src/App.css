@@ -430,23 +430,25 @@ body.light .searchbar input:focus {
   padding: 0;
 }
 
-/* Navigation styles */
+/* Enhanced Navigation styles */
 .nav-container.dark {
   background: rgba(15, 16, 17, 0.98);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Default dark navigation */
+/* Default dark navigation - more modern */
 .nav-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(15, 16, 17, 0.98);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 16, 17, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
+  padding: 0.5rem 0;
 }
 
 /* Light mode navigation - softer and easier on eyes */
@@ -457,16 +459,31 @@ body.light .nav-container {
 
 .nav-content {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1.5rem;
-  max-width: 1200px;
+  padding: 1rem 2rem;
+  max-width: 1400px;
   margin: 0 auto;
+  position: relative;
 }
 
 .nav-logo {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
 }
 
 /* Light mode logo - better contrast */
@@ -480,22 +497,33 @@ body.light .nav-logo {
 
 .nav-links {
   display: flex;
-  gap: 1.5rem; /* Reduced from 2rem to accommodate more links */
+  gap: 2.5rem; /* Even bigger gap for more premium look */
   list-style: none;
-  margin-left: 3rem; /* Move links to left side */
+  margin-left: 4rem; /* More space from logo */
   margin-right: auto; /* Allow space to expand on right */
+  align-items: center;
 }
 
 .nav-link {
   color: #9ca3af;
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  font-weight: 700; /* Even bolder text */
+  font-size: 1.2rem; /* Bigger text */
+  padding: 1rem 1.75rem; /* Much bigger padding for button-like feel */
+  border-radius: 1rem; /* More rounded corners */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
 }
 
 .nav-link:hover {
-  color: #60a5fa;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #818cf8;
+  transform: translateY(-2px) scale(1.05); /* More dramatic lift and scale */
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
 }
 
 .nav-link.active {
@@ -528,33 +556,72 @@ body.light .nav-link.active {
   transition: all 0.3s ease;
 }
 
+/* Purple slide effect for navbar links */
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
 .navbar-link:hover {
   transform: translateY(-1px);
   color: #6366f1;
+}
+
+.navbar-link:hover::after {
+  transform: scaleX(1);
 }
 
 .navbar-link:active {
   transform: translateY(0);
 }
 
-/* Mobile navbar improvements */
-@media (max-width: 767px) {
-  .navbar-link {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    border-radius: 0.25rem;
-    margin: 0.125rem 0;
-  }
+/* Enhanced purple slide effect for main navbar */
+.nav-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  width: 50%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
 }
 
-/* Desktop navbar improvements */
-@media (min-width: 768px) {
-  .navbar-link {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-    border-radius: 0.5rem;
-    margin: 0 0.5rem;
-  }
+.nav-container:hover::after {
+  transform: scaleX(1);
+}
+
+/* Enhanced navbar link hover effects */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 80%;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.nav-link:hover::after {
+  transform: translateX(-50%) scaleX(1);
 }
 
 /* Page content */
@@ -698,379 +765,335 @@ body.light .static-page code {
   color: #e5e7eb;
 }
 
-/* Additional utility styles for full-screen chatbot */
-.chatbot-container {
-  height: calc(100vh - 4rem); /* Full height minus nav bar */
+/* Enhanced Chatbot Styling - incorporating design from other pages */
+
+/* Welcome screen enhancements - adjusted for smaller chatbot */
+.chatbot-welcome-container {
+  padding: 1.5rem 1rem; /* Smaller padding */
+  max-width: 100%; /* Full width of container */
+  margin: 0 auto;
+  text-align: center;
+}
+
+.chatbot-welcome-title {
+  font-size: 1.8rem; /* Smaller title */
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+}
+
+.chatbot-welcome-subtitle {
+  font-size: 0.95rem; /* Smaller subtitle */
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Light mode welcome text */
+body.light .chatbot-welcome-subtitle {
+  color: #4a5568;
+}
+
+/* Example prompt cards with enhanced styling - single column for narrow space */
+.example-prompts-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Single column */
+  gap: 0.8rem; /* Smaller gap */
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.example-prompt-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Purple border */
+  border-radius: 12px;
+  padding: 1rem; /* Smaller padding */
+  text-align: left;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  position: relative;
   overflow: hidden;
 }
 
-/* Chatbot outline across top */
-.chatbot-outline {
-  position: fixed;
-  top: 5rem;
+.example-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #818cf8 20%, #6366f1 80%, transparent 100%);
-  z-index: 25;
-  opacity: 0.6;
-  transition: all 0.7s cubic-bezier(.4,2,.6,1);
-  border-radius: 0 0 50px 50px;
-  transform: translateY(-1px);
-}
-
-.chatbot-outline.expanded {
-  opacity: 0.8;
-  background: linear-gradient(90deg, transparent 0%, #818cf8 10%, #6366f1 90%, transparent 100%);
-  border-radius: 0 0 60px 60px;
-}
-
-/* Static version for blog pages */
-.chatbot-outline.static-outline {
-  position: static !important;
-  top: auto !important;
-  transform: none !important;
-  border-radius: 0;
   height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-/* Custom scrollbar styling for chat area */
-.chat-scroll-area {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
+.example-prompt-card:hover::before {
+  opacity: 1;
 }
 
-.chat-scroll-area:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+.example-prompt-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border-color: #8b5cf6;
+  box-shadow: 
+    0 12px 25px rgba(139, 92, 246, 0.3),
+    0 4px 12px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.chat-scroll-area::-webkit-scrollbar {
-  width: 8px;
+.example-prompt-title {
+  font-size: 0.9rem; /* Smaller for narrow space */
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.chat-scroll-area::-webkit-scrollbar-track {
+.example-prompt-description {
+  font-size: 0.8rem; /* Smaller description */
+  color: #5f6368;
+  line-height: 1.4;
+}
+
+/* Dark mode description */
+body.dark .example-prompt-description {
+  color: #9aa0a6;
+}
+
+/* Simple Chat Messages Area - GPT Style */
+.chat-messages-area {
   background: transparent;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  margin-top: 0;
+  overflow-y: auto;
+  flex: 1;
+  padding: 1rem;
 }
 
-.chat-scroll-area::-webkit-scrollbar-thumb {
+/* Clean Message Bubbles - Match Site Theme */
+.message-bubble.user {
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  box-shadow: none;
+  border: none;
+  padding: 12px 16px;
+  margin-left: auto;
+  margin-right: 0;
+  max-width: 70%;
+}
+
+.message-bubble.bot {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f1f5f9;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 12px 16px;
+  margin-right: auto;
+  margin-left: 0;
+  max-width: 80%;
+}
+
+/* Light mode bot messages */
+body.light .message-bubble.bot {
+  background: #f8fafc;
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+}
+
+/* Simple Input Area - Clean style with no separate border */
+.chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Subtle inner border */
+  border-radius: 12px;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  padding: 0;
+}
+
+/* Light mode input container */
+body.light .chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: none;
+}
+
+.chatbot-input {
   background: transparent;
-  border-radius: 4px;
-  transition: background 0.3s ease;
+  border: none;
+  outline: none;
+  color: #ececf1;
+  font-size: 16px;
+  padding: 12px 16px;
+  width: 100%;
+  border-radius: 12px;
+  resize: none;
+  font-family: inherit;
 }
 
-.chat-scroll-area:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+/* Light mode input */
+body.light .chatbot-input {
+  color: #374151;
 }
 
-.chat-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+.chatbot-input::placeholder {
+  color: #8e8ea0;
+  opacity: 1;
 }
 
-/* Light mode scrollbar - softer colors */
-body.light ::-webkit-scrollbar {
-  width: 6px;
+/* Light mode placeholder */
+body.light .chatbot-input::placeholder {
+  color: #9ca3af;
 }
 
-body.light ::-webkit-scrollbar-track {
-  background: #f7fafc;
+.chatbot-send-button {
+  background: #2563eb;
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
 }
 
-body.light ::-webkit-scrollbar-thumb {
-  background: #a0aec0;
-  border-radius: 3px;
-}
-
-body.light ::-webkit-scrollbar-thumb:hover {
-  background: #718096;
-}
-
-/* Light mode logo text enhancement */
-body.light .logo-text {
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-}
-
-/* Light mode main page enhancements */
-/* Light mode search area background on main page - softer */
-body.light .searchbar {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 1.25rem;
-  padding: 0.5rem;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
-  backdrop-filter: blur(10px);
-}
-
-/* Light mode logo on main page */
-body.light .logo-text {
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-}
-
-/* Logo container positioning - only for non-fixed logos */
-.logo-istanbul:not(.fixed) {
-  padding-top: 0.5rem;
-}
-
-/* Fixed positioned logos should not have extra padding */
-.fixed .logo-istanbul {
-  padding-top: 0.25rem;
-}
-
-/* Main page logo gets additional bottom spacing */
-.main-page .logo-istanbul {
-  padding-bottom: 1rem;
-}
-
-/* Responsive chat gaps for mobile */
-@media (max-width: 640px) {
-  .chat-container {
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-  }
-  
-  .message-row {
-    margin-bottom: 1rem;
-  }
-  
-  .searchbar {
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-}
-
-/* Responsive navigation for small screens to avoid logo overlap */
-@media (max-width: 768px) {
-  /* Adjust NavBar positioning on smaller screens */
-  .nav-container .nav-content {
-    padding: 0.5rem 1rem;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .nav-links {
-    margin-left: 0;
-    margin-right: 0;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  /* Adjust page content padding to account for mobile nav position */
-  .static-page {
-    padding-top: 8rem;
-  }
-}
-
-@media (max-width: 640px) {
-  /* Make logo smaller on very small screens */
-  .fixed-logo {
-    top: 0.5rem !important;
-    left: 1rem !important;
-  }
-  
-  .fixed-logo .logo-text {
-    font-size: 1.5rem !important;
-    letter-spacing: 0.05em !important;
-  }
-  
-  /* Adjust nav links font size and spacing for mobile */
-  .nav-links {
-    gap: 0.75rem;
-  }
-  
-  /* Adjust page content padding for smaller mobile nav */
-  .static-page {
-    padding-top: 7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  /* Extra small screens - stack nav items or hide some */
-  .fixed-logo {
-    top: 0.25rem !important;
-    left: 0.75rem !important;
-  }
-  
-  .fixed-logo .logo-text {
-    font-size: 1.25rem !important;
-    letter-spacing: 0.03em !important;
-  }
-  
-  .nav-links {
-    gap: 0.5rem;
-    font-size: 0.9rem;
-  }
-  
-  /* Adjust page content padding for extra small screens */
-  .static-page {
-    padding-top: 6.5rem;
-  }
-}
-
-@media (max-width: 320px) {
-  /* Very small screens - ultra compact */
-  .fixed-logo {
-    top: 0.125rem !important;
-    left: 0.5rem !important;
-  }
-  
-  .fixed-logo .logo-text {
-    font-size: 1rem !important;
-    letter-spacing: 0.02em !important;
-  }
-}
-
-/* Force footer to stay fixed at viewport bottom */
-footer[style*="position: fixed"] {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 999999 !important;
-}
-
-/* Ensure body and html allow fixed positioning */
-html, body {
-  position: relative !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-
-/* Ensure the main app container doesn't interfere with fixed positioning */
-#root {
-  position: relative !important;
-}
-
-/* Force fixed logo to stay truly fixed */
-.fixed-logo {
-  position: fixed !important;
-  top: 1.5rem !important;
-  left: 2rem !important;
-  z-index: 9999 !important;
-  transform: none !important;
-  transition: all 0.3s ease !important;
-}
-
-.fixed-logo .chat-title {
-  position: static !important;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.fixed-logo .logo-text {
-  font-size: 3.5rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.15em !important;
-  text-shadow: 0 2px 10px rgba(99, 102, 241, 0.2) !important;
-}
-
-.fixed-logo:hover .logo-text {
+.chatbot-send-button:hover {
+  background: #1d4ed8;
   transform: scale(1.05);
-  text-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
 }
 
-@media (max-width: 768px) {
-  .fixed-logo .logo-text {
-    font-size: 2.8rem !important;
-    letter-spacing: 0.12em !important;
-  }
-  
-  .fixed-logo {
-    top: 1rem !important;
-    left: 1.5rem !important;
-  }
+.chatbot-send-button:active {
+  transform: scale(0.95);
 }
 
-@media (max-width: 640px) {
-  .fixed-logo .logo-text {
-    font-size: 2.2rem !important;
-    letter-spacing: 0.1em !important;
-  }
-  
-  .fixed-logo {
-    top: 0.75rem !important;
-    left: 1rem !important;
-  }
+/* Simple Sidebar - GPT Style */
+.sidebar {
+  background: #f8f9fa;
+  border-right: 1px solid #e3e4e6;
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
-/* Force chatbot outline to be truly fixed */
-.chatbot-outline {
+/* Dark mode sidebar */
+body.dark .sidebar {
+  background: #2d2e30;
+  border-right: 1px solid #3c4043;
+}
+
+/* Ensure navbar is visible on chatbot page */
+.chatbot-page .navbar,
+.chatbot-page .navbar-logo,
+.chatbot-page .navbar-link {
+  z-index: 1000;
+  position: relative;
+}
+
+/* Fix navbar positioning on chatbot page */
+.chatbot-page .navbar-logo {
   position: fixed !important;
-  top: 5rem !important;
+  top: 0.5rem !important;
+  left: 1rem !important;
+  z-index: 1001 !important;
+}
+
+/* Ensure chatbot content doesn't overlap navbar */
+.chatbot-page .chatbot-content {
+  padding-top: 50px; /* Reduced for smaller navbar */
+  height: calc(100vh - 50px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chatbot Page - Match other pages background */
+.chatbot-page {
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as other pages */
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  width: 100vw !important;
-  height: 3px !important;
-  background: linear-gradient(90deg, transparent 0%, #818cf8 20%, #6366f1 80%, transparent 100%) !important;
-  z-index: 9998 !important;
-  transform: none !important;
-  opacity: 0.6 !important;
-  border-radius: 0 0 50px 50px !important;
-  pointer-events: none !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  color: #e5e7eb !important; /* Same as other pages */
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-/* Purple slide effect for navbar bottom */
-.nav-container::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.8;
+/* Light mode chatbot page - match other pages */
+body.light .chatbot-page {
+  background: #ffffff !important; /* Same as other pages */
+  color: #2d3748 !important;
 }
 
-.nav-container:hover::after {
-  transform: scaleX(1);
+/* Unified chatbot container with purple outline including both messages and input */
+.chatbot-page .chatbot-container {
+  flex: 1;
+  overflow: hidden;
+  margin-top: 120px; /* Increased margin for shorter container */
+  max-width: 800px; /* Smaller, more comfortable width */
+  margin-left: auto;
+  margin-right: auto;
+  border: 2px solid #8b5cf6; /* Purple outline around entire container */
+  border-radius: 16px;
+  background: rgba(139, 92, 246, 0.05);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 180px); /* Reduced height for shorter container */
 }
 
-/* Enhanced purple slide for fixed navbar */
-.fixed-navbar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.8;
+body.light .chatbot-page .chatbot-container {
+  border: 2px solid #8b5cf6;
+  background: rgba(139, 92, 246, 0.05);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.15);
 }
 
-.fixed-navbar:hover::after {
-  transform: scaleX(1);
+/* Ensure chatbot messages area is scrollable within the container */
+.chatbot-page .chatbot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  border: none; /* Remove individual border since container has it */
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-/* Chatbot navbar purple slide */
-.chatbot-navbar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.9;
+body.light .chatbot-page .chatbot-messages {
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
-.chatbot-navbar:hover::after {
-  transform: scaleX(1);
+/* Input area styling for chatbot page - no separate styling needed */
+.chatbot-page .chatbot-input-area {
+  position: relative;
+  background: inherit;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.2); /* Subtle separator */
+  border-radius: 0 0 14px 14px; /* Round bottom corners to match container */
+}
+
+body.light .chatbot-page .chatbot-input-area {
+  background: inherit;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
 }

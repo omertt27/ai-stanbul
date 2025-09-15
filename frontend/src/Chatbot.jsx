@@ -3,54 +3,10 @@ import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
 import QuickTester from './QuickTester';
+import NavBar from './components/NavBar';
 import './App.css';
 
-// GPT/Gemini style navbar for chatbot page
-const ChatbotNavBar = () => {
-  return (
-    <div className="nav-container" style={{ 
-      background: 'rgba(255, 255, 255, 0.95)',
-      borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
-      backdropFilter: 'blur(12px)'
-    }}>
-      <div className="nav-content" style={{ justifyContent: 'space-between' }}>
-        <Link 
-          to="/" 
-          className="nav-logo"
-          style={{
-            fontSize: '1.25rem',
-            fontWeight: '600',
-            color: '#1f2937',
-            textDecoration: 'none'
-          }}
-        >
-          AI Istanbul
-        </Link>
-        
-        <div className="nav-links">
-          <Link to="/about" className="nav-link" style={{ 
-            color: '#6b7280',
-            fontSize: '0.9rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.5rem',
-            transition: 'all 0.2s ease'
-          }}>
-            About
-          </Link>
-          <Link to="/faq" className="nav-link" style={{ 
-            color: '#6b7280',
-            fontSize: '0.9rem',
-            padding: '0.5rem 1rem',
-            borderRadius: '0.5rem',
-            transition: 'all 0.2s ease'
-          }}>
-            FAQ
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
+
 
 // Helper function to render text with clickable links
 const renderMessageContent = (content, darkMode) => {
@@ -220,8 +176,18 @@ function Chatbot({ onDarkModeToggle }) {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    
+    // Immediate scroll
+    scrollToBottom()
+    
+    // Also scroll after a short delay to ensure DOM is updated
+    const timeoutId = setTimeout(scrollToBottom, 100)
+    
+    return () => clearTimeout(timeoutId)
+  }, [messages, loading])
 
   // Show suggestions when input is empty or short
   useEffect(() => {
@@ -327,6 +293,12 @@ function Chatbot({ onDarkModeToggle }) {
       finalMessages = errorMessages;
     } finally {
       setLoading(false);
+      
+      // Scroll to bottom after loading finishes
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 200);
+      
       // Remove streaming flag on last assistant message and save session
       setMessages((prev) => {
         const cleanedMessages = prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming
@@ -390,9 +362,9 @@ function Chatbot({ onDarkModeToggle }) {
   }, []);
 
   return (
-    <>
-      {/* Chatbot Navbar */}
-      <ChatbotNavBar />
+    <div className="chatbot-page">
+      {/* Standard Site Navigation */}
+      <NavBar />
       
       {/* Chat History Sidebar */}
       <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-800 border-r border-gray-700 transition-all duration-300 z-40 ${
@@ -488,21 +460,13 @@ function Chatbot({ onDarkModeToggle }) {
         </svg>
       </button>
 
-      {/* Main Chat Container - GPT/Gemini Style */}
-      <div className={`flex flex-col h-screen transition-all duration-300 ${
+      {/* Main Chat Container with Purple Outline */}
+      <div className={`chatbot-container transition-all duration-300 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      }`} style={{ 
-        background: darkMode ? '#212121' : '#ffffff',
-        paddingTop: '60px' // Space for fixed navbar
-      }}>
+      }`}>
 
         {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto" style={{ 
-          maxWidth: '768px', 
-          margin: '0 auto', 
-          width: '100%',
-          padding: '0 1rem'
-        }}>
+        <div className="chatbot-messages">
           
           {/* Welcome Screen - GPT Style */}
           {messages.length === 0 && (
@@ -659,111 +623,100 @@ function Chatbot({ onDarkModeToggle }) {
             
             <div ref={messagesEndRef} />
           </div>
-        </div>
 
-        {/* Input Area - GPT/Gemini Style */}
-        <div className={`border-t p-4 transition-colors duration-200 ${
-          sidebarOpen ? 'md:ml-0 ml-0' : 'ml-0'
-        } ${
-          darkMode 
-            ? 'border-gray-700 bg-gray-900' 
-            : 'border-gray-200 bg-white'
-        }`} style={{ 
-          maxWidth: '768px', 
-          margin: '0 auto', 
-          width: '100%'
-        }}>
-          
-          {/* Input suggestions when typing or no input */}
-          {suggestions.length > 0 && (
-            <div className={`mb-3 p-3 rounded-lg ${
-              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
-            }`}>
-              <div className={`text-xs font-medium mb-2 ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>💡 Suggestions:</div>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setInput(suggestion)
-                      setSuggestions([])
-                    }}
-                    className={`px-3 py-1 text-sm rounded-full transition-colors duration-200 ${
-                      darkMode 
-                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white' 
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700 hover:text-gray-900'
-                    }`}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+          {/* Input Area - GPT/Gemini Style */}
+          <div className="chatbot-input-area">
+            
+            {/* Input suggestions when typing or no input */}
+            {suggestions.length > 0 && (
+              <div className={`mb-3 p-3 rounded-lg ${
+                darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-600 border border-gray-700'
+              }`}>
+                <div className={`text-xs font-medium mb-2 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-200'
+                }`}>💡 Suggestions:</div>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setInput(suggestion)
+                        setSuggestions([])
+                      }}
+                      className={`px-3 py-1 text-sm rounded-full transition-colors duration-200 ${
+                        darkMode 
+                          ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white' 
+                          : 'bg-gray-700 hover:bg-gray-600 text-gray-200 hover:text-white'
+                      }`}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          
-          {/* Error message */}
-          {inputError && (
-            <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
-              <div className="text-sm text-red-700 dark:text-red-300">
-                ⚠️ {inputError}
+            )}
+            
+            {/* Error message */}
+            {inputError && (
+              <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
+                <div className="text-sm text-red-700 dark:text-red-300">
+                  ⚠️ {inputError}
+                </div>
               </div>
-            </div>
-          )}
-          
-          {/* Input Box */}
-          <div className="relative">
-            <div className={`flex items-center space-x-3 rounded-2xl px-4 py-3 transition-all duration-200 border ${
+            )}
+            
+            {/* Input Box */}
+            <div className="relative">            <div className={`flex items-center space-x-3 rounded-2xl px-4 py-3 transition-all duration-200 border ${
               inputError 
                 ? 'border-red-400 dark:border-red-600' 
                 : darkMode 
-                  ? 'bg-gray-800 border-gray-600 focus-within:border-blue-500' 
-                  : 'bg-white border-gray-300 focus-within:border-blue-500'
+                  ? 'bg-gray-800 border-gray-700 focus-within:border-gray-600' 
+                  : 'bg-gray-500 border-gray-600 focus-within:border-gray-700'
             }`} style={{
               borderRadius: '24px',
-              boxShadow: darkMode ? 'none' : '0 2px 6px rgba(0, 0, 0, 0.1)'
+              boxShadow: 'none'
             }}>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value)
-                  setInputError('') // Clear error when typing
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Message AI Istanbul"
-                className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
-                  darkMode 
-                    ? 'placeholder-gray-400 text-white' 
-                    : 'placeholder-gray-500 text-gray-900'
-                }`}
-                disabled={loading}
-                autoComplete="off"
-              />
-              <button 
-                onClick={handleSend} 
-                disabled={loading || !input.trim()}
-                className={`p-2 rounded-full transition-all duration-200 ${
-                  loading || !input.trim()
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                } text-white`}
-                style={{ borderRadius: '50%' }}
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                )}
-              </button>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    setInputError('') // Clear error when typing
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Message AI Istanbul"
+                  className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
+                    darkMode 
+                      ? 'placeholder-gray-300 text-white' 
+                      : 'placeholder-gray-300 text-white'
+                  }`}
+                  disabled={loading}
+                  autoComplete="off"
+                />
+                <button 
+                  onClick={handleSend} 
+                  disabled={loading || !input.trim()}
+                  className={`p-2 rounded-full transition-all duration-200 ${
+                    loading || !input.trim()
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                  } text-white`}
+                  style={{ borderRadius: '50%' }}
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -774,7 +727,7 @@ function Chatbot({ onDarkModeToggle }) {
         setInput(input);
         setTimeout(() => handleSend(input), 100);
       }} />
-    </>
+    </div>
   );
 }
 

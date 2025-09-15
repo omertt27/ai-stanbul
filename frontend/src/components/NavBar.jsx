@@ -42,10 +42,10 @@ const NavBar = ({ hideLogo = false }) => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
   
-  // Logo style - responsive positioning
+  // Logo style - responsive positioning - BIGGER, properly positioned
   const logoStyle = {
     position: 'fixed',
-    top: isMobile ? '0.5rem' : '0.25rem',
+    top: isMobile ? '-0.2rem' : '-0.2rem', // Much higher position
     left: isMobile ? '1rem' : '2rem',
     zIndex: 60,
     textDecoration: 'none',
@@ -56,7 +56,7 @@ const NavBar = ({ hideLogo = false }) => {
   };
 
   const logoTextStyle = {
-    fontSize: isMobile ? '1.5rem' : '2.5rem',
+    fontSize: isMobile ? '1.8rem' : '2.5rem', // Smaller, more reasonable size
     fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
@@ -69,31 +69,29 @@ const NavBar = ({ hideLogo = false }) => {
     cursor: 'pointer',
   };
 
-  // Link style for navigation items - Original style restored
+  // Modern cleaner button style for navigation items - no boxes, more compact
   const linkStyle = (isActive) => ({
-    color: isActive ? '#6366f1' : '#c7c9e2',
+    color: isActive ? '#8b5cf6' : '#c7c9e2',
     textDecoration: 'none',
-    borderBottom: isActive ? '2px solid #6366f1' : '2px solid transparent',
-    paddingBottom: '0.5rem',
-    paddingTop: '0.5rem',
-    paddingLeft: '1rem',
-    paddingRight: '1rem',
-    borderRadius: '0.5rem',
+    paddingBottom: '0.8rem', // Increased padding
+    paddingTop: '0.8rem',
+    paddingLeft: '1.2rem', // Increased padding
+    paddingRight: '1.2rem',
+    borderRadius: '8px',
     transition: 'all 0.3s ease',
-    fontWeight: isActive ? '600' : '500',
+    fontWeight: isActive ? '700' : '500',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: isMobile ? '0.9rem' : '1rem', // Original smaller size
+    fontSize: isMobile ? '1.2rem' : '1.2rem', // Bigger font size
     display: 'block',
-    minHeight: 'auto',
-    minWidth: 'auto',
     textAlign: 'center',
     lineHeight: '1.2',
-    transform: 'scale(1)',
-    margin: '0 0.5rem',
-    boxShadow: 'none', // No shadow like original
-    background: 'transparent', // Transparent background like original
-    border: 'none', // No border like original
+    margin: '0 0.5rem', // Reduced margin
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
+    borderBottom: isActive ? '2px solid #8b5cf6' : '2px solid transparent',
   });
   
   const handleLogoClick = () => {
@@ -191,66 +189,88 @@ const NavBar = ({ hideLogo = false }) => {
 
   return (
     <>
-      {/* Logo in top-left corner with main page styling - conditionally rendered */}
+      {/* Logo with purple bar underneath */}
       {!hideLogo && (
-        <Link 
-          to="/" 
-          style={logoStyle} 
-          onClick={handleLogoClick}
-        >
-          <div className="chat-title logo-istanbul">
-            <span className="logo-text" style={logoTextStyle}>
-              A/<span style={{fontWeight: 400}}>STANBUL</span>
-            </span>
-          </div>
-        </Link>
+        <div style={{position: 'fixed', top: 0, left: 0, zIndex: 60}}>
+          <Link 
+            to="/" 
+            style={logoStyle} 
+            onClick={handleLogoClick}
+          >
+            <div className="chat-title logo-istanbul">
+              <span className="logo-text" style={logoTextStyle}>
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
+          </Link>
+          {/* Purple bar under logo */}
+          <div style={{
+            position: 'absolute',
+            bottom: isMobile ? '-0.5rem' : '-0.7rem', // Moved down a bit more
+            left: isMobile ? '1rem' : '2rem',
+            width: isMobile ? '100px' : '140px', // Adjusted to logo size
+            height: '3px',
+            background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)',
+            borderRadius: '2px',
+            boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)',
+          }} />
+        </div>
       )}
       
-      {/* Desktop Navigation */}
+      {/* Desktop Navigation - Clean with purple separator */}
       {!isMobile && (
-        <nav className="navbar-with-slide" style={{
-          position: 'fixed',
-          top: '0.5rem',
-          right: '1.5rem',
-          zIndex: 50,
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: '0.25rem', // Further reduced gap to let button margins work
-          padding: '1rem 0.5rem', // Adjusted padding
-          fontWeight: 400,
-          letterSpacing: '0.01em',
-          borderRadius: '1rem',
-          background: 'rgba(15, 16, 17, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-        }}>
-          <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
-          <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-          <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
-          <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-          <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
-        </nav>
+        <div style={{position: 'fixed', top: 0, right: 0, left: 0, zIndex: 50}}>
+          <nav style={{
+            position: 'relative',
+            top: '0.8rem', // Reduced top spacing
+            right: '1.5rem',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.8rem 1rem', // Reduced padding
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+            background: 'transparent',
+          }}>
+            <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
+            <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
+            <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
+            <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
+            <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+          </nav>
+          {/* Purple separator line across full width */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-0.7rem', // Moved down a bit more
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent 0%, #8b5cf6 20%, #6366f1 50%, #8b5cf6 80%, transparent 100%)',
+            boxShadow: '0 1px 8px rgba(139, 92, 246, 0.4)',
+          }} />
+        </div>
       )}
 
-      {/* Mobile Hamburger Menu Button */}
+      {/* Mobile Hamburger Menu Button - positioned for smaller navbar */}
       {isMobile && (
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="navbar-hamburger"
           style={{
             position: 'fixed',
-            top: '1rem',
+            top: '1rem', // Adjusted for smaller navbar
             right: '1rem',
             zIndex: 62,
-            background: 'rgba(99, 102, 241, 0.9)',
-            border: 'none',
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+            border: '2px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: '12px',
+            padding: '0.8rem', // Slightly smaller
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            minHeight: '44px',
-            minWidth: '44px',
+            minHeight: '46px', // Smaller button
+            minWidth: '46px',
+            boxShadow: '0 4px 15px rgba(139, 92, 246, 0.4)',
           }}
           aria-label="Toggle navigation menu"
         >
