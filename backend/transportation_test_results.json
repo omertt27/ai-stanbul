@@ -1,0 +1,211 @@
+{
+  "total_tests": 25,
+  "successful_tests": 25,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "average_response_time": 0.61,
+  "keyword_accuracy": 100.0,
+  "keyword_matches": 25,
+  "detailed_results": [
+    {
+      "query": "how can I go kadikoy from beyoglu",
+      "status": "success",
+      "response_time": 0.04,
+      "response_length": 695,
+      "contains_transport_keywords": true,
+      "response": "**How to get from Beyoğlu to Kadıköy:**\n\n**Best Options:**\n\n**Option 1: Ferry (Most Scenic) - 25 minutes**\n- Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)\n- Take ferry from Karaköy to ..."
+    },
+    {
+      "query": "how to get from sultanahmet to taksim",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 552,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Sultanahmet to Taksim:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+    },
+    {
+      "query": "from galata to uskudar",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 548,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Galata to Üsküdar:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directio..."
+    },
+    {
+      "query": "beyoglu to kadikoy",
+      "status": "success",
+      "response_time": 3.78,
+      "response_length": 645,
+      "contains_transport_keywords": true,
+      "response": "To travel from Beyoglu to Kadikoy, you can take a ferry from Eminonu or Karakoy to Kadikoy, which offers a scenic and enjoyable ride across the Bosphorus. Alternatively, you can use the metro and Marm..."
+    },
+    {
+      "query": "how do I travel from besiktas to fatih",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 548,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Beşiktaş to Fatih:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directio..."
+    },
+    {
+      "query": "how can I go from eminonu to karakoy",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 549,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Eminönü to Karaköy:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directi..."
+    },
+    {
+      "query": "what's the best way to get to kadikoy from taksim",
+      "status": "success",
+      "response_time": 0.02,
+      "response_length": 541,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Way to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+    },
+    {
+      "query": "I need to go from ortakoy to sultanahmet",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 553,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Ortakoy to Sultanahmet:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dir..."
+    },
+    {
+      "query": "can you tell me how to travel from sisli to uskudar",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 547,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Sisli to Üsküdar:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time direction..."
+    },
+    {
+      "query": "directions from bakirkoy to bebek",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 548,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Bakirkoy to Bebek:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directio..."
+    },
+    {
+      "query": "metro from kadikoy to vezneciler",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 552,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Kadıköy to Vezneciler:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+    },
+    {
+      "query": "ferry from karakoy to kadikoy",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 549,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Karaköy to Kadıköy:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directi..."
+    },
+    {
+      "query": "bus route to taksim square",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 546,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Route to Taksim:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions..."
+    },
+    {
+      "query": "how to take metro to airport",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 542,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from How to Take:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**..."
+    },
+    {
+      "query": "which ferry goes to uskudar",
+      "status": "success",
+      "response_time": 0.02,
+      "response_length": 546,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from Goes to Üsküdar:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions..."
+    },
+    {
+      "query": "transportation in istanbul",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "how to get around istanbul",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 541,
+      "contains_transport_keywords": true,
+      "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+    },
+    {
+      "query": "public transport options",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "istanbul metro system",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "ferry routes in istanbul",
+      "status": "success",
+      "response_time": 4.93,
+      "response_length": 902,
+      "contains_transport_keywords": true,
+      "response": "Here are some great restaurants in Istanbul: 1. Roofstar Bosphorus Lounge Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5..."
+    },
+    {
+      "query": "how much does metro cost",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "where to buy istanbulkart",
+      "status": "success",
+      "response_time": 2.11,
+      "response_length": 555,
+      "contains_transport_keywords": true,
+      "response": "To buy an Istanbulkart, you can visit various locations such as major transportation hubs like metro stations, ferry terminals, and some kiosks around the city. One convenient option is to purchase an..."
+    },
+    {
+      "query": "metro hours in istanbul",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "is there uber in istanbul",
+      "status": "success",
+      "response_time": 4.13,
+      "response_length": 556,
+      "contains_transport_keywords": true,
+      "response": "While Uber used to operate in Istanbul, it's recently faced some regulatory challenges. As an alternative, Istanbul has reliable taxi services and an extensive public transportation network that inclu..."
+    },
+    {
+      "query": "taxi prices in istanbul",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 672,
+      "contains_transport_keywords": true,
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    }
+  ]
+}

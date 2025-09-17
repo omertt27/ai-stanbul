@@ -1,0 +1,334 @@
+/* Floating Landmarks Styles */
+.floating-landmarks {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.floating-landmark {
+  pointer-events: auto;
+  cursor: pointer;
+  animation: floatIn 1s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-landmark.active {
+  transform: scale(1.1);
+}
+
+.floating-landmark.active .landmark-bubble {
+  box-shadow: 
+    0 10px 40px rgba(var(--landmark-color-rgb), 0.4),
+    0 0 30px rgba(var(--landmark-color-rgb), 0.3);
+  animation: activeGlow 2s ease-in-out infinite alternate;
+}
+
+.landmark-bubble {
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  padding: 1rem;
+  min-width: 140px;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.landmark-bubble:hover {
+  transform: translateY(-8px) scale(1.05);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+}
+
+.landmark-bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.landmark-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  animation: iconBounce 3s ease-in-out infinite;
+}
+
+.landmark-name {
+  font-weight: 600;
+  color: white;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.landmark-description {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.ripple-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-landmark:hover .ripple-effect {
+  animation: ripple 0.8s ease-out;
+}
+
+.floating-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: particleFloat 4s ease-in-out infinite;
+}
+
+.particle:nth-child(1) {
+  top: 20%;
+  left: 80%;
+}
+
+.particle:nth-child(2) {
+  top: 60%;
+  left: 20%;
+}
+
+.particle:nth-child(3) {
+  top: 80%;
+  left: 70%;
+}
+
+.landmark-hint {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hint-bubble {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 25px;
+  padding: 0.75rem 1.5rem;
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: hintPulse 3s ease-in-out infinite;
+}
+
+.hint-icon {
+  font-size: 1rem;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes floatIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes activeGlow {
+  0% {
+    box-shadow: 
+      0 10px 40px rgba(99, 102, 241, 0.3),
+      0 0 30px rgba(99, 102, 241, 0.2);
+  }
+  100% {
+    box-shadow: 
+      0 15px 50px rgba(99, 102, 241, 0.5),
+      0 0 40px rgba(99, 102, 241, 0.4);
+  }
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-10px) rotate(90deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-5px) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-15px) rotate(270deg);
+    opacity: 0.4;
+  }
+}
+
+@keyframes hintPulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.02);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+/* Weather theme variations */
+[data-weather-theme="sunny"] .landmark-bubble {
+  background: rgba(255, 193, 7, 0.1);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+[data-weather-theme="rainy"] .landmark-bubble {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-weather-theme="cloudy"] .landmark-bubble {
+  background: rgba(107, 114, 128, 0.1);
+  border-color: rgba(107, 114, 128, 0.3);
+}
+
+[data-weather-theme="snowy"] .landmark-bubble {
+  background: rgba(219, 234, 254, 0.1);
+  border-color: rgba(219, 234, 254, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .floating-landmark {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 1rem;
+    display: inline-block;
+  }
+  
+  .floating-landmarks {
+    position: relative;
+    width: 100%;
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  
+  .landmark-bubble {
+    min-width: 120px;
+    padding: 0.75rem;
+  }
+  
+  .landmark-icon {
+    font-size: 1.5rem;
+  }
+  
+  .landmark-name {
+    font-size: 0.8rem;
+  }
+  
+  .landmark-description {
+    font-size: 0.65rem;
+  }
+  
+  .landmark-hint {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    margin-top: 2rem;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-landmarks {
+    padding: 1rem 0.5rem;
+  }
+  
+  .floating-landmark {
+    margin: 0.5rem;
+  }
+  
+  .landmark-bubble {
+    min-width: 100px;
+    padding: 0.5rem;
+  }
+  
+  .hint-bubble {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}

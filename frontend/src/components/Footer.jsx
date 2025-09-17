@@ -6,30 +6,14 @@ const Footer = () => {
   const [showFooter, setShowFooter] = useState(false);
   
   // Always call hooks first, before any conditional returns
-  // Show/hide footer based on scroll position
+  // Show footer on all pages
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      // Only show footer when scrolled down significantly AND near the bottom of the page
-      const nearBottom = scrollY + windowHeight >= documentHeight - 200;
-      const scrolledEnough = scrollY > 200;
-      
-      setShowFooter(scrolledEnough && nearBottom);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Always show footer on all pages
+    setShowFooter(true);
   }, []);
   
-  // Don't show footer on main page or blog pages (blog pages have their own static footer)
-  if (location.pathname === '/' || location.pathname.startsWith('/blog')) {
-    return null;
-  }
-  
-  const isLightMode = document.body.classList.contains('light');
+  // Show footer on all pages
+  // Removed restriction logic to display footer everywhere
   
   const footerStyle = {
     position: 'fixed',
@@ -42,13 +26,13 @@ const Footer = () => {
     gap: '2rem',
     fontSize: '0.875rem',
     zIndex: 40,
-    backgroundColor: 'rgba(75, 85, 99, 0.3)',
+    backgroundColor: 'rgba(75, 85, 99, 0.9)', // More opaque for better visibility
     color: '#ffffff',
     padding: '0.75rem 2rem',
     backdropFilter: 'blur(8px)',
-    borderTop: '1px solid rgba(156, 163, 175, 0.2)',
+    borderTop: '1px solid rgba(156, 163, 175, 0.3)', // More visible border
     pointerEvents: 'auto',
-    transform: `translateY(${showFooter ? '0' : '100%'})`,
+    transform: 'translateY(0)', // Always visible
     willChange: 'transform',
     transition: 'transform 0.3s ease-in-out',
   };

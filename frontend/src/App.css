@@ -3,8 +3,9 @@
   position: relative;
   background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
   min-height: 100vh;
-  transition: background 0.3s ease; /* Add transition for smooth theme change */
-  padding-top: 85px; /* Reduced padding to account for lower purple bar */
+  transition: background 0.3s ease;
+  padding-top: 85px;
+  overflow-x: hidden;
 }
 
 .main-page-background::before {
@@ -18,9 +19,47 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.25; /* Much darker, less vivid wallpaper */
+  opacity: 0.25;
   z-index: -1;
   pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+/* Weather Theme Variations */
+[data-weather-theme="sunny"] .main-page-background {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+}
+
+[data-weather-theme="sunny"] .main-page-background::before {
+  opacity: 0.3;
+  filter: sepia(20%) saturate(150%) hue-rotate(350deg);
+}
+
+[data-weather-theme="rainy"] .main-page-background {
+  background: linear-gradient(135deg, #0c4a6e 0%, #1e3a8a 100%);
+}
+
+[data-weather-theme="rainy"] .main-page-background::before {
+  opacity: 0.2;
+  filter: sepia(30%) saturate(120%) hue-rotate(200deg);
+}
+
+[data-weather-theme="cloudy"] .main-page-background {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+}
+
+[data-weather-theme="cloudy"] .main-page-background::before {
+  opacity: 0.15;
+  filter: grayscale(40%) brightness(0.9);
+}
+
+[data-weather-theme="snowy"] .main-page-background {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+[data-weather-theme="snowy"] .main-page-background::before {
+  opacity: 0.35;
+  filter: brightness(1.2) contrast(0.8) hue-rotate(180deg);
 }
 
 /* Add overlay for better text contrast */
@@ -31,34 +70,62 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%); /* Much darker overlay */
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%);
   z-index: -2;
   pointer-events: none;
 }
 
-
-
-/* Light mode - high opacity as well */
-body.light .main-page-background::before {
-  opacity: 0.75; /* High opacity for light mode too */
+/* Weather Indicator */
+.weather-indicator {
+  position: fixed;
+  top: 6rem;
+  left: 2rem;
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 25px;
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(10px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  animation: weatherFadeIn 1s ease-out;
 }
 
-/* Light mode background for main page - pure white with stronger override */
-body.light .main-page-background {
-  background: #ffffff !important;
+.weather-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
 }
+
+.weather-icon {
+  font-size: 1rem;
+}
+
+.weather-text {
+  font-weight: 500;
+}
+
+@keyframes weatherFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+
+
 
 /* Also target the main page when light class is on root */
-.light .main-page-background {
-  background: #ffffff !important;
-}
 
 /* Additional override for any nested elements */
-body.light .main-page-background,
-.light .main-page-background {
-  background-color: #ffffff !important;
-  background-image: none !important;
-}
 
 /* Main page logo - bigger version, centered */
 .main-page-logo.logo-istanbul {
@@ -216,7 +283,8 @@ body.light .main-page-background,
   min-height: 0;
 }
 
-.searchbar {
+/* Chatbot-specific searchbar styling */
+.chatbot-page .searchbar {
   position: sticky;
   bottom: 1rem;
   z-index: 102;
@@ -226,10 +294,6 @@ body.light .main-page-background,
   border-bottom-right-radius: 1.5rem;
 }
 
-/* Light mode searchbar - softer background */
-body.light .searchbar {
-  background: #f7fafc;
-}
 
 body {
   min-height: 100vh;
@@ -240,11 +304,6 @@ body {
   padding: 0;
 }
 
-/* Light mode override - pure white background */
-body.light {
-  background: #ffffff !important;
-  color: #2d3748 !important;
-}
 
 #root {
   min-height: 100vh;
@@ -263,12 +322,6 @@ body.light {
   gap: 0.35rem;
 }
 
-/* Light mode chat container - softer colors */
-.light-chat {
-  background: linear-gradient(135deg, #fdfdfe 0%, #f7fafc 100%) !important;
-  box-shadow: 0 -8px 32px 0 rgba(99, 102, 241, 0.12) !important;
-  border: 2px solid #a5b4fc !important;
-}
 
 .message-row {
   display: flex;
@@ -302,13 +355,6 @@ body.light {
   line-height: 1.5;
 }
 
-/* Light mode bot messages - improved readability */
-body.light .message-bubble.bot {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  color: #374151;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.06);
-}
 
 .chat-title {
   font-size: 2.2rem;
@@ -321,18 +367,20 @@ body.light .message-bubble.bot {
   background-clip: text;
 }
 
+/* Main page search bar container */
 .searchbar {
   display: flex;
-  gap: 0.95rem;
-  margin-bottom: 0.5rem; /* Even closer to title - reduced from 1rem */
-  margin-top: 0; /* Remove negative margin for cleaner spacing */
+  gap: 1rem;
+  margin-bottom: 1rem;
+  margin-top: 1rem; /* Add some space from logo */
   align-items: center;
   position: relative;
   z-index: 102;
   justify-content: center; /* Center the search bar */
-  max-width: 600px; /* Limit width for more elegant look */
+  max-width: 700px; /* Slightly wider for better proportions */
   margin-left: auto;
   margin-right: auto;
+  padding: 0 1rem; /* Add some horizontal padding */
 }
 
 /* Ensure search bar only appears on non-chatbot pages */
@@ -350,49 +398,40 @@ body.chatbot-page .searchbar {
 /* Search bar input - only for main pages, not chatbot */
 body:not(.chatbot-page) .searchbar input {
   flex: 1;
-  padding: 0.75rem 1.5rem; /* Less thick - reduced from 1rem to 0.75rem */
-  border-radius: 2rem; /* More rounded like ChatGPT */
-  border: 1px solid rgba(255,255,255,0.2);
-  font-size: 1rem;
-  background: rgba(255,255,255,0.95);
+  padding: 1.25rem 2.5rem; /* Better padding for elegant look */
+  border-radius: 2.5rem; /* Slightly less rounded for better proportions */
+  border: 2px solid rgba(255,255,255,0.2);
+  font-size: 1.2rem; /* Bigger text for better readability */
+  background: rgba(255,255,255,0.98); /* More opaque background */
   color: #374151;
-  transition: all 0.2s ease;
-  min-height: 2.5rem; /* Less thick - reduced from 3rem to 2.5rem */
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  min-height: 3.2rem; /* Slightly adjusted height */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1); /* Softer shadow */
   font-weight: 400;
   outline: none;
   position: relative;
   z-index: 103;
 }
 
-/* Light mode input - softer and more comfortable - only for main pages */
-body.light:not(.chatbot-page) .searchbar input {
-  border: 1px solid #d1d5db;
-  background: rgba(255, 255, 255, 0.98); /* Slightly more transparent */
-  color: #1f2937; /* Darker text for better contrast */
-  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.05), 0 2px 16px rgba(99, 102, 241, 0.1); /* Enhanced shadow */
-  font-weight: 500; /* Slightly bolder text */
-}
 
-body.light:not(.chatbot-page) .searchbar input:focus {
-  border: 2px solid #a5b4fc !important;
-  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15) !important;
-}
 
 /* Search bar input focus - only for main pages */
 body:not(.chatbot-page) .searchbar input:focus {
-  border: 1.5px solid #6366f1;
+  border: 2px solid #6366f1; /* Thicker border on focus */
   outline: none;
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.25); /* Enhanced focus shadow */
+  transform: translateY(-2px); /* More pronounced lift effect */
+  background: rgba(255,255,255,1); /* Full opacity on focus */
 }
 .send-btn {
   background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 20%, #dbeafe 40%, #bfdbfe 60%, #93c5fd 80%, #60a5fa 100%);
   color: #1e40af; /* Dark blue text for contrast */
   border: 3px solid #ffffff;
   border-radius: 50%;
-  width: 48px; /* Bigger button (was 36px) */
-  height: 48px; /* Bigger button (was 36px) */
-  min-width: 48px;
-  min-height: 48px;
+  width: 56px; /* Bigger to match taller search bar */
+  height: 56px; /* Bigger to match taller search bar */
+  min-width: 56px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,12 +440,14 @@ body:not(.chatbot-page) .searchbar input:focus {
   box-shadow: 0 8px 32px rgba(255,255,255,0.7), 0 4px 24px rgba(99,102,241,0.4), 0 2px 16px rgba(255,255,255,0.9);
   filter: brightness(1.5) contrast(1.3);
   padding: 0;
-  font-size: 1.3rem; /* Bigger icon (was 1.1rem) */
+  font-size: 1.4rem; /* Bigger icon to match button size */
   font-weight: 700;
 }
 
 .send-btn:hover {
   background: #6366f1;
+  transform: translateY(-2px) scale(1.05); /* More dramatic hover effect */
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5); /* Enhanced hover shadow */
 }
 
 /* Button press animation for better UX */
@@ -469,11 +510,6 @@ body:not(.chatbot-page) .searchbar input:focus {
   padding: 0.5rem 0;
 }
 
-/* Light mode navigation - softer and easier on eyes */
-body.light .nav-container {
-  background: rgba(253, 253, 254, 0.95);
-  border-bottom: 1px solid rgba(209, 213, 219, 0.6);
-}
 
 .nav-content {
   display: flex;
@@ -504,10 +540,6 @@ body.light .nav-container {
   filter: brightness(1.2);
 }
 
-/* Light mode logo - better contrast */
-body.light .nav-logo {
-  color: #2d3748;
-}
 
 .nav-logo.dark {
   color: #ffffff;
@@ -548,15 +580,7 @@ body.light .nav-logo {
   color: #60a5fa;
 }
 
-/* Light mode nav links - improved readability */
-body.light .nav-link {
-  color: #4a5568;
-}
 
-body.light .nav-link:hover,
-body.light .nav-link.active {
-  color: #667eea;
-}
 
 .nav-link.dark {
   color: #9ca3af;
@@ -673,11 +697,6 @@ body > div, #root > div {
   margin: 0 auto;
 }
 
-/* Light mode static pages - softer background */
-body.light .static-page {
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
-  color: #2d3748 !important;
-}
 
 .static-page.dark {
   background: linear-gradient(135deg, #181a20 0%, #23263a 100%) !important;
@@ -709,10 +728,6 @@ body.light .static-page {
   font-weight: 600;
 }
 
-/* Light mode h2 - better contrast */
-body.light .static-page h2 {
-  color: #2d3748 !important;
-}
 
 .static-page.dark h2 {
   color: #c7c9e2 !important;
@@ -725,10 +740,6 @@ body.light .static-page h2 {
   font-size: 1.1rem;
 }
 
-/* Light mode paragraphs - improved readability */
-body.light .static-page p {
-  color: #4a5568 !important;
-}
 
 .static-page.dark p {
   color: #a3a7c2 !important;
@@ -746,10 +757,6 @@ body.light .static-page p {
   font-size: 1.05rem;
 }
 
-/* Light mode list items - better readability */
-body.light .static-page li {
-  color: #4a5568 !important;
-}
 
 .static-page.dark li {
   color: #a3a7c2 !important;
@@ -785,11 +792,6 @@ body.light .static-page li {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
-/* Light mode code */
-body.light .static-page code {
-  background: #f3f4f6;
-  color: #374151;
-}
 
 .static-page.dark code {
   background: #2a2e44;
@@ -825,10 +827,6 @@ body.light .static-page code {
   font-weight: 400;
 }
 
-/* Light mode welcome text */
-body.light .chatbot-welcome-subtitle {
-  color: #4a5568;
-}
 
 /* Example prompt cards with enhanced styling - single column for narrow space */
 .example-prompts-grid {
@@ -937,1720 +935,729 @@ body.dark .example-prompt-description {
   max-width: 80%;
 }
 
-/* Light mode bot messages */
-body.light .message-bubble.bot {
-  background: #f8fafc;
-  color: #2d3748;
-  border: 1px solid #e2e8f0;
-}
 
-/* Simple Input Area - Clean style with no separate border */
-.chatbot-input-container {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3); /* Subtle inner border */
+/* KAM Redesigned Input Area - Modern and Elegant */
+
+/* Error Message Styling */
+.kam-error-message {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 12px;
-  box-shadow: none;
-  backdrop-filter: none;
-  position: relative;
-  padding: 0;
-}
-
-/* Light mode input container */
-body.light .chatbot-input-container {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  box-shadow: none;
-}
-
-.chatbot-input {
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #ececf1;
-  font-size: 16px;
   padding: 12px 16px;
-  width: 100%;
-  border-radius: 12px;
-  resize: none;
-  font-family: inherit;
+  backdrop-filter: blur(10px);
 }
 
-/* Light mode input */
-body.light .chatbot-input {
-  color: #374151;
+/* Input Wrapper with Glow Effect */
+.kam-input-wrapper {
+  position: relative;
+  margin-bottom: 16px;
 }
 
-.chatbot-input::placeholder {
-  color: #8e8ea0;
-  opacity: 1;
+/* Main Input Container - Remove surrounding border/background */
+.kam-input-container {
+  display: flex;
+  align-items: center;
+  background: transparent; /* Remove background */
+  border: none; /* Remove border completely */
+  border-radius: 0; /* Remove border radius from container */
+  padding: 12px 0; /* Remove horizontal padding, keep vertical */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: none; /* Remove backdrop filter */
+  box-shadow: none; /* Remove box shadow */
+  position: relative;
+  overflow: visible; /* Allow overflow for better visual */
+  min-height: 48px;
 }
 
-/* Light mode placeholder */
-body.light .chatbot-input::placeholder {
-  color: #9ca3af;
+.kam-input-container:hover {
+  border-color: transparent; /* Keep transparent */
+  box-shadow: none; /* No hover shadow */
 }
 
-.chatbot-send-button {
-  background: #2563eb;
+.kam-input-container:focus-within {
+  border-color: transparent; /* Keep transparent */
+  box-shadow: none; /* No focus shadow */
+  background: transparent; /* Keep transparent */
+}
+
+/* Search Icon - Position absolutely over input */
+.kam-search-icon {
+  position: absolute;
+  left: 16px;
+  color: rgba(156, 163, 175, 0.7);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.kam-input-field:focus + .kam-search-icon {
+  color: rgba(99, 102, 241, 0.8);
+}
+
+/* Input Field - ChatGPT-style search bar */
+.kam-input-field {
+  flex: 1;
+  background: rgba(64, 65, 79, 0.3); /* Subtle dark background like ChatGPT */
+  border: none; /* Remove all borders */
+  outline: none;
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 400; /* Normal weight like ChatGPT */
+  letter-spacing: 0.025em;
+  line-height: 1.5;
+  padding: 14px 56px 14px 48px; /* Slightly more padding for ChatGPT feel */
+  border-radius: 24px; /* More rounded like ChatGPT */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.3s ease;
+  backdrop-filter: none;
+  box-shadow: none; /* Remove any shadows */
+  resize: none; /* Prevent textarea resize if applicable */
+}
+
+.kam-input-field:focus {
+  border: none; /* No border on focus */
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3); /* Subtle purple glow like ChatGPT */
+  background: rgba(64, 65, 79, 0.5); /* Slightly more visible on focus */
+}
+
+.kam-input-field::placeholder {
+  color: rgba(156, 163, 175, 0.6); /* More subtle placeholder like ChatGPT */
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.kam-input-field:focus::placeholder {
+  color: rgba(156, 163, 175, 0.6); /* Slightly more subtle when focused */
+}
+
+.kam-input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Send Button - Position absolutely */
+.kam-send-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   border: none;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
+  border-radius: 14px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: white;
+  flex-shrink: 0;
+  overflow: hidden;
+  z-index: 3;
 }
 
-.chatbot-send-button:hover {
-  background: #1d4ed8;
-  transform: scale(1.05);
+.kam-send-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5, #3730a3);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 8px 25px -8px rgba(99, 102, 241, 0.4),
+    0 4px 12px -4px rgba(0, 0, 0, 0.2);
 }
 
-.chatbot-send-button:active {
-  transform: scale(0.95);
+.kam-send-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
-/* Simple Sidebar - GPT Style */
-.sidebar {
-  background: #f8f9fa;
-  border-right: 1px solid #e3e4e6;
-  backdrop-filter: none;
-  box-shadow: none;
+.kam-send-button:disabled {
+  background: rgba(75, 85, 99, 0.6);
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
 }
 
-/* Dark mode sidebar */
-body.dark .sidebar {
-  background: #2d2e30;
-  border-right: 1px solid #3c4043;
-}
-
-/* Ensure navbar is visible on chatbot page */
-.chatbot-page .navbar,
-.chatbot-page .navbar-logo,
-.chatbot-page .navbar-link {
-  z-index: 1000;
+/* Loading Spinner */
+.kam-loading-spinner {
   position: relative;
+  width: 20px;
+  height: 20px;
 }
 
-/* Fix navbar positioning on chatbot page */
-.chatbot-page .navbar-logo {
-  position: fixed !important;
-  top: 0.5rem !important;
-  left: 1rem !important;
-  z-index: 1001 !important;
+.kam-spinner-ring {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: kam-spin 1s linear infinite;
 }
 
-/* Ensure chatbot content doesn't overlap navbar */
-.chatbot-page .chatbot-content {
-  padding-top: 20px !important; /* Much smaller padding to reduce gap */
-  height: calc(100vh - 20px) !important; /* Use almost full height */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Chatbot Page - Match other pages background exactly */
-body.chatbot-page {
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as other pages */
-  color: #e5e7eb !important; /* Same as other pages */
-}
-
-/* Light mode chatbot page - match other pages exactly */
-body.light.chatbot-page {
-  background: #ffffff !important; /* Same as other pages */
-  color: #2d3748 !important;
-}
-
-/* Chatbot page layout container */
-.chatbot-page {
-  padding: 0 !important; /* Remove padding to eliminate gap */
-  max-width: none !important;
-  margin: 0 !important;
-  height: 100vh !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as main page */
-}
-
-/* Hide searchbar when on chatbot page */
-body.chatbot-page .searchbar {
-  display: none !important;
-}
-
-/* Unified chatbot container with purple outline including both messages and input */
-.chatbot-page .chatbot-container {
-  flex: 1 !important;
-  overflow: hidden !important;
-  margin-top: 90px !important; /* Reduced space for better purple bar positioning */
-  margin-bottom: 0.5rem !important; /* Much smaller gap - closer to bottom */
-  max-width: 900px !important; /* Much wider container - increased from 1100px */
-  width: calc(100vw - 4rem) !important; /* Responsive width but keep it wide */
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding: 0 1rem !important; /* Add horizontal padding for mobile */
-  border: 3px solid rgba(139, 92, 246, 0.6) !important; /* Thicker, more visible border */
-  border-radius: 21px !important; /* More rounded corners like modern chat apps */
-  background: rgba(139, 92, 246, 0.05) !important; /* Slightly more visible background */
-  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.25), 0 0 0 2px rgba(139, 92, 246, 0.2) !important; /* Enhanced shadow with thicker glow */
-  display: flex !important;
-  flex-direction: column !important;
-  height: calc(100vh - 100px) !important; /* Much closer to bottom - reduced from 190px */
-  min-height: calc(100vh - 100px) !important; /* Ensure minimum height is maintained */
-  max-height: calc(100vh - 100px) !important; /* Prevent container from growing */
-}
-
-@media (max-width: 768px) {
-  .chatbot-page .chatbot-container {
-    margin-top: 80px !important; /* Mobile space reduced for better positioning */
-    margin-bottom: 90px !important; /* Space for bottom tab bar navigation */
-    max-width: 98% !important; /* Wider on mobile too */
-    width: auto !important; /* Allow responsive width on mobile */
-    height: calc(100vh - 180px) !important; /* Account for mobile navbar + bottom tab bar */
-    min-height: calc(100vh - 180px) !important; /* Ensure minimum height is maintained */
-    max-height: calc(100vh - 180px) !important; /* Prevent container from growing */
-    border-radius: 20px !important; /* Slightly less rounded on mobile */
-    border: 2px solid rgba(139, 92, 246, 0.6) !important; /* Slightly thinner on mobile but still thick */
+@keyframes kam-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-body.light .chatbot-page .chatbot-container {
-  border: 3px solid rgba(139, 92, 246, 0.5) !important; /* Thicker border for light mode too */
-  background: rgba(139, 92, 246, 0.03) !important;
-  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15), 0 0 0 2px rgba(139, 92, 246, 0.1) !important;
+/* Glow Effect - Disabled since container is removed */
+.kam-input-glow {
+  display: none;
 }
 
-/* Ensure chatbot messages area is scrollable within the container */
-.chatbot-page .chatbot-messages {
+/* Quick Suggestions */
+.kam-quick-suggestions {
+  margin-top: 12px;
+  animation: kam-fade-in 0.5s ease-out;
+}
+
+.kam-suggestion-pill {
+  background: rgba(55, 65, 81, 0.6);
+  border: 1px solid rgba(75, 85, 99, 0.4);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: rgba(209, 213, 219, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.kam-suggestion-pill:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #f9fafb;
+  transform: translateY(-1px);
+}
+
+@keyframes kam-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .kam-input-container {
+    padding: 10px 14px; /* Smaller padding on mobile */
+  }
+  
+  .kam-input-field {
+    font-size: 14px; /* Smaller font on mobile */
+  }
+  
+  .kam-send-button {
+    width: 36px; /* Smaller on mobile */
+    height: 36px; /* Smaller on mobile */
+  }
+  
+  .kam-quick-suggestions {
+    margin-top: 8px;
+  }
+  
+  .kam-suggestion-pill {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+}
+
+/* Message Action Buttons - Position below messages like ChatGPT */
+.kam-message-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-top: 8px;
+  margin-bottom: 16px; /* Add spacing below actions */
+  display: flex;
+  gap: 8px; /* Space between buttons */
+  justify-content: flex-start; /* Align to left for bot messages */
+}
+
+/* Align actions to the right for user messages */
+.message-row.user .kam-message-actions {
+  justify-content: flex-end; /* Align to right for user messages */
+}
+
+.group:hover .kam-message-actions {
+  opacity: 1;
+}
+
+.kam-action-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px; /* Slightly larger padding for better clickability */
+  background: rgba(31, 41, 55, 0.8); /* Subtle dark background */
+  border: 1px solid rgba(75, 85, 99, 0.4); /* Subtle border */
+  border-radius: 16px; /* More rounded like ChatGPT */
+  color: rgba(209, 213, 219, 0.8); /* Readable text color */
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px); /* Subtle blur effect */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.kam-action-button:hover {
+  background: rgba(75, 85, 99, 0.6); /* More visible on hover */
+  border-color: rgba(99, 102, 241, 0.5); /* Purple border on hover */
+  color: #f9fafb; /* Brighter text on hover */
+  transform: translateY(-1px); /* Subtle lift */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+.kam-copy-button:hover {
+  background: rgba(34, 197, 94, 0.2); /* More visible green background */
+  border-color: rgba(34, 197, 94, 0.5); /* Green border */
+  color: rgb(34, 197, 94); /* Green text */
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.2); /* Green shadow */
+}
+
+.kam-read-button:hover {
+  background: rgba(59, 130, 246, 0.2); /* More visible blue background */
+  border-color: rgba(59, 130, 246, 0.5); /* Blue border */
+  color: rgb(59, 130, 246); /* Blue text */
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2); /* Blue shadow */
+}
+
+.kam-read-button.active {
+  background: rgba(239, 68, 68, 0.2); /* More visible red background */
+  border-color: rgba(239, 68, 68, 0.5); /* Red border */
+  color: rgb(239, 68, 68); /* Red text */
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2); /* Red shadow */
+}
+
+.kam-read-button.active:hover {
+  background: rgba(239, 68, 68, 0.3); /* Enhanced red on hover */
+  border-color: rgba(239, 68, 68, 0.6); /* Stronger red border */
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3); /* Stronger red shadow */
+}
+
+/* Mobile adjustments for action buttons */
+@media (max-width: 768px) {
+  .kam-message-actions {
+    opacity: 1; /* Always visible on mobile */
+  }
+  
+  .kam-action-button {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Chatbot Purple Box Container */
+.chatbot-main-container {
+  padding: 80px;
+  margin-top: 0px; /* Start right below navbar */
+  min-height: calc(100vh - 70px);
+  /* Match blog page background */
+  background: #111827; /* bg-gray-900 - matches blog page */
+  position: relative;
+}
+
+.chatbot-main-container::before {
+  /* Remove background image to match blog page clean look */
+  display: none;
+}
+
+.chatbot-purple-box {
+  background: rgba(17, 24, 39, 0.8); /* Subtle background that matches page */
+  border: 4px solid rgba(75, 85, 99, 0.4); /* More subtle gray border instead of purple */
+  border-radius: 15px;
+  margin: 2rem auto; /* Center the box */
+  max-width: 900px; /* Much narrower - more phone-like proportions */
+  width: 85%; /* Much narrower responsive width */
+  min-height: calc(100vh - 150px); /* Much taller - higher as requested */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 0 0 1px rgba(75, 85, 99, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.chatbot-purple-box::before {
+  /* Remove purple glow effect for cleaner look */
+  display: none;
+}
+
+@keyframes purpleGlow {
+  0% {
+    opacity: 0.4;
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 0.7;
+    filter: blur(2px);
+  }
+}
+
+.chatbot-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 0.75rem 0.5rem 0.75rem !important; /* Consistent padding */
-  border: none; /* Remove individual border since container has it */
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  margin: 0 !important; /* Remove any margins */
+  padding: 1.5rem; /* Reduced padding */
   display: flex;
   flex-direction: column;
-  gap: 0.5rem; /* Small gap between messages */
-  min-height: 0; /* Allow flex shrinking */
 }
 
-body.light .chatbot-page .chatbot-messages {
-  border: none;
-  background: transparent;
-  box-shadow: none;
+.chatbot-input-area {
+  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Reduced top padding to remove separation */
+  border-top: none; /* Remove border separation */
+  background: transparent; /* Remove background separation */
+  backdrop-filter: none; /* Remove backdrop filter */
 }
 
-/* Input area styling for chatbot page - modern clean design - FIXED TO BOTTOM */
-.chatbot-page .chatbot-input-area {
-  position: relative;
-  background: transparent !important;
-  padding: 0.5rem 0.75rem 0.75rem 0.75rem !important; /* Fixed padding - no negative values */
-  border-top: 1px solid rgba(139, 92, 246, 0.1) !important; /* More subtle separator */
-  border-radius: 0 0 22px 22px !important; /* Round bottom corners to match container */
-  margin: 0 !important; /* Remove any margins */
-  flex-shrink: 0; /* Prevent input area from shrinking */
-  min-height: 80px !important; /* Fixed minimum height */
-  max-height: 80px !important; /* Fixed maximum height */
-  height: 80px !important; /* Fixed height to prevent size changes */
+/* Enhanced focus state for the purple box */
+.chatbot-purple-box:focus-within {
+  border-color: rgba(99, 102, 241, 0.5); /* Subtle purple focus */
+  box-shadow: 
+    0 0 0 1px rgba(99, 102, 241, 0.3),
+    0 0 0 2px rgba(99, 102, 241, 0.1),
+    0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
-body.light .chatbot-page .chatbot-input-area {
-  background: transparent !important;
-  border-top: 1px solid rgba(139, 92, 246, 0.1);
-}
-
-/* Improve the input box styling */
-.chatbot-page .chatbot-input-area .relative > div {
-  background: rgba(139, 92, 246, 0.05) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.15) !important;
-  transition: all 0.3s ease !important;
-  margin: 0 !important; /* Remove any margins */
-  padding: 0.5rem 1rem !important; /* Consistent internal padding */
-}
-
-.chatbot-page .chatbot-input-area .relative > div:focus-within {
-  border-color: rgba(139, 92, 246, 0.4) !important;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25) !important;
-}
-
-body.light .chatbot-page .chatbot-input-area .relative > div {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
-}
-
-/* Fix input and button layout */
-.chatbot-page .chatbot-input-area textarea,
-.chatbot-page .chatbot-input-area input {
-  border: none !important;
-  background: transparent !important;
-  outline: none !important;
-  padding: 0.75rem 1rem !important;
-  margin: 0 !important;
-  font-size: 1rem !important;
-  line-height: 1.5 !important;
-  resize: none !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  position: relative !important;
-  z-index: 1 !important; /* Lower z-index than search bar */
-}
-
-.chatbot-page .chatbot-input-area button {
-  margin: 0 !important;
-  padding: 0.5rem !important;
-  border: none !important;
-  background: rgba(139, 92, 246, 0.8) !important;
-  color: white !important;
-  border-radius: 50% !important;
-  width: 2.5rem !important;
-  height: 2.5rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-}
-
-.chatbot-page .chatbot-input-area button:hover {
-  background: rgba(139, 92, 246, 1) !important;
-  transform: scale(1.05) !important;
-}
-
-/* Custom Scrollbar Styling for a More Aesthetic Look */
-/* Webkit browsers (Chrome, Safari, Edge) */
-.chatbot-page .chatbot-messages::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.05);
-  border-radius: 10px;
-  margin: 4px 0;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(99, 102, 241, 0.4) 100%);
-  border-radius: 10px;
-  border: 1px solid rgba(139, 92, 246, 0.1);
-  transition: all 0.3s ease;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(99, 102, 241, 0.6) 100%);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-}
-
-/* Light mode scrollbar */
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.08);
-}
-
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-}
-
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7) 0%, rgba(99, 102, 241, 0.7) 100%);
-}
-
-/* Firefox scrollbar styling */
-.chatbot-page .chatbot-messages {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.4) rgba(139, 92, 246, 0.05);
-}
-
-body.light .chatbot-page .chatbot-messages {
-  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(139, 92, 246, 0.08);
-}
-
-/* Smooth scrolling behavior */
-.chatbot-page .chatbot-messages {
-  scroll-behavior: smooth;
-}
-
-/* General scrollbar styling for other scrollable areas */
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.03);
-  border-radius: 6px;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
-}
-
-body.light *::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.05);
-}
-
-body.light *::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.4);
-}
-
-body.light *::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
-}
-
-/* Ensure logo is properly clickable with minimum touch area */
-.logo-istanbul {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  min-width: 120px !important;
-  min-height: 44px !important; /* Minimum touch target size */
-  display: inline-block !important;
-  position: relative !important;
-  z-index: 9999 !important;
-}
-
-.logo-istanbul .logo-text {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  user-select: none !important; /* Prevent text selection */
-}
-
-/* Ensure no overlapping elements block the logo */
-.logo-istanbul:hover {
-  opacity: 0.8 !important;
-  transform: scale(1.02) !important;
-}
-
-
-
-/* Page content wrapper to work with sticky navbar */
-.page-content {
-  position: relative;
-  z-index: 1;
-}
-
-/* Content spacing for fixed navbar */
-.main-content, .page-content {
-  padding-top: 85px; /* Reduced space to account for lower purple bar */
-}
-
-/* Chatbot page specific adjustments */
-.chatbot-page {
-  padding-top: 85px; /* Reduced space to account for lower purple bar */
-}
-
-/* Main page content adjustments */
-.main-page-content {
-  padding-top: 85px; /* Reduced space to account for lower purple bar */
-}
-
-.main-page-background::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('/istanbul-bridge-bg.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.25; /* Much darker, less vivid wallpaper */
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Add overlay for better text contrast */
-.main-page-background::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%); /* Much darker overlay */
-  z-index: -2;
-  pointer-events: none;
-}
-
-
-
-/* Light mode - high opacity as well */
-body.light .main-page-background::before {
-  opacity: 0.75; /* High opacity for light mode too */
-}
-
-/* Light mode background for main page - pure white with stronger override */
-body.light .main-page-background {
-  background: #ffffff !important;
-}
-
-/* Also target the main page when light class is on root */
-.light .main-page-background {
-  background: #ffffff !important;
-}
-
-/* Additional override for any nested elements */
-body.light .main-page-background,
-.light .main-page-background {
-  background-color: #ffffff !important;
-  background-image: none !important;
-}
-
-/* Main page logo - bigger version, centered */
-.main-page-logo.logo-istanbul {
-  text-align: center;
-  margin-bottom: 0; /* Minimal margin to bring search bar very close */
-  margin-top: -2rem; /* Much higher position - moved up even more */
-  padding: 0rem; /* Even smaller padding for tighter spacing */
-  position: relative;
-  z-index: 100; /* Much higher z-index to ensure it's above everything */
-  cursor: pointer; /* Make logo clickable */
-  transition: all 0.3s ease;
-}
-
-.main-page-logo.logo-istanbul:hover {
-  transform: scale(1.02);
-}
-
-.main-page-logo .logo-text {
-  font-size: 4rem !important; /* Bigger logo (was 11rem) */
-  font-weight: 700; /* Normal weight like other pages */
-  letter-spacing: 0.15em; /* Consistent with other pages */
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%); /* Same as other pages */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); /* Reduced shadow like other pages */
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 101; /* Ensure logo text is above everything */
-  cursor: pointer; /* Make logo text clickable */
-}
-
-.main-page-logo .logo-text:hover {
-  transform: scale(1.05);
-  text-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
-}
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .main-page-logo .logo-text {
-    font-size: 10rem !important; /* Bigger mobile logo (was 7rem) */
-    font-weight: 700; /* Normal weight */
-    letter-spacing: 0.15em;
-    /* Consistent styling with other pages */
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  .chatbot-main-container {
+    margin-top: 60px;
+    min-height: calc(100vh - 60px);
+  }
+  
+  .chatbot-purple-box {
+    margin: 1rem auto; /* Center on mobile too */
+    width: 85%; /* Narrower on mobile for better proportions */
+    max-width: 450px; /* Limit max width on mobile */
+    min-height: calc(100vh - 100px); /* Taller on mobile */
+    border-radius: 12px;
+  }
+  
+  .chatbot-messages {
+    padding: 1rem;
+  }
+  
+  .chatbot-input-area {
+    padding: 0.75rem 1rem 1rem 1rem; /* Remove top padding separation on mobile */
   }
 }
 
-@media (max-width: 640px) {
-  .main-page-logo .logo-text {
-    font-size: 6rem !important; /* Bigger mobile logo (was 3rem) */
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+/* Mobile Responsiveness for Creative Components */
+@media (max-width: 768px) {
+  .weather-indicator {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: 1rem auto;
+    width: fit-content;
+    font-size: 0.7rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .main-page-background {
+    padding-top: 60px;
+  }
+  
+  .interactive-main-page {
+    padding: 1rem 0.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .main-page-logo .logo-text {
-    font-size: 8rem !important; /* Bigger mobile logo (was 5rem) */
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-  }
-}
-
-/* Logo styling */
-.logo-istanbul .logo-text {
-  font-weight: 700;
-  font-size: 2.8rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Chat page logo - smaller size, positioned at top */
-.logo-move-top-left.logo-istanbul .logo-text {
-  font-size: 3.2rem !important;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  margin-top: 0;
-  padding-top: 1rem;
-}
-
-/* Base logo styling for chat pages (when not main page) */
-.chat-title.logo-istanbul:not(.main-page-logo) .logo-text {
-  font-size: 3.2rem !important;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-/* Responsive logo scaling for fixed positioned logos */
-@media (max-width: 640px) {
-  .logo-istanbul .logo-text {
-    font-size: 2rem;
-    letter-spacing: 0.08em;
+  .weather-indicator {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.6rem;
+    gap: 0.3rem;
   }
   
-  .logo-move-top-left.logo-istanbul .logo-text {
-    font-size: 2.2rem !important;
-    letter-spacing: 0.08em;
-  }
-}
-@keyframes expandChat {
-  0% {
-    max-width: 400px;
-    min-height: 0;
-    opacity: 0.7;
-    filter: blur(2px);
-  }
-  60% {
-    max-width: 1000px;
-    min-height: 0;
-    opacity: 1;
-    filter: blur(0.5px);
-  }
-  100% {
-    max-width: 900px;
-    min-height: 400px;
-    opacity: 1;
-    filter: blur(0);
+  .interactive-main-page {
+    padding: 0.5rem;
   }
 }
 
-.expand-animate {
-  animation: expandChat 0.6s cubic-bezier(.4,2,.6,1);
+/* Enhanced hover effects for better interactivity */
+.main-page-logo:hover .logo-text {
+  text-shadow: 0 6px 30px rgba(99, 102, 241, 0.6);
+  transform: scale(1.02);
 }
-.chat-title {
-  position: relative; /* Changed from sticky to relative to prevent interference */
-  top: 0;
+
+/* Ensure proper stacking context for all creative components */
+.floating-landmarks {
+  z-index: 5;
+}
+
+.live-activity-feed {
+  z-index: 15;
+}
+
+.interactive-main-page {
   z-index: 10;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  padding: 2rem 0 1.5rem 0;
-  font-weight: 700;
+}
+
+.weather-indicator {
+  z-index: 20;
+}
+
+/* Weather Theme Variations for Chatbot */
+[data-weather-theme="sunny"] .chatbot-main-container {
+  background: #111827; /* Keep same base gray as blog page */
+}
+
+[data-weather-theme="sunny"] .chatbot-main-container::before {
+  /* Remove background image for clean blog page look */
+  display: none;
+}
+
+[data-weather-theme="rainy"] .chatbot-main-container {
+  background: #111827; /* Keep same base gray as blog page */
+}
+
+[data-weather-theme="rainy"] .chatbot-main-container::before {
+  /* Remove background image for clean blog page look */
+  display: none;
+}
+
+[data-weather-theme="cloudy"] .chatbot-main-container {
+  background: #111827; /* Keep same base gray as blog page */
+}
+
+[data-weather-theme="cloudy"] .chatbot-main-container::before {
+  /* Remove background image for clean blog page look */
+  display: none;
+}
+
+[data-weather-theme="snowy"] .chatbot-main-container {
+  background: #111827; /* Keep same base gray as blog page */
+}
+
+[data-weather-theme="snowy"] .chatbot-main-container::before {
+  /* Remove background image for clean blog page look */
+  display: none;
+}
+
+/* District Gallery Styles */
+.districts-gallery-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.gallery-title {
   text-align: center;
-  margin-bottom: 0;
+  margin-bottom: 2rem;
 }
 
-/* Default chat title size - only apply when not main page logo */
-.chat-title:not(.main-page-logo) {
+.gallery-title h3 {
   font-size: 2.2rem;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
 }
 
-.chat-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 0;
+.gallery-title p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.searchbar {
-  position: sticky;
-  bottom: 1rem;
-  z-index: 102;
-  background: #1a1b1d;
-  padding-bottom: 4.5rem;
-  border-bottom-left-radius: 1.5rem;
-  border-bottom-right-radius: 1.5rem;
+.districts-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
-/* Light mode searchbar - softer background */
-body.light .searchbar {
-  background: #f7fafc;
-}
-
-body {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
-  color: #e5e7eb;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
-/* Light mode override - pure white background */
-body.light {
-  background: #ffffff !important;
-  color: #2d3748 !important;
-}
-
-#root {
-  min-height: 100vh;
-  background: none;
-}
-
-.chat-container {
-  background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
-  border-radius: 2rem 2rem 0 0;
-  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.18);
-  border: 2.5px solid #6366f1;
-  padding: 0.5rem 1.5rem 0.5rem 2.5rem;
-  margin-bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-/* Light mode chat container - softer colors */
-.light-chat {
-  background: linear-gradient(135deg, #fdfdfe 0%, #f7fafc 100%) !important;
-  box-shadow: 0 -8px 32px 0 rgba(99, 102, 241, 0.12) !important;
-  border: 2px solid #a5b4fc !important;
-}
-
-.message-row {
-  display: flex;
-  align-items: flex-end;
-  margin-bottom: 0.75rem;
-}
-
-.message-bubble {
-  padding: 0.75rem 1.25rem;
-  border-radius: 1.25rem;
-  font-size: 1rem;
-  max-width: 75%;
-  word-break: break-word;
-  box-shadow: 0 2px 8px 0 rgba(80, 80, 180, 0.06);
-}
-
-.message-bubble.user {
-  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
-  color: #fff;
-  margin-left: auto;
-  border-bottom-right-radius: 0.25rem;
-}
-.message-bubble.bot {
-  background: rgba(25, 26, 28, 0.9);
-  color: #f3f4f6;
-  margin-right: auto;
-  border-bottom-left-radius: 0.25rem;
-  border: 1px solid #3a3b3d;
-  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.15);
-  max-width: 85%;
-  line-height: 1.5;
-}
-
-/* Light mode bot messages - improved readability */
-body.light .message-bubble.bot {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  color: #374151;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.06);
-}
-
-.chat-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.searchbar {
-  display: flex;
-  gap: 0.95rem;
-  margin-bottom: 0.5rem; /* Even closer to title - reduced from 1rem */
-  margin-top: 0; /* Remove negative margin for cleaner spacing */
-  align-items: center;
-  position: relative;
-  z-index: 102;
-  justify-content: center; /* Center the search bar */
-  max-width: 600px; /* Limit width for more elegant look */
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Ensure search bar only appears on non-chatbot pages */
-body:not(.chatbot-page) .searchbar {
-  display: flex !important;
-}
-
-/* Keep search bar hidden on chatbot page */
-.chatbot-page .searchbar,
-body.chatbot-page .searchbar {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Search bar input - only for main pages, not chatbot */
-body:not(.chatbot-page) .searchbar input {
-  flex: 1;
-  padding: 0.75rem 1.5rem; /* Less thick - reduced from 1rem to 0.75rem */
-  border-radius: 2rem; /* More rounded like ChatGPT */
-  border: 1px solid rgba(255,255,255,0.2);
-  font-size: 1rem;
-  background: rgba(255,255,255,0.95);
-  color: #374151;
-  transition: all 0.2s ease;
-  min-height: 2.5rem; /* Less thick - reduced from 3rem to 2.5rem */
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-weight: 400;
-  outline: none;
-  position: relative;
-  z-index: 103;
-}
-
-/* Light mode input - softer and more comfortable - only for main pages */
-body.light:not(.chatbot-page) .searchbar input {
-  border: 1px solid #d1d5db;
-  background: rgba(255, 255, 255, 0.98); /* Slightly more transparent */
-  color: #1f2937; /* Darker text for better contrast */
-  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.05), 0 2px 16px rgba(99, 102, 241, 0.1); /* Enhanced shadow */
-  font-weight: 500; /* Slightly bolder text */
-}
-
-body.light:not(.chatbot-page) .searchbar input:focus {
-  border: 2px solid #a5b4fc !important;
-  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15) !important;
-}
-
-/* Search bar input focus - only for main pages */
-body:not(.chatbot-page) .searchbar input:focus {
-  border: 1.5px solid #6366f1;
-  outline: none;
-}
-.send-btn {
-  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 20%, #dbeafe 40%, #bfdbfe 60%, #93c5fd 80%, #60a5fa 100%);
-  color: #1e40af; /* Dark blue text for contrast */
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-  width: 48px; /* Bigger button (was 36px) */
-  height: 48px; /* Bigger button (was 36px) */
-  min-width: 48px;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.district-card {
+  background: var(--background-color);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 32px rgba(255,255,255,0.7), 0 4px 24px rgba(99,102,241,0.4), 0 2px 16px rgba(255,255,255,0.9);
-  filter: brightness(1.5) contrast(1.3);
-  padding: 0;
-  font-size: 1.3rem; /* Bigger icon (was 1.1rem) */
-  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
 }
 
-.send-btn:hover {
-  background: #6366f1;
-}
-
-/* Button press animation for better UX */
-.button-press-animation {
-  transform: scale(0.95) !important;
-  transition: transform 0.1s ease !important;
-}
-
-/* Reset and full-screen layout */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* Ensure no element can interfere with fixed positioning */
-* {
-  transform-style: preserve-3d;
-}
-
-/* Prevent any container from affecting fixed elements */
-.min-h-screen, .w-full, .transition-colors {
-  position: relative !important;
-  z-index: 0 !important;
-}
-
-/* Force all fixed elements to stay on top */
-[style*="position: fixed"], .fixed, .fixed-logo {
-  z-index: 10000 !important;
-  position: fixed !important;
-  will-change: auto !important;
-  transform: translateZ(0) !important;
-}
-
-#root {
-  width: 100vw;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-/* Enhanced Navigation styles */
-.nav-container.dark {
-  background: rgba(15, 16, 17, 0.98);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Default dark navigation - more modern */
-.nav-container {
-  position: fixed;
+.district-card::before {
+  content: '';
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  background: rgba(15, 16, 17, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  bottom: 0;
+  background: inherit;
+  z-index: -1;
   transition: all 0.3s ease;
-  padding: 0.5rem 0;
 }
 
-/* Light mode navigation - softer and easier on eyes */
-body.light .nav-container {
-  background: rgba(253, 253, 254, 0.95);
-  border-bottom: 1px solid rgba(209, 213, 219, 0.6);
+.district-card:hover,
+.district-card.hovered {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: inherit;
 }
 
-.nav-content {
+.district-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.district-color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.district-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.district-vibe {
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.district-description {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.district-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.district-specialty, .district-location, .district-population {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  position: relative;
+  font-size: 0.9rem;
 }
 
-.nav-logo {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.nav-logo:hover {
-  transform: scale(1.05);
-  filter: brightness(1.2);
-}
-
-/* Light mode logo - better contrast */
-body.light .nav-logo {
-  color: #2d3748;
-}
-
-.nav-logo.dark {
-  color: #ffffff;
-}
-
-.nav-links {
-  display: flex;
-  gap: 2.5rem; /* Even bigger gap for more premium look */
-  list-style: none;
-  margin-left: 4rem; /* More space from logo */
-  margin-right: auto; /* Allow space to expand on right */
-  align-items: center;
-}
-
-.nav-link {
-  color: #9ca3af;
-  text-decoration: none;
-  font-weight: 700; /* Even bolder text */
-  font-size: 1.2rem; /* Bigger text */
-  padding: 1rem 1.75rem; /* Much bigger padding for button-like feel */
-  border-radius: 1rem; /* More rounded corners */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  border: 2px solid transparent;
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-link:hover {
-  color: #ffffff;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-color: #818cf8;
-  transform: translateY(-2px) scale(1.05); /* More dramatic lift and scale */
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
-}
-
-.nav-link.active {
-  color: #60a5fa;
-}
-
-/* Light mode nav links - improved readability */
-body.light .nav-link {
-  color: #4a5568;
-}
-
-body.light .nav-link:hover,
-body.light .nav-link.active {
-  color: #667eea;
-}
-
-.nav-link.dark {
-  color: #9ca3af;
-}
-
-.nav-link.dark:hover,
-.nav-link.dark.active {
-  color: #60a5fa;
-}
-
-/* Original Navigation Button Styles */
-.navbar-link {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-/* Purple slide effect for navbar links */
-.navbar-link::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.9;
-}
-
-.navbar-link:hover {
-  transform: translateY(-1px);
-  color: #6366f1;
-}
-
-.navbar-link:hover::after {
-  transform: scaleX(1);
-}
-
-.navbar-link:active {
-  transform: translateY(0);
-}
-
-/* Enhanced purple slide effect for main navbar */
-.nav-container::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 25%;
-  right: 25%;
-  width: 50%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.9;
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
-}
-
-.nav-container:hover::after {
-  transform: scaleX(1);
-}
-
-/* Enhanced navbar link hover effects */
-.nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 80%;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 2px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.9;
-}
-
-.nav-link:hover::after {
-  transform: translateX(-50%) scaleX(1);
-}
-
-/* Page content */
-.page-content {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden; /* Changed from auto to hidden for chatbot full-screen */
-  position: relative;
-  z-index: 1;
-}
-
-/* Blog page and other pages spacing */
-.blog-page, .about-page, .faq-page, .donate-page {
-  padding-top: 75px !important;
-  min-height: calc(100vh - 75px);
-}
-
-/* Ensure all page content starts below navbar */
-body > div, #root > div {
-  padding-top: 0; /* Reset any conflicting padding */
-}
-
-.static-page {
-  min-height: 100vh;
-  padding: 5rem 2rem 2rem;
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important;
-  color: #e5e7eb !important;
-  line-height: 1.6;
-  text-align: left;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* Light mode static pages - softer background */
-body.light .static-page {
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
-  color: #2d3748 !important;
-}
-
-.static-page.dark {
-  background: linear-gradient(135deg, #181a20 0%, #23263a 100%) !important;
-  color: #e5e7eb !important;
-}
-
-.static-page h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 900;
-}
-
-.static-page.dark h1 {
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 900;
-}
-
-.static-page h2 {
-  font-size: 1.5rem;
-  margin: 2rem 0 1rem;
-  color: #c7c9e2 !important;
-  font-weight: 600;
-}
-
-/* Light mode h2 - better contrast */
-body.light .static-page h2 {
-  color: #2d3748 !important;
-}
-
-.static-page.dark h2 {
-  color: #c7c9e2 !important;
-  font-weight: 600;
-}
-
-.static-page p {
-  margin-bottom: 1rem;
-  color: #a3a7c2 !important;
-  font-size: 1.1rem;
-}
-
-/* Light mode paragraphs - improved readability */
-body.light .static-page p {
-  color: #4a5568 !important;
-}
-
-.static-page.dark p {
-  color: #a3a7c2 !important;
-  font-size: 1.1rem;
-}
-
-.static-page ul {
-  margin: 1rem 0;
-  padding-left: 2rem;
-}
-
-.static-page li {
-  margin-bottom: 0.5rem;
-  color: #a3a7c2 !important;
-  font-size: 1.05rem;
-}
-
-/* Light mode list items - better readability */
-body.light .static-page li {
-  color: #4a5568 !important;
-}
-
-.static-page.dark li {
-  color: #a3a7c2 !important;
-  font-size: 1.05rem;
-}
-
-.static-page a {
-  color: #818cf8 !important;
-  text-decoration: underline;
-  transition: color 0.3s ease;
+.specialty-label, .population-label {
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
-.static-page.dark a {
-  color: #818cf8 !important;
-  font-weight: 500;
+.specialty-value, .population-value {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
-.static-page a:hover {
-  color: #6366f1 !important;
+.location-value {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.85rem;
 }
 
-.static-page.dark a:hover {
-  color: #6366f1 !important;
-}
-
-.static-page code {
-  background: #2a2e44;
-  color: #e5e7eb;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-/* Light mode code */
-body.light .static-page code {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.static-page.dark code {
-  background: #2a2e44;
-  color: #e5e7eb;
-}
-
-/* Enhanced Chatbot Styling - incorporating design from other pages */
-
-/* Welcome screen enhancements - adjusted for smaller chatbot */
-.chatbot-welcome-container {
-  padding: 1.5rem 1rem; /* Smaller padding */
-  max-width: 100%; /* Full width of container */
-  margin: 0 auto;
-  text-align: center;
-}
-
-.chatbot-welcome-title {
-  font-size: 1.8rem; /* Smaller title */
-  font-weight: 700;
-  margin-bottom: 1rem;
-  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
-}
-
-.chatbot-welcome-subtitle {
-  font-size: 0.95rem; /* Smaller subtitle */
-  color: #9ca3af;
+.district-highlights {
   margin-bottom: 1.5rem;
-  line-height: 1.6;
-  font-weight: 400;
 }
 
-/* Light mode welcome text */
-body.light .chatbot-welcome-subtitle {
-  color: #4a5568;
-}
-
-/* Example prompt cards with enhanced styling - single column for narrow space */
-.example-prompts-grid {
-  display: grid;
-  grid-template-columns: 1fr; /* Single column */
-  gap: 0.8rem; /* Smaller gap */
-  margin: 1rem 0;
-  padding: 0;
-}
-
-.example-prompt-card {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.3); /* Purple border */
-  border-radius: 12px;
-  padding: 1rem; /* Smaller padding */
-  text-align: left;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
-}
-
-.example-prompt-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.example-prompt-card:hover::before {
-  opacity: 1;
-}
-
-.example-prompt-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
-  border-color: #8b5cf6;
-  box-shadow: 
-    0 12px 25px rgba(139, 92, 246, 0.3),
-    0 4px 12px rgba(139, 92, 246, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.example-prompt-title {
-  font-size: 0.9rem; /* Smaller for narrow space */
-  font-weight: 700;
-  color: #f1f5f9;
+.highlights-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
   margin-bottom: 0.5rem;
+}
+
+.highlights-list {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.example-prompt-description {
-  font-size: 0.8rem; /* Smaller description */
-  color: #5f6368;
-  line-height: 1.4;
-}
-
-/* Dark mode description */
-body.dark .example-prompt-description {
-  color: #9aa0a6;
-}
-
-/* Simple Chat Messages Area - GPT Style */
-.chat-messages-area {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  backdrop-filter: none;
-  margin-top: 0;
-  overflow-y: auto;
-  flex: 1;
-  padding: 1rem;
-}
-
-/* Clean Message Bubbles - Match Site Theme */
-.message-bubble.user {
-  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
-  color: #ffffff;
-  border-radius: 18px;
-  box-shadow: none;
-  border: none;
-  padding: 12px 16px;
-  margin-left: auto;
-  margin-right: 0;
-  max-width: 70%;
-}
-
-.message-bubble.bot {
-  background: rgba(30, 41, 59, 0.8);
-  color: #f1f5f9;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: none;
-  backdrop-filter: none;
-  padding: 12px 16px;
-  margin-right: auto;
-  margin-left: 0;
-  max-width: 80%;
-}
-
-/* Light mode bot messages */
-body.light .message-bubble.bot {
-  background: #f8fafc;
-  color: #2d3748;
-  border: 1px solid #e2e8f0;
-}
-
-/* Simple Input Area - Clean style with no separate border */
-.chatbot-input-container {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3); /* Subtle inner border */
+.highlight-tag {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  box-shadow: none;
-  backdrop-filter: none;
-  position: relative;
-  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
-/* Light mode input container */
-body.light .chatbot-input-container {
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  box-shadow: none;
-}
-
-.chatbot-input {
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #ececf1;
-  font-size: 16px;
-  padding: 12px 16px;
+.explore-district-btn {
   width: 100%;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid;
   border-radius: 12px;
-  resize: none;
-  font-family: inherit;
-}
-
-/* Light mode input */
-body.light .chatbot-input {
-  color: #374151;
-}
-
-.chatbot-input::placeholder {
-  color: #8e8ea0;
-  opacity: 1;
-}
-
-/* Light mode placeholder */
-body.light .chatbot-input::placeholder {
-  color: #9ca3af;
-}
-
-.chatbot-send-button {
-  background: #2563eb;
-  border: none;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: transparent;
   color: white;
-}
-
-.chatbot-send-button:hover {
-  background: #1d4ed8;
-  transform: scale(1.05);
-}
-
-.chatbot-send-button:active {
-  transform: scale(0.95);
-}
-
-/* Simple Sidebar - GPT Style */
-.sidebar {
-  background: #f8f9fa;
-  border-right: 1px solid #e3e4e6;
-  backdrop-filter: none;
-  box-shadow: none;
-}
-
-/* Dark mode sidebar */
-body.dark .sidebar {
-  background: #2d2e30;
-  border-right: 1px solid #3c4043;
-}
-
-/* Ensure navbar is visible on chatbot page */
-.chatbot-page .navbar,
-.chatbot-page .navbar-logo,
-.chatbot-page .navbar-link {
-  z-index: 1000;
-  position: relative;
-}
-
-/* Fix navbar positioning on chatbot page */
-.chatbot-page .navbar-logo {
-  position: fixed !important;
-  top: 0.5rem !important;
-  left: 1rem !important;
-  z-index: 1001 !important;
-}
-
-/* Ensure chatbot content doesn't overlap navbar */
-.chatbot-page .chatbot-content {
-  padding-top: 20px !important; /* Much smaller padding to reduce gap */
-  height: calc(100vh - 20px) !important; /* Use almost full height */
-  display: flex;
-  flex-direction: column;
-}
-
-/* Chatbot Page - Match other pages background exactly */
-body.chatbot-page {
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as other pages */
-  color: #e5e7eb !important; /* Same as other pages */
-}
-
-/* Light mode chatbot page - match other pages exactly */
-body.light.chatbot-page {
-  background: #ffffff !important; /* Same as other pages */
-  color: #2d3748 !important;
-}
-
-/* Chatbot page layout container */
-.chatbot-page {
-  padding: 0 !important; /* Remove padding to eliminate gap */
-  max-width: none !important;
-  margin: 0 !important;
-  height: 100vh !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as main page */
-}
-
-/* Hide searchbar when on chatbot page */
-body.chatbot-page .searchbar {
-  display: none !important;
-}
-
-/* Ensure chatbot messages area is scrollable within the container */
-.chatbot-page .chatbot-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem 0.75rem 0.5rem 0.75rem !important; /* Consistent padding */
-  border: none; /* Remove individual border since container has it */
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  margin: 0 !important; /* Remove any margins */
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem; /* Small gap between messages */
-  min-height: 0; /* Allow flex shrinking */
-}
-
-body.light .chatbot-page .chatbot-messages {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* Input area styling for chatbot page - modern clean design - FIXED TO BOTTOM */
-.chatbot-page .chatbot-input-area {
-  position: relative;
-  background: transparent !important;
-  padding: 0.5rem 0.75rem 0.75rem 0.75rem !important; /* Fixed padding - no negative values */
-  border-top: 1px solid rgba(139, 92, 246, 0.1) !important; /* More subtle separator */
-  border-radius: 0 0 22px 22px !important; /* Round bottom corners to match container */
-  margin: 0 !important; /* Remove any margins */
-  flex-shrink: 0; /* Prevent input area from shrinking */
-  min-height: 80px !important; /* Fixed minimum height */
-  max-height: 80px !important; /* Fixed maximum height */
-  height: 80px !important; /* Fixed height to prevent size changes */
-}
-
-body.light .chatbot-page .chatbot-input-area {
-  background: transparent !important;
-  border-top: 1px solid rgba(139, 92, 246, 0.1);
-}
-
-/* Improve the input box styling */
-.chatbot-page .chatbot-input-area .relative > div {
-  background: rgba(139, 92, 246, 0.05) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.15) !important;
-  transition: all 0.3s ease !important;
-  margin: 0 !important; /* Remove any margins */
-  padding: 0.5rem 1rem !important; /* Consistent internal padding */
-}
-
-.chatbot-page .chatbot-input-area .relative > div:focus-within {
-  border-color: rgba(139, 92, 246, 0.4) !important;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25) !important;
-}
-
-body.light .chatbot-page .chatbot-input-area .relative > div {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(139, 92, 246, 0.2) !important;
-}
-
-/* Fix input and button layout */
-.chatbot-page .chatbot-input-area textarea,
-.chatbot-page .chatbot-input-area input {
-  border: none !important;
-  background: transparent !important;
-  outline: none !important;
-  padding: 0.75rem 1rem !important;
-  margin: 0 !important;
-  font-size: 1rem !important;
-  line-height: 1.5 !important;
-  resize: none !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  position: relative !important;
-  z-index: 1 !important; /* Lower z-index than search bar */
-}
-
-.chatbot-page .chatbot-input-area button {
-  margin: 0 !important;
-  padding: 0.5rem !important;
-  border: none !important;
-  background: rgba(139, 92, 246, 0.8) !important;
-  color: white !important;
-  border-radius: 50% !important;
-  width: 2.5rem !important;
-  height: 2.5rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-}
-
-.chatbot-page .chatbot-input-area button:hover {
-  background: rgba(139, 92, 246, 1) !important;
-  transform: scale(1.05) !important;
-}
-
-/* Custom Scrollbar Styling for a More Aesthetic Look */
-/* Webkit browsers (Chrome, Safari, Edge) */
-.chatbot-page .chatbot-messages::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.05);
-  border-radius: 10px;
-  margin: 4px 0;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(99, 102, 241, 0.4) 100%);
-  border-radius: 10px;
-  border: 1px solid rgba(139, 92, 246, 0.1);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(99, 102, 241, 0.6) 100%);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-}
-
-/* Light mode scrollbar */
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.08);
-}
-
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-}
-
-body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7) 0%, rgba(99, 102, 241, 0.7) 100%);
-}
-
-/* Firefox scrollbar styling */
-.chatbot-page .chatbot-messages {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.4) rgba(139, 92, 246, 0.05);
-}
-
-body.light .chatbot-page .chatbot-messages {
-  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(139, 92, 246, 0.08);
-}
-
-/* Smooth scrolling behavior */
-.chatbot-page .chatbot-messages {
-  scroll-behavior: smooth;
-}
-
-/* General scrollbar styling for other scrollable areas */
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.03);
-  border-radius: 6px;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
-}
-
-body.light *::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.05);
-}
-
-body.light *::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.4);
-}
-
-body.light *::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
-}
-
-/* Ensure logo is properly clickable with minimum touch area */
-.logo-istanbul {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  min-width: 120px !important;
-  min-height: 44px !important; /* Minimum touch target size */
-  display: inline-block !important;
-  position: relative !important;
-  z-index: 9999 !important;
-}
-
-.logo-istanbul .logo-text {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  user-select: none !important; /* Prevent text selection */
-}
-
-/* Ensure no overlapping elements block the logo */
-.logo-istanbul:hover {
-  opacity: 0.8 !important;
-  transform: scale(1.02) !important;
-}
-
-
-
-/* Page content wrapper to work with sticky navbar */
-.page-content {
   position: relative;
-  z-index: 1;
+  overflow: hidden;
+}
+
+.explore-district-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.explore-district-btn:hover::before {
+  left: 100%;
+}
+
+.explore-district-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .districts-gallery {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .district-card {
+    padding: 1rem;
+  }
+  
+  .gallery-title h3 {
+    font-size: 1.8rem;
+  }
+  
+  .district-name {
+    font-size: 1.2rem;
+  }
+  
+  .district-info {
+    font-size: 0.85rem;
+  }
 }
 

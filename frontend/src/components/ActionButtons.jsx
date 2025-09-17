@@ -20,16 +20,16 @@ const ActionButtons = ({ actions = [], contextActions = [] }) => {
   
   const getActionIcon = (type) => {
     const icons = {
-      navigation: '📍',
-      directions: '🗺️',
-      booking: '🍽️',
-      tickets: '🎫',
-      tour: '🗺️',
-      schedule: '⛴️',
-      metro: '🚇',
-      context: '💡'
+      navigation: 'N',
+      directions: 'D',
+      booking: 'B',
+      tickets: 'T',
+      tour: 'T',
+      schedule: 'S',
+      metro: 'M',
+      context: 'C'
     };
-    return icons[type] || '🔗';
+    return icons[type] || 'A';
   };
   
   const getActionColor = (type) => {
@@ -66,7 +66,7 @@ const ActionButtons = ({ actions = [], contextActions = [] }) => {
           >
             <span>{getActionIcon(action.type)}</span>
             <span className="truncate max-w-32">
-              {action.text.replace(/📍|🗺️|🍽️|🎫|⛴️|🚇|💡/g, '').trim()}
+              {action.text}
             </span>
           </button>
         ))}

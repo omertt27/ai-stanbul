@@ -138,7 +138,7 @@ const EnhancedDemo = () => {
           {/* Demo Scenarios */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              🧪 Test Scenarios
+              ◉ Test Scenarios
             </h2>
             <div className="space-y-4">
               {demoScenarios.map((scenario, index) => (
@@ -239,7 +239,7 @@ const EnhancedDemo = () => {
           {/* Context Display */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              🧠 Context & Memory
+              ◆ Context & Memory
             </h2>
             
             {context && context.active ? (
@@ -325,7 +325,7 @@ const EnhancedDemo = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-              <div className="text-2xl mb-2">🧠</div>
+              <div className="text-2xl mb-2">◆</div>
               <h3 className="font-medium text-green-800">Context Awareness</h3>
               <p className="text-sm text-green-600 mt-1">⭐⭐⭐⭐⭐</p>
               <p className="text-xs text-green-700 mt-2">Maintains conversation history and references previous interactions</p>

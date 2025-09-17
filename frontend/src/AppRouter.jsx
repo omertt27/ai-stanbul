@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import BlogList from './pages/BlogList';
 import BlogPost from './pages/BlogPost';
 import NewBlogPost from './pages/NewBlogPost';
+import AdminDashboard from './pages/AdminDashboard';
 import EnhancedDemo from './pages/EnhancedDemo';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
@@ -34,9 +35,6 @@ const AppRouter = () => {
     const hasActiveChat = localStorage.getItem('chat-messages') && 
                          JSON.parse(localStorage.getItem('chat-messages') || '[]').length > 0;
     setChatExpanded(hasActiveChat);
-    
-    // Clean up any old light mode data
-    localStorage.removeItem('light-mode');
     
     return () => {
       window.removeEventListener('chatStateChanged', handleChatStateChange);
@@ -61,8 +59,8 @@ const AppContent = ({ chatExpanded }) => {
   // Hide navbar logo on main page only, show on all other pages
   const shouldHideLogo = location.pathname === '/';
   
-  // Hide navbar and footer for chatbot page (it has its own navigation)
-  const shouldHideNavigation = location.pathname === '/chatbot';
+  // Hide navbar for chatbot page (it has its own navigation), but show footer everywhere
+  const shouldHideNavbar = location.pathname === '/chatbot';
 
   // Global navigation handler to ensure clean state transitions
   useEffect(() => {
@@ -81,15 +79,15 @@ const AppContent = ({ chatExpanded }) => {
       <GoogleAnalytics />
 
       {/* Show chatbot outline - only on pages that are not the dedicated chatbot page */}
-      {!shouldHideNavigation && (
+      {!shouldHideNavbar && (
         <div className="chatbot-outline" style={{ position: 'fixed', zIndex: 9998 }}></div>
       )}
       
-      {/* Conditionally show NavBar and Footer - only for pages that need them */}
-      {!shouldHideNavigation && (shouldShowFixedNavbar ? (
+      {/* Show NavBar on all pages except chatbot, Footer on ALL pages */}
+      {!shouldHideNavbar && (shouldShowFixedNavbar ? (
         <>
           {/* Fixed navbar for pages other than chatbot and main */}
-          <div className={`fixed-navbar ${isLightMode ? '' : 'dark'}`}>
+          <div className="fixed-navbar dark">
             {/* AI Istanbul Logo - Centered */}
             <div className="fixed-navbar-logo">
               <Link to="/" style={{textDecoration: 'none'}}>
@@ -135,9 +133,11 @@ const AppContent = ({ chatExpanded }) => {
         <>
           {/* Regular NavBar for all pages with conditional logo hiding */}
           <NavBar hideLogo={shouldHideLogo} />
-          <Footer />
         </>
       ))}
+      
+      {/* Footer on ALL pages including chatbot */}
+      <Footer />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/chat" element={<App />} />
@@ -154,6 +154,7 @@ const AppContent = ({ chatExpanded }) => {
         <Route path="/blog" element={<BlogList />} />
         <Route path="/blog/new" element={<NewBlogPost />} />
         <Route path="/blog/:id" element={<BlogPost />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </>
   );

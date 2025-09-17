@@ -128,14 +128,13 @@ const NavBar = ({ hideLogo = false }) => {
           right: 0, 
           left: 0, 
           zIndex: 50,
-          background: 'rgba(15, 16, 17, 0.95)', // Semi-transparent background for visibility while scrolling
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
+          background: 'transparent', // Transparent background to match page
+          backdropFilter: 'none', // Remove blur effect
           height: '70px', // Fixed height for navbar
         }}>
           <nav style={{
             position: 'absolute',
-            top: '1rem', // Centered in the 70px navbar
+            top: '0.5rem', // Moved down from 0.25rem to 0.5rem
             left: '1.5rem', // Start from left
             right: '1.5rem', // Extend to right
             display: 'flex',
@@ -147,8 +146,8 @@ const NavBar = ({ hideLogo = false }) => {
             letterSpacing: '0.01em',
             background: 'transparent',
           }}>
-            {/* Logo in navbar */}
-            {!hideLogo && (
+            {/* Logo in navbar or invisible spacer to maintain layout */}
+            {!hideLogo ? (
               <div 
                 style={{
                   cursor: 'pointer',
@@ -175,6 +174,9 @@ const NavBar = ({ hideLogo = false }) => {
                   A/<span style={{fontWeight: 400}}>STANBUL</span>
                 </span>
               </div>
+            ) : (
+              // Invisible spacer to maintain right alignment of navigation links
+              <div style={{ flex: 1 }} />
             )}
             
             {/* Navigation links on the right */}
@@ -190,6 +192,16 @@ const NavBar = ({ hideLogo = false }) => {
               <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
             </div>
           </nav>
+          {/* Purple separator line below navbar */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-10px', // Moved down from 0px to -10px
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent 0%, #8b5cf6 20%, #6366f1 50%, #8b5cf6 80%, transparent 100%)',
+            boxShadow: '0 1px 8px rgba(139, 92, 246, 0.4)',
+          }} />
         </div>
       )}
 
@@ -197,14 +209,13 @@ const NavBar = ({ hideLogo = false }) => {
       {isMobile && (
         <div style={{
           position: 'fixed',
-          top: 0,
+          top: 30,
           right: 0,
           left: 0,
           zIndex: 1005,
-          background: 'rgba(15, 16, 17, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
-          padding: '1rem',
+          background: 'transparent', // Transparent background to match page
+          backdropFilter: 'none', // Remove blur effect
+          padding: '0.75rem 1rem 1rem', // Increased top padding from 0.5rem to 0.75rem
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -240,10 +251,10 @@ const NavBar = ({ hideLogo = false }) => {
             </div>
           )}
           
-          {/* Purple separator line positioned much lower */}
+          {/* Purple separator line below navbar */}
           <div style={{
             position: 'absolute',
-            bottom: '-15px', // Move the line much further down
+            bottom: '-10px', // Moved down from 0px to -10px
             left: 0,
             right: 0,
             height: '2px',
@@ -380,7 +391,7 @@ const NavBar = ({ hideLogo = false }) => {
             }}
           >
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Donate</span>
           </Link>

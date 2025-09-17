@@ -1,0 +1,4192 @@
+{
+  "timestamp": "2025-09-17T12:28:50.539231",
+  "total_tests": 116,
+  "passed_tests": 87,
+  "failed_tests": 29,
+  "categories": {
+    "Transportation Queries": {
+      "total": 10,
+      "passed": 6,
+      "failed": 4,
+      "tests": [
+        {
+          "query": "how can I go kadikoy from beyoglu",
+          "category": "Transportation",
+          "description": "Direct route query",
+          "status": "PASSED",
+          "response_time": 0.04,
+          "response_length": 695,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "ferry",
+            "metro",
+            "minutes"
+          ],
+          "missing_keywords": [
+            "transport"
+          ],
+          "found_forbidden": [],
+          "response": "**How to get from Beyoğlu to Kadıköy:**\n\n**Best Options:**\n\n**Option 1: Ferry (Most Scenic) - 25 minutes**\n- Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)\n- Take ferry from Karaköy to ..."
+        },
+        {
+          "query": "how to get from sultanahmet to taksim",
+          "category": "Transportation",
+          "description": "Tourist route",
+          "status": "PASSED",
+          "response_time": 0.01,
+          "response_length": 552,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "metro",
+            "tram",
+            "transport"
+          ],
+          "missing_keywords": [
+            "minutes"
+          ],
+          "found_forbidden": [],
+          "response": "**Transportation from Sultanahmet to Taksim:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+        },
+        {
+          "query": "metro from kadikoy to vezneciler",
+          "category": "Transportation",
+          "description": "Specific metro query",
+          "status": "FAILED",
+          "response_time": 0.01,
+          "response_length": 552,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "metro"
+          ],
+          "missing_keywords": [
+            "line",
+            "station",
+            "transfer"
+          ],
+          "found_forbidden": [],
+          "response": "**Transportation from Kadıköy to Vezneciler:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+        },
+        {
+          "query": "ferry routes in istanbul",
+          "category": "Transportation",
+          "description": "Ferry information",
+          "status": "FAILED",
+          "response_time": 4.26,
+          "response_length": 867,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "bosphorus"
+          ],
+          "missing_keywords": [
+            "ferry",
+            "route",
+            "schedule"
+          ],
+          "found_forbidden": [
+            "restaurant",
+            "eat"
+          ],
+          "response": "Here are some great restaurants in Istanbul: 1. Feriye Lokantasi A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.4/5 • Very..."
+        },
+        {
+          "query": "how much does metro cost",
+          "category": "Transportation",
+          "description": "Pricing query",
+          "status": "FAILED",
+          "response_time": 0.01,
+          "response_length": 672,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "istanbulkart"
+          ],
+          "missing_keywords": [
+            "cost",
+            "price",
+            "lira"
+          ],
+          "found_forbidden": [],
+          "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+        },
+        {
+          "query": "airport to sultanahmet",
+          "category": "Transportation",
+          "description": "Airport connection",
+          "status": "PASSED",
+          "response_time": 2.15,
+          "response_length": 580,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "metro",
+            "m1",
+            "airport",
+            "transfer"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "To travel from the airport to Sultanahmet, you have a few transportation options. One popular choice is to take the metro from the airport. The M1A line connects Istanbul Airport to the city center, i..."
+        },
+        {
+          "query": "is there uber in istanbul",
+          "category": "Transportation",
+          "description": "Ride-sharing query",
+          "status": "PASSED",
+          "response_time": 2.13,
+          "response_length": 359,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "uber",
+            "bitaksi",
+            "taxi",
+            "available"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! While Uber is available in Istanbul, it's not as widely used as local taxi services. Istanbul has a well-established taxi network that is commonly used by both locals and visitors. If you prefe..."
+        },
+        {
+          "query": "public transport options",
+          "category": "Transportation",
+          "description": "General transport info",
+          "status": "PASSED",
+          "response_time": 0.01,
+          "response_length": 672,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "metro",
+            "bus",
+            "ferry",
+            "tram",
+            "transport"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+        },
+        {
+          "query": "travel beyoglu kadikoy fastest",
+          "category": "Transportation",
+          "description": "Speed-focused query",
+          "status": "PASSED",
+          "response_time": 1.86,
+          "response_length": 407,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "ferry",
+            "fastest",
+            "route"
+          ],
+          "missing_keywords": [
+            "time"
+          ],
+          "found_forbidden": [],
+          "response": "To travel quickly between Beyoglu and Kadikoy, one of the fastest options is to use the ferry service. You can take a ferry from Eminonu or Karakoy in Beyoglu to Kadikoy. The ferry ride offers a sceni..."
+        },
+        {
+          "query": "night transport istanbul",
+          "category": "Transportation",
+          "description": "Night service query",
+          "status": "FAILED",
+          "response_time": 0.01,
+          "response_length": 1098,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "night"
+          ],
+          "missing_keywords": [
+            "transport",
+            "hours",
+            "schedule"
+          ],
+          "found_forbidden": [
+            "restaurant",
+            "eat"
+          ],
+          "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+        }
+      ],
+      "success_rate": 60.0
+    },
+    "Restaurant Queries": {
+      "total": 10,
+      "passed": 8,
+      "failed": 2,
+      "tests": [
+        {
+          "query": "restaurants in beyoglu",
+          "category": "Restaurant",
+          "description": "Location-based restaurant query",
+          "status": "PASSED",
+          "response_time": 5.69,
+          "response_length": 853,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant",
+            "dining"
+          ],
+          "missing_keywords": [
+            "beyoglu",
+            "food"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+        },
+        {
+          "query": "best turkish food kadikoy",
+          "category": "Restaurant",
+          "description": "Cuisine-specific query",
+          "status": "PASSED",
+          "response_time": 1.81,
+          "response_length": 553,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "turkish",
+            "food",
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "kadikoy"
+          ],
+          "found_forbidden": [],
+          "response": "For some of the best Turkish food in Kadıköy, you should definitely check out Çiya Sofrası. They offer delicious traditional Turkish cuisine with a wide variety of dishes to choose from. Another great..."
+        },
+        {
+          "query": "romantic dinner istanbul",
+          "category": "Restaurant",
+          "description": "Occasion-based query",
+          "status": "FAILED",
+          "response_time": 2.11,
+          "response_length": 671,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "romantic"
+          ],
+          "missing_keywords": [
+            "dinner",
+            "restaurant",
+            "atmosphere"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul is full of romantic spots perfect for couples! You can start with a visit to Maiden's Tower (Kız Kulesi) in Uskudar, offering stunning views of the city and the Bosphorus. Another lovely spot..."
+        },
+        {
+          "query": "cheap eats sultanahmet",
+          "category": "Restaurant",
+          "description": "Budget query",
+          "status": "PASSED",
+          "response_time": 3.92,
+          "response_length": 1145,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "budget",
+            "food",
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "cheap"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Turgut Kebab Restaurant -Sultanahmet- A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (Recommended because it loca..."
+        },
+        {
+          "query": "seafood restaurants galata",
+          "category": "Restaurant",
+          "description": "Specific cuisine query",
+          "status": "PASSED",
+          "response_time": 3.74,
+          "response_length": 1023,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant",
+            "galata"
+          ],
+          "missing_keywords": [
+            "seafood",
+            "fish"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Galata Sanat Restaurant Galata Köprüsü A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your pre..."
+        },
+        {
+          "query": "family restaurant besiktas",
+          "category": "Restaurant",
+          "description": "Family-friendly query",
+          "status": "PASSED",
+          "response_time": 2.37,
+          "response_length": 1097,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "family",
+            "besiktas"
+          ],
+          "missing_keywords": [
+            "restaurant",
+            "children"
+          ],
+          "found_forbidden": [],
+          "response": "Besiktas is a vibrant district in Istanbul with a mix of historical sites, beautiful parks, and family-friendly attractions. Here are some places in Besiktas and nearby areas that are perfect for fami..."
+        },
+        {
+          "query": "vegetarian options taksim",
+          "category": "Restaurant",
+          "description": "Dietary restriction",
+          "status": "PASSED",
+          "response_time": 2.32,
+          "response_length": 634,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "vegetarian",
+            "vegan",
+            "options",
+            "restaurant"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "In Taksim, you can find a variety of vegetarian-friendly restaurants and cafes offering delicious meat-free options. Some popular choices include: 1. Zencefil Vegetarian Restaurant: Known for its dive..."
+        },
+        {
+          "query": "rooftop restaurant bosphorus view",
+          "category": "Restaurant",
+          "description": "View-based query",
+          "status": "PASSED",
+          "response_time": 3.92,
+          "response_length": 855,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "rooftop",
+            "bosphorus",
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "view"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Roofstar Bosphorus Lounge Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5..."
+        },
+        {
+          "query": "late night food delivery",
+          "category": "Restaurant",
+          "description": "Time-specific query",
+          "status": "FAILED",
+          "response_time": 0.01,
+          "response_length": 1098,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "night"
+          ],
+          "missing_keywords": [
+            "late",
+            "delivery",
+            "food"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+        },
+        {
+          "query": "traditional ottoman cuisine",
+          "category": "Restaurant",
+          "description": "Cultural cuisine query",
+          "status": "PASSED",
+          "response_time": 1.71,
+          "response_length": 585,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "ottoman",
+            "cuisine"
+          ],
+          "missing_keywords": [
+            "traditional",
+            "turkish"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Old Ottoman Cafe..."
+        }
+      ],
+      "success_rate": 80.0
+    },
+    "Museum Queries": {
+      "total": 10,
+      "passed": 9,
+      "failed": 1,
+      "tests": [
+        {
+          "query": "museums in istanbul",
+          "category": "Museum",
+          "description": "General museum query",
+          "status": "PASSED",
+          "response_time": 2.59,
+          "response_length": 1145,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "museum",
+            "topkapi",
+            "hagia sophia",
+            "istanbul"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some notable museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, now a muse..."
+        },
+        {
+          "query": "topkapi palace opening hours",
+          "category": "Museum",
+          "description": "Specific museum hours",
+          "status": "PASSED",
+          "response_time": 1.35,
+          "response_length": 430,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "topkapi",
+            "hours",
+            "opening"
+          ],
+          "missing_keywords": [
+            "time"
+          ],
+          "found_forbidden": [],
+          "response": "Topkapi Palace in Istanbul is usually open from 9: AM to 5: PM. However, it's always a good idea to double-check the current opening hours on their official website or contact them directly before pla..."
+        },
+        {
+          "query": "hagia sophia entrance fee",
+          "category": "Museum",
+          "description": "Museum pricing",
+          "status": "PASSED",
+          "response_time": 2.19,
+          "response_length": 610,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "hagia sophia",
+            "entrance",
+            "fee"
+          ],
+          "missing_keywords": [
+            "price"
+          ],
+          "found_forbidden": [],
+          "response": "The Hagia Sophia is a magnificent historical site located in the Sultanahmet district of Istanbul. Originally built as a cathedral in the 6th century, it later became a mosque and is now a museum. Vis..."
+        },
+        {
+          "query": "museums in sultanahmet",
+          "category": "Museum",
+          "description": "District museums",
+          "status": "PASSED",
+          "response_time": 2.07,
+          "response_length": 893,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "museum",
+            "sultanahmet",
+            "topkapi"
+          ],
+          "missing_keywords": [
+            "archaeological"
+          ],
+          "found_forbidden": [],
+          "response": "In Sultanahmet, you'll find some of Istanbul's most iconic museums: 1. Hagia Sophia: Originally a cathedral, then a mosque, now a museum showcasing stunning Byzantine architecture. 2. Blue Mosque: Kno..."
+        },
+        {
+          "query": "art museums beyoglu",
+          "category": "Museum",
+          "description": "Art-specific museums",
+          "status": "PASSED",
+          "response_time": 2.28,
+          "response_length": 830,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "art",
+            "museum",
+            "pera",
+            "modern",
+            "beyoglu"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "In Beyoglu, you'll find a vibrant art scene with several museums and galleries. Here are some art museums in Beyoglu that you might enjoy exploring: 1. Istanbul Modern: Located near Karakoy, Istanbul ..."
+        },
+        {
+          "query": "istanbul modern museum",
+          "category": "Museum",
+          "description": "Specific museum",
+          "status": "PASSED",
+          "response_time": 1.88,
+          "response_length": 689,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "istanbul modern",
+            "art",
+            "contemporary",
+            "museum"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Istanbul Modern Museum is a fantastic contemporary art museum located in Karaköy, Istanbul. Unfortunately, the Istanbul Modern Museum permanently closed its doors in 2018 to undergo a transformati..."
+        },
+        {
+          "query": "history museums fatih",
+          "category": "Museum",
+          "description": "Historical museums",
+          "status": "PASSED",
+          "response_time": 1.74,
+          "response_length": 832,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "history",
+            "museum",
+            "topkapi"
+          ],
+          "missing_keywords": [
+            "archaeological"
+          ],
+          "found_forbidden": [],
+          "response": "In Fatih, one of the historical districts of Istanbul, you can explore fascinating history at several museums. Here are some notable history museums in Fatih and nearby areas: 1. Hagia Sophia: While n..."
+        },
+        {
+          "query": "museum pass istanbul",
+          "category": "Museum",
+          "description": "Museum pass info",
+          "status": "FAILED",
+          "response_time": 2.15,
+          "response_length": 1157,
+          "keyword_accuracy": 25.0,
+          "found_keywords": [
+            "museum"
+          ],
+          "missing_keywords": [
+            "pass",
+            "discount",
+            "entry"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some notable museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, and now a ..."
+        },
+        {
+          "query": "dolmabahce palace tour",
+          "category": "Museum",
+          "description": "Palace tour query",
+          "status": "PASSED",
+          "response_time": 2.31,
+          "response_length": 689,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "palace",
+            "visit"
+          ],
+          "missing_keywords": [
+            "dolmabahce",
+            "tour"
+          ],
+          "found_forbidden": [],
+          "response": "Dolmabahçe Palace is a magnificent place to visit in Istanbul! It's not in our database, but I'd be happy to tell you more about it. This stunning palace served as the main administrative center of th..."
+        },
+        {
+          "query": "basilica cistern tickets",
+          "category": "Museum",
+          "description": "Underground site",
+          "status": "PASSED",
+          "response_time": 1.53,
+          "response_length": 631,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "basilica cistern",
+            "tickets",
+            "entrance"
+          ],
+          "missing_keywords": [
+            "underground"
+          ],
+          "found_forbidden": [],
+          "response": "The Basilica Cistern in Istanbul is a fascinating historical site located in the Sultanahmet district. To visit the Basilica Cistern, you can purchase tickets at the entrance. The ticket prices may va..."
+        }
+      ],
+      "success_rate": 90.0
+    },
+    "District Queries": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "query": "sultanahmet attractions",
+          "category": "District",
+          "description": "Historic district",
+          "status": "PASSED",
+          "response_time": 3.27,
+          "response_length": 1128,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "sultanahmet",
+            "hagia sophia",
+            "blue mosque",
+            "attractions"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "In Sultanahmet, you'll find some of Istanbul's most iconic attractions! Here are a few must-visit places you shouldn't miss: 1. Hagia Sophia: This ancient marvel was once a church, then a mosque, and ..."
+        },
+        {
+          "query": "beyoglu nightlife",
+          "category": "District",
+          "description": "Nightlife district",
+          "status": "PASSED",
+          "response_time": 0.01,
+          "response_length": 1098,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "nightlife",
+            "bars",
+            "istiklal"
+          ],
+          "missing_keywords": [
+            "beyoglu"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+        },
+        {
+          "query": "kadikoy what to do",
+          "category": "District",
+          "description": "Asian side district",
+          "status": "PASSED",
+          "response_time": 2.59,
+          "response_length": 1239,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "moda",
+            "market",
+            "activities"
+          ],
+          "missing_keywords": [
+            "kadikoy"
+          ],
+          "found_forbidden": [],
+          "response": "In Kadıköy, there are plenty of wonderful things to do. Here are some recommendations: 1. Moda Park: Enjoy a relaxing stroll in this charming park with beautiful views of the sea. It's a perfect spot ..."
+        },
+        {
+          "query": "galata tower area",
+          "category": "District",
+          "description": "Specific landmark area",
+          "status": "PASSED",
+          "response_time": 2.17,
+          "response_length": 1111,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "galata",
+            "tower",
+            "area"
+          ],
+          "missing_keywords": [
+            "karakoy"
+          ],
+          "found_forbidden": [],
+          "response": "The Galata Tower area in Beyoglu is a vibrant and historical neighborhood in Istanbul. Here are some must-visit places around the Galata Tower: 1. Galata Tower: A medieval stone tower offering panoram..."
+        },
+        {
+          "query": "besiktas district guide",
+          "category": "District",
+          "description": "District guide",
+          "status": "PASSED",
+          "response_time": 3.52,
+          "response_length": 1133,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "besiktas",
+            "district"
+          ],
+          "missing_keywords": [
+            "dolmabahce",
+            "naval"
+          ],
+          "found_forbidden": [],
+          "response": "Besiktas is a vibrant district in Istanbul known for its mix of modern amenities and historical charm. Here are some highlights of Besiktas: 1. Bosphorus Views: Enjoy stunning views of the Bosphorus s..."
+        },
+        {
+          "query": "ortakoy neighborhood",
+          "category": "District",
+          "description": "Bosphorus neighborhood",
+          "status": "PASSED",
+          "response_time": 2.7,
+          "response_length": 1032,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "mosque",
+            "bosphorus"
+          ],
+          "missing_keywords": [
+            "ortakoy",
+            "market"
+          ],
+          "found_forbidden": [],
+          "response": "Ortaköy is a charming neighborhood located along the Bosphorus in Istanbul. It's known for its picturesque views, vibrant atmosphere, and historical sites. One of the most iconic landmarks in Ortaköy ..."
+        },
+        {
+          "query": "balat historic area",
+          "category": "District",
+          "description": "Historic neighborhood",
+          "status": "PASSED",
+          "response_time": 2.69,
+          "response_length": 1141,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "balat",
+            "historic",
+            "colorful"
+          ],
+          "missing_keywords": [
+            "houses"
+          ],
+          "found_forbidden": [],
+          "response": "Balat is a charming historical neighborhood in Istanbul known for its colorful buildings, narrow streets, and diverse cultural heritage. While it's not in the database, I can share some insights about..."
+        },
+        {
+          "query": "uskudar asian side",
+          "category": "District",
+          "description": "Asian side main district",
+          "status": "PASSED",
+          "response_time": 2.96,
+          "response_length": 1083,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "uskudar",
+            "asian",
+            "side",
+            "maiden"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Uskudar on the Asian side of Istanbul is a vibrant district with a rich history and beautiful sights. Here are some must-visit places in Uskudar: 1. Maiden's Tower (Kız Kulesi): A picturesque tower on..."
+        },
+        {
+          "query": "sisli shopping district",
+          "category": "District",
+          "description": "Shopping area",
+          "status": "PASSED",
+          "response_time": 2.47,
+          "response_length": 862,
+          "keyword_accuracy": 75.0,
+          "found_keywords": [
+            "shopping",
+            "nisantasi",
+            "mall"
+          ],
+          "missing_keywords": [
+            "sisli"
+          ],
+          "found_forbidden": [],
+          "response": "If you're interested in shopping in Istanbul, the Şişli district has some fantastic options for you! Şişli is known for its upscale shopping areas and malls. Here are a few places you might enjoy: 1. ..."
+        },
+        {
+          "query": "fatih old city",
+          "category": "District",
+          "description": "Old city area",
+          "status": "PASSED",
+          "response_time": 2.05,
+          "response_length": 902,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "fatih",
+            "old city",
+            "historic",
+            "ottoman"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Fatih is a historic district in Istanbul known for its rich cultural heritage and significant landmarks. Here are some must-visit places in Fatih's Old City area: 1. Hagia Sophia: Originally a church,..."
+        }
+      ],
+      "success_rate": 100.0
+    },
+    "Problematic Inputs": {
+      "total": 10,
+      "passed": 4,
+      "failed": 6,
+      "tests": [
+        {
+          "query": "restaurant museum hagia sophia",
+          "category": "Problematic Input",
+          "description": "Mixed keyword query",
+          "status": "PASSED",
+          "response_time": 3.77,
+          "response_length": 880,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "restaurant",
+            "hagia sophia"
+          ],
+          "missing_keywords": [
+            "near"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Hagia sophia Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 2. D..."
+        },
+        {
+          "query": "metro restaurant taksim",
+          "category": "Problematic Input",
+          "description": "Transport + food mix",
+          "status": "PASSED",
+          "response_time": 3.52,
+          "response_length": 1051,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "restaurant",
+            "taksim"
+          ],
+          "missing_keywords": [
+            "near metro"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Taksim Sütiş A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred taksim area) Rating..."
+        },
+        {
+          "query": "museum food sultanahmet",
+          "category": "Problematic Input",
+          "description": "Food near museum",
+          "status": "FAILED",
+          "response_time": 1.63,
+          "response_length": 551,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "sultanahmet"
+          ],
+          "missing_keywords": [
+            "food",
+            "restaurant"
+          ],
+          "found_forbidden": [],
+          "response": "In Sultanahmet, you have some fantastic museums to explore! One of the most iconic ones is the Hagia Sophia, which was originally a church, then a mosque, and now a museum showcasing impressive archit..."
+        },
+        {
+          "query": "ferry restaurant karakoy",
+          "category": "Problematic Input",
+          "description": "Transport + dining",
+          "status": "PASSED",
+          "response_time": 4.32,
+          "response_length": 888,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "restaurant",
+            "karakoy"
+          ],
+          "missing_keywords": [
+            "near ferry"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Mükellef Karakoy A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred karakoy area) R..."
+        },
+        {
+          "query": "eat topkapi palace",
+          "category": "Problematic Input",
+          "description": "Food at landmark",
+          "status": "FAILED",
+          "response_time": 3.82,
+          "response_length": 878,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "food",
+            "near topkapi"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Konyali Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.2/5 • . Topkapı resta..."
+        },
+        {
+          "query": "turkish bath restaurant",
+          "category": "Problematic Input",
+          "description": "Cultural site + food",
+          "status": "FAILED",
+          "response_time": 3.54,
+          "response_length": 943,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "near",
+            "hamam"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. SÜLEYMAN 1981 | TURKISH RESTAURANT | TERRACE WITH SEA VIEW A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it..."
+        },
+        {
+          "query": "galata tower dinner",
+          "category": "Problematic Input",
+          "description": "Landmark + dining",
+          "status": "PASSED",
+          "response_time": 2.18,
+          "response_length": 558,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "restaurant",
+            "dinner",
+            "galata tower"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Galata Tower is a fantastic landmark in Istanbul with stunning views of the city. While the tower itself doesn't offer dinner, you can enjoy a lovely dinner at restaurants nearby with a view of th..."
+        },
+        {
+          "query": "bosphorus cruise food",
+          "category": "Problematic Input",
+          "description": "Activity + dining",
+          "status": "FAILED",
+          "response_time": 1.47,
+          "response_length": 527,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "cruise"
+          ],
+          "missing_keywords": [
+            "food",
+            "restaurant"
+          ],
+          "found_forbidden": [],
+          "response": "A Bosphorus cruise is a fantastic way to experience Istanbul's beauty from the water. You'll get to see iconic landmarks like the Maiden's Tower, Dolmabahçe Palace, and the Bosphorus Bridge. The views..."
+        },
+        {
+          "query": "grand bazaar eat",
+          "category": "Problematic Input",
+          "description": "Shopping + food",
+          "status": "FAILED",
+          "response_time": 1.79,
+          "response_length": 786,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "restaurant",
+            "grand bazaar"
+          ],
+          "missing_keywords": [
+            "food"
+          ],
+          "found_forbidden": [
+            "shopping"
+          ],
+          "response": "For a grand shopping experience in Istanbul, you can explore the vibrant and historic Grand Bazaar in the Sultanahmet district. The Grand Bazaar is one of the world's oldest and largest covered market..."
+        },
+        {
+          "query": "blue mosque restaurant",
+          "category": "Problematic Input",
+          "description": "Religious site + food",
+          "status": "FAILED",
+          "response_time": 3.59,
+          "response_length": 914,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "near",
+            "blue mosque"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Marmara View Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. R..."
+        }
+      ],
+      "success_rate": 40.0
+    },
+    "Edge Cases": {
+      "total": 10,
+      "passed": 7,
+      "failed": 3,
+      "tests": [
+        {
+          "query": "",
+          "category": "Edge Case",
+          "description": "Empty query",
+          "status": "PASSED",
+          "response_time": 0.0,
+          "response_length": 118,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "help",
+            "istanbul"
+          ],
+          "missing_keywords": [
+            "assistant"
+          ],
+          "found_forbidden": [],
+          "response": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more."
+        },
+        {
+          "query": "asdfghjkl",
+          "category": "Edge Case",
+          "description": "Random characters",
+          "status": "PASSED",
+          "response_time": 1.13,
+          "response_length": 111,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "help",
+            "istanbul"
+          ],
+          "missing_keywords": [
+            "understand"
+          ],
+          "found_forbidden": [],
+          "response": "Hello! I'm here to help you discover amazing things about Istanbul. What would you like to know about the city?"
+        },
+        {
+          "query": "123456",
+          "category": "Edge Case",
+          "description": "Only numbers",
+          "status": "FAILED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "istanbul"
+          ],
+          "missing_keywords": [
+            "help",
+            "numbers"
+          ],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        },
+        {
+          "query": "RESTAURANTS BEYOGLU",
+          "category": "Edge Case",
+          "description": "All caps query",
+          "status": "PASSED",
+          "response_time": 3.44,
+          "response_length": 864,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "beyoglu"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+        },
+        {
+          "query": "how can i go from from to to",
+          "category": "Edge Case",
+          "description": "Repeated words",
+          "status": "PASSED",
+          "response_time": 0.01,
+          "response_length": 541,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "transport",
+            "route"
+          ],
+          "missing_keywords": [
+            "help"
+          ],
+          "found_forbidden": [],
+          "response": "**Transportation from From to To:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+        },
+        {
+          "query": "restaurant restaurant restaurant",
+          "category": "Edge Case",
+          "description": "Triple repetition",
+          "status": "PASSED",
+          "response_time": 3.47,
+          "response_length": 904,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "help"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Ter..."
+        },
+        {
+          "query": "istanbul istanbul istanbul",
+          "category": "Edge Case",
+          "description": "City name repetition",
+          "status": "PASSED",
+          "response_time": 1.28,
+          "response_length": 244,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "istanbul"
+          ],
+          "missing_keywords": [
+            "help"
+          ],
+          "found_forbidden": [],
+          "response": "Hello! It sounds like you're excited about Istanbul, and I can't blame you! Istanbul is a city full of history, culture, and amazing sights. Is there something specific you'd like to know or explore i..."
+        },
+        {
+          "query": "?!?!?!?",
+          "category": "Edge Case",
+          "description": "Only punctuation",
+          "status": "FAILED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "help",
+            "assist"
+          ],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        },
+        {
+          "query": "very very very long query about restaurants in beyoglu with many many words",
+          "category": "Edge Case",
+          "description": "Very long query",
+          "status": "PASSED",
+          "response_time": 3.88,
+          "response_length": 884,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "beyoglu"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+        },
+        {
+          "query": "μουσείο στη Σταμπούλ",
+          "category": "Edge Case",
+          "description": "Greek characters",
+          "status": "FAILED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "istanbul"
+          ],
+          "missing_keywords": [
+            "museum",
+            "help"
+          ],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        }
+      ],
+      "success_rate": 70.0
+    },
+    "Misspellings": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "query": "resturant in beyoglu",
+          "category": "Misspelling",
+          "description": "Restaurant misspelling",
+          "status": "PASSED",
+          "response_time": 3.44,
+          "response_length": 875,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "beyoglu"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+        },
+        {
+          "query": "musem in istanbul",
+          "category": "Misspelling",
+          "description": "Museum misspelling",
+          "status": "PASSED",
+          "response_time": 1.78,
+          "response_length": 510,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "museum",
+            "istanbul"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some iconic museums in Istanbul include Hagia Sophia, Topkapi Palace, and the Basilica Cistern in Sultana..."
+        },
+        {
+          "query": "hagia sofya",
+          "category": "Misspelling",
+          "description": "Landmark misspelling",
+          "status": "PASSED",
+          "response_time": 1.21,
+          "response_length": 445,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "hagia sophia",
+            "museum"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "It seems like you might be referring to Hagia Sophia, one of Istanbul's most iconic landmarks! Hagia Sophia, located in Sultanahmet, is a stunning historical site that has served as a church, mosque, ..."
+        },
+        {
+          "query": "istambul attractions",
+          "category": "Misspelling",
+          "description": "City misspelling",
+          "status": "PASSED",
+          "response_time": 3.63,
+          "response_length": 1224,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "istanbul",
+            "attractions"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Istanbul is a city rich in history and culture with a mix of stunning attractions. Here are some must-visit attractions in Istanbul: 1. Sultanahmet District: - Hagia Sophia: A marvel of Byzantine arch..."
+        },
+        {
+          "query": "galata towr",
+          "category": "Misspelling",
+          "description": "Landmark typo",
+          "status": "PASSED",
+          "response_time": 1.82,
+          "response_length": 646,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "galata tower",
+            "tower"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Galata Tower is a must-visit landmark in Istanbul! Located in the Beyoglu district, this iconic tower offers panoramic views of the city and the Bosphorus. You can enjoy breathtaking sights of Ist..."
+        },
+        {
+          "query": "dolmabahce palce",
+          "category": "Misspelling",
+          "description": "Palace typo",
+          "status": "PASSED",
+          "response_time": 2.15,
+          "response_length": 807,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "palace"
+          ],
+          "missing_keywords": [
+            "dolmabahce palace"
+          ],
+          "found_forbidden": [],
+          "response": "Dolmabahçe Palace is a grandiose historical site located in the Beşiktaş district of Istanbul, right by the Bosphorus. While Dolmabahçe Palace is the main attraction in that area, you can also explore..."
+        },
+        {
+          "query": "transporation options",
+          "category": "Misspelling",
+          "description": "Transportation typo",
+          "status": "PASSED",
+          "response_time": 1.64,
+          "response_length": 649,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "transportation",
+            "transport"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! When getting around Istanbul, you have several transportation options available. The city has an extensive public transportation system, including buses, trams, metro, and ferries. Istanbul's i..."
+        },
+        {
+          "query": "restaraunts taksim",
+          "category": "Misspelling",
+          "description": "Multiple typos",
+          "status": "PASSED",
+          "response_time": 3.85,
+          "response_length": 1065,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "restaurant",
+            "taksim"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Meat Moot Istanbul Taksim A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred taksim..."
+        },
+        {
+          "query": "fery routes",
+          "category": "Misspelling",
+          "description": "Ferry misspelling",
+          "status": "PASSED",
+          "response_time": 2.12,
+          "response_length": 1089,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "ferry",
+            "routes"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! When it comes to ferry routes in Istanbul, you're in for a treat! Istanbul has a well-connected ferry network that's not only a practical mode of transportation but also offers scenic views of ..."
+        },
+        {
+          "query": "suleymanye mosque",
+          "category": "Misspelling",
+          "description": "Mosque misspelling",
+          "status": "PASSED",
+          "response_time": 1.5,
+          "response_length": 541,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "mosque"
+          ],
+          "missing_keywords": [
+            "suleymaniye mosque"
+          ],
+          "found_forbidden": [],
+          "response": "The Süleymaniye Mosque is a magnificent historical site located in Istanbul. It was commissioned by the famous Ottoman Sultan Süleyman the Magnificent and designed by the great architect Mimar Sinan. ..."
+        }
+      ],
+      "success_rate": 100.0
+    },
+    "Ambiguous Queries": {
+      "total": 10,
+      "passed": 6,
+      "failed": 4,
+      "tests": [
+        {
+          "query": "good places",
+          "category": "Ambiguous Query",
+          "description": "Vague location query",
+          "status": "PASSED",
+          "response_time": 2.87,
+          "response_length": 885,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "places",
+            "attractions",
+            "visit"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! Istanbul is a city full of amazing places to explore. Some popular attractions include: 1. Sultanahmet District: Visit the iconic Hagia Sophia, Blue Mosque, Topkapi Palace, Basilica Cistern, an..."
+        },
+        {
+          "query": "nice food",
+          "category": "Ambiguous Query",
+          "description": "Vague food query",
+          "status": "FAILED",
+          "response_time": 0.93,
+          "response_length": 185,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "food",
+            "restaurant",
+            "turkish"
+          ],
+          "found_forbidden": [],
+          "response": "Hello! I'm glad you're feeling good today! If you have any questions or need suggestions about Istanbul, feel free to ask. What would you like to know or explore in this beautiful city?"
+        },
+        {
+          "query": "somewhere to go",
+          "category": "Ambiguous Query",
+          "description": "Very vague query",
+          "status": "PASSED",
+          "response_time": 2.95,
+          "response_length": 1453,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "places",
+            "attractions",
+            "visit"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! Istanbul is a city rich in history and culture with many wonderful places to visit. Here are some must-see attractions in Istanbul: 1. Sultanahmet Area: - Hagia Sophia: A stunning architectural..."
+        },
+        {
+          "query": "what to do",
+          "category": "Ambiguous Query",
+          "description": "Activity query",
+          "status": "PASSED",
+          "response_time": 2.26,
+          "response_length": 788,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "attractions",
+            "activities",
+            "visit"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! I'm here to help you make the most of your time in Istanbul. With the current weather being partly cloudy and pleasant at 18°C, here are some suggestions for things to do: 1. Outdoor Activities..."
+        },
+        {
+          "query": "places near here",
+          "category": "Ambiguous Query",
+          "description": "Location-dependent query",
+          "status": "FAILED",
+          "response_time": 2.16,
+          "response_length": 958,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "places"
+          ],
+          "missing_keywords": [
+            "attractions",
+            "location"
+          ],
+          "found_forbidden": [],
+          "response": "In Istanbul, there are so many wonderful places to explore! Some popular nearby places include: 1. Maiden's Tower (Kız Kulesi) in Üsküdar - It's a historical site located on a small islet in the Bosph..."
+        },
+        {
+          "query": "cheap stuff",
+          "category": "Ambiguous Query",
+          "description": "Vague budget query",
+          "status": "PASSED",
+          "response_time": 1.75,
+          "response_length": 501,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "budget",
+            "affordable"
+          ],
+          "missing_keywords": [
+            "cheap"
+          ],
+          "found_forbidden": [],
+          "response": "Hello! Istanbul offers plenty of budget-friendly options for you to enjoy. You can explore the vibrant atmosphere of Kadıköy Market in the Kadıköy district, where you can find affordable local produce..."
+        },
+        {
+          "query": "cultural things",
+          "category": "Ambiguous Query",
+          "description": "Culture query",
+          "status": "FAILED",
+          "response_time": 2.69,
+          "response_length": 527,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "culture"
+          ],
+          "missing_keywords": [
+            "museums",
+            "attractions"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul is a city rich in culture and history! You can explore incredible cultural sites like the Hagia Sophia, a stunning former cathedral and mosque. Don't miss the Blue Mosque with its beautiful b..."
+        },
+        {
+          "query": "tourist spots",
+          "category": "Ambiguous Query",
+          "description": "Tourist query",
+          "status": "PASSED",
+          "response_time": 3.68,
+          "response_length": 842,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "tourist",
+            "attractions"
+          ],
+          "missing_keywords": [
+            "famous"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul is full of amazing tourist spots! Here are some must-visit places: 1. Sultanahmet: Visit the iconic Hagia Sophia, Blue Mosque, Topkapi Palace, Basilica Cistern, and the bustling Grand Bazaar...."
+        },
+        {
+          "query": "local experiences",
+          "category": "Ambiguous Query",
+          "description": "Local query",
+          "status": "PASSED",
+          "response_time": 2.95,
+          "response_length": 1283,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "local",
+            "authentic",
+            "experiences"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "When looking for local experiences in Istanbul, you're in for a treat! Here are a few recommendations to immerse yourself in the city's unique culture: 1. Visit Kadıköy: Explore the vibrant Kadıköy di..."
+        },
+        {
+          "query": "hidden gems",
+          "category": "Ambiguous Query",
+          "description": "Discovery query",
+          "status": "FAILED",
+          "response_time": 3.07,
+          "response_length": 936,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "hidden"
+          ],
+          "missing_keywords": [
+            "secret",
+            "local"
+          ],
+          "found_forbidden": [],
+          "response": "Hello! Hidden gems are always exciting to discover in a city like Istanbul. One hidden gem I recommend is the Mihrimah Sultan Mosque in Üsküdar. It's a beautiful mosque designed by the famous Ottoman ..."
+        }
+      ],
+      "success_rate": 60.0
+    },
+    "Multilingual Inputs": {
+      "total": 10,
+      "passed": 7,
+      "failed": 3,
+      "tests": [
+        {
+          "query": "restaurant français",
+          "category": "Multilingual",
+          "description": "French input",
+          "status": "PASSED",
+          "response_time": 3.72,
+          "response_length": 905,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "restaurant",
+            "cuisine"
+          ],
+          "missing_keywords": [
+            "french"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Ratin..."
+        },
+        {
+          "query": "museo en estambul",
+          "category": "Multilingual",
+          "description": "Spanish input",
+          "status": "PASSED",
+          "response_time": 1.5,
+          "response_length": 391,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "museum",
+            "istanbul"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "There are many fascinating museums in Istanbul that offer a glimpse into the city's rich history and culture. Some notable museums include the Hagia Sophia, Topkapi Palace, and the Istanbul Archaeolog..."
+        },
+        {
+          "query": "ristorante italiano",
+          "category": "Multilingual",
+          "description": "Italian input",
+          "status": "PASSED",
+          "response_time": 3.44,
+          "response_length": 921,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "restaurant",
+            "italian",
+            "cuisine"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Da Vittorio Ristorante Italiano İstanbul An Italian restaurant specializing in authentic pizzas and Mediterranean cuisine. (Recommended because it match..."
+        },
+        {
+          "query": "türk mutfağı",
+          "category": "Multilingual",
+          "description": "Turkish input",
+          "status": "FAILED",
+          "response_time": 2.8,
+          "response_length": 546,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "turkish",
+            "cuisine",
+            "food"
+          ],
+          "found_forbidden": [],
+          "response": "Türk mutfağı gerçekten lezzetli ve çeşitli yemekler sunar! İstanbul'da geleneksel Türk mutfağını deneyebileceğiniz harika restoranlar var. Özellikle Sultanahmet ve Beyoğlu bölgelerinde birçok seçenek ..."
+        },
+        {
+          "query": "مطعم في اسطنبول",
+          "category": "Multilingual",
+          "description": "Arabic input",
+          "status": "PASSED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "restaurant",
+            "istanbul"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        },
+        {
+          "query": "レストラン",
+          "category": "Multilingual",
+          "description": "Japanese input",
+          "status": "PASSED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "help"
+          ],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        },
+        {
+          "query": "مطعم تركي",
+          "category": "Multilingual",
+          "description": "Arabic Turkish query",
+          "status": "PASSED",
+          "response_time": 0.0,
+          "response_length": 99,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "missing_keywords": [
+            "turkish"
+          ],
+          "found_forbidden": [],
+          "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+        },
+        {
+          "query": "istanbul müzeleri",
+          "category": "Multilingual",
+          "description": "Turkish museums",
+          "status": "FAILED",
+          "response_time": 4.39,
+          "response_length": 989,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "museum",
+            "istanbul"
+          ],
+          "found_forbidden": [],
+          "response": "İstanbul'da birçok harika müze bulunuyor. Eğer tarihi ve kültürel yerleri görmeyi seviyorsanız, şehirdeki müzeleri ziyaret etmek kesinlikle harika bir deneyim olacaktır. İşte İstanbul'daki bazı önemli..."
+        },
+        {
+          "query": "restoran türk",
+          "category": "Multilingual",
+          "description": "Mixed language",
+          "status": "PASSED",
+          "response_time": 3.93,
+          "response_length": 923,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "restaurant",
+            "turkish"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderat..."
+        },
+        {
+          "query": "bosphorus круиз",
+          "category": "Multilingual",
+          "description": "Mixed Cyrillic",
+          "status": "FAILED",
+          "response_time": 8.57,
+          "response_length": 443,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "bosphorus",
+            "cruise"
+          ],
+          "found_forbidden": [],
+          "response": "Привет! Круиз по Босфору - отличный способ насладиться красотой Стамбула и увидеть город с воды. Ты можешь подняться на пароме или катере, чтобы проплыть между Европой и Азией, любуясь видами двух кон..."
+        }
+      ],
+      "success_rate": 70.0
+    },
+    "Conversation Flow": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        {
+          "query": "hello",
+          "category": "Conversation Flow",
+          "description": "Greeting",
+          "status": "PASSED",
+          "response_time": 0.77,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "hello",
+            "help",
+            "istanbul"
+          ],
+          "response": "Hello! I'm here and ready to help you discover more about Istanbul. What would you like to know or explore today?"
+        },
+        {
+          "query": "restaurants in beyoglu",
+          "category": "Conversation Flow",
+          "description": "First restaurant query",
+          "status": "PASSED",
+          "response_time": 5.17,
+          "keyword_accuracy": 50.0,
+          "found_keywords": [
+            "restaurant"
+          ],
+          "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+        },
+        {
+          "query": "what about museums",
+          "category": "Conversation Flow",
+          "description": "Follow-up museums",
+          "status": "PASSED",
+          "response_time": 1.67,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "museum",
+            "modern"
+          ],
+          "response": "Istanbul is a treasure trove of museums! Some must-visit museums include the Hagia Sophia, known for its stunning architecture and history, the Topkapi Palace showcasing Ottoman grandeur, and the Basi..."
+        },
+        {
+          "query": "how to get there",
+          "category": "Conversation Flow",
+          "description": "Transportation follow-up",
+          "status": "PASSED",
+          "response_time": 0.01,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "transport",
+            "metro",
+            "ferry"
+          ],
+          "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+        },
+        {
+          "query": "opening hours",
+          "category": "Conversation Flow",
+          "description": "Hours follow-up",
+          "status": "PASSED",
+          "response_time": 0.99,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "hours",
+            "opening"
+          ],
+          "response": "Hello! I'm here to help you discover amazing things about Istanbul. What specific places or types of attractions are you interested in knowing the opening hours for? Let me know so I can provide you w..."
+        },
+        {
+          "query": "thank you",
+          "category": "Conversation Flow",
+          "description": "Farewell",
+          "status": "PASSED",
+          "response_time": 0.86,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "welcome",
+            "help"
+          ],
+          "response": "You're welcome! If you have any questions or need recommendations about Istanbul, feel free to ask. I'm here to help you make the most of your time exploring this beautiful city!"
+        }
+      ],
+      "success_rate": 100.0
+    },
+    "Specific Landmarks": {
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "tests": [
+        {
+          "query": "blue mosque",
+          "category": "Landmark",
+          "description": "Blue Mosque query",
+          "status": "PASSED",
+          "response_time": 1.9,
+          "response_length": 528,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "blue mosque",
+            "sultanahmet",
+            "mosque"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Blue Mosque, also known as Sultan Ahmed Mosque, is a stunning historical site located in the Sultanahmet district of Istanbul. It's famous for its beautiful blue tiles adorning the interior walls,..."
+        },
+        {
+          "query": "galata tower",
+          "category": "Landmark",
+          "description": "Galata Tower query",
+          "status": "PASSED",
+          "response_time": 2.24,
+          "response_length": 621,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "galata tower",
+            "view",
+            "tower"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Galata Tower is a must-visit in Istanbul! This iconic tower in Beyoglu offers panoramic views of the city and the Bosphorus. You can see both the historic and modern sides of Istanbul from its obs..."
+        },
+        {
+          "query": "maiden tower",
+          "category": "Landmark",
+          "description": "Maiden's Tower query",
+          "status": "PASSED",
+          "response_time": 1.58,
+          "response_length": 624,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "uskudar",
+            "tower"
+          ],
+          "missing_keywords": [
+            "maiden tower"
+          ],
+          "found_forbidden": [],
+          "response": "The Maiden's Tower, also known as Kız Kulesi in Turkish, is a mesmerizing historical site located in Uskudar, Istanbul. This iconic tower stands on a tiny islet in the Bosphorus strait, offering stunn..."
+        },
+        {
+          "query": "grand bazaar",
+          "category": "Landmark",
+          "description": "Grand Bazaar query",
+          "status": "PASSED",
+          "response_time": 2.12,
+          "response_length": 896,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "grand bazaar",
+            "shopping",
+            "market"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "When it comes to grand shopping experiences in Istanbul, one iconic destination stands out: the Grand Bazaar in the Sultanahmet district. This historical market is one of the world's oldest and larges..."
+        },
+        {
+          "query": "spice bazaar",
+          "category": "Landmark",
+          "description": "Spice Bazaar query",
+          "status": "PASSED",
+          "response_time": 1.61,
+          "response_length": 524,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "spice bazaar",
+            "egyptian",
+            "market"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! Spice shopping in Istanbul is a fantastic experience. One of the best places to immerse yourself in the vibrant world of spices is the Grand Bazaar in the Sultanahmet district. You'll find a wi..."
+        },
+        {
+          "query": "bosphorus bridge",
+          "category": "Landmark",
+          "description": "Bridge query",
+          "status": "PASSED",
+          "response_time": 1.71,
+          "response_length": 576,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "bosphorus bridge",
+            "bridge",
+            "bosphorus"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Bosphorus Bridge, also known as the July Martyrs Bridge, is one of the iconic landmarks in Istanbul. It connects the European and Asian sides of the city, spanning the Bosphorus Strait. The bridge..."
+        },
+        {
+          "query": "rumeli fortress",
+          "category": "Landmark",
+          "description": "Fortress query",
+          "status": "PASSED",
+          "response_time": 1.96,
+          "response_length": 635,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "rumeli fortress",
+            "fortress",
+            "bosphorus"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The Rumeli Fortress, also known as Rumeli Hisarı in Turkish, is a historical fortress located on the European side of Istanbul, overlooking the Bosphorus. This impressive fortress was built by the Ott..."
+        },
+        {
+          "query": "dolmabahce palace",
+          "category": "Landmark",
+          "description": "Palace query",
+          "status": "PASSED",
+          "response_time": 2.35,
+          "response_length": 962,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "palace",
+            "ottoman"
+          ],
+          "missing_keywords": [
+            "dolmabahce"
+          ],
+          "found_forbidden": [],
+          "response": "Dolmabahçe Palace is a magnificent place to visit in Istanbul! While Dolmabahçe itself is known for the palace, there are other attractions in the vicinity worth exploring. Here are some nearby places..."
+        },
+        {
+          "query": "camlica hill",
+          "category": "Landmark",
+          "description": "Hill query",
+          "status": "PASSED",
+          "response_time": 1.52,
+          "response_length": 478,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "hill",
+            "view"
+          ],
+          "missing_keywords": [
+            "camlica"
+          ],
+          "found_forbidden": [],
+          "response": "Çamlıca Hill is a fantastic spot in Istanbul known for its panoramic views of the city. It's a perfect place to enjoy breathtaking vistas of both the European and Asian sides of Istanbul. The hill is ..."
+        },
+        {
+          "query": "pierre loti",
+          "category": "Landmark",
+          "description": "Pierre Loti query",
+          "status": "PASSED",
+          "response_time": 1.45,
+          "response_length": 625,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "pierre loti",
+            "hill",
+            "golden horn"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Pierre Loti Hill is a beautiful spot in Istanbul located in the Eyüp district. It offers stunning panoramic views of the Golden Horn and the city. The hill is named after the French novelist Pierre Lo..."
+        }
+      ],
+      "success_rate": 100.0
+    },
+    "Practical Questions": {
+      "total": 10,
+      "passed": 4,
+      "failed": 6,
+      "tests": [
+        {
+          "query": "how much money do I need",
+          "category": "Practical",
+          "description": "Budget question",
+          "status": "FAILED",
+          "response_time": 3.19,
+          "response_length": 961,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "budget"
+          ],
+          "missing_keywords": [
+            "cost",
+            "lira"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Mivan Restaurant & Cafe A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere. (popular choice among visitors) Rating: 4.9/5 • Moderate ..."
+        },
+        {
+          "query": "what to wear in istanbul",
+          "category": "Practical",
+          "description": "Clothing advice",
+          "status": "FAILED",
+          "response_time": 3.37,
+          "response_length": 867,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "weather",
+            "clothing",
+            "dress"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Pleasure Te..."
+        },
+        {
+          "query": "is istanbul safe",
+          "category": "Practical",
+          "description": "Safety question",
+          "status": "FAILED",
+          "response_time": 1.15,
+          "response_length": 413,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "safe",
+            "safety",
+            "travel"
+          ],
+          "found_forbidden": [],
+          "response": "Istanbul has a vibrant cafe culture! There are numerous cozy cafes all around the city where you can relax, enjoy Turkish coffee or tea, and soak in the local atmosphere. Whether you're in the histori..."
+        },
+        {
+          "query": "best time to visit",
+          "category": "Practical",
+          "description": "Timing question",
+          "status": "PASSED",
+          "response_time": 2.13,
+          "response_length": 709,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "time",
+            "season",
+            "weather"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "The best time to visit Istanbul is typically during the spring (April to May) and fall (September to October) when the weather is mild, and the city is less crowded. The pleasant temperatures during t..."
+        },
+        {
+          "query": "how many days needed",
+          "category": "Practical",
+          "description": "Duration question",
+          "status": "PASSED",
+          "response_time": 1.32,
+          "response_length": 577,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "days",
+            "visit",
+            "itinerary"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Hello! How many days you need for your trip really depends on how much you want to see and do in Istanbul. Ideally, I would recommend spending at least 3 to 4 days in the city to explore the main attr..."
+        },
+        {
+          "query": "wifi in istanbul",
+          "category": "Practical",
+          "description": "Internet access",
+          "status": "FAILED",
+          "response_time": 4.39,
+          "response_length": 893,
+          "keyword_accuracy": 0.0,
+          "found_keywords": [],
+          "missing_keywords": [
+            "wifi",
+            "internet",
+            "connection"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Mivan Restaurant & Cafe A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere. (popular choice among visitors) Rating: 4.9/5 • Moderate ..."
+        },
+        {
+          "query": "language barrier",
+          "category": "Practical",
+          "description": "Language question",
+          "status": "PASSED",
+          "response_time": 1.35,
+          "response_length": 568,
+          "keyword_accuracy": 100.0,
+          "found_keywords": [
+            "language",
+            "english",
+            "turkish"
+          ],
+          "missing_keywords": [],
+          "found_forbidden": [],
+          "response": "Dealing with a language barrier can be challenging, but it's also an opportunity to learn and connect in different ways. In Istanbul, many people working in tourism and hospitality sectors speak Engli..."
+        },
+        {
+          "query": "tipping in restaurants",
+          "category": "Practical",
+          "description": "Tipping etiquette",
+          "status": "FAILED",
+          "response_time": 4.61,
+          "response_length": 863,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "tip"
+          ],
+          "missing_keywords": [
+            "tipping",
+            "service"
+          ],
+          "found_forbidden": [],
+          "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderat..."
+        },
+        {
+          "query": "currency exchange",
+          "category": "Practical",
+          "description": "Money exchange",
+          "status": "PASSED",
+          "response_time": 1.54,
+          "response_length": 516,
+          "keyword_accuracy": 66.7,
+          "found_keywords": [
+            "currency",
+            "exchange"
+          ],
+          "missing_keywords": [
+            "lira"
+          ],
+          "found_forbidden": [],
+          "response": "When it comes to currency exchange, Istanbul has numerous exchange offices located throughout the city, especially in popular tourist areas like Sultanahmet and Taksim. It's advisable to exchange your..."
+        },
+        {
+          "query": "emergency numbers",
+          "category": "Practical",
+          "description": "Emergency info",
+          "status": "FAILED",
+          "response_time": 1.36,
+          "response_length": 254,
+          "keyword_accuracy": 33.3,
+          "found_keywords": [
+            "police"
+          ],
+          "missing_keywords": [
+            "emergency",
+            "hospital"
+          ],
+          "found_forbidden": [],
+          "response": "In case of emergencies in Istanbul, you can dial the following numbers: - Ambulance: - Police: - Fire Department: It's always good to have these numbers handy, just in case. If you need any more infor..."
+        }
+      ],
+      "success_rate": 40.0
+    }
+  },
+  "detailed_results": [
+    {
+      "query": "how can I go kadikoy from beyoglu",
+      "category": "Transportation",
+      "description": "Direct route query",
+      "status": "PASSED",
+      "response_time": 0.04,
+      "response_length": 695,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "ferry",
+        "metro",
+        "minutes"
+      ],
+      "missing_keywords": [
+        "transport"
+      ],
+      "found_forbidden": [],
+      "response": "**How to get from Beyoğlu to Kadıköy:**\n\n**Best Options:**\n\n**Option 1: Ferry (Most Scenic) - 25 minutes**\n- Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)\n- Take ferry from Karaköy to ..."
+    },
+    {
+      "query": "how to get from sultanahmet to taksim",
+      "category": "Transportation",
+      "description": "Tourist route",
+      "status": "PASSED",
+      "response_time": 0.01,
+      "response_length": 552,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "metro",
+        "tram",
+        "transport"
+      ],
+      "missing_keywords": [
+        "minutes"
+      ],
+      "found_forbidden": [],
+      "response": "**Transportation from Sultanahmet to Taksim:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+    },
+    {
+      "query": "metro from kadikoy to vezneciler",
+      "category": "Transportation",
+      "description": "Specific metro query",
+      "status": "FAILED",
+      "response_time": 0.01,
+      "response_length": 552,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "metro"
+      ],
+      "missing_keywords": [
+        "line",
+        "station",
+        "transfer"
+      ],
+      "found_forbidden": [],
+      "response": "**Transportation from Kadıköy to Vezneciler:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time dire..."
+    },
+    {
+      "query": "ferry routes in istanbul",
+      "category": "Transportation",
+      "description": "Ferry information",
+      "status": "FAILED",
+      "response_time": 4.26,
+      "response_length": 867,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "bosphorus"
+      ],
+      "missing_keywords": [
+        "ferry",
+        "route",
+        "schedule"
+      ],
+      "found_forbidden": [
+        "restaurant",
+        "eat"
+      ],
+      "response": "Here are some great restaurants in Istanbul: 1. Feriye Lokantasi A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.4/5 • Very..."
+    },
+    {
+      "query": "how much does metro cost",
+      "category": "Transportation",
+      "description": "Pricing query",
+      "status": "FAILED",
+      "response_time": 0.01,
+      "response_length": 672,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "istanbulkart"
+      ],
+      "missing_keywords": [
+        "cost",
+        "price",
+        "lira"
+      ],
+      "found_forbidden": [],
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "airport to sultanahmet",
+      "category": "Transportation",
+      "description": "Airport connection",
+      "status": "PASSED",
+      "response_time": 2.15,
+      "response_length": 580,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "metro",
+        "m1",
+        "airport",
+        "transfer"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "To travel from the airport to Sultanahmet, you have a few transportation options. One popular choice is to take the metro from the airport. The M1A line connects Istanbul Airport to the city center, i..."
+    },
+    {
+      "query": "is there uber in istanbul",
+      "category": "Transportation",
+      "description": "Ride-sharing query",
+      "status": "PASSED",
+      "response_time": 2.13,
+      "response_length": 359,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "uber",
+        "bitaksi",
+        "taxi",
+        "available"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! While Uber is available in Istanbul, it's not as widely used as local taxi services. Istanbul has a well-established taxi network that is commonly used by both locals and visitors. If you prefe..."
+    },
+    {
+      "query": "public transport options",
+      "category": "Transportation",
+      "description": "General transport info",
+      "status": "PASSED",
+      "response_time": 0.01,
+      "response_length": 672,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "metro",
+        "bus",
+        "ferry",
+        "tram",
+        "transport"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other ar..."
+    },
+    {
+      "query": "travel beyoglu kadikoy fastest",
+      "category": "Transportation",
+      "description": "Speed-focused query",
+      "status": "PASSED",
+      "response_time": 1.86,
+      "response_length": 407,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "ferry",
+        "fastest",
+        "route"
+      ],
+      "missing_keywords": [
+        "time"
+      ],
+      "found_forbidden": [],
+      "response": "To travel quickly between Beyoglu and Kadikoy, one of the fastest options is to use the ferry service. You can take a ferry from Eminonu or Karakoy in Beyoglu to Kadikoy. The ferry ride offers a sceni..."
+    },
+    {
+      "query": "night transport istanbul",
+      "category": "Transportation",
+      "description": "Night service query",
+      "status": "FAILED",
+      "response_time": 0.01,
+      "response_length": 1098,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "night"
+      ],
+      "missing_keywords": [
+        "transport",
+        "hours",
+        "schedule"
+      ],
+      "found_forbidden": [
+        "restaurant",
+        "eat"
+      ],
+      "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+    },
+    {
+      "query": "restaurants in beyoglu",
+      "category": "Restaurant",
+      "description": "Location-based restaurant query",
+      "status": "PASSED",
+      "response_time": 5.69,
+      "response_length": 853,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant",
+        "dining"
+      ],
+      "missing_keywords": [
+        "beyoglu",
+        "food"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+    },
+    {
+      "query": "best turkish food kadikoy",
+      "category": "Restaurant",
+      "description": "Cuisine-specific query",
+      "status": "PASSED",
+      "response_time": 1.81,
+      "response_length": 553,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "turkish",
+        "food",
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "kadikoy"
+      ],
+      "found_forbidden": [],
+      "response": "For some of the best Turkish food in Kadıköy, you should definitely check out Çiya Sofrası. They offer delicious traditional Turkish cuisine with a wide variety of dishes to choose from. Another great..."
+    },
+    {
+      "query": "romantic dinner istanbul",
+      "category": "Restaurant",
+      "description": "Occasion-based query",
+      "status": "FAILED",
+      "response_time": 2.11,
+      "response_length": 671,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "romantic"
+      ],
+      "missing_keywords": [
+        "dinner",
+        "restaurant",
+        "atmosphere"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul is full of romantic spots perfect for couples! You can start with a visit to Maiden's Tower (Kız Kulesi) in Uskudar, offering stunning views of the city and the Bosphorus. Another lovely spot..."
+    },
+    {
+      "query": "cheap eats sultanahmet",
+      "category": "Restaurant",
+      "description": "Budget query",
+      "status": "PASSED",
+      "response_time": 3.92,
+      "response_length": 1145,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "budget",
+        "food",
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "cheap"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Turgut Kebab Restaurant -Sultanahmet- A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (Recommended because it loca..."
+    },
+    {
+      "query": "seafood restaurants galata",
+      "category": "Restaurant",
+      "description": "Specific cuisine query",
+      "status": "PASSED",
+      "response_time": 3.74,
+      "response_length": 1023,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant",
+        "galata"
+      ],
+      "missing_keywords": [
+        "seafood",
+        "fish"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Galata Sanat Restaurant Galata Köprüsü A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your pre..."
+    },
+    {
+      "query": "family restaurant besiktas",
+      "category": "Restaurant",
+      "description": "Family-friendly query",
+      "status": "PASSED",
+      "response_time": 2.37,
+      "response_length": 1097,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "family",
+        "besiktas"
+      ],
+      "missing_keywords": [
+        "restaurant",
+        "children"
+      ],
+      "found_forbidden": [],
+      "response": "Besiktas is a vibrant district in Istanbul with a mix of historical sites, beautiful parks, and family-friendly attractions. Here are some places in Besiktas and nearby areas that are perfect for fami..."
+    },
+    {
+      "query": "vegetarian options taksim",
+      "category": "Restaurant",
+      "description": "Dietary restriction",
+      "status": "PASSED",
+      "response_time": 2.32,
+      "response_length": 634,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "vegetarian",
+        "vegan",
+        "options",
+        "restaurant"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "In Taksim, you can find a variety of vegetarian-friendly restaurants and cafes offering delicious meat-free options. Some popular choices include: 1. Zencefil Vegetarian Restaurant: Known for its dive..."
+    },
+    {
+      "query": "rooftop restaurant bosphorus view",
+      "category": "Restaurant",
+      "description": "View-based query",
+      "status": "PASSED",
+      "response_time": 3.92,
+      "response_length": 855,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "rooftop",
+        "bosphorus",
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "view"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Roofstar Bosphorus Lounge Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5..."
+    },
+    {
+      "query": "late night food delivery",
+      "category": "Restaurant",
+      "description": "Time-specific query",
+      "status": "FAILED",
+      "response_time": 0.01,
+      "response_length": 1098,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "night"
+      ],
+      "missing_keywords": [
+        "late",
+        "delivery",
+        "food"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+    },
+    {
+      "query": "traditional ottoman cuisine",
+      "category": "Restaurant",
+      "description": "Cultural cuisine query",
+      "status": "PASSED",
+      "response_time": 1.71,
+      "response_length": 585,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "ottoman",
+        "cuisine"
+      ],
+      "missing_keywords": [
+        "traditional",
+        "turkish"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Old Ottoman Cafe..."
+    },
+    {
+      "query": "museums in istanbul",
+      "category": "Museum",
+      "description": "General museum query",
+      "status": "PASSED",
+      "response_time": 2.59,
+      "response_length": 1145,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "museum",
+        "topkapi",
+        "hagia sophia",
+        "istanbul"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some notable museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, now a muse..."
+    },
+    {
+      "query": "topkapi palace opening hours",
+      "category": "Museum",
+      "description": "Specific museum hours",
+      "status": "PASSED",
+      "response_time": 1.35,
+      "response_length": 430,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "topkapi",
+        "hours",
+        "opening"
+      ],
+      "missing_keywords": [
+        "time"
+      ],
+      "found_forbidden": [],
+      "response": "Topkapi Palace in Istanbul is usually open from 9: AM to 5: PM. However, it's always a good idea to double-check the current opening hours on their official website or contact them directly before pla..."
+    },
+    {
+      "query": "hagia sophia entrance fee",
+      "category": "Museum",
+      "description": "Museum pricing",
+      "status": "PASSED",
+      "response_time": 2.19,
+      "response_length": 610,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "hagia sophia",
+        "entrance",
+        "fee"
+      ],
+      "missing_keywords": [
+        "price"
+      ],
+      "found_forbidden": [],
+      "response": "The Hagia Sophia is a magnificent historical site located in the Sultanahmet district of Istanbul. Originally built as a cathedral in the 6th century, it later became a mosque and is now a museum. Vis..."
+    },
+    {
+      "query": "museums in sultanahmet",
+      "category": "Museum",
+      "description": "District museums",
+      "status": "PASSED",
+      "response_time": 2.07,
+      "response_length": 893,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "museum",
+        "sultanahmet",
+        "topkapi"
+      ],
+      "missing_keywords": [
+        "archaeological"
+      ],
+      "found_forbidden": [],
+      "response": "In Sultanahmet, you'll find some of Istanbul's most iconic museums: 1. Hagia Sophia: Originally a cathedral, then a mosque, now a museum showcasing stunning Byzantine architecture. 2. Blue Mosque: Kno..."
+    },
+    {
+      "query": "art museums beyoglu",
+      "category": "Museum",
+      "description": "Art-specific museums",
+      "status": "PASSED",
+      "response_time": 2.28,
+      "response_length": 830,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "art",
+        "museum",
+        "pera",
+        "modern",
+        "beyoglu"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "In Beyoglu, you'll find a vibrant art scene with several museums and galleries. Here are some art museums in Beyoglu that you might enjoy exploring: 1. Istanbul Modern: Located near Karakoy, Istanbul ..."
+    },
+    {
+      "query": "istanbul modern museum",
+      "category": "Museum",
+      "description": "Specific museum",
+      "status": "PASSED",
+      "response_time": 1.88,
+      "response_length": 689,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "istanbul modern",
+        "art",
+        "contemporary",
+        "museum"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Istanbul Modern Museum is a fantastic contemporary art museum located in Karaköy, Istanbul. Unfortunately, the Istanbul Modern Museum permanently closed its doors in 2018 to undergo a transformati..."
+    },
+    {
+      "query": "history museums fatih",
+      "category": "Museum",
+      "description": "Historical museums",
+      "status": "PASSED",
+      "response_time": 1.74,
+      "response_length": 832,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "history",
+        "museum",
+        "topkapi"
+      ],
+      "missing_keywords": [
+        "archaeological"
+      ],
+      "found_forbidden": [],
+      "response": "In Fatih, one of the historical districts of Istanbul, you can explore fascinating history at several museums. Here are some notable history museums in Fatih and nearby areas: 1. Hagia Sophia: While n..."
+    },
+    {
+      "query": "museum pass istanbul",
+      "category": "Museum",
+      "description": "Museum pass info",
+      "status": "FAILED",
+      "response_time": 2.15,
+      "response_length": 1157,
+      "keyword_accuracy": 25.0,
+      "found_keywords": [
+        "museum"
+      ],
+      "missing_keywords": [
+        "pass",
+        "discount",
+        "entry"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some notable museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, and now a ..."
+    },
+    {
+      "query": "dolmabahce palace tour",
+      "category": "Museum",
+      "description": "Palace tour query",
+      "status": "PASSED",
+      "response_time": 2.31,
+      "response_length": 689,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "palace",
+        "visit"
+      ],
+      "missing_keywords": [
+        "dolmabahce",
+        "tour"
+      ],
+      "found_forbidden": [],
+      "response": "Dolmabahçe Palace is a magnificent place to visit in Istanbul! It's not in our database, but I'd be happy to tell you more about it. This stunning palace served as the main administrative center of th..."
+    },
+    {
+      "query": "basilica cistern tickets",
+      "category": "Museum",
+      "description": "Underground site",
+      "status": "PASSED",
+      "response_time": 1.53,
+      "response_length": 631,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "basilica cistern",
+        "tickets",
+        "entrance"
+      ],
+      "missing_keywords": [
+        "underground"
+      ],
+      "found_forbidden": [],
+      "response": "The Basilica Cistern in Istanbul is a fascinating historical site located in the Sultanahmet district. To visit the Basilica Cistern, you can purchase tickets at the entrance. The ticket prices may va..."
+    },
+    {
+      "query": "sultanahmet attractions",
+      "category": "District",
+      "description": "Historic district",
+      "status": "PASSED",
+      "response_time": 3.27,
+      "response_length": 1128,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "sultanahmet",
+        "hagia sophia",
+        "blue mosque",
+        "attractions"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "In Sultanahmet, you'll find some of Istanbul's most iconic attractions! Here are a few must-visit places you shouldn't miss: 1. Hagia Sophia: This ancient marvel was once a church, then a mosque, and ..."
+    },
+    {
+      "query": "beyoglu nightlife",
+      "category": "District",
+      "description": "Nightlife district",
+      "status": "PASSED",
+      "response_time": 0.01,
+      "response_length": 1098,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "nightlife",
+        "bars",
+        "istiklal"
+      ],
+      "missing_keywords": [
+        "beyoglu"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul Nightlife Trendy Neighborhoods: Beyoğlu/Galata: - Heart of Istanbul's nightlife - Mix of rooftop bars, clubs, and pubs - Istiklal Street has many options Karaköy: - Hip, artistic area with cr..."
+    },
+    {
+      "query": "kadikoy what to do",
+      "category": "District",
+      "description": "Asian side district",
+      "status": "PASSED",
+      "response_time": 2.59,
+      "response_length": 1239,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "moda",
+        "market",
+        "activities"
+      ],
+      "missing_keywords": [
+        "kadikoy"
+      ],
+      "found_forbidden": [],
+      "response": "In Kadıköy, there are plenty of wonderful things to do. Here are some recommendations: 1. Moda Park: Enjoy a relaxing stroll in this charming park with beautiful views of the sea. It's a perfect spot ..."
+    },
+    {
+      "query": "galata tower area",
+      "category": "District",
+      "description": "Specific landmark area",
+      "status": "PASSED",
+      "response_time": 2.17,
+      "response_length": 1111,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "galata",
+        "tower",
+        "area"
+      ],
+      "missing_keywords": [
+        "karakoy"
+      ],
+      "found_forbidden": [],
+      "response": "The Galata Tower area in Beyoglu is a vibrant and historical neighborhood in Istanbul. Here are some must-visit places around the Galata Tower: 1. Galata Tower: A medieval stone tower offering panoram..."
+    },
+    {
+      "query": "besiktas district guide",
+      "category": "District",
+      "description": "District guide",
+      "status": "PASSED",
+      "response_time": 3.52,
+      "response_length": 1133,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "besiktas",
+        "district"
+      ],
+      "missing_keywords": [
+        "dolmabahce",
+        "naval"
+      ],
+      "found_forbidden": [],
+      "response": "Besiktas is a vibrant district in Istanbul known for its mix of modern amenities and historical charm. Here are some highlights of Besiktas: 1. Bosphorus Views: Enjoy stunning views of the Bosphorus s..."
+    },
+    {
+      "query": "ortakoy neighborhood",
+      "category": "District",
+      "description": "Bosphorus neighborhood",
+      "status": "PASSED",
+      "response_time": 2.7,
+      "response_length": 1032,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "mosque",
+        "bosphorus"
+      ],
+      "missing_keywords": [
+        "ortakoy",
+        "market"
+      ],
+      "found_forbidden": [],
+      "response": "Ortaköy is a charming neighborhood located along the Bosphorus in Istanbul. It's known for its picturesque views, vibrant atmosphere, and historical sites. One of the most iconic landmarks in Ortaköy ..."
+    },
+    {
+      "query": "balat historic area",
+      "category": "District",
+      "description": "Historic neighborhood",
+      "status": "PASSED",
+      "response_time": 2.69,
+      "response_length": 1141,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "balat",
+        "historic",
+        "colorful"
+      ],
+      "missing_keywords": [
+        "houses"
+      ],
+      "found_forbidden": [],
+      "response": "Balat is a charming historical neighborhood in Istanbul known for its colorful buildings, narrow streets, and diverse cultural heritage. While it's not in the database, I can share some insights about..."
+    },
+    {
+      "query": "uskudar asian side",
+      "category": "District",
+      "description": "Asian side main district",
+      "status": "PASSED",
+      "response_time": 2.96,
+      "response_length": 1083,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "uskudar",
+        "asian",
+        "side",
+        "maiden"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Uskudar on the Asian side of Istanbul is a vibrant district with a rich history and beautiful sights. Here are some must-visit places in Uskudar: 1. Maiden's Tower (Kız Kulesi): A picturesque tower on..."
+    },
+    {
+      "query": "sisli shopping district",
+      "category": "District",
+      "description": "Shopping area",
+      "status": "PASSED",
+      "response_time": 2.47,
+      "response_length": 862,
+      "keyword_accuracy": 75.0,
+      "found_keywords": [
+        "shopping",
+        "nisantasi",
+        "mall"
+      ],
+      "missing_keywords": [
+        "sisli"
+      ],
+      "found_forbidden": [],
+      "response": "If you're interested in shopping in Istanbul, the Şişli district has some fantastic options for you! Şişli is known for its upscale shopping areas and malls. Here are a few places you might enjoy: 1. ..."
+    },
+    {
+      "query": "fatih old city",
+      "category": "District",
+      "description": "Old city area",
+      "status": "PASSED",
+      "response_time": 2.05,
+      "response_length": 902,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "fatih",
+        "old city",
+        "historic",
+        "ottoman"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Fatih is a historic district in Istanbul known for its rich cultural heritage and significant landmarks. Here are some must-visit places in Fatih's Old City area: 1. Hagia Sophia: Originally a church,..."
+    },
+    {
+      "query": "restaurant museum hagia sophia",
+      "category": "Problematic Input",
+      "description": "Mixed keyword query",
+      "status": "PASSED",
+      "response_time": 3.77,
+      "response_length": 880,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "restaurant",
+        "hagia sophia"
+      ],
+      "missing_keywords": [
+        "near"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Hagia sophia Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 2. D..."
+    },
+    {
+      "query": "metro restaurant taksim",
+      "category": "Problematic Input",
+      "description": "Transport + food mix",
+      "status": "PASSED",
+      "response_time": 3.52,
+      "response_length": 1051,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "restaurant",
+        "taksim"
+      ],
+      "missing_keywords": [
+        "near metro"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Taksim Sütiş A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred taksim area) Rating..."
+    },
+    {
+      "query": "museum food sultanahmet",
+      "category": "Problematic Input",
+      "description": "Food near museum",
+      "status": "FAILED",
+      "response_time": 1.63,
+      "response_length": 551,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "sultanahmet"
+      ],
+      "missing_keywords": [
+        "food",
+        "restaurant"
+      ],
+      "found_forbidden": [],
+      "response": "In Sultanahmet, you have some fantastic museums to explore! One of the most iconic ones is the Hagia Sophia, which was originally a church, then a mosque, and now a museum showcasing impressive archit..."
+    },
+    {
+      "query": "ferry restaurant karakoy",
+      "category": "Problematic Input",
+      "description": "Transport + dining",
+      "status": "PASSED",
+      "response_time": 4.32,
+      "response_length": 888,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "restaurant",
+        "karakoy"
+      ],
+      "missing_keywords": [
+        "near ferry"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Mükellef Karakoy A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred karakoy area) R..."
+    },
+    {
+      "query": "eat topkapi palace",
+      "category": "Problematic Input",
+      "description": "Food at landmark",
+      "status": "FAILED",
+      "response_time": 3.82,
+      "response_length": 878,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "food",
+        "near topkapi"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Konyali Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.2/5 • . Topkapı resta..."
+    },
+    {
+      "query": "turkish bath restaurant",
+      "category": "Problematic Input",
+      "description": "Cultural site + food",
+      "status": "FAILED",
+      "response_time": 3.54,
+      "response_length": 943,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "near",
+        "hamam"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. SÜLEYMAN 1981 | TURKISH RESTAURANT | TERRACE WITH SEA VIEW A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it..."
+    },
+    {
+      "query": "galata tower dinner",
+      "category": "Problematic Input",
+      "description": "Landmark + dining",
+      "status": "PASSED",
+      "response_time": 2.18,
+      "response_length": 558,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "restaurant",
+        "dinner",
+        "galata tower"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Galata Tower is a fantastic landmark in Istanbul with stunning views of the city. While the tower itself doesn't offer dinner, you can enjoy a lovely dinner at restaurants nearby with a view of th..."
+    },
+    {
+      "query": "bosphorus cruise food",
+      "category": "Problematic Input",
+      "description": "Activity + dining",
+      "status": "FAILED",
+      "response_time": 1.47,
+      "response_length": 527,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "cruise"
+      ],
+      "missing_keywords": [
+        "food",
+        "restaurant"
+      ],
+      "found_forbidden": [],
+      "response": "A Bosphorus cruise is a fantastic way to experience Istanbul's beauty from the water. You'll get to see iconic landmarks like the Maiden's Tower, Dolmabahçe Palace, and the Bosphorus Bridge. The views..."
+    },
+    {
+      "query": "grand bazaar eat",
+      "category": "Problematic Input",
+      "description": "Shopping + food",
+      "status": "FAILED",
+      "response_time": 1.79,
+      "response_length": 786,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "restaurant",
+        "grand bazaar"
+      ],
+      "missing_keywords": [
+        "food"
+      ],
+      "found_forbidden": [
+        "shopping"
+      ],
+      "response": "For a grand shopping experience in Istanbul, you can explore the vibrant and historic Grand Bazaar in the Sultanahmet district. The Grand Bazaar is one of the world's oldest and largest covered market..."
+    },
+    {
+      "query": "blue mosque restaurant",
+      "category": "Problematic Input",
+      "description": "Religious site + food",
+      "status": "FAILED",
+      "response_time": 3.59,
+      "response_length": 914,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "near",
+        "blue mosque"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Marmara View Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. R..."
+    },
+    {
+      "query": "",
+      "category": "Edge Case",
+      "description": "Empty query",
+      "status": "PASSED",
+      "response_time": 0.0,
+      "response_length": 118,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "missing_keywords": [
+        "assistant"
+      ],
+      "found_forbidden": [],
+      "response": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more."
+    },
+    {
+      "query": "asdfghjkl",
+      "category": "Edge Case",
+      "description": "Random characters",
+      "status": "PASSED",
+      "response_time": 1.13,
+      "response_length": 111,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "missing_keywords": [
+        "understand"
+      ],
+      "found_forbidden": [],
+      "response": "Hello! I'm here to help you discover amazing things about Istanbul. What would you like to know about the city?"
+    },
+    {
+      "query": "123456",
+      "category": "Edge Case",
+      "description": "Only numbers",
+      "status": "FAILED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "istanbul"
+      ],
+      "missing_keywords": [
+        "help",
+        "numbers"
+      ],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "RESTAURANTS BEYOGLU",
+      "category": "Edge Case",
+      "description": "All caps query",
+      "status": "PASSED",
+      "response_time": 3.44,
+      "response_length": 864,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "beyoglu"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+    },
+    {
+      "query": "how can i go from from to to",
+      "category": "Edge Case",
+      "description": "Repeated words",
+      "status": "PASSED",
+      "response_time": 0.01,
+      "response_length": 541,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "transport",
+        "route"
+      ],
+      "missing_keywords": [
+        "help"
+      ],
+      "found_forbidden": [],
+      "response": "**Transportation from From to To:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+    },
+    {
+      "query": "restaurant restaurant restaurant",
+      "category": "Edge Case",
+      "description": "Triple repetition",
+      "status": "PASSED",
+      "response_time": 3.47,
+      "response_length": 904,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "help"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Ter..."
+    },
+    {
+      "query": "istanbul istanbul istanbul",
+      "category": "Edge Case",
+      "description": "City name repetition",
+      "status": "PASSED",
+      "response_time": 1.28,
+      "response_length": 244,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "istanbul"
+      ],
+      "missing_keywords": [
+        "help"
+      ],
+      "found_forbidden": [],
+      "response": "Hello! It sounds like you're excited about Istanbul, and I can't blame you! Istanbul is a city full of history, culture, and amazing sights. Is there something specific you'd like to know or explore i..."
+    },
+    {
+      "query": "?!?!?!?",
+      "category": "Edge Case",
+      "description": "Only punctuation",
+      "status": "FAILED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "help",
+        "assist"
+      ],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "very very very long query about restaurants in beyoglu with many many words",
+      "category": "Edge Case",
+      "description": "Very long query",
+      "status": "PASSED",
+      "response_time": 3.88,
+      "response_length": 884,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "beyoglu"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+    },
+    {
+      "query": "μουσείο στη Σταμπούλ",
+      "category": "Edge Case",
+      "description": "Greek characters",
+      "status": "FAILED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "istanbul"
+      ],
+      "missing_keywords": [
+        "museum",
+        "help"
+      ],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "resturant in beyoglu",
+      "category": "Misspelling",
+      "description": "Restaurant misspelling",
+      "status": "PASSED",
+      "response_time": 3.44,
+      "response_length": 875,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "beyoglu"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+    },
+    {
+      "query": "musem in istanbul",
+      "category": "Misspelling",
+      "description": "Museum misspelling",
+      "status": "PASSED",
+      "response_time": 1.78,
+      "response_length": 510,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "museum",
+        "istanbul"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some iconic museums in Istanbul include Hagia Sophia, Topkapi Palace, and the Basilica Cistern in Sultana..."
+    },
+    {
+      "query": "hagia sofya",
+      "category": "Misspelling",
+      "description": "Landmark misspelling",
+      "status": "PASSED",
+      "response_time": 1.21,
+      "response_length": 445,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "hagia sophia",
+        "museum"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "It seems like you might be referring to Hagia Sophia, one of Istanbul's most iconic landmarks! Hagia Sophia, located in Sultanahmet, is a stunning historical site that has served as a church, mosque, ..."
+    },
+    {
+      "query": "istambul attractions",
+      "category": "Misspelling",
+      "description": "City misspelling",
+      "status": "PASSED",
+      "response_time": 3.63,
+      "response_length": 1224,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "istanbul",
+        "attractions"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Istanbul is a city rich in history and culture with a mix of stunning attractions. Here are some must-visit attractions in Istanbul: 1. Sultanahmet District: - Hagia Sophia: A marvel of Byzantine arch..."
+    },
+    {
+      "query": "galata towr",
+      "category": "Misspelling",
+      "description": "Landmark typo",
+      "status": "PASSED",
+      "response_time": 1.82,
+      "response_length": 646,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "galata tower",
+        "tower"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Galata Tower is a must-visit landmark in Istanbul! Located in the Beyoglu district, this iconic tower offers panoramic views of the city and the Bosphorus. You can enjoy breathtaking sights of Ist..."
+    },
+    {
+      "query": "dolmabahce palce",
+      "category": "Misspelling",
+      "description": "Palace typo",
+      "status": "PASSED",
+      "response_time": 2.15,
+      "response_length": 807,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "palace"
+      ],
+      "missing_keywords": [
+        "dolmabahce palace"
+      ],
+      "found_forbidden": [],
+      "response": "Dolmabahçe Palace is a grandiose historical site located in the Beşiktaş district of Istanbul, right by the Bosphorus. While Dolmabahçe Palace is the main attraction in that area, you can also explore..."
+    },
+    {
+      "query": "transporation options",
+      "category": "Misspelling",
+      "description": "Transportation typo",
+      "status": "PASSED",
+      "response_time": 1.64,
+      "response_length": 649,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "transportation",
+        "transport"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! When getting around Istanbul, you have several transportation options available. The city has an extensive public transportation system, including buses, trams, metro, and ferries. Istanbul's i..."
+    },
+    {
+      "query": "restaraunts taksim",
+      "category": "Misspelling",
+      "description": "Multiple typos",
+      "status": "PASSED",
+      "response_time": 3.85,
+      "response_length": 1065,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "restaurant",
+        "taksim"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Meat Moot Istanbul Taksim A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred taksim..."
+    },
+    {
+      "query": "fery routes",
+      "category": "Misspelling",
+      "description": "Ferry misspelling",
+      "status": "PASSED",
+      "response_time": 2.12,
+      "response_length": 1089,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "ferry",
+        "routes"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! When it comes to ferry routes in Istanbul, you're in for a treat! Istanbul has a well-connected ferry network that's not only a practical mode of transportation but also offers scenic views of ..."
+    },
+    {
+      "query": "suleymanye mosque",
+      "category": "Misspelling",
+      "description": "Mosque misspelling",
+      "status": "PASSED",
+      "response_time": 1.5,
+      "response_length": 541,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "mosque"
+      ],
+      "missing_keywords": [
+        "suleymaniye mosque"
+      ],
+      "found_forbidden": [],
+      "response": "The Süleymaniye Mosque is a magnificent historical site located in Istanbul. It was commissioned by the famous Ottoman Sultan Süleyman the Magnificent and designed by the great architect Mimar Sinan. ..."
+    },
+    {
+      "query": "good places",
+      "category": "Ambiguous Query",
+      "description": "Vague location query",
+      "status": "PASSED",
+      "response_time": 2.87,
+      "response_length": 885,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "places",
+        "attractions",
+        "visit"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! Istanbul is a city full of amazing places to explore. Some popular attractions include: 1. Sultanahmet District: Visit the iconic Hagia Sophia, Blue Mosque, Topkapi Palace, Basilica Cistern, an..."
+    },
+    {
+      "query": "nice food",
+      "category": "Ambiguous Query",
+      "description": "Vague food query",
+      "status": "FAILED",
+      "response_time": 0.93,
+      "response_length": 185,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "food",
+        "restaurant",
+        "turkish"
+      ],
+      "found_forbidden": [],
+      "response": "Hello! I'm glad you're feeling good today! If you have any questions or need suggestions about Istanbul, feel free to ask. What would you like to know or explore in this beautiful city?"
+    },
+    {
+      "query": "somewhere to go",
+      "category": "Ambiguous Query",
+      "description": "Very vague query",
+      "status": "PASSED",
+      "response_time": 2.95,
+      "response_length": 1453,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "places",
+        "attractions",
+        "visit"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! Istanbul is a city rich in history and culture with many wonderful places to visit. Here are some must-see attractions in Istanbul: 1. Sultanahmet Area: - Hagia Sophia: A stunning architectural..."
+    },
+    {
+      "query": "what to do",
+      "category": "Ambiguous Query",
+      "description": "Activity query",
+      "status": "PASSED",
+      "response_time": 2.26,
+      "response_length": 788,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "attractions",
+        "activities",
+        "visit"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! I'm here to help you make the most of your time in Istanbul. With the current weather being partly cloudy and pleasant at 18°C, here are some suggestions for things to do: 1. Outdoor Activities..."
+    },
+    {
+      "query": "places near here",
+      "category": "Ambiguous Query",
+      "description": "Location-dependent query",
+      "status": "FAILED",
+      "response_time": 2.16,
+      "response_length": 958,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "places"
+      ],
+      "missing_keywords": [
+        "attractions",
+        "location"
+      ],
+      "found_forbidden": [],
+      "response": "In Istanbul, there are so many wonderful places to explore! Some popular nearby places include: 1. Maiden's Tower (Kız Kulesi) in Üsküdar - It's a historical site located on a small islet in the Bosph..."
+    },
+    {
+      "query": "cheap stuff",
+      "category": "Ambiguous Query",
+      "description": "Vague budget query",
+      "status": "PASSED",
+      "response_time": 1.75,
+      "response_length": 501,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "budget",
+        "affordable"
+      ],
+      "missing_keywords": [
+        "cheap"
+      ],
+      "found_forbidden": [],
+      "response": "Hello! Istanbul offers plenty of budget-friendly options for you to enjoy. You can explore the vibrant atmosphere of Kadıköy Market in the Kadıköy district, where you can find affordable local produce..."
+    },
+    {
+      "query": "cultural things",
+      "category": "Ambiguous Query",
+      "description": "Culture query",
+      "status": "FAILED",
+      "response_time": 2.69,
+      "response_length": 527,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "culture"
+      ],
+      "missing_keywords": [
+        "museums",
+        "attractions"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul is a city rich in culture and history! You can explore incredible cultural sites like the Hagia Sophia, a stunning former cathedral and mosque. Don't miss the Blue Mosque with its beautiful b..."
+    },
+    {
+      "query": "tourist spots",
+      "category": "Ambiguous Query",
+      "description": "Tourist query",
+      "status": "PASSED",
+      "response_time": 3.68,
+      "response_length": 842,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "tourist",
+        "attractions"
+      ],
+      "missing_keywords": [
+        "famous"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul is full of amazing tourist spots! Here are some must-visit places: 1. Sultanahmet: Visit the iconic Hagia Sophia, Blue Mosque, Topkapi Palace, Basilica Cistern, and the bustling Grand Bazaar...."
+    },
+    {
+      "query": "local experiences",
+      "category": "Ambiguous Query",
+      "description": "Local query",
+      "status": "PASSED",
+      "response_time": 2.95,
+      "response_length": 1283,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "local",
+        "authentic",
+        "experiences"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "When looking for local experiences in Istanbul, you're in for a treat! Here are a few recommendations to immerse yourself in the city's unique culture: 1. Visit Kadıköy: Explore the vibrant Kadıköy di..."
+    },
+    {
+      "query": "hidden gems",
+      "category": "Ambiguous Query",
+      "description": "Discovery query",
+      "status": "FAILED",
+      "response_time": 3.07,
+      "response_length": 936,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "hidden"
+      ],
+      "missing_keywords": [
+        "secret",
+        "local"
+      ],
+      "found_forbidden": [],
+      "response": "Hello! Hidden gems are always exciting to discover in a city like Istanbul. One hidden gem I recommend is the Mihrimah Sultan Mosque in Üsküdar. It's a beautiful mosque designed by the famous Ottoman ..."
+    },
+    {
+      "query": "restaurant français",
+      "category": "Multilingual",
+      "description": "French input",
+      "status": "PASSED",
+      "response_time": 3.72,
+      "response_length": 905,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "restaurant",
+        "cuisine"
+      ],
+      "missing_keywords": [
+        "french"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Ratin..."
+    },
+    {
+      "query": "museo en estambul",
+      "category": "Multilingual",
+      "description": "Spanish input",
+      "status": "PASSED",
+      "response_time": 1.5,
+      "response_length": 391,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "museum",
+        "istanbul"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "There are many fascinating museums in Istanbul that offer a glimpse into the city's rich history and culture. Some notable museums include the Hagia Sophia, Topkapi Palace, and the Istanbul Archaeolog..."
+    },
+    {
+      "query": "ristorante italiano",
+      "category": "Multilingual",
+      "description": "Italian input",
+      "status": "PASSED",
+      "response_time": 3.44,
+      "response_length": 921,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "restaurant",
+        "italian",
+        "cuisine"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Da Vittorio Ristorante Italiano İstanbul An Italian restaurant specializing in authentic pizzas and Mediterranean cuisine. (Recommended because it match..."
+    },
+    {
+      "query": "türk mutfağı",
+      "category": "Multilingual",
+      "description": "Turkish input",
+      "status": "FAILED",
+      "response_time": 2.8,
+      "response_length": 546,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "turkish",
+        "cuisine",
+        "food"
+      ],
+      "found_forbidden": [],
+      "response": "Türk mutfağı gerçekten lezzetli ve çeşitli yemekler sunar! İstanbul'da geleneksel Türk mutfağını deneyebileceğiniz harika restoranlar var. Özellikle Sultanahmet ve Beyoğlu bölgelerinde birçok seçenek ..."
+    },
+    {
+      "query": "مطعم في اسطنبول",
+      "category": "Multilingual",
+      "description": "Arabic input",
+      "status": "PASSED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "レストラン",
+      "category": "Multilingual",
+      "description": "Japanese input",
+      "status": "PASSED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "help"
+      ],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "مطعم تركي",
+      "category": "Multilingual",
+      "description": "Arabic Turkish query",
+      "status": "PASSED",
+      "response_time": 0.0,
+      "response_length": 99,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "missing_keywords": [
+        "turkish"
+      ],
+      "found_forbidden": [],
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"
+    },
+    {
+      "query": "istanbul müzeleri",
+      "category": "Multilingual",
+      "description": "Turkish museums",
+      "status": "FAILED",
+      "response_time": 4.39,
+      "response_length": 989,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "museum",
+        "istanbul"
+      ],
+      "found_forbidden": [],
+      "response": "İstanbul'da birçok harika müze bulunuyor. Eğer tarihi ve kültürel yerleri görmeyi seviyorsanız, şehirdeki müzeleri ziyaret etmek kesinlikle harika bir deneyim olacaktır. İşte İstanbul'daki bazı önemli..."
+    },
+    {
+      "query": "restoran türk",
+      "category": "Multilingual",
+      "description": "Mixed language",
+      "status": "PASSED",
+      "response_time": 3.93,
+      "response_length": 923,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "restaurant",
+        "turkish"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderat..."
+    },
+    {
+      "query": "bosphorus круиз",
+      "category": "Multilingual",
+      "description": "Mixed Cyrillic",
+      "status": "FAILED",
+      "response_time": 8.57,
+      "response_length": 443,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "bosphorus",
+        "cruise"
+      ],
+      "found_forbidden": [],
+      "response": "Привет! Круиз по Босфору - отличный способ насладиться красотой Стамбула и увидеть город с воды. Ты можешь подняться на пароме или катере, чтобы проплыть между Европой и Азией, любуясь видами двух кон..."
+    },
+    {
+      "query": "hello",
+      "category": "Conversation Flow",
+      "description": "Greeting",
+      "status": "PASSED",
+      "response_time": 0.77,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "hello",
+        "help",
+        "istanbul"
+      ],
+      "response": "Hello! I'm here and ready to help you discover more about Istanbul. What would you like to know or explore today?"
+    },
+    {
+      "query": "restaurants in beyoglu",
+      "category": "Conversation Flow",
+      "description": "First restaurant query",
+      "status": "PASSED",
+      "response_time": 5.17,
+      "keyword_accuracy": 50.0,
+      "found_keywords": [
+        "restaurant"
+      ],
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5..."
+    },
+    {
+      "query": "what about museums",
+      "category": "Conversation Flow",
+      "description": "Follow-up museums",
+      "status": "PASSED",
+      "response_time": 1.67,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "museum",
+        "modern"
+      ],
+      "response": "Istanbul is a treasure trove of museums! Some must-visit museums include the Hagia Sophia, known for its stunning architecture and history, the Topkapi Palace showcasing Ottoman grandeur, and the Basi..."
+    },
+    {
+      "query": "how to get there",
+      "category": "Conversation Flow",
+      "description": "Transportation follow-up",
+      "status": "PASSED",
+      "response_time": 0.01,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "transport",
+        "metro",
+        "ferry"
+      ],
+      "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**F..."
+    },
+    {
+      "query": "opening hours",
+      "category": "Conversation Flow",
+      "description": "Hours follow-up",
+      "status": "PASSED",
+      "response_time": 0.99,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "hours",
+        "opening"
+      ],
+      "response": "Hello! I'm here to help you discover amazing things about Istanbul. What specific places or types of attractions are you interested in knowing the opening hours for? Let me know so I can provide you w..."
+    },
+    {
+      "query": "thank you",
+      "category": "Conversation Flow",
+      "description": "Farewell",
+      "status": "PASSED",
+      "response_time": 0.86,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "welcome",
+        "help"
+      ],
+      "response": "You're welcome! If you have any questions or need recommendations about Istanbul, feel free to ask. I'm here to help you make the most of your time exploring this beautiful city!"
+    },
+    {
+      "query": "blue mosque",
+      "category": "Landmark",
+      "description": "Blue Mosque query",
+      "status": "PASSED",
+      "response_time": 1.9,
+      "response_length": 528,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "blue mosque",
+        "sultanahmet",
+        "mosque"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Blue Mosque, also known as Sultan Ahmed Mosque, is a stunning historical site located in the Sultanahmet district of Istanbul. It's famous for its beautiful blue tiles adorning the interior walls,..."
+    },
+    {
+      "query": "galata tower",
+      "category": "Landmark",
+      "description": "Galata Tower query",
+      "status": "PASSED",
+      "response_time": 2.24,
+      "response_length": 621,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "galata tower",
+        "view",
+        "tower"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Galata Tower is a must-visit in Istanbul! This iconic tower in Beyoglu offers panoramic views of the city and the Bosphorus. You can see both the historic and modern sides of Istanbul from its obs..."
+    },
+    {
+      "query": "maiden tower",
+      "category": "Landmark",
+      "description": "Maiden's Tower query",
+      "status": "PASSED",
+      "response_time": 1.58,
+      "response_length": 624,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "uskudar",
+        "tower"
+      ],
+      "missing_keywords": [
+        "maiden tower"
+      ],
+      "found_forbidden": [],
+      "response": "The Maiden's Tower, also known as Kız Kulesi in Turkish, is a mesmerizing historical site located in Uskudar, Istanbul. This iconic tower stands on a tiny islet in the Bosphorus strait, offering stunn..."
+    },
+    {
+      "query": "grand bazaar",
+      "category": "Landmark",
+      "description": "Grand Bazaar query",
+      "status": "PASSED",
+      "response_time": 2.12,
+      "response_length": 896,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "grand bazaar",
+        "shopping",
+        "market"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "When it comes to grand shopping experiences in Istanbul, one iconic destination stands out: the Grand Bazaar in the Sultanahmet district. This historical market is one of the world's oldest and larges..."
+    },
+    {
+      "query": "spice bazaar",
+      "category": "Landmark",
+      "description": "Spice Bazaar query",
+      "status": "PASSED",
+      "response_time": 1.61,
+      "response_length": 524,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "spice bazaar",
+        "egyptian",
+        "market"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! Spice shopping in Istanbul is a fantastic experience. One of the best places to immerse yourself in the vibrant world of spices is the Grand Bazaar in the Sultanahmet district. You'll find a wi..."
+    },
+    {
+      "query": "bosphorus bridge",
+      "category": "Landmark",
+      "description": "Bridge query",
+      "status": "PASSED",
+      "response_time": 1.71,
+      "response_length": 576,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "bosphorus bridge",
+        "bridge",
+        "bosphorus"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Bosphorus Bridge, also known as the July Martyrs Bridge, is one of the iconic landmarks in Istanbul. It connects the European and Asian sides of the city, spanning the Bosphorus Strait. The bridge..."
+    },
+    {
+      "query": "rumeli fortress",
+      "category": "Landmark",
+      "description": "Fortress query",
+      "status": "PASSED",
+      "response_time": 1.96,
+      "response_length": 635,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "rumeli fortress",
+        "fortress",
+        "bosphorus"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The Rumeli Fortress, also known as Rumeli Hisarı in Turkish, is a historical fortress located on the European side of Istanbul, overlooking the Bosphorus. This impressive fortress was built by the Ott..."
+    },
+    {
+      "query": "dolmabahce palace",
+      "category": "Landmark",
+      "description": "Palace query",
+      "status": "PASSED",
+      "response_time": 2.35,
+      "response_length": 962,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "palace",
+        "ottoman"
+      ],
+      "missing_keywords": [
+        "dolmabahce"
+      ],
+      "found_forbidden": [],
+      "response": "Dolmabahçe Palace is a magnificent place to visit in Istanbul! While Dolmabahçe itself is known for the palace, there are other attractions in the vicinity worth exploring. Here are some nearby places..."
+    },
+    {
+      "query": "camlica hill",
+      "category": "Landmark",
+      "description": "Hill query",
+      "status": "PASSED",
+      "response_time": 1.52,
+      "response_length": 478,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "hill",
+        "view"
+      ],
+      "missing_keywords": [
+        "camlica"
+      ],
+      "found_forbidden": [],
+      "response": "Çamlıca Hill is a fantastic spot in Istanbul known for its panoramic views of the city. It's a perfect place to enjoy breathtaking vistas of both the European and Asian sides of Istanbul. The hill is ..."
+    },
+    {
+      "query": "pierre loti",
+      "category": "Landmark",
+      "description": "Pierre Loti query",
+      "status": "PASSED",
+      "response_time": 1.45,
+      "response_length": 625,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "pierre loti",
+        "hill",
+        "golden horn"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Pierre Loti Hill is a beautiful spot in Istanbul located in the Eyüp district. It offers stunning panoramic views of the Golden Horn and the city. The hill is named after the French novelist Pierre Lo..."
+    },
+    {
+      "query": "how much money do I need",
+      "category": "Practical",
+      "description": "Budget question",
+      "status": "FAILED",
+      "response_time": 3.19,
+      "response_length": 961,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "budget"
+      ],
+      "missing_keywords": [
+        "cost",
+        "lira"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Mivan Restaurant & Cafe A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere. (popular choice among visitors) Rating: 4.9/5 • Moderate ..."
+    },
+    {
+      "query": "what to wear in istanbul",
+      "category": "Practical",
+      "description": "Clothing advice",
+      "status": "FAILED",
+      "response_time": 3.37,
+      "response_length": 867,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "weather",
+        "clothing",
+        "dress"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Pleasure Te..."
+    },
+    {
+      "query": "is istanbul safe",
+      "category": "Practical",
+      "description": "Safety question",
+      "status": "FAILED",
+      "response_time": 1.15,
+      "response_length": 413,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "safe",
+        "safety",
+        "travel"
+      ],
+      "found_forbidden": [],
+      "response": "Istanbul has a vibrant cafe culture! There are numerous cozy cafes all around the city where you can relax, enjoy Turkish coffee or tea, and soak in the local atmosphere. Whether you're in the histori..."
+    },
+    {
+      "query": "best time to visit",
+      "category": "Practical",
+      "description": "Timing question",
+      "status": "PASSED",
+      "response_time": 2.13,
+      "response_length": 709,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "time",
+        "season",
+        "weather"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "The best time to visit Istanbul is typically during the spring (April to May) and fall (September to October) when the weather is mild, and the city is less crowded. The pleasant temperatures during t..."
+    },
+    {
+      "query": "how many days needed",
+      "category": "Practical",
+      "description": "Duration question",
+      "status": "PASSED",
+      "response_time": 1.32,
+      "response_length": 577,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "days",
+        "visit",
+        "itinerary"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Hello! How many days you need for your trip really depends on how much you want to see and do in Istanbul. Ideally, I would recommend spending at least 3 to 4 days in the city to explore the main attr..."
+    },
+    {
+      "query": "wifi in istanbul",
+      "category": "Practical",
+      "description": "Internet access",
+      "status": "FAILED",
+      "response_time": 4.39,
+      "response_length": 893,
+      "keyword_accuracy": 0.0,
+      "found_keywords": [],
+      "missing_keywords": [
+        "wifi",
+        "internet",
+        "connection"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Mivan Restaurant & Cafe A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere. (popular choice among visitors) Rating: 4.9/5 • Moderate ..."
+    },
+    {
+      "query": "language barrier",
+      "category": "Practical",
+      "description": "Language question",
+      "status": "PASSED",
+      "response_time": 1.35,
+      "response_length": 568,
+      "keyword_accuracy": 100.0,
+      "found_keywords": [
+        "language",
+        "english",
+        "turkish"
+      ],
+      "missing_keywords": [],
+      "found_forbidden": [],
+      "response": "Dealing with a language barrier can be challenging, but it's also an opportunity to learn and connect in different ways. In Istanbul, many people working in tourism and hospitality sectors speak Engli..."
+    },
+    {
+      "query": "tipping in restaurants",
+      "category": "Practical",
+      "description": "Tipping etiquette",
+      "status": "FAILED",
+      "response_time": 4.61,
+      "response_length": 863,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "tip"
+      ],
+      "missing_keywords": [
+        "tipping",
+        "service"
+      ],
+      "found_forbidden": [],
+      "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderat..."
+    },
+    {
+      "query": "currency exchange",
+      "category": "Practical",
+      "description": "Money exchange",
+      "status": "PASSED",
+      "response_time": 1.54,
+      "response_length": 516,
+      "keyword_accuracy": 66.7,
+      "found_keywords": [
+        "currency",
+        "exchange"
+      ],
+      "missing_keywords": [
+        "lira"
+      ],
+      "found_forbidden": [],
+      "response": "When it comes to currency exchange, Istanbul has numerous exchange offices located throughout the city, especially in popular tourist areas like Sultanahmet and Taksim. It's advisable to exchange your..."
+    },
+    {
+      "query": "emergency numbers",
+      "category": "Practical",
+      "description": "Emergency info",
+      "status": "FAILED",
+      "response_time": 1.36,
+      "response_length": 254,
+      "keyword_accuracy": 33.3,
+      "found_keywords": [
+        "police"
+      ],
+      "missing_keywords": [
+        "emergency",
+        "hospital"
+      ],
+      "found_forbidden": [],
+      "response": "In case of emergencies in Istanbul, you can dial the following numbers: - Ambulance: - Police: - Fire Department: It's always good to have these numbers handy, just in case. If you need any more infor..."
+    }
+  ]
+}

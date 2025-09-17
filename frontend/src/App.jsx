@@ -3,10 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SearchBar from './components/SearchBar';
 import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
+import InteractiveMainPage from './components/InteractiveMainPage';
+import WeatherThemeProvider from './components/WeatherThemeProvider';
+import LiveActivityFeed from './components/LiveActivityFeed';
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
+import './components/InteractiveMainPage.css';
+import './components/LiveActivityFeed.css';
 
 const App = () => {
   const location = useLocation();
@@ -99,6 +104,12 @@ const App = () => {
     navigate('/chatbot');
   };
 
+  const handleQuickStart = (quickQuery) => {
+    setQuery(quickQuery);
+    // Store the query for the chatbot page
+    localStorage.setItem('pending_chat_query', quickQuery);
+  };
+
   const handleLogoClick = () => {
     // Track navigation back to home
     trackEvent('logo_click', 'navigation', 'home');
@@ -118,41 +129,50 @@ const App = () => {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
-      <GoogleAnalytics />
-      {/* <DebugInfo /> */}
+    <WeatherThemeProvider>
+      <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+        <GoogleAnalytics />
+        {/* <DebugInfo /> */}
 
-      <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '12rem'}}>
-        {/* Centered logo - bigger than navbar logo */}
-        <div style={{textAlign: 'center', marginBottom: '3rem'}} onClick={handleLogoClick}>
-          <div className="chat-title logo-istanbul main-page-logo">
-            <span className="logo-text" style={{
-              fontSize: window.innerWidth < 768 ? '3rem' : '5rem', // Increased from 2.5rem/4rem
-              fontWeight: 700,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)', // Same as other pages
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              textShadow: '0 4px 20px rgba(99, 102, 241, 0.8)', // Reduced shadow
-              transition: 'all 0.3s ease',
-              cursor: 'pointer'
-            }}>
-              A/<span style={{fontWeight: 400}}>STANBUL</span>
-            </span>
+        <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8rem'}}>
+          {/* Live Activity Feed */}
+          <LiveActivityFeed />
+          
+          {/* Centered logo - bigger than navbar logo */}
+          <div style={{textAlign: 'center', marginBottom: '2rem'}} onClick={handleLogoClick}>
+            <div className="chat-title logo-istanbul main-page-logo">
+              <span className="logo-text" style={{
+                fontSize: window.innerWidth < 768 ? '3rem' : '5rem',
+                fontWeight: 700,
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 4px 20px rgba(99, 102, 241, 0.8)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}>
+                A/<span style={{fontWeight: 400}}>STANBUL</span>
+              </span>
+            </div>
           </div>
-        </div>
-        <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto', padding: '1rem'}}>
-          <SearchBar
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onSubmit={handleSearch}
-            placeholder="Welcome to Istanbul!"
-          />
+          
+          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto', padding: '1rem', zIndex: 10}}>
+            <SearchBar
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onSubmit={handleSearch}
+              placeholder="Discover the magic of Istanbul..."
+            />
+          </div>
+          
+          {/* Interactive Main Page Content */}
+          <InteractiveMainPage onQuickStart={handleQuickStart} />
         </div>
       </div>
-    </div>
+    </WeatherThemeProvider>
   );
 };
 

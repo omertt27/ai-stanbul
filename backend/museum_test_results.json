@@ -1,0 +1,246 @@
+{
+  "total_tests": 26,
+  "successful_tests": 26,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "average_response_time": 2.79,
+  "museum_responses": 26,
+  "restaurant_responses": 0,
+  "museum_accuracy": 100.0,
+  "detailed_results": [
+    {
+      "query": "museums in istanbul",
+      "status": "success",
+      "response_time": 2.46,
+      "response_length": 744,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is rich in history and culture, offering a variety of museums to explore. Some must-visit museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, now a museum showcasing stunning architecture and history. 2. Topkapi Palace: Home to Ottoman sultans, offering a glimp..."
+    },
+    {
+      "query": "best museums to visit",
+      "status": "success",
+      "response_time": 3.23,
+      "response_length": 1048,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Here are some of the best museums you shouldn't miss: 1. Hagia Sophia: Originally a church, then a mosque, now a museum, Hagia Sophia showcases stunning Byzantine architecture and houses impressive mosaics..."
+    },
+    {
+      "query": "show me museums",
+      "status": "success",
+      "response_time": 2.15,
+      "response_length": 841,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is a treasure trove of museums! Some must-visit museums in Istanbul include: 1. Hagia Sophia: A stunning museum that was once a Byzantine cathedral and Ottoman mosque. 2. Topkapi Palace: Explore the lavish life of Ottoman sultans in this historic palace turned museum. 3. Istanbul Archaeolog..."
+    },
+    {
+      "query": "list museums",
+      "status": "success",
+      "response_time": 2.54,
+      "response_length": 837,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In Istanbul, you can explore a variety of fascinating museums. Some notable ones include: 1. Hagia Sophia: A former cathedral and mosque, now a museum showcasing Byzantine architecture. 2. Topkapi Palace: A grand palace museum with Ottoman treasures, courtyards, and stunning views. 3. Basilica Ciste..."
+    },
+    {
+      "query": "museum recommendations",
+      "status": "success",
+      "response_time": 5.95,
+      "response_length": 976,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is rich in history and culture, offering some incredible museums to explore. Here are some must-visit museums in Istanbul: 1. Hagia Sophia: Originally a Byzantine cathedral, later an Ottoman mosque, and now a museum showcasing stunning architecture and history. 2. Topkapi Palace: Once the m..."
+    },
+    {
+      "query": "topkapi palace",
+      "status": "success",
+      "response_time": 6.58,
+      "response_length": 1114,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Topkapi Palace is one of the most iconic and historically significant places in Istanbul. It served as the main residence and administrative headquarters of the Ottoman Sultans for centuries. Here are some key attractions within the Topkapi area: 1. Hagia Sophia: A stunning architectural wonder loca..."
+    },
+    {
+      "query": "hagia sophia",
+      "status": "success",
+      "response_time": 2.33,
+      "response_length": 497,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Hagia Sophia is a remarkable historical site located in Sultanahmet, Istanbul. Originally built as a cathedral in the 6th century, it later served as a mosque and is now a museum. The architecture is a beautiful blend of Byzantine and Ottoman influences, showcasing stunning mosaics and impressive do..."
+    },
+    {
+      "query": "dolmabahce palace",
+      "status": "success",
+      "response_time": 2.4,
+      "response_length": 595,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Dolmabahçe Palace is a magnificent place to visit in Istanbul, known for its grandeur and history. Located in the Beşiktaş district, close to Taksim Square, Dolmabahçe Palace is not far from other attractions like the Bosphorus and Ortaköy Mosque. The palace itself is a beautiful example of Ottoman ..."
+    },
+    {
+      "query": "istanbul modern",
+      "status": "success",
+      "response_time": 1.77,
+      "response_length": 483,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "\"Istanbul Modern\" used to be a contemporary art museum located in Karaköy, Istanbul. However, it has recently moved to a temporary space in Beyoğlu as it prepares for its new waterfront location. The museum showcases Turkish and international contemporary art, offering a unique cultural experience. ..."
+    },
+    {
+      "query": "pera museum",
+      "status": "success",
+      "response_time": 1.54,
+      "response_length": 561,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In the vibrant district of Pera (Beyoglu), you can explore some fascinating museums and historical sites. One notable museum in Beyoglu is the Galata Tower, offering panoramic views of Istanbul. Additionally, you can visit the Pera Museum, known for its diverse collection of art, including Anatolian..."
+    },
+    {
+      "query": "archaeological museum",
+      "status": "success",
+      "response_time": 1.6,
+      "response_length": 653,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In Istanbul, you'll find several fascinating museums that cater to archaeological enthusiasts. One must-visit museum is the Hagia Sophia, known for its breathtaking architecture and historical significance. Another iconic site is the Topkapi Palace, where you can delve into the rich history of the O..."
+    },
+    {
+      "query": "basilica cistern",
+      "status": "success",
+      "response_time": 2.7,
+      "response_length": 582,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "The Basilica Cistern is a fascinating historical site located in the Sultanahmet district of Istanbul. It is an ancient underground water reservoir built during the Byzantine period. The cistern is known for its impressive columns, dim lighting, and the mysterious Medusa heads at the base of two col..."
+    },
+    {
+      "query": "museums in sultanahmet",
+      "status": "success",
+      "response_time": 2.78,
+      "response_length": 798,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In Sultanahmet, you'll find some of Istanbul's most iconic museums and historical sites. Here are a few must-visit museums in Sultanahmet: 1. Hagia Sophia: Originally a church, then a mosque, now a museum. It's a breathtaking blend of Byzantine and Ottoman architecture. 2. Blue Mosque: Also known as..."
+    },
+    {
+      "query": "museums near galata tower",
+      "status": "success",
+      "response_time": 2.41,
+      "response_length": 545,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "If you're near Galata Tower and interested in museums, you might want to visit the Istanbul Modern Museum in Beyoğlu. It's a contemporary art museum showcasing Turkish and international artists. Another interesting museum not too far from Galata Tower is the Pera Museum, known for its collections of..."
+    },
+    {
+      "query": "museums in beyoglu",
+      "status": "success",
+      "response_time": 4.19,
+      "response_length": 1140,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In Beyoglu, you can find some fascinating museums to explore. While Beyoglu itself is known for its vibrant atmosphere, trendy cafes, and bustling shopping streets, nearby there are several museums worth visiting. Here are a few notable museums in Istanbul that you might enjoy: 1. Pera Museum: Locat..."
+    },
+    {
+      "query": "museums around taksim",
+      "status": "success",
+      "response_time": 1.81,
+      "response_length": 494,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "While there are no museums directly in Taksim Square, you can easily reach some fascinating museums from there. One iconic museum nearby is Hagia Sophia in Sultanahmet, known for its stunning architecture and history. Another must-visit is the Topkapi Palace, where you can explore Ottoman history an..."
+    },
+    {
+      "query": "hagia sophia opening hours",
+      "status": "success",
+      "response_time": 1.65,
+      "response_length": 320,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "The Hagia Sophia in Istanbul is usually open from 9: AM to 5: PM. It's a magnificent historical site with a fascinating blend of Byzantine and Ottoman architecture. Have you had the chance to visit this iconic landmark? If you're interested in more historical sites or cultural experiences in Istanbu..."
+    },
+    {
+      "query": "topkapi palace entrance fee",
+      "status": "success",
+      "response_time": 2.71,
+      "response_length": 589,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "The Topkapi Palace is a must-visit historical site in Istanbul. It served as the main residence and administrative headquarters of the Ottoman sultans for over years. Inside the palace complex, you can explore several courtyards, beautiful gardens, and various chambers that showcase Ottoman architec..."
+    },
+    {
+      "query": "how to get to istanbul modern",
+      "status": "success",
+      "response_time": 0.01,
+      "response_length": 541,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availabilit..."
+    },
+    {
+      "query": "dolmabahce palace history",
+      "status": "success",
+      "response_time": 3.39,
+      "response_length": 897,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Dolmabahçe Palace is a significant historical site in Istanbul. It served as the main administrative center of the Ottoman Empire from the 19th century to the early 20th century. This magnificent palace is known for its blend of Ottoman, Baroque, Rococo, Neoclassical, and traditional Turkish archite..."
+    },
+    {
+      "query": "museum pass istanbul",
+      "status": "success",
+      "response_time": 3.09,
+      "response_length": 912,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "In Istanbul, you have a wealth of museums to explore! Some of the must-visit museums in Istanbul include: 1. Hagia Sophia: A stunning museum that was once a church and then a mosque, showcasing impressive architecture and history. 2. Topkapi Palace: Explore the former residence of Ottoman sultans, f..."
+    },
+    {
+      "query": "art museums istanbul",
+      "status": "success",
+      "response_time": 3.64,
+      "response_length": 796,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is a treasure trove of art museums! Some must-visit art museums in Istanbul include: 1. Istanbul Modern: Located in Karaköy, it showcases contemporary Turkish art. 2. Pera Museum: Situated in Beyoğlu, it houses a diverse collection of art, including Orientalist paintings, Anatolian weights ..."
+    },
+    {
+      "query": "history museums",
+      "status": "success",
+      "response_time": 1.72,
+      "response_length": 584,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "History museums are a fantastic way to delve into Istanbul's rich past. One must-visit museum is the Hagia Sophia in Sultanahmet, originally a Byzantine church turned into an Ottoman mosque and now a museum showcasing impressive architecture and history. Another iconic spot is the Topkapi Palace, of..."
+    },
+    {
+      "query": "cultural sites",
+      "status": "success",
+      "response_time": 1.61,
+      "response_length": 388,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "Istanbul is rich in cultural sites! Some must-visit places include the iconic Hagia Sophia, the stunning Blue Mosque, the magnificent Topkapi Palace, the mysterious Basilica Cistern, and the bustling Grand Bazaar. Each of these sites offers a unique glimpse into Istanbul's diverse history and cultur..."
+    },
+    {
+      "query": "ottoman museums",
+      "status": "success",
+      "response_time": 5.51,
+      "response_length": 1085,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "If you're interested in Ottoman history, Istanbul has some incredible museums for you to explore: 1. Topkapi Palace: Once the primary residence of Ottoman sultans, this palace is a treasure trove of Ottoman artifacts, including jewelry, clothing, and weaponry. 2. Hagia Sophia: While not a museum in ..."
+    },
+    {
+      "query": "byzantine museums",
+      "status": "success",
+      "response_time": 2.77,
+      "response_length": 849,
+      "contains_museum_keywords": true,
+      "is_restaurant_response": false,
+      "response": "When it comes to Byzantine history in Istanbul, you're in for a treat! Istanbul, formerly Constantinople, was the heart of the Byzantine Empire. Here are some must-visit museums where you can delve into this fascinating era: 1. Hagia Sophia: Originally a Byzantine cathedral, later converted to a mos..."
+    }
+  ]
+}

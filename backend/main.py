@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import traceback
 
 # --- Third-Party Imports ---
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -24,7 +24,82 @@ from models import Base, Restaurant, Museum, Place
 from routes import museums, restaurants, places, blog
 from api_clients.google_places import GooglePlacesClient
 from api_clients.weather_enhanced import WeatherClient
+from api_clients.enhanced_api_service import EnhancedAPIService
+from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor
 from sqlalchemy.orm import Session
+
+# --- Import enhanced AI services ---
+# Create dummy objects to prevent errors
+class DummyManager:
+    def get_or_create_session(self, *args, **kwargs): return "dummy_session"
+    def get_context(self, *args, **kwargs): return {}
+    def update_context(self, *args, **kwargs): pass
+    def get_preferences(self, *args, **kwargs): return {}
+    def update_preferences(self, *args, **kwargs): pass
+    def learn_from_query(self, *args, **kwargs): pass
+    def get_personalized_filter(self, *args, **kwargs): return {}
+    def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
+    def extract_entities(self, *args, **kwargs): return {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
+    def enhance_recommendations(self, *args, **kwargs): return args[1] if len(args) > 1 else []
+
+class DummyAdvancedAI:
+    async def get_comprehensive_real_time_data(self, *args, **kwargs): return {}
+    async def analyze_image_comprehensive(self, *args, **kwargs): return None
+    async def analyze_menu_image(self, *args, **kwargs): return None
+    async def get_comprehensive_predictions(self, *args, **kwargs): return {}
+
+try:
+    from ai_intelligence import (
+        session_manager, preference_manager, intent_recognizer, 
+        recommendation_engine
+    )
+    AI_INTELLIGENCE_ENABLED = True
+    print("✅ Enhanced AI Intelligence loaded successfully")
+except ImportError as e:
+    print(f"⚠️ AI Intelligence not available: {e}")
+    AI_INTELLIGENCE_ENABLED = False
+    # Use dummy objects to prevent errors
+    session_manager = DummyManager()
+    preference_manager = DummyManager()
+    intent_recognizer = DummyManager()
+    recommendation_engine = DummyManager()
+
+# --- Import Advanced AI Features ---
+try:
+    from api_clients.realtime_data import realtime_data_aggregator
+    from api_clients.multimodal_ai import multimodal_ai_service
+    from api_clients.predictive_analytics import predictive_analytics_service
+    ADVANCED_AI_ENABLED = True
+    print("✅ Advanced AI features loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Advanced AI features not available: {e}")
+    ADVANCED_AI_ENABLED = False
+    # Use dummy objects
+    realtime_data_aggregator = DummyAdvancedAI()
+    multimodal_ai_service = DummyAdvancedAI()
+    predictive_analytics_service = DummyAdvancedAI()
+
+# --- Import Language Processing ---
+try:
+    from api_clients.language_processing import (
+        AdvancedLanguageProcessor, 
+        process_user_query,
+        extract_intent_and_entities,
+        is_followup
+    )
+    LANGUAGE_PROCESSING_ENABLED = True
+    language_processor = AdvancedLanguageProcessor()
+    print("✅ Advanced Language Processing loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Language Processing not available: {e}")
+    LANGUAGE_PROCESSING_ENABLED = False
+    # Create dummy functions
+    def process_user_query(text: str, context: Optional[Dict] = None) -> Dict[str, Any]: 
+        return {"intent": "general_info", "confidence": 0.1, "entities": {}}
+    def extract_intent_and_entities(text: str) -> Tuple[str, Dict]: 
+        return "general_info", {}
+    def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
+        return False
 
 load_dotenv()
 
@@ -655,7 +730,7 @@ def create_fuzzy_keywords():
         # Common misspellings
         'common_words': [
             'where', 'whre', 'wher', 'find', 'fnd', 'good', 'gud', 'great', 'grate',
-            'can', 'cna', 'you', 'u', 'me', 'i', 'help', 'hlp'
+            'can', 'cna', 'you', 'me', 'i', 'help', 'hlp'
         ]
     }
     return keywords
@@ -772,113 +847,12 @@ def correct_typos(text, threshold=75):
         print(f"Error in typo correction: {e}")
         return text
 
-def enhance_query_understanding(user_input):
-    """Enhance query understanding by correcting typos and adding context"""
-    try:
-        # First correct typos
-        corrected_input = correct_typos(user_input)
-        
-        # Add common query pattern recognition
-        enhanced_input = corrected_input.lower().strip()
-        
-        # Handle very vague queries by adding context
-        vague_patterns = {
-            'something fun': 'fun activities in istanbul',
-            'anything': 'things to do in istanbul',
-            'somewhere': 'places to visit in istanbul',
-            'good place': 'good places in istanbul',
-            'nice spot': 'nice spots in istanbul',
-            'cool': 'cool places in istanbul',
-            'interesting': 'interesting places in istanbul'
-        }
-        
-        for vague, enhanced in vague_patterns.items():
-            if vague in enhanced_input:
-                enhanced_input = enhanced_input.replace(vague, enhanced)
-                print(f"Vague query enhancement: '{corrected_input}' -> '{enhanced_input}'")
-        
-        # Handle single word location queries
-        if len(enhanced_input.split()) == 1 and len(enhanced_input) > 2:
-            # Check if it's a known location
-            locations = ['kadikoy', 'kadıköy', 'sultanahmet', 'beyoglu', 'beyoğlu', 'galata', 
-                        'taksim', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'fatih']
-            if any(enhanced_input in loc or loc in enhanced_input for loc in locations):
-                enhanced_input = f"places to visit in {enhanced_input}"
-                print(f"Single location enhancement: '{corrected_input}' -> '{enhanced_input}'")
-        
-        # Fix broken grammar patterns
-        grammar_fixes = [
-            # "museums kids friendly" -> "family friendly museums"
-            (r'(\w+)\s+(kids?|children|family)\s+(friendly)', r'family friendly \1'),
-            # "restaurants good cheap" -> "good cheap restaurants"
-            (r'(\w+)\s+(good|great|nice)\s+(cheap|affordable)', r'\2 \3 \1'),
-            # "places romantic couples" -> "romantic places for couples"
-            (r'(\w+)\s+(romantic|nice)\s+(couples?)', r'\2 \1 for \3'),
-            # "food turkish traditional" -> "traditional turkish food"
-            (r'(food|restaurant)\s+(\w+)\s+(traditional|authentic)', r'\3 \2 \1'),
-        ]
-        
-        for pattern, replacement in grammar_fixes:
-            if re.search(pattern, enhanced_input):
-                enhanced_input = re.sub(pattern, replacement, enhanced_input)
-                print(f"Grammar fix: '{corrected_input}' -> '{enhanced_input}'")
-                break
-        
-        # Handle common patterns and add missing words
-        patterns = [
-            # Travel intention patterns - handle "i want to go [location]"
-            (r'i\s+want\s+to\s+go\s+(?:to\s+)?(\w+)', r'places to visit in \1'),
-            (r'going\s+to\s+(\w+)', r'places to visit in \1'),
-            (r'visit\s+(\w+)', r'places to visit in \1'),
-            (r'explore\s+(\w+)', r'places to visit in \1'),
-            (r'see\s+(\w+)', r'places to visit in \1'),
-            (r'travel\s+to\s+(\w+)', r'places to visit in \1'),
-            
-            # Location + activity patterns
-            (r'^(\w+)\s+(restaurant|food|eat)$', r'restaurants in \1'),
-            (r'^(\w+)\s+(place|spot)$', r'places in \1'),
-            (r'^(\w+)\s+(attraction|sight)$', r'attractions in \1'),
-            (r'^(\w+)\s+(museum|gallery)$', r'museums in \1'),
-            (r'^(\w+)\s+to\s+visit$', r'places to visit in \1'),
-            (r'^what\s+(\w+)$', r'what to do in \1'),
-            
-            # Family and special interest patterns
-            (r'\b(family|families|kids?|children)\b.*\b(place|spot|restaurant|activity)\b', r'family friendly places'),
-            (r'\b(romantic|couple|couples)\b.*\b(place|spot|restaurant|dinner)\b', r'romantic places'),
-            (r'\b(rainy|rain|indoor)\b.*\b(activity|place|thing)\b', r'indoor activities'),
-            (r'\b(budget|cheap|free|affordable)\b.*\b(place|activity|restaurant)\b', r'budget friendly places'),
-            
-            # Activity type patterns
-            (r'\b(nightlife|night|party|bar|club)\b', r'nightlife in istanbul'),
-            (r'\b(shopping|shop|market|bazaar)\b', r'shopping in istanbul'),
-            (r'\b(transport|metro|bus|taxi)\b', r'transportation in istanbul'),
-            (r'\b(weather|climate|season)\b', r'weather in istanbul'),
-            
-            # Intent clarification patterns
-            (r'^(find|show|get|give)\s+(.+)', r'\2'),
-            (r'^(i\s+want|i\s+need|looking\s+for)\s+(.+)', r'\2'),
-            (r'^(can\s+you|could\s+you|please)\s+(.+)', r'\2'),
-            (r'^(tell\s+me|show\s+me)\s+(.+)', r'\2'),
-        ]
-        
-        for pattern, replacement in patterns:
-            match = re.search(pattern, enhanced_input)
-            if match:
-                enhanced_input = re.sub(pattern, replacement, enhanced_input)
-                print(f"Query enhancement: '{corrected_input}' -> '{enhanced_input}'")
-                break
-        
-        return enhanced_input if enhanced_input != corrected_input.lower() else corrected_input
-        
-    except Exception as e:
-        print(f"Error in query enhancement: {e}")
-        return user_input
+# Note: enhance_query_understanding is now imported from enhanced_input_processor.py
 
 # Routers
 app.include_router(museums.router)
 app.include_router(restaurants.router)
 app.include_router(places.router)
-app.include_router(blog.router)
 app.include_router(blog.router)
 
 @app.get("/")
@@ -930,6 +904,30 @@ async def ai_istanbul_router(request: Request):
         # Use enhanced input for processing
         user_input = enhanced_user_input
         
+        # Enhanced input validation using the input processor
+        try:
+            enhancement_result = input_processor.enhance_query_context(user_input)
+            query_type = enhancement_result.get('query_type', 'general')
+            detected_locations = enhancement_result.get('detected_locations', [])
+            detected_landmarks = enhancement_result.get('detected_landmarks', [])
+            
+            print(f"🔍 Query analysis - Type: {query_type}, Locations: {detected_locations}, Landmarks: {detected_landmarks}")
+            
+            # Validate for problematic weather queries that incorrectly return restaurant info
+            if 'weather' in user_input.lower() and query_type == 'restaurant':
+                return {
+                    "message": "I can help you with Istanbul weather information! The city has a temperate oceanic climate. For detailed current weather, I recommend checking a weather app. However, I specialize in restaurants, attractions, museums, and transportation in Istanbul. What would you like to know about visiting Istanbul?"
+                }
+            
+            # Validate for capability inquiries
+            if 'what can you do' in user_input.lower() or 'capabilities' in user_input.lower():
+                return {
+                    "message": "I'm your Istanbul travel assistant! I can help you with:\n\n🍽️ **Restaurants** - Find great places to eat, from traditional Turkish cuisine to international options\n🏛️ **Museums & Attractions** - Discover historical sites, palaces, and cultural venues\n🚇 **Transportation** - Get routes using metro, bus, ferry, and taxi options\n🗺️ **Districts** - Learn about different neighborhoods and what makes them special\n📍 **Specific Locations** - Get detailed information about landmarks and areas\n\nWhat would you like to explore in Istanbul?"
+                }
+                
+        except Exception as e:
+            print(f"Enhanced validation error: {e}")
+        
         # Enhanced input validation and processing
         if not user_input or len(user_input.strip()) < 1:
             return {"message": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more."}
@@ -950,6 +948,53 @@ async def ai_istanbul_router(request: Request):
         user_input = clean_text_formatting(user_input)
         print(f"🛡️ Processing sanitized input: {user_input}")
 
+        # --- Enhanced AI Intelligence Integration ---
+        if AI_INTELLIGENCE_ENABLED:
+            try:
+                # Get or create user session
+                user_ip = request.client.host if hasattr(request, 'client') and request.client else None
+                current_session_id = session_manager.get_or_create_session(session_id, user_ip)
+                
+                # Get conversation context
+                context = session_manager.get_context(current_session_id)
+                
+                # Enhanced intent recognition with context awareness
+                detected_intent, confidence = intent_recognizer.recognize_intent(user_input, context)
+                print(f"🎯 Detected intent: {detected_intent} (confidence: {confidence:.2f})")
+                
+                # Extract entities from user input
+                entities = intent_recognizer.extract_entities(user_input)
+                print(f"📍 Extracted entities: {entities}")
+                
+                # Learn from user query
+                preference_manager.learn_from_query(current_session_id, user_input, detected_intent)
+                
+                # Update conversation context
+                current_location = entities['locations'][0] if entities['locations'] else context.get('current_location', '')
+                session_manager.update_context(current_session_id, {
+                    'current_intent': detected_intent,
+                    'current_location': current_location,
+                    'entities': entities,
+                    'conversation_stage': 'processing'
+                })
+                
+                # Get personalized preferences for filtering
+                user_preferences = preference_manager.get_personalized_filter(current_session_id)
+                print(f"👤 User preferences: {user_preferences}")
+            except Exception as e:
+                print(f"⚠️ AI Intelligence error: {e}")
+                # Fallback to basic values
+                detected_intent, confidence = "general_query", 0.1
+                entities = {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
+                user_preferences = {}
+                current_session_id = session_id
+        else:
+            # Basic fallback values when AI Intelligence is not available
+            detected_intent, confidence = "general_query", 0.1
+            entities = {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
+            user_preferences = {}
+            current_session_id = session_id
+
         # --- OpenAI API Key Check ---
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not OpenAI or not openai_api_key:
@@ -962,7 +1007,7 @@ async def ai_istanbul_router(request: Request):
         try:
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restourant', 'restourants',  # Include corrected typos
+                'restaurant', 'restaurants', 'restourant', 'resturant',  # Include corrected typos
                 'restarunt', 'restarunts',  # Add basic words and common misspellings first
                 'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
                 'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
@@ -1035,48 +1080,6 @@ async def ai_istanbul_router(request: Request):
                 'things to do', 'places to visit', 'famous places', 'landmarks'
             ]
             
-            # Add new keyword categories for better query routing
-            shopping_keywords = [
-                'shopping', 'shop', 'buy', 'bazaar', 'market', 'mall', 'stores',
-                'grand bazaar', 'spice bazaar', 'istinye park', 'kanyon', 'zorlu center',
-                'cevahir', 'outlet', 'souvenir', 'carpet', 'jewelry', 'leather',
-                'shopping centers', 'where to shop', 'shopping recommendations', 'best shopping'
-            ]
-            
-            transportation_keywords = [
-                'transport', 'transportation', 'metro', 'bus', 'ferry', 'taxi', 'uber',
-                'how to get', 'getting around', 'public transport', 'istanbulkart',
-                'airport', 'train', 'tram', 'dolmus', 'marmaray', 'metrobus',
-                'getting from', 'how to reach', 'travel to', 'transport options'
-            ]
-            
-            nightlife_keywords = [
-                'nightlife', 'bars', 'clubs', 'night out', 'drinks', 'pub', 'lounge',
-                'rooftop bar', 'live music', 'dancing', 'cocktails', 'beer', 'wine',
-                'galata nightlife', 'beyoglu nightlife', 'taksim bars', 'karakoy bars',
-                'where to drink', 'best bars', 'night clubs', 'party'
-            ]
-            
-            culture_keywords = [
-                'culture', 'cultural', 'tradition', 'festival', 'event', 'show',
-                'turkish culture', 'ottoman', 'byzantine', 'hamam', 'turkish bath',
-                'folk dance', 'music', 'art', 'theater', 'concert', 'whirling dervish',
-                'cultural activities', 'traditional experiences', 'local customs'
-            ]
-            
-            accommodation_keywords = [
-                'hotel', 'accommodation', 'where to stay', 'hostel', 'apartment',
-                'boutique hotel', 'luxury hotel', 'budget hotel', 'airbnb',
-                'sultanahmet hotels', 'galata hotels', 'bosphorus view',
-                'hotel recommendations', 'best hotels', 'cheap hotels'
-            ]
-            
-            events_keywords = [
-                'events', 'concerts', 'shows', 'exhibitions', 'festivals',
-                'what\'s happening', 'events today', 'weekend events', 'cultural events',
-                'music events', 'art exhibitions', 'theater shows', 'performances'
-            ]
-            
             # --- Remove duplicate location_restaurant_patterns ---
             # (Already defined above, so do not redefine here)
             
@@ -1114,303 +1117,339 @@ async def ai_istanbul_router(request: Request):
             is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
             is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
             
-            # Only consider it a district query if it's NOT a restaurant, museum, or location-based query and NOT a single district name
-            is_district_query = (any(keyword in user_input.lower() for keyword in district_keywords) and 
-                               not is_restaurant_query and 
-                               not is_museum_query and
-                               not is_location_restaurant_query and 
-                               not is_location_place_query and
-                               not is_location_museum_query and
-                               not is_single_district_query)
+            # --- Enhanced AI-Powered Query Classification ---
+            # Use the AI intent recognition system instead of keyword matching
+            if AI_INTELLIGENCE_ENABLED:
+                # Primary intent from AI system
+                primary_intent = detected_intent
+                intent_confidence = confidence
+                
+                # Enhanced location detection from AI entities
+                extracted_locations = entities.get('locations', [])
+                
+                # Map AI intents to legacy query types for compatibility
+                is_restaurant_query = (primary_intent == 'restaurant_search' or 
+                                     any(keyword in user_input.lower() for keyword in restaurant_keywords))
+                is_museum_query = primary_intent == 'museum_query'
+                is_attraction_query = primary_intent == 'attraction_query'
+                is_shopping_query = primary_intent == 'shopping_query'
+                is_transportation_query = primary_intent == 'transportation_query'
+                is_nightlife_query = primary_intent == 'nightlife_query'
+                is_culture_query = primary_intent == 'culture_query'
+                is_accommodation_query = primary_intent == 'accommodation_query'
+                is_events_query = primary_intent == 'events_query'
+                is_district_query = False  # Handled by location entities
+                
+                is_location_restaurant_query = bool(extracted_locations and is_restaurant_query)
+                is_location_place_query = bool(extracted_locations and is_attraction_query)
+                is_location_museum_query = bool(extracted_locations and is_museum_query)
+                is_single_district_query = (len(extracted_locations) == 1 and 
+                                          user_input.lower().strip() in extracted_locations)
+                
+                print(f"🎯 AI-Enhanced Query Classification:")
+                print(f"  Primary intent: {primary_intent} (confidence: {intent_confidence:.2f})")
+                print(f"  Extracted locations: {extracted_locations}")
+                print(f"  User preferences applied: {bool(user_preferences)}")
+                
+            else:
+                # Fallback to basic keyword matching when AI is not available
+                extracted_locations = []
+                is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords)
+                is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
+                is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords)
+                is_shopping_query = 'shopping' in user_input.lower() or 'shop' in user_input.lower()
+                is_transportation_query = any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi', 'how to get'])
+                is_nightlife_query = 'nightlife' in user_input.lower() or 'bars' in user_input.lower()
+                is_culture_query = 'culture' in user_input.lower() or 'cultural' in user_input.lower()
+                is_accommodation_query = 'hotel' in user_input.lower() or 'accommodation' in user_input.lower()
+                is_events_query = 'events' in user_input.lower() or 'concerts' in user_input.lower()
+                is_district_query = False
+                is_location_restaurant_query = False
+                is_location_place_query = False
+                is_location_museum_query = False
+                is_single_district_query = False
+                
+                print(f"📝 Basic Query Classification (AI not available)")
             
-            is_attraction_query = (any(keyword in user_input.lower() for keyword in attraction_keywords) or 
-                                 is_location_place_query or is_single_district_query)
-            is_shopping_query = any(keyword in user_input.lower() for keyword in shopping_keywords)
-            is_transportation_query = any(keyword in user_input.lower() for keyword in transportation_keywords)
-            is_nightlife_query = any(keyword in user_input.lower() for keyword in nightlife_keywords)
-            is_culture_query = any(keyword in user_input.lower() for keyword in culture_keywords)
-            is_accommodation_query = any(keyword in user_input.lower() for keyword in accommodation_keywords)
-            is_events_query = any(keyword in user_input.lower() for keyword in events_keywords)
+            # Legacy location pattern matching for backwards compatibility
+            location_restaurant_patterns = [
+                r'restaurants?\s+in\s+\w+', r'restaurant\s+in\s+\w+', r'food\s+in\s+\w+',
+                r'eat\s+in\s+\w+', r'dining\s+in\s+\w+'
+            ]
+            location_place_patterns = [
+                r'places?\s+in\s+\w+', r'places\s+to\s+visit\s+in\s+\w+', r'attractions?\s+in\s+\w+',
+                r'things?\s+to\s+do\s+in\s+\w+', r'visit\s+in\s+\w+'
+            ]
+            location_museum_patterns = [
+                r'museums?\s+in\s+\w+', r'museum\s+in\s+\w+'
+            ]
             
-            # Debug query categorization
-            print(f"Query categorization:")
-            print(f"  is_restaurant_query: {is_restaurant_query}")
-            print(f"  is_museum_query: {is_museum_query}")
-            print(f"  is_district_query: {is_district_query}")
-            print(f"  is_attraction_query: {is_attraction_query}")
-            print(f"  is_location_place_query: {is_location_place_query}")
-            print(f"  is_location_museum_query: {is_location_museum_query}")
+            # Apply legacy patterns if AI didn't catch location-based queries
+            if not extracted_locations:
+                is_location_restaurant_query = (is_location_restaurant_query or 
+                                               any(re.search(pattern, user_input.lower()) for pattern in location_restaurant_patterns))
+                is_location_place_query = (is_location_place_query or 
+                                         any(re.search(pattern, user_input.lower()) for pattern in location_place_patterns))
+                is_location_museum_query = (is_location_museum_query or 
+                                          any(re.search(pattern, user_input.lower()) for pattern in location_museum_patterns))
+            
+            # Check transportation patterns specifically - more comprehensive patterns
+            transportation_patterns = [
+                r'how.*can.*i.*go.*from.*to',         # "how can I go from beyoglu to kadikoy"
+                r'how.*can.*i.*go.*\w+.*from.*\w+',   # "how can I go kadikoy from beyoglu"
+                r'how.*go.*from.*to',                 # "how go from beyoglu to kadikoy"
+                r'how.*get.*from.*to',                # "how get from beyoglu to kadikoy"
+                r'go.*from.*to',                      # "go from beyoglu to kadikoy"
+                r'get.*from.*to',                     # "get from beyoglu to kadikoy"
+                r'from.*to',                          # "from beyoglu to kadikoy"
+                r'how.*go.*\w+',                      # "how go kadikoy"
+                r'go.*to.*\w+',                       # "go to kadikoy"
+                r'go.*from',                          # "go from beyoglu"
+                r'how.*go.*from',                     # "how go from beyoglu"
+                r'travel.*from',                      # "travel from beyoglu"
+                r'\w+.*from.*\w+',                    # "kadikoy from beyoglu"
+                r'how.*can.*go',                      # "how can go"
+                r'how.*get.*to',                      # "how get to kadikoy"
+                r'transport.*to',                     # "transport to kadikoy"
+                r'metro.*to',                         # "metro to kadikoy"
+                r'bus.*to',                           # "bus to kadikoy"
+                r'ferry.*to'                          # "ferry to kadikoy"
+            ]
+            is_transportation_pattern = any(re.search(pattern, user_input.lower()) for pattern in transportation_patterns)
+            is_transportation_query = is_transportation_query or is_transportation_pattern
+            print(f"  is_transportation_query: {is_transportation_query}")
             print(f"  is_single_district_query: {is_single_district_query}")
             
-            if is_restaurant_query:
-                # Get real restaurant data from Google Maps only
+            # Handle transportation queries with highest priority
+            if is_transportation_query:
                 try:
-                    # Extract location from query for better results
-                    search_location = "Istanbul, Turkey"
-                    if is_location_restaurant_query:
-                        # Try to extract specific location from the query
-                        location_patterns = [
-                            r'in\s+([a-zA-Z\s]+)',
-                            r'near\s+([a-zA-Z\s]+)',
-                            r'at\s+([a-zA-Z\s]+)',
-                            r'around\s+([a-zA-Z\s]+)',
-                        ]
-                        for pattern in location_patterns:
-                            match = re.search(pattern, user_input.lower())
-                            if match:
-                                location = match.group(1).strip()
-                                search_location = f"{location}, Istanbul, Turkey"
-                                break
+                    # Check if this is a specific route query (from X to Y)
+                    route_patterns = [
+                        r'from\s+(\w+).*to\s+(\w+)',          # "from beyoglu to kadikoy"
+                        r'(\w+)\s+to\s+(\w+)',                # "beyoglu to kadikoy"  
+                        r'go.*(\w+).*to\s+(\w+)',             # "go from beyoglu to kadikoy"
+                        r'get.*(\w+).*to\s+(\w+)',            # "get from beyoglu to kadikoy"
+                        r'go\s+(\w+)\s+from\s+(\w+)',         # "go kadikoy from beyoglu"
+                        r'get\s+to\s+(\w+)\s+from\s+(\w+)',   # "get to kadikoy from beyoglu"
+                        r'travel\s+(\w+)\s+from\s+(\w+)',     # "travel kadikoy from beyoglu"
+                        r'(\w+)\s+from\s+(\w+)',              # "kadikoy from beyoglu"
+                    ]
                     
-                    try:
-                        google_client = GooglePlacesClient()
-                        places_data = google_client.search_restaurants(location=search_location, keyword=user_input)
-                    except Exception as e:
-                        logger.warning(f"Google Places API failed: {e}")
-                        places_data = {"results": []}
+                    origin = None
+                    destination = None
                     
-                    # Get current weather information
-                    try:
-                        weather_client = WeatherClient()
-                        weather_info = weather_client.get_istanbul_weather()
-                        weather_context = weather_client.format_weather_info(weather_info)
-                    except Exception as e:
-                        logger.warning(f"Weather API failed: {e}")
-                        weather_context = "Weather information not available"
+                    for i, pattern in enumerate(route_patterns):
+                        match = re.search(pattern, user_input.lower())
+                        if match:
+                            if i < 4:  # First 4 patterns: origin first, destination second
+                                origin = match.group(1).strip()
+                                destination = match.group(2).strip()
+                            else:  # Last 4 patterns: destination first, origin second  
+                                destination = match.group(1).strip()
+                                origin = match.group(2).strip()
+                            print(f"Transportation route detected: {origin} -> {destination}")
+                            break
                     
-                    if places_data.get('results'):
-                        location_text = search_location.split(',')[0] if 'Istanbul' not in search_location else 'Istanbul'
-                        restaurants_info = f"Here are some great restaurants in {location_text}:\n\n"
+                    # Handle specific route queries
+                    if origin and destination:
+                        # Common district mappings for transportation
+                        district_transport_mapping = {
+                            'kadikoy': 'Kadıköy', 'kadıköy': 'Kadıköy',
+                            'beyoglu': 'Beyoğlu', 'beyoğlu': 'Beyoğlu',
+                            'sultanahmet': 'Sultanahmet', 'galata': 'Galata',
+                            'taksim': 'Taksim', 'besiktas': 'Beşiktaş', 'beşiktaş': 'Beşiktaş',
+                            'uskudar': 'Üsküdar', 'üsküdar': 'Üsküdar', 'fatih': 'Fatih',
+                            'eminonu': 'Eminönü', 'eminönü': 'Eminönü',
+                            'karakoy': 'Karaköy', 'karaköy': 'Karaköy'
+                        }
                         
-                        for i, place in enumerate(places_data['results'][:5]):  # Top 5 results
-                            name = place.get('name', 'Unknown')
-                            rating = place.get('rating', 'N/A')
-                            price_level = place.get('price_level', 'N/A')
-                            address = place.get('formatted_address', '')
-                            
-                            # Generate brief info about the restaurant based on name and location
-                            restaurant_info = generate_restaurant_info(name, search_location)
-                            
-                            # Format price level more user-friendly
-                            price_text = ''
-                            if price_level != 'N/A' and isinstance(price_level, int):
-                                if price_level == 1:
-                                    price_text = " • Budget-friendly"
-                                elif price_level == 2:
-                                    price_text = " • Moderate prices"
-                                elif price_level == 3:
-                                    price_text = " • Expensive"
-                                elif price_level == 4:
-                                    price_text = " • Very expensive"
-                            
-                            # Format each restaurant entry with clean, readable formatting
-                            restaurants_info += f"{i+1}. {name}\n"
-                            restaurants_info += f"   {restaurant_info}\n"
-                            restaurants_info += f"   Rating: {rating}/5{price_text}\n\n"
+                        origin_formatted = district_transport_mapping.get(origin, origin.title())
+                        destination_formatted = district_transport_mapping.get(destination, destination.title())
                         
-                        restaurants_info += "Tip: You can search for these restaurants on Google Maps for directions and more details!"
-                        
-                        # Clean the response from any emojis, hashtags, or markdown if needed
-                        clean_response = clean_text_formatting(restaurants_info)
-                        return {"message": clean_response}
+                        # Return transportation guidance
+                        if (origin.lower() in ['beyoglu', 'beyoğlu', 'galata', 'taksim'] and 
+                            destination.lower() in ['kadikoy', 'kadıköy']):
+                            return {"message": f"""**How to get from {origin_formatted} to {destination_formatted}:**
+
+**Best Options:**
+
+**Option 1: Ferry (Most Scenic) - 25 minutes**
+- Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)
+- Take ferry from Karaköy to Kadıköy (15 min)
+- Beautiful Bosphorus views during the journey
+- Cost: ~15-20 TL
+
+**Option 2: Metro + Bus - 35 minutes**
+- Take M2 metro from Şişhane/Vezneciler to Vezneciler
+- Transfer to M1 metro to Zeytinburnu
+- Take Metrobus to Kadıköy
+- Cost: ~20-25 TL
+
+**Option 3: Taxi/Uber - 30-45 minutes**
+- Direct route via Galata Bridge
+- Cost: ~80-120 TL (depending on traffic)
+- Traffic can be heavy during rush hours
+
+**Recommended:** Take the ferry for the best experience and views of Istanbul!"""}
+                        else:
+                            return {"message": f"""**Transportation from {origin_formatted} to {destination_formatted}:**
+
+**Metro/Public Transport:**
+- Use Istanbul's metro, bus, and tram system
+- Get an Istanbulkart for easy travel
+- Check Citymapper app for real-time directions
+
+**Ferry Options:**
+- If near water, ferries offer scenic routes
+- Check ferry schedules for availability
+
+**Taxi/Uber:**
+- Available throughout the city
+- Use BiTaksi or Uber for convenience
+- Traffic can be heavy during peak hours
+
+For specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions."""}
                     else:
-                        return {"message": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
-                        
+                        return {"message": """**Getting Around Istanbul:**
+
+**Public Transportation:**
+- **Metro:** Clean, efficient, connects major areas
+- **Bus:** Extensive network, use Istanbulkart
+- **Tram:** Connects Sultanahmet to other areas
+- **Ferry:** Scenic routes across the Bosphorus
+- **Metrobus:** Fast bus on dedicated lanes
+
+**Tips:**
+- Get an Istanbulkart for all public transport
+- Download Citymapper or Moovit for directions
+- Ferries offer beautiful city views
+- Avoid rush hours (7-9 AM, 5-7 PM) when possible
+
+**Taxi/Ride-sharing:**
+- BiTaksi, Uber available
+- Agree on fare beforehand for taxis
+- Traffic can be heavy, especially bridges
+
+Ask me about specific routes for detailed directions!"""}
                 except Exception as e:
-                    print(f"Error fetching Google Places data: {e}")
-                    return {"message": "Sorry, I encountered an error while searching for restaurants. Please try again."}
+                    return {"message": "I can help you with transportation in Istanbul. Please ask about specific routes or general transport information!"}
             
-            elif is_museum_query or is_attraction_query or is_district_query:
-                # Get data from manual database
-                places = db.query(Place).all()
-                
-                # Extract location if this is a location-specific query
-                extracted_location = None
-                if is_location_place_query or is_location_museum_query:
-                    print(f"Location-based query detected: {user_input}")
+            elif is_restaurant_query:
+                # Extract location from query for better results
+                search_location = "Istanbul, Turkey"
+                if is_location_restaurant_query:
+                    # Try to extract specific location from the query
                     location_patterns = [
                         r'in\s+([a-zA-Z\s]+)',
+                        r'near\s+([a-zA-Z\s]+)',
                         r'at\s+([a-zA-Z\s]+)',
                         r'around\s+([a-zA-Z\s]+)',
-                        r'near\s+([a-zA-Z\s]+)',
-                        r'^(\w+)\s+to\s+places\s+to\s+visit',  # "kadikoy to places to visit" - specific pattern first
-                        r'^(\w+)\s+places?\s+to\s+visit',  # "kadikoy places to visit" - only first word
-                        r'^(\w+)\s+plases?\s+to\s+visit',  # "sultanahmet plases to visit" - handle typos
-                        r'^([a-zA-Z\s]+?)\s+to\s+visit',  # "kadikoy to visit" - more general
-                        r'^([a-zA-Z\s]+)\s+attractions',  # "kadikoy attractions"
-                        r'visit\s+([a-zA-Z\s]+)\s+places?',  # "visit kadikoy places"
                     ]
                     for pattern in location_patterns:
                         match = re.search(pattern, user_input.lower())
                         if match:
-                            location_candidate = match.group(1).strip()
-                            # Ignore "istanbul" as it's the general city, not a specific district
-                            if location_candidate.lower() != 'istanbul':
-                                extracted_location = location_candidate
-                                print(f"Extracted location: '{extracted_location}'")
-                            else:
-                                print(f"Ignored general city name: '{location_candidate}'")
+                            location = match.group(1).strip()
+                            search_location = f"{location}, Istanbul, Turkey"
                             break
-                elif is_single_district_query:
-                    # For single district names like "kadikoy", use the district name directly
-                    extracted_location = user_input.lower().strip()
-                    print(f"Single district query detected: '{extracted_location}'")
                 
-                # Filter based on query type
-                filtered_places = []
-                if (is_location_place_query or is_single_district_query) and extracted_location:
-                    # For location-specific place queries, include all places first
-                    print(f"DEBUG: Using location-based filtering for '{extracted_location}'")
-                    filtered_places = places
-                elif is_location_museum_query and extracted_location:
-                    # For location-specific museum queries, filter for museums first
-                    print(f"DEBUG: Using location-based museum filtering for '{extracted_location}'")
-                    filtered_places = [p for p in places if p.category is not None and 'museum' in p.category.lower()]
-                elif is_museum_query:
-                    filtered_places = [p for p in places if p.category is not None and 'museum' in p.category.lower()]
-                elif is_district_query:
-                    filtered_places = [p for p in places if p.category is not None and 'district' in p.category.lower()]
-                    # Also include places by district
-                    if not filtered_places:
-                        districts = set([str(p.district) for p in places if p.district is not None])
-                        district_info = f"Here are the main districts in Istanbul:\n\n"
-                        for district in sorted(districts):
-                            places_in_district = [p for p in places if str(p.district) == district]
-                            district_info += f"**{district}**:\n"
-                            for place in places_in_district[:3]:  # Top 3 places per district
-                                district_info += f"   - {place.name} ({place.category})\n"
-                            district_info += "\n"
-                        return {"message": district_info}
-                else:  # general attraction query
-                    filtered_places = [p for p in places if p.category is not None and p.category.lower() in ['historical place', 'mosque', 'church', 'park', 'museum', 'market', 'cultural center', 'art', 'landmark']]
+                try:
+                    # Use enhanced API service for better real data integration
+                    enhanced_api = EnhancedAPIService()
+                    places_data = enhanced_api.search_restaurants_enhanced(
+                        location=search_location, 
+                        keyword=user_input
+                    )
+                    
+                    # Weather context is already included in enhanced search
+                    weather_context = places_data.get('weather_context', {})
+                    weather_info = f"Current: {weather_context.get('current_temp', 'N/A')}°C, {weather_context.get('condition', 'Unknown')}"
+                    
+                except Exception as e:
+                    logger.warning(f"Enhanced API service failed: {e}")
+                    # Fallback to basic service
+                    try:
+                        google_client = GooglePlacesClient()
+                        places_data = google_client.search_restaurants(location=search_location, keyword=user_input)
+                        
+                        weather_client = WeatherClient()
+                        weather_info_raw = weather_client.get_istanbul_weather()
+                        weather_context = weather_client.format_weather_info(weather_info_raw)
+                        weather_info = weather_context
+                    except Exception as e2:
+                        logger.warning(f"Fallback API also failed: {e2}")
+                        places_data = {"results": []}
+                        weather_info = "Weather information not available"
                 
-                # Apply location filter if location was extracted
-                if extracted_location and filtered_places:
-                    print(f"DEBUG: Before location filter: {len(filtered_places)} places")
-                    print(f"DEBUG: Looking for location: '{extracted_location.lower()}'")
-                    print(f"DEBUG: Available districts: {[p.district for p in filtered_places[:5]]}")
+                if places_data.get('results'):
+                    location_text = search_location.split(',')[0] if 'Istanbul' not in search_location else 'Istanbul'
                     
-                    # Normalize location name for matching (case-insensitive)
-                    location_lower = extracted_location.lower()
-                    
-                    # Handle neighborhood to district mapping
-                    location_mappings = {
-                        'sultanahmet': 'fatih',  # Sultanahmet is in Fatih district
-                        'galata': 'beyoglu',     # Galata is in Beyoglu district
-                        'taksim': 'beyoglu',     # Taksim is in Beyoglu district
-                        'ortakoy': 'besiktas',   # Ortaköy is in Beşiktaş district
-                        'bebek': 'besiktas',     # Bebek is in Beşiktaş district
-                    }
-                    
-                    # Check if we need to map the location to a district
-                    if location_lower in location_mappings:
-                        district_to_search = location_mappings[location_lower]
-                        print(f"DEBUG: Mapping '{location_lower}' to district '{district_to_search}'")
+                    # Apply personalized recommendations if AI Intelligence is enabled
+                    if AI_INTELLIGENCE_ENABLED:
+                        try:
+                            # Enhance results with personalization
+                            enhanced_results = recommendation_engine.enhance_recommendations(
+                                current_session_id, places_data['results'][:10]
+                            )
+                            # Take top 5 personalized results
+                            final_results = enhanced_results[:5]
+                            print(f"🎯 Applied personalized recommendations: {len(final_results)} results")
+                        except Exception as e:
+                            print(f"⚠️ Personalization error: {e}")
+                            final_results = places_data['results'][:5]
                     else:
-                        district_to_search = location_lower
+                        final_results = places_data['results'][:5]
                     
-                    original_count = len(filtered_places)
-                    filtered_places = [p for p in filtered_places if p.district is not None and district_to_search in p.district.lower()]
-                    print(f"DEBUG: After location filter: {len(filtered_places)} places (from {original_count})")
+                    restaurants_info = f"Here are some great restaurants in {location_text}:\n\n"
                     
-                    if filtered_places:
-                        print(f"DEBUG: Filtered places found:")
-                        for p in filtered_places:
-                            print(f"  - {p.name} in {p.district}")
-                    else:
-                        print(f"DEBUG: No places found matching location '{extracted_location}'")
-                
-                if filtered_places:
-                    location_text = f" in {extracted_location.title()}" if extracted_location else " in Istanbul"
-                    places_info = f"Here are the {'museums' if is_museum_query else 'places'}{location_text}:\n\n"
-                    for i, place in enumerate(filtered_places[:8]):  # Top 8 results
-                        places_info += f"{i+1}. {place.name}\n"
-                        places_info += f"   Category: {place.category}\n\n"
-                    return {"message": places_info}
+                    for i, place in enumerate(final_results):
+                        name = place.get('name', 'Unknown')
+                        rating = place.get('rating', 'N/A')
+                        price_level = place.get('price_level', 'N/A')
+                        address = place.get('formatted_address', '')
+                        
+                        # Generate brief info about the restaurant based on name and location
+                        restaurant_info = generate_restaurant_info(name, search_location)
+                        
+                        # Add personalization reason if available
+                        reason = place.get('recommendation_reason', '')
+                        if reason and AI_INTELLIGENCE_ENABLED:
+                            restaurant_info += f" ({reason})"
+                        
+                        # Format price level more user-friendly
+                        price_text = ''
+                        if price_level != 'N/A' and isinstance(price_level, int):
+                            if price_level == 1:
+                                price_text = " • Budget-friendly"
+                            elif price_level == 2:
+                                price_text = " • Moderate prices"
+                            elif price_level == 3:
+                                price_text = " • Expensive"
+                            elif price_level == 4:
+                                price_text = " • Very expensive"
+                        
+                        # Format each restaurant entry with clean, readable formatting
+                        restaurants_info += f"{i+1}. {name}\n"
+                        restaurants_info += f"   {restaurant_info}\n"
+                        restaurants_info += f"   Rating: {rating}/5{price_text}\n\n"
+                    
+                    restaurants_info += "Tip: You can search for these restaurants on Google Maps for directions and more details!"
+                    
+                    # Update conversation context with successful restaurant search
+                    if AI_INTELLIGENCE_ENABLED:
+                        try:
+                            session_manager.update_context(current_session_id, {
+                                'last_search_type': 'restaurant',
+                                'last_search_location': location_text,
+                                'conversation_stage': 'completed'
+                            })
+                        except Exception as e:
+                            print(f"⚠️ Context update error: {e}")
+                    
+                    # Clean the response from any emojis, hashtags, or markdown if needed
+                    clean_response = clean_text_formatting(restaurants_info)
+                    return {"message": clean_response}
                 else:
-                    if extracted_location:
-                        return {"message": f"Sorry, I couldn't find any {'museums' if is_museum_query else 'places'} in {extracted_location.title()} in my database. Try asking about a different district or general attractions in Istanbul."}
-                    else:
-                        return {"message": f"Sorry, I couldn't find any {'museums' if is_museum_query else 'attractions'} in my database."}
-            
-            elif is_shopping_query:
-                shopping_response = """🛍️ **Shopping in Istanbul**
-
-**Traditional Markets:**
-- **Grand Bazaar** (Kapalıçarşı) - 4,000 shops, carpets, jewelry, spices
-  - Metro: Beyazıt-Kapalıçarşı (M1) or Vezneciler (M2)
-  - Hours: 9 AM - 7 PM (closed Sundays)
-  
-- **Spice Bazaar** (Mısır Çarşısı) - Turkish delight, spices, teas, nuts
-  - Location: Near Eminönü ferry terminal
-  - Great for food souvenirs and gifts
-
-**Modern Shopping Centers:**
-- **Istinye Park** - Luxury brands, beautiful architecture (European side)
-- **Kanyon** - Unique design in Levent business district
-- **Zorlu Center** - High-end shopping in Beşiktaş
-- **Mall of Istanbul** - Large shopping center on European side
-- **Palladium** - Popular mall in Ataşehir (Asian side)
-
-**What to Buy:**
-- Turkish carpets & kilims
-- Ceramic tiles and pottery
-- Evil eye (nazar) jewelry & charms
-- Turkish delight & baklava
-- Turkish tea & coffee
-- Leather goods & shoes
-- Traditional textiles
-- Handmade soaps
-
-**Shopping Tips:**
-- Bargaining is expected in bazaars (start at 30-50% of asking price)
-- Fixed prices in modern malls
-- Many shops close on Sundays
-- Ask for tax-free shopping receipts for purchases over 108 TL"""
-                return {"message": clean_text_formatting(shopping_response)}
-            
-            elif is_transportation_query:
-                transport_response = """🚇 **Getting Around Istanbul**
-
-**Istanbul Card (Istanbulkart):** 💳
-- Essential for ALL public transport
-- Buy at metro stations, airports, or kiosks
-- Works on metro, bus, tram, ferry, funicular
-- Significant discounts vs. single tickets
-
-**Metro Lines:**
-- **M1A/M1B**: Airport ↔ Yenikapı ↔ Kirazlı
-- **M2**: Vezneciler ↔ Şişli ↔ Hacıosman
-- **M3**: Kirazlı ↔ Başakşehir
-- **M4**: Kadıköy ↔ Sabiha Gökçen Airport
-- **M5**: Üsküdar ↔ Çekmeköy
-- **M6**: Levent ↔ Boğaziçi Üniversitesi
-- **M7**: Mecidiyeköy ↔ Mahmutbey
-
-**Trams:**
-- **T1**: Kabataş ↔ Bağcılar (passes through Sultanahmet)
-- **T4**: Topkapı ↔ Mescid-i Selam
-
-**Key Ferry Routes:**
-- Eminönü ↔ Kadıköy (20 min, scenic)
-- Karaköy ↔ Kadıköy (15 min)
-- Beşiktaş ↔ Üsküdar (15 min)
-- Bosphorus tours from Eminönü
-
-**Airports:**
-- **Istanbul Airport (IST)**: M11 metro to city center
-- **Sabiha Gökçen (SAW)**: M4 metro or HAVABUS
-
-**Apps to Download:**
-- Moovit - Real-time public transport
-- BiTaksi - Local taxi app
-- Uber - Available in Istanbul
-
-**Tips:**
-- Rush hours: 8-10 AM, 5-7 PM
-- Metro announcements in Turkish & English
-- Keep your Istanbulkart with you always!"""
-                return {"message": clean_text_formatting(transport_response)}
+                    return {"message": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
             
             elif is_nightlife_query:
                 nightlife_response = """🌃 **Istanbul Nightlife**
@@ -1420,6 +1459,7 @@ async def ai_istanbul_router(request: Request):
 **Beyoğlu/Galata:**
 - Heart of Istanbul's nightlife
 - Mix of rooftop bars, clubs, and pubs
+
 - Istiklal Street has many options
 
 **Karaköy:**
@@ -1621,11 +1661,11 @@ async def ai_istanbul_router(request: Request):
                     for place in places[:20]:  # Limit context size
                         places_context += f"- {place.name} ({place.category}) in {place.district}\n"
                 
-                # Get current weather information for context
+                # Get current weather information
                 try:
                     weather_client = WeatherClient()
                     weather_info = weather_client.get_istanbul_weather()
-                    weather_context = f"Current Istanbul weather: {weather_client.format_weather_info(weather_info)}"
+                    weather_context = weather_client.format_weather_info(weather_info)
                 except Exception as e:
                     logger.warning(f"Weather API failed: {e}")
                     weather_context = "Weather information not available"
@@ -1676,12 +1716,37 @@ Keep responses engaging, helpful, and naturally conversational while showcasing 
 Always provide clean, professional responses without emojis or pricing information.
 Use current weather information to enhance your recommendations when appropriate."""
 
+                # Add personalization context if AI Intelligence is enabled
+                personalization_context = ""
+                if AI_INTELLIGENCE_ENABLED:
+                    try:
+                        user_preferences = session_manager.get_preferences(current_session_id)
+                        context = session_manager.get_context(current_session_id)
+                        
+                        if user_preferences.get('total_interactions', 0) > 0:
+                            personalization_context = f"\nUSER PERSONALIZATION CONTEXT:\n"
+                            if user_preferences.get('preferred_cuisines'):
+                                personalization_context += f"- User has shown interest in: {', '.join(user_preferences['preferred_cuisines'])} cuisine\n"
+                            if user_preferences.get('preferred_districts'):
+                                personalization_context += f"- User has asked about: {', '.join(user_preferences['preferred_districts'])} areas\n"
+                            if user_preferences.get('budget_level') != 'any':
+                                personalization_context += f"- User preference: {user_preferences['budget_level']} options\n"
+                            if user_preferences.get('interests'):
+                                personalization_context += f"- User interests: {', '.join(user_preferences['interests'])}\n"
+                            if context.get('previous_locations'):
+                                personalization_context += f"- Previously discussed: {', '.join(context['previous_locations'])}\n"
+                            
+                            personalization_context += "\nTailor your response to their interests when relevant, but don't mention this personalization explicitly."
+                    except Exception as e:
+                        print(f"⚠️ Personalization context error: {e}")
+                        personalization_context = ""
+
                 try:
                     print("Making OpenAI API call...")
                     
                     # Build conversation messages with history
                     messages = [
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": system_prompt + personalization_context},
                         {"role": "system", "content": f"Database context:\n{places_context}"},
                         {"role": "system", "content": weather_context},
                     ]
@@ -1698,6 +1763,15 @@ Use current weather information to enhance your recommendations when appropriate
                     # Add current user message
                     messages.append({"role": "user", "content": user_input})
                     
+                    # Add response guidance based on enhanced input processing
+                    try:
+                        response_guidance = get_response_guidance(user_input)
+                        if response_guidance:
+                            print(f"Adding response guidance: {response_guidance}")
+                            messages.append({"role": "system", "content": f"SPECIFIC GUIDANCE: {response_guidance}"})
+                    except Exception as e:
+                        print(f"Response guidance error: {e}")
+                    
                     response = client.chat.completions.create(
                         model="gpt-3.5-turbo",
                         messages=messages,  # type: ignore
@@ -1711,6 +1785,17 @@ Use current weather information to enhance your recommendations when appropriate
                         # Two-pass cleaning: pre-clean + post-LLM cleanup
                         clean_response = clean_text_formatting(ai_response)
                         final_response = post_llm_cleanup(clean_response)
+                        
+                        # Update conversation context with successful response
+                        if AI_INTELLIGENCE_ENABLED:
+                            try:
+                                session_manager.update_context(current_session_id, {
+                                    'conversation_stage': 'completed',
+                                    'last_response_type': 'general_query'
+                                })
+                            except Exception as e:
+                                print(f"⚠️ Context update error: {e}")
+                        
                         return {"message": final_response}
                     else:
                         print("OpenAI returned empty response")
@@ -1791,6 +1876,308 @@ async def ai_istanbul_stream(request: Request):
         print(f"Error in streaming AI endpoint: {e}")
         error_message = "Sorry, I encountered an error. Please try again."
         return StreamingResponse(stream_response(error_message), media_type="text/plain")
+
+# --- New Advanced AI Endpoints ---
+
+@app.post("/ai/analyze-image")
+async def analyze_image(
+    image: UploadFile = File(...),
+    context: str = Form("")
+):
+    """Analyze uploaded image for location identification and recommendations"""
+    try:
+        if not ADVANCED_AI_ENABLED:
+            return {"error": "Advanced AI features not available"}
+        
+        if not image:
+            return {"error": "No image provided"}
+        
+        # Read image data
+        image_data = await image.read()
+        
+        # Analyze image
+        analysis_result = await multimodal_ai_service.analyze_image_comprehensive(
+            image_data, context
+        )
+        
+        if not analysis_result:
+            return {"error": "Image analysis failed"}
+        
+        # Convert to dict for JSON response
+        result_dict = {
+            "detected_objects": analysis_result.detected_objects,
+            "location_suggestions": analysis_result.location_suggestions,
+            "landmarks_identified": analysis_result.landmarks_identified,
+            "scene_description": analysis_result.scene_description,
+            "confidence_score": analysis_result.confidence_score,
+            "recommendations": analysis_result.recommendations,
+            "is_food_image": analysis_result.is_food_image,
+            "is_location_image": analysis_result.is_location_image,
+            "extracted_text": analysis_result.extracted_text
+        }
+        
+        return {"success": True, "analysis": result_dict}
+        
+    except Exception as e:
+        logger.error(f"Image analysis error: {e}")
+        return {"error": f"Image analysis failed: {str(e)}"}
+
+@app.post("/ai/analyze-menu")
+async def analyze_menu(
+    image: UploadFile = File(...),
+    dietary_restrictions: Optional[str] = Form(None)
+):
+    """Analyze menu image for dietary restrictions and recommendations"""
+    try:
+        if not ADVANCED_AI_ENABLED:
+            return {"error": "Advanced AI features not available"}
+        
+        if not image:
+            return {"error": "No image provided"}
+        
+        # Read image data
+        image_data = await image.read()
+        
+        # Analyze menu
+        menu_result = await multimodal_ai_service.analyze_menu_image(image_data)
+        
+        if not menu_result:
+            return {"error": "Menu analysis failed"}
+        
+        # Convert to dict for JSON response
+        result_dict = {
+            "detected_items": menu_result.detected_items,
+            "cuisine_type": menu_result.cuisine_type,
+            "price_range": menu_result.price_range,
+            "recommendations": menu_result.recommendations,
+            "dietary_info": menu_result.dietary_info,
+            "confidence_score": menu_result.confidence_score
+        }
+        
+        return {"success": True, "menu_analysis": result_dict}
+        
+    except Exception as e:
+        logger.error(f"Menu analysis error: {e}")
+        return {"error": f"Menu analysis failed: {str(e)}"}
+
+@app.get("/ai/real-time-data")
+async def get_real_time_data(
+    include_events: bool = True,
+    include_crowds: bool = True,
+    include_traffic: bool = False,
+    origin: Optional[str] = None,
+    destination: Optional[str] = None
+):
+    """Get real-time data including events, crowd levels, and traffic"""
+    try:
+        if not ADVANCED_AI_ENABLED:
+            return {"error": "Advanced AI features not available"}
+        
+        # Get comprehensive real-time data
+        real_time_data = await realtime_data_aggregator.get_comprehensive_real_time_data(
+            include_events=include_events,
+            include_crowds=include_crowds,
+            include_traffic=include_traffic,
+            origin=origin,
+            destination=destination
+        )
+        
+        return {"success": True, "real_time_data": real_time_data}
+        
+    except Exception as e:
+        logger.error(f"Real-time data error: {e}")
+        return {"error": f"Real-time data retrieval failed: {str(e)}"}
+
+@app.get("/ai/predictive-analytics")
+async def get_predictive_analytics(
+    locations: Optional[str] = None,  # Comma-separated list
+    user_preferences: Optional[str] = None  # JSON string
+):
+    """Get predictive analytics including weather-based suggestions and peak time predictions"""
+    try:
+        if not ADVANCED_AI_ENABLED:
+            return {"error": "Advanced AI features not available"}
+        
+        # Get current weather data
+        try:
+            weather_client = WeatherClient()
+            weather_data = weather_client.get_istanbul_weather()
+        except Exception as e:
+            logger.warning(f"Weather data unavailable: {e}")
+            weather_data = {"temperature": 20, "description": "Unknown", "humidity": 60}
+        
+        # Parse user preferences if provided
+        parsed_preferences = None
+        if user_preferences:
+            try:
+                parsed_preferences = json.loads(user_preferences)
+            except json.JSONDecodeError:
+                logger.warning("Invalid user preferences JSON")
+        
+        # Parse locations of interest
+        locations_list = None
+        if locations:
+            locations_list = [loc.strip() for loc in locations.split(",")]
+        
+        # Get predictive analytics
+        predictions = await predictive_analytics_service.get_comprehensive_predictions(
+            weather_data=weather_data,
+            user_preferences=parsed_preferences,
+            locations_of_interest=locations_list
+        )
+        
+        return {"success": True, "predictions": predictions}
+        
+    except Exception as e:
+        logger.error(f"Predictive analytics error: {e}")
+        return {"error": f"Predictive analytics failed: {str(e)}"}
+
+@app.get("/ai/enhanced-recommendations")
+async def get_enhanced_recommendations(
+    query: str,
+    include_realtime: bool = True,
+    include_predictions: bool = True,
+    session_id: Optional[str] = None
+):
+    """Get enhanced recommendations combining all AI features"""
+    try:
+        enhanced_data = {}
+        
+        # Get session and user preferences if AI Intelligence is enabled
+        user_preferences = None
+        if AI_INTELLIGENCE_ENABLED and session_id:
+            try:
+                current_session_id = session_manager.get_or_create_session(session_id)
+                user_preferences = session_manager.get_preferences(current_session_id)
+                
+                # Learn from current query
+                detected_intent, confidence = intent_recognizer.recognize_intent(query)
+                preference_manager.learn_from_query(current_session_id, query, detected_intent)
+            except Exception as e:
+                logger.warning(f"AI Intelligence error: {e}")
+        
+        # Get weather data
+        try:
+            weather_client = WeatherClient()
+            weather_data = weather_client.get_istanbul_weather()
+            enhanced_data["current_weather"] = weather_data
+        except Exception as e:
+            logger.warning(f"Weather data unavailable: {e}")
+            weather_data = {"temperature": 20, "description": "Unknown"}
+        
+        # Get real-time data if requested
+        if include_realtime and ADVANCED_AI_ENABLED:
+            try:
+                real_time_data = await realtime_data_aggregator.get_comprehensive_real_time_data(
+                    include_events=True,
+                    include_crowds=True,
+                    include_traffic=False
+                )
+                enhanced_data["real_time_info"] = real_time_data
+            except Exception as e:
+                logger.warning(f"Real-time data error: {e}")
+        
+        # Get predictive analytics if requested
+        if include_predictions and ADVANCED_AI_ENABLED:
+            try:
+                # Extract locations from query for predictions
+                common_locations = ["hagia sophia", "blue mosque", "grand bazaar", "galata tower", "taksim square"]
+                query_lower = query.lower()
+                relevant_locations = [loc for loc in common_locations if any(word in query_lower for word in loc.split())]
+                
+                predictions = await predictive_analytics_service.get_comprehensive_predictions(
+                    weather_data=weather_data,
+                    user_preferences=user_preferences,
+                    locations_of_interest=relevant_locations or ["sultanahmet", "beyoglu"]
+                )
+                enhanced_data["predictions"] = predictions
+            except Exception as e:
+                logger.warning(f"Predictive analytics error: {e}")
+        
+        # Combine all data into enhanced recommendations
+        recommendations = []
+        
+        # Weather-based recommendations
+        if "predictions" in enhanced_data and "weather_prediction" in enhanced_data["predictions"]:
+            weather_recs = enhanced_data["predictions"]["weather_prediction"].get("recommended_activities", [])
+            recommendations.extend(weather_recs[:3])
+        
+        # Real-time event recommendations
+        if "real_time_info" in enhanced_data and "events" in enhanced_data["real_time_info"]:
+            events = enhanced_data["real_time_info"]["events"][:2]
+            for event in events:
+                recommendations.append(f"Live event: {event['name']} at {event['location']}")
+        
+        # Crowd-aware recommendations
+        if "real_time_info" in enhanced_data and "crowd_levels" in enhanced_data["real_time_info"]:
+            low_crowd_places = [
+                place for place in enhanced_data["real_time_info"]["crowd_levels"]
+                if place.get("current_crowd_level") == "low"
+            ][:2]
+            for place in low_crowd_places:
+                recommendations.append(f"Low crowds at {place['location_name']} - great time to visit!")
+        
+        # Add fallback recommendations if none generated
+        if not recommendations:
+            recommendations = [
+                "Explore the historic Sultanahmet area",
+                "Take a Bosphorus ferry cruise",
+                "Visit the Grand Bazaar for shopping",
+                "Enjoy Turkish cuisine in local restaurants"
+            ]
+        
+        enhanced_data["enhanced_recommendations"] = recommendations[:5]
+        enhanced_data["user_preferences_applied"] = bool(user_preferences)
+        enhanced_data["ai_features_status"] = {
+            "ai_intelligence": AI_INTELLIGENCE_ENABLED,
+            "advanced_ai": ADVANCED_AI_ENABLED
+        }
+        
+        return {"success": True, "enhanced_data": enhanced_data}
+        
+    except Exception as e:
+        logger.error(f"Enhanced recommendations error: {e}")
+        return {"error": f"Enhanced recommendations failed: {str(e)}"}
+
+@app.post("/ai/analyze-query")
+async def analyze_user_query(
+    query: str = Form(...),
+    context: Optional[str] = Form(None)
+):
+    """Analyze user query with advanced language processing"""
+    try:
+        if not LANGUAGE_PROCESSING_ENABLED:
+            return {"error": "Language processing not available"}
+        
+        # Parse context if provided
+        parsed_context = None
+        if context:
+            try:
+                parsed_context = json.loads(context)
+            except json.JSONDecodeError:
+                logger.warning("Invalid context JSON provided")
+        
+        # Process the query
+        analysis_result = process_user_query(query, parsed_context)
+        
+        # Add additional insights
+        analysis_result["query_length"] = len(query)
+        analysis_result["word_count"] = len(query.split())
+        analysis_result["is_question"] = "?" in query
+        
+        return {
+            "success": True,
+            "query": query,
+            "analysis": analysis_result,
+            "processing_status": {
+                "language_processing": LANGUAGE_PROCESSING_ENABLED,
+                "advanced_ai": ADVANCED_AI_ENABLED
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Query analysis error: {e}")
+        return {"error": f"Query analysis failed: {str(e)}"}
 
 
 

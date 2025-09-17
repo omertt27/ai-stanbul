@@ -51,15 +51,6 @@ const ChatHeader = ({
     }`}>
       {/* Left side - Logo and title */}
       <div className="flex items-center space-x-3">
-        <div className={`w-8 h-8 rounded-sm flex items-center justify-center transition-colors duration-200 ${
-          darkMode ? 'bg-white' : 'bg-black'
-        }`}>
-          <svg className={`w-5 h-5 transition-colors duration-200 ${
-            darkMode ? 'text-black' : 'text-white'
-          }`} fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-          </svg>
-        </div>
         <div>
           <h1 className={`text-lg font-semibold transition-colors duration-200 ${
             darkMode ? 'text-white' : 'text-black'

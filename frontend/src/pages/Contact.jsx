@@ -8,7 +8,7 @@ function Contact() {
   const { darkMode } = useTheme();
   
   return (
-    <div className="chatbot-background min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300">
+    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
 
       {/* Main Content */}

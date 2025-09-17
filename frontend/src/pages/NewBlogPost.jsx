@@ -201,16 +201,16 @@ const NewBlogPost = () => {
 
   return (
     <div 
-      className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-200 ${
+      className={`min-h-screen w-full pt-96 px-6 pb-12 transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
     >
       <div className="max-w-6xl mx-auto">
 
-      <div className="pt-8 px-3 pb-6">
+      <div className="pt-12 px-6 pb-10">
         <div className="max-w-4xl mx-auto">
           {/* Share Your Story Section */}
-          <div className={`mb-4 p-4 rounded-xl border-2 transition-all duration-200 ${
+          <div className={`mb-6 p-6 rounded-xl border-2 transition-all duration-200 ${
             darkMode 
               ? 'bg-gray-800 border-gray-700' 
               : 'bg-white border-blue-200 shadow-md'
@@ -240,10 +240,10 @@ const NewBlogPost = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Compact Username Row */}
-          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+          <div className={`p-5 rounded-xl border-2 transition-all duration-200 ${
             darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <div className="flex items-center gap-3">
@@ -260,11 +260,7 @@ const NewBlogPost = () => {
                   value={formData.authorName}
                   onChange={handleInputChange}
                   placeholder="Enter your name..."
-                  className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
-                    darkMode
-                      ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
-                      : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
-                  }`}
+                  className="w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400"
                   required
                 />
               </div>
@@ -319,7 +315,7 @@ const NewBlogPost = () => {
           </div>
 
           {/* Compact Title Row */}
-          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+          <div className={`p-5 rounded-xl border-2 transition-all duration-200 ${
             darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <label htmlFor="title" className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
@@ -334,17 +330,13 @@ const NewBlogPost = () => {
               value={formData.title}
               onChange={handleInputChange}
               placeholder="Your Istanbul story title..."
-              className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
-                darkMode 
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
-              }`}
+              className="w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400"
               required
             />
           </div>
 
           {/* Compact Heading Row */}
-          <div className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+          <div className={`p-5 rounded-xl border-2 transition-all duration-200 ${
             darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <label htmlFor="heading" className={`block text-sm font-medium mb-1 transition-colors duration-200 ${
@@ -359,11 +351,7 @@ const NewBlogPost = () => {
               value={formData.heading}
               onChange={handleInputChange}
               placeholder="Add a heading..."
-              className={`w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
-                darkMode 
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
-              }`}
+              className="w-full px-2 py-2 border rounded text-sm focus:outline-none focus:ring-2 transition-all duration-200 bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400"
             />
           </div>
 
@@ -379,11 +367,7 @@ const NewBlogPost = () => {
               name="district"
               value={formData.district}
               onChange={handleInputChange}
-              className={`px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-all duration-200 min-w-[180px] ${
-                darkMode
-                  ? 'bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20'
-              }`}
+              className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-all duration-200 min-w-[180px] bg-gray-700/50 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20"
             >
               <option value="">Choose district...</option>
               {chatbotDistricts.map(district => (
@@ -398,7 +382,7 @@ const NewBlogPost = () => {
           </div>
 
           {/* Compact Essay Section */}
-          <div className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+          <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${
             darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <div className="flex items-center justify-between mb-2">
@@ -505,18 +489,14 @@ Use the formatting buttons above or type:
 
 Share your experiences, discoveries, and recommendations!"
               rows={10}
-              className={`w-full px-3 py-2 border rounded focus:outline-none resize-y text-sm leading-relaxed focus:ring-2 transition-all duration-200 ${
-                darkMode
-                  ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400'
-                  : 'bg-gray-50 text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 placeholder-gray-500'
-              }`}
+              className="w-full px-3 py-2 border rounded focus:outline-none resize-y text-sm leading-relaxed focus:ring-2 transition-all duration-200 bg-gray-700 text-white border-gray-600 focus:border-blue-400 focus:ring-blue-400/20 placeholder-gray-400"
               required
               style={{ minHeight: '250px' }}
             />
           </div>
 
           {/* Compact Action Buttons */}
-          <div className={`p-3 rounded-xl border-2 text-center transition-all duration-200 ${
+          <div className={`p-5 rounded-xl border-2 text-center transition-all duration-200 ${
             darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
           }`}>
             <input
@@ -556,7 +536,7 @@ Share your experiences, discoveries, and recommendations!"
                 </>
               ) : (
                 <>
-                  <span className="mr-1">🚀</span>
+                  <span className="mr-1">◆</span>
                   Publish Story
                 </>
               )}
@@ -582,7 +562,7 @@ Share your experiences, discoveries, and recommendations!"
 
           {/* Upload Progress */}
           {Object.keys(uploadProgress).length > 0 && (
-            <div className={`p-4 rounded-xl border-2 ${
+            <div className={`p-6 rounded-xl border-2 ${
               darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
             }`}>
               <h4 className={`text-sm font-medium mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -613,7 +593,7 @@ Share your experiences, discoveries, and recommendations!"
 
           {/* Image Gallery */}
           {images.length > 0 && (
-            <div className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+            <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${
               darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-blue-200 shadow-md'
             }`}>
               <h4 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>

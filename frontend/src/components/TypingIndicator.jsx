@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 
 const TypingIndicator = ({ message = "KAM is thinking..." }) => {
-  const isLightMode = document.body.classList.contains('light');
 
   // Add the keyframes to the document head if not already present
   useEffect(() => {
@@ -33,17 +32,11 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
     alignItems: 'center',
     padding: '1rem 1.5rem',
     marginBottom: '1rem',
-    background: isLightMode 
-      ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)'
-      : 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)',
-    border: isLightMode 
-      ? '1px solid rgba(226, 232, 240, 0.8)'
-      : '1px solid rgba(71, 85, 105, 0.3)',
+    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)',
+    border: '1px solid rgba(71, 85, 105, 0.3)',
     borderRadius: '1rem',
     backdropFilter: 'blur(12px)',
-    boxShadow: isLightMode
-      ? '0 4px 20px rgba(99, 102, 241, 0.08)'
-      : '0 4px 20px rgba(0, 0, 0, 0.25)',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
     maxWidth: '80%',
     alignSelf: 'flex-start'
   };
@@ -52,9 +45,7 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
     width: '32px',
     height: '32px',
     borderRadius: '50%',
-    background: isLightMode 
-      ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-      : 'linear-gradient(135deg, #818cf8, #a78bfa)',
+    background: 'linear-gradient(135deg, #818cf8, #a78bfa)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -63,7 +54,7 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
   };
 
   const textStyle = {
-    color: isLightMode ? '#475569' : '#e2e8f0',
+    color: '#e2e8f0',
     fontSize: '0.95rem',
     fontWeight: '500',
     marginRight: '0.75rem'
@@ -79,9 +70,7 @@ const TypingIndicator = ({ message = "KAM is thinking..." }) => {
     width: '6px',
     height: '6px',
     borderRadius: '50%',
-    background: isLightMode 
-      ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-      : 'linear-gradient(135deg, #818cf8, #a78bfa)'
+    background: 'linear-gradient(135deg, #818cf8, #a78bfa)'
   };
 
   return (

@@ -64,21 +64,21 @@ const ErrorNotification = ({
   const getErrorIcon = (type) => {
     switch (type) {
       case ErrorTypes.OFFLINE:
-        return '📡';
+        return '○';
       case ErrorTypes.NETWORK:
-        return '🌐';
+        return '◇';
       case ErrorTypes.TIMEOUT:
-        return '⏰';
+        return '◐';
       case ErrorTypes.SERVER:
-        return '🚨';
+        return '◆';
       case ErrorTypes.RATE_LIMIT:
-        return '⏳';
+        return '◈';
       case ErrorTypes.SECURITY:
-        return '🔒';
+        return '◉';
       case ErrorTypes.VALIDATION:
-        return '❌';
+        return '◎';
       default:
-        return '⚠️';
+        return '!';
     }
   };
   

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchBlogPosts } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
+import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
 import '../App.css';
 
 // Mock blog data for demo purposes
@@ -214,19 +215,13 @@ const BlogList = () => {
     setError(null);
     setLoading(true);
     
-    // Small delay to ensure state is reset
+    // Add debounce delay to prevent search on every keystroke
     const timer = setTimeout(() => {
       loadPosts();
-    }, 10);
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [currentPage, searchTerm, selectedDistrict]); // Added currentPage back for pagination
-
-  // Also load on component mount
-  useEffect(() => {
-    console.log('🔄 BlogList: Initial mount, loading posts');
-    loadPosts();
-  }, []); // Run once on mount
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -260,7 +255,7 @@ const BlogList = () => {
 
   if (loading && posts.length === 0) {
     return (
-      <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
+      <div className={`min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 ${
         darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
       }`}>
         <div className="max-w-6xl mx-auto">
@@ -275,26 +270,21 @@ const BlogList = () => {
   }
 
   return (
-    <div className={`min-h-screen w-full pt-16 px-4 pb-8 transition-colors duration-300 ${
-      darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
-    }`}>
+    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1rem', paddingRight: '1rem', paddingBottom: '2rem' }}>
       <div className="max-w-6xl mx-auto">
+
+      {/* Scrollable Content */}
+      <div className="pt-4 pb-8">
         {/* Header Section */}
         <div className="text-center py-8 sm:py-12">
-          <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 transition-colors duration-200 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 pt-28 transition-colors duration-200 text-white">
             Istanbul Stories
           </h1>
-          <p className={`text-lg sm:text-xl mb-6 max-w-3xl mx-auto transition-colors duration-200 ${
-            darkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
+          <p className="text-lg sm:text-xl mb-6 max-w-3xl mx-auto transition-colors duration-200 text-gray-300">
             Discover authentic experiences and hidden gems through the eyes of locals and travelers
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <span className={`text-sm font-medium transition-colors duration-200 ${
-              darkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <span className="text-sm font-medium transition-colors duration-200 text-gray-400">
               {totalPosts} stories shared • Join the community
             </span>
           </div>
@@ -303,9 +293,7 @@ const BlogList = () => {
         {/* Recent/Featured Posts Section */}
         {posts.length > 0 && !searchTerm && !selectedDistrict && (
           <div className="mb-8">
-            <h2 className={`text-2xl sm:text-3xl font-bold mb-6 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 transition-colors duration-200 text-white">
               Recent Stories
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -360,8 +348,8 @@ const BlogList = () => {
                       </div>
                       
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-1 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        <svg className="w-5 h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                         </svg>
                         <span className="font-medium">{post.likes_count || 0}</span>
                       </div>
@@ -372,6 +360,9 @@ const BlogList = () => {
             </div>
           </div>
         )}
+
+        {/* Weather-Aware Blog Recommendations */}
+        <WeatherAwareBlogRecommendations />
 
         {/* Search and Filters */}
         <div className={`mb-6 sm:mb-8 rounded-xl p-4 sm:p-6 transition-colors duration-200 relative ${
@@ -397,11 +388,7 @@ const BlogList = () => {
                   placeholder="Search stories, locations, experiences..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
-                    darkMode 
-                      ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20' 
-                      : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                  }`}
+                  className="w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 placeholder-gray-400"
                   autoComplete="off"
                 />
               </div>
@@ -430,11 +417,7 @@ const BlogList = () => {
                   setSelectedDistrict(e.target.value);
                   setCurrentPage(1); // Reset to first page when changing district
                 }}
-                className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
-                  darkMode 
-                    ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                    : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                }`}
+                className="w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 autoComplete="address-level2"
               >
                 <option value="">All Districts</option>
@@ -602,8 +585,8 @@ const BlogList = () => {
                     
                     <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
                       <div className="flex items-center">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                         </svg>
                         <span className="font-medium">{post.likes_count || 0}</span>
                       </div>
@@ -696,6 +679,7 @@ const BlogList = () => {
           </>
         )}
         </div> {/* End debug wrapper */}
+      </div>
       </div>
     </div>
   );

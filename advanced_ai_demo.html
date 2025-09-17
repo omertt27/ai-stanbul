@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced AI Features Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .feature-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e8f4f8;
+            border-radius: 8px;
+            background: #f8fbff;
+        }
+        
+        .feature-title {
+            color: #34495e;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .loading {
+            color: #f39c12;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 8px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        .recommendation-item {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .event-item {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .crowd-item {
+            background: #f8d7da;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AI Istanbul - Advanced Features Demo</h1>
+        
+        <!-- Real-time Data Section -->
+        <div class="feature-section">
+            <div class="feature-title">📡 Real-time Data</div>
+            <p>Get live events, crowd levels, and traffic information for Istanbul attractions.</p>
+            <button onclick="fetchRealTimeData()">Get Real-time Data</button>
+            <div id="realtime-result" class="result-box" style="display: none;"></div>
+        </div>
+        
+        <!-- Image Analysis Section -->
+        <div class="feature-section">
+            <div class="feature-title">🖼️ Image Analysis</div>
+            <p>Upload an image to identify locations, landmarks, or analyze menus.</p>
+            <input type="file" id="image-upload" accept="image/*">
+            <br>
+            <button onclick="analyzeImage()">Analyze Image</button>
+            <button onclick="analyzeMenu()">Analyze as Menu</button>
+            <div id="image-result" class="result-box" style="display: none;"></div>
+        </div>
+        
+        <!-- Predictive Analytics Section -->
+        <div class="feature-section">
+            <div class="feature-title">🔮 Predictive Analytics</div>
+            <p>Get weather-based recommendations and peak time predictions.</p>
+            <input type="text" id="locations-input" placeholder="Enter locations (e.g., hagia sophia, blue mosque)">
+            <button onclick="getPredictiveAnalytics()">Get Predictions</button>
+            <div id="predictive-result" class="result-box" style="display: none;"></div>
+        </div>
+        
+        <!-- Enhanced Recommendations Section -->
+        <div class="feature-section">
+            <div class="feature-title">✨ Enhanced Recommendations</div>
+            <p>Get comprehensive AI-powered recommendations combining all features.</p>
+            <input type="text" id="query-input" placeholder="What would you like to do in Istanbul?">
+            <button onclick="getEnhancedRecommendations()">Get Enhanced Recommendations</button>
+            <div id="enhanced-result" class="result-box" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function fetchRealTimeData() {
+            const resultDiv = document.getElementById('realtime-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">🔄 Fetching real-time data...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai/real-time-data?include_events=true&include_crowds=true`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '<span class="success">✅ Real-time data retrieved successfully!</span>\n\n';
+                    
+                    // Events
+                    html += '🎭 LIVE EVENTS:\n';
+                    data.real_time_data.events.forEach(event => {
+                        html += `<div class="event-item">📅 ${event.name}\n📍 ${event.location}\n⏰ ${new Date(event.start_time).toLocaleDateString()}\n💰 ${event.price_range ? event.price_range.join('-') + ' TL' : 'Free'}\n👥 ${event.crowd_level} crowds</div>`;
+                    });
+                    
+                    // Crowd levels
+                    html += '\n\n👥 CROWD LEVELS:\n';
+                    data.real_time_data.crowd_levels.forEach(place => {
+                        html += `<div class="crowd-item">📍 ${place.location_name}\n🚶 ${place.current_crowd_level.toUpperCase()} crowds\n⏱️ Wait time: ${place.wait_time_minutes} minutes</div>`;
+                    });
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function analyzeImage() {
+            const fileInput = document.getElementById('image-upload');
+            const resultDiv = document.getElementById('image-result');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select an image first!');
+                return;
+            }
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">🔄 Analyzing image...</span>';
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('context', 'Location analysis');
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai/analyze-image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    let html = '<span class="success">✅ Image analysis completed!</span>\n\n';
+                    html += `🖼️ SCENE: ${data.analysis.scene_description}\n\n`;
+                    html += `🏛️ LANDMARKS: ${data.analysis.landmarks_identified.join(', ') || 'None detected'}\n\n`;
+                    html += `📍 LOCATION SUGGESTIONS: ${data.analysis.location_suggestions.join(', ') || 'None'}\n\n`;
+                    html += `🎯 CONFIDENCE: ${(data.analysis.confidence_score * 100).toFixed(1)}%\n\n`;
+                    
+                    if (data.analysis.recommendations.length > 0) {
+                        html += '💡 RECOMMENDATIONS:\n';
+                        data.analysis.recommendations.forEach(rec => {
+                            html += `<div class="recommendation-item">• ${rec}</div>`;
+                        });
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error || 'Analysis failed'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function analyzeMenu() {
+            const fileInput = document.getElementById('image-upload');
+            const resultDiv = document.getElementById('image-result');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select an image first!');
+                return;
+            }
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">🔄 Analyzing menu...</span>';
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('dietary_restrictions', 'vegetarian');
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai/analyze-menu`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success && data.menu_analysis) {
+                    let html = '<span class="success">✅ Menu analysis completed!</span>\n\n';
+                    html += `🍽️ CUISINE: ${data.menu_analysis.cuisine_type}\n\n`;
+                    html += `💰 PRICE RANGE: ${data.menu_analysis.price_range}\n\n`;
+                    html += `🥗 DETECTED ITEMS: ${data.menu_analysis.detected_items.join(', ')}\n\n`;
+                    html += `🎯 CONFIDENCE: ${(data.menu_analysis.confidence_score * 100).toFixed(1)}%\n\n`;
+                    
+                    if (data.menu_analysis.dietary_info.vegetarian_options.length > 0) {
+                        html += `🌱 VEGETARIAN OPTIONS: ${data.menu_analysis.dietary_info.vegetarian_options.join(', ')}\n\n`;
+                    }
+                    
+                    if (data.menu_analysis.recommendations.length > 0) {
+                        html += '💡 RECOMMENDATIONS:\n';
+                        data.menu_analysis.recommendations.forEach(rec => {
+                            html += `<div class="recommendation-item">• ${rec}</div>`;
+                        });
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error || 'Analysis failed'}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function getPredictiveAnalytics() {
+            const locationsInput = document.getElementById('locations-input');
+            const resultDiv = document.getElementById('predictive-result');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">🔄 Generating predictions...</span>';
+            
+            const locations = locationsInput.value || 'hagia sophia,blue mosque,grand bazaar';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai/predictive-analytics?locations=${encodeURIComponent(locations)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '<span class="success">✅ Predictions generated!</span>\n\n';
+                    
+                    // Weather recommendations
+                    html += '🌤️ WEATHER-BASED RECOMMENDATIONS:\n';
+                    data.predictions.weather_prediction.recommended_activities.forEach(activity => {
+                        html += `<div class="recommendation-item">• ${activity}</div>`;
+                    });
+                    
+                    // Peak time predictions
+                    html += '\n\n⏰ PEAK TIME PREDICTIONS:\n';
+                    data.predictions.peak_time_predictions.forEach(location => {
+                        html += `<div class="crowd-item">📍 ${location.location.toUpperCase()}\n🕐 Peak hours: ${location.peak_hours.join(', ')}\n⏰ Best visit times: ${location.best_visit_times.join(', ')}</div>`;
+                    });
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function getEnhancedRecommendations() {
+            const queryInput = document.getElementById('query-input');
+            const resultDiv = document.getElementById('enhanced-result');
+            
+            const query = queryInput.value || 'I want to visit historical places in Istanbul';
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<span class="loading">🔄 Generating enhanced recommendations...</span>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ai/enhanced-recommendations?query=${encodeURIComponent(query)}&session_id=demo_user`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '<span class="success">✅ Enhanced recommendations ready!</span>\n\n';
+                    
+                    // Current conditions
+                    html += `🌡️ CURRENT WEATHER: ${data.enhanced_data.current_weather.temperature}°C, ${data.enhanced_data.current_weather.description}\n\n`;
+                    
+                    // Enhanced recommendations
+                    html += '✨ PERSONALIZED RECOMMENDATIONS:\n';
+                    data.enhanced_data.enhanced_recommendations.forEach(rec => {
+                        html += `<div class="recommendation-item">${rec}</div>`;
+                    });
+                    
+                    // AI Features Status
+                    html += '\n\n🤖 AI FEATURES STATUS:\n';
+                    html += `• AI Intelligence: ${data.enhanced_data.ai_features_status.ai_intelligence ? '✅' : '❌'}\n`;
+                    html += `• Advanced AI: ${data.enhanced_data.ai_features_status.advanced_ai ? '✅' : '❌'}\n`;
+                    html += `• User Preferences Applied: ${data.enhanced_data.user_preferences_applied ? '✅' : '❌'}`;
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        // Auto-load real-time data on page load
+        window.addEventListener('load', () => {
+            console.log('🚀 Advanced AI Features Demo loaded');
+            console.log('Ready to test all advanced AI endpoints!');
+        });
+    </script>
+</body>
+</html>

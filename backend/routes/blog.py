@@ -17,10 +17,29 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 import logging
 
+from enhanced_blog_features import (
+    WeatherAwareContentEngine, 
+    PersonalizedContentEngine,
+    BlogAnalyticsEngine
+)
+
+# Import analytics database
+try:
+    from analytics_db import analytics_db
+    ANALYTICS_DB_AVAILABLE = True
+except ImportError:
+    ANALYTICS_DB_AVAILABLE = False
+    analytics_db = None
+
 logger = logging.getLogger(__name__)
 
 # Initialize router
 router = APIRouter(prefix="/blog", tags=["blog"])
+
+# Initialize enhanced features
+weather_engine = WeatherAwareContentEngine()
+personalization_engine = PersonalizedContentEngine()
+analytics_engine = BlogAnalyticsEngine()
 
 # Blog post data model
 class BlogPost(BaseModel):
@@ -887,6 +906,163 @@ async def search_posts(query: str, limit: int = 10):
     except Exception as e:
         logger.error(f"Error searching blog posts: {e}")
         raise HTTPException(status_code=500, detail="Failed to search blog posts")
+
+# Enhanced recommendation endpoints
+
+@router.get("/recommendations/weather")
+async def get_weather_recommendations(request: Request, location: str = "Istanbul", limit: int = 5):
+    """Get blog recommendations based on current weather"""
+    try:
+        # Track analytics
+        if ANALYTICS_DB_AVAILABLE and analytics_db:
+            user_agent = request.headers.get("user-agent", "")
+            client_ip = request.client.host if request.client else "unknown"
+            session_id = f"session_{hash(user_agent + client_ip) % 10000}"
+            
+            analytics_db.track_page_view("/blog/recommendations/weather", user_agent, client_ip, session_id)
+            analytics_db.update_active_session(session_id, "/blog/recommendations/weather")
+        
+        recommendations = await weather_engine.get_weather_aware_recommendations(
+            user_location=location,
+            limit=limit
+        )
+        
+        return {
+            "success": True,
+            "recommendations": [
+                {
+                    "post_id": rec.post_id,
+                    "title": rec.title,
+                    "relevance_score": rec.relevance_score,
+                    "reason": rec.reason,
+                    "weather_context": rec.weather_context
+                }
+                for rec in recommendations
+            ],
+            "message": f"Weather-aware recommendations for {location}"
+        }
+    except Exception as e:
+        logger.error(f"Weather recommendations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/recommendations/personalized")
+async def get_personalized_recommendations(
+    user_id: str,
+    categories: str = "",  # comma-separated
+    districts: str = "",   # comma-separated
+    limit: int = 5
+):
+    """Get personalized blog recommendations"""
+    try:
+        # Parse user preferences
+        user_preferences = {
+            "categories": [c.strip() for c in categories.split(",") if c.strip()],
+            "districts": [d.strip() for d in districts.split(",") if d.strip()],
+            "activities": []  # Could be added as another parameter
+        }
+        
+        recommendations = await personalization_engine.get_personalized_recommendations(
+            user_preferences=user_preferences,
+            limit=limit
+        )
+        
+        return {
+            "success": True,
+            "recommendations": [
+                {
+                    "post_id": rec.post_id,
+                    "title": rec.title,
+                    "relevance_score": rec.relevance_score,
+                    "reason": rec.reason
+                }
+                for rec in recommendations
+            ],
+            "user_preferences": user_preferences
+        }
+    except Exception as e:
+        logger.error(f"Personalized recommendations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/analytics/performance")
+async def get_blog_analytics():
+    """Get blog performance analytics"""
+    try:
+        insights = await analytics_engine.get_content_performance_insights()
+        return {
+            "success": True,
+            "analytics": insights
+        }
+    except Exception as e:
+        logger.error(f"Blog analytics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/analytics/realtime")
+async def get_realtime_metrics():
+    """Get real-time blog metrics"""
+    try:
+        metrics = await analytics_engine.get_real_time_metrics()
+        return {
+            "success": True,
+            "metrics": metrics
+        }
+    except Exception as e:
+        logger.error(f"Real-time metrics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analytics/track")
+async def track_engagement(
+    post_id: str = Form(...),
+    user_id: str = Form(...),
+    event_type: str = Form(...),  # view, like, share, comment, time_spent
+    metadata: str = Form("{}")   # JSON string for additional data
+):
+    """Track user engagement with blog posts"""
+    try:
+        import json
+        metadata_dict = json.loads(metadata) if metadata else {}
+        
+        await analytics_engine.track_blog_engagement(
+            post_id=post_id,
+            user_id=user_id,
+            event_type=event_type,
+            metadata=metadata_dict
+        )
+        
+        return {
+            "success": True,
+            "message": "Engagement tracked successfully"
+        }
+    except Exception as e:
+        logger.error(f"Engagement tracking error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/track/page-view")
+async def track_page_view(request: Request, page_path: str = "/blog"):
+    """Track page view for analytics"""
+    try:
+        if ANALYTICS_DB_AVAILABLE and analytics_db:
+            user_agent = request.headers.get("user-agent", "")
+            client_ip = request.client.host if request.client else "unknown"
+            session_id = f"session_{hash(user_agent + client_ip) % 10000}"
+            
+            analytics_db.track_page_view(page_path, user_agent, client_ip, session_id)
+            analytics_db.update_active_session(session_id, page_path)
+            
+            return {
+                "success": True,
+                "message": "Page view tracked"
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Analytics not available"
+            }
+    except Exception as e:
+        logger.error(f"Page view tracking error: {e}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
 
 # Initialize blog posts when module is imported
 initialize_blog_posts()

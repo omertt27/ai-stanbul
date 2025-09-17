@@ -1,0 +1,2656 @@
+/* Main page background with Istanbul image */
+.main-page-background {
+  position: relative;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
+  min-height: 100vh;
+  transition: background 0.3s ease; /* Add transition for smooth theme change */
+  padding-top: 85px; /* Reduced padding to account for lower purple bar */
+}
+
+.main-page-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/istanbul-bridge-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.25; /* Much darker, less vivid wallpaper */
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Add overlay for better text contrast */
+.main-page-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%); /* Much darker overlay */
+  z-index: -2;
+  pointer-events: none;
+}
+
+
+
+/* Light mode - high opacity as well */
+body.light .main-page-background::before {
+  opacity: 0.75; /* High opacity for light mode too */
+}
+
+/* Light mode background for main page - pure white with stronger override */
+body.light .main-page-background {
+  background: #ffffff !important;
+}
+
+/* Also target the main page when light class is on root */
+.light .main-page-background {
+  background: #ffffff !important;
+}
+
+/* Additional override for any nested elements */
+body.light .main-page-background,
+.light .main-page-background {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Main page logo - bigger version, centered */
+.main-page-logo.logo-istanbul {
+  text-align: center;
+  margin-bottom: 0; /* Minimal margin to bring search bar very close */
+  margin-top: -2rem; /* Much higher position - moved up even more */
+  padding: 0rem; /* Even smaller padding for tighter spacing */
+  position: relative;
+  z-index: 100; /* Much higher z-index to ensure it's above everything */
+  cursor: pointer; /* Make logo clickable */
+  transition: all 0.3s ease;
+}
+
+.main-page-logo.logo-istanbul:hover {
+  transform: scale(1.02);
+}
+
+.main-page-logo .logo-text {
+  font-size: 4rem !important; /* Bigger logo (was 11rem) */
+  font-weight: 700; /* Normal weight like other pages */
+  letter-spacing: 0.15em; /* Consistent with other pages */
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%); /* Same as other pages */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); /* Reduced shadow like other pages */
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 101; /* Ensure logo text is above everything */
+  cursor: pointer; /* Make logo text clickable */
+}
+
+.main-page-logo .logo-text:hover {
+  transform: scale(1.05);
+  text-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
+}
+
+@media (max-width: 768px) {
+  .main-page-logo .logo-text {
+    font-size: 10rem !important; /* Bigger mobile logo (was 7rem) */
+    font-weight: 700; /* Normal weight */
+    letter-spacing: 0.15em;
+    /* Consistent styling with other pages */
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+@media (max-width: 640px) {
+  .main-page-logo .logo-text {
+    font-size: 6rem !important; /* Bigger mobile logo (was 3rem) */
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+@media (max-width: 480px) {
+  .main-page-logo .logo-text {
+    font-size: 8rem !important; /* Bigger mobile logo (was 5rem) */
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+/* Logo styling */
+.logo-istanbul .logo-text {
+  font-weight: 700;
+  font-size: 2.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Chat page logo - smaller size, positioned at top */
+.logo-move-top-left.logo-istanbul .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 0;
+  padding-top: 1rem;
+}
+
+/* Base logo styling for chat pages (when not main page) */
+.chat-title.logo-istanbul:not(.main-page-logo) .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+/* Responsive logo scaling for fixed positioned logos */
+@media (max-width: 640px) {
+  .logo-istanbul .logo-text {
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+  }
+  
+  .logo-move-top-left.logo-istanbul .logo-text {
+    font-size: 2.2rem !important;
+    letter-spacing: 0.08em;
+  }
+}
+@keyframes expandChat {
+  0% {
+    max-width: 400px;
+    min-height: 0;
+    opacity: 0.7;
+    filter: blur(2px);
+  }
+  60% {
+    max-width: 1000px;
+    min-height: 0;
+    opacity: 1;
+    filter: blur(0.5px);
+  }
+  100% {
+    max-width: 900px;
+    min-height: 400px;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.expand-animate {
+  animation: expandChat 0.6s cubic-bezier(.4,2,.6,1);
+}
+.chat-title {
+  position: relative; /* Changed from sticky to relative to prevent interference */
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding: 2rem 0 1.5rem 0;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+/* Default chat title size - only apply when not main page logo */
+.chat-title:not(.main-page-logo) {
+  font-size: 2.2rem;
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.searchbar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 102;
+  background: #1a1b1d;
+  padding-bottom: 4.5rem;
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+}
+
+/* Light mode searchbar - softer background */
+body.light .searchbar {
+  background: #f7fafc;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
+  color: #e5e7eb;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Light mode override - pure white background */
+body.light {
+  background: #ffffff !important;
+  color: #2d3748 !important;
+}
+
+#root {
+  min-height: 100vh;
+  background: none;
+}
+
+.chat-container {
+  background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.18);
+  border: 2.5px solid #6366f1;
+  padding: 0.5rem 1.5rem 0.5rem 2.5rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Light mode chat container - softer colors */
+.light-chat {
+  background: linear-gradient(135deg, #fdfdfe 0%, #f7fafc 100%) !important;
+  box-shadow: 0 -8px 32px 0 rgba(99, 102, 241, 0.12) !important;
+  border: 2px solid #a5b4fc !important;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.message-bubble {
+  padding: 0.75rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 1rem;
+  max-width: 75%;
+  word-break: break-word;
+  box-shadow: 0 2px 8px 0 rgba(80, 80, 180, 0.06);
+}
+
+.message-bubble.user {
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  margin-left: auto;
+  border-bottom-right-radius: 0.25rem;
+}
+.message-bubble.bot {
+  background: rgba(25, 26, 28, 0.9);
+  color: #f3f4f6;
+  margin-right: auto;
+  border-bottom-left-radius: 0.25rem;
+  border: 1px solid #3a3b3d;
+  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.15);
+  max-width: 85%;
+  line-height: 1.5;
+}
+
+/* Light mode bot messages - improved readability */
+body.light .message-bubble.bot {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.06);
+}
+
+.chat-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.searchbar {
+  display: flex;
+  gap: 0.95rem;
+  margin-bottom: 0.5rem; /* Even closer to title - reduced from 1rem */
+  margin-top: 0; /* Remove negative margin for cleaner spacing */
+  align-items: center;
+  position: relative;
+  z-index: 102;
+  justify-content: center; /* Center the search bar */
+  max-width: 600px; /* Limit width for more elegant look */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Ensure search bar only appears on non-chatbot pages */
+body:not(.chatbot-page) .searchbar {
+  display: flex !important;
+}
+
+/* Keep search bar hidden on chatbot page */
+.chatbot-page .searchbar,
+body.chatbot-page .searchbar {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Search bar input - only for main pages, not chatbot */
+body:not(.chatbot-page) .searchbar input {
+  flex: 1;
+  padding: 0.75rem 1.5rem; /* Less thick - reduced from 1rem to 0.75rem */
+  border-radius: 2rem; /* More rounded like ChatGPT */
+  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 1rem;
+  background: rgba(255,255,255,0.95);
+  color: #374151;
+  transition: all 0.2s ease;
+  min-height: 2.5rem; /* Less thick - reduced from 3rem to 2.5rem */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-weight: 400;
+  outline: none;
+  position: relative;
+  z-index: 103;
+}
+
+/* Light mode input - softer and more comfortable - only for main pages */
+body.light:not(.chatbot-page) .searchbar input {
+  border: 1px solid #d1d5db;
+  background: rgba(255, 255, 255, 0.98); /* Slightly more transparent */
+  color: #1f2937; /* Darker text for better contrast */
+  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.05), 0 2px 16px rgba(99, 102, 241, 0.1); /* Enhanced shadow */
+  font-weight: 500; /* Slightly bolder text */
+}
+
+body.light:not(.chatbot-page) .searchbar input:focus {
+  border: 2px solid #a5b4fc !important;
+  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15) !important;
+}
+
+/* Search bar input focus - only for main pages */
+body:not(.chatbot-page) .searchbar input:focus {
+  border: 1.5px solid #6366f1;
+  outline: none;
+}
+.send-btn {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 20%, #dbeafe 40%, #bfdbfe 60%, #93c5fd 80%, #60a5fa 100%);
+  color: #1e40af; /* Dark blue text for contrast */
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  width: 48px; /* Bigger button (was 36px) */
+  height: 48px; /* Bigger button (was 36px) */
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(255,255,255,0.7), 0 4px 24px rgba(99,102,241,0.4), 0 2px 16px rgba(255,255,255,0.9);
+  filter: brightness(1.5) contrast(1.3);
+  padding: 0;
+  font-size: 1.3rem; /* Bigger icon (was 1.1rem) */
+  font-weight: 700;
+}
+
+.send-btn:hover {
+  background: #6366f1;
+}
+
+/* Button press animation for better UX */
+.button-press-animation {
+  transform: scale(0.95) !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* Reset and full-screen layout */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure no element can interfere with fixed positioning */
+* {
+  transform-style: preserve-3d;
+}
+
+/* Prevent any container from affecting fixed elements */
+.min-h-screen, .w-full, .transition-colors {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Force all fixed elements to stay on top */
+[style*="position: fixed"], .fixed, .fixed-logo {
+  z-index: 10000 !important;
+  position: fixed !important;
+  will-change: auto !important;
+  transform: translateZ(0) !important;
+}
+
+#root {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Enhanced Navigation styles */
+.nav-container.dark {
+  background: rgba(15, 16, 17, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Default dark navigation - more modern */
+.nav-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(15, 16, 17, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  padding: 0.5rem 0;
+}
+
+/* Light mode navigation - softer and easier on eyes */
+body.light .nav-container {
+  background: rgba(253, 253, 254, 0.95);
+  border-bottom: 1px solid rgba(209, 213, 219, 0.6);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.nav-logo {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+/* Light mode logo - better contrast */
+body.light .nav-logo {
+  color: #2d3748;
+}
+
+.nav-logo.dark {
+  color: #ffffff;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2.5rem; /* Even bigger gap for more premium look */
+  list-style: none;
+  margin-left: 4rem; /* More space from logo */
+  margin-right: auto; /* Allow space to expand on right */
+  align-items: center;
+}
+
+.nav-link {
+  color: #9ca3af;
+  text-decoration: none;
+  font-weight: 700; /* Even bolder text */
+  font-size: 1.2rem; /* Bigger text */
+  padding: 1rem 1.75rem; /* Much bigger padding for button-like feel */
+  border-radius: 1rem; /* More rounded corners */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #818cf8;
+  transform: translateY(-2px) scale(1.05); /* More dramatic lift and scale */
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.nav-link.active {
+  color: #60a5fa;
+}
+
+/* Light mode nav links - improved readability */
+body.light .nav-link {
+  color: #4a5568;
+}
+
+body.light .nav-link:hover,
+body.light .nav-link.active {
+  color: #667eea;
+}
+
+.nav-link.dark {
+  color: #9ca3af;
+}
+
+.nav-link.dark:hover,
+.nav-link.dark.active {
+  color: #60a5fa;
+}
+
+/* Original Navigation Button Styles */
+.navbar-link {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Purple slide effect for navbar links */
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.navbar-link:hover {
+  transform: translateY(-1px);
+  color: #6366f1;
+}
+
+.navbar-link:hover::after {
+  transform: scaleX(1);
+}
+
+.navbar-link:active {
+  transform: translateY(0);
+}
+
+/* Enhanced purple slide effect for main navbar */
+.nav-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  width: 50%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.nav-container:hover::after {
+  transform: scaleX(1);
+}
+
+/* Enhanced navbar link hover effects */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 80%;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.nav-link:hover::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* Page content */
+.page-content {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Changed from auto to hidden for chatbot full-screen */
+  position: relative;
+  z-index: 1;
+}
+
+/* Blog page and other pages spacing */
+.blog-page, .about-page, .faq-page, .donate-page {
+  padding-top: 75px !important;
+  min-height: calc(100vh - 75px);
+}
+
+/* Ensure all page content starts below navbar */
+body > div, #root > div {
+  padding-top: 0; /* Reset any conflicting padding */
+}
+
+.static-page {
+  min-height: 100vh;
+  padding: 5rem 2rem 2rem;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important;
+  color: #e5e7eb !important;
+  line-height: 1.6;
+  text-align: left;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Light mode static pages - softer background */
+body.light .static-page {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+  color: #2d3748 !important;
+}
+
+.static-page.dark {
+  background: linear-gradient(135deg, #181a20 0%, #23263a 100%) !important;
+  color: #e5e7eb !important;
+}
+
+.static-page h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+.static-page.dark h1 {
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+.static-page h2 {
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+  color: #c7c9e2 !important;
+  font-weight: 600;
+}
+
+/* Light mode h2 - better contrast */
+body.light .static-page h2 {
+  color: #2d3748 !important;
+}
+
+.static-page.dark h2 {
+  color: #c7c9e2 !important;
+  font-weight: 600;
+}
+
+.static-page p {
+  margin-bottom: 1rem;
+  color: #a3a7c2 !important;
+  font-size: 1.1rem;
+}
+
+/* Light mode paragraphs - improved readability */
+body.light .static-page p {
+  color: #4a5568 !important;
+}
+
+.static-page.dark p {
+  color: #a3a7c2 !important;
+  font-size: 1.1rem;
+}
+
+.static-page ul {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.static-page li {
+  margin-bottom: 0.5rem;
+  color: #a3a7c2 !important;
+  font-size: 1.05rem;
+}
+
+/* Light mode list items - better readability */
+body.light .static-page li {
+  color: #4a5568 !important;
+}
+
+.static-page.dark li {
+  color: #a3a7c2 !important;
+  font-size: 1.05rem;
+}
+
+.static-page a {
+  color: #818cf8 !important;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+  font-weight: 500;
+}
+
+.static-page.dark a {
+  color: #818cf8 !important;
+  font-weight: 500;
+}
+
+.static-page a:hover {
+  color: #6366f1 !important;
+}
+
+.static-page.dark a:hover {
+  color: #6366f1 !important;
+}
+
+.static-page code {
+  background: #2a2e44;
+  color: #e5e7eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Light mode code */
+body.light .static-page code {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.static-page.dark code {
+  background: #2a2e44;
+  color: #e5e7eb;
+}
+
+/* Enhanced Chatbot Styling - incorporating design from other pages */
+
+/* Welcome screen enhancements - adjusted for smaller chatbot */
+.chatbot-welcome-container {
+  padding: 1.5rem 1rem; /* Smaller padding */
+  max-width: 100%; /* Full width of container */
+  margin: 0 auto;
+  text-align: center;
+}
+
+.chatbot-welcome-title {
+  font-size: 1.8rem; /* Smaller title */
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+}
+
+.chatbot-welcome-subtitle {
+  font-size: 0.95rem; /* Smaller subtitle */
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Light mode welcome text */
+body.light .chatbot-welcome-subtitle {
+  color: #4a5568;
+}
+
+/* Example prompt cards with enhanced styling - single column for narrow space */
+.example-prompts-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Single column */
+  gap: 0.8rem; /* Smaller gap */
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.example-prompt-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Purple border */
+  border-radius: 12px;
+  padding: 1rem; /* Smaller padding */
+  text-align: left;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.example-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.example-prompt-card:hover::before {
+  opacity: 1;
+}
+
+.example-prompt-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border-color: #8b5cf6;
+  box-shadow: 
+    0 12px 25px rgba(139, 92, 246, 0.3),
+    0 4px 12px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.example-prompt-title {
+  font-size: 0.9rem; /* Smaller for narrow space */
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.example-prompt-description {
+  font-size: 0.8rem; /* Smaller description */
+  color: #5f6368;
+  line-height: 1.4;
+}
+
+/* Dark mode description */
+body.dark .example-prompt-description {
+  color: #9aa0a6;
+}
+
+/* Simple Chat Messages Area - GPT Style */
+.chat-messages-area {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  margin-top: 0;
+  overflow-y: auto;
+  flex: 1;
+  padding: 1rem;
+}
+
+/* Clean Message Bubbles - Match Site Theme */
+.message-bubble.user {
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  box-shadow: none;
+  border: none;
+  padding: 12px 16px;
+  margin-left: auto;
+  margin-right: 0;
+  max-width: 70%;
+}
+
+.message-bubble.bot {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f1f5f9;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 12px 16px;
+  margin-right: auto;
+  margin-left: 0;
+  max-width: 80%;
+}
+
+/* Light mode bot messages */
+body.light .message-bubble.bot {
+  background: #f8fafc;
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+}
+
+/* Simple Input Area - Clean style with no separate border */
+.chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Subtle inner border */
+  border-radius: 12px;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  padding: 0;
+}
+
+/* Light mode input container */
+body.light .chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: none;
+}
+
+.chatbot-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ececf1;
+  font-size: 16px;
+  padding: 12px 16px;
+  width: 100%;
+  border-radius: 12px;
+  resize: none;
+  font-family: inherit;
+}
+
+/* Light mode input */
+body.light .chatbot-input {
+  color: #374151;
+}
+
+.chatbot-input::placeholder {
+  color: #8e8ea0;
+  opacity: 1;
+}
+
+/* Light mode placeholder */
+body.light .chatbot-input::placeholder {
+  color: #9ca3af;
+}
+
+.chatbot-send-button {
+  background: #2563eb;
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.chatbot-send-button:hover {
+  background: #1d4ed8;
+  transform: scale(1.05);
+}
+
+.chatbot-send-button:active {
+  transform: scale(0.95);
+}
+
+/* Simple Sidebar - GPT Style */
+.sidebar {
+  background: #f8f9fa;
+  border-right: 1px solid #e3e4e6;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* Dark mode sidebar */
+body.dark .sidebar {
+  background: #2d2e30;
+  border-right: 1px solid #3c4043;
+}
+
+/* Ensure navbar is visible on chatbot page */
+.chatbot-page .navbar,
+.chatbot-page .navbar-logo,
+.chatbot-page .navbar-link {
+  z-index: 1000;
+  position: relative;
+}
+
+/* Fix navbar positioning on chatbot page */
+.chatbot-page .navbar-logo {
+  position: fixed !important;
+  top: 0.5rem !important;
+  left: 1rem !important;
+  z-index: 1001 !important;
+}
+
+/* Ensure chatbot content doesn't overlap navbar */
+.chatbot-page .chatbot-content {
+  padding-top: 20px !important; /* Much smaller padding to reduce gap */
+  height: calc(100vh - 20px) !important; /* Use almost full height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chatbot Page - Match other pages background exactly */
+body.chatbot-page {
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as other pages */
+  color: #e5e7eb !important; /* Same as other pages */
+}
+
+/* Light mode chatbot page - match other pages exactly */
+body.light.chatbot-page {
+  background: #ffffff !important; /* Same as other pages */
+  color: #2d3748 !important;
+}
+
+/* Chatbot page layout container */
+.chatbot-page {
+  padding: 0 !important; /* Remove padding to eliminate gap */
+  max-width: none !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as main page */
+}
+
+/* Hide searchbar when on chatbot page */
+body.chatbot-page .searchbar {
+  display: none !important;
+}
+
+/* Unified chatbot container with purple outline including both messages and input */
+.chatbot-page .chatbot-container {
+  flex: 1 !important;
+  overflow: hidden !important;
+  margin-top: 90px !important; /* Reduced space for better purple bar positioning */
+  margin-bottom: 0.5rem !important; /* Much smaller gap - closer to bottom */
+  max-width: 900px !important; /* Much wider container - increased from 1100px */
+  width: calc(100vw - 4rem) !important; /* Responsive width but keep it wide */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 0 1rem !important; /* Add horizontal padding for mobile */
+  border: 3px solid rgba(139, 92, 246, 0.6) !important; /* Thicker, more visible border */
+  border-radius: 21px !important; /* More rounded corners like modern chat apps */
+  background: rgba(139, 92, 246, 0.05) !important; /* Slightly more visible background */
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.25), 0 0 0 2px rgba(139, 92, 246, 0.2) !important; /* Enhanced shadow with thicker glow */
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - 100px) !important; /* Much closer to bottom - reduced from 190px */
+  min-height: calc(100vh - 100px) !important; /* Ensure minimum height is maintained */
+  max-height: calc(100vh - 100px) !important; /* Prevent container from growing */
+}
+
+@media (max-width: 768px) {
+  .chatbot-page .chatbot-container {
+    margin-top: 80px !important; /* Mobile space reduced for better positioning */
+    margin-bottom: 90px !important; /* Space for bottom tab bar navigation */
+    max-width: 98% !important; /* Wider on mobile too */
+    width: auto !important; /* Allow responsive width on mobile */
+    height: calc(100vh - 180px) !important; /* Account for mobile navbar + bottom tab bar */
+    min-height: calc(100vh - 180px) !important; /* Ensure minimum height is maintained */
+    max-height: calc(100vh - 180px) !important; /* Prevent container from growing */
+    border-radius: 20px !important; /* Slightly less rounded on mobile */
+    border: 2px solid rgba(139, 92, 246, 0.6) !important; /* Slightly thinner on mobile but still thick */
+  }
+}
+
+body.light .chatbot-page .chatbot-container {
+  border: 3px solid rgba(139, 92, 246, 0.5) !important; /* Thicker border for light mode too */
+  background: rgba(139, 92, 246, 0.03) !important;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15), 0 0 0 2px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Ensure chatbot messages area is scrollable within the container */
+.chatbot-page .chatbot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.75rem 0.5rem 0.75rem !important; /* Consistent padding */
+  border: none; /* Remove individual border since container has it */
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  margin: 0 !important; /* Remove any margins */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Small gap between messages */
+  min-height: 0; /* Allow flex shrinking */
+}
+
+body.light .chatbot-page .chatbot-messages {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Input area styling for chatbot page - modern clean design - FIXED TO BOTTOM */
+.chatbot-page .chatbot-input-area {
+  position: relative;
+  background: transparent !important;
+  padding: 0.5rem 0.75rem 0.75rem 0.75rem !important; /* Fixed padding - no negative values */
+  border-top: 1px solid rgba(139, 92, 246, 0.1) !important; /* More subtle separator */
+  border-radius: 0 0 22px 22px !important; /* Round bottom corners to match container */
+  margin: 0 !important; /* Remove any margins */
+  flex-shrink: 0; /* Prevent input area from shrinking */
+  min-height: 80px !important; /* Fixed minimum height */
+  max-height: 80px !important; /* Fixed maximum height */
+  height: 80px !important; /* Fixed height to prevent size changes */
+}
+
+body.light .chatbot-page .chatbot-input-area {
+  background: transparent !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+/* Improve the input box styling */
+.chatbot-page .chatbot-input-area .relative > div {
+  background: rgba(139, 92, 246, 0.05) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.15) !important;
+  transition: all 0.3s ease !important;
+  margin: 0 !important; /* Remove any margins */
+  padding: 0.5rem 1rem !important; /* Consistent internal padding */
+}
+
+.chatbot-page .chatbot-input-area .relative > div:focus-within {
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25) !important;
+}
+
+body.light .chatbot-page .chatbot-input-area .relative > div {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Fix input and button layout */
+.chatbot-page .chatbot-input-area textarea,
+.chatbot-page .chatbot-input-area input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  padding: 0.75rem 1rem !important;
+  margin: 0 !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  resize: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 1 !important; /* Lower z-index than search bar */
+}
+
+.chatbot-page .chatbot-input-area button {
+  margin: 0 !important;
+  padding: 0.5rem !important;
+  border: none !important;
+  background: rgba(139, 92, 246, 0.8) !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.chatbot-page .chatbot-input-area button:hover {
+  background: rgba(139, 92, 246, 1) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Custom Scrollbar Styling for a More Aesthetic Look */
+/* Webkit browsers (Chrome, Safari, Edge) */
+.chatbot-page .chatbot-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(99, 102, 241, 0.4) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(99, 102, 241, 0.6) 100%);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* Light mode scrollbar */
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7) 0%, rgba(99, 102, 241, 0.7) 100%);
+}
+
+/* Firefox scrollbar styling */
+.chatbot-page .chatbot-messages {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.4) rgba(139, 92, 246, 0.05);
+}
+
+body.light .chatbot-page .chatbot-messages {
+  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(139, 92, 246, 0.08);
+}
+
+/* Smooth scrolling behavior */
+.chatbot-page .chatbot-messages {
+  scroll-behavior: smooth;
+}
+
+/* General scrollbar styling for other scrollable areas */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.03);
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+body.light *::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+body.light *::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+body.light *::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
+}
+
+/* Ensure logo is properly clickable with minimum touch area */
+.logo-istanbul {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  min-width: 120px !important;
+  min-height: 44px !important; /* Minimum touch target size */
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+.logo-istanbul .logo-text {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  user-select: none !important; /* Prevent text selection */
+}
+
+/* Ensure no overlapping elements block the logo */
+.logo-istanbul:hover {
+  opacity: 0.8 !important;
+  transform: scale(1.02) !important;
+}
+
+
+
+/* Page content wrapper to work with sticky navbar */
+.page-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Content spacing for fixed navbar */
+.main-content, .page-content {
+  padding-top: 85px; /* Reduced space to account for lower purple bar */
+}
+
+/* Chatbot page specific adjustments */
+.chatbot-page {
+  padding-top: 85px; /* Reduced space to account for lower purple bar */
+}
+
+/* Main page content adjustments */
+.main-page-content {
+  padding-top: 85px; /* Reduced space to account for lower purple bar */
+}
+
+.main-page-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/istanbul-bridge-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.25; /* Much darker, less vivid wallpaper */
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Add overlay for better text contrast */
+.main-page-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%); /* Much darker overlay */
+  z-index: -2;
+  pointer-events: none;
+}
+
+
+
+/* Light mode - high opacity as well */
+body.light .main-page-background::before {
+  opacity: 0.75; /* High opacity for light mode too */
+}
+
+/* Light mode background for main page - pure white with stronger override */
+body.light .main-page-background {
+  background: #ffffff !important;
+}
+
+/* Also target the main page when light class is on root */
+.light .main-page-background {
+  background: #ffffff !important;
+}
+
+/* Additional override for any nested elements */
+body.light .main-page-background,
+.light .main-page-background {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Main page logo - bigger version, centered */
+.main-page-logo.logo-istanbul {
+  text-align: center;
+  margin-bottom: 0; /* Minimal margin to bring search bar very close */
+  margin-top: -2rem; /* Much higher position - moved up even more */
+  padding: 0rem; /* Even smaller padding for tighter spacing */
+  position: relative;
+  z-index: 100; /* Much higher z-index to ensure it's above everything */
+  cursor: pointer; /* Make logo clickable */
+  transition: all 0.3s ease;
+}
+
+.main-page-logo.logo-istanbul:hover {
+  transform: scale(1.02);
+}
+
+.main-page-logo .logo-text {
+  font-size: 4rem !important; /* Bigger logo (was 11rem) */
+  font-weight: 700; /* Normal weight like other pages */
+  letter-spacing: 0.15em; /* Consistent with other pages */
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%); /* Same as other pages */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); /* Reduced shadow like other pages */
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 101; /* Ensure logo text is above everything */
+  cursor: pointer; /* Make logo text clickable */
+}
+
+.main-page-logo .logo-text:hover {
+  transform: scale(1.05);
+  text-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
+}
+
+@media (max-width: 768px) {
+  .main-page-logo .logo-text {
+    font-size: 10rem !important; /* Bigger mobile logo (was 7rem) */
+    font-weight: 700; /* Normal weight */
+    letter-spacing: 0.15em;
+    /* Consistent styling with other pages */
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+@media (max-width: 640px) {
+  .main-page-logo .logo-text {
+    font-size: 6rem !important; /* Bigger mobile logo (was 3rem) */
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+@media (max-width: 480px) {
+  .main-page-logo .logo-text {
+    font-size: 8rem !important; /* Bigger mobile logo (was 5rem) */
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+/* Logo styling */
+.logo-istanbul .logo-text {
+  font-weight: 700;
+  font-size: 2.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Chat page logo - smaller size, positioned at top */
+.logo-move-top-left.logo-istanbul .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 0;
+  padding-top: 1rem;
+}
+
+/* Base logo styling for chat pages (when not main page) */
+.chat-title.logo-istanbul:not(.main-page-logo) .logo-text {
+  font-size: 3.2rem !important;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+/* Responsive logo scaling for fixed positioned logos */
+@media (max-width: 640px) {
+  .logo-istanbul .logo-text {
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+  }
+  
+  .logo-move-top-left.logo-istanbul .logo-text {
+    font-size: 2.2rem !important;
+    letter-spacing: 0.08em;
+  }
+}
+@keyframes expandChat {
+  0% {
+    max-width: 400px;
+    min-height: 0;
+    opacity: 0.7;
+    filter: blur(2px);
+  }
+  60% {
+    max-width: 1000px;
+    min-height: 0;
+    opacity: 1;
+    filter: blur(0.5px);
+  }
+  100% {
+    max-width: 900px;
+    min-height: 400px;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.expand-animate {
+  animation: expandChat 0.6s cubic-bezier(.4,2,.6,1);
+}
+.chat-title {
+  position: relative; /* Changed from sticky to relative to prevent interference */
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding: 2rem 0 1.5rem 0;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+/* Default chat title size - only apply when not main page logo */
+.chat-title:not(.main-page-logo) {
+  font-size: 2.2rem;
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.searchbar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 102;
+  background: #1a1b1d;
+  padding-bottom: 4.5rem;
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+}
+
+/* Light mode searchbar - softer background */
+body.light .searchbar {
+  background: #f7fafc;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
+  color: #e5e7eb;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Light mode override - pure white background */
+body.light {
+  background: #ffffff !important;
+  color: #2d3748 !important;
+}
+
+#root {
+  min-height: 100vh;
+  background: none;
+}
+
+.chat-container {
+  background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 -4px 20px 0 rgba(10, 10, 10, 0.18);
+  border: 2.5px solid #6366f1;
+  padding: 0.5rem 1.5rem 0.5rem 2.5rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Light mode chat container - softer colors */
+.light-chat {
+  background: linear-gradient(135deg, #fdfdfe 0%, #f7fafc 100%) !important;
+  box-shadow: 0 -8px 32px 0 rgba(99, 102, 241, 0.12) !important;
+  border: 2px solid #a5b4fc !important;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.message-bubble {
+  padding: 0.75rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 1rem;
+  max-width: 75%;
+  word-break: break-word;
+  box-shadow: 0 2px 8px 0 rgba(80, 80, 180, 0.06);
+}
+
+.message-bubble.user {
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  margin-left: auto;
+  border-bottom-right-radius: 0.25rem;
+}
+.message-bubble.bot {
+  background: rgba(25, 26, 28, 0.9);
+  color: #f3f4f6;
+  margin-right: auto;
+  border-bottom-left-radius: 0.25rem;
+  border: 1px solid #3a3b3d;
+  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.15);
+  max-width: 85%;
+  line-height: 1.5;
+}
+
+/* Light mode bot messages - improved readability */
+body.light .message-bubble.bot {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px 0 rgba(99, 102, 241, 0.06);
+}
+
+.chat-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.searchbar {
+  display: flex;
+  gap: 0.95rem;
+  margin-bottom: 0.5rem; /* Even closer to title - reduced from 1rem */
+  margin-top: 0; /* Remove negative margin for cleaner spacing */
+  align-items: center;
+  position: relative;
+  z-index: 102;
+  justify-content: center; /* Center the search bar */
+  max-width: 600px; /* Limit width for more elegant look */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Ensure search bar only appears on non-chatbot pages */
+body:not(.chatbot-page) .searchbar {
+  display: flex !important;
+}
+
+/* Keep search bar hidden on chatbot page */
+.chatbot-page .searchbar,
+body.chatbot-page .searchbar {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Search bar input - only for main pages, not chatbot */
+body:not(.chatbot-page) .searchbar input {
+  flex: 1;
+  padding: 0.75rem 1.5rem; /* Less thick - reduced from 1rem to 0.75rem */
+  border-radius: 2rem; /* More rounded like ChatGPT */
+  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 1rem;
+  background: rgba(255,255,255,0.95);
+  color: #374151;
+  transition: all 0.2s ease;
+  min-height: 2.5rem; /* Less thick - reduced from 3rem to 2.5rem */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-weight: 400;
+  outline: none;
+  position: relative;
+  z-index: 103;
+}
+
+/* Light mode input - softer and more comfortable - only for main pages */
+body.light:not(.chatbot-page) .searchbar input {
+  border: 1px solid #d1d5db;
+  background: rgba(255, 255, 255, 0.98); /* Slightly more transparent */
+  color: #1f2937; /* Darker text for better contrast */
+  box-shadow: 0 1px 3px 0 rgba(99, 102, 241, 0.05), 0 2px 16px rgba(99, 102, 241, 0.1); /* Enhanced shadow */
+  font-weight: 500; /* Slightly bolder text */
+}
+
+body.light:not(.chatbot-page) .searchbar input:focus {
+  border: 2px solid #a5b4fc !important;
+  box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.15) !important;
+}
+
+/* Search bar input focus - only for main pages */
+body:not(.chatbot-page) .searchbar input:focus {
+  border: 1.5px solid #6366f1;
+  outline: none;
+}
+.send-btn {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 20%, #dbeafe 40%, #bfdbfe 60%, #93c5fd 80%, #60a5fa 100%);
+  color: #1e40af; /* Dark blue text for contrast */
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  width: 48px; /* Bigger button (was 36px) */
+  height: 48px; /* Bigger button (was 36px) */
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(255,255,255,0.7), 0 4px 24px rgba(99,102,241,0.4), 0 2px 16px rgba(255,255,255,0.9);
+  filter: brightness(1.5) contrast(1.3);
+  padding: 0;
+  font-size: 1.3rem; /* Bigger icon (was 1.1rem) */
+  font-weight: 700;
+}
+
+.send-btn:hover {
+  background: #6366f1;
+}
+
+/* Button press animation for better UX */
+.button-press-animation {
+  transform: scale(0.95) !important;
+  transition: transform 0.1s ease !important;
+}
+
+/* Reset and full-screen layout */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ensure no element can interfere with fixed positioning */
+* {
+  transform-style: preserve-3d;
+}
+
+/* Prevent any container from affecting fixed elements */
+.min-h-screen, .w-full, .transition-colors {
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Force all fixed elements to stay on top */
+[style*="position: fixed"], .fixed, .fixed-logo {
+  z-index: 10000 !important;
+  position: fixed !important;
+  will-change: auto !important;
+  transform: translateZ(0) !important;
+}
+
+#root {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Enhanced Navigation styles */
+.nav-container.dark {
+  background: rgba(15, 16, 17, 0.98);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Default dark navigation - more modern */
+.nav-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(15, 16, 17, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  padding: 0.5rem 0;
+}
+
+/* Light mode navigation - softer and easier on eyes */
+body.light .nav-container {
+  background: rgba(253, 253, 254, 0.95);
+  border-bottom: 1px solid rgba(209, 213, 219, 0.6);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.nav-logo {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+/* Light mode logo - better contrast */
+body.light .nav-logo {
+  color: #2d3748;
+}
+
+.nav-logo.dark {
+  color: #ffffff;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2.5rem; /* Even bigger gap for more premium look */
+  list-style: none;
+  margin-left: 4rem; /* More space from logo */
+  margin-right: auto; /* Allow space to expand on right */
+  align-items: center;
+}
+
+.nav-link {
+  color: #9ca3af;
+  text-decoration: none;
+  font-weight: 700; /* Even bolder text */
+  font-size: 1.2rem; /* Bigger text */
+  padding: 1rem 1.75rem; /* Much bigger padding for button-like feel */
+  border-radius: 1rem; /* More rounded corners */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #818cf8;
+  transform: translateY(-2px) scale(1.05); /* More dramatic lift and scale */
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.nav-link.active {
+  color: #60a5fa;
+}
+
+/* Light mode nav links - improved readability */
+body.light .nav-link {
+  color: #4a5568;
+}
+
+body.light .nav-link:hover,
+body.light .nav-link.active {
+  color: #667eea;
+}
+
+.nav-link.dark {
+  color: #9ca3af;
+}
+
+.nav-link.dark:hover,
+.nav-link.dark.active {
+  color: #60a5fa;
+}
+
+/* Original Navigation Button Styles */
+.navbar-link {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Purple slide effect for navbar links */
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.navbar-link:hover {
+  transform: translateY(-1px);
+  color: #6366f1;
+}
+
+.navbar-link:hover::after {
+  transform: scaleX(1);
+}
+
+.navbar-link:active {
+  transform: translateY(0);
+}
+
+/* Enhanced purple slide effect for main navbar */
+.nav-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  width: 50%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #6366f1 20%, #8b5cf6 50%, #6366f1 80%, transparent 100%);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.nav-container:hover::after {
+  transform: scaleX(1);
+}
+
+/* Enhanced navbar link hover effects */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 80%;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.nav-link:hover::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* Page content */
+.page-content {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Changed from auto to hidden for chatbot full-screen */
+  position: relative;
+  z-index: 1;
+}
+
+/* Blog page and other pages spacing */
+.blog-page, .about-page, .faq-page, .donate-page {
+  padding-top: 75px !important;
+  min-height: calc(100vh - 75px);
+}
+
+/* Ensure all page content starts below navbar */
+body > div, #root > div {
+  padding-top: 0; /* Reset any conflicting padding */
+}
+
+.static-page {
+  min-height: 100vh;
+  padding: 5rem 2rem 2rem;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important;
+  color: #e5e7eb !important;
+  line-height: 1.6;
+  text-align: left;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Light mode static pages - softer background */
+body.light .static-page {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+  color: #2d3748 !important;
+}
+
+.static-page.dark {
+  background: linear-gradient(135deg, #181a20 0%, #23263a 100%) !important;
+  color: #e5e7eb !important;
+}
+
+.static-page h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+.static-page.dark h1 {
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900;
+}
+
+.static-page h2 {
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+  color: #c7c9e2 !important;
+  font-weight: 600;
+}
+
+/* Light mode h2 - better contrast */
+body.light .static-page h2 {
+  color: #2d3748 !important;
+}
+
+.static-page.dark h2 {
+  color: #c7c9e2 !important;
+  font-weight: 600;
+}
+
+.static-page p {
+  margin-bottom: 1rem;
+  color: #a3a7c2 !important;
+  font-size: 1.1rem;
+}
+
+/* Light mode paragraphs - improved readability */
+body.light .static-page p {
+  color: #4a5568 !important;
+}
+
+.static-page.dark p {
+  color: #a3a7c2 !important;
+  font-size: 1.1rem;
+}
+
+.static-page ul {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.static-page li {
+  margin-bottom: 0.5rem;
+  color: #a3a7c2 !important;
+  font-size: 1.05rem;
+}
+
+/* Light mode list items - better readability */
+body.light .static-page li {
+  color: #4a5568 !important;
+}
+
+.static-page.dark li {
+  color: #a3a7c2 !important;
+  font-size: 1.05rem;
+}
+
+.static-page a {
+  color: #818cf8 !important;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+  font-weight: 500;
+}
+
+.static-page.dark a {
+  color: #818cf8 !important;
+  font-weight: 500;
+}
+
+.static-page a:hover {
+  color: #6366f1 !important;
+}
+
+.static-page.dark a:hover {
+  color: #6366f1 !important;
+}
+
+.static-page code {
+  background: #2a2e44;
+  color: #e5e7eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Light mode code */
+body.light .static-page code {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.static-page.dark code {
+  background: #2a2e44;
+  color: #e5e7eb;
+}
+
+/* Enhanced Chatbot Styling - incorporating design from other pages */
+
+/* Welcome screen enhancements - adjusted for smaller chatbot */
+.chatbot-welcome-container {
+  padding: 1.5rem 1rem; /* Smaller padding */
+  max-width: 100%; /* Full width of container */
+  margin: 0 auto;
+  text-align: center;
+}
+
+.chatbot-welcome-title {
+  font-size: 1.8rem; /* Smaller title */
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+}
+
+.chatbot-welcome-subtitle {
+  font-size: 0.95rem; /* Smaller subtitle */
+  color: #9ca3af;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* Light mode welcome text */
+body.light .chatbot-welcome-subtitle {
+  color: #4a5568;
+}
+
+/* Example prompt cards with enhanced styling - single column for narrow space */
+.example-prompts-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Single column */
+  gap: 0.8rem; /* Smaller gap */
+  margin: 1rem 0;
+  padding: 0;
+}
+
+.example-prompt-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Purple border */
+  border-radius: 12px;
+  padding: 1rem; /* Smaller padding */
+  text-align: left;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.example-prompt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.example-prompt-card:hover::before {
+  opacity: 1;
+}
+
+.example-prompt-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border-color: #8b5cf6;
+  box-shadow: 
+    0 12px 25px rgba(139, 92, 246, 0.3),
+    0 4px 12px rgba(139, 92, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.example-prompt-title {
+  font-size: 0.9rem; /* Smaller for narrow space */
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.example-prompt-description {
+  font-size: 0.8rem; /* Smaller description */
+  color: #5f6368;
+  line-height: 1.4;
+}
+
+/* Dark mode description */
+body.dark .example-prompt-description {
+  color: #9aa0a6;
+}
+
+/* Simple Chat Messages Area - GPT Style */
+.chat-messages-area {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  margin-top: 0;
+  overflow-y: auto;
+  flex: 1;
+  padding: 1rem;
+}
+
+/* Clean Message Bubbles - Match Site Theme */
+.message-bubble.user {
+  background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  box-shadow: none;
+  border: none;
+  padding: 12px 16px;
+  margin-left: auto;
+  margin-right: 0;
+  max-width: 70%;
+}
+
+.message-bubble.bot {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f1f5f9;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 12px 16px;
+  margin-right: auto;
+  margin-left: 0;
+  max-width: 80%;
+}
+
+/* Light mode bot messages */
+body.light .message-bubble.bot {
+  background: #f8fafc;
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+}
+
+/* Simple Input Area - Clean style with no separate border */
+.chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3); /* Subtle inner border */
+  border-radius: 12px;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  padding: 0;
+}
+
+/* Light mode input container */
+body.light .chatbot-input-container {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: none;
+}
+
+.chatbot-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ececf1;
+  font-size: 16px;
+  padding: 12px 16px;
+  width: 100%;
+  border-radius: 12px;
+  resize: none;
+  font-family: inherit;
+}
+
+/* Light mode input */
+body.light .chatbot-input {
+  color: #374151;
+}
+
+.chatbot-input::placeholder {
+  color: #8e8ea0;
+  opacity: 1;
+}
+
+/* Light mode placeholder */
+body.light .chatbot-input::placeholder {
+  color: #9ca3af;
+}
+
+.chatbot-send-button {
+  background: #2563eb;
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.chatbot-send-button:hover {
+  background: #1d4ed8;
+  transform: scale(1.05);
+}
+
+.chatbot-send-button:active {
+  transform: scale(0.95);
+}
+
+/* Simple Sidebar - GPT Style */
+.sidebar {
+  background: #f8f9fa;
+  border-right: 1px solid #e3e4e6;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* Dark mode sidebar */
+body.dark .sidebar {
+  background: #2d2e30;
+  border-right: 1px solid #3c4043;
+}
+
+/* Ensure navbar is visible on chatbot page */
+.chatbot-page .navbar,
+.chatbot-page .navbar-logo,
+.chatbot-page .navbar-link {
+  z-index: 1000;
+  position: relative;
+}
+
+/* Fix navbar positioning on chatbot page */
+.chatbot-page .navbar-logo {
+  position: fixed !important;
+  top: 0.5rem !important;
+  left: 1rem !important;
+  z-index: 1001 !important;
+}
+
+/* Ensure chatbot content doesn't overlap navbar */
+.chatbot-page .chatbot-content {
+  padding-top: 20px !important; /* Much smaller padding to reduce gap */
+  height: calc(100vh - 20px) !important; /* Use almost full height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chatbot Page - Match other pages background exactly */
+body.chatbot-page {
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as other pages */
+  color: #e5e7eb !important; /* Same as other pages */
+}
+
+/* Light mode chatbot page - match other pages exactly */
+body.light.chatbot-page {
+  background: #ffffff !important; /* Same as other pages */
+  color: #2d3748 !important;
+}
+
+/* Chatbot page layout container */
+.chatbot-page {
+  padding: 0 !important; /* Remove padding to eliminate gap */
+  max-width: none !important;
+  margin: 0 !important;
+  height: 100vh !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%) !important; /* Same as main page */
+}
+
+/* Hide searchbar when on chatbot page */
+body.chatbot-page .searchbar {
+  display: none !important;
+}
+
+/* Ensure chatbot messages area is scrollable within the container */
+.chatbot-page .chatbot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.75rem 0.5rem 0.75rem !important; /* Consistent padding */
+  border: none; /* Remove individual border since container has it */
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  margin: 0 !important; /* Remove any margins */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Small gap between messages */
+  min-height: 0; /* Allow flex shrinking */
+}
+
+body.light .chatbot-page .chatbot-messages {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Input area styling for chatbot page - modern clean design - FIXED TO BOTTOM */
+.chatbot-page .chatbot-input-area {
+  position: relative;
+  background: transparent !important;
+  padding: 0.5rem 0.75rem 0.75rem 0.75rem !important; /* Fixed padding - no negative values */
+  border-top: 1px solid rgba(139, 92, 246, 0.1) !important; /* More subtle separator */
+  border-radius: 0 0 22px 22px !important; /* Round bottom corners to match container */
+  margin: 0 !important; /* Remove any margins */
+  flex-shrink: 0; /* Prevent input area from shrinking */
+  min-height: 80px !important; /* Fixed minimum height */
+  max-height: 80px !important; /* Fixed maximum height */
+  height: 80px !important; /* Fixed height to prevent size changes */
+}
+
+body.light .chatbot-page .chatbot-input-area {
+  background: transparent !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+/* Improve the input box styling */
+.chatbot-page .chatbot-input-area .relative > div {
+  background: rgba(139, 92, 246, 0.05) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.15) !important;
+  transition: all 0.3s ease !important;
+  margin: 0 !important; /* Remove any margins */
+  padding: 0.5rem 1rem !important; /* Consistent internal padding */
+}
+
+.chatbot-page .chatbot-input-area .relative > div:focus-within {
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25) !important;
+}
+
+body.light .chatbot-page .chatbot-input-area .relative > div {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Fix input and button layout */
+.chatbot-page .chatbot-input-area textarea,
+.chatbot-page .chatbot-input-area input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  padding: 0.75rem 1rem !important;
+  margin: 0 !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  resize: none !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 1 !important; /* Lower z-index than search bar */
+}
+
+.chatbot-page .chatbot-input-area button {
+  margin: 0 !important;
+  padding: 0.5rem !important;
+  border: none !important;
+  background: rgba(139, 92, 246, 0.8) !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.chatbot-page .chatbot-input-area button:hover {
+  background: rgba(139, 92, 246, 1) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Custom Scrollbar Styling for a More Aesthetic Look */
+/* Webkit browsers (Chrome, Safari, Edge) */
+.chatbot-page .chatbot-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(99, 102, 241, 0.4) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.6) 0%, rgba(99, 102, 241, 0.6) 100%);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* Light mode scrollbar */
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+body.light .chatbot-page .chatbot-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7) 0%, rgba(99, 102, 241, 0.7) 100%);
+}
+
+/* Firefox scrollbar styling */
+.chatbot-page .chatbot-messages {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.4) rgba(139, 92, 246, 0.05);
+}
+
+body.light .chatbot-page .chatbot-messages {
+  scrollbar-color: rgba(139, 92, 246, 0.5) rgba(139, 92, 246, 0.08);
+}
+
+/* Smooth scrolling behavior */
+.chatbot-page .chatbot-messages {
+  scroll-behavior: smooth;
+}
+
+/* General scrollbar styling for other scrollable areas */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.03);
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+body.light *::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+body.light *::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+body.light *::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
+}
+
+/* Ensure logo is properly clickable with minimum touch area */
+.logo-istanbul {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  min-width: 120px !important;
+  min-height: 44px !important; /* Minimum touch target size */
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+.logo-istanbul .logo-text {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  user-select: none !important; /* Prevent text selection */
+}
+
+/* Ensure no overlapping elements block the logo */
+.logo-istanbul:hover {
+  opacity: 0.8 !important;
+  transform: scale(1.02) !important;
+}
+
+
+
+/* Page content wrapper to work with sticky navbar */
+.page-content {
+  position: relative;
+  z-index: 1;
+}
+

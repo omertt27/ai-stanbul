@@ -1,0 +1,1357 @@
+{
+  "test_summary": {
+    "total_tests": 66,
+    "passed_tests": 56,
+    "failed_tests": 10,
+    "success_rate": 84.84848484848484,
+    "test_timestamp": "20250917_132349"
+  },
+  "category_breakdown": {
+    "Restaurant": {
+      "total": 10,
+      "passed": 8,
+      "failed": 2
+    },
+    "Transportation": {
+      "total": 10,
+      "passed": 8,
+      "failed": 2
+    },
+    "Museum": {
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "General": {
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    },
+    "Problematic": {
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "Multilingual": {
+      "total": 7,
+      "passed": 6,
+      "failed": 1
+    },
+    "Contextual": {
+      "total": 8,
+      "passed": 5,
+      "failed": 3
+    }
+  },
+  "performance_stats": {
+    "average_response_time": 1.9953835649149758,
+    "min_response_time": 0.001422882080078125,
+    "max_response_time": 4.278661251068115
+  },
+  "detailed_results": [
+    {
+      "test_id": 1,
+      "category": "Restaurant",
+      "query": "restaurants in beyoglu",
+      "description": "Basic restaurant query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Yeni Lokanta A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.7/5 • . Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 3. WAMA'S A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • Moderate Guney Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.5/5 • Moderate Dürümzade A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (popular choice among visitors) Rating: 4.5/5 • Budget-friendly Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.980882167816162,
+      "response_length": 877,
+      "expected_keywords": [
+        "restaurant",
+        "beyoglu",
+        "dining",
+        "food"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "transport",
+        "metro"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 2,
+      "category": "Restaurant",
+      "query": "where to eat in sultanahmet",
+      "description": "Alternative phrasing for restaurants",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Ruvia Restaurant Sultanahmet A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred sultanahmet area) Rating: 4.9/5 2. Turgut Kebab Restaurant -Sultanahmet- A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (Recommended because it located in your preferred sultanahmet area) Rating: 4.8/5 • Budget-friendly 3. Tarihi Sultanahmet Köftecisi Selim Usta A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred sultanahmet area) Rating: 4.1/5 • Moderate Sultanahmet Fish House, Istanbul Restaurant, Dining A seafood restaurant featuring fresh fish and Mediterranean coastal cuisine. (Recommended because it located in your preferred sultanahmet area) Rating: 4.6/5 • Moderate Old Sultanahmet Cuisine Restaurant A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred sultanahmet area) Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 4.269166946411133,
+      "response_length": 1160,
+      "expected_keywords": [
+        "restaurant",
+        "sultanahmet",
+        "food",
+        "eat"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "attraction"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 3,
+      "category": "Restaurant",
+      "query": "resturants in galata",
+      "description": "Misspelled restaurant query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Galata Sanat Restaurant Galata Köprüsü A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred galata area) Rating: 4.8/5 • Moderate Galata Sunset A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred galata area) Rating: 4.9/5 3. Resto Galata Terrace A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred galata area) Rating: 4.8/5 4. Pepo's Galata A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred galata area) Rating: 4.5/5 • Moderate Galata Rooftop Ocakbaşı Restaurant A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred galata area) Rating: 4.6/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.562915086746216,
+      "response_length": 1023,
+      "expected_keywords": [
+        "restaurant",
+        "galata",
+        "dining"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 4,
+      "category": "Restaurant",
+      "query": "gud restarnts in taksim",
+      "description": "Multiple misspellings",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Zübeyir Ocakbaşı/Taksim A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred taksim area) Rating: 4.2/5 • . Meat Moot Istanbul Taksim A steakhouse specializing in premium cuts of meat and grilled dishes. (Recommended because it located in your preferred taksim area) Rating: 4.7/5 3. Taksim Bahcivan A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred taksim area) Rating: 4.6/5 • Moderate Taksim Anatolia Seafood Steak Kebap House A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (Recommended because it located in your preferred taksim area) Rating: 4.9/5 5. Chef Eyad Taksim A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred taksim area) Rating: 4.5/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 4.199617862701416,
+      "response_length": 1034,
+      "expected_keywords": [
+        "restaurant",
+        "taksim",
+        "food"
+      ],
+      "forbidden_keywords": [
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 5,
+      "category": "Restaurant",
+      "query": "restaurants near hagia sophia",
+      "description": "Restaurant near landmark (should not give museum info)",
+      "status": "FAILED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Marmara View Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 3. Ruvia Restaurant Sultanahmet A steakhouse specializing in premium cuts of meat and grilled dishes. (popular choice among visitors) Rating: 4.9/5 4. Carlos Terrace Restaurant İstanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 5. Ararat Terrace Restaurant & Rooftop A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.585386037826538,
+      "response_length": 883,
+      "expected_keywords": [
+        "restaurant",
+        "hagia sophia",
+        "near"
+      ],
+      "forbidden_keywords": [
+        "museum opening hours",
+        "entrance fee"
+      ],
+      "issues": [
+        "Missing key content. Found: ['restaurant']"
+      ]
+    },
+    {
+      "test_id": 6,
+      "category": "Restaurant",
+      "query": "food at topkapi palace",
+      "description": "Food near palace (should focus on restaurants)",
+      "status": "FAILED",
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other areas\n- **Ferry:** Scenic routes across the Bosphorus\n- **Metrobus:** Fast bus on dedicated lanes\n\n**Tips:**\n- Get an Istanbulkart for all public transport\n- Download Citymapper or Moovit for directions\n- Ferries offer beautiful city views\n- Avoid rush hours (7-9 AM, 5-7 PM) when possible\n\n**Taxi/Ride-sharing:**\n- BiTaksi, Uber available\n- Agree on fare beforehand for taxis\n- Traffic can be heavy, especially bridges\n\nAsk me about specific routes for detailed directions!",
+      "response_time": 0.012574911117553711,
+      "response_length": 672,
+      "expected_keywords": [
+        "restaurant",
+        "food",
+        "topkapi"
+      ],
+      "forbidden_keywords": [
+        "museum ticket",
+        "palace history"
+      ],
+      "issues": [
+        "Missing key content. Found: []"
+      ]
+    },
+    {
+      "test_id": 7,
+      "category": "Restaurant",
+      "query": "turkish food in kadikoy",
+      "description": "Specific cuisine request",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Kadikoy Sofrasi A well-regarded restaurant offering quality dining and local cuisine. (Recommended because it located in your preferred kadikoy area) Rating: 4.8/5 • Budget-friendly 2. Hane Kadıköy A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.6/5 3. Çiya Sofrası A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4/5 • . Tarihi Kadıköy Saray Lokantası A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.4/5 • Moderate Yanyalı Fehmi Lokantası A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.1/5 • Expensive Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.7660281658172607,
+      "response_length": 921,
+      "expected_keywords": [
+        "restaurant",
+        "turkish",
+        "kadikoy",
+        "food"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 8,
+      "category": "Restaurant",
+      "query": "vegetarian restaurants istanbul",
+      "description": "Dietary restriction query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Vegan Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • Budget-friendly 2. Vegan Dükkan Lokanta A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.8/5 3. Vegan Masa (Beşiktaş) A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate The Himalayan Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Wegain A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 4.081959962844849,
+      "response_length": 866,
+      "expected_keywords": [
+        "restaurant",
+        "vegetarian",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 9,
+      "category": "Restaurant",
+      "query": "restaurants restaurants restaurants",
+      "description": "Repeated words",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 5. Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 4.278661251068115,
+      "response_length": 875,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error",
+        "unable"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 10,
+      "category": "Restaurant",
+      "query": "restrnt",
+      "description": "Heavily abbreviated",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Garden Mezze A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.681410789489746,
+      "response_length": 879,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 11,
+      "category": "Transportation",
+      "query": "how can I go kadikoy from beyoglu",
+      "description": "Direct route query",
+      "status": "FAILED",
+      "response": "**How to get from Beyoğlu to Kadıköy:**\n\n**Best Options:**\n\n**Option 1: Ferry (Most Scenic) - 25 minutes**\n- Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)\n- Take ferry from Karaköy to Kadıköy (15 min)\n- Beautiful Bosphorus views during the journey\n- Cost: ~15-20 TL\n\n**Option 2: Metro + Bus - 35 minutes**\n- Take M2 metro from Şişhane/Vezneciler to Vezneciler\n- Transfer to M1 metro to Zeytinburnu\n- Take Metrobus to Kadıköy\n- Cost: ~20-25 TL\n\n**Option 3: Taxi/Uber - 30-45 minutes**\n- Direct route via Galata Bridge\n- Cost: ~80-120 TL (depending on traffic)\n- Traffic can be heavy during rush hours\n\n**Recommended:** Take the ferry for the best experience and views of Istanbul!",
+      "response_time": 0.012169122695922852,
+      "response_length": 695,
+      "expected_keywords": [
+        "ferry",
+        "metro",
+        "transport",
+        "kadikoy",
+        "beyoglu"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": [
+        "Missing key content. Found: ['ferry', 'metro']"
+      ]
+    },
+    {
+      "test_id": 12,
+      "category": "Transportation",
+      "query": "from sultanahmet to taksim",
+      "description": "Route with landmarks",
+      "status": "PASSED",
+      "response": "**Transportation from Sultanahmet to Taksim:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.011722087860107422,
+      "response_length": 552,
+      "expected_keywords": [
+        "metro",
+        "tram",
+        "transport",
+        "sultanahmet",
+        "taksim"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum opening"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 13,
+      "category": "Transportation",
+      "query": "metro to airport",
+      "description": "Specific transport mode",
+      "status": "PASSED",
+      "response": "**Transportation from Istanbul to Airport:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.012526988983154297,
+      "response_length": 550,
+      "expected_keywords": [
+        "metro",
+        "airport",
+        "m1",
+        "transport"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 14,
+      "category": "Transportation",
+      "query": "ferry routes istanbul",
+      "description": "Ferry information",
+      "status": "PASSED",
+      "response": "In Istanbul, ferry routes are an essential part of the city's transportation system and offer a unique way to experience the beautiful views along the Bosphorus and the Sea of Marmara. Some popular ferry routes in Istanbul include: 1. Eminönü to Kadıköy: This route is a favorite among locals and tourists alike, connecting the European side to the Asian side of Istanbul. You can enjoy stunning views of the city's skyline, including famous landmarks like the Maiden's Tower and Topkapi Palace. 2. Karaköy to Üsküdar: This ferry route provides another picturesque journey across the Bosphorus strait, passing by historical sites such as the Galata Tower and the majestic mosques that line the waterfront. 3. Besiktas to Prince Islands (Adalar): If you're looking for a day trip away from the hustle and bustle of the city, ferries from Besiktas to the Prince Islands offer a serene escape with beautiful scenery and a relaxed atmosphere. These ferry routes not only provide efficient transportation but also offer a memorable way to enjoy Istanbul's stunning waterfront and iconic landmarks.",
+      "response_time": 3.2362401485443115,
+      "response_length": 1092,
+      "expected_keywords": [
+        "ferry",
+        "routes",
+        "bosphorus"
+      ],
+      "forbidden_keywords": [
+        "restaurant menu",
+        "museum ticket"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 15,
+      "category": "Transportation",
+      "query": "istanbul metro cost",
+      "description": "Cost information",
+      "status": "PASSED",
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other areas\n- **Ferry:** Scenic routes across the Bosphorus\n- **Metrobus:** Fast bus on dedicated lanes\n\n**Tips:**\n- Get an Istanbulkart for all public transport\n- Download Citymapper or Moovit for directions\n- Ferries offer beautiful city views\n- Avoid rush hours (7-9 AM, 5-7 PM) when possible\n\n**Taxi/Ride-sharing:**\n- BiTaksi, Uber available\n- Agree on fare beforehand for taxis\n- Traffic can be heavy, especially bridges\n\nAsk me about specific routes for detailed directions!",
+      "response_time": 0.012260913848876953,
+      "response_length": 672,
+      "expected_keywords": [
+        "metro",
+        "cost",
+        "istanbulkart",
+        "price"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 16,
+      "category": "Transportation",
+      "query": "where to buy istanbulkart",
+      "description": "Card purchase info",
+      "status": "PASSED",
+      "response": "If you're looking to buy an Istanbulkart, which is the city's public transportation smart card, you can easily purchase one at various locations throughout Istanbul. You can get an Istanbulkart from major transportation hubs like metro stations, ferry terminals, and many authorized kiosks. Additionally, you can buy or top up your Istanbulkart at convenience stores and newsstands around the city. It's a convenient and cost-effective way to travel around Istanbul using public transportation. If you need more information about specific locations or how to use the Istanbulkart, feel free to ask!",
+      "response_time": 1.8609075546264648,
+      "response_length": 598,
+      "expected_keywords": [
+        "istanbulkart",
+        "buy",
+        "metro",
+        "station"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 17,
+      "category": "Transportation",
+      "query": "metroe from kadıköy",
+      "description": "Misspelled metro",
+      "status": "PASSED",
+      "response": "**Transportation from Kadıköy to Metroe:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.01002192497253418,
+      "response_length": 548,
+      "expected_keywords": [
+        "metro",
+        "kadikoy",
+        "transport"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 18,
+      "category": "Transportation",
+      "query": "how go from galata to uskudar",
+      "description": "Simplified grammar",
+      "status": "PASSED",
+      "response": "**Transportation from Galata to Üsküdar:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.011451244354248047,
+      "response_length": 548,
+      "expected_keywords": [
+        "ferry",
+        "metro",
+        "transport",
+        "galata",
+        "uskudar"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 19,
+      "category": "Transportation",
+      "query": "transport museum istanbul",
+      "description": "Transport museum (should give museum info, not transport routes)",
+      "status": "FAILED",
+      "response": "**Getting Around Istanbul:**\n\n**Public Transportation:**\n- **Metro:** Clean, efficient, connects major areas\n- **Bus:** Extensive network, use Istanbulkart\n- **Tram:** Connects Sultanahmet to other areas\n- **Ferry:** Scenic routes across the Bosphorus\n- **Metrobus:** Fast bus on dedicated lanes\n\n**Tips:**\n- Get an Istanbulkart for all public transport\n- Download Citymapper or Moovit for directions\n- Ferries offer beautiful city views\n- Avoid rush hours (7-9 AM, 5-7 PM) when possible\n\n**Taxi/Ride-sharing:**\n- BiTaksi, Uber available\n- Agree on fare beforehand for taxis\n- Traffic can be heavy, especially bridges\n\nAsk me about specific routes for detailed directions!",
+      "response_time": 0.012082815170288086,
+      "response_length": 672,
+      "expected_keywords": [
+        "transport",
+        "museum",
+        "rahmi"
+      ],
+      "forbidden_keywords": [
+        "metro route",
+        "ferry schedule"
+      ],
+      "issues": [
+        "Missing key content. Found: ['transport']"
+      ]
+    },
+    {
+      "test_id": 20,
+      "category": "Transportation",
+      "query": "how to get to transport",
+      "description": "Ambiguous transport query",
+      "status": "PASSED",
+      "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.011071920394897461,
+      "response_length": 541,
+      "expected_keywords": [
+        "transport",
+        "metro",
+        "bus"
+      ],
+      "forbidden_keywords": [
+        "museum",
+        "restaurant"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 21,
+      "category": "Museum",
+      "query": "museums in istanbul",
+      "description": "General museum query",
+      "status": "PASSED",
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some of the must-visit museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, now a museum showcasing stunning architecture and history. 2. Topkapi Palace: Once the main residence of Ottoman sultans, now a museum displaying royal artifacts and exquisite architecture. 3. Istanbul Archaeology Museums: Comprising three museums - the Archaeological Museum, the Museum of the Ancient Orient, and the Museum of Islamic Art. 4. Chora Museum (Kariye Museum): Known for its beautiful mosaics and frescoes depicting religious scenes. 5. Istanbul Modern: A contemporary art museum focusing on Turkish modern art. 6. Pera Museum: Featuring a diverse range of artworks, including Orientalist paintings, Anatolian weights and measures, and Kutahya tiles. These museums offer a deep dive into Istanbul's history, art, and culture, making them perfect for museum enthusiasts like yourself.",
+      "response_time": 2.788522958755493,
+      "response_length": 997,
+      "expected_keywords": [
+        "museum",
+        "hagia sophia",
+        "topkapi",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "metro route"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 22,
+      "category": "Museum",
+      "query": "best museums to visit",
+      "description": "Museum recommendations",
+      "status": "PASSED",
+      "response": "When it comes to museums in Istanbul, you're in for a treat! Here are some of the best museums you should consider visiting: 1. Hagia Sophia: This iconic museum in Sultanahmet was once a church and then a mosque. It's a masterpiece of Byzantine architecture. 2. Topkapi Palace: Explore the lavish rooms, courtyards, and treasures of the Ottoman sultans in this magnificent palace-museum. 3. Basilica Cistern: Discover the ancient underground water reservoir with impressive Medusa head columns near Hagia Sophia. Each museum offers a unique glimpse into Istanbul's rich history and cultural heritage. Enjoy exploring these fascinating museums! If you need more information or recommendations, feel free to ask!",
+      "response_time": 2.6646721363067627,
+      "response_length": 710,
+      "expected_keywords": [
+        "museum",
+        "topkapi",
+        "hagia sophia",
+        "visit"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 23,
+      "category": "Museum",
+      "query": "topkapi palace",
+      "description": "Specific museum",
+      "status": "PASSED",
+      "response": "Topkapi Palace is a magnificent historical site located in the Sultanahmet district of Istanbul. It served as the primary residence of the Ottoman Sultans for centuries. Here are some key places to explore within the Topkapi Palace complex: 1. Imperial Council Building: This is where the council of viziers met to discuss state affairs. 2. Harem: The private quarters of the Sultan, his family, and the concubines. 3. The Treasury: Houses an impressive collection of priceless treasures, including jewelry and artifacts. 4. Courtyards: The palace features several beautiful courtyards like the Second Courtyard, where you can see the entrance to the Harem. 5. Palace Kitchens: Discover the vast kitchens where meals for the Sultan and his court were prepared. Each area within Topkapi Palace offers a unique glimpse into the opulent life of the Ottoman Empire. It's a must-visit for history and culture enthusiasts visiting Istanbul.",
+      "response_time": 2.012338876724243,
+      "response_length": 934,
+      "expected_keywords": [
+        "topkapi",
+        "palace",
+        "ottoman",
+        "museum"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "metro"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 24,
+      "category": "Museum",
+      "query": "hagia sophia opening hours",
+      "description": "Museum practical info",
+      "status": "PASSED",
+      "response": "The Hagia Sophia in Istanbul is typically open from 9: AM to 7: PM. It's a magnificent historical site that showcases a blend of Byzantine and Ottoman architecture. If you're planning to visit, you can explore its stunning interiors and learn about its rich history. Is there anything else you'd like to know about Istanbul?",
+      "response_time": 1.3174779415130615,
+      "response_length": 324,
+      "expected_keywords": [
+        "hagia sophia",
+        "hours",
+        "open"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 25,
+      "category": "Museum",
+      "query": "museums in sultanahmet",
+      "description": "Museums in specific area",
+      "status": "PASSED",
+      "response": "In Sultanahmet, you'll find some of Istanbul's most iconic and historical sites rather than traditional museums. Here are a few must-visit places in Sultanahmet: 1. Hagia Sophia: Originally a Byzantine church, then an Ottoman mosque, now a museum. It's a stunning example of Byzantine architecture with impressive mosaics and a massive dome. 2. Blue Mosque: Also known as the Sultan Ahmed Mosque, famous for its blue tiles adorning its interior walls. It's still an active mosque, so visitors need to be respectful. 3. Topkapi Palace: Explore the former residence of Ottoman sultans, featuring beautiful courtyards, intricate mosaics, and stunning views of the Bosphorus. 4. Basilica Cistern: An underground wonder built in the 6th century, featuring mysterious Medusa heads and atmospheric lighting. While not traditional museums, these historical sites offer a glimpse into Istanbul's rich past and cultural heritage. Each place in Sultanahmet is like stepping back in time to experience the grandeur of Istanbul's history.",
+      "response_time": 2.711984157562256,
+      "response_length": 1025,
+      "expected_keywords": [
+        "museum",
+        "sultanahmet",
+        "hagia sophia",
+        "topkapi"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 26,
+      "category": "Museum",
+      "query": "museums near galata tower",
+      "description": "Museums near landmark",
+      "status": "PASSED",
+      "response": "If you're near the Galata Tower, you're in a vibrant area of Istanbul! While there aren't museums directly next to the tower, you can easily explore some fascinating museums nearby. One iconic museum you shouldn't miss is the Hagia Sophia in Sultanahmet, known for its stunning architecture and history. Another must-visit is the Istanbul Archaeology Museums, which houses a vast collection of artifacts spanning centuries. If you're interested in art, you can head to the Istanbul Modern Museum in Karaköy, featuring contemporary Turkish art. For a unique experience, consider visiting the Museum of Innocence in Çukurcuma, inspired by Orhan Pamuk's novel. These museums offer a rich cultural experience that complements the historical charm of the Galata area.",
+      "response_time": 2.9272048473358154,
+      "response_length": 762,
+      "expected_keywords": [
+        "museum",
+        "galata",
+        "pera",
+        "istanbul modern"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "metro"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 27,
+      "category": "Museum",
+      "query": "art museums istanbul",
+      "description": "Art museum specific",
+      "status": "PASSED",
+      "response": "Istanbul is a treasure trove for art enthusiasts! Here are some must-visit art museums in Istanbul: 1. Istanbul Modern: Located in Karaköy, it focuses on contemporary Turkish art. 2. Pera Museum: Situated in Beyoğlu, it showcases a diverse range of art, including Orientalist paintings, Anatolian weights and measures, and Kutahya tiles. 3. Sakıp Sabancı Museum: Found in Emirgan, it features a collection of calligraphy, paintings, and sculptures. 4. Rahmi M. Koç Museum: While not solely an art museum, it exhibits a wide variety of items, including paintings and sculptures, in the context of industrial history. Each of these museums offers a unique perspective on art in Istanbul, blending history and culture in fascinating ways. Which one catches your eye for a visit today?",
+      "response_time": 1.8556091785430908,
+      "response_length": 781,
+      "expected_keywords": [
+        "museum",
+        "art",
+        "pera",
+        "istanbul modern"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 28,
+      "category": "Museum",
+      "query": "history museums",
+      "description": "History museum specific",
+      "status": "PASSED",
+      "response": "History museums are a fantastic way to dive deep into Istanbul's rich past. In the city, you can explore remarkable historical artifacts and stories at several museums. Here are some notable history museums you might enjoy visiting: 1. Hagia Sophia: Originally a church, then a mosque, now a museum, Hagia Sophia in Sultanahmet is a treasure trove of history with its stunning architecture and layers of cultural significance. 2. Topkapi Palace: Delve into the opulent history of the Ottoman Empire at the Topkapi Palace, also in Sultanahmet. Explore the palace complex, including the Harem, and discover the luxurious lifestyle of sultans. 3. Basilica Cistern: While not a traditional museum, the Basilica Cistern near Hagia Sophia is a fascinating underground reservoir showcasing ancient Roman engineering. These museums offer a captivating journey through Istanbul's historical heritage, from Byzantine marvels to Ottoman grandeur. Each visit provides a unique insight into the city's vibrant past.",
+      "response_time": 2.3584001064300537,
+      "response_length": 1002,
+      "expected_keywords": [
+        "museum",
+        "history",
+        "archaeological",
+        "topkapi"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "metro"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 29,
+      "category": "Museum",
+      "query": "musems in istanbul",
+      "description": "Misspelled museum",
+      "status": "PASSED",
+      "response": "Istanbul is rich in history and culture, offering a variety of museums to explore. Some notable museums in Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, and now a museum, Hagia Sophia is a marvel of architecture and history. 2. Topkapi Palace: Explore the lavish rooms, courtyards, and treasures of the Ottoman sultans in this magnificent palace. 3. Istanbul Archaeology Museums: Comprising three museums, this complex houses a vast collection of artifacts from various civilizations. 4. Chora Museum (Kariye Museum): Admire the stunning mosaics and frescoes depicting biblical scenes in this former Byzantine church turned museum. 5. Istanbul Modern: For contemporary art lovers, this museum showcases Turkish and international modern art. These museums offer a glimpse into Istanbul's diverse past and artistic heritage. Each one provides a unique perspective on the city's rich cultural tapestry.",
+      "response_time": 2.5855391025543213,
+      "response_length": 924,
+      "expected_keywords": [
+        "museum",
+        "istanbul",
+        "hagia sophia"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "transport"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 30,
+      "category": "Museum",
+      "query": "topkapı palase",
+      "description": "Misspelled palace name",
+      "status": "PASSED",
+      "response": "Topkapi Palace is a must-visit historical site in Istanbul! It served as the main residence and administrative headquarters of the Ottoman sultans for centuries. The palace complex includes beautiful courtyards, stunning architecture, and impressive collections of artifacts. Don't miss the Harem, Imperial Treasury, and the stunning views of the Bosphorus from the palace grounds. If you're interested in history and Ottoman culture, Topkapi Palace is a fascinating place to explore! Is there anything specific you'd like to know about Topkapi Palace or any other attractions in Istanbul?",
+      "response_time": 1.8426990509033203,
+      "response_length": 589,
+      "expected_keywords": [
+        "topkapi",
+        "palace",
+        "museum"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "metro"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 31,
+      "category": "Museum",
+      "query": "museum restaurant",
+      "description": "Museum restaurant query (ambiguous)",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 2. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 3. Ararat Terrace Restaurant & Rooftop A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 4. Food Palace 1981 Anatolian Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Marmara View Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.1927549839019775,
+      "response_length": 905,
+      "expected_keywords": [
+        "museum",
+        "restaurant"
+      ],
+      "forbidden_keywords": [
+        "metro route"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 32,
+      "category": "General",
+      "query": "hello",
+      "description": "Basic greeting",
+      "status": "PASSED",
+      "response": "Hello! How are you today? I'm here to help you discover amazing things about Istanbul. What would you like to know or explore in the city?",
+      "response_time": 0.7813889980316162,
+      "response_length": 138,
+      "expected_keywords": [
+        "hello",
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error",
+        "sorry"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 33,
+      "category": "General",
+      "query": "hi there",
+      "description": "Casual greeting",
+      "status": "PASSED",
+      "response": "Hello! How can I assist you today? Are you looking for some information about Istanbul?",
+      "response_time": 0.9619309902191162,
+      "response_length": 87,
+      "expected_keywords": [
+        "hello",
+        "hi",
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 34,
+      "category": "General",
+      "query": "what can you do",
+      "description": "Capability inquiry",
+      "status": "FAILED",
+      "response": "Hello! I'm here to help you discover amazing things about Istanbul. What would you like to know or explore in the city today? Whether you're looking for restaurant recommendations, attractions to visit, or just want to chat about Istanbul, feel free to ask!",
+      "response_time": 1.4579360485076904,
+      "response_length": 257,
+      "expected_keywords": [
+        "help",
+        "restaurants",
+        "museums",
+        "transport"
+      ],
+      "forbidden_keywords": [
+        "error",
+        "unable"
+      ],
+      "issues": [
+        "Missing key content. Found: ['help']"
+      ]
+    },
+    {
+      "test_id": 35,
+      "category": "General",
+      "query": "help me plan istanbul",
+      "description": "Planning help",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Plan İstanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. Estambul 1453 Terrace & Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 3. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 4. Glamour Rooftop Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 5. Food Palace 1981 Anatolian Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.8976240158081055,
+      "response_length": 906,
+      "expected_keywords": [
+        "help",
+        "istanbul",
+        "plan",
+        "attractions"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 36,
+      "category": "General",
+      "query": "weather in istanbul",
+      "description": "Weather query",
+      "status": "FAILED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Mivan Restaurant & Cafe A cozy cafe perfect for coffee, light meals, and a relaxed atmosphere. (popular choice among visitors) Rating: 4.9/5 • Moderate Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 5. İstanbul Kebab Cafe Restaurant A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (popular choice among visitors) Rating: 4.8/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.3396658897399902,
+      "response_length": 901,
+      "expected_keywords": [
+        "weather",
+        "istanbul",
+        "temperature"
+      ],
+      "forbidden_keywords": [
+        "restaurant",
+        "museum"
+      ],
+      "issues": [
+        "Missing key content. Found: ['istanbul']",
+        "Contains forbidden content: ['restaurant']"
+      ]
+    },
+    {
+      "test_id": 37,
+      "category": "General",
+      "query": "about istanbul",
+      "description": "General city info",
+      "status": "PASSED",
+      "response": "Istanbul is a city where East meets West, blending rich history with vibrant culture. From iconic landmarks like Hagia Sophia and the Blue Mosque to bustling markets like the Grand Bazaar, there's so much to explore. The city is known for its delicious Turkish cuisine, beautiful Bosphorus views, and diverse neighborhoods like Kadıköy and Beyoglu. If you have any specific questions or need recommendations, feel free to ask!",
+      "response_time": 1.720033884048462,
+      "response_length": 426,
+      "expected_keywords": [
+        "istanbul",
+        "city",
+        "turkey"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 38,
+      "category": "Problematic",
+      "query": "",
+      "description": "Empty query",
+      "status": "PASSED",
+      "response": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more.",
+      "response_time": 0.0019609928131103516,
+      "response_length": 118,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 39,
+      "category": "Problematic",
+      "query": "a",
+      "description": "Single character",
+      "status": "PASSED",
+      "response": "Please be more specific. Ask me about places to visit, restaurants, or anything else about Istanbul!",
+      "response_time": 0.001422882080078125,
+      "response_length": 100,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 40,
+      "category": "Problematic",
+      "query": "istanbul istanbul istanbul istanbul",
+      "description": "Repeated words",
+      "status": "PASSED",
+      "response": "Hello! It seems like you're excited about Istanbul! Is there something specific you'd like to know or explore in this beautiful city? Feel free to ask, and I'll be happy to help you discover more about Istanbul!",
+      "response_time": 0.8604352474212646,
+      "response_length": 211,
+      "expected_keywords": [
+        "istanbul",
+        "help"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 41,
+      "category": "Problematic",
+      "query": "aaaaaaaaaaaaaaa",
+      "description": "Repeated characters",
+      "status": "PASSED",
+      "response": "Please ask a meaningful question about Istanbul. I'm here to help with travel advice!",
+      "response_time": 0.003229856491088867,
+      "response_length": 85,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 42,
+      "category": "Problematic",
+      "query": "!@#$%^&*()",
+      "description": "Special characters only",
+      "status": "PASSED",
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!",
+      "response_time": 0.002156972885131836,
+      "response_length": 99,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 43,
+      "category": "Problematic",
+      "query": "restaurant!!!! beyoglu???",
+      "description": "Query with excessive punctuation",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 2. Pera İstanbul Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 3. Dürümzade A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (popular choice among visitors) Rating: 4.5/5 • Budget-friendly 4. Yeni Lokanta A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.7/5 • . Pera Port Lounge A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.308511972427368,
+      "response_length": 879,
+      "expected_keywords": [
+        "restaurant",
+        "beyoglu"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 44,
+      "category": "Problematic",
+      "query": "123456789",
+      "description": "Numbers only",
+      "status": "PASSED",
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!",
+      "response_time": 0.0027141571044921875,
+      "response_length": 99,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 45,
+      "category": "Problematic",
+      "query": "restaurant 123 in beyoglu 456",
+      "description": "Mixed numbers and text",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. 360 Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4/5 • Moderate Guney Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.5/5 • Moderate Aheste A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • . No19Dining A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • Moderate Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.974745988845825,
+      "response_length": 837,
+      "expected_keywords": [
+        "restaurant",
+        "beyoglu"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 46,
+      "category": "Problematic",
+      "query": "restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant restaurant ",
+      "description": "Very long repeated query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Food Palace 1981 Anatolian Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Las Tapas fish and kebap Restaurant A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (popular choice among visitors) Rating: 4.9/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.892174005508423,
+      "response_length": 919,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 47,
+      "category": "Problematic",
+      "query": "مطاعم في إسطنبول",
+      "description": "Arabic script",
+      "status": "PASSED",
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!",
+      "response_time": 0.003536224365234375,
+      "response_length": 99,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 48,
+      "category": "Problematic",
+      "query": "ресторан в стамбуле",
+      "description": "Cyrillic script",
+      "status": "PASSED",
+      "response": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!",
+      "response_time": 0.002894163131713867,
+      "response_length": 99,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 49,
+      "category": "Problematic",
+      "query": "'; DROP TABLE restaurants; --",
+      "description": "SQL injection attempt",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Gurme Lounge Bosphorus A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 3. The Shadow Barbecue and Steak House A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Seabreeze Lounge Rooftop Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 5. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.3541669845581055,
+      "response_length": 881,
+      "expected_keywords": [
+        "help",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error",
+        "drop",
+        "table"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 50,
+      "category": "Problematic",
+      "query": "<script>alert('xss')</script>restaurants",
+      "description": "XSS attempt with restaurant query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Seafront Lounge A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 2. Roof Mezze 360 Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Las Tapas fish and kebap Restaurant A popular kebab restaurant serving traditional Turkish grilled meats and specialties. (popular choice among visitors) Rating: 4.9/5 • Moderate SAX Türkiye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.4/5 5. Nuz Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.533599853515625,
+      "response_length": 866,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "script",
+        "alert"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 51,
+      "category": "Problematic",
+      "query": "flibber jabberwocky wompus in istanbul",
+      "description": "Nonsense words with location",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Munhanie Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 0.8976998329162598,
+      "response_length": 273,
+      "expected_keywords": [
+        "istanbul",
+        "help"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 52,
+      "category": "Multilingual",
+      "query": "beyoğlu'nda restoranlar",
+      "description": "Turkish restaurant query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Yeni Lokanta A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.7/5 • . Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 3. Eleos Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.4/5 • . Aheste A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • . WAMA'S A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.6266729831695557,
+      "response_length": 844,
+      "expected_keywords": [
+        "restaurant",
+        "beyoglu"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 53,
+      "category": "Multilingual",
+      "query": "sultanahmet müzeleri",
+      "description": "Turkish museum query",
+      "status": "PASSED",
+      "response": "Sultanahmet, known as the historical heart of Istanbul, is home to some iconic museums. Here are a few must-visit museums in Sultanahmet: 1. Hagia Sophia: Originally a church, then a mosque, and now a museum, Hagia Sophia is a stunning example of Byzantine architecture. 2. Blue Mosque: Also known as the Sultan Ahmed Mosque, it's a masterpiece of Ottoman architecture with its beautiful blue tiles. 3. Topkapi Palace: Explore the former residence of Ottoman sultans, now a museum displaying treasures, artifacts, and stunning views of the Bosphorus. 4. Basilica Cistern: An underground marvel, this ancient cistern features Medusa heads and atmospheric lighting. These museums offer a glimpse into Istanbul's rich history and cultural heritage. Each one has its own unique stories to tell. If you need more details or any other recommendations, feel free to ask!",
+      "response_time": 2.041151285171509,
+      "response_length": 863,
+      "expected_keywords": [
+        "museum",
+        "sultanahmet"
+      ],
+      "forbidden_keywords": [
+        "restaurant"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 54,
+      "category": "Multilingual",
+      "query": "resturant in istambul",
+      "description": "Common misspellings",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 5. Istanbul Anatolian Cuisine A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 2.9350712299346924,
+      "response_length": 875,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 55,
+      "category": "Multilingual",
+      "query": "how to go galata towar",
+      "description": "Typo in landmark name",
+      "status": "FAILED",
+      "response": "**Transportation from How to Go:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.011109113693237305,
+      "response_length": 540,
+      "expected_keywords": [
+        "transport",
+        "galata",
+        "tower"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": [
+        "Missing key content. Found: ['transport']"
+      ]
+    },
+    {
+      "test_id": 56,
+      "category": "Multilingual",
+      "query": "beuatiful musem",
+      "description": "Multiple typos",
+      "status": "PASSED",
+      "response": "Istanbul is rich in history and culture, offering a variety of fascinating museums to explore. Some must-visit museums in beautiful Istanbul include: 1. Hagia Sophia: Originally a church, then a mosque, now a museum showcasing stunning Byzantine architecture. 2. Topkapi Palace: A former residence of Ottoman sultans, filled with exquisite artifacts and historical treasures. 3. Basilica Cistern: An underground marvel featuring ancient columns and mystique. 4. Istanbul Archaeology Museums: Home to a vast collection of artifacts from various periods of history. 5. Chora Museum (Kariye Museum): Known for its remarkable Byzantine mosaics and frescoes. These museums offer a glimpse into Istanbul's diverse past and are perfect for anyone interested in history and art. How about exploring one of these cultural gems today?",
+      "response_time": 1.8143439292907715,
+      "response_length": 824,
+      "expected_keywords": [
+        "museum",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 57,
+      "category": "Multilingual",
+      "query": "bazilika sistern",
+      "description": "Phonetic spelling",
+      "status": "PASSED",
+      "response": "The Basilica Cistern is a fascinating historical site located in the Sultanahmet district of Istanbul. This underground cistern dates back to the 6th century and is known for its mesmerizing atmosphere with its rows of columns and the Medusa head columns. It's a great place to visit, especially on a partly cloudy day like today. The cool, dimly lit interior provides a unique experience that contrasts with the hustle and bustle of the city above ground. If you're interested in history and architecture, the Basilica Cistern is definitely a must-see during your time in Istanbul!",
+      "response_time": 1.7569820880889893,
+      "response_length": 582,
+      "expected_keywords": [
+        "basilica",
+        "cistern"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 58,
+      "category": "Multilingual",
+      "query": "hagya sofya",
+      "description": "Alternative spelling",
+      "status": "PASSED",
+      "response": "Hello! It seems like you're referring to Hagia Sophia, one of the most iconic historical sites in Istanbul. Originally built as a cathedral, later turned into a mosque, and now a museum, Hagia Sophia is a stunning example of Byzantine architecture. It's located in the Sultanahmet district and is a must-visit when you're in Istanbul. If you have any specific questions or need more information about Hagia Sophia or anything else in Istanbul, feel free to ask!",
+      "response_time": 1.3416757583618164,
+      "response_length": 461,
+      "expected_keywords": [
+        "hagia sophia"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 59,
+      "category": "Contextual",
+      "query": "restaurants there",
+      "description": "Vague location reference",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Garden 1897 Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Ararat Terrace Restaurant & Rooftop A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 5. Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.0859901905059814,
+      "response_length": 870,
+      "expected_keywords": [
+        "restaurant",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 60,
+      "category": "Contextual",
+      "query": "how to get there",
+      "description": "Vague destination",
+      "status": "PASSED",
+      "response": "**Transportation from How to Get:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.009340763092041016,
+      "response_length": 541,
+      "expected_keywords": [
+        "transport",
+        "istanbul"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 61,
+      "category": "Contextual",
+      "query": "restaurants open now",
+      "description": "Time-dependent query",
+      "status": "FAILED",
+      "response": "Here are some great restaurants in Istanbul: 1. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 2. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Deraliye A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Garden 1897 Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.417526960372925,
+      "response_length": 889,
+      "expected_keywords": [
+        "restaurant",
+        "open",
+        "hours"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": [
+        "Missing key content. Found: ['restaurant']"
+      ]
+    },
+    {
+      "test_id": 62,
+      "category": "Contextual",
+      "query": "museums open today",
+      "description": "Current day query",
+      "status": "FAILED",
+      "response": "Hello! Today in Istanbul, you have a variety of museums to explore. Some popular options include Hagia Sophia, Topkapi Palace, and the Basilica Cistern in the Sultanahmet district. These historical sites offer a glimpse into Istanbul's rich history and cultural heritage. If you're interested in visiting museums, these iconic locations are definitely worth checking out.",
+      "response_time": 1.05409574508667,
+      "response_length": 371,
+      "expected_keywords": [
+        "museum",
+        "open",
+        "hours"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": [
+        "Missing key content. Found: ['museum']"
+      ]
+    },
+    {
+      "test_id": 63,
+      "category": "Contextual",
+      "query": "better restaurants than beyoglu",
+      "description": "Comparative restaurant query",
+      "status": "PASSED",
+      "response": "Here are some great restaurants in Istanbul: 1. Beyoğlu Ocakbaşı & Restaurant Taksim A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 2. Yeni Lokanta A traditional Turkish restaurant serving home-style cooking and local specialties. (popular choice among visitors) Rating: 4.7/5 • . Pera Port Lounge A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 4. Aheste A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.7/5 • . Termeh İstanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 2.7579751014709473,
+      "response_length": 834,
+      "expected_keywords": [
+        "restaurant",
+        "beyoglu"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 64,
+      "category": "Contextual",
+      "query": "more interesting museums",
+      "description": "Subjective museum query",
+      "status": "PASSED",
+      "response": "Istanbul is rich in history and culture, offering a variety of museums to explore. Here are some fascinating museums you might enjoy visiting: 1. Hagia Sophia: Originally a church, then a mosque, now a museum showcasing stunning Byzantine architecture. 2. Topkapi Palace: Home to Ottoman sultans, this museum displays intricate treasures and artifacts from the Ottoman era. 3. Istanbul Archaeology Museums: Comprising three museums, it houses a vast collection of artifacts from various civilizations. 4. Turkish and Islamic Arts Museum: Exhibiting Islamic calligraphy, textiles, ceramics, and more, providing insight into Turkish art. 5. Istanbul Modern: A contemporary art museum overlooking the Bosphorus, featuring Turkish and international artists. Each museum offers a unique perspective on Istanbul's diverse history and cultural heritage. Do any of these catch your interest?",
+      "response_time": 1.9166510105133057,
+      "response_length": 883,
+      "expected_keywords": [
+        "museum",
+        "interesting"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    },
+    {
+      "test_id": 65,
+      "category": "Contextual",
+      "query": "restaurant near metro station",
+      "description": "Mixed restaurant and transport",
+      "status": "FAILED",
+      "response": "Here are some great restaurants in Istanbul: 1. Hidden Garden A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate Hanzade Terrace Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 • Moderate Deraliye Terrace A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.8/5 4. Pleasure Terrace Roof Restaurant in Istanbul A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 5. Food Palace 1981 Anatolian Restaurant A well-regarded restaurant offering quality dining and local cuisine. (popular choice among visitors) Rating: 4.9/5 • Moderate prices Tip: You can search for these restaurants on Google Maps for directions and more details!",
+      "response_time": 3.478353977203369,
+      "response_length": 904,
+      "expected_keywords": [
+        "restaurant",
+        "metro",
+        "near"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": [
+        "Missing key content. Found: ['restaurant']"
+      ]
+    },
+    {
+      "test_id": 66,
+      "category": "Contextual",
+      "query": "transport to museum",
+      "description": "Transport to attraction",
+      "status": "PASSED",
+      "response": "**Transportation from Istanbul to Museum:**\n\n**Metro/Public Transport:**\n- Use Istanbul's metro, bus, and tram system\n- Get an Istanbulkart for easy travel\n- Check Citymapper app for real-time directions\n\n**Ferry Options:**\n- If near water, ferries offer scenic routes\n- Check ferry schedules for availability\n\n**Taxi/Uber:**\n- Available throughout the city\n- Use BiTaksi or Uber for convenience\n- Traffic can be heavy during peak hours\n\nFor specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions.",
+      "response_time": 0.011349916458129883,
+      "response_length": 549,
+      "expected_keywords": [
+        "transport",
+        "museum"
+      ],
+      "forbidden_keywords": [
+        "error"
+      ],
+      "issues": []
+    }
+  ]
+}

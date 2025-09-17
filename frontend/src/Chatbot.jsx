@@ -36,11 +36,7 @@ const renderMessageContent = (content, darkMode) => {
         href={linkUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={`underline transition-colors duration-200 hover:opacity-80 cursor-pointer ${
-          darkMode 
-            ? 'text-blue-400 hover:text-blue-300' 
-            : 'text-blue-600 hover:text-blue-700'
-        }`}
+        className="underline transition-colors duration-200 hover:opacity-80 cursor-pointer text-blue-400 hover:text-blue-300"
       >
         {linkText}
       </a>
@@ -71,15 +67,29 @@ function Chatbot({ onDarkModeToggle }) {
   const [chatSessions, setChatSessions] = useState([])
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [readingMessageId, setReadingMessageId] = useState(null)
+  const [speechSupported, setSpeechSupported] = useState(false)
   const messagesEndRef = useRef(null)
+  const speechSynthesis = useRef(null)
 
   // Removed input suggestions as requested
 
   // Add chatbot-page class to body for proper styling
   useEffect(() => {
     document.body.classList.add('chatbot-page');
+    
+    // Initialize speech synthesis
+    if ('speechSynthesis' in window) {
+      setSpeechSupported(true);
+      speechSynthesis.current = window.speechSynthesis;
+    }
+    
     return () => {
       document.body.classList.remove('chatbot-page');
+      // Stop any ongoing speech when component unmounts
+      if (speechSynthesis.current) {
+        speechSynthesis.current.cancel();
+      }
     };
   }, []);
 
@@ -314,6 +324,82 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
+  // Copy message to clipboard
+  const copyToClipboard = async (text, messageIndex) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Show temporary feedback (you could add a toast notification here)
+      console.log('Message copied to clipboard');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      console.log('Message copied to clipboard (fallback)');
+    }
+  };
+
+  // Read message aloud
+  const readAloud = (text, messageIndex) => {
+    if (!speechSupported || !speechSynthesis.current) {
+      console.log('Speech synthesis not supported');
+      return;
+    }
+
+    // Stop any current speech
+    speechSynthesis.current.cancel();
+
+    // If already reading this message, stop
+    if (readingMessageId === messageIndex) {
+      setReadingMessageId(null);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Configure speech settings
+    utterance.rate = 0.9; // Slightly slower for better comprehension
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Use a more natural voice if available
+    const voices = speechSynthesis.current.getVoices();
+    const englishVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Google')
+    ) || voices.find(voice => voice.lang.startsWith('en'));
+    
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    // Set reading state
+    setReadingMessageId(messageIndex);
+
+    // Handle speech events
+    utterance.onend = () => {
+      setReadingMessageId(null);
+    };
+
+    utterance.onerror = () => {
+      setReadingMessageId(null);
+      console.error('Speech synthesis error');
+    };
+
+    // Start speaking
+    speechSynthesis.current.speak(utterance);
+  };
+
+  // Stop reading
+  const stopReading = () => {
+    if (speechSynthesis.current) {
+      speechSynthesis.current.cancel();
+      setReadingMessageId(null);
+    }
+  };
+
   // Handle pending chat query from main page - START NEW CHAT
   useEffect(() => {
     const pendingQuery = localStorage.getItem('pending_chat_query');
@@ -519,50 +605,97 @@ function Chatbot({ onDarkModeToggle }) {
         />
       )}
 
-      {/* Sidebar Toggle Button - Modern Design */}
+      {/* Modern Chat History Button - Following AI Chat App Patterns */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed left-4 top-16 z-50 transition-all duration-200"
+        className="fixed left-2 top-28 z-50 transition-all duration-300 group"
         style={{ 
           zIndex: 1001,
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(99, 102, 241, 0.9) 100%)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(139, 92, 246, 0.5)',
+          background: sidebarOpen 
+            ? 'rgba(139, 92, 246, 0.15)' 
+            : 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(20px)',
+          border: sidebarOpen 
+            ? '1px solid rgba(139, 92, 246, 0.4)' 
+            : '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '12px',
-          padding: '12px',
-          boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
-          color: '#ffffff'
+          padding: '10px',
+          boxShadow: sidebarOpen 
+            ? '0 8px 32px rgba(139, 92, 246, 0.25)' 
+            : '0 4px 20px rgba(0, 0, 0, 0.1)',
+          color: sidebarOpen ? '#8b5cf6' : '#9ca3af',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '44px',
+          height: '44px',
+          cursor: 'pointer'
         }}
         onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-2px) scale(1.05)';
-          e.target.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+          e.target.style.transform = 'translateY(-1px) scale(1.05)';
+          e.target.style.boxShadow = sidebarOpen 
+            ? '0 12px 48px rgba(139, 92, 246, 0.3)' 
+            : '0 8px 32px rgba(139, 92, 246, 0.2)';
+          e.target.style.background = 'rgba(139, 92, 246, 0.15)';
+          e.target.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+          e.target.style.color = '#8b5cf6';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'translateY(0) scale(1)';
-          e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.3)';
+          e.target.style.boxShadow = sidebarOpen 
+            ? '0 8px 32px rgba(139, 92, 246, 0.25)' 
+            : '0 4px 20px rgba(0, 0, 0, 0.1)';
+          e.target.style.background = sidebarOpen 
+            ? 'rgba(139, 92, 246, 0.15)' 
+            : 'rgba(255, 255, 255, 0.08)';
+          e.target.style.borderColor = sidebarOpen 
+            ? 'rgba(139, 92, 246, 0.4)' 
+            : 'rgba(255, 255, 255, 0.1)';
+          e.target.style.color = sidebarOpen ? '#8b5cf6' : '#9ca3af';
         }}
+        title="Chat History"
       >
+        <svg 
+          width="20" 
+          height="20" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24" 
+          style={{ 
+            transition: 'all 0.3s ease',
+            transform: sidebarOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+          }}
+        >
+          <path 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            strokeWidth={2} 
+            d={sidebarOpen 
+              ? "M15 19l-7-7 7-7" 
+              : "M8 9l4-4 4 4m0 6l-4 4-4-4"
+            } 
+          />
+        </svg>
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       {/* Main Chat Container with Purple Outline */}
-      <div className={`chatbot-container transition-all duration-300 ${
+      <div className={`chatbot-main-container transition-all duration-300 ${
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
       }`}>
+        <div className="chatbot-purple-box">
 
-        {/* Chat Messages Area - Separate from Input */}
-        <div className="chatbot-messages">
+          {/* Chat Messages Area - Separate from Input */}
+          <div className="chatbot-messages">
           
           {/* Welcome Screen - Clean and modern */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-start h-full pt-4 px-4">
               
               {/* Main Title */}
-              <h1 className={`text-4xl font-bold mb-4 text-center max-w-2xl ${
-                darkMode ? 'text-white' : 'text-gray-900'
-              }`} style={{
+              <h1 className="text-4xl font-bold mb-4 text-center max-w-2xl text-white" style={{
                 background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -581,58 +714,91 @@ function Chatbot({ onDarkModeToggle }) {
             </div>
           )}
           
-          {/* Chat Messages - Clean Style without Profile Photos */}
+          {/* Chat Messages - Clean Style with Action Buttons */}
           <div className="py-1">
             {messages.map((msg, index) => (
-              <div key={index} className="mb-4" style={{ maxWidth: '100%' }}>
+              <div key={index} className="mb-4 group" style={{ maxWidth: '100%' }}>
                 <div className={`flex ${
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}>
                   {msg.role === 'assistant' && (
-                    <div className={`text-xs font-medium mb-1 ${
-                      darkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                    <div className="text-xs font-medium mb-1 text-gray-100">
                       KAM
                     </div>
                   )}
                 </div>
                 <div className={`flex ${
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}>
-                  <div className={`max-w-[80%] ${
+                } relative`}>
+                  <div className={`max-w-[80%] relative ${
                     msg.role === 'user' 
                       ? 'bg-purple-600 text-white rounded-2xl rounded-br-md px-4 py-3'
-                      : darkMode 
-                        ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700' 
-                        : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-200'
+                      : 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700'
                   }`}>
                     <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
                       {renderMessageContent(msg.content, darkMode)}
                     </div>
                   </div>
                 </div>
+                
+                {/* Action Buttons - Outside message bubble like ChatGPT */}
+                {msg.role === 'assistant' && (
+                  <div className={`kam-message-actions flex ${
+                    msg.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}>
+                    
+                    {/* Copy Button */}
+                    <button
+                      onClick={() => copyToClipboard(msg.content, index)}
+                      className="kam-action-button kam-copy-button"
+                      title="Copy message"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs">Copy</span>
+                    </button>
+                    
+                    {/* Read Aloud Button */}
+                    {speechSupported && (
+                      <button
+                        onClick={() => readingMessageId === index ? stopReading() : readAloud(msg.content, index)}
+                        className={`kam-action-button kam-read-button ${readingMessageId === index ? 'active' : ''}`}
+                        title={readingMessageId === index ? "Stop reading" : "Read aloud"}
+                      >
+                        {readingMessageId === index ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-6.219-8.56" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10l2 2 4-4" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.575 12 18.586V5.414c0-.989-1.077-1.751-1.707-1.121L5.586 9z" />
+                          </svg>
+                        )}
+                        <span className="text-xs">
+                          {readingMessageId === index ? 'Stop' : 'Read'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             
             {loading && (
               <div className="mb-4">
                 <div className="flex justify-start">
-                  <div className={`text-xs font-medium mb-1 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
+                  <div className="text-xs font-medium mb-1 text-gray-100">
                     KAM
                   </div>
                 </div>
                 <div className="flex justify-start">
-                  <div className={`max-w-[80%] ${
-                    darkMode 
-                      ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700' 
-                      : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-200'
-                  }`}>
+                  <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
                     <div className="flex items-center space-x-1">
-                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`}></div>
-                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.1s'}}></div>
-                      <div className={`w-2 h-2 rounded-full animate-bounce ${darkMode ? 'bg-gray-400' : 'bg-gray-500'}`} style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400"></div>
+                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400" style={{animationDelay: '0.1s'}}></div>
+                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400" style={{animationDelay: '0.2s'}}></div>
                     </div>
                   </div>
                 </div>
@@ -643,29 +809,26 @@ function Chatbot({ onDarkModeToggle }) {
           </div>
         </div>
 
-        {/* Input Area - Separate Section at Bottom */}
+        {/* Redesigned Input Area - Modern and Elegant */}
         <div className="chatbot-input-area">
           
-          {/* Error message */}
+          {/* Error message with improved styling */}
           {inputError && (
-            <div className="mb-3 p-3 rounded-lg bg-red-100 border border-red-300 dark:bg-red-900 dark:border-red-700">
-              <div className="text-sm text-red-700 dark:text-red-300">
-                ⚠️ {inputError}
+            <div className="kam-error-message mb-4">
+              <div className="flex items-center space-x-2">
+                <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="text-red-300 font-medium">{inputError}</span>
               </div>
             </div>
           )}
           
-          {/* Input Box */}
-          <div className="relative mb-2">
-            <div className={`flex items-center space-x-3 px-4 py-3 transition-all duration-200 border ${
-              inputError 
-                ? 'border-red-400 dark:border-red-600' 
-                : 'border-gray-600 focus-within:border-purple-500'
-            }`} style={{
-              borderRadius: '28px',
-              boxShadow: '0 2px 8px rgba(139, 92, 246, 0.1)',
-              background: 'transparent'
-            }}>
+          {/* Completely Redesigned Input Container - No surrounding border */}
+          <div className="kam-input-wrapper">
+            <div className="kam-input-container">
+              
+              {/* Input Field */}
               <input
                 type="text"
                 value={input}
@@ -681,16 +844,21 @@ function Chatbot({ onDarkModeToggle }) {
                     }
                   }
                 }}
-                placeholder="Ask KAM about Istanbul..."
-                className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
-                  darkMode 
-                    ? 'placeholder-gray-400 text-white' 
-                    : 'placeholder-gray-500 text-gray-900'
-                }`}
+                placeholder="What would you like to know about Istanbul?"
+                className="kam-input-field"
                 disabled={loading}
                 autoComplete="off"
                 autoFocus={false}
               />
+              
+              {/* Search Icon - positioned over input */}
+              <div className="kam-search-icon">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              
+              {/* Send Button */}
               <button 
                 onClick={() => {
                   if (!loading && input.trim()) {
@@ -698,23 +866,43 @@ function Chatbot({ onDarkModeToggle }) {
                   }
                 }} 
                 disabled={loading || !input.trim()}
-                className={`p-2.5 rounded-full transition-all duration-200 ${
-                  loading || !input.trim()
-                    ? 'bg-gray-300 cursor-not-allowed opacity-50'
-                    : 'bg-purple-600 hover:bg-purple-700 cursor-pointer shadow-lg hover:shadow-purple-500/25'
-                } text-white flex items-center justify-center`}
-                style={{ borderRadius: '50%', minWidth: '40px', minHeight: '40px' }}
+                className="kam-send-button"
+                aria-label="Send message"
               >
                 {loading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="kam-loading-spinner">
+                    <div className="kam-spinner-ring"></div>
+                  </div>
                 ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
+                  <span style={{ fontSize: '18px' }}>✈️</span>
                 )}
               </button>
             </div>
           </div>
+          
+          {/* Quick suggestions (optional) */}
+          {messages.length === 0 && !loading && (
+            <div className="kam-quick-suggestions">
+              <div className="text-xs text-gray-400 mb-2">Try asking about:</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Best restaurants in Sultanahmet",
+                  "Things to do in Beyoğlu", 
+                  "Ferry routes to the islands",
+                  "Turkish breakfast spots"
+                ].map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setInput(suggestion)}
+                    className="kam-suggestion-pill"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         </div>
       </div>
     </div>
