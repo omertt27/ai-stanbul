@@ -5,13 +5,14 @@ import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
-import LiveActivityFeed from './components/LiveActivityFeed';
+import CookieConsent from './components/CookieConsent';
+// import LiveActivityFeed from './components/LiveActivityFeed'; // Removed as requested
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
 import './components/InteractiveMainPage.css';
-import './components/LiveActivityFeed.css';
+// import './components/LiveActivityFeed.css'; // Removed as requested
 
 const App = () => {
   const location = useLocation();
@@ -135,8 +136,8 @@ const App = () => {
         {/* <DebugInfo /> */}
 
         <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '8rem'}}>
-          {/* Live Activity Feed */}
-          <LiveActivityFeed />
+          {/* Live Activity Feed - Removed as requested */}
+          {/* <LiveActivityFeed /> */}
           
           {/* Centered logo - bigger than navbar logo */}
           <div style={{textAlign: 'center', marginBottom: '2rem'}} onClick={handleLogoClick}>
@@ -171,6 +172,9 @@ const App = () => {
           {/* Interactive Main Page Content */}
           <InteractiveMainPage onQuickStart={handleQuickStart} />
         </div>
+
+        {/* Cookie Consent Banner */}
+        <CookieConsent />
       </div>
     </WeatherThemeProvider>
   );

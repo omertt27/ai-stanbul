@@ -46,11 +46,11 @@ const WeatherThemeProvider = ({ children }) => {
   return (
     <div className={`weather-theme-provider theme-${theme}`}>
       {children}
-      {/* Weather indicator */}
-      <div className="weather-indicator">
+      {/* Weather indicator - Removed as requested */}
+      {/* <div className="weather-indicator">
         <span className="weather-icon">{getWeatherIcon(theme)}</span>
         <span className="weather-text">{getWeatherText(theme)}</span>
-      </div>
+      </div> */}
     </div>
   );
 };

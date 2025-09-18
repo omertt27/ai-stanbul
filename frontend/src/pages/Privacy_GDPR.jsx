@@ -6,7 +6,7 @@ function Privacy() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`static-page ${darkMode ? 'dark' : ''}`} style={{ paddingBottom: '4rem' }}>
+    <div className={`static-page ${darkMode ? 'dark' : ''}`}>
       <h1>Privacy Policy & GDPR Compliance</h1>
       <p><em>Last updated: September 2025</em></p>
 
@@ -76,6 +76,25 @@ function Privacy() {
         <strong>Safeguards:</strong> All international transfers are protected by Standard Contractual Clauses (SCCs) 
         or adequacy decisions where available.
       </p>
+
+      <h2>🛡️ Your GDPR Rights</h2>
+      <div style={{background: darkMode ? '#374151' : '#f9fafb', padding: '1rem', borderRadius: '8px', margin: '1rem 0'}}>
+        <p>Under GDPR, you have the following rights:</p>
+        <ul>
+          <li><strong>Right to Access (Art. 15):</strong> Request information about your personal data</li>
+          <li><strong>Right to Rectification (Art. 16):</strong> Correct inaccurate personal data</li>
+          <li><strong>Right to Erasure (Art. 17):</strong> Request deletion of your data ("right to be forgotten")</li>
+          <li><strong>Right to Data Portability (Art. 20):</strong> Receive your data in machine-readable format</li>
+          <li><strong>Right to Object (Art. 21):</strong> Object to processing based on legitimate interests</li>
+          <li><strong>Right to Withdraw Consent (Art. 7(3)):</strong> Withdraw consent at any time</li>
+          <li><strong>Right to Lodge a Complaint:</strong> Contact your local Data Protection Authority</li>
+        </ul>
+        <p>
+          <Link to="/gdpr" style={{color: darkMode ? '#60a5fa' : '#2563eb', fontWeight: 'bold'}}>
+            Exercise your rights here →
+          </Link>
+        </p>
+      </div>
 
       <h2>Data Retention</h2>
       <ul>

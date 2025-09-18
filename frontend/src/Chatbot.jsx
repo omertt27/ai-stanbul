@@ -7,54 +7,101 @@ import './App.css';
 
 
 
-// Helper function to render text with clickable links
+// Helper function to render text with clickable links and proper formatting
 const renderMessageContent = (content, darkMode) => {
-  // Convert Markdown-style links [text](url) to clickable HTML links
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  // First, split content into paragraphs (double line breaks)
+  const paragraphs = content.split(/\n\s*\n/);
   
-  const parts = [];
-  let lastIndex = 0;
-  let match;
-  
-  while ((match = linkRegex.exec(content)) !== null) {
-    const linkText = match[1];
-    const linkUrl = match[2];
+  return paragraphs.map((paragraph, paragraphIndex) => {
+    // Convert Markdown-style links [text](url) to clickable HTML links
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     
-    // Add text before the link
-    if (match.index > lastIndex) {
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = linkRegex.exec(paragraph)) !== null) {
+      const linkText = match[1];
+      const linkUrl = match[2];
+      
+      // Add text before the link
+      if (match.index > lastIndex) {
+        const textContent = paragraph.substring(lastIndex, match.index);
+        // Split by single line breaks for proper formatting
+        const lines = textContent.split('\n');
+        lines.forEach((line, lineIndex) => {
+          if (lineIndex > 0) {
+            parts.push(<br key={`br-${lastIndex}-${lineIndex}`} />);
+          }
+          if (line.trim()) {
+            parts.push(
+              <span key={`text-${lastIndex}-${lineIndex}`}>
+                {line}
+              </span>
+            );
+          }
+        });
+      }
+      
+      // Add the clickable link
       parts.push(
-        <span key={`text-${lastIndex}`}>
-          {content.substring(lastIndex, match.index)}
-        </span>
+        <a
+          key={`link-${paragraphIndex}-${match.index}`}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline transition-colors duration-200 hover:opacity-80 cursor-pointer text-blue-400 hover:text-blue-300"
+        >
+          {linkText}
+        </a>
       );
+      
+      lastIndex = linkRegex.lastIndex;
     }
     
-    // Add the clickable link
-    parts.push(
-      <a
-        key={`link-${match.index}`}
-        href={linkUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline transition-colors duration-200 hover:opacity-80 cursor-pointer text-blue-400 hover:text-blue-300"
-      >
-        {linkText}
-      </a>
-    );
+    // Add any remaining text after the last link
+    if (lastIndex < paragraph.length) {
+      const textContent = paragraph.substring(lastIndex);
+      // Split by single line breaks for proper formatting
+      const lines = textContent.split('\n');
+      lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          parts.push(<br key={`br-${lastIndex}-${lineIndex}`} />);
+        }
+        if (line.trim()) {
+          parts.push(
+            <span key={`text-${lastIndex}-${lineIndex}`}>
+              {line}
+            </span>
+          );
+        }
+      });
+    }
     
-    lastIndex = linkRegex.lastIndex;
-  }
-  
-  // Add any remaining text after the last link
-  if (lastIndex < content.length) {
-    parts.push(
-      <span key={`text-${lastIndex}`}>
-        {content.substring(lastIndex)}
-      </span>
+    // If no links were found, handle line breaks in the whole paragraph
+    if (parts.length === 0) {
+      const lines = paragraph.split('\n');
+      lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          parts.push(<br key={`br-${paragraphIndex}-${lineIndex}`} />);
+        }
+        if (line.trim()) {
+          parts.push(
+            <span key={`text-${paragraphIndex}-${lineIndex}`}>
+              {line}
+            </span>
+          );
+        }
+      });
+    }
+    
+    // Return each paragraph wrapped in a div with margin for separation
+    return (
+      <div key={`paragraph-${paragraphIndex}`} className={paragraphIndex > 0 ? 'mt-4' : ''}>
+        {parts}
+      </div>
     );
-  }
-  
-  return parts.length > 0 ? parts : content;
+  });
 };
 
 function Chatbot({ onDarkModeToggle }) {
@@ -741,48 +788,46 @@ function Chatbot({ onDarkModeToggle }) {
                   </div>
                 </div>
                 
-                {/* Action Buttons - Outside message bubble like ChatGPT */}
-                {msg.role === 'assistant' && (
-                  <div className={`kam-message-actions flex ${
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}>
-                    
-                    {/* Copy Button */}
+                {/* Action Buttons - Outside message bubble like ChatGPT - For both user and assistant messages */}
+                <div className={`kam-message-actions flex ${
+                  msg.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}>
+                  
+                  {/* Copy Button */}
+                  <button
+                    onClick={() => copyToClipboard(msg.content, index)}
+                    className="kam-action-button kam-copy-button"
+                    title="Copy message"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs">Copy</span>
+                  </button>
+                  
+                  {/* Read Aloud Button */}
+                  {speechSupported && (
                     <button
-                      onClick={() => copyToClipboard(msg.content, index)}
-                      className="kam-action-button kam-copy-button"
-                      title="Copy message"
+                      onClick={() => readingMessageId === index ? stopReading() : readAloud(msg.content, index)}
+                      className={`kam-action-button kam-read-button ${readingMessageId === index ? 'active' : ''}`}
+                      title={readingMessageId === index ? "Stop reading" : "Read aloud"}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-xs">Copy</span>
+                      {readingMessageId === index ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-6.219-8.56" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10l2 2 4-4" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.575 12 18.586V5.414c0-.989-1.077-1.751-1.707-1.121L5.586 9z" />
+                        </svg>
+                      )}
+                      <span className="text-xs">
+                        {readingMessageId === index ? 'Stop' : 'Read'}
+                      </span>
                     </button>
-                    
-                    {/* Read Aloud Button */}
-                    {speechSupported && (
-                      <button
-                        onClick={() => readingMessageId === index ? stopReading() : readAloud(msg.content, index)}
-                        className={`kam-action-button kam-read-button ${readingMessageId === index ? 'active' : ''}`}
-                        title={readingMessageId === index ? "Stop reading" : "Read aloud"}
-                      >
-                        {readingMessageId === index ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-6.219-8.56" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10l2 2 4-4" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.575 12 18.586V5.414c0-.989-1.077-1.751-1.707-1.121L5.586 9z" />
-                          </svg>
-                        )}
-                        <span className="text-xs">
-                          {readingMessageId === index ? 'Stop' : 'Read'}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
             
@@ -874,7 +919,14 @@ function Chatbot({ onDarkModeToggle }) {
                     <div className="kam-spinner-ring"></div>
                   </div>
                 ) : (
-                  <span style={{ fontSize: '18px' }}>✈️</span>
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                    style={{ transform: 'rotate(45deg)' }}
+                  >
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
                 )}
               </button>
             </div>

@@ -84,13 +84,9 @@ class WeatherAwareContentEngine:
             
             weather_condition = self._categorize_weather(weather)
             
-            # Get relevant content categories
-            content_config = self.weather_content_map.get(weather_condition, {})
-            
-            # Mock blog posts (in real implementation, query from database)
-            recommendations = self._generate_weather_recommendations(
+            # Load and analyze actual blog posts
+            recommendations = await self._analyze_real_blog_posts(
                 weather_condition, 
-                content_config, 
                 weather,
                 limit
             )
@@ -252,6 +248,187 @@ class WeatherAwareContentEngine:
             recommendations.append(recommendation)
         
         return recommendations
+
+    async def _analyze_real_blog_posts(self, 
+                                     weather_condition: str,
+                                     weather_data: Dict,
+                                     limit: int) -> List[ContentRecommendation]:
+        """Analyze actual blog posts and match them to current weather conditions"""
+        
+        try:
+            # Load actual blog posts from file
+            import json
+            import os
+            
+            blog_file_path = os.path.join(os.path.dirname(__file__), "blog_posts.json")
+            if not os.path.exists(blog_file_path):
+                logger.warning("Blog posts file not found, falling back to mock data")
+                return self._get_fallback_recommendations(limit)
+            
+            with open(blog_file_path, 'r', encoding='utf-8') as f:
+                blog_posts = json.load(f)
+            
+            # Score each blog post for weather relevance
+            scored_posts = []
+            for post in blog_posts:
+                if not post.get('published', True):
+                    continue
+                    
+                score = self._calculate_weather_relevance_score(post, weather_condition)
+                if score > 0.3:  # Only include posts with decent relevance
+                    scored_posts.append({
+                        'post': post,
+                        'score': score
+                    })
+            
+            # Sort by relevance score (highest first)
+            scored_posts.sort(key=lambda x: x['score'], reverse=True)
+            
+            # Convert to ContentRecommendation objects
+            recommendations = []
+            temp = weather_data.get('main', {}).get('temp', 'N/A')
+            weather_list = weather_data.get('weather', [])
+            description = weather_list[0].get('description', 'N/A') if weather_list else 'N/A'
+            
+            for item in scored_posts[:limit]:
+                post = item['post']
+                score = item['score']
+                
+                reason = self._generate_weather_reason(post, weather_condition, score)
+                
+                recommendation = ContentRecommendation(
+                    post_id=post['id'],
+                    title=post['title'],
+                    relevance_score=score,
+                    reason=reason,
+                    weather_context=f"Current: {description}, {temp}°C"
+                )
+                recommendations.append(recommendation)
+            
+            # If we don't have enough recommendations, supplement with fallback
+            if len(recommendations) < limit:
+                fallback = self._get_fallback_recommendations(limit - len(recommendations))
+                recommendations.extend(fallback)
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error analyzing real blog posts: {e}")
+            return self._get_fallback_recommendations(limit)
+    
+    def _calculate_weather_relevance_score(self, post: Dict, weather_condition: str) -> float:
+        """Calculate how relevant a blog post is to current weather conditions"""
+        
+        score = 0.0
+        content = (post.get('content', '') + ' ' + post.get('title', '')).lower()
+        tags = [tag.lower() for tag in post.get('tags', [])]
+        category = post.get('category', '').lower()
+        
+        # Weather-specific keyword scoring
+        weather_keywords = {
+            "sunny": {
+                "high_score": ["outdoor", "rooftop", "terrace", "park", "garden", "walking", "sunset", "view", "bosphorus", "bridge"],
+                "medium_score": ["market", "street", "plaza", "square", "waterfront", "coastal", "outside"],
+                "negative": ["indoor", "museum", "mall", "underground", "covered"]
+            },
+            "rainy": {
+                "high_score": ["indoor", "museum", "cafe", "gallery", "underground", "covered", "bazaar", "shopping"],
+                "medium_score": ["cultural", "art", "history", "traditional", "warm", "cozy"],
+                "negative": ["outdoor", "park", "garden", "terrace", "walking", "beach"]
+            },
+            "cold": {
+                "high_score": ["hammam", "bath", "warm", "hot", "indoor", "thermal", "tea", "soup", "covered"],
+                "medium_score": ["traditional", "cultural", "museum", "bazaar", "underground"],
+                "negative": ["ice cream", "cold drinks", "outdoor", "swimming", "beach"]
+            },
+            "hot": {
+                "high_score": ["air conditioned", "cool", "shade", "underground", "ice cream", "cold", "fountain"],
+                "medium_score": ["indoor", "museum", "mall", "covered", "early morning", "evening"],
+                "negative": ["hot", "warm", "thermal", "hammam", "soup", "tea"]
+            }
+        }
+        
+        keywords = weather_keywords.get(weather_condition, {})
+        
+        # High relevance keywords (0.3 points each)
+        for keyword in keywords.get("high_score", []):
+            if keyword in content:
+                score += 0.3
+            if keyword in ' '.join(tags):
+                score += 0.2
+        
+        # Medium relevance keywords (0.15 points each)
+        for keyword in keywords.get("medium_score", []):
+            if keyword in content:
+                score += 0.15
+            if keyword in ' '.join(tags):
+                score += 0.1
+        
+        # Negative keywords (subtract points)
+        for keyword in keywords.get("negative", []):
+            if keyword in content:
+                score -= 0.2
+            if keyword in ' '.join(tags):
+                score -= 0.1
+        
+        # Category-based scoring
+        category_scores = {
+            "sunny": {"travel guide": 0.2, "outdoor": 0.3, "sightseeing": 0.3},
+            "rainy": {"culture": 0.3, "museums": 0.3, "food & cuisine": 0.2, "shopping": 0.2},
+            "cold": {"culture": 0.2, "traditional": 0.3, "wellness": 0.3},
+            "hot": {"food & cuisine": 0.2, "indoor": 0.3, "cooling": 0.3}
+        }
+        
+        cat_score = category_scores.get(weather_condition, {}).get(category, 0)
+        score += cat_score
+        
+        # Boost score for posts with weather-related content in title
+        title_lower = post.get('title', '').lower()
+        if any(word in title_lower for word in keywords.get("high_score", [])):
+            score += 0.2
+        
+        # Ensure score is between 0 and 1
+        return max(0.0, min(1.0, score))
+    
+    def _generate_weather_reason(self, post: Dict, weather_condition: str, score: float) -> str:
+        """Generate a reason why this post is good for current weather"""
+        
+        reasons = {
+            "sunny": [
+                "Perfect for outdoor exploration",
+                "Great weather for sightseeing", 
+                "Ideal conditions for walking tours",
+                "Beautiful day for outdoor activities"
+            ],
+            "rainy": [
+                "Perfect indoor alternative for rainy weather",
+                "Stay dry while exploring culture",
+                "Great rainy day activity",
+                "Cozy indoor experience"
+            ],
+            "cold": [
+                "Warm and welcoming on cold days",
+                "Perfect way to stay warm",
+                "Traditional comfort for chilly weather",
+                "Indoor warmth and culture"
+            ],
+            "hot": [
+                "Cool refuge from the heat", 
+                "Beat the heat with this activity",
+                "Air-conditioned comfort",
+                "Stay cool while exploring"
+            ]
+        }
+        
+        reason_list = reasons.get(weather_condition, ["Good match for current weather"])
+        
+        # Select reason based on score
+        if score > 0.8:
+            return reason_list[0] if reason_list else "Excellent match for current weather"
+        elif score > 0.6:
+            return reason_list[1] if len(reason_list) > 1 else "Great for current weather"
+        else:
+            return reason_list[-1] if reason_list else "Good for current conditions"
 
 class PersonalizedContentEngine:
     """Provides personalized content recommendations"""

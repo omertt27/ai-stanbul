@@ -16,6 +16,8 @@ import BlogPost from './pages/BlogPost';
 import NewBlogPost from './pages/NewBlogPost';
 import AdminDashboard from './pages/AdminDashboard';
 import EnhancedDemo from './pages/EnhancedDemo';
+import GDPRPage from './pages/GDPR';
+import Privacy from './pages/Privacy';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import GoogleAnalytics, { trackNavigation } from './utils/analytics';
@@ -136,8 +138,6 @@ const AppContent = ({ chatExpanded }) => {
         </>
       ))}
       
-      {/* Footer on ALL pages including chatbot */}
-      <Footer />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/chat" element={<App />} />
@@ -155,7 +155,12 @@ const AppContent = ({ chatExpanded }) => {
         <Route path="/blog/new" element={<NewBlogPost />} />
         <Route path="/blog/:id" element={<BlogPost />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/gdpr" element={<GDPRPage />} />
+        <Route path="/privacy" element={<Privacy />} />
       </Routes>
+      
+      {/* Footer appears at bottom of all pages */}
+      <Footer />
     </>
   );
 };

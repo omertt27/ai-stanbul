@@ -4,8 +4,33 @@ import { useLocation } from 'react-router-dom';
 // Google Analytics configuration
 const GA_TRACKING_ID = 'G-WRDCM59VZP';
 
-// Initialize Google Analytics
+// Check if user has consented to analytics
+const hasAnalyticsConsent = () => {
+  try {
+    const consent = localStorage.getItem('ai-istanbul-cookie-consent');
+    if (!consent) return false;
+    const consentData = JSON.parse(consent);
+    return consentData.analytics === true;
+  } catch {
+    return false;
+  }
+};
+
+// Initialize Google Analytics with GDPR compliance
 export const initGA = () => {
+  // Set default consent to denied
+  window.gtag = window.gtag || function() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(arguments);
+  };
+  
+  // Set default consent mode
+  window.gtag('consent', 'default', {
+    'analytics_storage': 'denied',
+    'ad_storage': 'denied',
+    'personalization_storage': 'denied'
+  });
+
   // Load gtag script
   const script1 = document.createElement('script');
   script1.async = true;
@@ -25,16 +50,16 @@ export const initGA = () => {
   `;
   document.head.appendChild(script2);
 
-  // Make gtag available globally
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function() {
-    window.dataLayer.push(arguments);
-  };
+  // Check existing consent and update if needed
+  if (hasAnalyticsConsent()) {
+    window.gtag('consent', 'update', {
+      'analytics_storage': 'granted'
+    });
+  }
 };
-
 // Track page views
 export const trackPageView = (path, title) => {
-  if (typeof window.gtag !== 'undefined') {
+  if (typeof window.gtag !== 'undefined' && hasAnalyticsConsent()) {
     window.gtag('config', GA_TRACKING_ID, {
       page_path: path,
       page_title: title,
@@ -44,7 +69,7 @@ export const trackPageView = (path, title) => {
 
 // Track custom events
 export const trackEvent = (action, category = 'engagement', label = '', value = 0) => {
-  if (typeof window.gtag !== 'undefined') {
+  if (typeof window.gtag !== 'undefined' && hasAnalyticsConsent()) {
     window.gtag('event', action, {
       event_category: category,
       event_label: label,
@@ -55,22 +80,30 @@ export const trackEvent = (action, category = 'engagement', label = '', value = 
 
 // Track chatbot interactions
 export const trackChatEvent = (action, message = '') => {
-  trackEvent(action, 'chatbot', message.substring(0, 100)); // Limit message length
+  if (hasAnalyticsConsent()) {
+    trackEvent(action, 'chatbot', message.substring(0, 100)); // Limit message length
+  }
 };
 
 // Track blog interactions
 export const trackBlogEvent = (action, postTitle = '') => {
-  trackEvent(action, 'blog', postTitle);
+  if (hasAnalyticsConsent()) {
+    trackEvent(action, 'blog', postTitle);
+  }
 };
 
 // Track navigation
 export const trackNavigation = (page) => {
-  trackEvent('navigate', 'navigation', page);
+  if (hasAnalyticsConsent()) {
+    trackEvent('navigate', 'navigation', page);
+  }
 };
 
 // Track search
 export const trackSearch = (searchTerm) => {
-  trackEvent('search', 'user_interaction', searchTerm);
+  if (hasAnalyticsConsent()) {
+    trackEvent('search', 'user_interaction', searchTerm);
+  }
 };
 
 // React component for automatic page tracking

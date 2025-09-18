@@ -194,23 +194,7 @@ const Donate = () => {
         </div>
 
         {/* Transparency Section */}
-        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
-          darkMode 
-            ? 'bg-gray-800 border border-gray-700' 
-            : 'bg-white shadow-lg border border-gray-100'
-        }`}>
-          <h3 className={`text-xl font-bold mb-4 transition-colors duration-300 ${
-            darkMode ? 'text-white' : 'text-gray-800'
-          }`}>
-            Our Transparency Promise
-          </h3>
-          <p className={`transition-colors duration-300 ${
-            darkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            All donations go directly to project expenses: server costs, API fees, and development resources. 
-            We're committed to keeping AIstanbul free and accessible to everyone exploring beautiful Istanbul!
-          </p>
-        </div>
+
       </div>
       </div>
     </div>

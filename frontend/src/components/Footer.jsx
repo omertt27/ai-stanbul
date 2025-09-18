@@ -13,11 +13,11 @@ const Footer = () => {
   }, []);
   
   // Show footer on all pages
-  // Removed restriction logic to display footer everywhere
+  // Footer is static on all pages and appears at the bottom of content
   
   const footerStyle = {
-    position: 'fixed',
-    bottom: '0',
+    position: 'static',
+    bottom: 'auto',
     left: '0',
     right: '0',
     width: '100vw',
@@ -25,16 +25,17 @@ const Footer = () => {
     justifyContent: 'center',
     gap: '2rem',
     fontSize: '0.875rem',
-    zIndex: 40,
-    backgroundColor: 'rgba(75, 85, 99, 0.9)', // More opaque for better visibility
+    zIndex: 20,
+    backgroundColor: 'rgba(75, 85, 99, 0.7)',
     color: '#ffffff',
-    padding: '0.75rem 2rem',
+    padding: '1rem 2rem',
     backdropFilter: 'blur(8px)',
-    borderTop: '1px solid rgba(156, 163, 175, 0.3)', // More visible border
+    borderTop: '1px solid rgba(156, 163, 175, 0.2)',
     pointerEvents: 'auto',
-    transform: 'translateY(0)', // Always visible
+    transform: 'translateY(-10px)', // Move footer 10px up
     willChange: 'transform',
     transition: 'transform 0.3s ease-in-out',
+    marginTop: '2rem',
   };
   
   const linkStyle = (isActive) => ({
@@ -83,6 +84,42 @@ const Footer = () => {
         }}
       >
         Sources
+      </Link>
+      <Link 
+        to="/privacy" 
+        style={linkStyle(location.pathname === '/privacy')}
+        onMouseOver={(e) => {
+          e.target.style.color = '#818cf8';
+          e.target.style.borderBottomColor = '#818cf8';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.color = location.pathname === '/privacy' 
+            ? '#818cf8' 
+            : '#ffffff';
+          e.target.style.borderBottomColor = location.pathname === '/privacy' 
+            ? '#818cf8' 
+            : 'transparent';
+        }}
+      >
+        Privacy
+      </Link>
+      <Link 
+        to="/gdpr" 
+        style={linkStyle(location.pathname === '/gdpr')}
+        onMouseOver={(e) => {
+          e.target.style.color = '#818cf8';
+          e.target.style.borderBottomColor = '#818cf8';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.color = location.pathname === '/gdpr' 
+            ? '#818cf8' 
+            : '#ffffff';
+          e.target.style.borderBottomColor = location.pathname === '/gdpr' 
+            ? '#818cf8' 
+            : 'transparent';
+        }}
+      >
+        GDPR
       </Link>
       <Link 
         to="/contact" 

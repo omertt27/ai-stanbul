@@ -323,7 +323,7 @@ const BlogPost = () => {
             {post.images && post.images.length > 0 && (
               <div className="w-full h-64 md:h-80 lg:h-96 overflow-hidden">
                 <img
-                  src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${post.images[0].url}`}
+                  src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8000'}${post.images[0].url}`}
                   alt={post.images[0].alt_text || post.title}
                   className="w-full h-full object-cover"
                 />
@@ -461,7 +461,7 @@ const BlogPost = () => {
                   >
                     {relatedPost.images && relatedPost.images.length > 0 && (
                       <img
-                        src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8001'}${relatedPost.images[0].url}`}
+                        src={`${import.meta.env.VITE_API_URL?.replace(/\/ai\/?$/, '') || 'http://localhost:8000'}${relatedPost.images[0].url}`}
                         alt={relatedPost.images[0].alt_text || relatedPost.title}
                         className="w-full h-48 object-cover"
                       />

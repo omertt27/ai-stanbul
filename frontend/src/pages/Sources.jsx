@@ -212,6 +212,109 @@ const Sources = () => {
             We believe in building trust through openness.
           </p>
         </div>
+
+        {/* Data Privacy & GDPR Section */}
+        <div className={`rounded-2xl p-8 mb-12 transition-colors duration-300 ${
+          darkMode 
+            ? 'bg-gray-800 border border-gray-700' 
+            : 'bg-white shadow-lg border border-gray-100'
+        }`}>
+          <div className="text-center mb-8">
+            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-800'
+            }`}>
+              🛡️ Data Privacy & Protection
+            </h2>
+            <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              We take your privacy seriously. Here's how we handle your data in compliance with GDPR.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>
+                🇪🇺 GDPR Rights
+              </h3>
+              <ul className={`space-y-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <li>• Right to access your data</li>
+                <li>• Right to correct inaccurate data</li>
+                <li>• Right to delete your data</li>
+                <li>• Right to data portability</li>
+                <li>• Right to object to processing</li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>
+                🔒 How We Protect You
+              </h3>
+              <ul className={`space-y-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <li>• Minimal data collection</li>
+                <li>• Encrypted data transmission</li>
+                <li>• No selling of personal data</li>
+                <li>• Transparent privacy policy</li>
+                <li>• Cookie consent management</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-4 mt-8">
+            <Link
+              to="/privacy"
+              className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              📋 Privacy Policy
+            </Link>
+            <Link
+              to="/gdpr"
+              className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-green-600 hover:bg-green-700 text-white"
+            >
+              ⚖️ Manage Your Data
+            </Link>
+          </div>
+        </div>
+
+        {/* Transparency Statement */}
+        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
+          darkMode 
+            ? 'bg-gray-800 border border-gray-700' 
+            : 'bg-white shadow-lg border border-gray-100'
+        }`}>
+          <div className="text-center mb-8">
+            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-800'
+            }`}>
+              Transparency & Trust
+            </h2>
+            <p className={`text-lg leading-relaxed transition-colors duration-300 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              We believe in complete transparency with our users. Our data sources, technology stack, and methodologies are open for you to review.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className={`text-xl font-semibold transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-800'
+            }`}>
+              Our Commitment
+            </h3>
+            <p className={`transition-colors duration-300 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              We are committed to providing a trustworthy and reliable service. Our team regularly audits our data sources and algorithms to ensure quality and integrity.
+            </p>
+          </div>
+        </div>
       </div>
       </div>
     </div>

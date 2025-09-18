@@ -199,6 +199,29 @@ const About = () => {
           </div>
         </div>
 
+        {/* GitHub & Try Section */}
+                <li>• No data selling</li>
+                <li>• Regular security audits</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-4 mt-8">
+            <Link
+              to="/privacy"
+              className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              📋 Privacy Policy
+            </Link>
+            <Link
+              to="/gdpr"
+              className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-green-600 hover:bg-green-700 text-white"
+            >
+              ⚖️ Manage Your Data
+            </Link>
+          </div>
+        </div>
+
         {/* Open Source Section */}
         <div className="rounded-2xl p-12 text-center transition-colors duration-300 bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600">
           <div className="mb-6">
@@ -236,7 +259,6 @@ const About = () => {
       </div>
       </div>
       </div>
-    </div>
   );
 };
 

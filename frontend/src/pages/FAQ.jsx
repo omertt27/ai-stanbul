@@ -11,6 +11,11 @@ function FAQ() {
 
   const faqs = [
     {
+      question: "What does KAM mean?",
+      answer: "KAM is an AI chatbot named after the ancient Turkic 'kam' — a wise shamanic figure who served as a bridge between the human and spiritual worlds. In this modern form, Kam embodies the same spirit of guidance, insight, and protection, helping users navigate the vast digital world with clarity and wisdom.",
+      category: "general"
+    },
+    {
       question: "How accurate are the restaurant recommendations?",
       answer: "Our restaurant recommendations come directly from Google Maps API, providing real-time ratings, reviews, and location data. We combine this with AI analysis to give you the most relevant suggestions based on your preferences.",
       category: "accuracy"
@@ -172,7 +177,7 @@ function FAQ() {
           
           <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <Link
-              to="/"
+              to="/chat"
               className="p-4 rounded-lg transition-all duration-300 hover:scale-105 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
               <h3 className="font-semibold mb-1 transition-colors duration-300 text-white">

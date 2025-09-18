@@ -6,7 +6,7 @@ const ConnectionStatus = () => {
 
   const checkConnection = async () => {
     setStatus('checking');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
     
     try {
