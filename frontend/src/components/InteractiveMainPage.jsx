@@ -58,7 +58,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: 'Modern Culture',
       population: '240,000',
       sideNote: 'European Side • Cultural Heart',
-      backgroundImage: 'https://images.unsplash.com/photo-1598306442160-dc2d5e54c626?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/beyoglu.jpg'
     },
     {
       id: 'kadikoy',
@@ -70,7 +70,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: 'Authentic Local Life',
       population: '460,000',
       sideNote: 'Asian Side • Bohemian Quarter',
-      backgroundImage: 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/kadikoy.jpg'
     },
     {
       id: 'besiktas',
@@ -82,7 +82,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: 'Luxury & Sports',
       population: '190,000',
       sideNote: 'European Side • Bosphorus Coast',
-      backgroundImage: 'https://images.unsplash.com/photo-1554050857-c84a8abdb5e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/besiktas.jpeg'
     },
     {
       id: 'uskudar',
@@ -94,7 +94,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: 'Traditional Life',
       population: '530,000',
       sideNote: 'Asian Side • Historic Center',
-      backgroundImage: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/uskudar.jpg'
     },
     {
       id: 'sisli',
@@ -106,7 +106,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       specialty: 'Commerce & Shopping',
       population: '270,000',
       sideNote: 'European Side • Business Hub',
-      backgroundImage: 'https://images.unsplash.com/photo-1486299267070-83823f5448dd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+      backgroundImage: '/districts/Sisli.jpeg'
     }
   ];
 
@@ -168,7 +168,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
                 borderColor: district.color,
                 backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url(${district.backgroundImage})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundPosition: district.id === 'uskudar' ? 'left center' : 'center',
                 backgroundRepeat: 'no-repeat'
               }}
             >

@@ -560,16 +560,13 @@ function Chatbot({ onDarkModeToggle }) {
                 onClick={() => setSidebarOpen(false)}
                 className="p-2 rounded-xl transition-all duration-200"
                 style={{
-                  background: 'rgba(139, 92, 246, 0.1)',
                   border: '1px solid rgba(139, 92, 246, 0.3)',
                   color: '#e5e7eb'
                 }}
                 onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(139, 92, 246, 0.2)';
                   e.target.style.transform = 'scale(1.05)';
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(139, 92, 246, 0.1)';
                   e.target.style.transform = 'scale(1)';
                 }}
               >
@@ -582,20 +579,16 @@ function Chatbot({ onDarkModeToggle }) {
               onClick={createNewChat}
               className="mt-4 px-4 py-2 text-white rounded-xl transition-all duration-200 flex items-center justify-center font-semibold mx-auto"
               style={{
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
                 border: '1px solid rgba(139, 92, 246, 0.5)',
-                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
                 width: 'auto', // Auto width instead of full width
                 minWidth: '120px', // Minimum width for usability
                 maxWidth: '160px' // Maximum width to keep it compact
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-2px) scale(1.02)';
-                e.target.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0) scale(1)';
-                e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.3)';
               }}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -610,7 +603,6 @@ function Chatbot({ onDarkModeToggle }) {
             {chatSessions.length === 0 ? (
               <div className="text-center py-12" style={{color: '#9ca3af'}}>
                 <div className="mb-4" style={{
-                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
                   borderRadius: '50%',
                   width: '80px',
                   height: '80px',
@@ -634,27 +626,19 @@ function Chatbot({ onDarkModeToggle }) {
                     key={session.id}
                     className="group relative cursor-pointer transition-all duration-200"
                     style={{
-                      background: currentSessionId === session.id 
-                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.2) 100%)'
-                        : 'rgba(139, 92, 246, 0.05)',
                       border: `1px solid ${currentSessionId === session.id ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.1)'}`,
                       borderRadius: '12px',
-                      padding: '16px',
-                      boxShadow: currentSessionId === session.id 
-                        ? '0 4px 16px rgba(139, 92, 246, 0.25)'
-                        : '0 2px 8px rgba(139, 92, 246, 0.1)'
+                      padding: '16px'
                     }}
                     onClick={() => loadChatSession(session.id)}
                     onMouseEnter={(e) => {
                       if (currentSessionId !== session.id) {
-                        e.target.style.background = 'rgba(139, 92, 246, 0.1)';
                         e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
                         e.target.style.transform = 'translateY(-1px)';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (currentSessionId !== session.id) {
-                        e.target.style.background = 'rgba(139, 92, 246, 0.05)';
                         e.target.style.borderColor = 'rgba(139, 92, 246, 0.1)';
                         e.target.style.transform = 'translateY(0)';
                       }
@@ -676,16 +660,13 @@ function Chatbot({ onDarkModeToggle }) {
                         }}
                         className="opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ml-2"
                         style={{
-                          background: 'rgba(239, 68, 68, 0.1)',
                           border: '1px solid rgba(239, 68, 68, 0.3)',
                           color: '#ef4444'
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = 'rgba(239, 68, 68, 0.2)';
                           e.target.style.transform = 'scale(1.05)';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = 'rgba(239, 68, 68, 0.1)';
                           e.target.style.transform = 'scale(1)';
                         }}
                       >
@@ -716,18 +697,11 @@ function Chatbot({ onDarkModeToggle }) {
         className="fixed left-2 top-28 z-50 transition-all duration-300 group"
         style={{ 
           zIndex: 1001,
-          background: sidebarOpen 
-            ? 'rgba(139, 92, 246, 0.15)' 
-            : 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(20px)',
           border: sidebarOpen 
             ? '1px solid rgba(139, 92, 246, 0.4)' 
             : '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '12px',
           padding: '10px',
-          boxShadow: sidebarOpen 
-            ? '0 8px 32px rgba(139, 92, 246, 0.25)' 
-            : '0 4px 20px rgba(0, 0, 0, 0.1)',
           color: sidebarOpen ? '#8b5cf6' : '#9ca3af',
           display: 'flex',
           alignItems: 'center',
@@ -738,21 +712,11 @@ function Chatbot({ onDarkModeToggle }) {
         }}
         onMouseEnter={(e) => {
           e.target.style.transform = 'translateY(-1px) scale(1.05)';
-          e.target.style.boxShadow = sidebarOpen 
-            ? '0 12px 48px rgba(139, 92, 246, 0.3)' 
-            : '0 8px 32px rgba(139, 92, 246, 0.2)';
-          e.target.style.background = 'rgba(139, 92, 246, 0.15)';
           e.target.style.borderColor = 'rgba(139, 92, 246, 0.4)';
           e.target.style.color = '#8b5cf6';
         }}
         onMouseLeave={(e) => {
           e.target.style.transform = 'translateY(0) scale(1)';
-          e.target.style.boxShadow = sidebarOpen 
-            ? '0 8px 32px rgba(139, 92, 246, 0.25)' 
-            : '0 4px 20px rgba(0, 0, 0, 0.1)';
-          e.target.style.background = sidebarOpen 
-            ? 'rgba(139, 92, 246, 0.15)' 
-            : 'rgba(255, 255, 255, 0.08)';
           e.target.style.borderColor = sidebarOpen 
             ? 'rgba(139, 92, 246, 0.4)' 
             : 'rgba(255, 255, 255, 0.1)';
@@ -828,7 +792,7 @@ function Chatbot({ onDarkModeToggle }) {
                   ].map((suggestion, index) => (
                     <button
                       key={index}
-                      onClick={() => setInput(suggestion)}
+                      onClick={() => handleSend(suggestion)}
                       className="kam-suggestion-pill"
                     >
                       {suggestion}

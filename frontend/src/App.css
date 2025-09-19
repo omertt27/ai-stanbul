@@ -442,13 +442,13 @@ html.chatbot-page {
 
 /* Missing Chatbot CSS Classes */
 
-/* Main chat container - Made longer */
+/* Main chat container - Made wider */
 .chatbot-main-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   height: calc(90vh - 89px);
-  max-width: 800px;
+  max-width: 1000px; /* Increased from 800px to make wider */
   width: 100%;
   margin: 2rem auto 0 auto;
   overflow: hidden;
@@ -563,15 +563,15 @@ html.chatbot-page {
   transform: none;
   display: flex;
   align-items: center;
-  width: 100%;
+  width: 60%; /* Reduced width from 100% to 60% */
+  max-width: 780px; /* Increased from 400px to 480px (80px wider) */
   background: rgba(28, 30, 42, 0.98);
-  border-radius: 0.8rem;
+  border-radius: 1rem;
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
-  padding: 0.3rem 0.8rem; /* Further reduced padding to make less thick */
-  border: 1.5px solid #2a2e44;
-  min-height: 2.2rem; /* Further reduced from 2.6rem to make shorter */
-  max-width: none;
-  margin: 1rem;
+  padding: 0.05rem 0.4rem; /* Even smaller padding */
+  border: 4px solid rgba(99, 102, 241, 0.3);
+  min-height: 1.2rem; /* Even smaller height */
+  margin: 2rem auto 1rem auto; /* Center the search bar with auto margins */
   transition: max-width 0.3s cubic-bezier(0.4, 2, 0.6, 1);
   backdrop-filter: none;
   z-index: auto;
@@ -583,14 +583,14 @@ html.chatbot-page {
   border: none !important;
   outline: none !important;
   color: #fff !important;
-  font-size: 1rem !important; /* Further reduced font size */
-  padding: 0.2rem 0 0.2rem 0.8rem !important; /* Removed left padding for search icon */
+  font-size: 0.8rem !important; /* Even smaller font size */
+  padding: 0.1rem 0 0.1rem 0.5rem !important; /* Even smaller padding */
   font-weight: 500 !important;
   letter-spacing: 0.01em !important;
   min-width: 0 !important;
   border-radius: 0 !important;
   box-sizing: border-box !important;
-  line-height: 1.3 !important; /* Further reduced line height */
+  line-height: 1.1 !important; /* Even smaller line height */
 }
 
 .chatbot-page .kam-input-field::placeholder {
@@ -610,13 +610,13 @@ html.chatbot-page {
   justify-content: center;
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   border: none;
-  border-radius: 0.5rem; /* Slightly smaller border radius */
+  border-radius: 0.4rem; /* Smaller border radius for shorter button */
   color: white;
-  padding: 0.4rem; /* Reduced padding to make smaller */
+  padding: 0.3rem; /* Further reduced padding */
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 1.8rem; /* Reduced button size */
-  height: 1.8rem;
+  min-width: 1.5rem; /* Further reduced button size */
+  height: 1.5rem;
 }
 
 .chatbot-page .kam-send-button:hover:not(:disabled) {
@@ -640,8 +640,8 @@ html.chatbot-page {
 }
 
 .chatbot-page .kam-spinner-ring {
-  width: 14px; /* Reduced spinner size */
-  height: 14px;
+  width: 12px; /* Further reduced spinner size */
+  height: 12px;
   border: 2px solid transparent;
   border-top: 2px solid #ffffff;
   border-radius: 50%;
@@ -691,52 +691,70 @@ html.chatbot-page {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 }
 
+/* Chatbot Input Area Positioning */
+.chatbot-page .chatbot-input-area {
+  position: absolute;
+  bottom: 130px;
+  left: 0;
+  right: 0;
+  padding: 0 1rem;
+  z-index: 10;
+}
+
 /* Mobile Responsive for Integrated Style */
 @media (max-width: 768px) {
   .chatbot-page .kam-input-container {
-    padding: 0.25rem 0.6rem; /* Further reduced padding for mobile */
-    min-height: 2rem; /* Further reduced height for mobile */
-    margin: 0.75rem;
+    padding: 0.15rem 0.5rem; /* Further reduced padding for mobile */
+    min-height: 1.6rem; /* Further reduced height for mobile */
+    margin: 1.5rem 0.75rem 0.75rem 0.75rem; /* Increased top margin for mobile */
   }
   
   .chatbot-page .kam-input-field {
-    font-size: 0.95rem !important; /* Further reduced for mobile */
-    padding: 0.2rem 0 0.2rem 0.6rem !important; /* Further reduced padding */
+    font-size: 0.85rem !important; /* Further reduced for mobile */
+    padding: 0.15rem 0 0.15rem 0.5rem !important; /* Further reduced padding */
   }
 
   .chatbot-page .kam-send-button {
-    padding: 0.35rem;
-    min-width: 1.6rem;
-    height: 1.6rem;
+    padding: 0.25rem;
+    min-width: 1.3rem;
+    height: 1.3rem;
   }
 
   .chatbot-page .kam-suggestion-pill {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
   }
+
+  .chatbot-main-container {
+    max-width: 95%; /* Make wider on mobile */
+  }
 }
 
 @media (max-width: 480px) {
   .chatbot-page .kam-input-container {
-    padding: 0.2rem 0.5rem; /* Further reduced padding */
-    min-height: 1.8rem; /* Further reduced height */
-    margin: 0.5rem;
+    padding: 0.1rem 0.4rem; /* Further reduced padding */
+    min-height: 1.4rem; /* Further reduced height */
+    margin: 1.2rem 0.5rem 0.5rem 0.5rem; /* Increased top margin for small mobile */
   }
   
   .chatbot-page .kam-input-field {
-    font-size: 0.9rem !important; /* Further reduced for small mobile */
-    padding: 0.15rem 0 0.15rem 0.5rem !important; /* Further reduced padding */
+    font-size: 0.8rem !important; /* Further reduced for small mobile */
+    padding: 0.1rem 0 0.1rem 0.4rem !important; /* Further reduced padding */
   }
 
   .chatbot-page .kam-send-button {
-    padding: 0.3rem;
-    min-width: 1.4rem;
-    height: 1.4rem;
+    padding: 0.2rem;
+    min-width: 1.2rem;
+    height: 1.2rem;
   }
 
   .chatbot-page .kam-suggestion-pill {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
+  }
+
+  .chatbot-main-container {
+    max-width: 98%; /* Make even wider on small mobile */
   }
 }
 
