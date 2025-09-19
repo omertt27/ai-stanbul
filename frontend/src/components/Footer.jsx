@@ -15,6 +15,8 @@ const Footer = () => {
   // Show footer on all pages
   // Footer is static on all pages and appears at the bottom of content
   
+  const isChatPage = location.pathname === '/chat';
+  
   const footerStyle = {
     position: 'static',
     bottom: 'auto',
@@ -32,10 +34,10 @@ const Footer = () => {
     backdropFilter: 'blur(8px)',
     borderTop: '1px solid rgba(156, 163, 175, 0.2)',
     pointerEvents: 'auto',
-    transform: 'translateY(-10px)', // Move footer 10px up
+    transform: 'none',
     willChange: 'transform',
     transition: 'transform 0.3s ease-in-out',
-    marginTop: '2rem',
+    margin: '0',
   };
   
   const linkStyle = (isActive) => ({
@@ -44,7 +46,7 @@ const Footer = () => {
       : '#ffffff',
     textDecoration: 'none',
     borderBottom: isActive ? '2px solid #818cf8' : '2px solid transparent',
-    paddingBottom: '0.25rem',
+    paddingBottom: '0rem',
     transition: 'all 0.2s ease',
     fontSize: '0.875rem',
     fontWeight: '500',

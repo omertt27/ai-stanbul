@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchBlogPosts } from '../api/blogApi';
+import { fetchBlogPosts, likeBlogPost } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
@@ -141,6 +141,8 @@ const BlogList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalPosts, setTotalPosts] = useState(0);
+  const [sortBy, setSortBy] = useState('newest');
+  const [likingPosts, setLikingPosts] = useState(new Set()); // Track which posts are being liked
 
   const postsPerPage = 8; // Show 8 posts per page
 
@@ -155,15 +157,16 @@ const BlogList = () => {
       currentPage,
       postsPerPage,
       searchTerm, 
-      selectedDistrict
+      selectedDistrict,
+      sortBy
     });
     
     setLoading(true);
     setError(null);
     
     try {
-      // Use mock data with pagination (8 posts per page)
-      let filteredPosts = mockBlogPosts;
+      // Use mock data with sorting and filtering
+      let filteredPosts = [...mockBlogPosts];
       
       // Apply search filter
       if (searchTerm) {
@@ -181,6 +184,21 @@ const BlogList = () => {
         );
       }
       
+      // Apply sorting
+      if (sortBy === 'newest') {
+        filteredPosts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      } else if (sortBy === 'oldest') {
+        filteredPosts.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      } else if (sortBy === 'most_liked') {
+        filteredPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+      } else if (sortBy === 'most_popular') {
+        // Sort by view count (simulate with likes as proxy)
+        filteredPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
+      } else if (sortBy === 'time_spent') {
+        // Sort by content length as proxy for reading time
+        filteredPosts.sort((a, b) => (b.content?.length || 0) - (a.content?.length || 0));
+      }
+      
       // Calculate pagination
       const startIndex = (currentPage - 1) * postsPerPage;
       const endIndex = startIndex + postsPerPage;
@@ -194,7 +212,8 @@ const BlogList = () => {
         total: filteredPosts.length,
         page: currentPage,
         showing: paginatedPosts.length,
-        totalPages: Math.ceil(filteredPosts.length / postsPerPage)
+        totalPages: Math.ceil(filteredPosts.length / postsPerPage),
+        sortedBy: sortBy
       });
       
     } catch (err) {
@@ -221,7 +240,7 @@ const BlogList = () => {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [currentPage, searchTerm, selectedDistrict]); // Added currentPage back for pagination
+  }, [currentPage, searchTerm, selectedDistrict, sortBy]); // Added sortBy
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -237,15 +256,37 @@ const BlogList = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedDistrict('');
+    setWeatherSort(false);
     setCurrentPage(1); // Reset to first page when clearing filters
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleLike = async (postId) => {
+    if (likingPosts.has(postId)) return; // Prevent multiple clicks
+
+    setLikingPosts(prev => new Set([...prev, postId]));
+    
+    try {
+      const result = await likeBlogPost(postId);
+      
+      // Update the post in the current posts array
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, likes_count: result.likes_count }
+            : post
+        )
+      );
+      
+      console.log('✅ Post liked successfully:', result);
+    } catch (error) {
+      console.error('❌ Error liking post:', error);
+    } finally {
+      setLikingPosts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }
   };
 
   const truncateText = (text, maxLength = 150) => {
@@ -316,9 +357,6 @@ const BlogList = () => {
                         <p className={`font-semibold transition-colors duration-200 ${
                           darkMode ? 'text-gray-200' : 'text-gray-800'
                         }`}>{post.author || post.author_name || 'Unknown Author'}</p>
-                        <p className={`text-sm transition-colors duration-200 ${
-                          darkMode ? 'text-gray-400' : 'text-gray-500'
-                        }`}>{formatDate(post.created_at)}</p>
                       </div>
                     </div>
 
@@ -424,6 +462,29 @@ const BlogList = () => {
                 {chatbotDistricts.map((district) => (
                   <option key={district} value={district}>{district}</option>
                 ))}
+              </select>
+            </div>
+
+            {/* Sort By Dropdown */}
+            <div className="flex-1 min-w-0 sm:min-w-48 sm:max-w-72">
+              <label htmlFor="sort-by" className={`block text-sm font-medium mb-2 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Sort By</label>
+              <select
+                id="sort-by"
+                name="sort-by"
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1); // Reset to first page when changing sort
+                }}
+                className="w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="most_liked">Most Liked</option>
+                <option value="most_popular">Most Popular</option>
+                <option value="time_spent">Longest Read</option>
               </select>
             </div>
 
@@ -565,6 +626,28 @@ const BlogList = () => {
                       {post.title}
                     </Link>
                   </h2>
+
+                  {/* Weather Context Display */}
+                  {post.weather_context && (
+                    <div className={`mb-3 p-3 rounded-lg border transition-colors duration-200 ${
+                      darkMode 
+                        ? 'bg-blue-900/20 border-blue-500/30 text-blue-300'
+                        : 'bg-blue-50 border-blue-200 text-blue-700'
+                    }`}>
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                        <span className="font-medium">{post.weather_context.reason}</span>
+                      </div>
+                      {post.weather_context.weather_info && (
+                        <div className="text-xs mt-1 opacity-80">
+                          {post.weather_context.weather_info}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <p className={`mb-4 sm:mb-5 text-base sm:text-lg leading-relaxed transition-colors duration-200 ${
                     darkMode ? 'text-gray-300' : 'text-gray-600'
@@ -576,26 +659,37 @@ const BlogList = () => {
                     darkMode ? 'text-gray-400' : 'text-gray-500'
                   }`}>
                     <div className="flex items-center">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="truncate font-medium">{post.district || 'Istanbul'}</span>
+                      <span className="truncate font-medium text-base sm:text-lg">{post.district || 'Istanbul'}</span>
                     </div>
                     
                     <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
-                      <div className="flex items-center">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                        <span className="font-medium">{post.likes_count || 0}</span>
-                      </div>
-                      <div className="flex items-center hidden sm:flex">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="font-medium">{formatDate(post.created_at)}</span>
-                      </div>
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        disabled={likingPosts.has(post.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
+                          likingPosts.has(post.id)
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:opacity-80 active:scale-95'
+                        }`}
+                        title="Like this post"
+                      >
+                        {likingPosts.has(post.id) ? (
+                          <div className="w-5 h-5 sm:w-6 sm:h-6 animate-spin">
+                            <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                        )}
+                        <span className="font-medium text-base sm:text-lg">{post.likes_count || 0}</span>
+                      </button>
                     </div>
                   </div>
                 </div>

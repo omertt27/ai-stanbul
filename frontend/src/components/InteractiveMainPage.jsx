@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './InteractiveMainPage.css';
 
 const InteractiveMainPage = ({ onQuickStart }) => {
   const navigate = useNavigate();
@@ -44,7 +45,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '🏛️ Imperial',
       specialty: 'Ottoman Heritage',
       population: '65,000',
-      sideNote: 'European Side • Historic Peninsula'
+      sideNote: 'European Side • Historic Peninsula',
+      backgroundImage: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'beyoglu',
@@ -55,7 +57,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '🎭 Artistic',
       specialty: 'Modern Culture',
       population: '240,000',
-      sideNote: 'European Side • Cultural Heart'
+      sideNote: 'European Side • Cultural Heart',
+      backgroundImage: 'https://images.unsplash.com/photo-1598306442160-dc2d5e54c626?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'kadikoy',
@@ -66,7 +69,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '🍜 Foodie',
       specialty: 'Authentic Local Life',
       population: '460,000',
-      sideNote: 'Asian Side • Bohemian Quarter'
+      sideNote: 'Asian Side • Bohemian Quarter',
+      backgroundImage: 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'besiktas',
@@ -77,7 +81,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '⚽ Dynamic',
       specialty: 'Luxury & Sports',
       population: '190,000',
-      sideNote: 'European Side • Bosphorus Coast'
+      sideNote: 'European Side • Bosphorus Coast',
+      backgroundImage: 'https://images.unsplash.com/photo-1554050857-c84a8abdb5e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'uskudar',
@@ -88,7 +93,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '🕌 Spiritual',
       specialty: 'Traditional Life',
       population: '530,000',
-      sideNote: 'Asian Side • Historic Center'
+      sideNote: 'Asian Side • Historic Center',
+      backgroundImage: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'sisli',
@@ -99,73 +105,8 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: '💼 Business',
       specialty: 'Commerce & Shopping',
       population: '270,000',
-      sideNote: 'European Side • Business Hub'
-    },
-    {
-      id: 'buyukada',
-      name: 'Büyükada',
-      color: '#2ecc71',
-      description: 'Largest of the Prince Islands, car-free paradise',
-      highlights: ['Horse Carriages', 'Historic Mansions', 'Pine Forests'],
-      vibe: '🏝️ Peaceful',
-      specialty: 'Island Life',
-      population: '7,500',
-      sideNote: 'Prince Islands • Largest Island'
-    },
-    {
-      id: 'heybeliada',
-      name: 'Heybeliada',
-      color: '#16a085',
-      description: 'Second largest Prince Island with naval school',
-      highlights: ['Naval Academy', 'Beaches', 'Island Walks'],
-      vibe: '🌊 Serene',
-      specialty: 'Maritime Heritage',
-      population: '4,000',
-      sideNote: 'Prince Islands • Naval Heritage'
-    },
-    {
-      id: 'burgazada',
-      name: 'Burgazada',
-      color: '#27ae60',
-      description: 'Third largest Prince Island, writers\' retreat',
-      highlights: ['Sait Faik Museum', 'Quiet Beaches', 'Writers\' Houses'],
-      vibe: '📚 Literary',
-      specialty: 'Literature & Arts',
-      population: '1,500',
-      sideNote: 'Prince Islands • Literary Haven'
-    },
-    {
-      id: 'kinaliada',
-      name: 'Kınalıada',
-      color: '#e67e22',
-      description: 'Smallest inhabited Prince Island with red cliffs',
-      highlights: ['Red Cliffs', 'Small Beaches', 'Traditional Houses'],
-      vibe: '🏖️ Intimate',
-      specialty: 'Natural Beauty',
-      population: '1,200',
-      sideNote: 'Prince Islands • Hidden Gem'
-    },
-    {
-      id: 'galata',
-      name: 'Galata',
-      color: '#8e44ad',
-      description: 'Historic tower district with panoramic views',
-      highlights: ['Galata Tower', 'Golden Horn Views', 'Historic Streets'],
-      vibe: '🗼 Iconic',
-      specialty: 'Historic Views',
-      population: '45,000',
-      sideNote: 'European Side • Historic Quarter'
-    },
-    {
-      id: 'ortakoy',
-      name: 'Ortaköy',
-      color: '#e91e63',
-      description: 'Charming Bosphorus village with mosque & bridge views',
-      highlights: ['Ortaköy Mosque', 'Bridge Views', 'Artisan Markets'],
-      vibe: '🌉 Picturesque',
-      specialty: 'Bosphorus Beauty',
-      population: '25,000',
-      sideNote: 'European Side • Bosphorus Village'
+      sideNote: 'European Side • Business Hub',
+      backgroundImage: 'https://images.unsplash.com/photo-1486299267070-83823f5448dd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     }
   ];
 
@@ -225,7 +166,10 @@ const InteractiveMainPage = ({ onQuickStart }) => {
               onClick={() => handleDistrictClick(district)}
               style={{
                 borderColor: district.color,
-                background: `linear-gradient(135deg, ${district.color}10, ${district.color}20)`
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), url(${district.backgroundImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
               }}
             >
               <div className="district-card-header">

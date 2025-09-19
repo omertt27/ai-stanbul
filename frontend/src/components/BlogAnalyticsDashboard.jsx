@@ -118,14 +118,14 @@ const BlogAnalyticsDashboard = () => {
       {/* Creator Header */}
       <Box display="flex" alignItems="center" sx={{ mb: 3 }}>
         <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-          <Create />
+          <Analytics />
         </Avatar>
         <Box>
           <Typography variant="h4" sx={{ mb: 0 }}>
-            Your Creator Dashboard
+            Istanbul Travel Analytics
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            AI Istanbul Blog Analytics - Welcome back, Creator! 👋
+            AI Istanbul Blog Performance Dashboard - Track your travel content impact 🏛️
           </Typography>
         </Box>
       </Box>
@@ -134,7 +134,7 @@ const BlogAnalyticsDashboard = () => {
       {realtimeMetrics && (
         <>
           <Typography variant="h5" sx={{ mb: 2 }}>
-            🔴 Your Content Performance Right Now
+            � Live Travel Blog Metrics
           </Typography>
           
           <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -160,20 +160,20 @@ const BlogAnalyticsDashboard = () => {
             
             <Grid item xs={12} sm={6} md={3}>
               <MetricCard
-                icon={<TrendingUp color="warning" />}
-                title="New Followers"
-                value={realtimeMetrics.new_subscribers_today}
-                subtitle="Following your content today"
+                icon={<Create color="warning" />}
+                title="Published Guides"
+                value={realtimeMetrics.total_posts_published}
+                subtitle="Travel guides & blog posts"
                 color="warning.main"
               />
             </Grid>
             
             <Grid item xs={12} sm={6} md={3}>
               <MetricCard
-                icon={<ThumbUp color="secondary" />}
-                title="Engagement"
-                value={`${realtimeMetrics.live_engagement.likes_per_hour}/hr`}
-                subtitle="Likes on your content"
+                icon={<AccessTime color="secondary" />}
+                title="Avg. Visit Duration"
+                value={realtimeMetrics.average_session_duration}
+                subtitle="Time spent exploring"
                 color="secondary.main"
               />
             </Grid>
@@ -197,6 +197,47 @@ const BlogAnalyticsDashboard = () => {
               </Box>
             </CardContent>
           </Card>
+
+          {/* Travel Insights */}
+          {realtimeMetrics.travel_insights && (
+            <Card sx={{ mb: 4 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  🏛️ Istanbul Travel Insights
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Popular Districts
+                    </Typography>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      {realtimeMetrics.travel_insights.popular_districts.map((district, index) => (
+                        <Chip key={index} label={district} size="small" color="success" />
+                      ))}
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      Seasonal Trend
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {realtimeMetrics.travel_insights.seasonal_trend}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                      User Interests
+                    </Typography>
+                    <Box display="flex" flexDirection="column" gap={1}>
+                      {realtimeMetrics.travel_insights.user_interests.map((interest, index) => (
+                        <Chip key={index} label={interest} size="small" variant="outlined" />
+                      ))}
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
@@ -204,7 +245,7 @@ const BlogAnalyticsDashboard = () => {
       {analytics && (
         <>
           <Typography variant="h5" sx={{ mb: 2 }}>
-            📈 Your Content Performance Insights
+            📈 Travel Content Performance
           </Typography>
           
           <Grid container spacing={3}>
@@ -271,7 +312,7 @@ const BlogAnalyticsDashboard = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" sx={{ mb: 2 }}>
-                    👥 User Behavior
+                    👥 Visitor Behavior
                   </Typography>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -279,7 +320,7 @@ const BlogAnalyticsDashboard = () => {
                     </Typography>
                     <Box display="flex" gap={1}>
                       {analytics.user_behavior.peak_reading_hours.map((hour, index) => (
-                        <Chip key={index} label={hour} size="small" />
+                        <Chip key={index} label={hour} size="small" color="primary" />
                       ))}
                     </Box>
                   </Box>
@@ -289,9 +330,19 @@ const BlogAnalyticsDashboard = () => {
                   <Typography variant="body2" sx={{ mb: 1 }}>
                     <strong>Preferred Content Length:</strong> {analytics.user_behavior.preferred_content_length}
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" sx={{ mb: 1 }}>
                     <strong>Most Shared Content:</strong> {analytics.user_behavior.most_shared_content_type}
                   </Typography>
+                  {analytics.user_behavior.average_pages_per_visit && (
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Pages per Visit:</strong> {analytics.user_behavior.average_pages_per_visit}
+                    </Typography>
+                  )}
+                  {analytics.user_behavior.mobile_vs_desktop && (
+                    <Typography variant="body2">
+                      <strong>Device Usage:</strong> {analytics.user_behavior.mobile_vs_desktop}
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -304,13 +355,16 @@ const BlogAnalyticsDashboard = () => {
                     💡 Content Opportunities
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 2 }}>
-                    Suggested topics based on user searches and engagement:
+                    High-demand topics based on visitor searches and engagement:
                   </Typography>
                   <List>
                     {analytics.content_gaps.map((gap, index) => (
                       <ListItem key={index}>
-                        <ListItemText primary={gap} />
-                        <Chip label="High demand" color="warning" size="small" />
+                        <ListItemText 
+                          primary={gap}
+                          secondary="High search volume, low competition"
+                        />
+                        <Chip label="Opportunity" color="warning" size="small" />
                       </ListItem>
                     ))}
                   </List>

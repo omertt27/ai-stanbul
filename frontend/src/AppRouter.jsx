@@ -77,7 +77,7 @@ const AppContent = ({ chatExpanded }) => {
   }, [location.pathname, location.search]);
 
   return (
-    <>
+    <div className="app-content">
       <GoogleAnalytics />
 
       {/* Show chatbot outline - only on pages that are not the dedicated chatbot page */}
@@ -129,7 +129,6 @@ const AppContent = ({ chatExpanded }) => {
               </Link>
             </nav>
           </div>
-          <Footer />
         </>
       ) : (
         <>
@@ -138,30 +137,32 @@ const AppContent = ({ chatExpanded }) => {
         </>
       ))}
       
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/chat" element={<App />} />
-        <Route path="/test" element={<TestComponent />} />
-        <Route path="/simple" element={<SimpleChatbot />} />
-        <Route path="/chatbot" element={<Chatbot />} />
-        <Route path="/demo" element={<EnhancedDemo />} />
-        <Route path="/test-chatbot" element={<ChatbotTester />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/sources" element={<Sources />} />
-        <Route path="/donate" element={<Donate />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/blog" element={<BlogList />} />
-        <Route path="/blog/new" element={<NewBlogPost />} />
-        <Route path="/blog/:id" element={<BlogPost />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/gdpr" element={<GDPRPage />} />
-        <Route path="/privacy" element={<Privacy />} />
-      </Routes>
+      <main className="main-content-area">
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/chat" element={<App />} />
+          <Route path="/test" element={<TestComponent />} />
+          <Route path="/simple" element={<SimpleChatbot />} />
+          <Route path="/chatbot" element={<Chatbot />} />
+          <Route path="/demo" element={<EnhancedDemo />} />
+          <Route path="/test-chatbot" element={<ChatbotTester />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/sources" element={<Sources />} />
+          <Route path="/donate" element={<Donate />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/blog" element={<BlogList />} />
+          <Route path="/blog/new" element={<NewBlogPost />} />
+          <Route path="/blog/:id" element={<BlogPost />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/gdpr" element={<GDPRPage />} />
+          <Route path="/privacy" element={<Privacy />} />
+        </Routes>
+      </main>
       
-      {/* Footer appears at bottom of all pages */}
-      <Footer />
-    </>
+      {/* Footer appears at bottom of all pages except chatbot (chatbot has integrated footer) */}
+      {location.pathname !== '/chatbot' && <Footer />}
+    </div>
   );
 };
 

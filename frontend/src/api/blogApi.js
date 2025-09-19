@@ -7,7 +7,7 @@ import {
 } from '../utils/errorHandler.js';
 
 // API configuration
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
 const BLOG_API_URL = `${cleanBaseUrl}/blog`;
 

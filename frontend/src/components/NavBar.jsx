@@ -128,8 +128,10 @@ const NavBar = ({ hideLogo = false }) => {
           right: 0, 
           left: 0, 
           zIndex: 50,
-          background: 'transparent', // Transparent background to match page
-          backdropFilter: 'none', // Remove blur effect
+          background: 'transparent', // Made transparent
+          backdropFilter: 'none', // Removed blur effect
+          borderBottom: 'none', // Removed border for cleaner look
+          boxShadow: 'none', // Removed shadow
           height: '70px', // Fixed height for navbar
         }}>
           <nav style={{
@@ -195,7 +197,7 @@ const NavBar = ({ hideLogo = false }) => {
           {/* Purple separator line below navbar */}
           <div style={{
             position: 'absolute',
-            bottom: '-10px', // Moved down from 0px to -10px
+            bottom: '-8px', // Moved up 2px from -10px to -8px
             left: 0,
             right: 0,
             height: '2px',
@@ -254,7 +256,7 @@ const NavBar = ({ hideLogo = false }) => {
           {/* Purple separator line below navbar */}
           <div style={{
             position: 'absolute',
-            bottom: '-10px', // Moved down from 0px to -10px
+            bottom: '-8px', // Moved up 2px from -10px to -8px
             left: 0,
             right: 0,
             height: '2px',

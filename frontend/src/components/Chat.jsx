@@ -62,7 +62,7 @@ const CopyButton = memo(({ text }) => {
   );
 });
 
-const ActionButtons = memo(({ text }) => {
+const ActionButtons = memo(({ text, alignRight = false }) => {
   const handleReadAloud = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -78,7 +78,8 @@ const ActionButtons = memo(({ text }) => {
       display: 'flex',
       gap: '0.5rem',
       marginTop: '0.75rem',
-      alignItems: 'center'
+      alignItems: 'center',
+      justifyContent: alignRight ? 'flex-end' : 'flex-start'
     }}>
       <CopyButton text={text} />
       
@@ -254,15 +255,26 @@ const Chat = ({ messages }) => (
           }}>
             <div style={{
               maxWidth: '55%',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              padding: '0.75rem 1rem',
-              borderRadius: '1.125rem',
-              fontSize: '0.95rem',
-              lineHeight: '1.4',
-              wordBreak: 'break-word'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end'
             }}>
-              {formatMessage(msg.text, true)}
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '0.75rem 1rem',
+                borderRadius: '1.125rem',
+                fontSize: '0.95rem',
+                lineHeight: '1.4',
+                wordBreak: 'break-word',
+                marginBottom: '0.5rem'
+              }}>
+                {formatMessage(msg.text, true)}
+              </div>
+              {/* Action buttons for user messages */}
+              <div style={{ alignSelf: 'flex-end' }}>
+                <ActionButtons text={msg.text} alignRight={true} />
+              </div>
             </div>
           </div>
         );

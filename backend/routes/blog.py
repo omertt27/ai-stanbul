@@ -18,7 +18,6 @@ from pydantic import BaseModel, validator
 import logging
 
 from enhanced_blog_features import (
-    WeatherAwareContentEngine, 
     PersonalizedContentEngine,
     BlogAnalyticsEngine
 )
@@ -37,7 +36,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/blog", tags=["blog"])
 
 # Initialize enhanced features
-weather_engine = WeatherAwareContentEngine()
 personalization_engine = PersonalizedContentEngine()
 analytics_engine = BlogAnalyticsEngine()
 
@@ -600,11 +598,27 @@ async def get_all_posts(
     tag: Optional[str] = None,
     published: bool = True,
     limit: int = 10,
-    offset: int = 0
+    offset: int = 0,
+    sort_by: str = "newest",  # newest, oldest, most_liked, most_popular, time_spent
+    location: str = "Istanbul"
 ):
-    """Get all blog posts with optional filtering"""
+    """Get all blog posts with optional filtering and sorting"""
     try:
         posts = load_blog_posts()
+        
+        # Transform data to match frontend expectations
+        for post in posts:
+            # Ensure likes_count field exists (normalize from likes field)
+            if 'likes' in post and 'likes_count' not in post:
+                post['likes_count'] = post['likes']
+            elif 'likes_count' not in post:
+                post['likes_count'] = 0
+                
+            # Ensure view_count field exists (normalize from views field)
+            if 'views' in post and 'view_count' not in post:
+                post['view_count'] = post['views']
+            elif 'view_count' not in post:
+                post['view_count'] = 0
         
         # Filter posts
         filtered_posts = []
@@ -617,8 +631,22 @@ async def get_all_posts(
                 continue
             filtered_posts.append(post)
         
-        # Sort by creation date (newest first)
-        filtered_posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        # Sort posts based on sort_by parameter
+        if sort_by == "newest":
+            filtered_posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        elif sort_by == "oldest":
+            filtered_posts.sort(key=lambda x: x.get('created_at', ''), reverse=False)
+        elif sort_by == "most_liked":
+            filtered_posts.sort(key=lambda x: x.get('likes_count', 0), reverse=True)
+        elif sort_by == "most_popular":
+            # Sort by view count (if available) or likes as fallback
+            filtered_posts.sort(key=lambda x: x.get('view_count', x.get('likes_count', 0)), reverse=True)
+        elif sort_by == "time_spent":
+            # Sort by average reading time (simulate with content length as proxy)
+            filtered_posts.sort(key=lambda x: len(x.get('content', '')), reverse=True)
+        else:
+            # Default to newest
+            filtered_posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         # Apply pagination
         total = len(filtered_posts)
@@ -629,7 +657,8 @@ async def get_all_posts(
             "total": total,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + limit < total
+            "has_more": offset + limit < total,
+            "sort_by": sort_by
         }
     
     except Exception as e:
@@ -697,6 +726,18 @@ async def get_post(post_id: str):
                 # Increment view count
                 posts[i]['views'] = post.get('views', 0) + 1
                 save_blog_posts(posts)
+                
+                # Transform data to match frontend expectations
+                if 'likes' in posts[i] and 'likes_count' not in posts[i]:
+                    posts[i]['likes_count'] = posts[i]['likes']
+                elif 'likes_count' not in posts[i]:
+                    posts[i]['likes_count'] = 0
+                    
+                if 'views' in posts[i] and 'view_count' not in posts[i]:
+                    posts[i]['view_count'] = posts[i]['views']
+                elif 'view_count' not in posts[i]:
+                    posts[i]['view_count'] = 0
+                
                 return {"post": posts[i]}
         
         raise HTTPException(status_code=404, detail="Blog post not found")
@@ -810,12 +851,15 @@ async def like_post(post_id: str):
         
         for i, post in enumerate(posts):
             if post.get('id') == post_id:
-                posts[i]['likes'] = post.get('likes', 0) + 1
+                # Update likes count
+                new_likes = post.get('likes', 0) + 1
+                posts[i]['likes'] = new_likes
+                posts[i]['likes_count'] = new_likes  # Ensure both fields are consistent
                 
                 if save_blog_posts(posts):
                     return {
                         "message": "Post liked successfully",
-                        "likes": posts[i]['likes']
+                        "likes_count": new_likes
                     }
                 else:
                     raise HTTPException(status_code=500, detail="Failed to save like")
@@ -908,42 +952,6 @@ async def search_posts(query: str, limit: int = 10):
         raise HTTPException(status_code=500, detail="Failed to search blog posts")
 
 # Enhanced recommendation endpoints
-
-@router.get("/recommendations/weather")
-async def get_weather_recommendations(request: Request, location: str = "Istanbul", limit: int = 5):
-    """Get blog recommendations based on current weather"""
-    try:
-        # Track analytics
-        if ANALYTICS_DB_AVAILABLE and analytics_db:
-            user_agent = request.headers.get("user-agent", "")
-            client_ip = request.client.host if request.client else "unknown"
-            session_id = f"session_{hash(user_agent + client_ip) % 10000}"
-            
-            analytics_db.track_page_view("/blog/recommendations/weather", user_agent, client_ip, session_id)
-            analytics_db.update_active_session(session_id, "/blog/recommendations/weather")
-        
-        recommendations = await weather_engine.get_weather_aware_recommendations(
-            user_location=location,
-            limit=limit
-        )
-        
-        return {
-            "success": True,
-            "recommendations": [
-                {
-                    "post_id": rec.post_id,
-                    "title": rec.title,
-                    "relevance_score": rec.relevance_score,
-                    "reason": rec.reason,
-                    "weather_context": rec.weather_context
-                }
-                for rec in recommendations
-            ],
-            "message": f"Weather-aware recommendations for {location}"
-        }
-    except Exception as e:
-        logger.error(f"Weather recommendations error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/recommendations/personalized")
 async def get_personalized_recommendations(

@@ -3,14 +3,26 @@ import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 import './App.css';
 
 
 
 // Helper function to render text with clickable links and proper formatting
 const renderMessageContent = (content, darkMode) => {
-  // First, split content into paragraphs (double line breaks)
-  const paragraphs = content.split(/\n\s*\n/);
+  // Enhanced text processing for better readability
+  
+  // Step 1: Handle numbered lists (1. 2. 3. etc.)
+  let formattedContent = content.replace(/^(\d+\.\s)/gm, '\n$1');
+  
+  // Step 2: Handle bullet points (-)
+  formattedContent = formattedContent.replace(/^(\s*-\s)/gm, '\n$1');
+  
+  // Step 3: Add extra spacing around main sections (lines ending with :)
+  formattedContent = formattedContent.replace(/^([^:\n]+:)\s*$/gm, '\n$1\n');
+  
+  // Step 4: Split content into paragraphs (double line breaks or section breaks)
+  const paragraphs = formattedContent.split(/\n\s*\n/).filter(p => p.trim());
   
   return paragraphs.map((paragraph, paragraphIndex) => {
     // Convert Markdown-style links [text](url) to clickable HTML links
@@ -27,20 +39,7 @@ const renderMessageContent = (content, darkMode) => {
       // Add text before the link
       if (match.index > lastIndex) {
         const textContent = paragraph.substring(lastIndex, match.index);
-        // Split by single line breaks for proper formatting
-        const lines = textContent.split('\n');
-        lines.forEach((line, lineIndex) => {
-          if (lineIndex > 0) {
-            parts.push(<br key={`br-${lastIndex}-${lineIndex}`} />);
-          }
-          if (line.trim()) {
-            parts.push(
-              <span key={`text-${lastIndex}-${lineIndex}`}>
-                {line}
-              </span>
-            );
-          }
-        });
+        processTextContent(textContent, parts, `${paragraphIndex}-${lastIndex}`);
       }
       
       // Add the clickable link
@@ -50,7 +49,14 @@ const renderMessageContent = (content, darkMode) => {
           href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline transition-colors duration-200 hover:opacity-80 cursor-pointer text-blue-400 hover:text-blue-300"
+          style={{
+            color: '#60a5fa',
+            textDecoration: 'underline',
+            cursor: 'pointer',
+            transition: 'color 0.2s ease'
+          }}
+          onMouseOver={(e) => e.target.style.color = '#3b82f6'}
+          onMouseOut={(e) => e.target.style.color = '#60a5fa'}
         >
           {linkText}
         </a>
@@ -62,45 +68,95 @@ const renderMessageContent = (content, darkMode) => {
     // Add any remaining text after the last link
     if (lastIndex < paragraph.length) {
       const textContent = paragraph.substring(lastIndex);
-      // Split by single line breaks for proper formatting
-      const lines = textContent.split('\n');
-      lines.forEach((line, lineIndex) => {
-        if (lineIndex > 0) {
-          parts.push(<br key={`br-${lastIndex}-${lineIndex}`} />);
-        }
-        if (line.trim()) {
-          parts.push(
-            <span key={`text-${lastIndex}-${lineIndex}`}>
-              {line}
-            </span>
-          );
-        }
-      });
+      processTextContent(textContent, parts, `${paragraphIndex}-${lastIndex}`);
     }
     
-    // If no links were found, handle line breaks in the whole paragraph
+    // If no links were found, handle the whole paragraph
     if (parts.length === 0) {
-      const lines = paragraph.split('\n');
-      lines.forEach((line, lineIndex) => {
-        if (lineIndex > 0) {
-          parts.push(<br key={`br-${paragraphIndex}-${lineIndex}`} />);
-        }
-        if (line.trim()) {
-          parts.push(
-            <span key={`text-${paragraphIndex}-${lineIndex}`}>
-              {line}
-            </span>
-          );
-        }
-      });
+      processTextContent(paragraph, parts, paragraphIndex);
     }
     
-    // Return each paragraph wrapped in a div with margin for separation
+    // Return each paragraph with proper spacing
     return (
-      <div key={`paragraph-${paragraphIndex}`} className={paragraphIndex > 0 ? 'mt-4' : ''}>
+      <div 
+        key={`paragraph-${paragraphIndex}`} 
+        style={{ 
+          marginBottom: paragraphIndex < paragraphs.length - 1 ? '1rem' : '0',
+          lineHeight: '1.6'
+        }}
+      >
         {parts}
       </div>
     );
+  });
+};
+
+// Helper function to process text content with proper line breaks and formatting
+const processTextContent = (textContent, parts, keyPrefix) => {
+  const lines = textContent.split('\n');
+  
+  lines.forEach((line, lineIndex) => {
+    if (lineIndex > 0) {
+      parts.push(<br key={`br-${keyPrefix}-${lineIndex}`} />);
+    }
+    
+    if (line.trim()) {
+      // Check if this is a numbered list item
+      const isNumberedList = /^\d+\.\s/.test(line.trim());
+      // Check if this is a bullet point
+      const isBulletPoint = /^\s*-\s/.test(line);
+      // Check if this is a section header (ends with :)
+      const isSectionHeader = line.trim().endsWith(':') && !line.includes('http');
+      
+      let processedLine = line;
+      
+      // Add styling for different content types
+      if (isNumberedList) {
+        const [number, ...rest] = line.split(/\.\s/);
+        parts.push(
+          <span key={`numbered-${keyPrefix}-${lineIndex}`} style={{
+            display: 'block',
+            marginTop: '0.5rem',
+            marginBottom: '0.25rem'
+          }}>
+            <strong style={{ color: '#60a5fa' }}>{number}.</strong>
+            <span style={{ marginLeft: '0.5rem' }}>{rest.join('. ')}</span>
+          </span>
+        );
+      } else if (isBulletPoint) {
+        const cleanLine = line.replace(/^\s*-\s/, '');
+        parts.push(
+          <span key={`bullet-${keyPrefix}-${lineIndex}`} style={{
+            display: 'block',
+            marginLeft: '1rem',
+            marginTop: '0.25rem',
+            marginBottom: '0.25rem'
+          }}>
+            <span style={{ color: '#60a5fa', marginRight: '0.5rem' }}>•</span>
+            {cleanLine}
+          </span>
+        );
+      } else if (isSectionHeader) {
+        parts.push(
+          <span key={`header-${keyPrefix}-${lineIndex}`} style={{
+            display: 'block',
+            fontWeight: '600',
+            color: '#f1f5f9',
+            marginTop: '1rem',
+            marginBottom: '0.5rem',
+            fontSize: '1.05em'
+          }}>
+            {line}
+          </span>
+        );
+      } else {
+        parts.push(
+          <span key={`text-${keyPrefix}-${lineIndex}`}>
+            {line}
+          </span>
+        );
+      }
+    }
   });
 };
 
@@ -224,12 +280,14 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
-  // Auto-scroll to bottom when new messages arrive - optimized
+  // Auto-scroll to bottom when new messages arrive - always track to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      setTimeout(() => {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
     }
-  }, [messages.length]); // Only trigger on message count change, not content changes
+  }, [messages.length]); // Trigger on every new message
 
   // Removed suggestions functionality as requested
 
@@ -349,10 +407,10 @@ function Chatbot({ onDarkModeToggle }) {
         return prev;
       });
       
-      // Auto-scroll to bottom
+      // Auto-scroll to bottom after message completion
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      }, 200);
     }
   }
 
@@ -734,8 +792,8 @@ function Chatbot({ onDarkModeToggle }) {
       }`}>
         <div className="chatbot-purple-box">
 
-          {/* Chat Messages Area - Separate from Input */}
-          <div className="chatbot-messages">
+          {/* Chat Messages Area - Separate from Input with Scrolling */}
+          <div className="chatbot-messages chatbot-scrollable">
           
           {/* Welcome Screen - Clean and modern */}
           {messages.length === 0 && (
@@ -757,6 +815,27 @@ function Chatbot({ onDarkModeToggle }) {
               }`}>
                 Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
               </p>
+              
+              {/* Quick suggestions moved higher - inside welcome screen */}
+              <div className="kam-quick-suggestions">
+                <div className="text-xs text-gray-400 mb-3">Try asking about:</div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    "Best restaurants in Sultanahmet",
+                    "Things to do in Beyoğlu", 
+                    "Ferry routes to the islands",
+                    "Turkish breakfast spots"
+                  ].map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setInput(suggestion)}
+                      className="kam-suggestion-pill"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
               
             </div>
           )}
@@ -896,13 +975,6 @@ function Chatbot({ onDarkModeToggle }) {
                 autoFocus={false}
               />
               
-              {/* Search Icon - positioned over input */}
-              <div className="kam-search-icon">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              
               {/* Send Button */}
               <button 
                 onClick={() => {
@@ -919,43 +991,25 @@ function Chatbot({ onDarkModeToggle }) {
                     <div className="kam-spinner-ring"></div>
                   </div>
                 ) : (
-                  <svg 
-                    className="w-5 h-5" 
-                    fill="currentColor" 
-                    viewBox="0 0 24 24"
-                    style={{ transform: 'rotate(45deg)' }}
-                  >
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 )}
               </button>
             </div>
           </div>
           
-          {/* Quick suggestions (optional) */}
-          {messages.length === 0 && !loading && (
-            <div className="kam-quick-suggestions">
-              <div className="text-xs text-gray-400 mb-2">Try asking about:</div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "Best restaurants in Sultanahmet",
-                  "Things to do in Beyoğlu", 
-                  "Ferry routes to the islands",
-                  "Turkish breakfast spots"
-                ].map((suggestion, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setInput(suggestion)}
-                    className="kam-suggestion-pill"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Quick suggestions (optional) - removed from here as moved to welcome screen */}
         </div>
         </div>
+        
+        {/* Gap between chat and footer */}
+        <div className="chatbot-footer-gap"></div>
+      </div>
+      
+      {/* Footer with proper positioning */}
+      <div className="chatbot-footer-container">
+        <Footer />
       </div>
     </div>
   );
