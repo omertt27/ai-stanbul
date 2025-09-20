@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import '../App.css';
 
 const Sources = () => {
+  const { t } = useTranslation();
   const { darkMode } = useTheme();
 
   const dataSource = (icon, title, items, color) => (
@@ -52,12 +54,12 @@ const Sources = () => {
             <h1 className={`text-5xl font-bold mb-6 transition-colors duration-300 ${
               darkMode ? 'text-white' : 'text-gray-800'
             }`}>
-              Sources & <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Technology</span>
+              {t('sources.title')}
             </h1>
             <p className={`text-xl leading-relaxed transition-colors duration-300 ${
               darkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Trusted data sources and cutting-edge technology powering your Istanbul experience
+              {t('sources.subtitle')}
             </p>
           </div>
         </div>

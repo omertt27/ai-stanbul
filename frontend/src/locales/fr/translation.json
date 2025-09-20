@@ -1,0 +1,374 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "send": "Envoyer",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "read": "Lire à haute voix",
+    "stop": "Arrêter",
+    "clear": "Effacer",
+    "close": "Fermer"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "chat": "Chat",
+    "about": "À propos",
+    "contact": "Contact",
+    "privacy": "Confidentialité",
+    "tips": "Conseils",
+    "blog": "Blog",
+    "sources": "Sources",
+    "donate": "Faire un don",
+    "faq": "FAQ"
+  },
+  "chat": {
+    "welcome": "Bienvenue sur Istanbul AI ! Comment puis-je vous aider à explorer la ville ?",
+    "placeholder": "Que souhaitez-vous savoir sur Istanbul ?",
+    "searchPlaceholder": "Découvrez la magie d'Istanbul...",
+    "typing": "KAM réfléchit...",
+    "suggestions": {
+      "title": "Vous pouvez demander :",
+      "restaurants": "Meilleurs restaurants à Sultanahmet",
+      "activities": "Choses à faire à Beyoğlu",
+      "transport": "Lignes de ferry vers les îles",
+      "breakfast": "Lieux de petit-déjeuner turc"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "Voici d'excellents restaurants dans {district} :",
+    "museum_intro": "Découvrez ces musées fantastiques :",
+    "transport_intro": "Voici votre guide de transport :",
+    "attractions_intro": "Principales attractions et lieux à visiter :",
+    "general_intro": "Je serais ravi de vous aider à explorer Istanbul !"
+  },
+  "restaurants": {
+    "name": "Nom",
+    "rating": "Note",
+    "price": "Prix",
+    "cuisine": "Cuisine",
+    "location": "Emplacement",
+    "viewOnMap": "Voir sur la carte",
+    "descriptions": {
+      "kebab": "Maison de kebab turque traditionnelle servant des viandes grillées et des recettes ottomanes authentiques.",
+      "seafood": "Restaurant de fruits de mer frais spécialisé dans les prises du Bosphore et les plats méditerranéens.",
+      "palace": "Cuisine fine de style ottoman avec cuisine turque traditionnelle et atmosphère élégante.",
+      "cafe": "Café turc confortable servant du café traditionnel, du thé et un petit-déjeuner turc léger.",
+      "meze": "Maison de meze traditionnelle proposant de petites assiettes et des hors-d'œuvre turcs authentiques.",
+      "rooftop": "Restaurant sur le toit avec vues panoramiques d'Istanbul et cuisine internationale.",
+      "lokanta": "Cuisine turque familiale avec des spécialités quotidiennes et des classiques réconfortants.",
+      "pizza": "Restaurant italien servant des pizzas authentiques et des plats méditerranéens.",
+      "asian": "Restaurant asiatique fusion avec sushi frais et saveurs asiatiques contemporaines.",
+      "default": "Restaurant local populaire connu pour sa cuisine turque de qualité et son hospitalité chaleureuse."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion et réessayer.",
+    "serverError": "Désolé, j'ai rencontré une erreur. Veuillez reformuler votre question.",
+    "inputTooShort": "Veuillez saisir une question significative.",
+    "invalidCharacters": "Veuillez utiliser des lettres et des mots dans votre question.",
+    "rateLimited": "Trop de demandes. Veuillez attendre un moment et réessayer."
+  },
+  "about": {
+    "title": "À propos",
+    "subtitle": "Votre compagnon intelligent pour explorer la riche culture, cuisine et joyaux cachés d'Istanbul",
+    "mission": {
+      "title": "Notre Mission",
+      "description": "Nous croyons que chaque visiteur d'Istanbul mérite de vivre la ville comme un local. Notre assistant IA fournit des recommandations personnalisées et culturellement conscientes qui vont au-delà des guides touristiques typiques."
+    },
+    "features": {
+      "smart": {
+        "title": "Recommandations Intelligentes",
+        "description": "Suggestions alimentées par l'IA basées sur vos préférences, le temps et l'emplacement"
+      },
+      "local": {
+        "title": "Aperçus Locaux",
+        "description": "Découvrez des joyaux cachés et des expériences authentiques hors des sentiers battus"
+      },
+      "multilingual": {
+        "title": "Support Multilingue",
+        "description": "Obtenez de l'aide dans plusieurs langues avec des réponses culturellement appropriées"
+      }
+    }
+  },
+  "homepage": {
+    "title": "Découvrez Istanbul avec l'IA",
+    "subtitle": "Votre compagnon de voyage intelligent pour la ville où deux continents se rencontrent",
+    "suggestions": {
+      "morning": {
+        "breakfast": "Meilleur petit-déjeuner turc",
+        "views": "Vues matinales", 
+        "bakeries": "Boulangeries fraîches"
+      },
+      "afternoon": {
+        "museums": "Musées & Culture",
+        "shopping": "Quartiers commerçants",
+        "lunch": "Lieux de déjeuner"
+      },
+      "evening": {
+        "sunset": "Vues du coucher de soleil",
+        "dining": "Dîner du soir",
+        "nightlife": "Vie nocturne"
+      }
+    },
+    "districts": {
+      "sultanahmet": {
+        "name": "Sultanahmet",
+        "description": "Péninsule historique avec des trésors ottomans et byzantins",
+        "vibe": "Impérial",
+        "specialty": "Héritage ottoman"
+      },
+      "beyoglu": {
+        "name": "Beyoğlu", 
+        "description": "Cœur culturel vibrant avec art moderne et vie nocturne",
+        "vibe": "Artistique",
+        "specialty": "Culture contemporaine"
+      },
+      "kadikoy": {
+        "name": "Kadıköy",
+        "description": "Joyau du côté asiatique avec vie locale authentique et nourriture",
+        "vibe": "Local",
+        "specialty": "Nourriture de rue"
+      }
+    },
+    "quickStart": "Démarrage rapide du chat",
+    "exploreMore": "Explorer plus"
+  },
+  "faq": {
+    "title": "Questions Fréquemment Posées",
+    "subtitle": "Tout ce que vous devez savoir sur AI Istanbul Guide",
+    "stats": {
+      "realTimeData": {
+        "title": "Données en temps réel",
+        "description": "Informations de restaurants et lieux en direct via l'API Google Maps"
+      },
+      "free": {
+        "title": "100% Gratuit",
+        "description": "Complètement gratuit à utiliser, soutenu par la communauté"
+      },
+      "mobileOptimized": {
+        "title": "Optimisé mobile",
+        "description": "Expérience parfaite sur tout appareil, partout à Istanbul"
+      }
+    },
+    "stillHaveQuestions": {
+      "title": "Vous avez encore des questions ?",
+      "subtitle": "Vous ne trouvez pas la réponse que vous cherchez ? Voici quelques moyens d'obtenir de l'aide :",
+      "chatWithAI": "Chattez avec notre IA pour une aide instantanée",
+      "readDocs": "Parcourez notre documentation",
+      "contactSupport": "Contactez notre équipe de support"
+    },
+    "questions": {
+      "whatIsKam": {
+        "question": "Que signifie KAM ?",
+        "answer": "KAM est un chatbot IA nommé d'après l'ancien 'kam' turc — une figure chamanique sage qui servait de pont entre le monde humain et spirituel. Sous cette forme moderne, Kam incarne le même esprit de guidance, d'insight et de protection, aidant les utilisateurs à naviguer dans le vaste monde numérique avec clarté et sagesse."
+      },
+      "accuracy": {
+        "question": "Quelle est la précision des recommandations de restaurants ?",
+        "answer": "Nos recommandations de restaurants proviennent directement de l'API Google Maps, fournissant des évaluations, avis et données de localisation en temps réel. Nous combinons cela avec une analyse IA pour vous donner les suggestions les plus pertinentes basées sur vos préférences."
+      },
+      "coverage": {
+        "question": "Avez-vous des informations sur tous les quartiers d'Istanbul ?",
+        "answer": "Oui ! Nous avons des données complètes sur tous les principaux quartiers d'Istanbul incluant Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, et beaucoup d'autres. Chaque entrée de quartier inclut le contexte historique, les principales attractions et la signification culturelle."
+      },
+      "languages": {
+        "question": "Puis-je obtenir des recommandations dans différentes langues ?",
+        "answer": "Oui ! Notre IA supporte plusieurs langues incluant l'anglais, le turc, le russe, l'allemand, le français et l'arabe. Changez simplement votre préférence de langue et commencez à chatter."
+      },
+      "updates": {
+        "question": "À quelle fréquence les informations sont-elles mises à jour ?",
+        "answer": "Les données de restaurants sont mises à jour en temps réel via l'API Google Maps. Nos informations sur les musées et attractions sont curées manuellement et mises à jour régulièrement pour assurer la précision. Nous révisons et mettons à jour notre base de données mensuellement."
+      },
+      "free": {
+        "question": "Ce service est-il complètement gratuit ?",
+        "answer": "Oui ! AI Istanbul Guide est complètement gratuit à utiliser. Nous sommes financés par des donations et maintenons ceci comme un projet open-source pour aider les visiteurs à découvrir le meilleur d'Istanbul."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contacter AI/STANBUL",
+    "getInTouch": "Prendre contact",
+    "email": "E-mail",
+    "location": "Localisation",
+    "socialMedia": "Réseaux sociaux",
+    "openSource": "Open Source",
+    "github": "Dépôt GitHub",
+    "community": "Communauté & Support",
+    "followUs": "Suivez-nous pour les mises à jour et conseils Istanbul",
+    "contributeProject": "Contribuer au projet",
+    "helpImprove": "Aidez-nous à améliorer AI Istanbul Guide",
+    "reportIssues": "Signaler des problèmes ou suggérer des fonctionnalités",
+    "joinCommunity": "Rejoignez notre communauté de développeurs",
+    "responseTimes": "Temps de réponse",
+    "responseInfo": "Nous répondons généralement aux e-mails dans les 24-48 heures. Pour les problèmes techniques urgents, veuillez nous contacter via GitHub.",
+    "form": {
+      "sendMessage": "Envoyer un message",
+      "name": "Nom",
+      "namePlaceholder": "Votre nom",
+      "email": "E-mail",
+      "emailPlaceholder": "votre@email.com",
+      "subject": "Sujet",
+      "subjectPlaceholder": "De quoi s'agit-il ?",
+      "message": "Message",
+      "messagePlaceholder": "Dites-nous ce que vous pensez...",
+      "sendButton": "Envoyer le message"
+    }
+  },
+  "donate": {
+    "title": "Soutenir AI/STANBUL",
+    "subtitle": "Aidez-nous à garder le meilleur guide de voyage IA d'Istanbul gratuit et fantastique pour tous",
+    "buyMeCoffee": "Offrez-moi un café",
+    "coffeeDescription": "La façon la plus simple de montrer votre appréciation et maintenir AIstanbul en fonctionnement",
+    "buyMeCoffeeButton": "Offrez-moi un café",
+    "howSupportHelps": "Comment votre soutien aide",
+    "keepItFree": "Garder gratuit pour toujours",
+    "keepItFreeDesc": "Vos donations garantissent qu'AIstanbul reste complètement gratuit pour tous les voyageurs explorant Istanbul.",
+    "serverCosts": "Coûts serveur et API",
+    "serverCostsDesc": "Couvrir l'hébergement, Google Maps API et OpenAI pour des réponses rapides et précises.",
+    "continuousUpdates": "Mises à jour continues",
+    "continuousUpdatesDesc": "Financer les mises à jour régulières de la base de données avec les dernières informations sur les restaurants, musées et attractions.",
+    "newFeatures": "Nouvelles fonctionnalités",
+    "newFeaturesDesc": "Permettre le développement de fonctionnalités passionnantes comme les recommandations d'événements et les informations de transport en temps réel.",
+    "multilingualSupport": "Support multilingue",
+    "multilingualSupportDesc": "Aidez-nous à nous étendre pour servir les visiteurs du monde entier dans leurs langues natives.",
+    "betterExperience": "Meilleure expérience",
+    "betterExperienceDesc": "Améliorer l'expérience mobile, ajouter des fonctionnalités hors ligne et améliorer l'interface utilisateur.",
+    "otherWaysToHelp": "Autres façons d'aider",
+    "shareOnSocialMedia": "Partager sur les réseaux sociaux",
+    "shareOnSocialMediaDesc": "Partagez AIstanbul avec d'autres voyageurs sur Twitter, Instagram ou Facebook",
+    "sendFeedback": "Envoyer des commentaires",
+    "sendFeedbackDesc": "Aidez-nous à nous améliorer avec vos précieux commentaires et suggestions",
+    "contributeOnGithub": "Contribuer sur GitHub",
+    "contributeOnGithubDesc": "Aidez à améliorer AIstanbul en contribuant du code ou en signalant des problèmes"
+  },
+  "tips": {
+    "title": "Conseils de voyage Istanbul",
+    "subtitle": "Connaissances d'initiés essentielles pour votre aventure Istanbul",
+    "gettingAround": "Se déplacer",
+    "publicTransport": "Utilisez Istanbulkart pour tous les transports publics",
+    "traffic": "Évitez les heures de pointe (7-9h, 17-19h) si possible",
+    "ferries": "Prenez les ferries pour des vues panoramiques du Bosphore",
+    "cultural": "Conseils culturels",
+    "mosques": "Enlevez vos chaussures en entrant dans les mosquées",
+    "dress": "Habillez-vous modestement dans les sites religieux",
+    "tea": "Acceptez le thé offert - c'est un signe d'hospitalité",
+    "money": "Argent & Shopping",
+    "bargain": "Le marchandage est attendu dans les marchés et bazars",
+    "cash": "Portez de l'argent liquide pour les petits vendeurs et marchés",
+    "tipping": "10-15% de pourboire est standard dans les restaurants",
+    "safety": "Sécurité & Pratique",
+    "water": "L'eau du robinet est sûre à boire dans la plupart des zones",
+    "language": "Apprenez des phrases turques de base - les locaux l'apprécient",
+    "emergency": "Numéro d'urgence : 112"
+  },
+  "privacy": {
+    "title": "Politique de confidentialité",
+    "lastUpdated": "Dernière mise à jour",
+    "gdprNoticeTitle": "🇪🇺 Avis de conformité RGPD",
+    "gdprNoticeText": "AI Istanbul est entièrement conforme au Règlement général sur la protection des données (RGPD). En tant qu'utilisateur, vous avez des droits spécifiques concernant vos données personnelles.",
+    "gdprLinkText": "Gérez vos paramètres de données et de confidentialité ici →",
+    "dataControllerTitle": "Informations du responsable du traitement",
+    "dataController": "Responsable du traitement",
+    "dataControllerName": "AI Istanbul Guide",
+    "contactEmail": "Contact",
+    "contactEmailValue": "privacy@aiistanbul.guide",
+    "legalBasis": "Base légale",
+    "legalBasisValue": "Intérêt légitime pour l'analyse, consentement pour la personnalisation",
+    "informationWeCollectTitle": "Informations que nous collectons",
+    "personalDataCategoriesTitle": "Catégories de données personnelles",
+    "chatMessages": "Messages de chat",
+    "chatMessagesDesc": "Vos questions et demandes (traitées temporairement, pas stockées en permanence)",
+    "technicalData": "Données techniques",
+    "technicalDataDesc": "Adresse IP, type de navigateur, informations de l'appareil, IDs de session",
+    "usageAnalytics": "Analyse d'utilisation",
+    "usageAnalyticsDesc": "Vues de page, modèles d'interaction (anonymisés via Google Analytics)",
+    "preferences": "Préférences",
+    "preferencesDesc": "Paramètres de thème, préférences linguistiques, restrictions alimentaires",
+    "feedbackData": "Données de retour",
+    "feedbackDataDesc": "Évaluations et commentaires optionnels que vous fournissez",
+    "cookieData": "Données de cookies",
+    "cookieDataDesc": "Préférences de consentement, données de session",
+    "legalBasisProcessingTitle": "Base légale pour le traitement",
+    "consentGdpr": "Consentement (Art. 6(1)(a) RGPD)",
+    "consentGdprDesc": "Préférences de cookies, fonctionnalités de personnalisation",
+    "legitimateInterest": "Intérêt légitime (Art. 6(1)(f) RGPD)",
+    "legitimateInterestDesc": "Analyse du site web, sécurité, amélioration du service",
+    "contractualNecessity": "Nécessité contractuelle (Art. 6(1)(b) RGPD)",
+    "contractualNecessityDesc": "Fourniture de recommandations de voyage",
+    "howWeUseTitle": "Comment nous utilisons vos informations",
+    "usePersonalized": "Fournir des recommandations de voyage personnalisées pour Istanbul",
+    "useImprove": "Améliorer la précision et la pertinence des réponses IA",
+    "useAnalyze": "Analyser les modèles d'utilisation pour améliorer l'expérience utilisateur",
+    "useSecurity": "Assurer la sécurité du site web et prévenir les abus",
+    "useComply": "Se conformer aux obligations légales",
+    "dataSharingTitle": "Partage de données et transferts internationaux",
+    "dataSharingIntro": "Nous partageons des données limitées uniquement avec des fournisseurs de services essentiels :",
+    "googleMaps": "Google Maps API",
+    "googleMapsDesc": "Requêtes de localisation pour les recommandations de restaurants (États-Unis)",
+    "openaiApi": "OpenAI API",
+    "openaiApiDesc": "Réponses de chat alimentées par IA (États-Unis)",
+    "googleAnalytics": "Google Analytics",
+    "googleAnalyticsDesc": "Statistiques d'utilisation anonymisées (États-Unis)",
+    "renderCom": "Render.com",
+    "renderComDesc": "Services d'hébergement web (États-Unis)",
+    "safeguards": "Garanties",
+    "safeguardsDesc": "Tous les transferts internationaux sont protégés par des clauses contractuelles standard (SCC) ou des décisions d'adéquation lorsque disponibles.",
+    "dataRetentionTitle": "Conservation des données",
+    "chatMessagesRetention": "Messages de chat",
+    "chatMessagesRetentionDesc": "Traités en temps réel, pas stockés en permanence",
+    "analyticsDataRetention": "Données d'analyse",
+    "analyticsDataRetentionDesc": "Anonymisées, conservées 26 mois (défaut Google Analytics)",
+    "userPreferencesRetention": "Préférences utilisateur",
+    "userPreferencesRetentionDesc": "Jusqu'à ce que vous effaciez les données du navigateur ou demandiez la suppression",
+    "errorLogsRetention": "Journaux d'erreur",
+    "errorLogsRetentionDesc": "30 jours pour le dépannage technique",
+    "cookiesTrackingTitle": "Cookies et suivi",
+    "cookiesIntro": "Nous utilisons les types de cookies suivants :",
+    "necessaryCookies": "Cookies nécessaires",
+    "necessaryCookiesDesc": "Essentiels pour la fonctionnalité du site web (ne peuvent pas être désactivés)",
+    "analyticsCookies": "Cookies d'analyse",
+    "analyticsCookiesDesc": "Google Analytics pour les statistiques d'utilisation (nécessite un consentement)",
+    "preferenceCookies": "Cookies de préférence",
+    "preferenceCookiesDesc": "Se souviennent de vos paramètres de thème et de langue (nécessite un consentement)",
+    "cookieManagement": "Vous pouvez gérer les préférences de cookies via notre bannière de consentement ou en visitant les paramètres de votre navigateur.",
+    "dataSecurityTitle": "Sécurité des données",
+    "endToEndEncryption": "Chiffrement de bout en bout pour la transmission des données (HTTPS)",
+    "securityAudits": "Audits de sécurité et mises à jour réguliers",
+    "accessControls": "Contrôles d'accès et authentification",
+    "dataMinimization": "Principes de minimisation des données",
+    "incidentResponse": "Procédures de réponse aux incidents",
+    "childrensPrivacyTitle": "Confidentialité des enfants",
+    "childrensPrivacyText": "Notre service ne s'adresse pas aux enfants de moins de 16 ans. Nous ne collectons pas sciemment d'informations personnelles d'enfants de moins de 16 ans. Si vous êtes parent et croyez que votre enfant nous a fourni des informations personnelles, veuillez nous contacter immédiatement.",
+    "dataBreachTitle": "Notification de violation de données",
+    "dataBreachText": "En cas de violation de données affectant vos données personnelles, nous vous notifierons ainsi que les autorités compétentes dans les 72 heures comme requis par les articles 33 et 34 du RGPD.",
+    "changesToPolicyTitle": "Modifications de cette politique",
+    "changesToPolicyText": "Nous pouvons mettre à jour cette politique de confidentialité de temps à autre. Les changements importants seront communiqués via notre site web avec un préavis d'au moins 30 jours. L'utilisation continue après les changements constitue une acceptation.",
+    "contactDataProtectionTitle": "Contact et protection des données",
+    "contactDataProtectionIntro": "Pour les questions liées à la confidentialité ou pour exercer vos droits RGPD :",
+    "email": "E-mail",
+    "emailValue": "privacy@aiistanbul.guide",
+    "dataProtectionOfficer": "Délégué à la protection des données",
+    "dataProtectionOfficerValue": "dpo@aiistanbul.guide",
+    "gdprPortal": "Portail RGPD",
+    "gdprPortalValue": "aiistanbul.guide/gdpr",
+    "supervisoryAuthorityTitle": "Autorité de surveillance",
+    "supervisoryAuthorityIntro": "Si vous n'êtes pas satisfait de notre réponse, vous pouvez déposer une plainte auprès de :",
+    "turkeyAuthority": "Turquie",
+    "turkeyAuthorityValue": "Autorité de protection des données personnelles (KVKK)",
+    "euAuthority": "UE",
+    "euAuthorityValue": "Votre autorité locale de protection des données",
+    "commitmentTitle": "🌍 Notre engagement",
+    "commitmentText": "AI Istanbul s'engage pour la confidentialité dès la conception et la transparence. Nous ne collectons que ce qui est nécessaire pour vous offrir la meilleure expérience de voyage à Istanbul tout en respectant votre droit fondamental à la vie privée."
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "retry": "Tekrar dene",
+    "send": "Gönder",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı!",
+    "read": "Sesli oku",
+    "stop": "Dur",
+    "clear": "Temizle",
+    "close": "Kapat"
+  },
+  "navigation": {
+    "home": "Ana Sayfa",
+    "chat": "Sohbet",
+    "about": "Hakkında",
+    "contact": "İletişim",
+    "privacy": "Gizlilik",
+    "tips": "İpuçları",
+    "blog": "Blog",
+    "sources": "Kaynaklar",
+    "donate": "Bağış",
+    "faq": "SSS"
+  },
+  "chat": {
+    "welcome": "İstanbul AI'ya hoş geldiniz! Şehri keşfetmenizde nasıl yardımcı olabilirim?",
+    "placeholder": "İstanbul hakkında ne öğrenmek istiyorsunuz?",
+    "searchPlaceholder": "İstanbul'un büyüsünü keşfedin...",
+    "typing": "KAM düşünüyor...",
+    "suggestions": {
+      "title": "Şunları sorabilirsiniz:",
+      "restaurants": "Sultanahmet'teki en iyi restoranlar",
+      "activities": "Beyoğlu'nda yapılacak şeyler",
+      "transport": "Adalara feribot hatları",
+      "breakfast": "Türk kahvaltısı mekanları"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "{district} bölgesindeki harika restoranlar:",
+    "museum_intro": "Bu muhteşem müzeleri keşfedin:",
+    "transport_intro": "İşte ulaşım rehberiniz:",
+    "attractions_intro": "En popüler yerler ve görülecek yerler:",
+    "general_intro": "İstanbul'u keşfetmenizde size yardımcı olmaktan mutluluk duyarım!"
+  },
+  "restaurants": {
+    "name": "İsim",
+    "rating": "Puan",
+    "price": "Fiyat",
+    "cuisine": "Mutfak",
+    "location": "Konum",
+    "viewOnMap": "Haritada Görüntüle",
+    "descriptions": {
+      "kebab": "Izgara etler ve otantik Osmanlı yemekleri sunan geleneksel Türk kebap evi.",
+      "seafood": "Boğaziçi balıkları ve Akdeniz yemeklerinde uzmanlaşmış taze deniz ürünleri restoranı.",
+      "palace": "Geleneksel Türk mutfağı ve zarif atmosfer ile Osmanlı tarzı lüks yemek.",
+      "cafe": "Geleneksel kahve, çay ve hafif Türk kahvaltısı sunan rahat Türk kafesi.",
+      "meze": "Küçük tabaklar ve otantik Türk mezeler sunan geleneksel meze evi.",
+      "rooftop": "İstanbul'un panoramik manzaraları ve uluslararası mutfak ile çatı restoranı.",
+      "lokanta": "Günlük özel menüler ve rahat yemek klasikleri ile ev tarzı Türk mutfağı.",
+      "pizza": "Otantik pizzalar ve Akdeniz yemekleri sunan İtalyan restoranı.",
+      "asian": "Taze suşi ve çağdaş Asya lezzetleri ile Asya füzyon restoranı.",
+      "default": "Kaliteli Türk mutfağı ve sıcak misafirperverlik ile tanınan popüler yerel restoran."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
+    "serverError": "Üzgünüm, bir hata ile karşılaştım. Lütfen sorunuzu farklı şekilde ifade etmeyi deneyin.",
+    "inputTooShort": "Lütfen anlamlı bir soru girin.",
+    "invalidCharacters": "Lütfen sorunuzda harf ve kelimeler kullanın.",
+    "rateLimited": "Çok fazla istek. Lütfen biraz bekleyin ve tekrar deneyin."
+  },
+  "about": {
+    "title": "Hakkında",
+    "subtitle": "İstanbul'un zengin kültürünü, mutfağını ve gizli hazinelerini keşfetmek için akıllı rehberiniz",
+    "mission": {
+      "title": "Misyonumuz",
+      "description": "İstanbul'u ziyaret eden her kişinin şehri bir yerel gibi deneyimlemesi gerektiğine inanıyoruz. AI asistanımız, tipik turist rehberlerinin ötesinde kişiselleştirilmiş, kültürel olarak bilinçli öneriler sunmaktadır."
+    }
+  }
+}

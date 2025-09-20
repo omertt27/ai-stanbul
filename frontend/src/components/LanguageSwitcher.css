@@ -1,0 +1,169 @@
+.language-switcher {
+  position: relative;
+  display: inline-block;
+}
+
+.language-dropdown {
+  position: relative;
+}
+
+.language-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  min-width: 120px;
+}
+
+.language-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.current-flag {
+  font-size: 1.2em;
+}
+
+.current-language {
+  flex: 1;
+  text-align: left;
+}
+
+.dropdown-arrow {
+  font-size: 0.75em;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+.language-dropdown:hover .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.language-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.language-dropdown:hover .language-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.language-option:hover {
+  background: #f8fafc;
+}
+
+.language-option.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.language-option .flag {
+  font-size: 1.2em;
+}
+
+.language-option .name {
+  flex: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .language-button {
+    min-width: 100px;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .current-language {
+    display: none;
+  }
+  
+  .language-options {
+    min-width: 150px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .language-button {
+    background: #1e293b;
+    border-color: #334155;
+    color: white;
+  }
+  
+  .language-button:hover {
+    background: #334155;
+    border-color: #475569;
+  }
+  
+  .language-options {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .language-option:hover {
+    background: #334155;
+  }
+  
+  .language-option.active {
+    background: #1e40af;
+    color: #93c5fd;
+  }
+}
+
+/* RTL support for Arabic */
+.language-switcher[dir="rtl"] {
+  direction: rtl;
+}
+
+.language-switcher[dir="rtl"] .language-options {
+  left: auto;
+  right: 0;
+}
+
+.language-switcher[dir="rtl"] .current-language {
+  text-align: right;
+}
+
+.language-switcher[dir="rtl"] .language-option {
+  text-align: right;
+}
+
+/* Language-specific font support */
+.language-option[data-lang="ar"] {
+  font-family: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', sans-serif;
+  font-size: 0.9rem;
+}

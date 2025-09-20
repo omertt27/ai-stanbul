@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import './InteractiveMainPage.css';
 
 const InteractiveMainPage = ({ onQuickStart }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hoveredDistrict, setHoveredDistrict] = useState(null);
 
@@ -16,21 +18,21 @@ const InteractiveMainPage = ({ onQuickStart }) => {
     const hour = currentTime.getHours();
     if (hour >= 6 && hour < 11) {
       return [
-        { icon: '☕', text: 'Best Turkish Breakfast', query: 'best Turkish breakfast places' },
-        { icon: '🌅', text: 'Morning Views', query: 'best sunrise spots in Istanbul' },
-        { icon: '🥖', text: 'Fresh Bakeries', query: 'traditional Turkish bakeries' }
+        { icon: '☕', text: t('homepage.suggestions.morning.breakfast'), query: 'best Turkish breakfast places' },
+        { icon: '🌅', text: t('homepage.suggestions.morning.views'), query: 'best sunrise spots in Istanbul' },
+        { icon: '🥖', text: t('homepage.suggestions.morning.bakeries'), query: 'traditional Turkish bakeries' }
       ];
     } else if (hour >= 11 && hour < 17) {
       return [
-        { icon: '🏛️', text: 'Museums & Culture', query: 'must visit museums in Istanbul' },
-        { icon: '🛍️', text: 'Shopping Districts', query: 'best shopping areas in Istanbul' },
-        { icon: '🍽️', text: 'Lunch Spots', query: 'good lunch restaurants' }
+        { icon: '🏛️', text: t('homepage.suggestions.afternoon.museums'), query: 'must visit museums in Istanbul' },
+        { icon: '🛍️', text: t('homepage.suggestions.afternoon.shopping'), query: 'best shopping areas in Istanbul' },
+        { icon: '🍽️', text: t('homepage.suggestions.afternoon.lunch'), query: 'good lunch restaurants' }
       ];
     } else {
       return [
-        { icon: '🌆', text: 'Sunset Views', query: 'best sunset spots Istanbul' },
-        { icon: '🍷', text: 'Evening Dining', query: 'romantic dinner restaurants' },
-        { icon: '🎭', text: 'Nightlife', query: 'Istanbul nightlife recommendations' }
+        { icon: '🌆', text: t('homepage.suggestions.evening.sunset'), query: 'best sunset spots Istanbul' },
+        { icon: '🍷', text: t('homepage.suggestions.evening.dining'), query: 'romantic dinner restaurants' },
+        { icon: '🎭', text: t('homepage.suggestions.evening.nightlife'), query: 'Istanbul nightlife recommendations' }
       ];
     }
   };
@@ -38,36 +40,36 @@ const InteractiveMainPage = ({ onQuickStart }) => {
   const istanbulDistricts = [
     {
       id: 'sultanahmet',
-      name: 'Sultanahmet',
+      name: t('homepage.districts.sultanahmet.name'),
       color: '#e74c3c',
-      description: 'Historic peninsula with Ottoman & Byzantine treasures',
+      description: t('homepage.districts.sultanahmet.description'),
       highlights: ['Hagia Sophia', 'Blue Mosque', 'Topkapi Palace'],
-      vibe: '🏛️ Imperial',
-      specialty: 'Ottoman Heritage',
+      vibe: `🏛️ ${t('homepage.districts.sultanahmet.vibe')}`,
+      specialty: t('homepage.districts.sultanahmet.specialty'),
       population: '65,000',
       sideNote: 'European Side • Historic Peninsula',
       backgroundImage: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
       id: 'beyoglu',
-      name: 'Beyoğlu',
+      name: t('homepage.districts.beyoglu.name'),
       color: '#9b59b6',
-      description: 'Cultural hub with vibrant nightlife & arts',
+      description: t('homepage.districts.beyoglu.description'),
       highlights: ['Istiklal Street', 'Art Galleries', 'Rooftop Bars'],
-      vibe: '🎭 Artistic',
-      specialty: 'Modern Culture',
+      vibe: `🎭 ${t('homepage.districts.beyoglu.vibe')}`,
+      specialty: t('homepage.districts.beyoglu.specialty'),
       population: '240,000',
       sideNote: 'European Side • Cultural Heart',
       backgroundImage: '/districts/beyoglu.jpg'
     },
     {
       id: 'kadikoy',
-      name: 'Kadıköy',
+      name: t('homepage.districts.kadikoy.name'),
       color: '#27ae60',
-      description: 'Asian side bohemian heart with authentic vibes',
+      description: t('homepage.districts.kadikoy.description'),
       highlights: ['Moda District', 'Local Markets', 'Street Food'],
-      vibe: '🍜 Foodie',
-      specialty: 'Authentic Local Life',
+      vibe: `🍜 ${t('homepage.districts.kadikoy.vibe')}`,
+      specialty: t('homepage.districts.kadikoy.specialty'),
       population: '460,000',
       sideNote: 'Asian Side • Bohemian Quarter',
       backgroundImage: '/districts/kadikoy.jpg'
@@ -123,6 +125,11 @@ const InteractiveMainPage = ({ onQuickStart }) => {
 
   return (
     <div className="interactive-main-page">
+      <div className="hero-section">
+        <h1 className="hero-title">{t('homepage.title')}</h1>
+        <p className="hero-subtitle">{t('homepage.subtitle')}</p>
+      </div>
+      
       <div className="time-based-suggestions">
         <div className="current-time">
           <span className="time-display">
@@ -152,7 +159,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
 
       <div className="districts-gallery-container">
         <div className="gallery-title">
-          <h3>🏙️ Explore Istanbul Districts & Islands</h3>
+          <h3>🏙️ {t('homepage.exploreMore')}</h3>
           <p>Discover {istanbulDistricts.length} unique neighborhoods and islands - each with its own character and charm</p>
         </div>
         
@@ -214,7 +221,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
                     borderColor: district.color 
                   }}
                 >
-                  Explore {district.name} →
+                  {t('homepage.exploreMore')} {district.name} →
                 </button>
               </div>
             </div>

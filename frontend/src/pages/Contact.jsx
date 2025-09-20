@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import NavBar from '../components/NavBar';
 import '../App.css';
 
 function Contact() {
+  const { t } = useTranslation();
   const { darkMode } = useTheme();
   
   return (
@@ -16,14 +18,14 @@ function Contact() {
         <div className="max-w-4xl mx-auto">
           {/* Page Heading */}
           <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Contact A/<span style={{fontWeight: 400}}>STANBUL</span>
+            {t('contact.title')}
           </h1>
 
           {/* Contact Information */}
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             {/* Contact Methods */}
             <div className="bg-gray-800 rounded-lg p-8 shadow-lg">
-              <h2 className="text-2xl font-bold mb-6 text-blue-400">Get in Touch</h2>
+              <h2 className="text-2xl font-bold mb-6 text-blue-400">{t('contact.getInTouch')}</h2>
               
               <div className="space-y-6">
                 <div className="flex items-center space-x-4">
@@ -33,7 +35,7 @@ function Contact() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Email</h3>
+                    <h3 className="text-lg font-semibold">{t('contact.email')}</h3>
                     <p className="text-gray-300">info@aistanbul.com</p>
                   </div>
                 </div>
@@ -46,7 +48,7 @@ function Contact() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Location</h3>
+                    <h3 className="text-lg font-semibold">{t('contact.location')}</h3>
                     <p className="text-gray-300">Istanbul, Turkey</p>
                   </div>
                 </div>
@@ -67,54 +69,54 @@ function Contact() {
 
             {/* Contact Form */}
             <div className="bg-gray-800 rounded-lg p-8 shadow-lg">
-              <h2 className="text-2xl font-bold mb-6 text-purple-400">Send a Message</h2>
+              <h2 className="text-2xl font-bold mb-6 text-purple-400">{t('contact.form.sendMessage')}</h2>
               
               <form className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-                    Name
+                    {t('contact.form.name')}
                   </label>
                   <input
                     type="text"
                     id="name"
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="Your name"
+                    placeholder={t('contact.form.namePlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                    Email
+                    {t('contact.form.email')}
                   </label>
                   <input
                     type="email"
                     id="email"
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="your@email.com"
+                    placeholder={t('contact.form.emailPlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
-                    Subject
+                    {t('contact.form.subject')}
                   </label>
                   <input
                     type="text"
                     id="subject"
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-                    placeholder="What's this about?"
+                    placeholder={t('contact.form.subjectPlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-                    Message
+                    {t('contact.form.message')}
                   </label>
                   <textarea
                     id="message"
                     rows={5}
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
-                    placeholder="Tell us what's on your mind..."
+                    placeholder={t('contact.form.messagePlaceholder')}
                   ></textarea>
                 </div>
 
@@ -122,7 +124,7 @@ function Contact() {
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
                 >
-                  Send Message
+                  {t('contact.form.sendButton')}
                 </button>
               </form>
             </div>

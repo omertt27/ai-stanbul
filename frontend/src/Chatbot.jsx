@@ -4,6 +4,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import TypingAnimation from './components/TypingAnimation';
+import { LoadingSkeleton } from './components/LoadingSkeletons';
+import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
 import './App.css';
 
 
@@ -172,6 +175,11 @@ function Chatbot({ onDarkModeToggle }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [readingMessageId, setReadingMessageId] = useState(null)
   const [speechSupported, setSpeechSupported] = useState(false)
+  
+  // UX Enhancement states
+  const [isTyping, setIsTyping] = useState(false)
+  const [typingMessageId, setTypingMessageId] = useState(null)
+  
   const messagesEndRef = useRef(null)
   const speechSynthesis = useRef(null)
 
@@ -331,6 +339,9 @@ function Chatbot({ onDarkModeToggle }) {
       return;
     }
     
+    // Record user interaction
+    recordUserInteraction('message_sent', { messageLength: userInput.length });
+    
     // Enhanced input validation
     if (!validateInput(userInput)) {
       return;
@@ -348,7 +359,11 @@ function Chatbot({ onDarkModeToggle }) {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
+    setIsTyping(true);
     setInputError('');
+
+    // Start performance measurement
+    const startTime = Date.now();
 
     // Start streaming response immediately
     let streamedContent = '';
@@ -356,6 +371,11 @@ function Chatbot({ onDarkModeToggle }) {
     try {
       await fetchStreamingResults(userInput, (chunk) => {
         streamedContent += chunk;
+        
+        // Show typing indicator for the first chunk, then switch to content
+        if (streamedContent.length > 0 && isTyping) {
+          setIsTyping(false);
+        }
         
         // Update messages in real-time as chunks come in
         setMessages((prevMessages) => {
@@ -365,17 +385,31 @@ function Chatbot({ onDarkModeToggle }) {
           if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
             return [
               ...prevMessages.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true }
+              { 
+                role: 'assistant', 
+                content: streamedContent, 
+                streaming: true,
+                isTyping: streamedContent.length < 50 // Show typing animation for short responses
+              }
             ];
           } else {
             // Add new assistant message
             return [
               ...prevMessages,
-              { role: 'assistant', content: streamedContent, streaming: true }
+              { 
+                role: 'assistant', 
+                content: streamedContent, 
+                streaming: true,
+                isTyping: streamedContent.length < 50
+              }
             ];
           }
         });
       });
+      
+      // Record successful API response time
+      measureApiResponseTime(Date.now() - startTime);
+      
     } catch (error) {
       const errorMessage = error.message?.includes('network') 
         ? 'Network error. Please check your connection and try again.'
@@ -385,8 +419,13 @@ function Chatbot({ onDarkModeToggle }) {
         ...prev,
         { role: 'assistant', content: errorMessage }
       ]);
+      
+      // Record error
+      recordUserInteraction('api_error', { error: error.message });
+      
     } finally {
       setLoading(false);
+      setIsTyping(false);
       
       // Finalize the last message by removing streaming flag
       setMessages(prev => {
@@ -826,7 +865,20 @@ function Chatbot({ onDarkModeToggle }) {
                       : 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700'
                   }`}>
                     <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
-                      {renderMessageContent(msg.content, darkMode)}
+                      {msg.role === 'assistant' && msg.isTyping ? (
+                        <TypingAnimation 
+                          text={msg.content} 
+                          speed={30}
+                          onComplete={() => {
+                            // Mark typing as complete for this message
+                            setMessages(prev => prev.map((m, i) => 
+                              i === index ? { ...m, isTyping: false } : m
+                            ));
+                          }}
+                        />
+                      ) : (
+                        renderMessageContent(msg.content, darkMode)
+                      )}
                     </div>
                   </div>
                 </div>
@@ -883,10 +935,24 @@ function Chatbot({ onDarkModeToggle }) {
                 </div>
                 <div className="flex justify-start">
                   <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
-                    <div className="flex items-center space-x-1">
-                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400"></div>
-                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400" style={{animationDelay: '0.1s'}}></div>
-                      <div className="w-2 h-2 rounded-full animate-bounce bg-gray-400" style={{animationDelay: '0.2s'}}></div>
+                    <LoadingSkeleton variant="message" />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Typing indicator when KAM is thinking */}
+            {isTyping && !loading && (
+              <div className="mb-4">
+                <div className="flex justify-start">
+                  <div className="text-xs font-medium mb-1 text-gray-100">
+                    KAM
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
+                    <div className="text-sm opacity-70">
+                      KAM is thinking...
                     </div>
                   </div>
                 </div>

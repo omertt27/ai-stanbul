@@ -1,0 +1,105 @@
+/* Arabic Language Support */
+[lang="ar"] {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', 'Arial Unicode MS', sans-serif;
+}
+
+/* RTL Layout Adjustments */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+[dir="rtl"] .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+[dir="rtl"] .pl-4 {
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+[dir="rtl"] .pr-4 {
+  padding-right: 0;
+  padding-left: 1rem;
+}
+
+/* Search Bar RTL Support */
+[dir="rtl"] .searchbar input {
+  text-align: right;
+  padding-right: 1.5rem;
+  padding-left: 0.4rem;
+}
+
+/* Chat Messages RTL Support */
+[dir="rtl"] .chat-message.user {
+  justify-content: flex-start;
+}
+
+[dir="rtl"] .chat-message.bot {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .chat-bubble {
+  text-align: right;
+}
+
+/* Navigation RTL Support */
+[dir="rtl"] .navbar {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .navbar-links {
+  flex-direction: row-reverse;
+}
+
+/* Button RTL Support */
+[dir="rtl"] .btn {
+  text-align: center;
+}
+
+/* Font Loading for Arabic */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+/* Improve Arabic Text Rendering */
+[lang="ar"] {
+  font-feature-settings: "liga" 1, "calt" 1;
+  -webkit-font-feature-settings: "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
+}
+
+/* Adjust font sizes for Arabic */
+[lang="ar"] h1, [lang="ar"] h2, [lang="ar"] h3 {
+  line-height: 1.4;
+}
+
+[lang="ar"] .text-sm {
+  font-size: 0.925rem;
+}
+
+[lang="ar"] .text-base {
+  font-size: 1.05rem;
+}
+
+[lang="ar"] .text-lg {
+  font-size: 1.175rem;
+}

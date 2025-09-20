@@ -233,39 +233,191 @@ def get_default_response(query: str) -> str:
     query_lower = query.lower()
     
     if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'dining']):
-        return """🍽️ For Istanbul restaurants, I recommend exploring these areas:
+        # Try to extract district/location from query
+        district = None
+        if 'beyoğlu' in query_lower or 'beyoglu' in query_lower:
+            district = 'Beyoğlu'
+        elif 'sultanahmet' in query_lower:
+            district = 'Sultanahmet'
+        elif 'kadıköy' in query_lower or 'kadikoy' in query_lower:
+            district = 'Kadıköy'
+        elif 'fatih' in query_lower:
+            district = 'Fatih'
+        elif 'beşiktaş' in query_lower or 'besiktas' in query_lower:
+            district = 'Beşiktaş'
+        elif 'şişli' in query_lower or 'sisli' in query_lower:
+            district = 'Şişli'
+        
+        try:
+            # Import here to avoid circular imports
+            from api_clients.google_places import get_istanbul_restaurants_with_descriptions
+            
+            # Get restaurant data
+            restaurants = get_istanbul_restaurants_with_descriptions(
+                district=district,
+                limit=5
+            )
+            
+            if restaurants:
+                # Format the response nicely
+                response_lines = []
+                if district:
+                    response_lines.append(f"🍽️ **Great restaurants in {district}, Istanbul:**\n")
+                else:
+                    response_lines.append("🍽️ **Great restaurants in Istanbul:**\n")
+                
+                for i, restaurant in enumerate(restaurants, 1):
+                    name = restaurant.get('name', 'Unknown Restaurant')
+                    rating = restaurant.get('rating', 'N/A')
+                    vicinity = restaurant.get('vicinity', 'Istanbul')
+                    description = restaurant.get('description', 'A great restaurant offering quality dining and local cuisine.')
+                    price_level = restaurant.get('price_level', 0)
+                    
+                    # Format price level
+                    price_text = ""
+                    if price_level == 1:
+                        price_text = " • Budget-friendly"
+                    elif price_level == 2:
+                        price_text = " • Moderate"
+                    elif price_level == 3:
+                        price_text = " • Upscale"
+                    elif price_level == 4:
+                        price_text = " • Expensive"
+                    
+                    # Clean up description and add formatting
+                    if len(description) > 100:
+                        description = description[:100] + "..."
+                    
+                    response_lines.append(
+                        f"**{i}. {name}**\n"
+                        f"📍 {vicinity}\n"
+                        f"⭐ Rating: {rating}/5{price_text}\n"
+                        f"ℹ️ {description}\n"
+                    )
+                
+                response_lines.append("\n💡 **Tip:** You can search for these restaurants on Google Maps for directions and more details!")
+                
+                return "\n".join(response_lines)
+            
+        except Exception as e:
+            logger.error(f"Error fetching restaurants: {e}")
+        
+        # Fallback response if restaurant fetch fails
+        fallback_district = district if district else "Istanbul"
+        return f"""🍽️ **For {fallback_district} restaurants, I recommend exploring these areas:**
 
 **Sultanahmet**: Traditional Turkish cuisine near historical sites
 **Karaköy**: Modern restaurants with Bosphorus views  
 **Beyoğlu**: Diverse international and local options
 **Kadıköy**: Authentic local eateries and street food
 
-Popular dishes to try: Kebabs, Meze, Baklava, Turkish Breakfast, and fresh seafood by the Bosphorus!"""
+Popular dishes to try: Kebabs, Meze, Baklava, Turkish Breakfast, and fresh seafood by the Bosphorus!
 
-    elif any(word in query_lower for word in ['museum', 'history', 'culture', 'art']):
-        return """🏛️ Top Istanbul Museums & Cultural Sites:
+💡 **Tip:** Try asking me about restaurants in specific districts like "restaurants in Beyoğlu" for more targeted recommendations!"""
 
-**Hagia Sophia**: Iconic Byzantine architecture
-**Topkapi Palace**: Ottoman imperial residence
-**Blue Mosque**: Stunning Islamic architecture
-**Archaeological Museum**: Ancient artifacts
-**Istanbul Modern**: Contemporary Turkish art
+    elif any(word in query_lower for word in ['museum', 'history', 'culture', 'art', 'historical', 'heritage', 'palace', 'mosque', 'church']):
+        return """🏛️ **Top Istanbul Museums & Cultural Sites:**
 
-Most museums are closed on Mondays. Consider getting a Museum Pass Istanbul for better value!"""
+**1. Hagia Sophia** 🕌
+📍 Sultanahmet, Fatih
+⭐ Rating: 4.5/5 • World Heritage Site
+ℹ️ Iconic Byzantine church turned mosque, showcasing 1,500 years of history with stunning mosaics and architecture.
+
+**2. Topkapi Palace** 👑
+📍 Sultanahmet, Fatih  
+⭐ Rating: 4.4/5 • Ottoman Imperial Palace
+ℹ️ Former residence of Ottoman sultans with magnificent courtyards, treasury, and panoramic Bosphorus views.
+
+**3. Blue Mosque (Sultan Ahmed)** 🔵
+📍 Sultanahmet, Fatih
+⭐ Rating: 4.5/5 • Active Mosque
+ℹ️ Stunning Ottoman architecture with six minarets and beautiful blue Iznik tiles decorating the interior.
+
+**4. Archaeological Museum** 🏺
+📍 Sultanahmet, Fatih
+⭐ Rating: 4.3/5 • Ancient Artifacts
+ℹ️ Houses incredible artifacts from ancient civilizations including the Alexander Sarcophagus and Babylonian treasures.
+
+**5. Basilica Cistern** 💧
+📍 Sultanahmet, Fatih
+⭐ Rating: 4.2/5 • Underground Wonder
+ℹ️ Mysterious 6th-century underground cistern with 336 marble columns and atmospheric lighting.
+
+💡 **Tips:** 
+• Most museums are closed on Mondays
+• Get a Museum Pass Istanbul for better value
+• Visit early morning to avoid crowds
+• Sultanahmet area has many sites within walking distance"""
+
+    elif any(word in query_lower for word in ['place', 'visit', 'attraction', 'tourist', 'sightseeing', 'things to do', 'what to see']):
+        return """🎯 **Must-Visit Places in Istanbul:**
+
+**1. Galata Tower** 🗼
+📍 Galata, Beyoğlu
+⭐ Rating: 4.3/5 • Panoramic Views
+ℹ️ Medieval stone tower offering 360° views of Istanbul, the Bosphorus, and Golden Horn from its observation deck.
+
+**2. Grand Bazaar** 🛍️
+📍 Beyazıt, Fatih
+⭐ Rating: 4.1/5 • Historic Shopping
+ℹ️ One of the world's oldest covered markets with 4,000 shops selling carpets, jewelry, spices, and Turkish crafts.
+
+**3. Spice Bazaar** 🌶️
+📍 Eminönü, Fatih  
+⭐ Rating: 4.3/5 • Aromatic Experience
+ℹ️ Colorful market filled with exotic spices, Turkish delight, dried fruits, and traditional Ottoman delicacies.
+
+**4. Bosphorus Bridge** 🌉
+📍 Ortaköy, Beşiktaş
+⭐ Rating: 4.4/5 • Iconic Landmark
+ℹ️ Suspension bridge connecting Europe and Asia with stunning views, especially beautiful at sunset and night.
+
+**5. Taksim Square** 🏙️
+📍 Taksim, Beyoğlu
+⭐ Rating: 4.0/5 • City Center
+ℹ️ Bustling heart of modern Istanbul with shops, restaurants, and the famous Istiklal Street pedestrian avenue.
+
+💡 **Tips:**
+• Take a Bosphorus cruise for unique city views
+• Visit Galata Tower at sunset for best photos
+• Bargain respectfully in the bazaars
+• Combine multiple nearby attractions in one day"""
 
     elif any(word in query_lower for word in ['transport', 'metro', 'bus', 'travel', 'get around']):
-        return """🚇 Istanbul Transportation:
+        return """🚇 **Istanbul Transportation Guide:**
 
-**Istanbulkart**: Essential card for all public transport
-**Metro**: Fast and efficient, covers major areas
-**Dolmuş**: Shared minibuses for local travel
-**Ferry**: Scenic Bosphorus crossings
-**Taxi**: Widely available, use BiTaksi app
+**1. Istanbulkart** 💳
+💰 Cost: ~15₺ card + credit
+ℹ️ Essential rechargeable card for all public transport. Buy at metro stations, kiosks, or ferry terminals.
 
-Download the İETT app for real-time public transport info!"""
+**2. Metro System** 🚇
+⭐ Rating: 4.4/5 • Fast & Clean
+ℹ️ Modern subway system covering major areas. M1 (Airport), M2 (Taksim-Şişli), M3 (Kirazlı-Olimpiyatkoy).
+
+**3. Metrobus** 🚌
+⭐ Rating: 4.2/5 • Rapid Transit
+ℹ️ High-capacity bus system with dedicated lanes. Connects European and Asian sides quickly.
+
+**4. Ferry System** ⛴️
+⭐ Rating: 4.6/5 • Scenic Route
+ℹ️ Beautiful Bosphorus crossings between continents. Try Eminönü-Kadıköy or Beşiktaş-Üsküdar routes.
+
+**5. Dolmuş** 🚐
+⭐ Rating: 4.0/5 • Local Experience
+ℹ️ Shared minibuses following fixed routes. Authentic local transport, just say "Müsait" to board.
+
+**6. Taxi & Ride-sharing** 🚕
+💰 Cost: Moderate • Apps: BiTaksi, Uber
+ℹ️ Yellow taxis everywhere. Use apps for better pricing and English support.
+
+💡 **Apps to Download:**
+• İETT (Real-time public transport)
+• Mobiett (Route planning)
+• BiTaksi (Ride-hailing)
+• Istanbul Metro Map (Offline maps)"""
 
     else:
-        return f"""👋 Welcome to AI-stanbul! I'm here to help you explore Istanbul.
+        return f"""👋 **Welcome to AI-stanbul!** I'm here to help you explore Istanbul.
 
 I can assist you with:
 🍽️ **Restaurants** - Local cuisine and dining recommendations
@@ -276,7 +428,7 @@ I can assist you with:
 
 You asked: "{query}"
 
-What specific aspect of Istanbul would you like to explore? Just ask me about restaurants, museums, places to visit, or anything else about this amazing city!"""
+What specific aspect of Istanbul would you like to explore? Try asking about "restaurants in Beyoğlu" or "museums near Sultanahmet" for specific recommendations!"""
 
 # ===============================
 # API ENDPOINTS

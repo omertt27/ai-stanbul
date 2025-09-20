@@ -6,3 +6,8 @@ psycopg2-binary
 requests
 pydantic
 openai
+redis
+slowapi
+structlog
+bleach
+python-multipart

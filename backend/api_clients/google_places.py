@@ -2,6 +2,10 @@ import requests
 import os
 from typing import List, Dict, Optional
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -365,47 +369,177 @@ class GooglePlacesClient:
     
     def _get_mock_restaurant_data(self, location: Optional[str] = None, keyword: Optional[str] = None) -> Dict:
         """Return mock restaurant data when API key is not available"""
-        mock_restaurants = [
+        
+        # Beyoğlu restaurants
+        beyoglu_restaurants = [
             {
-                "place_id": "mock_1",
+                "place_id": "mock_beyoglu_1",
+                "name": "Mikla Restaurant",
+                "rating": 4.6,
+                "price_level": 4,
+                "vicinity": "Beyoğlu, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0369, "lng": 28.9744}},
+                "description": "Modern Turkish cuisine with panoramic Bosphorus views and innovative interpretations of Anatolian flavors."
+            },
+            {
+                "place_id": "mock_beyoglu_2",
+                "name": "Karakoy Lokantasi",
+                "rating": 4.5,
+                "price_level": 3,
+                "vicinity": "Beyoğlu, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0276, "lng": 28.9441}},
+                "description": "Elegant restaurant serving modern interpretations of Ottoman cuisine in a beautifully restored building."
+            },
+            {
+                "place_id": "mock_beyoglu_3",
+                "name": "Neolokal",
+                "rating": 4.4,
+                "price_level": 4,
+                "vicinity": "Beyoğlu, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0358, "lng": 28.9783}},
+                "description": "Contemporary Turkish cuisine showcasing local ingredients and traditional techniques with a modern twist."
+            },
+            {
+                "place_id": "mock_beyoglu_4",
+                "name": "Zubeyir Ocakbaşı",
+                "rating": 4.3,
+                "price_level": 2,
+                "vicinity": "Beyoğlu, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0342, "lng": 28.9756}},
+                "description": "Authentic Turkish grill house famous for its kebabs and traditional meze selection."
+            },
+            {
+                "place_id": "mock_beyoglu_5",
+                "name": "Galata Mevlevihanesi Cafe",
+                "rating": 4.2,
+                "price_level": 2,
+                "vicinity": "Beyoğlu, Istanbul",
+                "types": ["restaurant", "cafe", "establishment"],
+                "geometry": {"location": {"lat": 41.0356, "lng": 28.9745}},
+                "description": "Historic cafe in a former dervish lodge serving traditional Turkish coffee and pastries."
+            }
+        ]
+        
+        # Sultanahmet/Fatih restaurants
+        fatih_restaurants = [
+            {
+                "place_id": "mock_fatih_1",
                 "name": "Pandeli Restaurant",
                 "rating": 4.3,
                 "price_level": 3,
-                "vicinity": "Eminönü, Istanbul",
+                "vicinity": "Fatih, Istanbul",
                 "types": ["restaurant", "food", "establishment"],
                 "geometry": {"location": {"lat": 41.0167, "lng": 28.9708}},
-                "description": "Historic Ottoman restaurant serving traditional Turkish cuisine since 1901."
+                "description": "Historic Ottoman restaurant serving traditional Turkish cuisine since 1901 in the Grand Bazaar area."
             },
             {
-                "place_id": "mock_2", 
+                "place_id": "mock_fatih_2",
+                "name": "Asitane Restaurant",
+                "rating": 4.4,
+                "price_level": 4,
+                "vicinity": "Fatih, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0351, "lng": 28.9434}},
+                "description": "Exquisite Ottoman palace cuisine recreated from historical recipes, located near Chora Church."
+            },
+            {
+                "place_id": "mock_fatih_3",
+                "name": "Deraliye Ottoman Cuisine",
+                "rating": 4.2,
+                "price_level": 3,
+                "vicinity": "Fatih, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0290, "lng": 28.9463}},
+                "description": "Traditional Ottoman palace cuisine served in an elegant setting near historical monuments."
+            },
+            {
+                "place_id": "mock_fatih_4",
+                "name": "Hamdi Restaurant",
+                "rating": 4.5,
+                "price_level": 2,
+                "vicinity": "Fatih, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0178, "lng": 28.9708}},
+                "description": "Famous for its lamb kebabs and traditional Turkish dishes with Golden Horn views."
+            },
+            {
+                "place_id": "mock_fatih_5",
+                "name": "Seasons Restaurant",
+                "rating": 4.3,
+                "price_level": 4,
+                "vicinity": "Sultanahmet, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 41.0084, "lng": 28.9794}},
+                "description": "Fine dining restaurant in Four Seasons Hotel with international and Turkish cuisine options."
+            }
+        ]
+        
+        # Kadıköy restaurants
+        kadikoy_restaurants = [
+            {
+                "place_id": "mock_kadikoy_1",
                 "name": "Çiya Sofrası",
                 "rating": 4.5,
                 "price_level": 2,
                 "vicinity": "Kadıköy, Istanbul",
                 "types": ["restaurant", "food", "establishment"],
                 "geometry": {"location": {"lat": 40.9925, "lng": 29.0315}},
-                "description": "Authentic Anatolian cuisine with regional specialties from across Turkey."
+                "description": "Authentic Anatolian cuisine with regional specialties from across Turkey and traditional home cooking."
             },
             {
-                "place_id": "mock_3",
-                "name": "Mikla Restaurant", 
-                "rating": 4.6,
-                "price_level": 4,
-                "vicinity": "Beyoğlu, Istanbul",
+                "place_id": "mock_kadikoy_2",
+                "name": "Ciya Kebap",
+                "rating": 4.4,
+                "price_level": 2,
+                "vicinity": "Kadıköy, Istanbul",
                 "types": ["restaurant", "food", "establishment"],
-                "geometry": {"location": {"lat": 41.0369, "lng": 28.9744}},
-                "description": "Modern Turkish cuisine with panoramic Bosphorus views."
+                "geometry": {"location": {"lat": 40.9928, "lng": 29.0318}},
+                "description": "Sister restaurant to Çiya Sofrası, specializing in traditional kebabs and grilled meats."
+            },
+            {
+                "place_id": "mock_kadikoy_3",
+                "name": "Kanaat Lokantası",
+                "rating": 4.3,
+                "price_level": 1,
+                "vicinity": "Kadıköy, Istanbul",
+                "types": ["restaurant", "food", "establishment"],
+                "geometry": {"location": {"lat": 40.9889, "lng": 29.0301}},
+                "description": "Historic local eatery serving traditional Turkish comfort food since 1933."
             }
         ]
+        
+        # Default to all restaurants if no specific location
+        all_restaurants = beyoglu_restaurants + fatih_restaurants + kadikoy_restaurants
+        
+        # Filter by location if provided
+        if location:
+            location_lower = location.lower()
+            if 'beyoğlu' in location_lower or 'beyoglu' in location_lower:
+                selected_restaurants = beyoglu_restaurants
+            elif 'fatih' in location_lower or 'sultanahmet' in location_lower or 'eminönü' in location_lower:
+                selected_restaurants = fatih_restaurants  
+            elif 'kadıköy' in location_lower or 'kadikoy' in location_lower:
+                selected_restaurants = kadikoy_restaurants
+            else:
+                selected_restaurants = all_restaurants
+        else:
+            selected_restaurants = all_restaurants
         
         # Filter by keyword if provided
         if keyword:
             keyword_lower = keyword.lower()
-            mock_restaurants = [r for r in mock_restaurants if keyword_lower in r["name"].lower() or keyword_lower in r["description"].lower()]
+            selected_restaurants = [
+                r for r in selected_restaurants 
+                if keyword_lower in r["name"].lower() or keyword_lower in r["description"].lower()
+            ]
         
         return {
             "status": "OK",
-            "results": mock_restaurants[:5]  # Limit to 5 results
+            "results": selected_restaurants[:10]  # Limit to 10 results
         }
 
 

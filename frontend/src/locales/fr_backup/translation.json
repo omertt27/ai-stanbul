@@ -1,0 +1,83 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "send": "Envoyer",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "read": "Lire à haute voix",
+    "stop": "Arrêter",
+    "clear": "Effacer",
+    "close": "Fermer"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "chat": "Chat",
+    "about": "À propos",
+    "contact": "Contact",
+    "privacy": "Confidentialité",
+    "tips": "Conseils",
+    "blog": "Blog",
+    "sources": "Sources",
+    "donate": "Faire un don",
+    "faq": "FAQ"
+  },
+  "chat": {
+    "welcome": "Bienvenue sur Istanbul AI ! Comment puis-je vous aider à explorer la ville ?",
+    "placeholder": "Que souhaitez-vous savoir sur Istanbul ?",
+    "searchPlaceholder": "Découvrez la magie d'Istanbul...",
+    "typing": "KAM réfléchit...",
+    "suggestions": {
+      "title": "Essayez de demander :",
+      "restaurants": "Meilleurs restaurants à Sultanahmet",
+      "activities": "Choses à faire à Beyoğlu",
+      "transport": "Lignes de ferry vers les îles",
+      "breakfast": "Lieux de petit-déjeuner turc"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "Voici quelques excellents restaurants dans {district} :",
+    "museum_intro": "Découvrez ces musées extraordinaires :",
+    "transport_intro": "Voici votre guide de transport :",
+    "attractions_intro": "Principales attractions et lieux à visiter :",
+    "general_intro": "Je serais ravi de vous aider à explorer Istanbul !"
+  },
+  "restaurants": {
+    "name": "Nom",
+    "rating": "Note",
+    "price": "Prix",
+    "cuisine": "Cuisine",
+    "location": "Emplacement",
+    "viewOnMap": "Voir sur la carte",
+    "descriptions": {
+      "kebab": "Maison de kebab traditionnelle turque servant des viandes grillées et des recettes ottomanes authentiques.",
+      "seafood": "Restaurant de fruits de mer frais spécialisé dans les prises du Bosphore et les plats méditerranéens.",
+      "palace": "Cuisine raffinée de style ottoman avec cuisine turque traditionnelle et atmosphère élégante.",
+      "cafe": "Café turc confortable servant du café traditionnel, du thé et un petit-déjeuner turc léger.",
+      "meze": "Maison de meze traditionnelle proposant de petites assiettes et des apéritifs turcs authentiques.",
+      "rooftop": "Restaurant panoramique en toiture avec vues panoramiques sur Istanbul et cuisine internationale.",
+      "lokanta": "Cuisine turque familiale avec spécialités du jour et classiques de la cuisine réconfortante.",
+      "pizza": "Restaurant italien servant des pizzas authentiques et des plats méditerranéens.",
+      "asian": "Restaurant fusion asiatique avec sushis frais et saveurs asiatiques contemporaines.",
+      "default": "Restaurant local populaire réputé pour sa cuisine turque de qualité et son hospitalité chaleureuse."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion et réessayer.",
+    "serverError": "Désolé, j'ai rencontré une erreur. Veuillez reformuler votre question.",
+    "inputTooShort": "Veuillez entrer une question significative.",
+    "invalidCharacters": "Veuillez utiliser des lettres et des mots dans votre question.",
+    "rateLimited": "Trop de demandes. Veuillez attendre un moment et réessayer."
+  }
+}

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 
 const Donate = () => {
+  const { t } = useTranslation();
   const { darkMode } = useTheme();
 
   const benefitItem = (icon, title, description) => (
@@ -29,10 +31,10 @@ const Donate = () => {
         <div className="max-w-4xl mx-auto px-12 text-center">
           <div className="mb-8">
             <h1 className="text-5xl font-bold mb-6 pt-28 transition-colors duration-300 text-white">
-              Support <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent font-normal">STANBUL</span>
+              {t('donate.title')}
             </h1>
             <p className="text-xl leading-relaxed transition-colors duration-300 text-gray-300">
-              Help us keep Istanbul's best AI travel guide free and amazing for everyone
+              {t('donate.subtitle')}
             </p>
           </div>
         </div>
@@ -43,10 +45,10 @@ const Donate = () => {
         {/* Buy Me a Coffee Section */}
         <div className="rounded-2xl p-8 mb-12 text-center transition-colors duration-300 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-800/50">
           <h2 className="text-3xl font-bold mb-4 transition-colors duration-300 text-yellow-300">
-            Buy Me a Coffee
+            {t('donate.buyMeCoffee')}
           </h2>
           <p className="text-lg mb-6 transition-colors duration-300 text-yellow-100">
-            The easiest way to show your appreciation and keep AIstanbul running
+            {t('donate.coffeeDescription')}
           </p>
           <a 
             href="https://www.buymeacoffee.com/aistanbul" 
@@ -54,26 +56,26 @@ const Donate = () => {
             rel="noopener noreferrer"
             className="inline-block px-8 py-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-lg rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg"
           >
-            Buy Me a Coffee
+            {t('donate.buyMeCoffeeButton')}
           </a>
         </div>
 
         {/* Benefits Section */}
         <div className="rounded-2xl p-8 mb-12 transition-colors duration-300 bg-gray-800 border border-gray-700">
           <h2 className="text-3xl font-bold text-center mb-8 transition-colors duration-300 text-white">
-            How Your Support Helps
+            {t('donate.howSupportHelps')}
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-6">
-              {benefitItem('', 'Keep It Free Forever', 'Your donations ensure AIstanbul remains completely free for all travelers exploring Istanbul.')}
-              {benefitItem('', 'Server & API Costs', 'Cover hosting, Google Maps API, and OpenAI costs for lightning-fast, accurate responses.')}
-              {benefitItem('', 'Continuous Updates', 'Fund regular database updates with the latest restaurant, museum, and attraction information.')}
+              {benefitItem('', t('donate.keepItFree'), t('donate.keepItFreeDesc'))}
+              {benefitItem('', t('donate.serverCosts'), t('donate.serverCostsDesc'))}
+              {benefitItem('', t('donate.continuousUpdates'), t('donate.continuousUpdatesDesc'))}
             </div>
             <div className="space-y-6">
-              {benefitItem('', 'New Features', 'Enable development of exciting features like event recommendations and real-time transport info.')}
-              {benefitItem('', 'Multilingual Support', 'Help us expand to serve visitors from around the world in their native languages.')}
-              {benefitItem('', 'Better Experience', 'Improve mobile experience, add offline features, and enhance user interface.')}
+              {benefitItem('', t('donate.newFeatures'), t('donate.newFeaturesDesc'))}
+              {benefitItem('', t('donate.multilingualSupport'), t('donate.multilingualSupportDesc'))}
+              {benefitItem('', t('donate.betterExperience'), t('donate.betterExperienceDesc'))}
             </div>
           </div>
         </div>
@@ -81,7 +83,7 @@ const Donate = () => {
         {/* Alternative Support Methods */}
         <div className="rounded-2xl p-8 mb-12 transition-colors duration-300 bg-gray-800 border border-gray-700">
           <h2 className="text-3xl font-bold text-center mb-8 transition-colors duration-300 text-white">
-            Other Ways to Help
+            {t('donate.otherWaysToHelp')}
           </h2>
           
           <div className="grid md:grid-cols-3 gap-6">
@@ -93,11 +95,11 @@ const Donate = () => {
             >
               <div className="flex items-center mb-2">
                 <h3 className="font-semibold text-lg transition-colors duration-300 text-white">
-                  Share on Social Media
+                  {t('donate.shareOnSocialMedia')}
                 </h3>
               </div>
               <p className="text-sm transition-colors duration-300 text-gray-300">
-                Share AIstanbul with fellow travelers on Twitter, Instagram, or Facebook
+                {t('donate.shareOnSocialMediaDesc')}
               </p>
             </a>
             
@@ -107,11 +109,11 @@ const Donate = () => {
             >
               <div className="flex items-center mb-2">
                 <h3 className="font-semibold text-lg transition-colors duration-300 text-white">
-                  Send Feedback
+                  {t('donate.sendFeedback')}
                 </h3>
               </div>
               <p className="text-sm transition-colors duration-300 text-gray-300">
-                Help us improve with your valuable feedback and suggestions
+                {t('donate.sendFeedbackDesc')}
               </p>
             </a>
             
@@ -123,11 +125,11 @@ const Donate = () => {
             >
               <div className="flex items-center mb-2">
                 <h3 className="font-semibold text-lg transition-colors duration-300 text-white">
-                  Contribute on GitHub
+                  {t('donate.contributeOnGithub')}
                 </h3>
               </div>
               <p className="text-sm transition-colors duration-300 text-gray-300">
-                Help improve AIstanbul by contributing code or reporting issues
+                {t('donate.contributeOnGithubDesc')}
               </p>
             </a>
           </div>

@@ -1,0 +1,351 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try again",
+    "send": "Send",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "read": "Read aloud",
+    "stop": "Stop",
+    "clear": "Clear",
+    "close": "Close"
+  },
+  "navigation": {
+    "home": "Home",
+    "chat": "Chat",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "tips": "Tips",
+    "blog": "Blog",
+    "sources": "Sources",
+    "donate": "Donate",
+    "faq": "FAQ"
+  },
+  "chat": {
+    "welcome": "Welcome to Istanbul AI! How can I help you explore the city?",
+    "placeholder": "What would you like to know about Istanbul?",
+    "searchPlaceholder": "Discover the magic of Istanbul...",
+    "typing": "KAM is thinking...",
+    "suggestions": {
+      "title": "Try asking about:",
+      "restaurants": "Best restaurants in Sultanahmet",
+      "activities": "Things to do in Beyoğlu",
+      "transport": "Ferry routes to the islands",
+      "breakfast": "Turkish breakfast spots"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "Here are some great restaurants in {district}:",
+    "museum_intro": "Discover these amazing museums:",
+    "transport_intro": "Here's your transportation guide:",
+    "attractions_intro": "Top attractions and places to visit:",
+    "general_intro": "I'd be happy to help you explore Istanbul!"
+  },
+  "restaurants": {
+    "name": "Name",
+    "rating": "Rating",
+    "price": "Price",
+    "cuisine": "Cuisine",
+    "location": "Location",
+    "viewOnMap": "View on Map",
+    "descriptions": {
+      "kebab": "Traditional Turkish kebab house serving grilled meats and authentic Ottoman recipes.",
+      "seafood": "Fresh seafood restaurant specializing in Bosphorus catch and Mediterranean dishes.",
+      "palace": "Ottoman-style fine dining with traditional Turkish cuisine and elegant atmosphere.",
+      "cafe": "Cozy Turkish café serving traditional coffee, tea, and light Turkish breakfast.",
+      "meze": "Traditional meze house offering small plates and authentic Turkish appetizers.",
+      "rooftop": "Scenic rooftop dining with panoramic views of Istanbul and international cuisine.",
+      "lokanta": "Home-style Turkish cooking with daily specials and comfort food classics.",
+      "pizza": "Italian restaurant serving authentic pizzas and Mediterranean dishes.",
+      "asian": "Asian fusion restaurant with fresh sushi and contemporary Asian flavors.",
+      "default": "Popular local restaurant known for quality Turkish cuisine and warm hospitality."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Network error. Please check your connection and try again.",
+    "serverError": "Sorry, I encountered an error. Please try rephrasing your question.",
+    "inputTooShort": "Please enter a meaningful question.",
+    "invalidCharacters": "Please use letters and words in your question.",
+    "rateLimited": "Too many requests. Please wait a moment and try again."
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "Your intelligent companion for exploring Istanbul's rich culture, cuisine, and hidden gems",
+    "mission": {
+      "title": "Our Mission",
+      "description": "We believe every visitor to Istanbul deserves to experience the city like a local. Our AI assistant provides personalized, culturally-aware recommendations that go beyond typical tourist guides."
+    },
+    "features": {
+      "smart": {
+        "title": "Smart Recommendations",
+        "description": "AI-powered suggestions based on your preferences, time, and location"
+      },
+      "local": {
+        "title": "Local Insights",
+        "description": "Discover hidden gems and authentic experiences off the beaten path"
+      },
+      "multilingual": {
+        "title": "Multilingual Support",
+        "description": "Get help in multiple languages with culturally appropriate responses"
+      }
+    }
+  },
+  "homepage": {
+    "title": "Discover Istanbul with AI",
+    "subtitle": "Your intelligent travel companion for the city where two continents meet",
+    "suggestions": {
+      "morning": {
+        "breakfast": "Best Turkish Breakfast",
+        "views": "Morning Views", 
+        "bakeries": "Fresh Bakeries"
+      },
+      "afternoon": {
+        "museums": "Museums & Culture",
+        "shopping": "Shopping Districts",
+        "lunch": "Lunch Spots"
+      },
+      "evening": {
+        "sunset": "Sunset Views",
+        "dining": "Evening Dining",
+        "nightlife": "Nightlife"
+      }
+    },
+    "districts": {
+      "sultanahmet": {
+        "name": "Sultanahmet",
+        "description": "Historic peninsula with Ottoman & Byzantine treasures",
+        "vibe": "Imperial",
+        "specialty": "Ottoman Heritage"
+      },
+      "beyoglu": {
+        "name": "Beyoğlu", 
+        "description": "Vibrant cultural heart with modern art & nightlife",
+        "vibe": "Artistic",
+        "specialty": "Contemporary Culture"
+      },
+      "kadikoy": {
+        "name": "Kadıköy",
+        "description": "Asian side gem with authentic local life & food",
+        "vibe": "Local",
+        "specialty": "Street Food"
+      }
+    },
+    "quickStart": "Quick Start Chat",
+    "exploreMore": "Explore More"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about AI Istanbul Guide",
+    "stats": {
+      "realTimeData": {
+        "title": "Real-time Data",
+        "description": "Live restaurant & place information via Google Maps API"
+      },
+      "free": {
+        "title": "100% Free",
+        "description": "Completely free to use, powered by community support"
+      },
+      "mobileOptimized": {
+        "title": "Mobile Optimized",
+        "description": "Perfect experience on any device, anywhere in Istanbul"
+      }
+    },
+    "stillHaveQuestions": {
+      "title": "Still Have Questions?",
+      "subtitle": "Can't find the answer you're looking for? Here are some ways to get help:",
+      "chatWithAI": "Chat with our AI for instant help",
+      "readDocs": "Browse our documentation",
+      "contactSupport": "Contact our support team"
+    },
+    "questions": {
+      "whatIsKam": {
+        "question": "What does KAM mean?",
+        "answer": "KAM is an AI chatbot named after the ancient Turkic 'kam' — a wise shamanic figure who served as a bridge between the human and spiritual worlds. In this modern form, Kam embodies the same spirit of guidance, insight, and protection, helping users navigate the vast digital world with clarity and wisdom."
+      },
+      "accuracy": {
+        "question": "How accurate are the restaurant recommendations?",
+        "answer": "Our restaurant recommendations come directly from Google Maps API, providing real-time ratings, reviews, and location data. We combine this with AI analysis to give you the most relevant suggestions based on your preferences."
+      },
+      "coverage": {
+        "question": "Do you have information about all Istanbul districts?",
+        "answer": "Yes! We have comprehensive data about all major Istanbul districts including Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, and many more. Each district entry includes historical context, main attractions, and cultural significance."
+      },
+      "languages": {
+        "question": "Can I get recommendations in different languages?",
+        "answer": "Yes! Our AI supports multiple languages including English, Turkish, Russian, German, French, and Arabic. Simply switch your language preference and start chatting."
+      },
+      "updates": {
+        "question": "How often is the information updated?",
+        "answer": "Restaurant data is updated in real-time through Google Maps API. Our museum and attraction information is manually curated and updated regularly to ensure accuracy. We review and update our database monthly."
+      },
+      "free": {
+        "question": "Is this service completely free?",
+        "answer": "Yes! AI Istanbul Guide is completely free to use. We're funded by donations and maintain this as an open-source project to help visitors discover the best of Istanbul."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact AI/STANBUL",
+    "getInTouch": "Get in Touch",
+    "email": "Email",
+    "location": "Location",
+    "socialMedia": "Social Media",
+    "openSource": "Open Source",
+    "github": "GitHub Repository",
+    "community": "Community & Support",
+    "followUs": "Follow us for updates and Istanbul tips",
+    "contributeProject": "Contribute to the Project",
+    "helpImprove": "Help us improve AI Istanbul Guide",
+    "reportIssues": "Report Issues or Suggest Features",
+    "joinCommunity": "Join our developer community",
+    "responseTimes": "Response Times",
+    "responseInfo": "We typically respond to emails within 24-48 hours. For urgent technical issues, please reach out via GitHub."
+  },
+  "donate": {
+    "title": "Support AI/STANBUL",
+    "subtitle": "Help us keep Istanbul's best AI travel guide free and amazing for everyone",
+    "buyMeCoffee": "Buy Me a Coffee",
+    "coffeeDescription": "The easiest way to show your appreciation and keep AIstanbul running",
+    "whyDonate": "Why Donate?",
+    "keepFree": "Keep It Free",
+    "keepFreeDescription": "Your donations help us maintain this service completely free for all travelers",
+    "improveService": "Improve Service", 
+    "improveDescription": "Fund server costs, API calls, and development to make the experience better",
+    "expandFeatures": "Expand Features",
+    "expandDescription": "Help us add more languages, districts, and AI capabilities",
+    "supportTeam": "Support Team",
+    "supportDescription": "Enable us to work full-time on making this the best travel AI assistant",
+    "howItHelps": "How Your Donation Helps",
+    "serverCosts": "Server hosting and API costs",
+    "development": "Continuous development and improvements", 
+    "dataUpdates": "Regular data updates and accuracy maintenance",
+    "newFeatures": "Research and development of new features",
+    "paypalDonate": "Donate via PayPal",
+    "cryptoDonate": "Cryptocurrency Donations",
+    "everyBit": "Every bit helps make AI Istanbul Guide better for everyone!"
+  },
+  "tips": {
+    "title": "Istanbul Travel Tips",
+    "subtitle": "Essential insider knowledge for your Istanbul adventure",
+    "gettingAround": "Getting Around",
+    "publicTransport": "Use Istanbulkart for all public transportation",
+    "traffic": "Avoid rush hours (7-9 AM, 5-7 PM) when possible",
+    "ferries": "Take ferries for scenic Bosphorus views",
+    "cultural": "Cultural Tips",
+    "mosques": "Remove shoes when entering mosques",
+    "dress": "Dress modestly in religious sites",
+    "tea": "Accept offered tea - it's a sign of hospitality",
+    "money": "Money & Shopping",
+    "bargain": "Bargaining is expected in markets and bazaars",
+    "cash": "Carry cash for small vendors and markets",
+    "tipping": "10-15% tip is standard in restaurants",
+    "safety": "Safety & Practical",
+    "water": "Tap water is safe to drink in most areas",
+    "language": "Learn basic Turkish phrases - locals appreciate it",
+    "emergency": "Emergency number: 112"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about AI Istanbul Guide",
+    "stats": {
+      "realTimeData": {
+        "title": "Real-time Data",
+        "description": "Live restaurant & place information via Google Maps API"
+      },
+      "free": {
+        "title": "100% Free",
+        "description": "Completely free to use, powered by community support"
+      },
+      "mobileOptimized": {
+        "title": "Mobile Optimized",
+        "description": "Perfect experience on any device, anywhere in Istanbul"
+      }
+    },
+    "stillHaveQuestions": {
+      "title": "Still Have Questions?",
+      "subtitle": "Can't find the answer you're looking for? Here are some ways to get help:",
+      "chatWithAI": "Chat with our AI for instant help",
+      "readDocs": "Browse our documentation",
+      "contactSupport": "Contact our support team"
+    },
+    "questions": {
+      "whatIsKam": {
+        "question": "What does KAM mean?",
+        "answer": "KAM is an AI chatbot named after the ancient Turkic 'kam' — a wise shamanic figure who served as a bridge between the human and spiritual worlds. In this modern form, Kam embodies the same spirit of guidance, insight, and protection, helping users navigate the vast digital world with clarity and wisdom."
+      },
+      "accuracy": {
+        "question": "How accurate are the restaurant recommendations?",
+        "answer": "Our restaurant recommendations come directly from Google Maps API, providing real-time ratings, reviews, and location data. We combine this with AI analysis to give you the most relevant suggestions based on your preferences."
+      },
+      "coverage": {
+        "question": "Do you have information about all Istanbul districts?",
+        "answer": "Yes! We have comprehensive data about all major Istanbul districts including Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, and many more. Each district entry includes historical context, main attractions, and cultural significance."
+      },
+      "languages": {
+        "question": "Can I get recommendations in different languages?",
+        "answer": "Yes! Our AI supports multiple languages including English, Turkish, Russian, German, French, and Arabic. Simply switch your language preference and start chatting."
+      },
+      "updates": {
+        "question": "How often is the information updated?",
+        "answer": "Restaurant data is updated in real-time through Google Maps API. Our museum and attraction information is manually curated and updated regularly to ensure accuracy. We review and update our database monthly."
+      },
+      "free": {
+        "question": "Is this service completely free?",
+        "answer": "Yes! AI Istanbul Guide is completely free to use. We're funded by donations and maintain this as an open-source project to help visitors discover the best of Istanbul."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact AI/STANBUL",
+    "getInTouch": "Get in Touch",
+    "email": "Email",
+    "location": "Location",
+    "socialMedia": "Social Media",
+    "openSource": "Open Source",
+    "github": "GitHub Repository",
+    "community": "Community & Support",
+    "followUs": "Follow us for updates and Istanbul tips",
+    "contributeProject": "Contribute to the Project",
+    "helpImprove": "Help us improve AI Istanbul Guide",
+    "reportIssues": "Report Issues or Suggest Features",
+    "joinCommunity": "Join our developer community",
+    "responseTimes": "Response Times",
+    "responseInfo": "We typically respond to emails within 24-48 hours. For urgent technical issues, please reach out via GitHub.",
+    "form": {
+      "sendMessage": "Send a Message",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "subject": "Subject",
+      "subjectPlaceholder": "What's this about?",
+      "message": "Message",
+      "messagePlaceholder": "Tell us what's on your mind...",
+      "sendButton": "Send Message"
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "overview": "This privacy policy explains how AI Istanbul Guide collects, uses, and protects your information.",
+    "dataCollection": "Data Collection",
+    "collectionInfo": "We collect minimal data to provide our service including chat messages during your session and basic usage analytics.",
+    "dataUse": "How We Use Data", 
+    "useInfo": "Your data is used solely to improve our AI responses and provide better recommendations. We never sell or share personal information.",
+    "dataSecurity": "Data Security",
+    "securityInfo": "We use industry-standard security measures to protect your data and ensure your privacy.",
+    "contact": "Contact us if you have any privacy concerns or questions."
+  }
+}

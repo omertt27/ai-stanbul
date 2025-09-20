@@ -1,0 +1,112 @@
+{
+  "common": {
+    "loading": "Lädt...",
+    "error": "Ein Fehler ist aufg  "errors": {
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "serverError": "Entschuldigung, es ist ein Fehler aufgetreten. Bitte versuchen Sie, Ihre Frage anders zu formulieren.",
+    "inputTooShort": "Bitte geben Sie eine sinnvolle Frage ein.",
+    "invalidCharacters": "Bitte verwenden Sie Buchstaben und Wörter in Ihrer Frage.",
+    "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
+  },
+  "about": {
+    "title": "Über uns",
+    "subtitle": "Ihr intelligenter Begleiter für die Erkundung von Istanbuls reicher Kultur, Küche und versteckten Schätzen",
+    "mission": {
+      "title": "Unsere Mission",
+      "description": "Wir glauben, dass jeder Besucher Istanbuls die Stadt wie ein Einheimischer erleben sollte. Unser KI-Assistent bietet personalisierte, kulturell bewusste Empfehlungen, die über typische Touristenführer hinausgehen."
+    },
+    "features": {
+      "smart": {
+        "title": "Intelligente Empfehlungen",
+        "description": "KI-gestützte Vorschläge basierend auf Ihren Vorlieben, Zeit und Standort"
+      },
+      "local": {
+        "title": "Lokale Einblicke",
+        "description": "Entdecken Sie versteckte Schätze und authentische Erfahrungen abseits der ausgetretenen Pfade"
+      },
+      "multilingual": {
+        "title": "Mehrsprachige Unterstützung",
+        "description": "Erhalten Sie Hilfe in mehreren Sprachen mit kulturell angemessenen Antworten"
+      }
+    }
+  }
+},
+    "retry": "Erneut versuchen",
+    "send": "Senden",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "read": "Vorlesen",
+    "stop": "Stopp",
+    "clear": "Löschen",
+    "close": "Schließen"
+  },
+  "navigation": {
+    "home": "Startseite",
+    "chat": "Chat",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "privacy": "Datenschutz",
+    "tips": "Tipps",
+    "blog": "Blog",
+    "sources": "Quellen",
+    "donate": "Spenden",
+    "faq": "FAQ"
+  },
+  "chat": {
+    "welcome": "Willkommen bei Istanbul AI! Wie kann ich Ihnen helfen, die Stadt zu erkunden?",
+    "placeholder": "Was möchten Sie über Istanbul wissen?",
+    "searchPlaceholder": "Entdecken Sie die Magie Istanbuls...",
+    "typing": "KAM denkt nach...",
+    "suggestions": {
+      "title": "Fragen Sie zum Beispiel:",
+      "restaurants": "Beste Restaurants in Sultanahmet",
+      "activities": "Aktivitäten in Beyoğlu",
+      "transport": "Fährverbindungen zu den Inseln",
+      "breakfast": "Türkische Frühstückslokale"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "Hier sind einige großartige Restaurants in {district}:",
+    "museum_intro": "Entdecken Sie diese erstaunlichen Museen:",
+    "transport_intro": "Ihr Verkehrsleitfaden:",
+    "attractions_intro": "Top-Attraktionen und Sehenswürdigkeiten:",
+    "general_intro": "Gerne helfe ich Ihnen dabei, Istanbul zu erkunden!"
+  },
+  "restaurants": {
+    "name": "Name",
+    "rating": "Bewertung",
+    "price": "Preis",
+    "cuisine": "Küche",
+    "location": "Standort",
+    "viewOnMap": "Auf Karte anzeigen",
+    "descriptions": {
+      "kebab": "Traditionelles türkisches Kebab-Haus mit gegrilltem Fleisch und authentischen osmanischen Rezepten.",
+      "seafood": "Frisches Meeresfrüchte-Restaurant mit Spezialitäten aus dem Bosporus und mediterranen Gerichten.",
+      "palace": "Osmanisches Fine-Dining mit traditioneller türkischer Küche und eleganter Atmosphäre.",
+      "cafe": "Gemütliches türkisches Café mit traditionellem Kaffee, Tee und leichtem türkischen Frühstück.",
+      "meze": "Traditionelles Meze-Haus mit kleinen Tellern und authentischen türkischen Vorspeisen.",
+      "rooftop": "Malerisches Dachrestaurant mit Panoramablick auf Istanbul und internationaler Küche.",
+      "lokanta": "Hausgemachte türkische Küche mit Tagesspecials und klassischen Wohlfühlgerichten.",
+      "pizza": "Italienisches Restaurant mit authentischen Pizzen und mediterranen Gerichten.",
+      "asian": "Asiatisches Fusion-Restaurant mit frischem Sushi und zeitgenössischen asiatischen Aromen.",
+      "default": "Beliebtes lokales Restaurant bekannt für hochwertige türkische Küche und warme Gastfreundschaft."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "serverError": "Entschuldigung, ich bin auf einen Fehler gestoßen. Bitte versuchen Sie, Ihre Frage anders zu formulieren.",
+    "inputTooShort": "Bitte geben Sie eine sinnvolle Frage ein.",
+    "invalidCharacters": "Bitte verwenden Sie Buchstaben und Wörter in Ihrer Frage.",
+    "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
+  }
+}

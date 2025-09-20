@@ -1,0 +1,341 @@
+{
+  "common": {
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "retry": "Tekrar dene",
+    "send": "Gönder",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı!",
+    "read": "Sesli oku",
+    "stop": "Dur",
+    "clear": "Temizle",
+    "close": "Kapat"
+  },
+  "navigation": {
+    "home": "Ana Sayfa",
+    "chat": "Sohbet",
+    "about": "Hakkında",
+    "contact": "İletişim",
+    "privacy": "Gizlilik",
+    "tips": "İpuçları",
+    "blog": "Blog",
+    "sources": "Kaynaklar",
+    "donate": "Bağış",
+    "faq": "SSS"
+  },
+  "chat": {
+    "welcome": "İstanbul AI'ya hoş geldiniz! Şehri keşfetmenizde nasıl yardımcı olabilirim?",
+    "placeholder": "İstanbul hakkında ne öğrenmek istiyorsunuz?",
+    "searchPlaceholder": "İstanbul'un büyüsünü keşfedin...",
+    "typing": "KAM düşünüyor...",
+    "suggestions": {
+      "title": "Şunları sorabilirsiniz:",
+      "restaurants": "Sultanahmet'teki en iyi restoranlar",
+      "activities": "Beyoğlu'nda yapılacak şeyler",
+      "transport": "Adalara feribot hatları",
+      "breakfast": "Türk kahvaltısı mekanları"
+    }
+  },
+  "responses": {
+    "restaurant_intro": "{district} bölgesindeki harika restoranlar:",
+    "museum_intro": "Bu muhteşem müzeleri keşfedin:",
+    "transport_intro": "İşte ulaşım rehberiniz:",
+    "attractions_intro": "En popüler yerler ve görülecek yerler:",
+    "general_intro": "İstanbul'u keşfetmenizde size yardımcı olmaktan mutluluk duyarım!"
+  },
+  "restaurants": {
+    "name": "İsim",
+    "rating": "Puan",
+    "price": "Fiyat",
+    "cuisine": "Mutfak",
+    "location": "Konum",
+    "viewOnMap": "Haritada Görüntüle",
+    "descriptions": {
+      "kebab": "Izgara etler ve otantik Osmanlı yemekleri sunan geleneksel Türk kebap evi.",
+      "seafood": "Boğaziçi balıkları ve Akdeniz yemeklerinde uzmanlaşmış taze deniz ürünleri restoranı.",
+      "palace": "Geleneksel Türk mutfağı ve zarif atmosfer ile Osmanlı tarzı lüks yemek.",
+      "cafe": "Geleneksel kahve, çay ve hafif Türk kahvaltısı sunan rahat Türk kafesi.",
+      "meze": "Küçük tabaklar ve otantik Türk mezeler sunan geleneksel meze evi.",
+      "rooftop": "İstanbul'un panoramik manzaraları ve uluslararası mutfak ile çatı restoranı.",
+      "lokanta": "Günlük özel menüler ve rahat yemek klasikleri ile ev tarzı Türk mutfağı.",
+      "pizza": "Otantik pizzalar ve Akdeniz yemekleri sunan İtalyan restoranı.",
+      "asian": "Taze suşi ve çağdaş Asya lezzetleri ile Asya füzyon restoranı.",
+      "default": "Kaliteli Türk mutfağı ve sıcak misafirperverlik ile tanınan popüler yerel restoran."
+    }
+  },
+  "districts": {
+    "sultanahmet": "Sultanahmet",
+    "beyoglu": "Beyoğlu",
+    "kadikoy": "Kadıköy",
+    "fatih": "Fatih",
+    "besiktas": "Beşiktaş",
+    "sisli": "Şişli",
+    "galata": "Galata",
+    "eminonu": "Eminönü"
+  },
+  "errors": {
+    "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
+    "serverError": "Üzgünüm, bir hata ile karşılaştım. Lütfen sorunuzu farklı şekilde ifade etmeyi deneyin.",
+    "inputTooShort": "Lütfen anlamlı bir soru girin.",
+    "invalidCharacters": "Lütfen sorunuzda harf ve kelimeler kullanın.",
+    "rateLimited": "Çok fazla istek. Lütfen biraz bekleyin ve tekrar deneyin."
+  },
+  "about": {
+    "title": "Hakkında",
+    "subtitle": "İstanbul'un zengin kültürünü, mutfağını ve gizli hazinelerini keşfetmek için akıllı rehberiniz",
+    "mission": {
+      "title": "Misyonumuz",
+      "description": "İstanbul'u ziyaret eden her kişinin şehri bir yerel gibi deneyimlemesi gerektiğine inanıyoruz. AI asistanımız, tipik turist rehberlerinin ötesinde kişiselleştirilmiş, kültürel olarak bilinçli öneriler sunmaktadır."
+    },
+    "features": {
+      "smart": {
+        "title": "Akıllı Öneriler",
+        "description": "Tercihleriniz, zaman ve konumunuza göre AI destekli öneriler"
+      },
+      "local": {
+        "title": "Yerel İçgörüler",
+        "description": "Gizli cevherleri ve otantik deneyimleri keşfedin"
+      },
+      "multilingual": {
+        "title": "Çok Dilli Destek",
+        "description": "Kültürel olarak uygun yanıtlarla birden fazla dilde yardım alın"
+      }
+    }
+  },
+  "homepage": {
+    "title": "İstanbul'u AI ile Keşfedin",
+    "subtitle": "İki kıtanın buluştuğu şehir için akıllı seyahat arkadaşınız",
+    "suggestions": {
+      "morning": {
+        "breakfast": "En İyi Türk Kahvaltısı",
+        "views": "Sabah Manzaraları",
+        "bakeries": "Taze Fırınlar"
+      },
+      "afternoon": {
+        "museums": "Müzeler ve Kültür",
+        "shopping": "Alışveriş Bölgeleri", 
+        "lunch": "Öğle Yemeği Mekanları"
+      },
+      "evening": {
+        "sunset": "Gün Batımı Manzaraları",
+        "dining": "Akşam Yemeği",
+        "nightlife": "Gece Hayatı"
+      }
+    },
+    "districts": {
+      "sultanahmet": {
+        "name": "Sultanahmet",
+        "description": "Osmanlı ve Bizans hazineleriyle tarihi yarımada",
+        "vibe": "İmparatorluk",
+        "specialty": "Osmanlı Mirası"
+      },
+      "beyoglu": {
+        "name": "Beyoğlu",
+        "description": "Modern sanat ve gece hayatıyla canlı kültür merkezi",
+        "vibe": "Sanatsal",
+        "specialty": "Çağdaş Kültür"
+      },
+      "kadikoy": {
+        "name": "Kadıköy",
+        "description": "Otantik yerel yaşam ve yemeklerle Anadolu yakası incisi",
+        "vibe": "Yerel",
+        "specialty": "Sokak Lezzetleri"
+      }
+    },
+    "quickStart": "Hızlı Sohbet Başlat",
+    "exploreMore": "Daha Fazla Keşfet"
+  },
+  "faq": {
+    "title": "Sık Sorulan Sorular",
+    "subtitle": "AI İstanbul Rehberi hakkında bilmeniz gerekenler",
+    "questions": {
+      "whatIsKam": {
+        "question": "KAM ne anlama geliyor?",
+        "answer": "KAM, eski Türk 'kam'ından adını alan bir AI sohbet robotudur - insan ve ruhsal dünyalar arasında köprü görevi gören bilge şamanik figür. Bu modern formda, Kam aynı rehberlik, içgörü ve koruma ruhunu taşıyarak, kullanıcıların dijital dünyada netlik ve bilgelikle yol bulmalarına yardımcı olur."
+      },
+      "accuracy": {
+        "question": "Restoran önerileri ne kadar doğru?",
+        "answer": "Restoran önerilerimiz doğrudan Google Maps API'sinden gelir, gerçek zamanlı puanlar, yorumlar ve konum verisi sağlar. Bunu AI analizi ile birleştirerek tercihlerinize göre en uygun önerileri sunuyoruz."
+      },
+      "coverage": {
+        "question": "Tüm İstanbul ilçeleri hakkında bilginiz var mı?",
+        "answer": "Evet! Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar ve daha birçok önemli İstanbul ilçesi hakkında kapsamlı verilerimiz var. Her ilçe girişi tarihi bağlam, ana cazibe merkezleri ve kültürel önemi içerir."
+      },
+      "languages": {
+        "question": "Farklı dillerde öneri alabilir miyim?",
+        "answer": "Evet! AI'mız İngilizce, Türkçe, Rusça, Almanca, Fransızca ve Arapça dahil birçok dili destekler. Sadece dil tercihinizi değiştirin ve sohbete başlayın."
+      },
+      "updates": {
+        "question": "Bilgiler ne sıklıkla güncelleniyor?",
+        "answer": "Restoran verileri Google Maps API üzerinden gerçek zamanlı olarak güncellenir. Müze ve cazibe merkezi bilgilerimiz elle seçilir ve doğruluğu sağlamak için düzenli olarak güncellenir. Veritabanımızı aylık olarak gözden geçirip güncelliyoruz."
+      },
+      "free": {
+        "question": "Bu hizmet tamamen ücretsiz mi?",
+        "answer": "Evet! AI İstanbul Rehberi kullanımı tamamen ücretsizdir. Bağışlarla finanse ediliyoruz ve ziyaretçilerin İstanbul'un en iyisini keşfetmelerine yardımcı olmak için bunu açık kaynak projesi olarak sürdürüyoruz."
+      }
+    }
+  },
+  "contact": {
+    "title": "AI/STANBUL ile İletişime Geç",
+    "getInTouch": "İletişime Geç",
+    "email": "E-posta",
+    "location": "Konum",
+    "socialMedia": "Sosyal Medya",
+    "openSource": "Açık Kaynak",
+    "github": "GitHub Deposu",
+    "community": "Topluluk ve Destek",
+    "followUs": "Güncellemeler ve İstanbul ipuçları için bizi takip edin",
+    "contributeProject": "Projeye Katkıda Bulun",
+    "helpImprove": "AI İstanbul Rehberini geliştirmemize yardımcı olun",
+    "reportIssues": "Sorun Bildirin veya Özellik Önerin",
+    "joinCommunity": "Geliştirici topluluğumuza katılın",
+    "responseTimes": "Yanıt Süreleri",
+    "responseInfo": "E-postalara genellikle 24-48 saat içinde yanıt veriyoruz. Acil teknik sorunlar için lütfen GitHub üzerinden ulaşın."
+  },
+  "donate": {
+    "title": "AI/STANBUL'u Destekle",
+    "subtitle": "İstanbul'un en iyi AI seyahat rehberini herkes için ücretsiz ve harika tutmamıza yardım edin",
+    "buyMeCoffee": "Bana Kahve Ismarla",
+    "coffeeDescription": "Takdirinizi göstermenin ve AIstanbul'u çalışır tutmanın en kolay yolu",
+    "buyMeCoffeeButton": "Bana Kahve Ismarla",
+    "howSupportHelps": "Desteğiniz Nasıl Yardımcı Oluyor",
+    "keepItFree": "Sonsuza Kadar Ücretsiz Tut",
+    "keepItFreeDesc": "Bağışlarınız AIstanbul'un İstanbul'u keşfeden tüm gezginler için tamamen ücretsiz kalmasını sağlar.",
+    "serverCosts": "Sunucu ve API Maliyetleri",
+    "serverCostsDesc": "Hızlı ve doğru yanıtlar için barındırma, Google Maps API ve OpenAI maliyetlerini karşılar.",
+    "continuousUpdates": "Sürekli Güncellemeler",
+    "continuousUpdatesDesc": "En son restoran, müze ve cazibe merkezi bilgileriyle düzenli veritabanı güncellemelerini fonlar.",
+    "newFeatures": "Yeni Özellikler",
+    "newFeaturesDesc": "Etkinlik önerileri ve gerçek zamanlı ulaşım bilgisi gibi heyecan verici özelliklerin geliştirilmesini sağlar.",
+    "multilingualSupport": "Çok Dilli Destek",
+    "multilingualSupportDesc": "Dünyanın her yerinden ziyaretçilere kendi ana dillerinde hizmet vermek için genişlememize yardım eder.",
+    "betterExperience": "Daha İyi Deneyim",
+    "betterExperienceDesc": "Mobil deneyimi geliştirir, çevrimdışı özellikler ekler ve kullanıcı arayüzünü güçlendirir.",
+    "otherWaysToHelp": "Yardım Etmenin Diğer Yolları",
+    "shareOnSocialMedia": "Sosyal Medyada Paylaş",
+    "shareOnSocialMediaDesc": "AIstanbul'u Twitter, Instagram veya Facebook'ta diğer gezginlerle paylaş",
+    "sendFeedback": "Geri Bildirim Gönder",
+    "sendFeedbackDesc": "Değerli geri bildirimleriniz ve önerilerinizle gelişmemize yardım edin",
+    "contributeOnGithub": "GitHub'da Katkıda Bulun",
+    "contributeOnGithubDesc": "Kod katkısında bulunarak veya sorunları bildirerek AIstanbul'u geliştirmeye yardım edin"
+  },
+  "tips": {
+    "title": "İstanbul Seyahat İpuçları",
+    "subtitle": "İstanbul maceranız için önemli içerden bilgiler",
+    "gettingAround": "Ulaşım",
+    "publicTransport": "Tüm toplu taşıma için İstanbulkart kullanın",
+    "traffic": "Mümkünse yoğun saatleri (07:00-09:00, 17:00-19:00) kaçının",
+    "ferries": "Boğaziçi manzarası için vapur kullanın",
+    "cultural": "Kültürel İpuçları",
+    "mosques": "Camilere girerken ayakkabılarınızı çıkarın",
+    "dress": "Dini mekanlarda muhafazakar giyinin",
+    "tea": "İkram edilen çayı kabul edin - bu misafirperverlik işaretidir",
+    "money": "Para ve Alışveriş",
+    "bargain": "Pazarlarda ve çarşılarda pazarlık yapılması beklenir",
+    "cash": "Küçük satıcılar ve pazarlar için nakit taşıyın",
+    "tipping": "Restoranlarda %10-15 bahşiş standartır",
+    "safety": "Güvenlik ve Pratik",
+    "water": "Çoğu bölgede musluk suyu içmek güvenlidir",
+    "language": "Temel Türkçe ifadeler öğrenin - yerel halk bunu takdir eder",
+    "emergency": "Acil durum numarası: 112"
+  },
+  "privacy": {
+    "title": "Gizlilik Politikası",
+    "lastUpdated": "Son güncelleme",
+    "gdprNoticeTitle": "🇪🇺 GDPR Uyumluluk Bildirimi",
+    "gdprNoticeText": "AI İstanbul, Genel Veri Koruma Yönetmeliği (GDPR) ile tamamen uyumludur. Kullanıcı olarak kişisel verilerinizle ilgili belirli haklarınız vardır.",
+    "gdprLinkText": "Veri ve gizlilik ayarlarınızı buradan yönetin →",
+    "dataControllerTitle": "Veri Sorumlusu Bilgileri",
+    "dataController": "Veri Sorumlusu",
+    "dataControllerName": "AI İstanbul Rehberi",
+    "contactEmail": "İletişim",
+    "contactEmailValue": "privacy@aiistanbul.guide",
+    "legalBasis": "Hukuki Dayanak",
+    "legalBasisValue": "Analitik için meşru menfaat, kişiselleştirme için rıza",
+    "informationWeCollectTitle": "Topladığımız Bilgiler",
+    "personalDataCategoriesTitle": "Kişisel Veri Kategorileri",
+    "chatMessages": "Sohbet Mesajları",
+    "chatMessagesDesc": "Sorularınız ve istekleriniz (geçici olarak işlenir, kalıcı olarak saklanmaz)",
+    "technicalData": "Teknik Veriler",
+    "technicalDataDesc": "IP adresi, tarayıcı türü, cihaz bilgisi, oturum kimlikleri",
+    "usageAnalytics": "Kullanım Analitiği",
+    "usageAnalyticsDesc": "Sayfa görüntülemeleri, etkileşim kalıpları (Google Analytics ile anonimleştirilmiş)",
+    "preferences": "Tercihler",
+    "preferencesDesc": "Tema ayarları, dil tercihleri, diyet kısıtlamaları",
+    "feedbackData": "Geri Bildirim Verisi",
+    "feedbackDataDesc": "Sağladığınız isteğe bağlı puanlar ve yorumlar",
+    "cookieData": "Çerez Verisi",
+    "cookieDataDesc": "Rıza tercihleri, oturum verisi",
+    "legalBasisProcessingTitle": "İşleme Hukuki Dayanağı",
+    "consentGdpr": "Rıza (GDPR Madde 6(1)(a))",
+    "consentGdprDesc": "Çerez tercihleri, kişiselleştirme özellikleri",
+    "legitimateInterest": "Meşru Menfaat (GDPR Madde 6(1)(f))",
+    "legitimateInterestDesc": "Web sitesi analitiği, güvenlik, hizmet iyileştirme",
+    "contractualNecessity": "Sözleşmeli Gereklilik (GDPR Madde 6(1)(b))",
+    "contractualNecessityDesc": "Seyahat önerileri sağlama",
+    "howWeUseTitle": "Bilgilerinizi Nasıl Kullanıyoruz",
+    "usePersonalized": "Kişiselleştirilmiş İstanbul seyahat önerileri sağlar",
+    "useImprove": "AI yanıt doğruluğunu ve alakalılığını geliştirir",
+    "useAnalyze": "Kullanıcı deneyimini geliştirmek için kullanım kalıplarını analiz eder",
+    "useSecurity": "Web sitesi güvenliğini sağlar ve kötüye kullanımı önler",
+    "useComply": "Yasal yükümlülüklere uyar",
+    "dataSharingTitle": "Veri Paylaşımı ve Uluslararası Transferler",
+    "dataSharingIntro": "Sınırlı veriyi yalnızca temel hizmet sağlayıcılarla paylaşırız:",
+    "googleMaps": "Google Maps API",
+    "googleMapsDesc": "Restoran önerileri için konum sorguları (ABD)",
+    "openaiApi": "OpenAI API",
+    "openaiApiDesc": "AI destekli sohbet yanıtları (ABD)",
+    "googleAnalytics": "Google Analytics",
+    "googleAnalyticsDesc": "Anonimleştirilmiş kullanım istatistikleri (ABD)",
+    "renderCom": "Render.com",
+    "renderComDesc": "Web barındırma hizmetleri (ABD)",
+    "safeguards": "Güvenceler",
+    "safeguardsDesc": "Tüm uluslararası transferler Standart Sözleşme Maddeleri (SCC'ler) veya mevcut olduğunda yeterlilik kararları ile korunur.",
+    "dataRetentionTitle": "Veri Saklama",
+    "chatMessagesRetention": "Sohbet Mesajları",
+    "chatMessagesRetentionDesc": "Gerçek zamanlı işlenir, kalıcı olarak saklanmaz",
+    "analyticsDataRetention": "Analitik Veriler",
+    "analyticsDataRetentionDesc": "Anonimleştirilmiş, 26 ay saklanır (Google Analytics varsayılanı)",
+    "userPreferencesRetention": "Kullanıcı Tercihleri",
+    "userPreferencesRetentionDesc": "Tarayıcı verilerini temizleyene veya silme talebinde bulunana kadar",
+    "errorLogsRetention": "Hata Günlükleri",
+    "errorLogsRetentionDesc": "Teknik sorun giderme için 30 gün",
+    "cookiesTrackingTitle": "Çerezler ve İzleme",
+    "cookiesIntro": "Aşağıdaki çerez türlerini kullanırız:",
+    "necessaryCookies": "Gerekli Çerezler",
+    "necessaryCookiesDesc": "Web sitesi işlevselliği için gerekli (devre dışı bırakılamaz)",
+    "analyticsCookies": "Analitik Çerezler",
+    "analyticsCookiesDesc": "Kullanım istatistikleri için Google Analytics (rıza gerektirir)",
+    "preferenceCookies": "Tercih Çerezleri",
+    "preferenceCookiesDesc": "Tema ve dil ayarlarınızı hatırlar (rıza gerektirir)",
+    "cookieManagement": "Çerez tercihlerini rıza bannerımız aracılığıyla veya tarayıcı ayarlarınızı ziyaret ederek yönetebilirsiniz.",
+    "dataSecurityTitle": "Veri Güvenliği",
+    "endToEndEncryption": "Veri iletimi için uçtan uca şifreleme (HTTPS)",
+    "securityAudits": "Düzenli güvenlik denetimleri ve güncellemeleri",
+    "accessControls": "Erişim kontrolleri ve kimlik doğrulama",
+    "dataMinimization": "Veri minimizasyon ilkeleri",
+    "incidentResponse": "Olay müdahale prosedürleri",
+    "childrensPrivacyTitle": "Çocukların Gizliliği",
+    "childrensPrivacyText": "Hizmetimiz 16 yaşın altındaki çocuklara yönelik değildir. 16 yaşın altındaki çocuklardan bilerek kişisel bilgi toplamayız. Ebeveynseniz ve çocuğunuzun bize kişisel bilgi sağladığını düşünüyorsanız, lütfen derhal bizimle iletişime geçin.",
+    "dataBreachTitle": "Veri İhlali Bildirimi",
+    "dataBreachText": "Kişisel verilerinizi etkileyen bir veri ihlali durumunda, GDPR Madde 33 ve 34 gereği 72 saat içinde sizi ve ilgili makamları bilgilendireceğiz.",
+    "changesToPolicyTitle": "Bu Politikadaki Değişiklikler",
+    "changesToPolicyText": "Bu gizlilik politikasını zaman zaman güncelleyebiliriz. Önemli değişiklikler en az 30 gün önceden web sitemiz aracılığıyla bildirilecektir. Değişikliklerden sonra kullanmaya devam etmek kabul anlamına gelir.",
+    "contactDataProtectionTitle": "İletişim ve Veri Koruması",
+    "contactDataProtectionIntro": "Gizlilikle ilgili sorular veya GDPR haklarınızı kullanmak için:",
+    "email": "E-posta",
+    "emailValue": "privacy@aiistanbul.guide",
+    "dataProtectionOfficer": "Veri Koruma Sorumlusu",
+    "dataProtectionOfficerValue": "dpo@aiistanbul.guide",
+    "gdprPortal": "GDPR Portalı",
+    "gdprPortalValue": "aiistanbul.guide/gdpr",
+    "supervisoryAuthorityTitle": "Denetim Otoritesi",
+    "supervisoryAuthorityIntro": "Yanıtımızdan memnun değilseniz, şikayette bulunabilirsiniz:",
+    "turkeyAuthority": "Türkiye",
+    "turkeyAuthorityValue": "Kişisel Verileri Koruma Kurumu (KVKK)",
+    "euAuthority": "AB",
+    "euAuthorityValue": "Yerel Veri Koruma Otoriteniz",
+    "commitmentTitle": "🌍 Taahhüdümüz",
+    "commitmentText": "AI İstanbul, tasarım gereği gizlilik ve şeffaflığa kararlıdır. Temel gizlilik hakkınıza saygı gösterirken size en iyi İstanbul seyahat deneyimini sağlamak için yalnızca gerekli olanı topluyoruz."
+  }
+}

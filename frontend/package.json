@@ -21,9 +21,13 @@
     "debug": "^4.4.1",
     "express": "^5.1.0",
     "gensync": "^1.0.0-beta.2",
+    "i18next": "^25.5.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
     "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-i18next": "^15.7.3",
     "react-leaflet": "^5.0.0",
     "react-refresh": "^0.17.0",
     "react-router-dom": "^6.30.1"

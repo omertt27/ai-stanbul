@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import '../App.css';
 
 const About = () => {
   const { darkMode } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
@@ -17,10 +19,10 @@ const About = () => {
         <div className="max-w-4xl mx-auto px-12 text-center">
           <div className="mb-8">
             <h1 className="text-5xl font-bold mb-6 pt-28 transition-colors duration-300 text-white">
-              About <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">STANBUL</span>
+              {t('about.title')} <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">STANBUL</span>
             </h1>
             <p className="text-xl leading-relaxed transition-colors duration-300 text-gray-300">
-              Your intelligent companion for exploring Istanbul's rich culture, cuisine, and hidden gems
+              {t('about.subtitle')}
             </p>
           </div>
         </div>
@@ -32,11 +34,10 @@ const About = () => {
         <div className="rounded-2xl p-12 mb-16 transition-colors duration-300 bg-gray-800 border border-gray-700">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold mb-4 transition-colors duration-300 text-white">
-              Our Mission
+              {t('about.mission.title')}
             </h2>
             <p className="text-lg leading-relaxed transition-colors duration-300 text-gray-300">
-              We believe every visitor to Istanbul deserves to experience the city like a local. Our AI assistant 
-              provides personalized, culturally-aware recommendations that go beyond typical tourist guides.
+              {t('about.mission.description')}
             </p>
           </div>
           

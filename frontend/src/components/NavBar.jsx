@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { trackNavigation } from '../utils/analytics';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const NavBar = ({ hideLogo = false }) => {
   const location = useLocation();
+  const { t } = useTranslation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
   // Update window width on resize
@@ -187,11 +190,14 @@ const NavBar = ({ hideLogo = false }) => {
               gap: '0.5rem',
               alignItems: 'center',
             }}>
-              <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>Chat</Link>
-              <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>Blog</Link>
-              <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>About</Link>
-              <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>FAQ</Link>
-              <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>Donate</Link>
+              <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>{t('navigation.chat')}</Link>
+              <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>{t('navigation.blog')}</Link>
+              <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>{t('navigation.about')}</Link>
+              <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>{t('navigation.faq')}</Link>
+              <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>{t('navigation.donate')}</Link>
+              <div style={{ marginLeft: '1rem' }}>
+                <LanguageSwitcher />
+              </div>
             </div>
           </nav>
           {/* Purple separator line below navbar */}
@@ -303,7 +309,7 @@ const NavBar = ({ hideLogo = false }) => {
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Chat</span>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>{t('navigation.chat')}</span>
           </Link>
 
           {/* Blog Tab */}
@@ -326,7 +332,7 @@ const NavBar = ({ hideLogo = false }) => {
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
             </svg>
-            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Blog</span>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>{t('navigation.blog')}</span>
           </Link>
 
           {/* About Tab */}
@@ -349,7 +355,7 @@ const NavBar = ({ hideLogo = false }) => {
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
               <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>About</span>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>{t('navigation.about')}</span>
           </Link>
 
           {/* FAQ Tab */}
@@ -372,7 +378,7 @@ const NavBar = ({ hideLogo = false }) => {
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>FAQ</span>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>{t('navigation.faq')}</span>
           </Link>
 
           {/* Donate Tab */}
@@ -395,7 +401,7 @@ const NavBar = ({ hideLogo = false }) => {
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>Donate</span>
+            <span style={{fontSize: '0.7rem', fontWeight: '500'}}>{t('navigation.donate')}</span>
           </Link>
         </div>
       )}

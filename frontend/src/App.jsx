@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import SearchBar from './components/SearchBar';
-import Chat from './components/Chat';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
@@ -17,8 +17,10 @@ import './components/InteractiveMainPage.css';
 const App = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [messages, setMessages] = useState(() => {
     // Load saved messages from localStorage
     try {
@@ -97,12 +99,17 @@ const App = () => {
     e.preventDefault();
     if (!query.trim()) return;
     
+    setSearchLoading(true);
+    
     // Track the search event
     trackChatEvent('search_initiated', query);
     
     // Store the query and navigate to chatbot page for consistent experience
     localStorage.setItem('pending_chat_query', query);
     navigate('/chatbot');
+    
+    // Reset loading state after navigation
+    setTimeout(() => setSearchLoading(false), 1000);
   };
 
   const handleQuickStart = (quickQuery) => {
@@ -165,7 +172,8 @@ const App = () => {
               value={query}
               onChange={e => setQuery(e.target.value)}
               onSubmit={handleSearch}
-              placeholder="Discover the magic of Istanbul..."
+              placeholder={t('chat.searchPlaceholder')}
+              isLoading={searchLoading}
             />
           </div>
           

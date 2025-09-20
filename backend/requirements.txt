@@ -40,3 +40,10 @@ fastapi-cors>=0.0.6
 charset-normalizer>=3.3.0
 idna>=3.4
 certifi>=2023.0.0
+
+# Rate limiting and security
+slowapi>=0.1.9
+redis>=5.0.0
+
+# Structured logging
+structlog>=23.2.0

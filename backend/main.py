@@ -18,6 +18,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
 
+# --- Rate Limiting and Security ---
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+    RATE_LIMITING_ENABLED = True
+except ImportError:
+    print("⚠️ Rate limiting not available - install slowapi")
+    RATE_LIMITING_ENABLED = False
+
+# --- Structured Logging ---
+try:
+    import structlog
+    STRUCTURED_LOGGING_ENABLED = True
+except ImportError:
+    print("⚠️ Structured logging not available - install structlog")
+    STRUCTURED_LOGGING_ENABLED = False
+
 # --- Project Imports ---
 from database import engine, SessionLocal
 from models import Base, Restaurant, Museum, Place
@@ -27,6 +45,7 @@ from api_clients.weather_enhanced import WeatherClient
 from api_clients.enhanced_api_service import EnhancedAPIService
 from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor
 from sqlalchemy.orm import Session
+from i18n_service import i18n_service
 
 # --- Import enhanced AI services ---
 # Create dummy objects to prevent errors
@@ -102,6 +121,17 @@ except ImportError as e:
         return False
 
 load_dotenv()
+
+# --- Import AI Cache Service ---
+try:
+    from ai_cache_service import get_ai_service
+    AI_CACHE_ENABLED = True
+    ai_cache_service = get_ai_service()
+    print("✅ AI Cache and Rate Limiting enabled")
+except ImportError as e:
+    print(f"⚠️ AI Cache service not available: {e}")
+    AI_CACHE_ENABLED = False
+    ai_cache_service = None
 
 # --- OpenAI Import ---
 try:
@@ -888,12 +918,32 @@ async def receive_feedback(request: Request):
 @app.post("/ai")
 async def ai_istanbul_router(request: Request):
     data = await request.json()
-    user_input = data.get("query", data.get("user_input", ""))  # Support both query and user_input
+    user_input = data.get("query", data.get("user_input", data.get("message", "")))  # Support multiple field names
     session_id = data.get("session_id", "default")
     conversation_history = data.get("conversation_history", [])  # List of previous messages
     
+    # Language detection from headers or data
+    language = data.get("language", "en")  # Default to English
+    accept_language = request.headers.get("accept-language", "")
+    if accept_language:
+        # Extract primary language from Accept-Language header
+        detected_lang = i18n_service.get_language_from_headers(accept_language)
+        if detected_lang in i18n_service.supported_languages:
+            language = detected_lang
+    
+    # Basic language detection from user input patterns
+    if user_input:
+        # Check for non-Latin scripts to detect language
+        if re.search(r'[\u0600-\u06FF]', user_input):  # Arabic
+            language = "ar"
+        elif re.search(r'[\u0400-\u04FF]', user_input):  # Cyrillic (Russian)
+            language = "ru"
+        elif re.search(r'[ğüşıöçĞÜŞIÖÇ]', user_input):  # Turkish characters
+            language = "tr"
+    
     try:
         # Debug logging
+        print(f"Detected language: {language}")
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
         print(f"Session ID: {session_id}, History length: {len(conversation_history)}")
         
@@ -930,19 +980,19 @@ async def ai_istanbul_router(request: Request):
         
         # Enhanced input validation and processing
         if not user_input or len(user_input.strip()) < 1:
-            return {"message": "Please ask me something about Istanbul! I can help with restaurants, attractions, districts, transportation, and more."}
+            return {"message": i18n_service.translate("general_intro", language)}
         
         # Check for very short input
         if len(user_input.strip()) < 2:
-            return {"message": "Please be more specific. Ask me about places to visit, restaurants, or anything else about Istanbul!"}
+            return {"message": i18n_service.translate("general_intro", language)}
         
         # Check for spam-like input (repeated characters)
         if re.search(r'(.)\1{4,}', user_input):
-            return {"message": "Please ask a meaningful question about Istanbul. I'm here to help with travel advice!"}
+            return {"message": i18n_service.translate("error_message", language)}
         
-        # Check for only special characters or numbers
-        if not re.search(r'[a-zA-Z]', user_input):
-            return {"message": "Please use words in your question. Ask me about restaurants, attractions, or districts in Istanbul!"}
+        # Check for only special characters or numbers (include Arabic, Cyrillic, and Extended Latin Unicode ranges)
+        if not re.search(r'[a-zA-Z\u0600-\u06FF\u00C0-\u017F\u0400-\u04FF]', user_input):
+            return {"message": i18n_service.translate("error_message", language)}
         
         # Sanitize and clean user input
         user_input = clean_text_formatting(user_input)
@@ -1005,27 +1055,34 @@ async def ai_istanbul_router(request: Request):
         # Create database session
         db = SessionLocal()
         try:
+            # === AI RATE LIMITING AND CACHING ===
+            user_ip = request.client.host if request.client else "unknown"
+                 # Check rate limits first
+        if AI_CACHE_ENABLED and ai_cache_service:
+            # Check if user can make request
+            can_request, limit_info = ai_cache_service.can_make_ai_request(session_id, user_ip)
+            if not can_request:
+                return {
+                    "message": f"Rate limit exceeded. {limit_info.get('reason', 'Please try again later.')}",
+                    "error": "rate_limit_exceeded",
+                    "rate_limit_info": limit_info
+                }
+            
+            # Check cache first
+            cached_response = ai_cache_service.get_cached_response(user_input, language)
+            if cached_response:
+                print(f"💾 Cache hit for query: {user_input[:50]}...")
+                # Record cache hit
+                ai_cache_service.record_ai_request(
+                    session_id, user_ip, user_input, cached_response, 
+                    cached=True, language=language
+                )
+                return {"message": cached_response}
+            
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
-                'restaurant', 'restaurants', 'restourant', 'resturant',  # Include corrected typos
-                'restarunt', 'restarunts',  # Add basic words and common misspellings first
-                'estrnt', 'resturant', 'restrant', 'restrnt',  # Common misspellings and abbreviations
-                'restaurant recommendation', 'restaurant recommendations', 'recommend restaurants',
-                'where to eat', 'best restaurants', 'good restaurants', 'top restaurants',
-                'food places', 'places to eat', 'good places to eat', 'where can I eat',
-                'turkish restaurants', 'local restaurants', 'traditional restaurants',
-                'dining in istanbul', 'dinner recommendations', 'lunch places',
-                'breakfast places', 'brunch spots', 'fine dining', 'casual dining',
-                'cheap eats', 'budget restaurants', 'expensive restaurants', 'high-end restaurants',
-                'seafood restaurants', 'kebab places', 'turkish cuisine', 'ottoman cuisine',
-                'street food', 'local food', 'authentic food', 'traditional food',
-                'rooftop restaurants', 'restaurants with view', 'bosphorus restaurants',
-                'sultanahmet restaurants', 'beyoglu restaurants', 'galata restaurants',
-                'taksim restaurants', 'kadikoy restaurants', 'besiktas restaurants',
-                'asian side restaurants', 'european side restaurants',
-                'vegetarian restaurants', 'vegan restaurants', 'halal restaurants',
-                'restaurants near me', 'food recommendations', 'eating out',
-                'where should I eat', 'suggest restaurants', 'restaurant suggestions'
+                'restaurant', 'restaurants', 'restourant', 'resturant', 'restarnts', 'restrant', 'food', 
+                'eat', 'dining', 'eatery', 'cafe', 'cafes'
             ]
             
             # Enhanced location-based restaurant detection
@@ -1220,6 +1277,11 @@ async def ai_istanbul_router(request: Request):
             print(f"  is_transportation_query: {is_transportation_query}")
             print(f"  is_single_district_query: {is_single_district_query}")
             
+            # Handle simple greetings with template responses
+            if not i18n_service.should_use_ai_response(user_input, language):
+                welcome_message = i18n_service.translate("welcome", language)
+                return {"message": welcome_message}
+            
             # Handle transportation queries with highest priority
             if is_transportation_query:
                 try:
@@ -1306,31 +1368,9 @@ async def ai_istanbul_router(request: Request):
 **Taxi/Uber:**
 - Available throughout the city
 - Use BiTaksi or Uber for convenience
-- Traffic can be heavy during peak hours
-
-For specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions."""}
-                    else:
-                        return {"message": """**Getting Around Istanbul:**
-
-**Public Transportation:**
-- **Metro:** Clean, efficient, connects major areas
-- **Bus:** Extensive network, use Istanbulkart
-- **Tram:** Connects Sultanahmet to other areas
-- **Ferry:** Scenic routes across the Bosphorus
-- **Metrobus:** Fast bus on dedicated lanes
-
-**Tips:**
-- Get an Istanbulkart for all public transport
-- Download Citymapper or Moovit for directions
-- Ferries offer beautiful city views
-- Avoid rush hours (7-9 AM, 5-7 PM) when possible
-
-**Taxi/Ride-sharing:**
-- BiTaksi, Uber available
-- Agree on fare beforehand for taxis
 - Traffic can be heavy, especially bridges
 
-Ask me about specific routes for detailed directions!"""}
+For specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions."""}
                 except Exception as e:
                     return {"message": "I can help you with transportation in Istanbul. Please ask about specific routes or general transport information!"}
             
@@ -1426,7 +1466,7 @@ Ask me about specific routes for detailed directions!"""}
                                 price_text = " • Expensive"
                             elif price_level == 4:
                                 price_text = " • Very expensive"
-                        
+
                         # Format each restaurant entry with clean, readable formatting
                         restaurants_info += f"{i+1}. {name}\n"
                         restaurants_info += f"   {restaurant_info}\n"
