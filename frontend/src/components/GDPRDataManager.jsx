@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const GDPRDataManager = () => {
   const { darkMode } = useTheme();
@@ -8,6 +10,33 @@ const GDPRDataManager = () => {
   const [requestType, setRequestType] = useState('access');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [consentStatus, setConsentStatus] = useState({});
+
+  useEffect(() => {
+    // Get or create session ID
+    let currentSessionId = sessionStorage.getItem('ai-stanbul-session');
+    if (!currentSessionId) {
+      currentSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem('ai-stanbul-session', currentSessionId);
+    }
+    setSessionId(currentSessionId);
+
+    // Load consent status
+    loadConsentStatus(currentSessionId);
+  }, []);
+
+  const loadConsentStatus = async (sessionId) => {
+    try {
+      const response = await fetch(`${API_BASE}/gdpr/consent-status/${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setConsentStatus(data.consent_status || {});
+      }
+    } catch (error) {
+      console.error('Failed to load consent status:', error);
+    }
+  };
 
   const getUserData = () => {
     // Collect all user data stored locally
@@ -64,18 +93,61 @@ const GDPRDataManager = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call - in reality, this would send to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const endpoint = requestType === 'access' ? '/gdpr/data-request' : '/gdpr/data-deletion';
       
-      setSubmitStatus('success');
-      setEmail('');
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          email: email
+        })
+      });
+
+      const result = await response.json();
       
-      setTimeout(() => setSubmitStatus(''), 3000);
+      if (result.status === 'success') {
+        setSubmitStatus('success');
+        setEmail('');
+        
+        if (requestType === 'access') {
+          // For data access, the data is returned in the response
+          console.log('User data:', result.data);
+        }
+      } else {
+        setSubmitStatus('error');
+      }
+      
+      setTimeout(() => setSubmitStatus(''), 5000);
     } catch (error) {
+      console.error('GDPR request error:', error);
       setSubmitStatus('error');
-      setTimeout(() => setSubmitStatus(''), 3000);
+      setTimeout(() => setSubmitStatus(''), 5000);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const updateConsent = async (consentData) => {
+    try {
+      const response = await fetch(`${API_BASE}/gdpr/consent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          consent: consentData
+        })
+      });
+
+      if (response.ok) {
+        await loadConsentStatus(sessionId);
+      }
+    } catch (error) {
+      console.error('Failed to update consent:', error);
     }
   };
 

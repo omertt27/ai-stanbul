@@ -30,11 +30,36 @@ except ImportError:
 
 # --- Structured Logging ---
 try:
-    import structlog
+    from structured_logging import get_logger, log_performance, log_ai_operation, log_api_call
+    structured_logger = get_logger("istanbul_ai_main")
     STRUCTURED_LOGGING_ENABLED = True
-except ImportError:
-    print("⚠️ Structured logging not available - install structlog")
+    print("✅ Structured logging initialized successfully")
+except ImportError as e:
+    print(f"⚠️ Structured logging not available: {e}")
     STRUCTURED_LOGGING_ENABLED = False
+    # Create dummy logger to prevent errors
+    class DummyLogger:
+        def info(self, *args, **kwargs): pass
+        def warning(self, *args, **kwargs): pass
+        def error(self, *args, **kwargs): pass
+        def debug(self, *args, **kwargs): pass
+        def log_ai_query(self, *args, **kwargs): pass
+        def log_request(self, *args, **kwargs): pass
+        def log_response(self, *args, **kwargs): pass
+        def log_cache_hit(self, *args, **kwargs): pass
+        def log_cache_miss(self, *args, **kwargs): pass
+        def log_rate_limit(self, *args, **kwargs): pass
+        def log_error_with_traceback(self, *args, **kwargs): pass
+        def context(self, **kwargs):
+            from contextlib import contextmanager
+            @contextmanager
+            def dummy_context():
+                yield
+            return dummy_context()
+    structured_logger = DummyLogger()
+    log_performance = lambda op, **kw: lambda f: f
+    log_ai_operation = lambda op, **kw: lambda f: f
+    log_api_call = lambda ep: lambda f: f
 
 # --- Project Imports ---
 from database import engine, SessionLocal
@@ -48,6 +73,13 @@ from sqlalchemy.orm import Session
 from i18n_service import i18n_service
 
 # --- Import enhanced AI services ---
+try:
+    from ai_cache_service import get_ai_cache_service, init_ai_cache_service
+    AI_CACHE_ENABLED = True
+except ImportError:
+    print("⚠️ AI Cache service not available")
+    AI_CACHE_ENABLED = False
+
 # Create dummy objects to prevent errors
 class DummyManager:
     def get_or_create_session(self, *args, **kwargs): return "dummy_session"
@@ -113,7 +145,7 @@ except ImportError as e:
     print(f"⚠️ Language Processing not available: {e}")
     LANGUAGE_PROCESSING_ENABLED = False
     # Create dummy functions
-    def process_user_query(text: str, context: Optional[Dict] = None) -> Dict[str, Any]: 
+    def process_user_query(text: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         return {"intent": "general_info", "confidence": 0.1, "entities": {}}
     def extract_intent_and_entities(text: str) -> Tuple[str, Dict]: 
         return "general_info", {}
@@ -121,17 +153,6 @@ except ImportError as e:
         return False
 
 load_dotenv()
-
-# --- Import AI Cache Service ---
-try:
-    from ai_cache_service import get_ai_service
-    AI_CACHE_ENABLED = True
-    ai_cache_service = get_ai_service()
-    print("✅ AI Cache and Rate Limiting enabled")
-except ImportError as e:
-    print(f"⚠️ AI Cache service not available: {e}")
-    AI_CACHE_ENABLED = False
-    ai_cache_service = None
 
 # --- OpenAI Import ---
 try:
@@ -315,8 +336,52 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Security Headers Middleware
+from fastapi import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        
+        # Security headers for GDPR compliance and general security
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        
+        return response
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Create tables if needed
 Base.metadata.create_all(bind=engine)
+
+# Initialize AI Cache Service
+if AI_CACHE_ENABLED:
+    try:
+        # Try to initialize with Redis, fallback to memory-only if Redis unavailable
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        ai_cache_service = init_ai_cache_service(redis_url)  # type: ignore
+        print(f"✅ AI Cache Service initialized with Redis: {redis_url}")
+    except Exception as e:
+        print(f"⚠️ AI Cache Service initialized without Redis: {e}")
+        ai_cache_service = get_ai_cache_service()  # type: ignore
+else:
+    ai_cache_service = None
+
+# --- Import GDPR service ---
+try:
+    from gdpr_service import gdpr_service
+    GDPR_SERVICE_ENABLED = True
+    print("✅ GDPR service loaded successfully")
+except ImportError as e:
+    print(f"⚠️ GDPR service not available: {e}")
+    GDPR_SERVICE_ENABLED = False
+    gdpr_service = None
 
 def create_fallback_response(user_input, places):
     """Create intelligent fallback responses when OpenAI API is unavailable"""
@@ -895,6 +960,16 @@ async def receive_feedback(request: Request):
     try:
         feedback_data = await request.json()
         
+        # Log feedback using structured logging
+        structured_logger.info(
+            "User feedback received",
+            feedback_type=feedback_data.get('feedbackType', 'unknown'),
+            user_query=feedback_data.get('userQuery', 'N/A')[:200],
+            response_preview=feedback_data.get('messageText', '')[:100],
+            session_id=feedback_data.get('sessionId', 'N/A'),
+            timestamp=datetime.now().isoformat()
+        )
+        
         # Log feedback to console for observation
         print(f"\n📊 FEEDBACK RECEIVED at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Type: {feedback_data.get('feedbackType', 'unknown')}")
@@ -912,15 +987,29 @@ async def receive_feedback(request: Request):
         }
         
     except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Error processing feedback",
+            e,
+            component="feedback_endpoint"
+        )
         print(f"Error processing feedback: {e}")
         return {"status": "error", "message": str(e)}
 
 @app.post("/ai")
+@log_ai_operation("chatbot_query")
 async def ai_istanbul_router(request: Request):
     data = await request.json()
     user_input = data.get("query", data.get("user_input", data.get("message", "")))  # Support multiple field names
     session_id = data.get("session_id", "default")
     conversation_history = data.get("conversation_history", [])  # List of previous messages
+    
+    # Log the incoming AI request
+    structured_logger.log_ai_query(
+        query=user_input,
+        query_type="chatbot",
+        session_id=session_id,
+        history_length=len(conversation_history)
+    )
     
     # Language detection from headers or data
     language = data.get("language", "en")  # Default to English
@@ -940,6 +1029,15 @@ async def ai_istanbul_router(request: Request):
             language = "ru"
         elif re.search(r'[ğüşıöçĞÜŞIÖÇ]', user_input):  # Turkish characters
             language = "tr"
+    
+    # Validate input
+    if not user_input.strip():
+        structured_logger.warning("Empty query received", session_id=session_id)
+        return {"message": "Please provide a message", "error": "empty_input"}
+    
+    if len(user_input) > 10000:
+        structured_logger.warning("Query too long", session_id=session_id, query_length=len(user_input))
+        return {"message": "Message is too long. Please keep it under 10,000 characters.", "error": "input_too_long"}
     
     try:
         # Debug logging
@@ -998,6 +1096,52 @@ async def ai_istanbul_router(request: Request):
         user_input = clean_text_formatting(user_input)
         print(f"🛡️ Processing sanitized input: {user_input}")
 
+        # --- AI Cache and Rate Limiting ---
+        if ai_cache_service and AI_CACHE_ENABLED:
+            # Get client IP address for rate limiting
+            client_ip = request.client.host if hasattr(request, 'client') and request.client else "127.0.0.1"
+            
+            # Check rate limits
+            rate_limit_allowed, rate_limit_info = ai_cache_service.check_rate_limit(session_id, client_ip)
+            
+            if not rate_limit_allowed:
+                structured_logger.log_rate_limit(
+                    identifier=f"{session_id}/{client_ip}",
+                    endpoint="/ai",
+                    action="blocked"
+                )
+                print(f"⚠️ Rate limit exceeded for session {session_id} / IP {client_ip}")
+                return {
+                    "message": f"Rate limit exceeded. {rate_limit_info.get('message', 'Try again later.')}",
+                    "rate_limited": True,
+                    "rate_limit_info": rate_limit_info
+                }
+            
+            # Check cache for existing response
+            user_context = {
+                "language": language,
+                "session_id": session_id,
+                "location": data.get("location", "")
+            }
+            
+            cached_response = ai_cache_service.get_cached_response(user_input, user_context)
+            if cached_response:
+                structured_logger.log_cache_hit(
+                    cache_key=ai_cache_service._generate_cache_key(user_input, user_context),
+                    cache_type="ai_response"
+                )
+                print(f"✅ Returning cached response for: {user_input[:50]}...")
+                # Still increment rate limit for cached responses
+                ai_cache_service.increment_rate_limit(session_id, client_ip)
+                return cached_response
+            else:
+                structured_logger.log_cache_miss(
+                    cache_key=ai_cache_service._generate_cache_key(user_input, user_context),
+                    cache_type="ai_response"
+                )
+            
+            print(f"🔄 Processing new AI query: {user_input[:50]}...")
+    
         # --- Enhanced AI Intelligence Integration ---
         if AI_INTELLIGENCE_ENABLED:
             try:
@@ -1005,12 +1149,30 @@ async def ai_istanbul_router(request: Request):
                 user_ip = request.client.host if hasattr(request, 'client') and request.client else None
                 current_session_id = session_manager.get_or_create_session(session_id, user_ip)
                 
+                # Log session activity
+                structured_logger.info(
+                    "Session activity",
+                    session_id=current_session_id,
+                    original_session_id=session_id,
+                    user_ip=user_ip,
+                    action="session_access"
+                )
+                
                 # Get conversation context
                 context = session_manager.get_context(current_session_id)
                 
                 # Enhanced intent recognition with context awareness
                 detected_intent, confidence = intent_recognizer.recognize_intent(user_input, context)
                 print(f"🎯 Detected intent: {detected_intent} (confidence: {confidence:.2f})")
+                
+                # Log intent recognition
+                structured_logger.info(
+                    "Intent recognition",
+                    session_id=current_session_id,
+                    detected_intent=detected_intent,
+                    confidence=confidence,
+                    has_context=bool(context)
+                )
                 
                 # Extract entities from user input
                 entities = intent_recognizer.extract_entities(user_input)
@@ -1028,10 +1190,25 @@ async def ai_istanbul_router(request: Request):
                     'conversation_stage': 'processing'
                 })
                 
+                # Log context update
+                structured_logger.debug(
+                    "Context updated",
+                    session_id=current_session_id,
+                    intent=detected_intent,
+                    location=current_location,
+                    entity_count=sum(len(v) if isinstance(v, list) else 1 for v in entities.values())
+                )
+                
                 # Get personalized preferences for filtering
                 user_preferences = preference_manager.get_personalized_filter(current_session_id)
                 print(f"👤 User preferences: {user_preferences}")
             except Exception as e:
+                structured_logger.log_error_with_traceback(
+                    "AI Intelligence error",
+                    e,
+                    session_id=session_id,
+                    component="ai_intelligence"
+                )
                 print(f"⚠️ AI Intelligence error: {e}")
                 # Fallback to basic values
                 detected_intent, confidence = "general_query", 0.1
@@ -1055,30 +1232,6 @@ async def ai_istanbul_router(request: Request):
         # Create database session
         db = SessionLocal()
         try:
-            # === AI RATE LIMITING AND CACHING ===
-            user_ip = request.client.host if request.client else "unknown"
-                 # Check rate limits first
-        if AI_CACHE_ENABLED and ai_cache_service:
-            # Check if user can make request
-            can_request, limit_info = ai_cache_service.can_make_ai_request(session_id, user_ip)
-            if not can_request:
-                return {
-                    "message": f"Rate limit exceeded. {limit_info.get('reason', 'Please try again later.')}",
-                    "error": "rate_limit_exceeded",
-                    "rate_limit_info": limit_info
-                }
-            
-            # Check cache first
-            cached_response = ai_cache_service.get_cached_response(user_input, language)
-            if cached_response:
-                print(f"💾 Cache hit for query: {user_input[:50]}...")
-                # Record cache hit
-                ai_cache_service.record_ai_request(
-                    session_id, user_ip, user_input, cached_response, 
-                    cached=True, language=language
-                )
-                return {"message": cached_response}
-            
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
                 'restaurant', 'restaurants', 'restourant', 'resturant', 'restarnts', 'restrant', 'food', 
@@ -1466,7 +1619,7 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                                 price_text = " • Expensive"
                             elif price_level == 4:
                                 price_text = " • Very expensive"
-
+                        
                         # Format each restaurant entry with clean, readable formatting
                         restaurants_info += f"{i+1}. {name}\n"
                         restaurants_info += f"   {restaurant_info}\n"
@@ -1813,7 +1966,7 @@ Use current weather information to enhance your recommendations when appropriate
                             messages.append({"role": "system", "content": f"SPECIFIC GUIDANCE: {response_guidance}"})
                     except Exception as e:
                         print(f"Response guidance error: {e}")
-                    
+
                     response = client.chat.completions.create(
                         model="gpt-3.5-turbo",
                         messages=messages,  # type: ignore
@@ -1838,27 +1991,102 @@ Use current weather information to enhance your recommendations when appropriate
                             except Exception as e:
                                 print(f"⚠️ Context update error: {e}")
                         
+                        # Cache the successful AI response
+                        if ai_cache_service and AI_CACHE_ENABLED:
+                            try:
+                                user_context = {
+                                    "language": language,
+                                    "session_id": session_id,
+                                    "location": data.get("location", "")
+                                }
+                                ai_cache_service.cache_response(user_input, {"message": final_response}, user_context)
+                                # Increment rate limit after successful response
+                                client_ip = request.client.host if hasattr(request, 'client') and request.client else "127.0.0.1"
+                                ai_cache_service.increment_rate_limit(session_id, client_ip)
+                                
+                                structured_logger.info(
+                                    "AI response cached",
+                                    session_id=session_id,
+                                    cache_key=ai_cache_service._generate_cache_key(user_input, user_context),
+                                    response_length=len(final_response),
+                                    language=language
+                                )
+                                print(f"✅ Cached response and updated rate limits")
+                            except Exception as e:
+                                structured_logger.log_error_with_traceback(
+                                    "Cache error",
+                                    e,
+                                    session_id=session_id,
+                                    component="cache_service"
+                                )
+                                print(f"⚠️ Cache error: {e}")
+                        
+                        # Log successful AI response generation
+                        structured_logger.info(
+                            "AI response generated",
+                            session_id=session_id,
+                            response_length=len(final_response),
+                            language=language,
+                            source="openai",
+                            success=True
+                        )
+                        
                         return {"message": final_response}
                     else:
+                        structured_logger.warning(
+                            "OpenAI returned empty response",
+                            session_id=session_id,
+                            user_input=user_input[:100]
+                        )
                         print("OpenAI returned empty response")
                         # Smart fallback response based on user input
                         fallback_response = create_fallback_response(user_input, places)
                         final_fallback = post_llm_cleanup(fallback_response)
+                        
+                        structured_logger.info(
+                            "Fallback response generated",
+                            session_id=session_id,
+                            response_length=len(final_fallback),
+                            source="fallback",
+                            reason="empty_openai_response"
+                        )
+                        
                         return {"message": final_fallback}
                     
                 except Exception as e:
+                    structured_logger.log_error_with_traceback(
+                        "OpenAI API error",
+                        e,
+                        session_id=session_id,
+                        component="openai_api"
+                    )
                     print(f"OpenAI API error: {e}")
                     # Smart fallback response based on user input
                     fallback_response = create_fallback_response(user_input, places)
                     # Two-pass cleaning: pre-clean + post-LLM cleanup
                     clean_response = clean_text_formatting(fallback_response)
                     final_response = post_llm_cleanup(clean_response)
+                    
+                    structured_logger.info(
+                        "Fallback response generated",
+                        session_id=session_id,
+                        response_length=len(final_response),
+                        source="fallback",
+                        reason="openai_api_error"
+                    )
+                    
                     return {"message": final_response}
         
         finally:
             db.close()
             
     except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Critical error in AI endpoint",
+            e,
+            session_id=session_id if 'session_id' in locals() else "unknown",
+            component="ai_endpoint"
+        )
         print(f"[ERROR] Exception in /ai endpoint: {e}")
         import traceback
         traceback.print_exc()
@@ -2220,6 +2448,257 @@ async def analyze_user_query(
     except Exception as e:
         logger.error(f"Query analysis error: {e}")
         return {"error": f"Query analysis failed: {str(e)}"}
+
+@app.get("/ai/cache-stats")
+async def get_ai_cache_stats():
+    """Get AI cache performance statistics"""
+    structured_logger.info("Cache stats requested", endpoint="/ai/cache-stats")
+    
+    if ai_cache_service and AI_CACHE_ENABLED:
+        try:
+            stats = ai_cache_service.get_cache_stats()
+            structured_logger.info("Cache stats retrieved", cache_stats=stats)
+            return {
+                "status": "success",
+                "cache_stats": stats,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            structured_logger.log_error_with_traceback(
+                "Failed to get cache stats",
+                e,
+                component="cache_stats"
+            )
+            return {
+                "status": "error", 
+                "message": f"Failed to get cache stats: {e}",
+                "cache_enabled": False
+            }
+    else:
+        structured_logger.warning("Cache stats requested but AI cache not enabled")
+        return {
+            "status": "info",
+            "message": "AI Cache service not enabled",
+            "cache_enabled": False
+        }
+
+@app.post("/ai/clear-cache")
+async def clear_ai_cache():
+    """Clear AI response cache (admin endpoint)"""
+    structured_logger.warning("Cache clear requested", endpoint="/ai/clear-cache")
+    
+    if ai_cache_service and AI_CACHE_ENABLED:
+        try:
+            ai_cache_service.clear_cache()
+            structured_logger.warning("AI cache cleared successfully", action="cache_clear")
+            return {
+                "status": "success",
+                "message": "AI cache cleared successfully",
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            structured_logger.log_error_with_traceback(
+                "Failed to clear cache",
+                e,
+                component="cache_clear"
+            )
+            return {
+                "status": "error",
+                "message": f"Failed to clear cache: {e}"
+            }
+    else:
+        structured_logger.warning("Cache clear requested but AI cache not enabled")
+        return {
+            "status": "error",
+            "message": "AI Cache service not enabled"
+        }
+
+# --- GDPR Endpoints ---
+
+@app.post("/gdpr/data-request")
+async def gdpr_data_request(request: Request):
+    """Handle GDPR data access request (Article 15)"""
+    if not GDPR_SERVICE_ENABLED or not gdpr_service:
+        return {"status": "error", "message": "GDPR service not available"}
+    
+    try:
+        data = await request.json()
+        session_id = data.get("session_id", "")
+        email = data.get("email", "")
+        
+        if not session_id:
+            return {"status": "error", "message": "Session ID required"}
+        
+        result = gdpr_service.handle_data_access_request(session_id, email)
+        return result
+        
+    except Exception as e:
+        logger.error(f"GDPR data request error: {e}")
+        return {"status": "error", "message": "Failed to process data request"}
+
+@app.post("/gdpr/data-deletion")
+async def gdpr_data_deletion(request: Request):
+    """Handle GDPR data deletion request (Article 17)"""
+    if not GDPR_SERVICE_ENABLED or not gdpr_service:
+        return {"status": "error", "message": "GDPR service not available"}
+    
+    try:
+        data = await request.json()
+        session_id = data.get("session_id", "")
+        email = data.get("email", "")
+        
+        if not session_id:
+            return {"status": "error", "message": "Session ID required"}
+        
+        result = gdpr_service.handle_data_deletion_request(session_id, email)
+        return result
+        
+    except Exception as e:
+        logger.error(f"GDPR data deletion error: {e}")
+        return {"status": "error", "message": "Failed to process deletion request"}
+
+@app.post("/gdpr/consent")
+async def gdpr_consent(request: Request):
+    """Record user consent for GDPR compliance"""
+    if not GDPR_SERVICE_ENABLED or not gdpr_service:
+        return {"status": "error", "message": "GDPR service not available"}
+    
+    try:
+        data = await request.json()
+        session_id = data.get("session_id", "")
+        consent_data = data.get("consent", {})
+        
+        if not session_id or not consent_data:
+            return {"status": "error", "message": "Session ID and consent data required"}
+        
+        gdpr_service.record_consent(session_id, consent_data)
+        
+        return {
+            "status": "success",
+            "message": "Consent recorded successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"GDPR consent error: {e}")
+        return {"status": "error", "message": "Failed to record consent"}
+
+@app.get("/gdpr/consent-status/{session_id}")
+async def gdpr_consent_status(session_id: str):
+    """Get current consent status for a session"""
+    if not GDPR_SERVICE_ENABLED or not gdpr_service:
+        return {"status": "error", "message": "GDPR service not available"}
+    
+    try:
+        consent_status = gdpr_service.get_consent_status(session_id)
+        
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "consent_status": consent_status,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"GDPR consent status error: {e}")
+        return {"status": "error", "message": "Failed to get consent status"}
+
+@app.post("/gdpr/cleanup")
+async def gdpr_cleanup():
+    """Manual trigger for data cleanup (admin only)"""
+    if not GDPR_SERVICE_ENABLED or not gdpr_service:
+        return {"status": "error", "message": "GDPR service not available"}
+    
+    try:
+        # In production, add admin authentication here
+        cleanup_summary = gdpr_service.cleanup_expired_data()
+        
+        return {
+            "status": "success",
+            "message": "Data cleanup completed",
+            "cleanup_summary": cleanup_summary,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"GDPR cleanup error: {e}")
+        return {"status": "error", "message": "Failed to cleanup data"}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for load balancers and monitoring"""
+    try:
+        # Check database connection
+        db = SessionLocal()
+        try:
+            from sqlalchemy import text
+            db.execute(text("SELECT 1"))
+            db_status = "healthy"
+        except Exception as e:
+            db_status = f"unhealthy: {str(e)}"
+        finally:
+            db.close()
+        
+        # Check Redis connection if available
+        redis_status = "not_configured"
+        if ai_cache_service and AI_CACHE_ENABLED:
+            try:
+                # Simple ping test
+                if hasattr(ai_cache_service, 'redis_client') and ai_cache_service.redis_client:
+                    ai_cache_service.redis_client.ping()
+                    redis_status = "healthy"
+                else:
+                    redis_status = "memory_only"
+            except Exception as e:
+                redis_status = f"unhealthy: {str(e)}"
+        
+        # Check GDPR service
+        gdpr_status = "enabled" if GDPR_SERVICE_ENABLED else "disabled"
+        
+        # Check AI Intelligence
+        ai_intelligence_status = "enabled" if AI_INTELLIGENCE_ENABLED else "disabled"
+        
+        # System info (basic without psutil)
+        import time
+        
+        health_data = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "services": {
+                "database": db_status,
+                "redis": redis_status,
+                "gdpr_service": gdpr_status,
+                "ai_intelligence": ai_intelligence_status,
+                "structured_logging": "enabled" if STRUCTURED_LOGGING_ENABLED else "disabled"
+            },
+            "system": {
+                "uptime": time.time(),
+                "python_version": sys.version.split()[0]
+            },
+            "version": "1.0.0"
+        }
+        
+        # Determine overall health
+        unhealthy_services = [k for k, v in health_data["services"].items() 
+                            if isinstance(v, str) and "unhealthy" in v]
+        
+        if unhealthy_services:
+            health_data["status"] = "degraded"
+            health_data["issues"] = unhealthy_services
+        
+        return health_data
+        
+    except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Health check failed",
+            e,
+            component="health_check"
+        )
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 

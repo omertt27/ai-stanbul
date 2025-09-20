@@ -1,0 +1,81 @@
+{
+  "test_summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "compliance_checklist": {
+    "GDPR Consent Management": true,
+    "Data Access Rights": true,
+    "Data Deletion Rights": true,
+    "Rate Limiting Protection": true,
+    "Input Sanitization": true,
+    "Session Security": true,
+    "Data Retention Policies": true
+  },
+  "detailed_results": [
+    {
+      "test": "GDPR Consent Recording",
+      "passed": true,
+      "details": "Status: 200",
+      "timestamp": "2025-09-21T01:13:38.892377"
+    },
+    {
+      "test": "GDPR Consent Status",
+      "passed": true,
+      "details": "Status: 200",
+      "timestamp": "2025-09-21T01:13:38.894048"
+    },
+    {
+      "test": "GDPR Data Access Request",
+      "passed": true,
+      "details": "Status: 200",
+      "timestamp": "2025-09-21T01:13:38.896648"
+    },
+    {
+      "test": "GDPR Data Deletion Request",
+      "passed": true,
+      "details": "Status: 200",
+      "timestamp": "2025-09-21T01:13:38.900608"
+    },
+    {
+      "test": "Rate Limiting Active",
+      "passed": true,
+      "details": "Made 25 requests, got responses: {200}",
+      "timestamp": "2025-09-21T01:13:46.952057"
+    },
+    {
+      "test": "Input Sanitization",
+      "passed": true,
+      "details": "Tested malicious inputs",
+      "timestamp": "2025-09-21T01:13:46.987813"
+    },
+    {
+      "test": "Session Isolation",
+      "passed": true,
+      "details": "Multiple sessions handled correctly",
+      "timestamp": "2025-09-21T01:13:48.373998"
+    },
+    {
+      "test": "Data Retention Cleanup",
+      "passed": true,
+      "details": "Cleanup endpoint accessible",
+      "timestamp": "2025-09-21T01:13:48.377604"
+    },
+    {
+      "test": "Security Headers",
+      "passed": true,
+      "details": "3/3 headers present",
+      "timestamp": "2025-09-21T01:13:48.380015"
+    },
+    {
+      "test": "CORS Configuration",
+      "passed": true,
+      "details": "CORS headers present: True",
+      "timestamp": "2025-09-21T01:13:48.381556"
+    }
+  ],
+  "timestamp": "2025-09-21T01:13:48.381749",
+  "endpoint": "http://localhost:8000"
+}
