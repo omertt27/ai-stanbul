@@ -251,7 +251,7 @@ class IntelligentIntentRecognizer:
     
     def extract_entities(self, user_input: str) -> Dict[str, List[str]]:
         """Extract entities from user input"""
-        entities = {
+        entities: Dict[str, List[str]] = {
             'locations': [],
             'time_references': [],
             'cuisine_types': [],

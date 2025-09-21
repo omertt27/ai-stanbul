@@ -41,6 +41,7 @@ services:
         reservations:
           memory: 512M
           cpus: '0.25'
+    logging: *default-logging
 
   # Frontend Production Build
   frontend:
@@ -57,6 +58,7 @@ services:
         limits:
           memory: 128M
           cpus: '0.1'
+    logging: *default-logging
 
   # PostgreSQL Database
   postgres:
@@ -88,6 +90,7 @@ services:
         reservations:
           memory: 256M
           cpus: '0.1'
+    logging: *default-logging
 
   # Redis Cache
   redis:
@@ -113,6 +116,7 @@ services:
         reservations:
           memory: 128M
           cpus: '0.1'
+    logging: *default-logging
 
   # Nginx Reverse Proxy (Production)
   nginx:
@@ -149,6 +153,7 @@ services:
         reservations:
           memory: 64M
           cpus: '0.1'
+    logging: *default-logging
 
   # Certbot for SSL certificates
   certbot:
@@ -162,6 +167,7 @@ services:
       - nginx
     networks:
       - istanbul-network
+    logging: *default-logging
 
   # Log aggregation (optional)
   log-aggregator:
@@ -179,6 +185,7 @@ services:
         limits:
           memory: 128M
           cpus: '0.1'
+    logging: *default-logging
 
   # Monitoring (optional)
   prometheus:
@@ -198,6 +205,7 @@ services:
         limits:
           memory: 512M
           cpus: '0.25'
+    logging: *default-logging
 
 volumes:
   postgres_data:
@@ -222,16 +230,3 @@ x-logging: &default-logging
   options:
     max-size: "10m"
     max-file: "3"
-
-# Apply logging to all services
-services:
-  backend:
-    logging: *default-logging
-  frontend:
-    logging: *default-logging
-  postgres:
-    logging: *default-logging
-  redis:
-    logging: *default-logging
-  nginx:
-    logging: *default-logging
