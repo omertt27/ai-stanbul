@@ -18,21 +18,21 @@ const InteractiveMainPage = ({ onQuickStart }) => {
     const hour = currentTime.getHours();
     if (hour >= 6 && hour < 11) {
       return [
-        { icon: '☕', text: t('homepage.suggestions.morning.breakfast'), query: 'best Turkish breakfast places' },
-        { icon: '🌅', text: t('homepage.suggestions.morning.views'), query: 'best sunrise spots in Istanbul' },
-        { icon: '🥖', text: t('homepage.suggestions.morning.bakeries'), query: 'traditional Turkish bakeries' }
+        { icon: '☕', text: t('homepage.suggestions.morning.breakfast'), query: t('homepage.queries.breakfastPlaces') },
+        { icon: '🌅', text: t('homepage.suggestions.morning.views'), query: t('homepage.queries.sunriseSpots') },
+        { icon: '🥖', text: t('homepage.suggestions.morning.bakeries'), query: t('homepage.queries.turkishBakeries') }
       ];
     } else if (hour >= 11 && hour < 17) {
       return [
-        { icon: '🏛️', text: t('homepage.suggestions.afternoon.museums'), query: 'must visit museums in Istanbul' },
-        { icon: '🛍️', text: t('homepage.suggestions.afternoon.shopping'), query: 'best shopping areas in Istanbul' },
-        { icon: '🍽️', text: t('homepage.suggestions.afternoon.lunch'), query: 'good lunch restaurants' }
+        { icon: '🏛️', text: t('homepage.suggestions.afternoon.museums'), query: t('homepage.queries.museums') },
+        { icon: '🛍️', text: t('homepage.suggestions.afternoon.shopping'), query: t('homepage.queries.shoppingAreas') },
+        { icon: '🍽️', text: t('homepage.suggestions.afternoon.lunch'), query: t('homepage.queries.lunchRestaurants') }
       ];
     } else {
       return [
-        { icon: '🌆', text: t('homepage.suggestions.evening.sunset'), query: 'best sunset spots Istanbul' },
-        { icon: '🍷', text: t('homepage.suggestions.evening.dining'), query: 'romantic dinner restaurants' },
-        { icon: '🎭', text: t('homepage.suggestions.evening.nightlife'), query: 'Istanbul nightlife recommendations' }
+        { icon: '🌆', text: t('homepage.suggestions.evening.sunset'), query: t('homepage.queries.sunsetSpots') },
+        { icon: '🍷', text: t('homepage.suggestions.evening.dining'), query: t('homepage.queries.romanticDinner') },
+        { icon: '🎭', text: t('homepage.suggestions.evening.nightlife'), query: t('homepage.queries.nightlife') }
       ];
     }
   };
@@ -47,7 +47,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: `🏛️ ${t('homepage.districts.sultanahmet.vibe')}`,
       specialty: t('homepage.districts.sultanahmet.specialty'),
       population: '65,000',
-      sideNote: 'European Side • Historic Peninsula',
+      sideNote: t('homepage.districts.sultanahmet.sideNote'),
       backgroundImage: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
     },
     {
@@ -59,7 +59,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: `🎭 ${t('homepage.districts.beyoglu.vibe')}`,
       specialty: t('homepage.districts.beyoglu.specialty'),
       population: '240,000',
-      sideNote: 'European Side • Cultural Heart',
+      sideNote: t('homepage.districts.beyoglu.sideNote'),
       backgroundImage: '/districts/beyoglu.jpg'
     },
     {
@@ -71,49 +71,49 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       vibe: `🍜 ${t('homepage.districts.kadikoy.vibe')}`,
       specialty: t('homepage.districts.kadikoy.specialty'),
       population: '460,000',
-      sideNote: 'Asian Side • Bohemian Quarter',
+      sideNote: t('homepage.districts.kadikoy.sideNote'),
       backgroundImage: '/districts/kadikoy.jpg'
     },
     {
       id: 'besiktas',
-      name: 'Beşiktaş',
+      name: t('homepage.districts.besiktas.name'),
       color: '#3498db',
-      description: 'Upscale waterfront district with modern attractions',
+      description: t('homepage.districts.besiktas.description'),
       highlights: ['Dolmabahçe Palace', 'Bosphorus Views', 'Vodafone Park'],
-      vibe: '⚽ Dynamic',
-      specialty: 'Luxury & Sports',
+      vibe: `⚽ ${t('homepage.districts.besiktas.vibe')}`,
+      specialty: t('homepage.districts.besiktas.specialty'),
       population: '190,000',
-      sideNote: 'European Side • Bosphorus Coast',
+      sideNote: t('homepage.districts.besiktas.sideNote'),
       backgroundImage: '/districts/besiktas.jpeg'
     },
     {
       id: 'uskudar',
-      name: 'Üsküdar',
+      name: t('homepage.districts.uskudar.name'),
       color: '#f39c12',
-      description: 'Traditional Asian side with stunning city views',
+      description: t('homepage.districts.uskudar.description'),
       highlights: ['Maiden\'s Tower', 'Çamlıca Hill', 'Historic Mosques'],
-      vibe: '🕌 Spiritual',
-      specialty: 'Traditional Life',
+      vibe: `🕌 ${t('homepage.districts.uskudar.vibe')}`,
+      specialty: t('homepage.districts.uskudar.specialty'),
       population: '530,000',
-      sideNote: 'Asian Side • Historic Center',
+      sideNote: t('homepage.districts.uskudar.sideNote'),
       backgroundImage: '/districts/uskudar.jpg'
     },
     {
       id: 'sisli',
-      name: 'Şişli',
+      name: t('homepage.districts.sisli.name'),
       color: '#1abc9c',
-      description: 'Business district with luxury shopping & hotels',
+      description: t('homepage.districts.sisli.description'),
       highlights: ['Cevahir Mall', 'Business Centers', 'Luxury Hotels'],
-      vibe: '💼 Business',
-      specialty: 'Commerce & Shopping',
+      vibe: `💼 ${t('homepage.districts.sisli.vibe')}`,
+      specialty: t('homepage.districts.sisli.specialty'),
       population: '270,000',
-      sideNote: 'European Side • Business Hub',
+      sideNote: t('homepage.districts.sisli.sideNote'),
       backgroundImage: '/districts/Sisli.jpeg'
     }
   ];
 
   const handleDistrictClick = (district) => {
-    const query = `tell me about ${district.name} district in Istanbul`;
+    const query = t('homepage.districtQuery', { districtName: district.name });
     onQuickStart(query);
     navigate('/chatbot');
   };
@@ -126,8 +126,10 @@ const InteractiveMainPage = ({ onQuickStart }) => {
   return (
     <div className="interactive-main-page">
       <div className="hero-section">
-        <h1 className="hero-title">{t('homepage.title')}</h1>
-        <p className="hero-subtitle">{t('homepage.subtitle')}</p>
+        <div className="hero-content">
+          <h1 className="hero-title">{t('homepage.title')}</h1>
+          <p className="hero-subtitle">{t('homepage.subtitle')}</p>
+        </div>
       </div>
       
       <div className="time-based-suggestions">
@@ -139,7 +141,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
               timeZone: 'Europe/Istanbul' 
             })}
           </span>
-          <span className="time-zone">Istanbul Time</span>
+          <span className="time-zone">{t('homepage.istanbulTime')}</span>
         </div>
         
         <div className="suggestion-bubbles">
@@ -160,7 +162,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       <div className="districts-gallery-container">
         <div className="gallery-title">
           <h3>🏙️ {t('homepage.exploreMore')}</h3>
-          <p>Discover {istanbulDistricts.length} unique neighborhoods and islands - each with its own character and charm</p>
+          <p>{t('homepage.discoverNeighborhoods', { count: istanbulDistricts.length })}</p>
         </div>
         
         <div className="districts-gallery">
@@ -193,20 +195,20 @@ const InteractiveMainPage = ({ onQuickStart }) => {
                 
                 <div className="district-info">
                   <div className="district-specialty">
-                    <span className="specialty-label">Specialty:</span>
+                    <span className="specialty-label">{t('homepage.labels.specialty')}</span>
                     <span className="specialty-value">{district.specialty}</span>
                   </div>
                   <div className="district-location">
                     <span className="location-value">{district.sideNote}</span>
                   </div>
                   <div className="district-population">
-                    <span className="population-label">Population:</span>
+                    <span className="population-label">{t('homepage.labels.population')}</span>
                     <span className="population-value">{district.population}</span>
                   </div>
                 </div>
                 
                 <div className="district-highlights">
-                  <span className="highlights-label">Must Experience:</span>
+                  <span className="highlights-label">{t('homepage.labels.mustExperience')}</span>
                   <div className="highlights-list">
                     {district.highlights.map((highlight, idx) => (
                       <span key={idx} className="highlight-tag">{highlight}</span>

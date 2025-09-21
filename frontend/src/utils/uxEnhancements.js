@@ -329,7 +329,7 @@ export const UXPreferences = {
  */
 export const recordUserInteraction = (event, data = {}) => {
   // In development, just log to console
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log('User Interaction:', event, data);
   }
   

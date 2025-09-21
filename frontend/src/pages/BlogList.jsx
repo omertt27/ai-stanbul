@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBlogPosts, likeBlogPost } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
 import '../App.css';
@@ -133,6 +134,7 @@ const mockBlogPosts = [
 const BlogList = () => {
   console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
+  const { t } = useTranslation();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -319,14 +321,14 @@ const BlogList = () => {
         {/* Header Section */}
         <div className="text-center py-8 sm:py-12">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 pt-28 transition-colors duration-200 text-white">
-            Istanbul Stories
+            {t('blog.title')}
           </h1>
           <p className="text-lg sm:text-xl mb-6 max-w-3xl mx-auto transition-colors duration-200 text-gray-300">
-            Discover authentic experiences and hidden gems through the eyes of locals and travelers
+            {t('blog.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <span className="text-sm font-medium transition-colors duration-200 text-gray-400">
-              {totalPosts} stories shared • Join the community
+              {t('blog.storiesShared', { count: totalPosts })} • {t('blog.joinCommunity')}
             </span>
           </div>
         </div>

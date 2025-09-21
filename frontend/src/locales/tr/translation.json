@@ -99,12 +99,83 @@
       "multilingual": {
         "title": "Çok Dilli Destek",
         "description": "Kültürel olarak uygun yanıtlarla birden fazla dilde yardım alın"
+      },
+      "personalizedAI": {
+        "title": "Kişiselleştirilmiş AI",
+        "description": "Tercihlerinizi, diyet ihtiyaçlarınızı ve seyahat tarzınızı hatırlayarak özel öneriler sunar."
+      },
+      "localExpertise": {
+        "title": "Yerel Uzmanlık",
+        "description": "Otantik mekanlar, vapur programları ve kültürel içgörülerden oluşan özenle seçilmiş veritabanı."
+      },
+      "oneTapActions": {
+        "title": "Tek Dokunuşla İşlemler",
+        "description": "Navigasyon, masa rezervasyonu, bilet satın alma ve rota planlama tek tıkla kolaylık sunar."
+      },
+      "culturalBridge": {
+        "title": "Kültürel Köprü",
+        "description": "Türkçe ifadeler, yerel gelenekler ve şehirle bağlantı kurmanıza yardımcı olacak kültürel bağlam."
+      },
+      "realTimeData": {
+        "title": "Gerçek Zamanlı Veri",
+        "description": "Canlı vapur saatleri, güncel restoran bilgileri ve en son cazibe merkezi detayları."
+      },
+      "madeForIstanbul": {
+        "title": "İstanbul İçin Özel",
+        "description": "Yalnızca İstanbul'a özel olarak tasarlanmış - genel bir seyahat uygulaması değil."
       }
+    },
+    "whatWeOffer": {
+      "title": "Neler Sunuyoruz",
+      "restaurants": {
+        "title": "Restoran Önerileri",
+        "description": "Google Places'ten gerçek zamanlı veriler, diyet tercihlerinize ve konumunuza göre kişiselleştirilmiş."
+      },
+      "museums": {
+        "title": "Müzeler ve Kültürel Siteler",
+        "description": "İstanbul'un zengin tarihi ve kültürel cazibe merkezleri hakkında özenle seçilmiş bilgiler ve rezervasyon bağlantıları."
+      },
+      "neighborhoods": {
+        "title": "Mahalle Rehberleri",
+        "description": "Beyoğlu, Sultanahmet, Kadıköy gibi semtler ve gizli yerel hazineler hakkında derinlemesine içgörüler."
+      },
+      "transportation": {
+        "title": "Ulaşım Merkezi",
+        "description": "Canlı vapur programları, metro bağlantıları ve semtler arası en hızlı rotalar."
+      }
+    },
+    "privacy": {
+      "title": "Gizlilik ve Veri Koruması",
+      "description": "Gizliliğiniz önceliğimizdir. AI İstanbul tamamen GDPR uyumludur ve veri haklarınıza saygı duyar.",
+      "gdpr": {
+        "title": "GDPR Uyumlu",
+        "transparent": "Şeffaf veri toplama",
+        "consent": "Tüm takip için kullanıcı onayı",
+        "deletion": "Veri silme hakkı",
+        "portability": "Veri taşınabilirlik seçenekleri"
+      },
+      "security": {
+        "title": "Veri Güvenliği",
+        "encryption": "Uçtan uca şifreleme",
+        "minimal": "Minimal veri toplama",
+        "noSelling": "Veri satışı yok",
+        "audits": "Düzenli güvenlik denetimleri"
+      },
+      "privacyPolicy": "Gizlilik Politikası",
+      "manageData": "Verilerinizi Yönetin"
+    },
+    "openSource": {
+      "title": "Açık Kaynak ve Topluluk Destekli",
+      "description": "Bu proje açık kaynak kodlu ve topluluk desteklidir. AIstanbul'u daha da iyi hale getirmek için katkıları, geri bildirimleri ve önerileri memnuniyetle karşılıyoruz.",
+      "viewGithub": "GitHub'da Görüntüle",
+      "tryNow": "AIstanbul'u Şimdi Deneyin"
     }
   },
   "homepage": {
     "title": "İstanbul'u AI ile Keşfedin",
     "subtitle": "İki kıtanın buluştuğu şehir için akıllı seyahat arkadaşınız",
+    "istanbulTime": "İstanbul Saati",
+    "discoverNeighborhoods": "{{count}} benzersiz mahalle ve adayı keşfedin - her birinin kendine özgü karakteri ve çekiciliği var",
     "suggestions": {
       "morning": {
         "breakfast": "En İyi Türk Kahvaltısı",
@@ -127,23 +198,64 @@
         "name": "Sultanahmet",
         "description": "Osmanlı ve Bizans hazineleriyle tarihi yarımada",
         "vibe": "İmparatorluk",
-        "specialty": "Osmanlı Mirası"
+        "specialty": "Osmanlı Mirası",
+        "sideNote": "Avrupa Yakası • Tarihi Yarımada"
       },
       "beyoglu": {
         "name": "Beyoğlu",
         "description": "Modern sanat ve gece hayatıyla canlı kültür merkezi",
         "vibe": "Sanatsal",
-        "specialty": "Çağdaş Kültür"
+        "specialty": "Çağdaş Kültür",
+        "sideNote": "Avrupa Yakası • Kültürel Kalp"
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Otantik yerel yaşam ve yemeklerle Anadolu yakası incisi",
         "vibe": "Yerel",
-        "specialty": "Sokak Lezzetleri"
+        "specialty": "Sokak Lezzetleri",
+        "sideNote": "Anadolu Yakası • Bohemya Mahalesi"
+      },
+      "besiktas": {
+        "name": "Beşiktaş",
+        "description": "Modern cazibe merkezleriyle lüks sahil bölgesi",
+        "vibe": "Dinamik",
+        "specialty": "Lüks ve Spor",
+        "sideNote": "Avrupa Yakası • Boğaz Kıyısı"
+      },
+      "uskudar": {
+        "name": "Üsküdar",
+        "description": "Büyüleyici şehir manzaralı geleneksel Anadolu yakası",
+        "vibe": "Manevi",
+        "specialty": "Geleneksel Yaşam",
+        "sideNote": "Anadolu Yakası • Tarihi Merkez"
+      },
+      "sisli": {
+        "name": "Şişli",
+        "description": "Lüks alışveriş ve otellerle iş bölgesi",
+        "vibe": "İş",
+        "specialty": "Ticaret ve Alışveriş",
+        "sideNote": "Avrupa Yakası • İş Merkezi"
       }
     },
+    "labels": {
+      "specialty": "Özellik:",
+      "population": "Nüfus:",
+      "mustExperience": "Mutlaka Deneyimlenmeli:"
+    },
+    "queries": {
+      "breakfastPlaces": "en iyi Türk kahvaltısı yerleri",
+      "sunriseSpots": "İstanbul'da en iyi gün doğumu noktaları",
+      "turkishBakeries": "geleneksel Türk fırınları",
+      "museums": "İstanbul'da mutlaka görülmesi gereken müzeler",
+      "shoppingAreas": "İstanbul'da en iyi alışveriş alanları",
+      "lunchRestaurants": "iyi öğle yemeği restoranları",
+      "sunsetSpots": "İstanbul en iyi gün batımı noktaları",
+      "romanticDinner": "romantik akşam yemeği restoranları",
+      "nightlife": "İstanbul gece hayatı önerileri"
+    },
     "quickStart": "Hızlı Sohbet Başlat",
-    "exploreMore": "Daha Fazla Keşfet"
+    "exploreMore": "Daha Fazla Keşfet",
+    "districtQuery": "{{districtName}} semti hakkında bilgi ver"
   },
   "faq": {
     "title": "Sık Sorulan Sorular",
@@ -172,6 +284,32 @@
       "free": {
         "question": "Bu hizmet tamamen ücretsiz mi?",
         "answer": "Evet! AI İstanbul Rehberi kullanımı tamamen ücretsizdir. Bağışlarla finanse ediliyoruz ve ziyaretçilerin İstanbul'un en iyisini keşfetmelerine yardımcı olmak için bunu açık kaynak projesi olarak sürdürüyoruz."
+      }
+    },
+    "stats": {
+      "realTimeData": {
+        "title": "Gerçek Zamanlı Veri",
+        "description": "Google Maps API üzerinden canlı restoran ve mekan bilgileri"
+      },
+      "free": {
+        "title": "100% Ücretsiz",
+        "description": "Topluluk desteğiyle tamamen ücretsiz kullanım"
+      },
+      "mobileOptimized": {
+        "title": "Mobil Optimize",
+        "description": "İstanbul'da herhangi bir cihazda mükemmel deneyim"
+      }
+    },
+    "stillHaveQuestions": {
+      "title": "Hala Sorularınız mı Var?",
+      "subtitle": "Aradığınız cevabı bulamıyor musunuz? Yardım almanın yolları:",
+      "askAI": {
+        "title": "AI'mıza Sorun",
+        "description": "AI asistanımızdan anında cevaplar alın"
+      },
+      "emailUs": {
+        "title": "Bize E-posta Gönderin",
+        "description": "Ekibimizden doğrudan destek"
       }
     }
   },
@@ -337,5 +475,49 @@
     "euAuthorityValue": "Yerel Veri Koruma Otoriteniz",
     "commitmentTitle": "🌍 Taahhüdümüz",
     "commitmentText": "AI İstanbul, tasarım gereği gizlilik ve şeffaflığa kararlıdır. Temel gizlilik hakkınıza saygı gösterirken size en iyi İstanbul seyahat deneyimini sağlamak için yalnızca gerekli olanı topluyoruz."
+  },
+  "blog": {
+    "title": "İstanbul Hikayeleri",
+    "subtitle": "Yerel halk ve gezginlerin gözünden otantik deneyimleri ve gizli cevherleri keşfedin",
+    "storiesShared": "{{count}} hikaye paylaşıldı",
+    "joinCommunity": "Topluluğa katılın",
+    "allDistricts": "Tüm Semtler",
+    "sortBy": "Sırala",
+    "newestFirst": "En Yeni",
+    "oldestFirst": "En Eski",
+    "mostLiked": "En Beğenilen",
+    "mostPopular": "En Popüler",
+    "longestRead": "En Uzun Okuma",
+    "shareYourStory": "Hikayenizi Paylaşın",
+    "clearFilters": "Filtreleri Temizle",
+    "tryAgain": "Tekrar Dene",
+    "noPostsFound": "Yazı bulunamadı",
+    "noPostsMessage": "Arama terimlerinizi ayarlayın veya tüm yazıları gözden geçirin",
+    "searchPlaceholder": "Yazıları başlık, içerik veya yazara göre arayın...",
+    "searchButton": "Ara",
+    "failedToLoad": "Blog yazıları yüklenemedi. Lütfen tekrar deneyin.",
+    "unknownAuthor": "Bilinmeyen Yazar",
+    "readMore": "Devamını Oku",
+    "likes": "beğeni",
+    "views": "görüntüleme",
+    "loadingPosts": "Yazılar yükleniyor...",
+    "featuredPosts": "Öne Çıkan Hikayeler",
+    "recentPosts": "Son Hikayeler"
+  },
+  "admin": {
+    "title": "Yönetici Paneli",
+    "loginTitle": "Yönetici Erişimi",
+    "loginSubtitle": "Panele erişmek için yönetici şifrenizi girin",
+    "passwordPlaceholder": "Yönetici şifresini girin",
+    "loginButton": "Panele Erişim",
+    "invalidPassword": "Geçersiz şifre",
+    "logout": "Çıkış",
+    "welcome": "Yönetici Paneline Hoş Geldiniz",
+    "analytics": "Analiz Özeti",
+    "blogManagement": "Blog Yönetimi",
+    "systemHealth": "Sistem Durumu",
+    "dataSource": "Veri Kaynağı",
+    "realTimeMetrics": "Gerçek Zamanlı Metrikler",
+    "performanceMetrics": "Performans Metrikleri"
   }
 }

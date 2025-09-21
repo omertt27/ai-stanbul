@@ -30,6 +30,14 @@ except ImportError:
     ANALYTICS_DB_AVAILABLE = False
     analytics_db = None
 
+# Import Google Analytics service
+try:
+    from api_clients.google_analytics_api import google_analytics_service
+    GOOGLE_ANALYTICS_AVAILABLE = True
+except ImportError:
+    GOOGLE_ANALYTICS_AVAILABLE = False
+    google_analytics_service = None
+
 logger = logging.getLogger(__name__)
 
 # Initialize router
@@ -69,19 +77,29 @@ class BlogPost(BaseModel):
 class BlogPostCreate(BaseModel):
     title: str
     content: str
-    author: str
-    category: str
+    author: Optional[str] = None
+    author_name: Optional[str] = None
+    author_photo: Optional[str] = None
+    category: Optional[str] = None
+    district: Optional[str] = None
+    heading: Optional[str] = None
     tags: List[str] = []
     featured_image: Optional[str] = None
+    images: List[Dict] = []
     published: bool = True
 
 class BlogPostUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     author: Optional[str] = None
+    author_name: Optional[str] = None
+    author_photo: Optional[str] = None
     category: Optional[str] = None
+    district: Optional[str] = None
+    heading: Optional[str] = None
     tags: Optional[List[str]] = None
     featured_image: Optional[str] = None
+    images: Optional[List[Dict]] = None
     published: Optional[bool] = None
 
 # Blog storage (in production, this would be a database)
@@ -759,10 +777,15 @@ async def create_post(post_data: BlogPostCreate):
             "id": str(uuid.uuid4()),
             "title": post_data.title,
             "content": post_data.content,
-            "author": post_data.author,
-            "category": post_data.category,
+            "author": post_data.author or post_data.author_name,
+            "author_name": post_data.author_name,
+            "author_photo": post_data.author_photo,
+            "category": post_data.category or "General",
+            "district": post_data.district,
+            "heading": post_data.heading,
             "tags": post_data.tags,
             "featured_image": post_data.featured_image,
+            "images": post_data.images,
             "published": post_data.published,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
@@ -993,9 +1016,15 @@ async def get_personalized_recommendations(
 
 @router.get("/analytics/performance")
 async def get_blog_analytics():
-    """Get blog performance analytics"""
+    """Get blog performance analytics from Google Analytics"""
     try:
-        insights = await analytics_engine.get_content_performance_insights()
+        if GOOGLE_ANALYTICS_AVAILABLE and google_analytics_service and google_analytics_service.enabled:
+            # Use real Google Analytics data
+            insights = await google_analytics_service.get_performance_analytics(days=7)
+        else:
+            # Fallback to local analytics engine
+            insights = await analytics_engine.get_content_performance_insights()
+        
         return {
             "success": True,
             "analytics": insights
@@ -1006,9 +1035,15 @@ async def get_blog_analytics():
 
 @router.get("/analytics/realtime")
 async def get_realtime_metrics():
-    """Get real-time blog metrics"""
+    """Get real-time blog metrics from Google Analytics"""
     try:
-        metrics = await analytics_engine.get_real_time_metrics()
+        if GOOGLE_ANALYTICS_AVAILABLE and google_analytics_service and google_analytics_service.enabled:
+            # Use real Google Analytics data
+            metrics = await google_analytics_service.get_realtime_metrics()
+        else:
+            # Fallback to local analytics engine
+            metrics = await analytics_engine.get_real_time_metrics()
+        
         return {
             "success": True,
             "metrics": metrics

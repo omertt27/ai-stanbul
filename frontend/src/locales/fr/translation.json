@@ -99,12 +99,83 @@
       "multilingual": {
         "title": "Support Multilingue",
         "description": "Obtenez de l'aide dans plusieurs langues avec des réponses culturellement appropriées"
+      },
+      "personalizedAI": {
+        "title": "IA Personnalisée",
+        "description": "Se souvient de vos préférences, besoins alimentaires et style de voyage pour des recommandations sur mesure."
+      },
+      "localExpertise": {
+        "title": "Expertise Locale",
+        "description": "Base de données curatée de lieux authentiques, horaires de ferry et aperçus culturels."
+      },
+      "oneTapActions": {
+        "title": "Actions en Un Clic",
+        "description": "Naviguer, réserver des tables, acheter des billets et planifier des itinéraires avec la commodité d'un clic."
+      },
+      "culturalBridge": {
+        "title": "Pont Culturel",
+        "description": "Phrases turques, coutumes locales et contexte culturel pour vous aider à vous connecter avec la ville."
+      },
+      "realTimeData": {
+        "title": "Données en Temps Réel",
+        "description": "Horaires de ferry en direct, informations actuelles sur les restaurants et détails d'attractions à jour."
+      },
+      "madeForIstanbul": {
+        "title": "Conçu pour Istanbul",
+        "description": "Spécialisé exclusivement pour Istanbul - pas une application de voyage générique."
       }
+    },
+    "whatWeOffer": {
+      "title": "Ce Que Nous Offrons",
+      "restaurants": {
+        "title": "Recommandations de Restaurants",
+        "description": "Données en temps réel de Google Places, personnalisées selon vos préférences alimentaires et votre localisation."
+      },
+      "museums": {
+        "title": "Musées et Sites Culturels",
+        "description": "Informations curatées sur les riches attractions historiques et culturelles d'Istanbul avec liens de réservation."
+      },
+      "neighborhoods": {
+        "title": "Guides de Quartiers",
+        "description": "Aperçus approfondis sur les quartiers comme Beyoğlu, Sultanahmet, Kadıköy et les joyaux locaux cachés."
+      },
+      "transportation": {
+        "title": "Hub de Transport",
+        "description": "Horaires de ferry en direct, connexions métro et itinéraires les plus rapides entre quartiers."
+      }
+    },
+    "privacy": {
+      "title": "Confidentialité et Protection des Données",
+      "description": "Votre confidentialité est notre priorité. AI Istanbul est entièrement conforme au RGPD et respecte vos droits de données.",
+      "gdpr": {
+        "title": "Conforme RGPD",
+        "transparent": "Collecte de données transparente",
+        "consent": "Consentement utilisateur pour tout suivi",
+        "deletion": "Droit à la suppression des données",
+        "portability": "Options de portabilité des données"
+      },
+      "security": {
+        "title": "Sécurité des Données",
+        "encryption": "Chiffrement de bout en bout",
+        "minimal": "Collecte de données minimale",
+        "noSelling": "Aucune vente de données",
+        "audits": "Audits de sécurité réguliers"
+      },
+      "privacyPolicy": "Politique de Confidentialité",
+      "manageData": "Gérer Vos Données"
+    },
+    "openSource": {
+      "title": "Open Source et Communautaire",
+      "description": "Ce projet est open source et communautaire. Nous accueillons les contributions, commentaires et suggestions pour rendre AIstanbul encore meilleur.",
+      "viewGithub": "Voir sur GitHub",
+      "tryNow": "Essayer AIstanbul Maintenant"
     }
   },
   "homepage": {
     "title": "Découvrez Istanbul avec l'IA",
     "subtitle": "Votre compagnon de voyage intelligent pour la ville où deux continents se rencontrent",
+    "istanbulTime": "Heure d'Istanbul",
+    "discoverNeighborhoods": "Découvrez {{count}} quartiers et îles uniques - chacun avec son propre caractère et charme",
     "suggestions": {
       "morning": {
         "breakfast": "Meilleur petit-déjeuner turc",
@@ -127,23 +198,64 @@
         "name": "Sultanahmet",
         "description": "Péninsule historique avec des trésors ottomans et byzantins",
         "vibe": "Impérial",
-        "specialty": "Héritage ottoman"
+        "specialty": "Héritage ottoman",
+        "sideNote": "Côté européen • Péninsule historique"
       },
       "beyoglu": {
         "name": "Beyoğlu", 
         "description": "Cœur culturel vibrant avec art moderne et vie nocturne",
         "vibe": "Artistique",
-        "specialty": "Culture contemporaine"
+        "specialty": "Culture contemporaine",
+        "sideNote": "Côté européen • Cœur culturel"
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Joyau du côté asiatique avec vie locale authentique et nourriture",
         "vibe": "Local",
-        "specialty": "Nourriture de rue"
+        "specialty": "Nourriture de rue",
+        "sideNote": "Côté asiatique • Quartier bohème"
+      },
+      "besiktas": {
+        "name": "Beşiktaş",
+        "description": "Quartier haut de gamme en bord de mer avec attractions modernes",
+        "vibe": "Dynamique",
+        "specialty": "Luxe et Sport",
+        "sideNote": "Côté européen • Côte du Bosphore"
+      },
+      "uskudar": {
+        "name": "Üsküdar",
+        "description": "Côté asiatique traditionnel avec vues magnifiques sur la ville",
+        "vibe": "Spirituel",
+        "specialty": "Vie traditionnelle",
+        "sideNote": "Côté asiatique • Centre historique"
+      },
+      "sisli": {
+        "name": "Şişli",
+        "description": "Quartier d'affaires avec shopping de luxe et hôtels",
+        "vibe": "Affaires",
+        "specialty": "Commerce et Shopping",
+        "sideNote": "Côté européen • Hub d'affaires"
       }
     },
+    "labels": {
+      "specialty": "Spécialité:",
+      "population": "Population:",
+      "mustExperience": "À expérimenter absolument:"
+    },
+    "queries": {
+      "breakfastPlaces": "meilleurs endroits pour petit-déjeuner turc",
+      "sunriseSpots": "meilleurs points de lever du soleil à Istanbul",
+      "turkishBakeries": "boulangeries turques traditionnelles",
+      "museums": "musées incontournables à Istanbul",
+      "shoppingAreas": "meilleures zones de shopping à Istanbul",
+      "lunchRestaurants": "bons restaurants pour déjeuner",
+      "sunsetSpots": "meilleurs points de coucher du soleil Istanbul",
+      "romanticDinner": "restaurants pour dîner romantique",
+      "nightlife": "recommandations vie nocturne Istanbul"
+    },
     "quickStart": "Démarrage rapide du chat",
-    "exploreMore": "Explorer plus"
+    "exploreMore": "Explorer plus",
+    "districtQuery": "parlez-moi du quartier {{districtName}} à Istanbul"
   },
   "faq": {
     "title": "Questions Fréquemment Posées",
@@ -164,10 +276,15 @@
     },
     "stillHaveQuestions": {
       "title": "Vous avez encore des questions ?",
-      "subtitle": "Vous ne trouvez pas la réponse que vous cherchez ? Voici quelques moyens d'obtenir de l'aide :",
-      "chatWithAI": "Chattez avec notre IA pour une aide instantanée",
-      "readDocs": "Parcourez notre documentation",
-      "contactSupport": "Contactez notre équipe de support"
+      "subtitle": "Vous ne trouvez pas la réponse que vous cherchez ? Voici des moyens d'obtenir de l'aide :",
+      "askAI": {
+        "title": "Demandez à notre IA",
+        "description": "Obtenez des réponses instantanées de notre assistant IA"
+      },
+      "emailUs": {
+        "title": "Envoyez-nous un email",
+        "description": "Support direct de notre équipe"
+      }
     },
     "questions": {
       "whatIsKam": {
@@ -370,5 +487,49 @@
     "euAuthorityValue": "Votre autorité locale de protection des données",
     "commitmentTitle": "🌍 Notre engagement",
     "commitmentText": "AI Istanbul s'engage pour la confidentialité dès la conception et la transparence. Nous ne collectons que ce qui est nécessaire pour vous offrir la meilleure expérience de voyage à Istanbul tout en respectant votre droit fondamental à la vie privée."
+  },
+  "blog": {
+    "title": "Histoires d'Istanbul",
+    "subtitle": "Découvrez des expériences authentiques et des joyaux cachés à travers les yeux des locaux et des voyageurs",
+    "storiesShared": "{{count}} histoires partagées",
+    "joinCommunity": "Rejoignez la communauté",
+    "allDistricts": "Tous les quartiers",
+    "sortBy": "Trier par",
+    "newestFirst": "Plus récent d'abord",
+    "oldestFirst": "Plus ancien d'abord",
+    "mostLiked": "Le plus aimé",
+    "mostPopular": "Le plus populaire",
+    "longestRead": "Lecture la plus longue",
+    "shareYourStory": "Partagez votre histoire",
+    "clearFilters": "Effacer les filtres",
+    "tryAgain": "Réessayer",
+    "noPostsFound": "Aucun article trouvé",
+    "noPostsMessage": "Essayez d'ajuster vos termes de recherche ou parcourez tous les articles",
+    "searchPlaceholder": "Rechercher des articles par titre, contenu ou auteur...",
+    "searchButton": "Rechercher",
+    "failedToLoad": "Échec du chargement des articles de blog. Veuillez réessayer.",
+    "unknownAuthor": "Auteur inconnu",
+    "readMore": "Lire la suite",
+    "likes": "j'aime",
+    "views": "vues",
+    "loadingPosts": "Chargement des articles...",
+    "featuredPosts": "Histoires en vedette",
+    "recentPosts": "Histoires récentes"
+  },
+  "admin": {
+    "title": "Tableau de bord Admin",
+    "loginTitle": "Accès Admin",
+    "loginSubtitle": "Entrez votre mot de passe admin pour accéder au tableau de bord",
+    "passwordPlaceholder": "Entrez le mot de passe admin",
+    "loginButton": "Accéder au tableau de bord",
+    "invalidPassword": "Mot de passe invalide",
+    "logout": "Déconnexion",
+    "welcome": "Bienvenue dans le tableau de bord Admin",
+    "analytics": "Aperçu des analyses",
+    "blogManagement": "Gestion du blog",
+    "systemHealth": "État du système",
+    "dataSource": "Source de données",
+    "realTimeMetrics": "Métriques en temps réel",
+    "performanceMetrics": "Métriques de performance"
   }
 }

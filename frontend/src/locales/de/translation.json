@@ -99,12 +99,83 @@
       "multilingual": {
         "title": "Mehrsprachige Unterstützung",
         "description": "Hilfe in mehreren Sprachen mit kulturell angemessenen Antworten"
+      },
+      "personalizedAI": {
+        "title": "Personalisierte KI",
+        "description": "Merkt sich Ihre Vorlieben, Ernährungsbedürfnisse und Reisestil für maßgeschneiderte Empfehlungen."
+      },
+      "localExpertise": {
+        "title": "Lokale Expertise",
+        "description": "Kuratierte Datenbank authentischer Orte, Fährpläne und kultureller Einblicke."
+      },
+      "oneTapActions": {
+        "title": "Ein-Klick-Aktionen",
+        "description": "Navigation, Tischreservierung, Ticketkauf und Routenplanung mit Ein-Klick-Komfort."
+      },
+      "culturalBridge": {
+        "title": "Kulturelle Brücke",
+        "description": "Türkische Phrasen, lokale Bräuche und kultureller Kontext, um Ihnen zu helfen, sich mit der Stadt zu verbinden."
+      },
+      "realTimeData": {
+        "title": "Echtzeit-Daten",
+        "description": "Live-Fährzeiten, aktuelle Restaurantinfos und aktuelle Attraktionsdetails."
+      },
+      "madeForIstanbul": {
+        "title": "Speziell für Istanbul",
+        "description": "Ausschließlich für Istanbul spezialisiert - keine generische Reise-App."
       }
+    },
+    "whatWeOffer": {
+      "title": "Was Wir Bieten",
+      "restaurants": {
+        "title": "Restaurant-Empfehlungen",
+        "description": "Echtzeit-Daten von Google Places, personalisiert für Ihre Ernährungsvorlieben und Ihren Standort."
+      },
+      "museums": {
+        "title": "Museen & Kulturelle Stätten",
+        "description": "Kuratierte Informationen über Istanbuls reiche historische und kulturelle Attraktionen mit Buchungslinks."
+      },
+      "neighborhoods": {
+        "title": "Stadtteil-Führer",
+        "description": "Tiefe Einblicke in Stadtteile wie Beyoğlu, Sultanahmet, Kadıköy und versteckte lokale Juwelen."
+      },
+      "transportation": {
+        "title": "Transport-Hub",
+        "description": "Live-Fährpläne, Metro-Verbindungen und schnellste Routen zwischen Stadtteilen."
+      }
+    },
+    "privacy": {
+      "title": "Datenschutz & Datenschutz",
+      "description": "Ihr Datenschutz ist unsere Priorität. AI Istanbul ist vollständig DSGVO-konform und respektiert Ihre Datenrechte.",
+      "gdpr": {
+        "title": "DSGVO-konform",
+        "transparent": "Transparente Datensammlung",
+        "consent": "Benutzereinwilligung für alle Verfolgung",
+        "deletion": "Recht auf Datenlöschung",
+        "portability": "Datenportabilitäts-Optionen"
+      },
+      "security": {
+        "title": "Datensicherheit",
+        "encryption": "Ende-zu-Ende-Verschlüsselung",
+        "minimal": "Minimale Datensammlung",
+        "noSelling": "Kein Datenverkauf",
+        "audits": "Regelmäßige Sicherheitsaudits"
+      },
+      "privacyPolicy": "Datenschutzrichtlinie",
+      "manageData": "Ihre Daten Verwalten"
+    },
+    "openSource": {
+      "title": "Open Source & Community-getrieben",
+      "description": "Dieses Projekt ist Open Source und Community-getrieben. Wir begrüßen Beiträge, Feedback und Vorschläge, um AIstanbul noch besser zu machen.",
+      "viewGithub": "Auf GitHub ansehen",
+      "tryNow": "AIstanbul Jetzt Ausprobieren"
     }
   },
   "homepage": {
     "title": "Entdecken Sie Istanbul mit KI",
     "subtitle": "Ihr intelligenter Reisebegleiter für die Stadt, wo zwei Kontinente aufeinandertreffen",
+    "istanbulTime": "Istanbul Zeit",
+    "discoverNeighborhoods": "Entdecken Sie {{count}} einzigartige Stadtteile und Inseln - jeder mit eigenem Charakter und Charme",
     "suggestions": {
       "morning": {
         "breakfast": "Bestes türkisches Frühstück",
@@ -127,23 +198,64 @@
         "name": "Sultanahmet",
         "description": "Historische Halbinsel mit osmanischen & byzantinischen Schätzen",
         "vibe": "Kaiserlich",
-        "specialty": "Osmanisches Erbe"
+        "specialty": "Osmanisches Erbe",
+        "sideNote": "Europäische Seite • Historische Halbinsel"
       },
       "beyoglu": {
         "name": "Beyoğlu", 
         "description": "Lebendiges kulturelles Herz mit moderner Kunst & Nachtleben",
         "vibe": "Künstlerisch",
-        "specialty": "Zeitgenössische Kultur"
+        "specialty": "Zeitgenössische Kultur",
+        "sideNote": "Europäische Seite • Kulturelles Herz"
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Juwel der asiatischen Seite mit authentischem lokalen Leben & Essen",
         "vibe": "Lokal",
-        "specialty": "Straßenessen"
+        "specialty": "Straßenessen",
+        "sideNote": "Asiatische Seite • Bohème-Viertel"
+      },
+      "besiktas": {
+        "name": "Beşiktaş",
+        "description": "Gehobenes Hafenviertel mit modernen Attraktionen",
+        "vibe": "Dynamisch",
+        "specialty": "Luxus & Sport",
+        "sideNote": "Europäische Seite • Bosporus-Küste"
+      },
+      "uskudar": {
+        "name": "Üsküdar",
+        "description": "Traditionelle asiatische Seite mit atemberaubenden Stadtblicken",
+        "vibe": "Spirituell",
+        "specialty": "Traditionelles Leben",
+        "sideNote": "Asiatische Seite • Historisches Zentrum"
+      },
+      "sisli": {
+        "name": "Şişli",
+        "description": "Geschäftsviertel mit Luxus-Shopping & Hotels",
+        "vibe": "Geschäft",
+        "specialty": "Handel & Shopping",
+        "sideNote": "Europäische Seite • Business-Hub"
       }
     },
+    "labels": {
+      "specialty": "Spezialität:",
+      "population": "Bevölkerung:",
+      "mustExperience": "Muss erlebt werden:"
+    },
+    "queries": {
+      "breakfastPlaces": "beste türkische Frühstückslokale",
+      "sunriseSpots": "beste Sonnenaufgangspunkte in Istanbul",
+      "turkishBakeries": "traditionelle türkische Bäckereien",
+      "museums": "sehenswerte Museen in Istanbul",
+      "shoppingAreas": "beste Einkaufsviertel in Istanbul",
+      "lunchRestaurants": "gute Mittagsrestaurants",
+      "sunsetSpots": "beste Sonnenuntergangspunkte Istanbul",
+      "romanticDinner": "romantische Abendrestaurants",
+      "nightlife": "Istanbul Nachtleben Empfehlungen"
+    },
     "quickStart": "Chat schnell starten",
-    "exploreMore": "Mehr erkunden"
+    "exploreMore": "Mehr erkunden",
+    "districtQuery": "erzählen Sie mir über den Stadtteil {{districtName}} in Istanbul"
   },
   "faq": {
     "title": "Häufig gestellte Fragen",
@@ -165,9 +277,14 @@
     "stillHaveQuestions": {
       "title": "Haben Sie noch Fragen?",
       "subtitle": "Können Sie die gesuchte Antwort nicht finden? Hier sind einige Möglichkeiten, Hilfe zu bekommen:",
-      "chatWithAI": "Chatten Sie mit unserer KI für sofortige Hilfe",
-      "readDocs": "Durchsuchen Sie unsere Dokumentation",
-      "contactSupport": "Kontaktieren Sie unser Support-Team"
+      "askAI": {
+        "title": "Fragen Sie unsere KI",
+        "description": "Erhalten Sie sofortige Antworten von unserem KI-Assistenten"
+      },
+      "emailUs": {
+        "title": "Schreiben Sie uns",
+        "description": "Direkte Unterstützung von unserem Team"
+      }
     },
     "questions": {
       "whatIsKam": {
@@ -370,5 +487,49 @@
     "euAuthorityValue": "Ihre örtliche Datenschutzbehörde",
     "commitmentTitle": "🌍 Unser Engagement",
     "commitmentText": "AI Istanbul ist dem Datenschutz durch Design und Transparenz verpflichtet. Wir sammeln nur das Nötige, um Ihnen die beste Istanbul-Reiseerfahrung zu bieten, während wir Ihr grundlegendes Recht auf Privatsphäre respektieren."
+  },
+  "blog": {
+    "title": "Istanbul Geschichten",
+    "subtitle": "Entdecken Sie authentische Erfahrungen und versteckte Juwelen durch die Augen von Einheimischen und Reisenden",
+    "storiesShared": "{{count}} Geschichten geteilt",
+    "joinCommunity": "Der Gemeinschaft beitreten",
+    "allDistricts": "Alle Bezirke",
+    "sortBy": "Sortieren nach",
+    "newestFirst": "Neueste zuerst",
+    "oldestFirst": "Älteste zuerst",
+    "mostLiked": "Am meisten gemocht",
+    "mostPopular": "Am beliebtesten",
+    "longestRead": "Längste Lektüre",
+    "shareYourStory": "Teilen Sie Ihre Geschichte",
+    "clearFilters": "Filter löschen",
+    "tryAgain": "Erneut versuchen",
+    "noPostsFound": "Keine Beiträge gefunden",
+    "noPostsMessage": "Versuchen Sie, Ihre Suchbegriffe anzupassen oder alle Beiträge zu durchsuchen",
+    "searchPlaceholder": "Suche Beiträge nach Titel, Inhalt oder Autor...",
+    "searchButton": "Suchen",
+    "failedToLoad": "Laden der Blog-Beiträge fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "unknownAuthor": "Unbekannter Autor",
+    "readMore": "Weiterlesen",
+    "likes": "Likes",
+    "views": "Aufrufe",
+    "loadingPosts": "Beiträge werden geladen...",
+    "featuredPosts": "Hervorgehobene Geschichten",
+    "recentPosts": "Aktuelle Geschichten"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "loginTitle": "Admin-Zugang",
+    "loginSubtitle": "Geben Sie Ihr Admin-Passwort ein, um auf das Dashboard zuzugreifen",
+    "passwordPlaceholder": "Admin-Passwort eingeben",
+    "loginButton": "Dashboard aufrufen",
+    "invalidPassword": "Ungültiges Passwort",
+    "logout": "Abmelden",
+    "welcome": "Willkommen im Admin Dashboard",
+    "analytics": "Analytics-Übersicht",
+    "blogManagement": "Blog-Verwaltung",
+    "systemHealth": "Systemzustand",
+    "dataSource": "Datenquelle",
+    "realTimeMetrics": "Echtzeit-Metriken",
+    "performanceMetrics": "Leistungsmetriken"
   }
 }

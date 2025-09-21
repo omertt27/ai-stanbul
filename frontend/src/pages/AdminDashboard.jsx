@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import BlogAnalyticsDashboard from '../components/BlogAnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { darkMode } = useTheme();
+  const { t } = useTranslation();
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ const AdminDashboard = () => {
       setError('');
       localStorage.setItem('adminAuth', 'true');
     } else {
-      setError('Invalid password');
+      setError('invalid');
     }
   };
 
@@ -51,12 +53,12 @@ const AdminDashboard = () => {
             <h2 className={`text-2xl font-bold transition-colors duration-200 ${
               darkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Admin Dashboard Access
+              {t('admin.loginTitle')}
             </h2>
             <p className={`mt-2 transition-colors duration-200 ${
               darkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Enter admin password to access analytics
+              {t('admin.loginSubtitle')}
             </p>
           </div>
 
@@ -77,14 +79,14 @@ const AdminDashboard = () => {
                     ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20' 
                     : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
                 }`}
-                placeholder="Enter admin password"
+                placeholder={t('admin.passwordPlaceholder')}
                 required
               />
             </div>
 
             {error && (
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-red-500 text-sm">{error}</p>
+                <p className="text-red-500 text-sm">{error === 'invalid' ? t('admin.invalidPassword') : error}</p>
               </div>
             )}
 
@@ -92,7 +94,7 @@ const AdminDashboard = () => {
               type="submit"
               className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              Access Dashboard
+              {t('admin.loginButton')}
             </button>
           </form>
 
@@ -124,19 +126,19 @@ const AdminDashboard = () => {
               <h1 className={`text-3xl font-bold transition-colors duration-200 ${
                 darkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                Admin Dashboard
+                {t('admin.title')}
               </h1>
               <p className={`mt-2 transition-colors duration-200 ${
                 darkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>
-                AI Istanbul Blog Analytics & Management Center
+                {t('admin.welcome')}
               </p>
             </div>
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
             >
-              Logout
+              {t('admin.logout')}
             </button>
           </div>
         </div>

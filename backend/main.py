@@ -18,6 +18,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from fuzzywuzzy import fuzz, process
 
+# Load environment variables first, before any other imports
+load_dotenv()
+
 # --- Rate Limiting and Security ---
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -151,8 +154,6 @@ except ImportError as e:
         return "general_info", {}
     def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
         return False
-
-load_dotenv()
 
 # --- OpenAI Import ---
 from typing import Optional, Type

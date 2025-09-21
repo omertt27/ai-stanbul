@@ -201,32 +201,30 @@ const NewBlogPost = () => {
 
   return (
     <div 
-      className={`min-h-screen w-full pt-96 px-6 pb-12 transition-colors duration-200 ${
+      className={`min-h-screen w-full transition-colors duration-200 ${
         darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
       }`}
+      style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '3rem' }}
     >
       <div className="max-w-6xl mx-auto">
 
-      <div className="pt-12 px-6 pb-10">
-        <div className="max-w-4xl mx-auto">
-          {/* Share Your Story Section */}
-          <div className={`mb-6 p-6 rounded-xl border-2 transition-all duration-200 ${
-            darkMode 
-              ? 'bg-gray-800 border-gray-700' 
-              : 'bg-white border-blue-200 shadow-md'
-          }`}>
-          <h2 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
-            darkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            Share Your Istanbul Story
-          </h2>
-          <p className={`text-sm transition-colors duration-200 ${
-            darkMode ? 'text-gray-300' : 'text-gray-700'
-          }`}>
-            Create your travel blog post about Istanbul. Share your experiences, discoveries, and recommendations with fellow travelers.
-          </p>
+      <div className="pt-4 pb-24">
+        {/* Hero Section */}
+        <div className="pb-16">
+          <div className="max-w-4xl mx-auto px-8 text-center">
+            <div className="mb-8">
+              <h1 className="text-5xl font-bold mb-6 pt-28 transition-colors duration-300 text-white">
+                Share Your Istanbul Story
+              </h1>
+              <p className="text-xl leading-relaxed transition-colors duration-300 text-gray-300">
+                Create your travel blog post about Istanbul. Share your experiences, discoveries, and recommendations with fellow travelers.
+              </p>
+            </div>
+          </div>
         </div>
 
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto px-8 pb-24">
         {/* Error Alert */}
         {error && (
           <div className={`mb-2 p-2 rounded border-l-4 transition-colors duration-200 ${

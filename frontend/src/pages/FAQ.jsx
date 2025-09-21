@@ -155,10 +155,10 @@ function FAQ() {
               className="p-4 rounded-lg transition-all duration-300 hover:scale-105 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
               <h3 className="font-semibold mb-1 transition-colors duration-300 text-white">
-                Ask Our AI
+                {t('faq.stillHaveQuestions.askAI.title')}
               </h3>
               <p className="text-sm transition-colors duration-300 text-gray-300">
-                Get instant answers from our AI assistant
+                {t('faq.stillHaveQuestions.askAI.description')}
               </p>
             </Link>
 
@@ -167,10 +167,10 @@ function FAQ() {
               className="p-4 rounded-lg transition-all duration-300 hover:scale-105 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
               <h3 className="font-semibold mb-1 transition-colors duration-300 text-white">
-                Email Us
+                {t('faq.stillHaveQuestions.emailUs.title')}
               </h3>
               <p className="text-sm transition-colors duration-300 text-gray-300">
-                Direct support from our team
+                {t('faq.stillHaveQuestions.emailUs.description')}
               </p>
             </a>
           </div>

@@ -1,3 +1,4 @@
 backend/intent_utils.py
 backend/.env
 backend/__pycache__/
+credentials/

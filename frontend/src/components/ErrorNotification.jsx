@@ -199,7 +199,7 @@ const ErrorNotification = ({
         )}
         
         {/* Debug Info (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <details className="mt-3">
             <summary className={`
               text-xs cursor-pointer

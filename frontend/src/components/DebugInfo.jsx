@@ -1,7 +1,7 @@
 import React from 'react';
 
 const DebugInfo = () => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
   const cleanBaseUrl = baseUrl.replace(/\/ai\/?$/, '');
   const apiUrl = `${cleanBaseUrl}/ai`;
 

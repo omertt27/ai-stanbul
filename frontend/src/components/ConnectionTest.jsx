@@ -12,7 +12,7 @@ const ConnectionTest = () => {
     setStatus('🔍 Testing connection...');
     setDetails([]);
     
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
     const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
     addDetail(`Testing API URL: ${cleanApiUrl}`, 'info');
 
@@ -97,7 +97,7 @@ const ConnectionTest = () => {
         <strong>If tests fail:</strong>
         <ul className="mt-2 list-disc list-inside">
           <li>Make sure backend server is running: <code>uvicorn main:app --reload --port 8001</code></li>
-          <li>Check that VITE_API_URL in .env is set to: <code>http://localhost:8000</code></li>
+          <li>Check that VITE_API_URL in .env is set to: <code>http://localhost:8001</code></li>
           <li>Restart your frontend dev server after making changes</li>
         </ul>
       </div>

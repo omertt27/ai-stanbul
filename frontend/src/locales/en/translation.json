@@ -99,12 +99,83 @@
       "multilingual": {
         "title": "Multilingual Support",
         "description": "Get help in multiple languages with culturally appropriate responses"
+      },
+      "personalizedAI": {
+        "title": "Personalized AI",
+        "description": "Remembers your preferences, dietary needs, and travel style for tailored recommendations."
+      },
+      "localExpertise": {
+        "title": "Local Expertise",
+        "description": "Curated database of authentic places, ferry schedules, and cultural insights."
+      },
+      "oneTapActions": {
+        "title": "One-Tap Actions",
+        "description": "Navigate, book tables, buy tickets, and plan routes with single-click convenience."
+      },
+      "culturalBridge": {
+        "title": "Cultural Bridge",
+        "description": "Turkish phrases, local customs, and cultural context to help you connect with the city."
+      },
+      "realTimeData": {
+        "title": "Real-Time Data",
+        "description": "Live ferry times, current restaurant info, and up-to-date attraction details."
+      },
+      "madeForIstanbul": {
+        "title": "Made for Istanbul",
+        "description": "Specialized exclusively for Istanbul - not a generic travel app."
       }
+    },
+    "whatWeOffer": {
+      "title": "What We Offer",
+      "restaurants": {
+        "title": "Restaurant Recommendations",
+        "description": "Real-time data from Google Places, personalized for your dietary preferences and location."
+      },
+      "museums": {
+        "title": "Museums & Cultural Sites",
+        "description": "Curated information about Istanbul's rich historical and cultural attractions with booking links."
+      },
+      "neighborhoods": {
+        "title": "Neighborhood Guides",
+        "description": "Deep insights about districts like Beyoğlu, Sultanahmet, Kadıköy, and hidden local gems."
+      },
+      "transportation": {
+        "title": "Transportation Hub",
+        "description": "Live ferry schedules, metro connections, and the fastest routes between districts."
+      }
+    },
+    "privacy": {
+      "title": "Privacy & Data Protection",
+      "description": "Your privacy is our priority. AI Istanbul is fully compliant with GDPR and respects your data rights.",
+      "gdpr": {
+        "title": "GDPR Compliant",
+        "transparent": "Transparent data collection",
+        "consent": "User consent for all tracking",
+        "deletion": "Right to data deletion",
+        "portability": "Data portability options"
+      },
+      "security": {
+        "title": "Data Security",
+        "encryption": "End-to-end encryption",
+        "minimal": "Minimal data collection",
+        "noSelling": "No data selling",
+        "audits": "Regular security audits"
+      },
+      "privacyPolicy": "Privacy Policy",
+      "manageData": "Manage Your Data"
+    },
+    "openSource": {
+      "title": "Open Source & Community-Driven",
+      "description": "This project is open source and community-driven. We welcome contributions, feedback, and suggestions to make AIstanbul even better.",
+      "viewGithub": "View on GitHub",
+      "tryNow": "Try AIstanbul Now"
     }
   },
   "homepage": {
     "title": "Discover Istanbul with AI",
     "subtitle": "Your intelligent travel companion for the city where two continents meet",
+    "istanbulTime": "Istanbul Time",
+    "discoverNeighborhoods": "Discover {{count}} unique neighborhoods and islands - each with its own character and charm",
     "suggestions": {
       "morning": {
         "breakfast": "Best Turkish Breakfast",
@@ -127,23 +198,64 @@
         "name": "Sultanahmet",
         "description": "Historic peninsula with Ottoman & Byzantine treasures",
         "vibe": "Imperial",
-        "specialty": "Ottoman Heritage"
+        "specialty": "Ottoman Heritage",
+        "sideNote": "European Side • Historic Peninsula"
       },
       "beyoglu": {
         "name": "Beyoğlu", 
         "description": "Vibrant cultural heart with modern art & nightlife",
         "vibe": "Artistic",
-        "specialty": "Contemporary Culture"
+        "specialty": "Contemporary Culture",
+        "sideNote": "European Side • Cultural Heart"
       },
       "kadikoy": {
         "name": "Kadıköy",
         "description": "Asian side gem with authentic local life & food",
         "vibe": "Local",
-        "specialty": "Street Food"
+        "specialty": "Street Food",
+        "sideNote": "Asian Side • Bohemian Quarter"
+      },
+      "besiktas": {
+        "name": "Beşiktaş",
+        "description": "Upscale waterfront district with modern attractions",
+        "vibe": "Dynamic",
+        "specialty": "Luxury & Sports",
+        "sideNote": "European Side • Bosphorus Coast"
+      },
+      "uskudar": {
+        "name": "Üsküdar",
+        "description": "Traditional Asian side with stunning city views",
+        "vibe": "Spiritual",
+        "specialty": "Traditional Life",
+        "sideNote": "Asian Side • Historic Center"
+      },
+      "sisli": {
+        "name": "Şişli",
+        "description": "Business district with luxury shopping & hotels",
+        "vibe": "Business",
+        "specialty": "Commerce & Shopping",
+        "sideNote": "European Side • Business Hub"
       }
     },
+    "labels": {
+      "specialty": "Specialty:",
+      "population": "Population:",
+      "mustExperience": "Must Experience:"
+    },
+    "queries": {
+      "breakfastPlaces": "best Turkish breakfast places",
+      "sunriseSpots": "best sunrise spots in Istanbul",
+      "turkishBakeries": "traditional Turkish bakeries",
+      "museums": "must visit museums in Istanbul",
+      "shoppingAreas": "best shopping areas in Istanbul",
+      "lunchRestaurants": "good lunch restaurants",
+      "sunsetSpots": "best sunset spots Istanbul",
+      "romanticDinner": "romantic dinner restaurants",
+      "nightlife": "Istanbul nightlife recommendations"
+    },
     "quickStart": "Quick Start Chat",
-    "exploreMore": "Explore More"
+    "exploreMore": "Explore More",
+    "districtQuery": "tell me about {{districtName}} district in Istanbul"
   },
   "faq": {
     "title": "Frequently Asked Questions",
@@ -165,9 +277,14 @@
     "stillHaveQuestions": {
       "title": "Still Have Questions?",
       "subtitle": "Can't find the answer you're looking for? Here are some ways to get help:",
-      "chatWithAI": "Chat with our AI for instant help",
-      "readDocs": "Browse our documentation",
-      "contactSupport": "Contact our support team"
+      "askAI": {
+        "title": "Ask Our AI",
+        "description": "Get instant answers from our AI assistant"
+      },
+      "emailUs": {
+        "title": "Email Us",
+        "description": "Direct support from our team"
+      }
     },
     "questions": {
       "whatIsKam": {
@@ -415,5 +532,49 @@
     "cookieSettings": "Manage Cookie Settings",
     "dataRights": "Your Data Rights (GDPR)",
     "lastUpdated": "Last updated"
+  },
+  "blog": {
+    "title": "Istanbul Stories",
+    "subtitle": "Discover authentic experiences and hidden gems through the eyes of locals and travelers",
+    "storiesShared": "{{count}} stories shared",
+    "joinCommunity": "Join the community",
+    "allDistricts": "All Districts",
+    "sortBy": "Sort By",
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First",
+    "mostLiked": "Most Liked",
+    "mostPopular": "Most Popular",
+    "longestRead": "Longest Read",
+    "shareYourStory": "Share Your Story",
+    "clearFilters": "Clear Filters",
+    "tryAgain": "Try Again",
+    "noPostsFound": "No posts found",
+    "noPostsMessage": "Try adjusting your search terms or browse all posts",
+    "searchPlaceholder": "Search posts by title, content, or author...",
+    "searchButton": "Search",
+    "failedToLoad": "Failed to load blog posts. Please try again.",
+    "unknownAuthor": "Unknown Author",
+    "readMore": "Read More",
+    "likes": "likes",
+    "views": "views",
+    "loadingPosts": "Loading posts...",
+    "featuredPosts": "Featured Stories",
+    "recentPosts": "Recent Stories"
+  },
+  "admin": {
+    "title": "Admin Dashboard",
+    "loginTitle": "Admin Access",
+    "loginSubtitle": "Enter your admin password to access the dashboard",
+    "passwordPlaceholder": "Enter admin password",
+    "loginButton": "Access Dashboard",
+    "invalidPassword": "Invalid password",
+    "logout": "Logout",
+    "welcome": "Welcome to the Admin Dashboard",
+    "analytics": "Analytics Overview",
+    "blogManagement": "Blog Management",
+    "systemHealth": "System Health",
+    "dataSource": "Data Source",
+    "realTimeMetrics": "Real-time Metrics",
+    "performanceMetrics": "Performance Metrics"
   }
 }

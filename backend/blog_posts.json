@@ -55,8 +55,28 @@
     "published": true,
     "created_at": "2025-09-10T23:32:15.974872",
     "updated_at": "2025-09-10T23:32:15.974873",
-    "views": 136,
-    "likes": 20,
-    "likes_count": 20
+    "views": 138,
+    "likes": 22,
+    "likes_count": 22
+  },
+  {
+    "id": "c5a65ec8-ba8a-4092-a263-f057fdbc9fc9",
+    "title": "Test Profile Photo Blog Post",
+    "content": "This is a test post to verify that profile photos work correctly in our blog system. The profile photo should display properly both in the blog creation form and in the blog listing page.",
+    "author": "Test User",
+    "author_name": "Test User",
+    "author_photo": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+    "category": "Test",
+    "district": null,
+    "heading": null,
+    "tags": [],
+    "featured_image": null,
+    "images": [],
+    "published": true,
+    "created_at": "2025-09-22T01:00:14.014012",
+    "updated_at": "2025-09-22T01:00:14.014018",
+    "views": 0,
+    "likes": 1,
+    "likes_count": 1
   }
 ]
