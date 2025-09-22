@@ -2,7 +2,8 @@ import React from 'react';
 
 const TermsOfService = () => {
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white">
+    <div className="min-h-screen bg-gray-50" style={{ paddingTop: '6rem', paddingBottom: '2rem' }}>
+      <div className="max-w-4xl mx-auto p-6 bg-white" style={{ marginTop: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-red-600 mb-2">
           🔒 Terms of Service - AI Istanbul
@@ -141,6 +142,7 @@ const TermsOfService = () => {
             © 2025 AI Istanbul™. All rights reserved. Unauthorized use is prohibited.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

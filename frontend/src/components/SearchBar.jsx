@@ -37,7 +37,6 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false }
         value={value}
         onChange={onChange}
         placeholder={value === '' ? displayPlaceholder : ''}
-        autoFocus
         disabled={isLoading}
         style={{
           flex: 1,

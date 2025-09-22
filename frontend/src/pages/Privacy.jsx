@@ -8,8 +8,9 @@ function Privacy() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`static-page ${darkMode ? 'dark' : ''}`} style={{ paddingBottom: '4rem' }}>
-      <h1>{t('privacy.title')}</h1>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} style={{ paddingTop: '6rem', paddingBottom: '4rem', paddingLeft: '2rem', paddingRight: '2rem' }}>
+      <div className="max-w-4xl mx-auto">
+        <h1>{t('privacy.title')}</h1>
       <p><em>{t('privacy.lastUpdated')}: September 2025</em></p>
 
       <div className="gdpr-notice" style={{
@@ -147,6 +148,7 @@ function Privacy() {
         <p style={{ marginBottom: 0, fontStyle: 'italic' }}>
           <strong>{t('privacy.commitmentTitle')}:</strong> {t('privacy.commitmentText')}
         </p>
+      </div>
       </div>
     </div>
   );

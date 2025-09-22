@@ -87,28 +87,10 @@ class WebsiteProtection {
         });
     }
 
-    // Add copyright notices
+    // Add copyright notices (disabled for better user experience)
     addCopyrightNotices() {
-        // Add copyright to console
-        console.clear();
-        console.log('%c🔒 AI Istanbul - Copyright Protected', 'color: red; font-size: 20px; font-weight: bold;');
-        console.log('%c⚠️ Unauthorized copying or reproduction is prohibited', 'color: orange; font-size: 14px;');
-        console.log('%c📞 Contact: legal@ai-istanbul.com for licensing', 'color: blue; font-size: 12px;');
-        
-        // Add invisible watermarks to DOM
-        const watermark = document.createElement('div');
-        watermark.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><text x="50%" y="50%" text-anchor="middle" fill="rgba(255,0,0,0.1)" font-size="12">© AI Istanbul ${new Date().getFullYear()}</text></svg>') repeat;
-            opacity: 0.05;
-        `;
-        document.body.appendChild(watermark);
+        // Copyright notices disabled to avoid user warnings
+        return;
     }
 
     // Developer tools detection disabled to avoid user warnings
@@ -195,16 +177,6 @@ class WebsiteProtection {
                 * { 
                     visibility: hidden !important; 
                 }
-                body::before {
-                    content: "© AI Istanbul - This content is protected by copyright and cannot be printed or copied.";
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 24px;
-                    color: red;
-                    visibility: visible !important;
-                }
             }
         `;
         document.head.appendChild(style);
@@ -240,10 +212,9 @@ class WebsiteProtection {
         for (const agent of blockedAgents) {
             if (userAgent.includes(agent)) {
                 document.body.innerHTML = `
-                    <div style="padding: 50px; text-align: center; color: red; font-family: Arial;">
+                    <div style="padding: 50px; text-align: center; font-family: Arial;">
                         <h1>🚫 Access Denied</h1>
                         <p>Automated access is not permitted</p>
-                        <p>© AI Istanbul - Protected Content</p>
                     </div>
                 `;
                 throw new Error('Automated access blocked');
@@ -273,47 +244,14 @@ class WebsiteProtection {
 
     // Protect console methods
     protectConsole() {
-        const originalMethods = {};
-        
-        // Store original methods
-        ['log', 'warn', 'error', 'info', 'debug'].forEach(method => {
-            if (console[method]) {
-                originalMethods[method] = console[method];
-                console[method] = function(...args) {
-                    // Add copyright notice to all console outputs
-                    originalMethods[method].apply(console, ['🔒 AI Istanbul Protected:', ...args]);
-                };
-            }
-        });
-
-        // Override toString methods to hide implementation
-        Object.defineProperty(Function.prototype, 'toString', {
-            value: function() {
-                return 'function() { [Protected Code] }';
-            },
-            writable: false,
-            configurable: false
-        });
+        // Console protection disabled for better user experience
+        return;
     }
 
-    // Add watermarks to content
+    // Add watermarks to content (disabled for better user experience)
     addWatermarks() {
-        // Add invisible text watermarks
-        const textNodes = document.createTreeWalker(
-            document.body,
-            NodeFilter.SHOW_TEXT,
-            null,
-            false
-        );
-        
-        let node;
-        let count = 0;
-        while (node = textNodes.nextNode()) {
-            if (count % 50 === 0 && node.textContent.trim().length > 20) {
-                node.textContent += '​'; // Zero-width space watermark
-            }
-            count++;
-        }
+        // Watermarks disabled to avoid user warnings
+        return;
     }
 }
 

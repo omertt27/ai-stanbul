@@ -131,7 +131,7 @@
 /* Main page logo - bigger version, centered */
 .main-page-logo.logo-istanbul {
   text-align: center;
-  margin-bottom: 0; /* Minimal margin to bring search bar very close */
+  margin-bottom: 1.5rem; /* Better spacing for search bar underneath */
   margin-top: -2rem; /* Much higher position - moved up even more */
   padding: 0rem; /* Even smaller padding for tighter spacing */
   position: relative;
@@ -350,7 +350,7 @@
   display: flex;
   flex-direction: column;
   height: 85vh; /* Increased chatbot height for longer chat experience */
-  max-width: 1000px; /* Reduced from 1200px to make chatbot narrower */
+  max-width: 1050px; /* Chatbot width set to 1050px */
   width: 100%;
   margin: 4.5rem auto 2rem auto; /* Moved up 10px (6rem = 96px, 5.5rem = 88px) */
   overflow: hidden;
@@ -509,7 +509,7 @@ html.chatbot-page {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 5rem); /* Fixed height accounting for navbar */
-  max-width: 800px; /* Reduced from 1200px to make chatbot narrower */
+  max-width: 1050px; /* Changed from 800px to 1050px */
   width: 100%;
   margin: 5rem auto 0 auto; /* Top margin for navbar, no bottom margin */
   overflow: hidden;

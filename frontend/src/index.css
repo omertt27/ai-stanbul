@@ -4,6 +4,19 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 0;
+}
+
+/* Ensure page always starts at top */
+html, body {
+  scroll-margin: 0;
+  scroll-padding: 0;
+}
+
+/* Prevent auto-scroll from focus events on page load */
+*:focus {
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
 }
 
 :root {

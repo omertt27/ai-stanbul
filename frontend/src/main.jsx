@@ -10,6 +10,11 @@ import './utils/websiteProtection.js' // Initialize website protection
 
 console.log('Starting React app...')
 
+// Ensure page starts at top
+window.scrollTo(0, 0);
+document.documentElement.scrollTop = 0;
+document.body.scrollTop = 0;
+
 try {
   const container = document.getElementById('root')
   if (!container) {
@@ -26,6 +31,13 @@ try {
   )
   
   console.log('React app mounted successfully')
+  
+  // Additional scroll reset after React renders
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, 100);
 } catch (error) {
   console.error('Failed to mount React app:', error)
   document.getElementById('root').innerHTML = `

@@ -38,7 +38,8 @@ img {
     /* user-drag: none !important; */ /* Non-standard property */
 }
 
-/* Copyright watermark overlay */
+/* Copyright watermark overlay - REMOVED */
+/* 
 body::before {
     content: "© AI Istanbul - Protected Content";
     position: fixed;
@@ -53,28 +54,12 @@ body::before {
     font-weight: bold;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
 }
+*/
 
 /* Hide content when printing */
 @media print {
     * {
         visibility: hidden !important;
-    }
-    
-    body::after {
-        content: "© AI Istanbul - This content is protected by copyright and cannot be printed or copied. Contact legal@ai-istanbul.com for licensing.";
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 24px;
-        color: red;
-        visibility: visible !important;
-        text-align: center;
-        font-weight: bold;
-        background: white;
-        padding: 20px;
-        border: 3px solid red;
-        border-radius: 10px;
     }
 }
 

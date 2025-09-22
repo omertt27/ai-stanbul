@@ -76,6 +76,15 @@ const AppContent = ({ chatExpanded }) => {
     // Force scroll to top on navigation
     window.scrollTo(0, 0);
     
+    // Additional scroll prevention for main page
+    if (location.pathname === '/' || location.pathname === '') {
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 50);
+    }
+    
   }, [location.pathname, location.search]);
 
   return (

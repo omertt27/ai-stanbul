@@ -6,8 +6,9 @@ function Privacy() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`static-page ${darkMode ? 'dark' : ''}`}>
-      <h1>Privacy Policy & GDPR Compliance</h1>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} style={{ paddingTop: '6rem', paddingBottom: '4rem', paddingLeft: '2rem', paddingRight: '2rem' }}>
+      <div className="max-w-4xl mx-auto">
+        <h1>Privacy Policy & GDPR Compliance</h1>
       <p><em>Last updated: September 2025</em></p>
 
       <div className="gdpr-notice" style={{
@@ -173,6 +174,7 @@ function Privacy() {
           We collect only what's necessary to provide you with the best Istanbul travel experience while 
           respecting your fundamental right to privacy.
         </p>
+      </div>
       </div>
     </div>
   );

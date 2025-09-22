@@ -39,8 +39,28 @@ const Donate = () => {
       }`}>
         <div className="max-w-6xl mx-auto flex justify-center">
           <Link to="/" style={{textDecoration: 'none'}}>
-            <div className="header-logo chat-title logo-istanbul">
-              <span className="logo-text">
+            <div 
+              style={{
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                transition: 'transform 0.2s ease, opacity 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{
+                fontSize: '2.6rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+              }}>
                 A/<span style={{fontWeight: 400}}>STANBUL</span>
               </span>
             </div>

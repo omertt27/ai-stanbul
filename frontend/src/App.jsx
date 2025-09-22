@@ -48,6 +48,8 @@ const App = () => {
 
   // Auto-expand when navigating to /chat route
   useEffect(() => {
+    // Ensure page stays at top when component mounts
+    window.scrollTo(0, 0);
     if (location.pathname === '/chat') {
       setExpanded(true);
     }
@@ -167,18 +169,21 @@ const App = () => {
             </div>
           </div>
           
-          {/* Interactive Main Page Content */}
-          <InteractiveMainPage onQuickStart={handleQuickStart} />
-          
-          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '2rem auto 1rem', padding: '1rem', zIndex: 10}}>
+          {/* Search bar positioned directly under the logo */}
+          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto 2rem', padding: '1rem', zIndex: 10}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
               onSubmit={handleSearch}
               placeholder={t('chat.searchPlaceholder')}
               isLoading={searchLoading}
+              expanded={expanded}
             />
           </div>
+          
+          {/* Interactive Main Page Content */}
+          <InteractiveMainPage onQuickStart={handleQuickStart} />
+          
         </div>
 
         {/* Cookie Consent Banner */}
