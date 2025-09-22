@@ -22,11 +22,11 @@ class WebsiteProtection {
         this.protectConsole();
     }
 
-    // Disable right-click context menu
+    // Disable right-click context menu (silent protection)
     disableRightClick() {
         document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            this.showWarning('Right-click is disabled to protect content');
+            // Silent protection - no warning popup
             return false;
         });
     }
@@ -45,7 +45,7 @@ class WebsiteProtection {
                 (e.ctrlKey && e.shiftKey && e.key === 'C')
             ) {
                 e.preventDefault();
-                this.showWarning('This action is disabled to protect intellectual property');
+                // Silent protection - no warning popup
                 return false;
             }
         });
@@ -209,10 +209,10 @@ class WebsiteProtection {
         `;
         document.head.appendChild(style);
 
-        // Detect print attempts
+        // Detect print attempts (silent protection)
         window.addEventListener('beforeprint', (e) => {
             e.preventDefault();
-            this.showWarning('Printing is disabled to protect copyright');
+            // Silent protection - no warning popup
             return false;
         });
 
@@ -222,7 +222,8 @@ class WebsiteProtection {
             const currentTime = performance.now();
             if (currentTime - lastTime > 100) {
                 // Possible screen recording or debugging
-                this.showWarning('Suspicious activity detected');
+                // Silent protection - no warning popup
+                console.log('Suspicious activity detected');
             }
             lastTime = currentTime;
         }, 50);
