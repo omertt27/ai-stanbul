@@ -98,8 +98,13 @@ class OpenAIVisionClient:
         if self.api_key and OPENAI_AVAILABLE:
             try:
                 from openai import OpenAI as OpenAIClient
-                self.client = OpenAIClient(api_key=self.api_key)
-            except ImportError:
+                self.client = OpenAIClient(
+                    api_key=self.api_key,
+                    timeout=30.0,
+                    max_retries=2
+                )
+            except Exception as e:
+                logger.error(f"OpenAI client initialization failed: {e}")
                 self.client = None
         else:
             self.client = None
@@ -758,5 +763,70 @@ class MultimodalAIService:
             coordinates=None
         )
 
-# Global multimodal AI service instance
-multimodal_ai_service = MultimodalAIService()
+# Global multimodal AI service instance - lazy initialization
+multimodal_ai_service = None
+
+def get_multimodal_ai_service():
+    """Get or create the multimodal AI service instance"""
+    global multimodal_ai_service
+    if multimodal_ai_service is None:
+        try:
+            multimodal_ai_service = MultimodalAIService()
+        except Exception as e:
+            logger.error(f"Failed to initialize MultimodalAIService: {e}")
+            # Create a dummy service that doesn't crash
+            class DummyMultimodalService:
+                async def analyze_travel_image(self, *args, **kwargs):
+                    return ImageAnalysisResult(
+                        detected_objects=["Service unavailable"],
+                        location_suggestions=["Istanbul area"],
+                        landmarks_identified=[],
+                        scene_description="Service unavailable - please try again",
+                        confidence_score=0.1,
+                        recommendations=["Service temporarily unavailable"],
+                        is_food_image=False,
+                        is_location_image=True,
+                        extracted_text=None
+                    )
+                
+                async def analyze_image(self, *args, **kwargs):
+                    return {"analysis": "Service unavailable", "confidence": 0}
+                
+                async def analyze_image_comprehensive(self, *args, **kwargs):
+                    return ImageAnalysisResult(
+                        detected_objects=["Service unavailable"],
+                        location_suggestions=["Istanbul area"],
+                        landmarks_identified=[],
+                        scene_description="Service unavailable - please try again",
+                        confidence_score=0.1,
+                        recommendations=["Service temporarily unavailable"],
+                        is_food_image=False,
+                        is_location_image=True,
+                        extracted_text=None
+                    )
+                
+                async def analyze_menu_image(self, *args, **kwargs):
+                    return MenuAnalysisResult(
+                        detected_items=[],
+                        cuisine_type="Unknown",
+                        price_range=None,
+                        recommendations=["Service temporarily unavailable"],
+                        dietary_info={},
+                        confidence_score=0.1
+                    )
+                
+                async def generate_travel_content(self, *args, **kwargs):
+                    return {"content": "Service unavailable"}
+                
+                async def identify_location(self, *args, **kwargs):
+                    return LocationIdentificationResult(
+                        identified_location="Unknown Istanbul Location",
+                        confidence_score=0.1,
+                        similar_places=[],
+                        category="unknown",
+                        recommendations=["Service temporarily unavailable"],
+                        coordinates=None
+                    )
+            
+            multimodal_ai_service = DummyMultimodalService()
+    return multimodal_ai_service
