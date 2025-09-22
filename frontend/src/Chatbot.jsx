@@ -7,8 +7,7 @@ import {
   TypingSimulator, 
   StreamingText, 
   TypingIndicator, 
-  LoadingSpinner, 
-  ConnectionStatus 
+  LoadingSpinner
 } from './components/TypingAnimation';
 import { LoadingSkeleton, ChatMessageSkeleton } from './components/LoadingSkeletons';
 import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
@@ -891,15 +890,7 @@ function Chatbot({ onDarkModeToggle }) {
       }`}>
         <div className="chatbot-purple-box">
           
-          {/* Connection Status Indicator */}
-          <div style={{ 
-            position: 'absolute', 
-            top: '16px', 
-            right: '16px', 
-            zIndex: 10 
-          }}>
-            <ConnectionStatus isConnected={!loading} />
-          </div>
+
 
           {/* Chat Messages Area - Separate from Input with Scrolling */}
           <div className="chatbot-messages chatbot-scrollable">

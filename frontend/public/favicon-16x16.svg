@@ -7,10 +7,10 @@
     <stop offset="100%" style="stop-color:#0a0a1a"/>
   </linearGradient>
 </defs>
-<!-- A/ST Text -->
-<text x="8" y="7" font-family="Arial, sans-serif" font-size="4" font-weight="700" fill="#c7c9e2" text-anchor="middle">A/ST</text>
+<!-- A/ST Text - Much Larger -->
+<text x="8" y="10.5" font-family="Arial, sans-serif" font-size="7" font-weight="900" fill="#ffffff" text-anchor="middle">A/ST</text>
 <!-- Small sparkles -->
-<circle cx="3" cy="12" r="0.3" fill="#ffd700" opacity="0.8"/>
+<circle cx="3" cy="3" r="0.4" fill="#ffd700" opacity="0.8"/>
 <circle cx="13" cy="4" r="0.3" fill="#ffd700" opacity="0.6"/>
 <circle cx="12" cy="13" r="0.4" fill="#ffffff" opacity="0.9"/>
 </svg>
