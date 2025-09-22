@@ -1,0 +1,149 @@
+/* Anti-Copy Protection Styles for AI Istanbul */
+
+/* Disable text selection globally */
+* {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Allow selection for input fields only */
+input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
+
+/* Disable drag and drop */
+* {
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    /* user-drag: none !important; */ /* Non-standard property */
+}
+
+/* Disable image saving */
+img {
+    pointer-events: none !important;
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    /* user-drag: none !important; */ /* Non-standard property */
+}
+
+/* Copyright watermark overlay */
+body::before {
+    content: "© AI Istanbul - Protected Content";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 2rem;
+    color: rgba(255, 0, 0, 0.1);
+    pointer-events: none;
+    z-index: 9999;
+    white-space: nowrap;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Hide content when printing */
+@media print {
+    * {
+        visibility: hidden !important;
+    }
+    
+    body::after {
+        content: "© AI Istanbul - This content is protected by copyright and cannot be printed or copied. Contact legal@ai-istanbul.com for licensing.";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: red;
+        visibility: visible !important;
+        text-align: center;
+        font-weight: bold;
+        background: white;
+        padding: 20px;
+        border: 3px solid red;
+        border-radius: 10px;
+    }
+}
+
+/* Disable highlighting */
+::selection {
+    background: transparent !important;
+}
+
+::-moz-selection {
+    background: transparent !important;
+}
+
+/* Protect against common scraping techniques */
+[data-testid], [data-cy], [data-test] {
+    display: none !important;
+}
+
+/* Add subtle copyright notice to all major elements */
+.main-content::after,
+.app-container::after,
+.page-content::after {
+    content: "© AI Istanbul";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 8px;
+    color: rgba(0,0,0,0.1);
+    pointer-events: none;
+}
+
+/* Disable text cursor */
+* {
+    cursor: default !important;
+}
+
+input, textarea, button, a, [role="button"] {
+    cursor: pointer !important;
+}
+
+/* Anti-screenshot protection */
+@supports (backdrop-filter: blur(0)) {
+    body {
+        backdrop-filter: blur(0.1px);
+    }
+}
+
+/* Disable common inspection shortcuts */
+body {
+    -webkit-app-region: no-drag;
+}
+
+/* Hide when developer tools might be open */
+@media (max-height: 500px) {
+    .main-content {
+        filter: blur(5px);
+    }
+    
+    .main-content::before {
+        content: "⚠️ Developer tools detected. Close to continue.";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255,0,0,0.9);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        z-index: 99999;
+        font-size: 18px;
+        text-align: center;
+        font-weight: bold;
+    }
+}

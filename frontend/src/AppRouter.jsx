@@ -18,8 +18,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import EnhancedDemo from './pages/EnhancedDemo';
 import GDPRPage from './pages/GDPR';
 import Privacy from './pages/Privacy';
+import TermsOfService from './pages/TermsOfService';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
+import CopyrightNotice from './components/CopyrightNotice';
 import GoogleAnalytics, { trackNavigation } from './utils/analytics';
 
 const AppRouter = () => {
@@ -157,11 +159,15 @@ const AppContent = ({ chatExpanded }) => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/gdpr" element={<GDPRPage />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<TermsOfService />} />
         </Routes>
       </main>
       
       {/* Footer appears at bottom of all pages except chatbot (chatbot has integrated footer) */}
       {location.pathname !== '/chatbot' && <Footer />}
+      
+      {/* Copyright notice appears on all pages */}
+      <CopyrightNotice />
     </div>
   );
 };

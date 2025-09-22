@@ -126,6 +126,24 @@ const Footer = () => {
         {t('footer.gdpr')}
       </Link>
       <Link 
+        to="/terms" 
+        style={linkStyle(location.pathname === '/terms')}
+        onMouseOver={(e) => {
+          e.target.style.color = '#818cf8';
+          e.target.style.borderBottomColor = '#818cf8';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.color = location.pathname === '/terms' 
+            ? '#818cf8' 
+            : '#ffffff';
+          e.target.style.borderBottomColor = location.pathname === '/terms' 
+            ? '#818cf8' 
+            : 'transparent';
+        }}
+      >
+        Terms
+      </Link>
+      <Link 
         to="/contact" 
         onClick={handleContactClick}
         style={linkStyle(location.pathname === '/contact')}

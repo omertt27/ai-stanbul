@@ -1,0 +1,56 @@
+# AI Istanbul - Git Attributes for Security
+# ==============================================
+# This file prevents sensitive files from being tracked
+
+# Environment files - never track
+.env filter=git-crypt diff=git-crypt
+.env.* filter=git-crypt diff=git-crypt
+backend/.env filter=git-crypt diff=git-crypt
+backend/.env.* filter=git-crypt diff=git-crypt
+
+# Database files - never track
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Log files - treat as binary to prevent merge conflicts
+*.log binary
+
+# Credential files
+credentials/** filter=git-crypt diff=git-crypt
+backend/credentials/** filter=git-crypt diff=git-crypt
+
+# Source maps - don't track in production
+*.map binary
+
+# Force LF line endings for critical files
+*.js text eol=lf
+*.jsx text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+
+# Prevent tracking of backup files
+*.bak binary export-ignore
+*_backup.* binary export-ignore
+*.old binary export-ignore
