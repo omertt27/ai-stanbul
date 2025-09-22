@@ -871,24 +871,14 @@ Money-Saving Tips:
 - Local markets for fresh, affordable produce"""
         return clean_text_formatting(response)
 
-    # Default response for unclear queries
+    # For all other queries (including casual conversation), return None to pass to OpenAI
     else:
-        # Check if the input is very short or unclear
-        if len(user_input.strip()) < 3 or not any(char.isalpha() for char in user_input):
+        # Only return fallback for extremely short or non-alphabetic inputs
+        if len(user_input.strip()) < 2 or not any(char.isalpha() for char in user_input):
             return "Sorry, I couldn't understand. Can you type again?"
         
-        return f"""Sorry, I couldn't understand your request about "{user_input}". Can you type again?
-
-I can help you with:
-
-Restaurants - "restaurants in Kadıköy" or "Turkish cuisine"
-Museums & Attractions - "museums in Istanbul" or "Hagia Sophia"
-Districts - "best neighborhoods" or "Sultanahmet area"
-Transportation - "how to get around" or "metro system"
-Shopping - "Grand Bazaar" or "where to shop"
-Nightlife - "best bars" or "Beyoğlu nightlife"
-
-Please ask me something more specific about Istanbul!"""
+        # Return None to indicate this should go to OpenAI for natural conversation
+        return None
 
 def create_fuzzy_keywords():
     """Create a comprehensive list of keywords for fuzzy matching"""
@@ -2173,7 +2163,7 @@ Use current weather information to enhance your recommendations when appropriate
                         structured_logger.info(
                             "Fallback response generated",
                             session_id=session_id,
-                            response_length=len(final_fallback),
+                            response_length=len(final_fallback or ""),
                             source="fallback",
                             reason="empty_openai_response"
                         )
@@ -2197,7 +2187,7 @@ Use current weather information to enhance your recommendations when appropriate
                     structured_logger.info(
                         "Fallback response generated",
                         session_id=session_id,
-                        response_length=len(final_response),
+                        response_length=len(final_response or ""),
                         source="fallback",
                         reason="openai_api_error"
                     )
