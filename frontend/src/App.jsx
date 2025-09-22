@@ -106,9 +106,9 @@ const App = () => {
     // Track the search event
     trackChatEvent('search_initiated', query);
     
-    // Store the query and navigate to chatbot page for consistent experience
+    // Store the query and navigate to chat page for consistent experience
     localStorage.setItem('pending_chat_query', query);
-    navigate('/chatbot');
+    navigate('/chat');
     
     // Reset loading state after navigation
     setTimeout(() => setSearchLoading(false), 1000);
@@ -116,7 +116,7 @@ const App = () => {
 
   const handleQuickStart = (quickQuery) => {
     setQuery(quickQuery);
-    // Store the query for the chatbot page
+    // Store the query for the chat page
     localStorage.setItem('pending_chat_query', quickQuery);
   };
 

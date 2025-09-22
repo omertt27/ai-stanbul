@@ -190,7 +190,7 @@ const NavBar = ({ hideLogo = false }) => {
               gap: '0.5rem',
               alignItems: 'center',
             }}>
-              <Link to="/chatbot" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chatbot')}>{t('navigation.chat')}</Link>
+              <Link to="/chat" onClick={handleChatClick} className="navbar-link" style={linkStyle(location.pathname === '/chat')}>{t('navigation.chat')}</Link>
               <Link to="/blog" onClick={handleBlogClick} className="navbar-link" style={linkStyle(location.pathname.startsWith('/blog'))}>{t('navigation.blog')}</Link>
               <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>{t('navigation.about')}</Link>
               <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>{t('navigation.faq')}</Link>
@@ -291,7 +291,7 @@ const NavBar = ({ hideLogo = false }) => {
         }}>
           {/* Chat Tab */}
           <Link 
-            to="/chatbot" 
+            to="/chat" 
             onClick={handleChatClick}
             style={{
               display: 'flex',
@@ -299,7 +299,7 @@ const NavBar = ({ hideLogo = false }) => {
               alignItems: 'center',
               gap: '0.25rem',
               textDecoration: 'none',
-              color: location.pathname === '/chatbot' ? '#8b5cf6' : '#9ca3af',
+              color: location.pathname === '/chat' ? '#8b5cf6' : '#9ca3af',
               transition: 'all 0.2s ease',
               padding: '0.5rem',
               borderRadius: '8px',

@@ -66,7 +66,7 @@ const FloatingLandmarks = ({ onQuickStart }) => {
 
   const handleLandmarkClick = (landmark) => {
     onQuickStart(landmark.query);
-    navigate('/chatbot');
+    navigate('/chat');
   };
 
   return (

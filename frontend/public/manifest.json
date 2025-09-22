@@ -1,0 +1,26 @@
+{
+  "name": "A/ST - AI Istanbul Travel Assistant",
+  "short_name": "A/ST",
+  "description": "Your intelligent travel companion for Istanbul",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f23",
+  "theme_color": "#1a1a3a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon-16x16.svg",
+      "sizes": "16x16",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}

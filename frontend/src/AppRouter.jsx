@@ -63,8 +63,8 @@ const AppContent = ({ chatExpanded }) => {
   // Hide navbar logo on main page only, show on all other pages
   const shouldHideLogo = location.pathname === '/';
   
-  // Hide navbar for chatbot page (it has its own navigation), but show footer everywhere
-  const shouldHideNavbar = location.pathname === '/chatbot';
+  // Hide navbar for chat page (it has its own navigation), but show footer everywhere
+  const shouldHideNavbar = location.pathname === '/chat';
 
   // Global navigation handler to ensure clean state transitions
   useEffect(() => {
@@ -151,7 +151,7 @@ const AppContent = ({ chatExpanded }) => {
       <main className="main-content-area">
         <Routes>
           <Route path="/" element={<App />} />
-          <Route path="/chat" element={<App />} />
+          <Route path="/chat" element={<Chatbot />} />
           <Route path="/test" element={<TestComponent />} />
           <Route path="/simple" element={<SimpleChatbot />} />
           <Route path="/chatbot" element={<Chatbot />} />
@@ -172,8 +172,8 @@ const AppContent = ({ chatExpanded }) => {
         </Routes>
       </main>
       
-      {/* Footer appears at bottom of all pages except chatbot (chatbot has integrated footer) */}
-      {location.pathname !== '/chatbot' && <Footer />}
+      {/* Footer appears at bottom of all pages except chat (chat has integrated footer) */}
+      {location.pathname !== '/chat' && location.pathname !== '/chatbot' && <Footer />}
       
       {/* Copyright notice appears on all pages */}
       <CopyrightNotice />

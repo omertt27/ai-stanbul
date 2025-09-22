@@ -115,12 +115,12 @@ const InteractiveMainPage = ({ onQuickStart }) => {
   const handleDistrictClick = (district) => {
     const query = t('homepage.districtQuery', { districtName: district.name });
     onQuickStart(query);
-    navigate('/chatbot');
+    navigate('/chat');
   };
 
   const handleQuickAction = (suggestion) => {
     onQuickStart(suggestion.query);
-    navigate('/chatbot');
+    navigate('/chat');
   };
 
   return (

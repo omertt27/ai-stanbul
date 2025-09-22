@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="32" height="32" rx="6" fill="url(#gradient)"/>
+<defs>
+  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" style="stop-color:#0f0f23"/>
+    <stop offset="50%" style="stop-color:#1a1a3a"/>
+    <stop offset="100%" style="stop-color:#0a0a1a"/>
+  </linearGradient>
+</defs>
+<!-- A/ST Text -->
+<text x="16" y="12" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#c7c9e2" text-anchor="middle">A/ST</text>
+<!-- Small sparkles -->
+<circle cx="6" cy="24" r="0.5" fill="#ffd700" opacity="0.8"/>
+<circle cx="26" cy="8" r="0.5" fill="#ffd700" opacity="0.6"/>
+<circle cx="24" cy="26" r="0.8" fill="#ffffff" opacity="0.9"/>
+<circle cx="8" cy="6" r="0.3" fill="#ffd700" opacity="0.7"/>
+</svg>
