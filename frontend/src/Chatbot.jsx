@@ -3,9 +3,14 @@ import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation } from './utils/analytics';
 import NavBar from './components/NavBar';
-import Footer from './components/Footer';
-import TypingAnimation from './components/TypingAnimation';
-import { LoadingSkeleton } from './components/LoadingSkeletons';
+import { 
+  TypingSimulator, 
+  StreamingText, 
+  TypingIndicator, 
+  LoadingSpinner, 
+  ConnectionStatus 
+} from './components/TypingAnimation';
+import { LoadingSkeleton, ChatMessageSkeleton } from './components/LoadingSkeletons';
 import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
 import './App.css';
 
@@ -288,14 +293,78 @@ function Chatbot({ onDarkModeToggle }) {
     }
   };
 
-  // Auto-scroll to bottom when new messages arrive - always track to bottom
+  // Refs for scroll control
+  const chatContainerRef = useRef(null);
+  const [userScrolling, setUserScrolling] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const scrollTimeoutRef = useRef(null);
+
+  // Detect user scrolling behavior
+  useEffect(() => {
+    const handleScroll = () => {
+      setUserScrolling(true);
+      
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Reset user scrolling flag after shorter time during AI responses
+      const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
+      const timeoutDuration = isAIResponding ? 1000 : 2000; // 1 second during AI responses, 2 seconds normally
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        setUserScrolling(false);
+      }, timeoutDuration);
+    };
+
+    // Add scroll listener to chat container and window
+    const chatContainer = document.querySelector('.chatbot-messages');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      if (chatContainer) {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive - more aggressive during AI responses
   useEffect(() => {
     if (messagesEndRef.current) {
-      setTimeout(() => {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 100);
+      // Get the chat messages container
+      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+      if (chatContainer) {
+        // During AI responses (loading or streaming), always scroll to bottom unless user is actively scrolling
+        const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
+        
+        if (isAIResponding && !userScrolling) {
+          // During AI response, always scroll to bottom regardless of position
+          setTimeout(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }, 50); // Faster scroll during AI responses
+        } else if (!userScrolling && !inputFocused && !sendingMessage) {
+          // For regular messages, check if user is near the bottom
+          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+          
+          if (isNearBottom) {
+            setTimeout(() => {
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+          }
+        }
+      }
     }
-  }, [messages.length]); // Trigger on every new message
+  }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
 
   // Removed suggestions functionality as requested
 
@@ -339,11 +408,15 @@ function Chatbot({ onDarkModeToggle }) {
       return;
     }
     
+    // Set sending flag to prevent auto-scroll during message sending
+    setSendingMessage(true);
+    
     // Record user interaction
     recordUserInteraction('message_sent', { messageLength: userInput.length });
     
     // Enhanced input validation
     if (!validateInput(userInput)) {
+      setSendingMessage(false);
       return;
     }
 
@@ -383,7 +456,7 @@ function Chatbot({ onDarkModeToggle }) {
           
           // If last message is assistant and streaming, update it
           if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
-            return [
+            const updatedMessages = [
               ...prevMessages.slice(0, -1),
               { 
                 role: 'assistant', 
@@ -392,9 +465,21 @@ function Chatbot({ onDarkModeToggle }) {
                 isTyping: streamedContent.length < 50 // Show typing animation for short responses
               }
             ];
+            
+            // Auto-scroll during streaming if user is not actively scrolling
+            if (!userScrolling && messagesEndRef.current) {
+              setTimeout(() => {
+                const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
+                if (chatContainer) {
+                  chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+              }, 10); // Very fast scroll during streaming
+            }
+            
+            return updatedMessages;
           } else {
             // Add new assistant message
-            return [
+            const newMessages = [
               ...prevMessages,
               { 
                 role: 'assistant', 
@@ -403,6 +488,18 @@ function Chatbot({ onDarkModeToggle }) {
                 isTyping: streamedContent.length < 50
               }
             ];
+            
+            // Auto-scroll for new streaming message
+            if (!userScrolling && messagesEndRef.current) {
+              setTimeout(() => {
+                const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
+                if (chatContainer) {
+                  chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+              }, 10);
+            }
+            
+            return newMessages;
           }
         });
       });
@@ -426,6 +523,7 @@ function Chatbot({ onDarkModeToggle }) {
     } finally {
       setLoading(false);
       setIsTyping(false);
+      setSendingMessage(false); // Reset sending flag
       
       // Finalize the last message by removing streaming flag
       setMessages(prev => {
@@ -446,10 +544,8 @@ function Chatbot({ onDarkModeToggle }) {
         return prev;
       });
       
-      // Auto-scroll to bottom after message completion
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 200);
+      // Note: Auto-scroll is now handled by the useEffect hook above
+      // which respects user scrolling behavior
     }
   }
 
@@ -794,6 +890,16 @@ function Chatbot({ onDarkModeToggle }) {
         sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
       }`}>
         <div className="chatbot-purple-box">
+          
+          {/* Connection Status Indicator */}
+          <div style={{ 
+            position: 'absolute', 
+            top: '16px', 
+            right: '16px', 
+            zIndex: 10 
+          }}>
+            <ConnectionStatus isConnected={!loading} />
+          </div>
 
           {/* Chat Messages Area - Separate from Input with Scrolling */}
           <div className="chatbot-messages chatbot-scrollable">
@@ -866,9 +972,10 @@ function Chatbot({ onDarkModeToggle }) {
                   }`}>
                     <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
                       {msg.role === 'assistant' && msg.isTyping ? (
-                        <TypingAnimation 
+                        <StreamingText 
                           text={msg.content} 
                           speed={30}
+                          enableStreamingGlow={true}
                           onComplete={() => {
                             // Mark typing as complete for this message
                             setMessages(prev => prev.map((m, i) => 
@@ -935,13 +1042,13 @@ function Chatbot({ onDarkModeToggle }) {
                 </div>
                 <div className="flex justify-start">
                   <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
-                    <LoadingSkeleton variant="message" />
+                    <ChatMessageSkeleton variant="enhanced" />
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Typing indicator when KAM is thinking */}
+            {/* Enhanced typing indicator when KAM is thinking */}
             {isTyping && !loading && (
               <div className="mb-4">
                 <div className="flex justify-start">
@@ -951,9 +1058,7 @@ function Chatbot({ onDarkModeToggle }) {
                 </div>
                 <div className="flex justify-start">
                   <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
-                    <div className="text-sm opacity-70">
-                      KAM is thinking...
-                    </div>
+                    <TypingIndicator variant="thinking" />
                   </div>
                 </div>
               </div>
@@ -990,6 +1095,22 @@ function Chatbot({ onDarkModeToggle }) {
                   setInput(e.target.value);
                   if (inputError) setInputError(''); // Clear error when typing
                 }}
+                onFocus={(e) => {
+                  setInputFocused(true);
+                  // Prevent browser's default scroll-to-focus behavior
+                  e.preventDefault();
+                  // Prevent any scroll triggered by focus
+                  const currentScrollY = window.scrollY;
+                  const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
+                  setTimeout(() => {
+                    window.scrollTo(0, currentScrollY);
+                    const chatContainer = e.target.closest('.chatbot-messages');
+                    if (chatContainer) {
+                      chatContainer.scrollTop = currentScrollTop;
+                    }
+                  }, 0);
+                }}
+                onBlur={() => setInputFocused(false)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !loading) {
                     e.preventDefault();
@@ -1005,7 +1126,7 @@ function Chatbot({ onDarkModeToggle }) {
                 autoFocus={false}
               />
               
-              {/* Send Button */}
+              {/* Enhanced Send Button */}
               <button 
                 onClick={() => {
                   if (!loading && input.trim()) {
@@ -1013,13 +1134,11 @@ function Chatbot({ onDarkModeToggle }) {
                   }
                 }} 
                 disabled={loading || !input.trim()}
-                className="kam-send-button"
+                className={`kam-send-button ${loading ? 'send-button-loading' : ''}`}
                 aria-label="Send message"
               >
                 {loading ? (
-                  <div className="kam-loading-spinner">
-                    <div className="kam-spinner-ring"></div>
-                  </div>
+                  <LoadingSpinner variant="spinner" size="medium" />
                 ) : (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -1032,14 +1151,6 @@ function Chatbot({ onDarkModeToggle }) {
           {/* Quick suggestions (optional) - removed from here as moved to welcome screen */}
         </div>
         </div>
-        
-        {/* Gap between chat and footer */}
-        <div className="chatbot-footer-gap"></div>
-      </div>
-      
-      {/* Footer with proper positioning */}
-      <div className="chatbot-footer-container">
-        <Footer />
       </div>
     </div>
   );

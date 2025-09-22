@@ -308,6 +308,61 @@
   border: none !important;
 }
 
+/* Prevent auto-scroll behavior when search input is focused */
+.chatbot-page .kam-input-field:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
+  scroll-behavior: auto !important;
+}
+
+/* Prevent page from scrolling when any input in chatbot is focused */
+.chatbot-page input:focus {
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
+  scroll-behavior: auto !important;
+}
+
+/* Prevent any automatic scrolling in chatbot container */
+.chatbot-page * {
+  scroll-behavior: auto !important;
+}
+
+/* Disable focus scrolling for inputs */
+.chatbot-page input,
+.chatbot-page textarea,
+.chatbot-page button {
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
+}
+
+/* Override browser's default focus scroll behavior */
+.chatbot-page *:focus {
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
+}
+
+/* Ensure chatbot container doesn't auto-scroll */
+.chatbot-main-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 85vh; /* Increased chatbot height for longer chat experience */
+  max-width: 1200px;
+  width: 100%;
+  margin: 4.5rem auto 2rem auto; /* Moved up 10px (6rem = 96px, 5.5rem = 88px) */
+  overflow: hidden;
+  justify-content: flex-end;
+  padding: 0 1rem;
+  scroll-behavior: auto !important; /* Disable smooth scrolling */
+}
+
+.chatbot-purple-box:focus-within {
+  scroll-behavior: auto !important;
+}
+
 /* Universal search input override for chat page - consistent styling */
 .chatbot-page input[type="text"]:not(.searchbar input),
 .chatbot-page .kam-input-field {
@@ -348,37 +403,42 @@ body {
   padding: 0;
 }
 
-/* Prevent scrolling on chatbot page */
+/* Fixed chatbot page body - No page scrolling */
 body.chatbot-page {
-  overflow: hidden !important;
-  height: 100vh !important;
-  position: fixed !important;
+  overflow-y: hidden !important; /* Prevent page scrolling */
+  overflow-x: hidden !important; /* Prevent horizontal scrolling */
+  height: 100vh !important; /* Fixed viewport height */
+  position: fixed !important; /* Fixed position to prevent scrolling */
   width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
 html.chatbot-page {
-  overflow: hidden !important;
-  height: 100vh !important;
+  overflow-y: hidden !important; /* Prevent page scrolling */
+  overflow-x: hidden !important; /* Prevent horizontal scrolling */
+  height: 100vh !important; /* Fixed viewport height */
   margin: 0 !important;
   padding: 0 !important;
 }
 
-/* Chatbot page layout container */
+/* Chatbot page layout container - Fixed viewport layout */
 .chatbot-page {
-  height: 100vh !important;
+  height: 100vh !important; /* Fixed viewport height */
   display: flex !important;
   flex-direction: column !important;
-  overflow: hidden !important;
+  overflow-y: hidden !important; /* Prevent page scrolling */
+  overflow-x: hidden !important; /* Prevent horizontal scrolling */
   margin: 0 !important;
   padding: 0 !important;
-  position: fixed !important;
+  position: fixed !important; /* Fixed position to prevent scrolling */
+  background: #111827 !important;
+  scroll-behavior: auto !important;
+  scroll-padding: 0 !important;
+  scroll-margin: 0 !important;
+  width: 100% !important;
   top: 0 !important;
   left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: #111827 !important; /* Added background to match about page */
 }
 
 
@@ -387,10 +447,10 @@ html.chatbot-page {
   background: none;
 }
 
-/* Ensure no scrolling on chatbot page */
+/* Fixed chatbot page root container */
 .chatbot-page #root {
-  height: 100vh !important;
-  overflow: hidden !important;
+  height: 100vh !important; /* Fixed viewport height */
+  overflow-y: hidden !important; /* Prevent content scrolling */
 }
 
 .chat-container {
@@ -443,21 +503,22 @@ html.chatbot-page {
 
 /* Missing Chatbot CSS Classes */
 
-/* Main chat container - Made shorter by 10px more */
+/* Main chat container - Fixed viewport layout */
 .chatbot-main-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(110vh - 94px); /* Reduced by 10px more (was 84px, now 94px) for shorter chatbot */
-  max-width: 1000px; /* Increased from 1000px to 1200px for more width */
+  height: calc(100vh - 5rem); /* Fixed height accounting for navbar */
+  max-width: 1200px;
   width: 100%;
-  margin: calc(2rem + 10px) auto 0 auto; /* Added 20px more space at top */
+  margin: 5rem auto 0 auto; /* Top margin for navbar, no bottom margin */
   overflow: hidden;
   justify-content: flex-end;
   padding: 0 1rem;
+  scroll-behavior: auto !important; /* Disable smooth scrolling */
 }
 
-/* Purple box container for chat - Made shorter by 10px more */
+/* Purple box container for chat - Fixed layout */
 .chatbot-purple-box {
   flex: 1;
   background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
@@ -467,20 +528,21 @@ html.chatbot-page {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 1rem 0 1rem 0;
-  max-height: 79vh; /* Reduced from 82vh to 79vh for shorter chatbot */
-  min-height: 375px; /* Reduced from 385px to 375px for shorter minimum size */
+  margin: 0.5rem 0; /* Normal margins for proper spacing */
+  height: calc(100vh - 6rem); /* Fixed height accounting for margins and navbar */
+  position: relative; /* Add relative positioning for absolute search bar */
+  scroll-behavior: auto; /* Prevent smooth scrolling that might cause auto-scroll */
 }
 
-/* Messages container */
+/* Messages container - Fixed layout with internal scrolling */
 .chatbot-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 1.5rem 0.5rem 1.5rem; /* Reduced bottom padding from 1rem to 0.5rem to bring messages closer to search bar */
+  padding: 1rem 1.5rem 80px 1.5rem; /* Add bottom padding to prevent overlap with search bar */
   display: flex;
   flex-direction: column;
-  max-height: 54vh; /* Reduced from 57vh to 54vh for shorter message space */
-  margin-bottom: 0; /* Ensure no bottom margin */
+  height: calc(100% - 80px); /* Full height minus input area */
+  margin-bottom: 0;
 }
 
 /* Scrollable area styling */
@@ -518,67 +580,62 @@ html.chatbot-page {
   opacity: 1;
 }
 
-/* Footer gap for chat page */
-.chatbot-footer-gap {
-  height: calc(2rem - 30px); /* Reduced by 10px to bring chatbot closer to footer */
-}
-
-/* Responsive design for mobile chatbot */
+/* Responsive design for mobile chatbot - Fixed layout */
 @media (max-width: 768px) {
   .chatbot-scrollable {
-    max-height: calc(50vh - 200px); /* Reduced from 60vh for shorter mobile chatbot */
+    height: calc(100% - 70px); /* Fixed height for mobile */
   }
   
   .chatbot-main-container {
-    height: calc(90vh - 64px); /* Reduced by 10px more (was 54px, now 64px) for shorter mobile height */
-    margin: 1rem auto 0 auto;
+    height: calc(100vh - 4rem); /* Fixed mobile height accounting for navbar */
+    margin: 4rem auto 0 auto; /* Top margin for navbar, no bottom margin */
     padding: 0 0.5rem;
-    max-width: 98%; /* Increased from 95% for more mobile width */
-  }
-  
-  .chatbot-footer-gap {
-    height: calc(1rem - 10px); /* Reduced by 10px to bring chatbot closer to footer on mobile */
-  }
-  
-  .chatbot-page footer {
-    padding: 0.75rem 1rem !important;
-    font-size: 0.8rem;
+    max-width: 98%;
   }
   
   .chatbot-purple-box {
-    margin: 0.5rem 0 0.5rem 0;
+    margin: 0.5rem 0; /* Normal margins for mobile */
     border-radius: 1.25rem;
-    max-height: 74vh; /* Reduced from 77vh to 74vh for shorter mobile height */
-    min-height: 325px; /* Reduced from 335px to 325px for shorter minimum size */
+    height: calc(100vh - 5rem); /* Fixed mobile height */
   }
   
   .chatbot-messages {
-    padding: 0.75rem 1rem 0.5rem 1rem; /* Reduced bottom padding for mobile to bring messages closer to search bar */
-    max-height: 49vh; /* Reduced from 52vh to 49vh for shorter mobile message space */
-    margin-bottom: 0; /* Ensure no bottom margin on mobile */
+    padding: 0.75rem 1rem 70px 1rem; /* Add bottom padding to prevent overlap with search bar on mobile */
+    height: calc(100% - 70px); /* Fixed mobile height */
+    margin-bottom: 0;
   }
 }
 
 /* Main Page Search Bar Styles - Integrated within Chatbot */
 .chatbot-page .kam-input-container {
-  position: relative;
-  bottom: auto;
-  left: auto;
+  position: absolute;
+  bottom: 20px; /* Position at bottom of chatbot container */
+  left: 20px;
+  right: 20px;
   transform: none;
   display: flex;
   align-items: center;
-  width: 90%; /* Increased width from 85% to 90% for even longer search bar */
-  max-width: 800px; /* Increased from 1000px to 1200px for even longer search bar */
+  width: calc(100% - 40px); /* Full width minus padding */
+  max-width: none; /* Remove max-width restriction */
   background: rgba(28, 30, 42, 0.98);
   border-radius: 1rem;
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
   padding: 0.5rem 0.75rem; /* Reduced padding from 0.75rem 1rem to make search bar shorter */
   border: 4px solid rgba(99, 102, 241, 0.3);
   min-height: 2.5rem; /* Reduced height from 3rem to 2.5rem for shorter search bar */
-  margin: 2rem auto 3rem auto; /* Reduced top margin and increased bottom margin to move search bar closer to footer */
+  margin: 0; /* Remove all margins since it's positioned absolutely */
   transition: max-width 0.3s cubic-bezier(0.4, 2, 0.6, 1);
   backdrop-filter: none;
-  z-index: auto;
+  z-index: 20; /* Higher z-index to stay above messages */
+  scroll-margin: 0 !important; /* Prevent auto-scroll when focused */
+  scroll-padding: 0 !important; /* Prevent scroll padding */
+}
+
+/* Prevent input container from triggering focus scroll */
+.chatbot-page .kam-input-container:focus-within {
+  scroll-behavior: auto !important;
+  scroll-margin: 0 !important;
+  scroll-padding: 0 !important;
 }
 
 .chatbot-page .kam-input-field {
@@ -594,6 +651,7 @@ html.chatbot-page {
   min-width: 0 !important;
   border-radius: 0 !important;
   box-sizing: border-box !important;
+  scroll-margin: 0 !important; /* Prevent auto-scroll when focused */
 }
 
 .chatbot-page .kam-input-field::placeholder {
@@ -694,10 +752,10 @@ html.chatbot-page {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 }
 
-/* Chatbot Input Area Positioning */
+/* Chatbot Input Area Positioning - Fixed positioning relative to chatbot container */
 .chatbot-page .chatbot-input-area {
   position: absolute;
-  bottom: 40px; /* Reduced from 130px to 40px to move search bar closer to footer */
+  bottom: 15px; /* Proper distance from chatbot bottom */
   left: 0;
   right: 0;
   padding: 0 1rem;
@@ -709,7 +767,11 @@ html.chatbot-page {
   .chatbot-page .kam-input-container {
     padding: 0.4rem 0.6rem; /* Reduced padding for mobile for shorter height */
     min-height: 2.2rem; /* Reduced height for mobile from 2.5rem to 2.2rem */
-    margin: 2.5rem 0.75rem 0.75rem 0.75rem; /* Increased top margin from 1.5rem to 2.5rem for mobile */
+    bottom: 15px; /* Position at bottom of chatbot container on mobile */
+    left: 15px;
+    right: 15px;
+    width: calc(100% - 30px); /* Adjust width for mobile */
+    margin: 0; /* Remove margins for mobile */
   }
   
   .chatbot-page .kam-input-field {
@@ -737,7 +799,11 @@ html.chatbot-page {
   .chatbot-page .kam-input-container {
     padding: 0.4rem 0.6rem; /* Increased padding */
     min-height: 2rem; /* Increased height */
-    margin: 2rem 0.5rem 0.5rem 0.5rem; /* Increased top margin from 1.2rem to 2rem for small mobile */
+    bottom: 10px; /* Position at bottom of chatbot container on small mobile */
+    left: 10px;
+    right: 10px;
+    width: calc(100% - 20px); /* Adjust width for small mobile */
+    margin: 0; /* Remove margins for small mobile */
   }
   
   .chatbot-page .kam-input-field {
@@ -1198,6 +1264,588 @@ html.chatbot-page {
 
 .blog-gallery-item:hover::after {
   opacity: 1;
+}
+
+/* Custom Loading Animations */
+
+/* Enhanced Typing Indicator Animation */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.75rem 1.25rem;
+  background: rgba(25, 26, 28, 0.9);
+  border: 1px solid #3a3b3d;
+  border-radius: 1.25rem;
+  border-bottom-left-radius: 0.25rem;
+  margin-right: auto;
+  max-width: 120px;
+  box-shadow: 0 2px 8px 0 rgba(60, 60, 60, 0.15);
+}
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: #6366f1;
+  border-radius: 50%;
+  animation: typingPulse 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingPulse {
+  0%, 60%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  30% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Enhanced Typing Indicator with Dots */
+.typing-indicator-enhanced {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 20px;
+  margin: 8px 0;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: typingBounce 1.5s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Spinner Loading Animation */
+.spinner-loading {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top: 3px solid #6366f1;
+  border-radius: 50%;
+  animation: spinnerRotate 1s linear infinite;
+  margin: 0 auto;
+}
+
+.spinner-large {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+@keyframes spinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Skeleton Loading for Messages */
+.skeleton-message {
+  background: linear-gradient(
+    90deg,
+    rgba(99, 102, 241, 0.1) 25%,
+    rgba(99, 102, 241, 0.2) 50%,
+    rgba(99, 102, 241, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+  border-radius: 12px;
+  height: 20px;
+  margin: 4px 0;
+}
+
+.skeleton-line-short {
+  width: 60%;
+}
+
+.skeleton-line-medium {
+  width: 80%;
+}
+
+.skeleton-line-long {
+  width: 100%;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Wave Loading Animation */
+.wave-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+}
+
+.wave-bar {
+  width: 4px;
+  height: 20px;
+  background: #6366f1;
+  border-radius: 2px;
+  animation: waveAnimation 1.2s infinite ease-in-out;
+}
+
+.wave-bar:nth-child(1) { animation-delay: -1.1s; }
+.wave-bar:nth-child(2) { animation-delay: -1.0s; }
+.wave-bar:nth-child(3) { animation-delay: -0.9s; }
+.wave-bar:nth-child(4) { animation-delay: -0.8s; }
+.wave-bar:nth-child(5) { animation-delay: -0.7s; }
+
+@keyframes waveAnimation {
+  0%, 40%, 100% {
+    transform: scaleY(0.4);
+    opacity: 0.5;
+  }
+  20% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Bounce Loading Animation */
+.bounce-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.bounce-ball {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: bounceAnimation 1.5s infinite ease-in-out;
+}
+
+.bounce-ball:nth-child(1) { animation-delay: -0.32s; }
+.bounce-ball:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounceAnimation {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Ripple Loading Effect */
+.ripple-loading {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+}
+
+.ripple-circle {
+  position: absolute;
+  border: 2px solid #6366f1;
+  border-radius: 50%;
+  animation: rippleAnimation 1.5s infinite;
+}
+
+.ripple-circle:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ripple-circle:nth-child(2) {
+  animation-delay: -0.5s;
+}
+
+@keyframes rippleAnimation {
+  0% {
+    top: 18px;
+    left: 18px;
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    top: 0;
+    left: 0;
+    width: 36px;
+    height: 36px;
+    opacity: 0;
+  }
+}
+
+/* Breathing Animation for Loading States */
+.breathing-animation {
+  animation: breathingEffect 2s infinite ease-in-out;
+}
+
+@keyframes breathingEffect {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* Enhanced Typewriter Effect for AI Messages */
+.typewriter-enhanced {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid #6366f1;
+  animation: typewriterEnhanced 2s steps(30, end), blinkCursor 1s step-end infinite;
+}
+
+@keyframes typewriterEnhanced {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blinkCursor {
+  0%, 50% {
+    border-color: #6366f1;
+  }
+  51%, 100% {
+    border-color: transparent;
+  }
+}
+
+/* Pulse Loading for Send Button */
+.send-button-loading {
+  animation: pulseGlow 1.5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    transform: scale(1.05);
+  }
+}
+
+/* Loading Overlay for Chat Container */
+.chat-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(28, 30, 42, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.loading-text {
+  color: #6366f1;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-top: 16px;
+  animation: fadeInOut 2s infinite ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Gradient Loading Bar */
+.gradient-loading-bar {
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #6366f1,
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: gradientMove 1.5s infinite linear;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Floating Dots Animation */
+.floating-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.floating-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: floatingAnimation 2s infinite ease-in-out;
+}
+
+.floating-dot:nth-child(1) { animation-delay: 0s; }
+.floating-dot:nth-child(2) { animation-delay: 0.2s; }
+.floating-dot:nth-child(3) { animation-delay: 0.4s; }
+.floating-dot:nth-child(4) { animation-delay: 0.6s; }
+
+@keyframes floatingAnimation {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-15px);
+    opacity: 1;
+  }
+}
+
+/* Thinking Animation for AI Processing */
+.thinking-animation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 20px;
+  margin: 8px 0;
+}
+
+.thinking-brain {
+  font-size: 20px;
+  animation: thinkingPulse 1.5s infinite ease-in-out;
+}
+
+.thinking-text {
+  color: #6366f1;
+  font-style: italic;
+  animation: fadeInOut 2s infinite ease-in-out;
+}
+
+@keyframes thinkingPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Message Streaming Animation */
+.message-streaming {
+  background: linear-gradient(
+    90deg,
+    rgba(99, 102, 241, 0.05),
+    rgba(99, 102, 241, 0.15),
+    rgba(99, 102, 241, 0.05)
+  );
+  background-size: 200% 100%;
+  animation: streamingGlow 2s infinite linear;
+  border-left: 3px solid #6366f1;
+  transition: all 0.3s ease;
+}
+
+@keyframes streamingGlow {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Connection Status Indicator */
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 20px;
+  margin: 8px 0;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: connectionPulse 2s infinite ease-in-out;
+}
+
+.connection-text {
+  color: #22c55e;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+@keyframes connectionPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Disconnected State */
+.connection-indicator.disconnected {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.connection-indicator.disconnected .connection-dot {
+  background: #ef4444;
+  animation: disconnectedBlink 1s infinite ease-in-out;
+}
+
+.connection-indicator.disconnected .connection-text {
+  color: #ef4444;
+}
+
+@keyframes disconnectedBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Loading States for Different Components */
+.avatar-loading {
+  background: linear-gradient(
+    45deg,
+    rgba(99, 102, 241, 0.1),
+    rgba(99, 102, 241, 0.3),
+    rgba(99, 102, 241, 0.1)
+  );
+  background-size: 200% 200%;
+  animation: avatarShimmer 2s infinite ease-in-out;
+}
+
+@keyframes avatarShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Utility Classes for Loading States */
+.loading-opacity {
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.loading-blur {
+  filter: blur(1px);
+  transition: filter 0.3s ease;
+}
+
+.loading-scale {
+  transform: scale(0.98);
+  transition: transform 0.3s ease;
+}
+
+/* Responsive Loading Animations */
+@media (max-width: 768px) {
+  .typing-indicator-enhanced {
+    padding: 8px 12px;
+  }
+  
+  .wave-loading {
+    padding: 12px;
+  }
+  
+  .floating-dots {
+    padding: 16px;
+  }
+  
+  .thinking-animation {
+    padding: 8px 12px;
+  }
 }
 
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [showFooter, setShowFooter] = useState(false);
   
@@ -85,7 +87,7 @@ const Footer = () => {
             : 'transparent';
         }}
       >
-        Sources
+        {t('footer.sources')}
       </Link>
       <Link 
         to="/privacy" 
@@ -103,7 +105,7 @@ const Footer = () => {
             : 'transparent';
         }}
       >
-        Privacy
+        {t('footer.privacy')}
       </Link>
       <Link 
         to="/gdpr" 
@@ -121,7 +123,7 @@ const Footer = () => {
             : 'transparent';
         }}
       >
-        GDPR
+        {t('footer.gdpr')}
       </Link>
       <Link 
         to="/contact" 
@@ -140,7 +142,7 @@ const Footer = () => {
             : 'transparent';
         }}
       >
-        Contact
+        {t('footer.contact')}
       </Link>
     </footer>
   );

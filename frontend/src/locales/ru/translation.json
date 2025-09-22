@@ -519,5 +519,11 @@
     "dataSource": "Источник данных",
     "realTimeMetrics": "Метрики в реальном времени",
     "performanceMetrics": "Метрики производительности"
+  },
+  "footer": {
+    "sources": "Источники",
+    "privacy": "Конфиденциальность",
+    "gdpr": "GDPR",
+    "contact": "Контакты"
   }
 }

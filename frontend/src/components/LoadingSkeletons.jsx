@@ -2,21 +2,26 @@ import React from 'react';
 
 /**
  * Base Skeleton Component
- * Provides the fundamental skeleton loading animation
+ * Provides the fundamental skeleton loading animation with custom shimmer effect
  */
 const Skeleton = ({ 
   className = "",
   width = "100%",
   height = "1rem",
   rounded = "rounded",
-  animated = true
+  animated = true,
+  variant = "shimmer"
 }) => {
+  const animationClass = animated 
+    ? (variant === "shimmer" ? "skeleton-message" : "animate-pulse")
+    : "";
+    
   return (
     <div 
       className={`
         bg-gray-300 
         ${rounded} 
-        ${animated ? 'animate-pulse' : ''} 
+        ${animationClass}
         ${className}
       `}
       style={{ width, height }}
@@ -163,20 +168,59 @@ const BlogPostSkeleton = ({ count = 3, variant = "card" }) => {
 
 /**
  * Chat Message Skeleton
- * Loading skeleton for chat messages
+ * Enhanced loading skeleton for chat messages with multiple animation variants
  */
-const ChatMessageSkeleton = () => {
-  return (
-    <div className="flex space-x-3 p-4">
-      <Skeleton width="40px" height="40px" rounded="rounded-full" />
-      <div className="flex-1 space-y-2">
-        <Skeleton width="25%" height="1rem" />
-        <div className="space-y-1">
-          <Skeleton width="90%" height="1rem" />
-          <Skeleton width="75%" height="1rem" />
-          <Skeleton width="60%" height="1rem" />
-        </div>
+const ChatMessageSkeleton = ({ variant = "enhanced", count = 1 }) => {
+  if (variant === "lines") {
+    return (
+      <div className="space-y-2 p-4">
+        {Array.from({ length: count }, (_, i) => (
+          <div key={i} className="space-y-2">
+            <div className="skeleton-message skeleton-line-long"></div>
+            <div className="skeleton-message skeleton-line-medium"></div>
+            <div className="skeleton-message skeleton-line-short"></div>
+          </div>
+        ))}
       </div>
+    );
+  }
+
+  if (variant === "thinking") {
+    return (
+      <div className="thinking-animation">
+        <span className="thinking-brain">🧠</span>
+        <span className="thinking-text">KAM is processing your request...</span>
+      </div>
+    );
+  }
+
+  if (variant === "enhanced") {
+    return (
+      <div className="typing-indicator-enhanced">
+        <div className="typing-dots">
+          <div className="typing-dot"></div>
+          <div className="typing-dot"></div>
+          <div className="typing-dot"></div>
+        </div>
+        <span style={{ color: '#6366f1', fontSize: '0.9rem', marginLeft: '8px' }}>
+          KAM is thinking...
+        </span>
+      </div>
+    );
+  }
+
+  // Default variant with bounce animation
+  return (
+    <div className="flex items-center space-x-3">
+      <div className="flex space-x-1.5">
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0.2s', animationDuration: '1.4s' }} />
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0.4s', animationDuration: '1.4s' }} />
+      </div>
+      <span className="text-sm text-gray-400 opacity-80">KAM is thinking...</span>
     </div>
   );
 };
@@ -206,20 +250,20 @@ const SearchResultsSkeleton = ({ count = 5 }) => {
 
 /**
  * Typing Indicator Skeleton
- * Shows when AI is thinking/typing
+ * Modern typing indicator with bouncing dots
  */
 const TypingIndicator = ({ className = "" }) => {
   return (
-    <div className={`flex items-center space-x-2 p-4 ${className}`}>
-      <div className="flex space-x-1">
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
-             style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
-             style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
-             style={{ animationDelay: '300ms' }} />
+    <div className={`flex items-center space-x-3 ${className}`}>
+      <div className="flex space-x-1.5">
+        <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+        <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0.2s', animationDuration: '1.4s' }} />
+        <div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" 
+             style={{ animationDelay: '0.4s', animationDuration: '1.4s' }} />
       </div>
-      <span className="text-sm text-gray-500 ml-2">AI is thinking...</span>
+      <span className="text-sm text-gray-400">AI is thinking...</span>
     </div>
   );
 };

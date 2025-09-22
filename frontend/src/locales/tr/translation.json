@@ -519,5 +519,11 @@
     "dataSource": "Veri Kaynağı",
     "realTimeMetrics": "Gerçek Zamanlı Metrikler",
     "performanceMetrics": "Performans Metrikleri"
+  },
+  "footer": {
+    "sources": "Kaynaklar",
+    "privacy": "Gizlilik",
+    "gdpr": "KVKK",
+    "contact": "İletişim"
   }
 }

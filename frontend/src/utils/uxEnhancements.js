@@ -74,7 +74,7 @@ export const getSkeletonType = (query) => {
  * Enhanced API wrapper with UX improvements
  */
 export class EnhancedAPI {
-  constructor(baseUrl = 'http://localhost:8001') {
+  constructor(baseUrl = 'http://localhost:8000') {
     this.baseUrl = baseUrl;
   }
 

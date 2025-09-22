@@ -531,5 +531,11 @@
     "dataSource": "Datenquelle",
     "realTimeMetrics": "Echtzeit-Metriken",
     "performanceMetrics": "Leistungsmetriken"
+  },
+  "footer": {
+    "sources": "Quellen",
+    "privacy": "Datenschutz",
+    "gdpr": "DSGVO",
+    "contact": "Kontakt"
   }
 }

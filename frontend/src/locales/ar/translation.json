@@ -519,5 +519,11 @@
     "dataSource": "مصدر البيانات",
     "realTimeMetrics": "المقاييس في الوقت الفعلي",
     "performanceMetrics": "مقاييس الأداء"
+  },
+  "footer": {
+    "sources": "المصادر",
+    "privacy": "الخصوصية",
+    "gdpr": "حماية البيانات",
+    "contact": "اتصل بنا"
   }
 }

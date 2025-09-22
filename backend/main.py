@@ -369,8 +369,14 @@ if AI_CACHE_ENABLED:
     try:
         # Try to initialize with Redis, fallback to memory-only if Redis unavailable
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        ai_cache_service = init_ai_cache_service(redis_url)  # type: ignore
+        # Use higher rate limits for development/testing
+        ai_cache_service = init_ai_cache_service(
+            redis_url=redis_url,
+            rate_limit_per_user=100,  # 100 requests per user per hour
+            rate_limit_per_ip=500     # 500 requests per IP per hour
+        )  # type: ignore
         print(f"✅ AI Cache Service initialized with Redis: {redis_url}")
+        print(f"📊 Rate limits: 100 per user/hour, 500 per IP/hour")
     except Exception as e:
         print(f"⚠️ AI Cache Service initialized without Redis: {e}")
         ai_cache_service = get_ai_cache_service()  # type: ignore
@@ -1104,8 +1110,9 @@ async def ai_istanbul_router(request: Request):
         user_input = clean_text_formatting(user_input)
         print(f"🛡️ Processing sanitized input: {user_input}")
 
-        # --- AI Cache and Rate Limiting ---
-        if ai_cache_service and AI_CACHE_ENABLED:
+        # --- AI Cache and Rate Limiting (DISABLED FOR TESTING) ---
+        # Temporarily disable rate limiting for development/testing
+        if False and ai_cache_service and AI_CACHE_ENABLED:
             # Get client IP address for rate limiting
             client_ip = request.client.host if hasattr(request, 'client') and request.client else "127.0.0.1"
             
@@ -2142,14 +2149,16 @@ async def ai_istanbul_stream(request: Request):
             async def json(self) -> dict: ...
         
         class DummyRequest:
-            def __init__(self, json_data: dict):
+            def __init__(self, json_data: dict, original_request: Request):
                 self._json = json_data
+                self.headers = original_request.headers
+                self.client = original_request.client
             async def json(self) -> dict:
                 return self._json
         
-        dummy_request = DummyRequest({"user_input": user_input})
+        dummy_request = DummyRequest({"user_input": user_input}, request)
         ai_response = await ai_istanbul_router(dummy_request)  # type: ignore
-        message = ai_response.get("message", "") if isinstance(ai_response, dict) else str(ai_response)
+        message = ai_response.get("response", ai_response.get("message", "")) if isinstance(ai_response, dict) else str(ai_response)
         if not message:
             message = "Sorry, I couldn't generate a response."
         return StreamingResponse(stream_response(message), media_type="text/plain")
