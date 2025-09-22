@@ -42,17 +42,17 @@ idna>=3.4
 certifi>=2023.0.0
 
 # Rate limiting and security
-slowapi>=0.1.9
+slowapi==0.1.9
 
 # Redis with proper version compatibility
-redis>=4.3.0,<5.0.0
+redis==4.6.0
 
 # Structured logging
-structlog>=23.2.0
+structlog==23.2.0
 
 # HTTP client for advanced features
-aiohttp>=3.9.0
-aiohttp-cors>=0.7.0
+aiohttp==3.9.1
+aiohttp-cors==0.7.0
 
 # Google Analytics Data API
 google-analytics-data>=0.18.0

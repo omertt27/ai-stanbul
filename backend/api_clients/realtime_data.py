@@ -11,7 +11,38 @@ from typing import Dict, List, Optional, Any, Tuple
 import logging
 from dataclasses import dataclass
 import asyncio
-import aiohttp
+
+# Optional aiohttp import
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    # Create dummy aiohttp for type hints and graceful degradation
+    class DummyResponse:
+        def __init__(self):
+            self.status = 503
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+        async def json(self):
+            return {}
+    
+    class DummyClientSession:
+        def __init__(self):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+        def get(self, *args, **kwargs):
+            return DummyResponse()
+    
+    class DummyAiohttp:
+        ClientSession = DummyClientSession
+    
+    aiohttp = DummyAiohttp()
+    AIOHTTP_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +122,10 @@ class RealTimeEventClient:
     
     async def _fetch_ticketmaster_events(self, date_range: int, categories: Optional[List[str]]) -> List[EventData]:
         """Fetch events from Ticketmaster API"""
+        if not AIOHTTP_AVAILABLE:
+            logger.warning("aiohttp not available, using fallback method for Ticketmaster API")
+            return self._fetch_ticketmaster_events_sync(date_range, categories)
+            
         url = "https://app.ticketmaster.com/discovery/v2/events.json"
         
         end_date = (datetime.now() + timedelta(days=date_range)).strftime("%Y-%m-%dT23:59:59Z")
@@ -111,14 +146,52 @@ class RealTimeEventClient:
             if tm_categories:
                 params["classificationName"] = ",".join(tm_categories)
         
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return self._parse_ticketmaster_events(data)
-                else:
-                    logger.error(f"Ticketmaster API error: {response.status}")
-                    return []
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return self._parse_ticketmaster_events(data)
+                    else:
+                        logger.error(f"Ticketmaster API error: {response.status}")
+                        return []
+        except Exception as e:
+            logger.error(f"Error fetching Ticketmaster events: {e}")
+            return []
+    
+    def _fetch_ticketmaster_events_sync(self, date_range: int, categories: Optional[List[str]]) -> List[EventData]:
+        """Fallback synchronous method for Ticketmaster API"""
+        url = "https://app.ticketmaster.com/discovery/v2/events.json"
+        
+        end_date = (datetime.now() + timedelta(days=date_range)).strftime("%Y-%m-%dT23:59:59Z")
+        
+        params = {
+            "apikey": self.ticketmaster_key,
+            "city": "Istanbul",
+            "countryCode": "TR",
+            "startDateTime": datetime.now().strftime("%Y-%m-%dT00:00:00Z"),
+            "endDateTime": end_date,
+            "size": 20,
+            "sort": "date,asc"
+        }
+        
+        if categories:
+            # Map categories to Ticketmaster classification
+            tm_categories = self._map_to_ticketmaster_categories(categories)
+            if tm_categories:
+                params["classificationName"] = ",".join(tm_categories)
+        
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                return self._parse_ticketmaster_events(data)
+            else:
+                logger.error(f"Ticketmaster API error: {response.status_code}")
+                return []
+        except Exception as e:
+            logger.error(f"Error fetching Ticketmaster events: {e}")
+            return []
     
     async def _fetch_eventbrite_events(self, date_range: int, categories: Optional[List[str]]) -> List[EventData]:
         """Fetch events from Eventbrite API"""

@@ -14,7 +14,38 @@ from dataclasses import dataclass
 from PIL import Image
 import requests
 import asyncio
-import aiohttp
+
+# Optional aiohttp import
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    # Create dummy aiohttp for graceful degradation
+    class DummyResponse:
+        def __init__(self):
+            self.status = 503
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+        async def json(self):
+            return {}
+    
+    class DummyClientSession:
+        def __init__(self):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+        def post(self, *args, **kwargs):
+            return DummyResponse()
+    
+    class DummyAiohttp:
+        ClientSession = DummyClientSession
+    
+    aiohttp = DummyAiohttp()
+    AIOHTTP_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
