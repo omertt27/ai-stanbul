@@ -394,31 +394,41 @@ def generate_restaurant_info(restaurant_name, location="Istanbul"):
 
 app = FastAPI(title="AIstanbul API")
 
-# Add CORS middleware
+# Add CORS middleware with dynamic origins
+CORS_ORIGINS = [
+    # Development ports
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
+    # Production frontend URLs
+    "https://aistanbul.vercel.app",
+    "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
+    "https://aistanbul-dz2rju4mf-omers-projects-3eea52d8.vercel.app",
+]
+
+# Add environment variable for additional origins
+additional_origins = os.getenv("CORS_ORIGINS", "")
+if additional_origins:
+    CORS_ORIGINS.extend([origin.strip() for origin in additional_origins.split(",")])
+
+print(f"🌐 CORS enabled for origins: {CORS_ORIGINS}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        # Development ports
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002",
-        "http://127.0.0.1:3003",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175",
-        "http://127.0.0.1:5176",
-        # Production frontend URLs
-        "https://aistanbul.vercel.app",
-        "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
