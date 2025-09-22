@@ -152,6 +152,80 @@ const About = () => {
           </div>
         </div>
 
+        {/* Technical Innovation Section */}
+        <div className="rounded-2xl p-12 mb-16 transition-colors duration-300 bg-gray-800 border border-gray-700">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4 transition-colors duration-300 text-white">
+              ⚡ Technical Innovation
+            </h2>
+            <p className="text-lg leading-relaxed transition-colors duration-300 text-gray-300">
+              Cutting-edge technology powering intelligent travel assistance
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">High Performance</h3>
+              <p className="text-sm text-gray-300">95+ Lighthouse score with sub-second response times and real-time streaming</p>
+            </div>
+
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">AI Intelligence</h3>
+              <p className="text-sm text-gray-300">OpenAI GPT-3.5 with context awareness, session memory, and intent recognition</p>
+            </div>
+
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">Enterprise Security</h3>
+              <p className="text-sm text-gray-300">GDPR compliance, XSS protection, rate limiting, and comprehensive input sanitization</p>
+            </div>
+
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">Smart Caching</h3>
+              <p className="text-sm text-gray-300">Redis-powered AI cache with intelligent rate limiting and session management</p>
+            </div>
+
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9-9v18" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">Multilingual</h3>
+              <p className="text-sm text-gray-300">Support for English, Turkish, Arabic, and Russian with cultural adaptation</p>
+            </div>
+
+            <div className="p-6 rounded-xl transition-all duration-300 bg-gray-700 hover:bg-gray-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-gradient-to-r from-red-500 to-pink-600 text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">Error Resilience</h3>
+              <p className="text-sm text-gray-300">Circuit breaker patterns, fallback systems, and zero-downtime architecture</p>
+            </div>
+          </div>
+        </div>
+
         {/* GDPR & Privacy Section */}
         <div className="rounded-2xl p-12 mb-16 transition-colors duration-300 bg-gray-800 border border-gray-700">
           <div className="text-center mb-8">

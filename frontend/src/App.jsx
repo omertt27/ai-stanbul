@@ -167,7 +167,10 @@ const App = () => {
             </div>
           </div>
           
-          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto', padding: '1rem', zIndex: 10}}>
+          {/* Interactive Main Page Content */}
+          <InteractiveMainPage onQuickStart={handleQuickStart} />
+          
+          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '2rem auto 1rem', padding: '1rem', zIndex: 10}}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -176,9 +179,6 @@ const App = () => {
               isLoading={searchLoading}
             />
           </div>
-          
-          {/* Interactive Main Page Content */}
-          <InteractiveMainPage onQuickStart={handleQuickStart} />
         </div>
 
         {/* Cookie Consent Banner */}

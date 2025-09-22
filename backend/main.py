@@ -82,6 +82,9 @@ try:
 except ImportError:
     print("⚠️ AI Cache service not available")
     AI_CACHE_ENABLED = False
+    # Create dummy functions to prevent errors
+    get_ai_cache_service = lambda: None  # type: ignore
+    init_ai_cache_service = lambda *args, **kwargs: None  # type: ignore
 
 # Create dummy objects to prevent errors
 class DummyManager:
