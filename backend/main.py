@@ -208,7 +208,7 @@ except ImportError as e:
 # --- Import Advanced AI Features ---
 try:
     from api_clients.realtime_data import realtime_data_aggregator
-    from api_clients.multimodal_ai import multimodal_ai_service
+    from api_clients.multimodal_ai import get_multimodal_ai_service
     from api_clients.predictive_analytics import predictive_analytics_service
     ADVANCED_AI_ENABLED = True
     print("✅ Advanced AI features loaded successfully")
@@ -217,7 +217,7 @@ except ImportError as e:
     ADVANCED_AI_ENABLED = False
     # Use dummy objects
     realtime_data_aggregator = DummyAdvancedAI()
-    multimodal_ai_service = DummyAdvancedAI()
+    get_multimodal_ai_service = lambda: DummyAdvancedAI()
     predictive_analytics_service = DummyAdvancedAI()
 
 # --- Import Language Processing ---
@@ -2282,7 +2282,8 @@ async def analyze_image(
         image_data = await image.read()
         
         # Analyze image
-        analysis_result = await multimodal_ai_service.analyze_image_comprehensive(
+        multimodal_service = get_multimodal_ai_service()
+        analysis_result = await multimodal_service.analyze_image_comprehensive(
             image_data, context
         )
         
@@ -2325,7 +2326,8 @@ async def analyze_menu(
         image_data = await image.read()
         
         # Analyze menu
-        menu_result = await multimodal_ai_service.analyze_menu_image(image_data)
+        multimodal_service = get_multimodal_ai_service()
+        menu_result = await multimodal_service.analyze_menu_image(image_data)
         
         if not menu_result:
             return {"error": "Menu analysis failed"}
