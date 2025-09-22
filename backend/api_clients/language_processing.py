@@ -9,7 +9,7 @@ contextual understanding specifically tailored for travel-related queries.
 import re
 import json
 from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from fuzzywuzzy import fuzz, process
 
@@ -17,22 +17,22 @@ from fuzzywuzzy import fuzz, process
 @dataclass
 class IntentResult:
     """Result of intent recognition"""
-    intent: str
-    confidence: float
-    entities: Dict[str, List[str]]
-    context: Dict[str, Any]
+    intent: str = ""
+    confidence: float = 0.0
+    entities: Dict[str, List[str]] = field(default_factory=dict)
+    context: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class EntityExtractionResult:
     """Result of entity extraction"""
-    locations: List[str]
-    cuisines: List[str]
-    time_references: List[str]
-    budget_indicators: List[str]
-    interests: List[str]
-    numbers: List[int]
-    sentiment: str  # positive, negative, neutral
+    locations: List[str] = field(default_factory=list)
+    cuisines: List[str] = field(default_factory=list)
+    time_references: List[str] = field(default_factory=list)
+    budget_indicators: List[str] = field(default_factory=list)
+    interests: List[str] = field(default_factory=list)
+    numbers: List[int] = field(default_factory=list)
+    sentiment: str = "neutral"  # positive, negative, neutral
 
 
 class AdvancedLanguageProcessor:

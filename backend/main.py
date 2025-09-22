@@ -21,6 +21,21 @@ from fuzzywuzzy import fuzz, process
 # Load environment variables first, before any other imports
 load_dotenv()
 
+# Add the current directory to Python path for imports (must be before project imports)
+# Handle different deployment scenarios
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+# Also add parent directory for potential nested deployment structures
+parent_dir = os.path.dirname(current_dir)
+backend_in_parent = os.path.join(parent_dir, 'backend')
+if os.path.exists(backend_in_parent) and backend_in_parent not in sys.path:
+    sys.path.insert(0, backend_in_parent)
+
+print(f"Python path configured. Current dir: {current_dir}")
+print(f"Python paths: {[p for p in sys.path[:3]]}")  # Show first 3 paths
+
 # --- Rate Limiting and Security ---
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -65,15 +80,83 @@ except ImportError as e:
     log_api_call = lambda ep: lambda f: f
 
 # --- Project Imports ---
-from database import engine, SessionLocal
-from models import Base, Restaurant, Museum, Place
-from routes import museums, restaurants, places, blog
-from api_clients.google_places import GooglePlacesClient
-from api_clients.weather_enhanced import WeatherClient
-from api_clients.enhanced_api_service import EnhancedAPIService
-from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor
+try:
+    from database import engine, SessionLocal
+    print("✅ Database import successful")
+except ImportError as e:
+    print(f"❌ Database import failed: {e}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Python path: {sys.path[:5]}")  # First 5 paths
+    print(f"Files in current directory: {os.listdir('.')}")
+    raise
+
+try:
+    from models import Base, Restaurant, Museum, Place
+    print("✅ Models import successful")
+except ImportError as e:
+    print(f"❌ Models import failed: {e}")
+    raise
+
+try:
+    from routes import museums, restaurants, places, blog
+    print("✅ Routes import successful")
+except ImportError as e:
+    print(f"❌ Routes import failed: {e}")
+    raise
+try:
+    from api_clients.google_places import GooglePlacesClient  # type: ignore
+    from api_clients.weather_enhanced import WeatherClient  # type: ignore
+    from api_clients.enhanced_api_service import EnhancedAPIService  # type: ignore
+    print("✅ API clients import successful")
+except ImportError as e:
+    print(f"⚠️ API clients import failed (non-critical): {e}")
+    # Create dummy classes for missing API clients
+    class GooglePlacesClient:  # type: ignore
+        def __init__(self, *args, **kwargs): pass
+        async def search_places(self, *args, **kwargs): return []
+        def search_restaurants(self, *args, **kwargs): 
+            return {"results": [], "status": "OK"}
+    
+    class WeatherClient:  # type: ignore
+        def __init__(self, *args, **kwargs): pass
+        async def get_weather(self, *args, **kwargs): return {}
+        def get_istanbul_weather(self, *args, **kwargs): return {}
+        def format_weather_info(self, *args, **kwargs): return "Weather data not available"
+    
+    class EnhancedAPIService:  # type: ignore
+        def __init__(self, *args, **kwargs): pass
+        def search_restaurants_enhanced(self, *args, **kwargs): 
+            return {"results": [], "weather_context": {}}
+
+try:
+    from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor  # type: ignore
+    print("✅ Enhanced input processor import successful")
+except ImportError as e:
+    print(f"⚠️ Enhanced input processor import failed: {e}")
+    # Create dummy functions
+    def enhance_query_understanding(user_input: str) -> str:  # type: ignore
+        return user_input
+    def get_response_guidance(user_input: str) -> dict:  # type: ignore
+        return {"guidance": "basic"}
+    class InputProcessor:  # type: ignore
+        def enhance_query_context(self, text: str) -> dict:
+            return {"query_type": "general"}
+    input_processor = InputProcessor()
+
 from sqlalchemy.orm import Session
-from i18n_service import i18n_service
+
+try:
+    from i18n_service import i18n_service
+    print("✅ i18n service import successful")
+except ImportError as e:
+    print(f"⚠️ i18n service import failed: {e}")
+    # Create dummy i18n service
+    class I18nService:
+        def translate(self, key, lang="en"): return key
+        def get_language_from_headers(self, headers): return "en"
+        def should_use_ai_response(self, user_input, language): return True
+        supported_languages = ["en", "tr", "ar", "ru"]
+    i18n_service = I18nService()
 
 # --- Import enhanced AI services ---
 try:
@@ -167,9 +250,6 @@ except ImportError:
     OpenAI = None  # type: ignore
     OpenAI_available = False
     print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
-
-# Add the current directory to Python path for Render deployment
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Initialize logger
 logger = logging.getLogger(__name__)

@@ -1,4 +1,145 @@
-backend/intent_utils.py
+# ==============================================
+# AI Istanbul - Sensitive Files & Folders
+# ==============================================
+
+# Environment Variables (CRITICAL - Contains API Keys)
+.env
+.env.*
+!.env.template
+!.env.example
 backend/.env
-backend/__pycache__/
+backend/.env.*
+!backend/.env.template
+!backend/.env.example
+
+# Credentials and API Keys (CRITICAL)
 credentials/
+backend/credentials/
+*.json
+!package.json
+!package-lock.json
+!**/schemas/*.json
+!**/test-data/*.json
+
+# Database Files (Contains User Data)
+*.db
+*.sqlite
+*.sqlite3
+app.db
+backend/app.db
+blog_analytics.db
+db/
+
+# Python Cache and Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Node.js Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs (May Contain Sensitive Data)
+*.log
+logs/
+*.log.*
+ai_istanbul.log
+backend/ai_istanbul.log
+server.log
+server_startup.log
+nohup.out
+
+# Test Results and Coverage (May Contain Sensitive Test Data)
+htmlcov/
+.coverage
+.coverage.*
+coverage.json
+.pytest_cache/
+.mypy_cache/
+test-reports/
+*test_results*.json
+*_test_results_*.json
+gdpr_security_report_*.json
+
+# Development Tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
+uploads/
+backend/uploads/
+
+# IDE and Editor Files
+*.sublime-*
+.vscode/
+.idea/
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup Files
+*.bak
+*.backup
+*_backup.*
+main_backup.py
+*_old.*
+
+# Docker Volumes and Data
+.docker/
+docker-data/
+
+# Redis Data
+redis/
+
+# Monitoring Data
+monitoring/
+
+# Production Deployment Scripts (May Contain Secrets)
+deploy-production.sh
+production_deploy.sh
+
+# Specific Sensitive Files
+backend/intent_utils.py
+ai_stanbul
+backend/ai_stanbul/
