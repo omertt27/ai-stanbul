@@ -238,21 +238,35 @@ const BlogPost = () => {
   const [likeLoading, setLikeLoading] = useState(false);
   const [alreadyLiked, setAlreadyLiked] = useState(false);
   const [likeError, setLikeError] = useState(null);
+  const [likesCount, setLikesCount] = useState(0); // Separate state for likes count
   const [selectedImage, setSelectedImage] = useState(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+  // Generate or get user identifier for like functionality
+  const getUserIdentifier = () => {
+    let userId = localStorage.getItem('blog_user_id');
+    if (!userId) {
+      userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('blog_user_id', userId);
+    }
+    return userId;
+  };
 
   useEffect(() => {
     console.log('🔄 BlogPost: Loading post with ID:', id);
     loadPost();
-    checkUserLikeStatus();
+    if (id) {
+      console.log('� BlogPost: Checking like status for post:', id);
+      checkUserLikeStatus();
+    }
   }, [id]);
 
   useEffect(() => {
     if (post) {
-      console.log('🔄 BlogPost: Loading related posts for:', post.title);
+      console.log('� BlogPost: Loading related posts for:', post.title);
       loadRelatedPosts();
     }
-  }, [post]);
+  }, [post?.id]); // Only depend on post.id, not the entire post object
 
   const loadPost = async () => {
     console.log('📖 BlogPost: Loading post with ID:', id);
@@ -266,6 +280,7 @@ const BlogPost = () => {
       
       if (postData) {
         setPost(postData);
+        setLikesCount(postData.likes || postData.likes_count || 0); // Set initial likes count
         console.log('✅ BlogPost: Post loaded successfully from API:', postData?.title);
         trackBlogEvent('view_post', postData.title);
         return;
@@ -281,6 +296,7 @@ const BlogPost = () => {
       
       if (mockPost) {
         setPost(mockPost);
+        setLikesCount(mockPost.likes || mockPost.likes_count || 0); // Set initial likes count
         console.log('✅ BlogPost: Post loaded successfully from mock data:', mockPost.title);
         trackBlogEvent('view_post', mockPost.title);
       } else {
@@ -335,26 +351,21 @@ const BlogPost = () => {
     setLikeError(null);
     
     try {
-      // Try real API first
-      const likeResult = await likeBlogPost(post.id);
-      setPost(prev => ({
-        ...prev,
-        likes: likeResult.likes || (prev.likes || 0) + 1
-      }));
-      setAlreadyLiked(true);
-      trackBlogEvent('like_post', post?.title || 'Unknown Post');
-      console.log('✅ BlogPost: Post liked via API');
-    } catch (err) {
-      console.warn('⚠️ BlogPost: API failed for like, using local state:', err);
+      const userIdentifier = getUserIdentifier();
+      const likeResult = await likeBlogPost(post.id, userIdentifier);
       
-      // Fallback to local state update when API is not available
-      setPost(prev => ({
-        ...prev,
-        likes: (prev.likes || prev.likes_count || 0) + 1
-      }));
+      // Update the likes count state
+      setLikesCount(likeResult.likes_count || (likesCount + 1));
       setAlreadyLiked(true);
       trackBlogEvent('like_post', post?.title || 'Unknown Post');
-      console.log('✅ BlogPost: Post liked locally (API unavailable)');
+      console.log('✅ BlogPost: Post liked successfully - new count:', likeResult.likes_count);
+      
+    } catch (err) {
+      console.error('❌ BlogPost: Failed to like post:', err);
+      setLikeError('Failed to like post. Please try again.');
+      
+      // Don't update local state on API failure - show error instead
+      trackBlogEvent('like_error', post?.title || 'Unknown Post');
     } finally {
       setLikeLoading(false);
     }
@@ -362,10 +373,23 @@ const BlogPost = () => {
 
   const checkUserLikeStatus = async () => {
     if (!id) return;
+    
     try {
-      setAlreadyLiked(false);
+      console.log('🔍 BlogPost: Checking like status for post:', id);
+      const userIdentifier = getUserIdentifier();
+      const likeStatus = await checkLikeStatus(id, userIdentifier);
+      
+      setAlreadyLiked(likeStatus.isLiked || false);
+      
+      // Store the likes count separately, don't update post object
+      if (likeStatus.likes !== undefined) {
+        setLikesCount(likeStatus.likes);
+      }
+      
+      console.log('✅ BlogPost: Like status checked - isLiked:', likeStatus.isLiked, 'likes:', likeStatus.likes);
     } catch (err) {
-      console.error('Failed to check like status:', err);
+      console.warn('⚠️ BlogPost: Failed to check like status:', err);
+      setAlreadyLiked(false);
     }
   };
 
@@ -608,7 +632,7 @@ const BlogPost = () => {
                   <svg className="w-5 h-5" fill={alreadyLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                  {likeLoading ? 'Liking...' : alreadyLiked ? 'Liked!' : `${post.likes || post.likes_count || 0} likes`}
+                  {likeLoading ? 'Liking...' : alreadyLiked ? 'Liked!' : `${likesCount} likes`}
                 </button>
               </div>
               

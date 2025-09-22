@@ -11,6 +11,12 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
 const BLOG_API_URL = `${cleanBaseUrl}/blog`;
 
+// Debug logging
+console.log('🔧 API Configuration:');
+console.log('  VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('  BASE_URL:', BASE_URL);
+console.log('  BLOG_API_URL:', BLOG_API_URL);
+
 // Circuit breaker for blog API
 const blogCircuitBreaker = createCircuitBreaker({
   failureThreshold: 3,
@@ -79,6 +85,8 @@ export const fetchBlogPost = async (postId) => {
   return blogCircuitBreaker.call(async () => {
     try {
       console.log('📖 Fetching blog post:', postId);
+      console.log('🔗 Blog API URL:', BLOG_API_URL);
+      console.log('🎯 Full URL:', `${BLOG_API_URL}/${postId}`);
       
       const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
         method: 'GET',
@@ -156,15 +164,17 @@ export const uploadBlogImage = async (file) => {
   });
 };
 
-export const likeBlogPost = async (postId) => {
+export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
   return blogCircuitBreaker.call(async () => {
     try {
       console.log('❤️ Liking blog post:', postId);
       
+      // Use the JSON file-based endpoint that doesn't require database records
       const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
         method: 'POST',
         headers: { 
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
         timeout: 5000
       }, {
@@ -187,7 +197,8 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
     try {
       console.log(`🔍 Checking like status for post ${postId}`);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/like-status?user_identifier=${userIdentifier}`, {
+      // Use the JSON file-based endpoint
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status?user_identifier=${userIdentifier}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'

@@ -735,6 +735,59 @@ async def get_tags():
         logger.error(f"Error getting tags: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve tags")
 
+@router.post("/{post_id}/like")
+async def like_post(post_id: str):
+    """Like a blog post"""
+    try:
+        posts = load_blog_posts()
+        
+        for i, post in enumerate(posts):
+            if post.get('id') == post_id:
+                # Update likes count
+                new_likes = post.get('likes', 0) + 1
+                posts[i]['likes'] = new_likes
+                posts[i]['likes_count'] = new_likes  # Ensure both fields are consistent
+                
+                if save_blog_posts(posts):
+                    return {
+                        "message": "Post liked successfully",
+                        "likes_count": new_likes
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to save like")
+        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error liking blog post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to like blog post")
+
+@router.get("/{post_id}/like-status")
+async def get_like_status(post_id: str, user_identifier: str = "default_user"):
+    """Check like status for a blog post (JSON file-based)"""
+    try:
+        posts = load_blog_posts()
+        
+        for post in posts:
+            if post.get('id') == post_id:
+                likes_count = post.get('likes', 0) or post.get('likes_count', 0)
+                # For JSON-based storage, we don't track individual users
+                # so we always return False for isLiked but show the actual count
+                return {
+                    "isLiked": False,  # Can't track individual users with JSON storage
+                    "likes": likes_count
+                }
+        
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking like status for post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check like status")
+
 @router.get("/{post_id}")
 async def get_post(post_id: str):
     """Get a specific blog post by ID"""
@@ -867,35 +920,6 @@ async def delete_post(post_id: str):
     except Exception as e:
         logger.error(f"Error deleting blog post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete blog post")
-
-@router.post("/{post_id}/like")
-async def like_post(post_id: str):
-    """Like a blog post"""
-    try:
-        posts = load_blog_posts()
-        
-        for i, post in enumerate(posts):
-            if post.get('id') == post_id:
-                # Update likes count
-                new_likes = post.get('likes', 0) + 1
-                posts[i]['likes'] = new_likes
-                posts[i]['likes_count'] = new_likes  # Ensure both fields are consistent
-                
-                if save_blog_posts(posts):
-                    return {
-                        "message": "Post liked successfully",
-                        "likes_count": new_likes
-                    }
-                else:
-                    raise HTTPException(status_code=500, detail="Failed to save like")
-        
-        raise HTTPException(status_code=404, detail="Blog post not found")
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error liking blog post {post_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to like blog post")
 
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
@@ -1111,22 +1135,45 @@ async def track_page_view(request: Request, page_path: str = "/blog"):
 
 # Database-based like functionality
 @router.post("/posts/{post_id}/like")
-async def like_blog_post_db(post_id: int, db: Session = Depends(get_db)):
+async def like_blog_post_db(post_id: int, like_request: dict, db: Session = Depends(get_db)):
     """Like a blog post (increment like count) - Database version"""
     try:
         # Import models here to avoid circular imports
-        from models import BlogPost
+        from models import BlogPost, BlogLike
         
         post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
-        # Increment likes count using SQLAlchemy update
-        db.query(BlogPost).filter(BlogPost.id == post_id).update({"likes_count": BlogPost.likes_count + 1})
-        db.commit()
-        db.refresh(post)
+        user_identifier = like_request.get("user_identifier")
+        if not user_identifier:
+            raise HTTPException(status_code=400, detail="user_identifier is required")
         
-        return {"message": "Post liked successfully", "likes_count": post.likes_count}
+        # Check if user has already liked this post
+        existing_like = db.query(BlogLike).filter(
+            BlogLike.blog_post_id == post_id,
+            BlogLike.user_identifier == user_identifier
+        ).first()
+        
+        if existing_like:
+            # User has already liked this post
+            likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count()
+            return {"message": "Post already liked", "likes_count": likes_count}
+        
+        # Create new like entry
+        new_like = BlogLike(
+            blog_post_id=post_id,
+            user_identifier=user_identifier
+        )
+        db.add(new_like)
+        
+        # Update post likes count
+        likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count() + 1
+        db.query(BlogPost).filter(BlogPost.id == post_id).update({"likes_count": likes_count})
+        
+        db.commit()
+        
+        return {"message": "Post liked successfully", "likes_count": likes_count}
         
     except HTTPException:
         raise

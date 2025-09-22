@@ -11,7 +11,26 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 from datetime import datetime
 import logging
 from dataclasses import dataclass
-from PIL import Image
+
+# Handle PIL import gracefully
+try:
+    from PIL import Image as PILImage
+    PIL_AVAILABLE = True
+    print("✅ Advanced AI features loaded successfully")
+except ImportError as e:
+    PIL_AVAILABLE = False
+    print(f"⚠️ Advanced AI features not available: {e}")
+    # Create dummy Image module for graceful degradation
+    class DummyImage:
+        @staticmethod
+        def open(*args, **kwargs):
+            raise NotImplementedError("PIL not available")
+        @staticmethod
+        def new(*args, **kwargs):
+            raise NotImplementedError("PIL not available")
+    
+    PILImage = DummyImage
+
 import requests
 import asyncio
 
@@ -515,7 +534,7 @@ class MultimodalAIService:
     def _validate_image(self, image_data: bytes) -> bool:
         """Validate image format and size"""
         try:
-            image = Image.open(io.BytesIO(image_data))
+            image = PILImage.open(io.BytesIO(image_data))
             
             # Check format
             if image.format not in ['JPEG', 'PNG', 'WebP']:
