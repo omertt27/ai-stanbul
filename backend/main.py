@@ -417,6 +417,7 @@ CORS_ORIGINS = [
     "https://aistanbul.vercel.app",
     "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
     "https://aistanbul-dz2rju4mf-omers-projects-3eea52d8.vercel.app",
+    "https://aistanbul-e5rcj5qm3-omers-projects-3eea52d8.vercel.app",
 ]
 
 # Add environment variable for additional origins
