@@ -182,9 +182,33 @@ export const likeBlogPost = async (postId) => {
   });
 };
 
-export const checkLikeStatus = async (postId) => {
-  // Backend doesn't have like-status endpoint, return default
-  return { isLiked: false, likes: 0 };
+export const checkLikeStatus = async (postId, userIdentifier = 'default_user') => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log(`🔍 Checking like status for post ${postId}`);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}/posts/${postId}/like-status?user_identifier=${userIdentifier}`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to check like status: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Like status checked:', data);
+      return data; // { isLiked: boolean, likes: number }
+      
+    } catch (error) {
+      console.error('❌ Error checking like status:', error);
+      // Return default values on error
+      return { isLiked: false, likes: 0 };
+    }
+  });
 };
 
 export const fetchBlogDistricts = async () => {

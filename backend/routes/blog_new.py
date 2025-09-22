@@ -12,7 +12,7 @@ import json
 import math
 
 from database import get_db
-from models import BlogPost, BlogImage
+from models import BlogPost, BlogImage, BlogLike
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -107,7 +107,7 @@ async def get_blog_posts(
         for post in posts:
             # Parse tags from JSON
             tags = []
-            if post.tags:
+            if post.tags is not None:
                 try:
                     tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
                 except:
@@ -155,7 +155,7 @@ async def get_blog_post(post_id: int, db: Session = Depends(get_db)):
         
         # Parse tags from JSON
         tags = []
-        if post.tags:
+        if post.tags is not None:
             try:
                 tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
             except:
@@ -222,8 +222,33 @@ async def create_blog_post(post_data: BlogPostCreate, db: Session = Depends(get_
         db.commit()
         db.refresh(new_post)
         
-        # Return created post
-        return await get_blog_post(new_post.id, db)
+        # Parse tags from JSON for response
+        tags = []
+        if new_post.tags is not None:
+            try:
+                tags = json.loads(new_post.tags) if isinstance(new_post.tags, str) else new_post.tags
+            except:
+                pass
+        
+        # Get associated images
+        images = []
+        for img in new_post.images:
+            images.append({
+                'id': img.id,
+                'url': img.url,
+                'alt_text': img.alt_text
+            })
+        
+        return {
+            'id': new_post.id,
+            'title': new_post.title,
+            'content': new_post.content,
+            'tags': tags,
+            'district': new_post.district,
+            'likes_count': new_post.likes_count,
+            'created_at': new_post.created_at,
+            'images': images
+        }
         
     except Exception as e:
         db.rollback()
@@ -238,8 +263,10 @@ async def like_blog_post(post_id: int, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
-        post.likes_count += 1
+        # Increment likes count using SQLAlchemy update
+        db.query(BlogPost).filter(BlogPost.id == post_id).update({"likes_count": BlogPost.likes_count + 1})
         db.commit()
+        db.refresh(post)
         
         return {"message": "Post liked successfully", "likes_count": post.likes_count}
         
@@ -255,11 +282,12 @@ async def upload_image(file: UploadFile = File(...)):
     """Upload an image for blog posts"""
     try:
         # Validate file type
-        if not file.content_type.startswith('image/'):
+        if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
         # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
+        filename = file.filename or "uploaded_file"
+        file_extension = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = os.path.join(UPLOAD_DIR, unique_filename)
         
@@ -291,7 +319,7 @@ async def get_popular_tags(limit: int = 20, db: Session = Depends(get_db)):
         
         tag_count = {}
         for post in posts:
-            if post.tags:
+            if post.tags is not None:
                 try:
                     tags = json.loads(post.tags) if isinstance(post.tags, str) else post.tags
                     if isinstance(tags, list):
@@ -322,3 +350,14 @@ async def get_popular_districts(limit: int = 20, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching districts: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch districts")
+
+@router.get("/posts/{post_id}/like-status")
+async def get_like_status(post_id: int, user_identifier: str, db: Session = Depends(get_db)):
+    """Check if a user has liked a blog post and return like status and count"""
+    post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    like_entry = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id, BlogLike.user_identifier == user_identifier).first()
+    is_liked = like_entry is not None
+    likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count()
+    return {"isLiked": is_liked, "likes": likes_count}

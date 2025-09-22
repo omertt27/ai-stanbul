@@ -12,11 +12,13 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
+from sqlalchemy.orm import Session
 import logging
 
+from database import get_db
 from enhanced_blog_features import (
     PersonalizedContentEngine,
     BlogAnalyticsEngine
@@ -1106,6 +1108,59 @@ async def track_page_view(request: Request, page_path: str = "/blog"):
             "success": False,
             "message": str(e)
         }
+
+# Database-based like functionality
+@router.post("/posts/{post_id}/like")
+async def like_blog_post_db(post_id: int, db: Session = Depends(get_db)):
+    """Like a blog post (increment like count) - Database version"""
+    try:
+        # Import models here to avoid circular imports
+        from models import BlogPost
+        
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            raise HTTPException(status_code=404, detail="Blog post not found")
+        
+        # Increment likes count using SQLAlchemy update
+        db.query(BlogPost).filter(BlogPost.id == post_id).update({"likes_count": BlogPost.likes_count + 1})
+        db.commit()
+        db.refresh(post)
+        
+        return {"message": "Post liked successfully", "likes_count": post.likes_count}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error liking post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to like post")
+
+@router.get("/posts/{post_id}/like-status")
+async def get_like_status_db(post_id: int, user_identifier: str, db: Session = Depends(get_db)):
+    """Check if a user has liked a blog post and return like status and count - Database version"""
+    try:
+        # Import models here to avoid circular imports
+        from models import BlogPost, BlogLike
+        
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        if not post:
+            raise HTTPException(status_code=404, detail="Blog post not found")
+        
+        like_entry = db.query(BlogLike).filter(
+            BlogLike.blog_post_id == post_id, 
+            BlogLike.user_identifier == user_identifier
+        ).first()
+        
+        is_liked = like_entry is not None
+        likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count()
+        
+        return {"isLiked": is_liked, "likes": likes_count}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking like status for post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check like status")
 
 # Initialize blog posts when module is imported
 initialize_blog_posts()

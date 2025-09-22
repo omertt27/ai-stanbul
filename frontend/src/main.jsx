@@ -1,5 +1,6 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import './styles/arabic.css' // Arabic language support
 // import './styles/anti-copy.css' // Anti-copy protection styles - DISABLED
@@ -26,6 +27,7 @@ try {
     <React.StrictMode>
       <ThemeProvider>
         <AppRouter />
+        <Analytics />
       </ThemeProvider>
     </React.StrictMode>,
   )

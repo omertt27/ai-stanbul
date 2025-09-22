@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { track } from '@vercel/analytics';
 
 // Google Analytics configuration
 const GA_TRACKING_ID = 'G-WRDCM59VZP';
@@ -105,6 +106,55 @@ export const trackSearch = (searchTerm) => {
     trackEvent('search', 'user_interaction', searchTerm);
   }
 };
+
+// Vercel Analytics integration
+export const vercelTrackEvent = {
+  // Chat interactions
+  chatMessage: (messageType = 'general', language = 'en') => {
+    track('chat_message', {
+      type: messageType,
+      language,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Restaurant searches
+  restaurantSearch: (location = 'istanbul', searchType = 'general') => {
+    track('restaurant_search', {
+      location,
+      search_type: searchType,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Blog interactions
+  blogInteraction: (action, postId = null) => {
+    track('blog_interaction', {
+      action, // 'view', 'like', 'share'
+      post_id: postId,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Error tracking
+  error: (errorType, errorMessage, component = null) => {
+    track('error_occurred', {
+      error_type: errorType,
+      error_message: errorMessage,
+      component,
+      timestamp: new Date().toISOString()
+    })
+  },
+
+  // Feature usage
+  featureUsage: (featureName, action = 'used') => {
+    track('feature_usage', {
+      feature: featureName,
+      action,
+      timestamp: new Date().toISOString()
+    })
+  }
+}
 
 // React component for automatic page tracking
 export const GoogleAnalytics = () => {

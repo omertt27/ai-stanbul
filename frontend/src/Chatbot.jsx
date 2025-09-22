@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
-import { trackNavigation } from './utils/analytics';
+import { trackNavigation, trackEvent } from './utils/analytics';
 import NavBar from './components/NavBar';
 import { 
   TypingSimulator, 
@@ -412,6 +412,9 @@ function Chatbot({ onDarkModeToggle }) {
     
     // Record user interaction
     recordUserInteraction('message_sent', { messageLength: userInput.length });
+    
+    // Track chat message with Vercel Analytics
+    trackEvent.chatMessage('user_message', navigator.language || 'en');
     
     // Enhanced input validation
     if (!validateInput(userInput)) {
