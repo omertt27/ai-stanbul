@@ -10,12 +10,13 @@
     -webkit-tap-highlight-color: transparent !important;
 }
 
-/* Allow selection for input fields only */
-input, textarea, [contenteditable="true"] {
+/* Allow selection and interaction for input fields only */
+input, textarea, [contenteditable="true"], button {
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
     -ms-user-select: text !important;
     user-select: text !important;
+    pointer-events: auto !important;
 }
 
 /* Disable drag and drop */
@@ -109,7 +110,18 @@ body::before {
     cursor: default !important;
 }
 
-input, textarea, button, a, [role="button"] {
+input, textarea, button, a, [role="button"], .kam-input-field, .kam-send-button {
+    cursor: pointer !important;
+}
+
+/* Ensure chatbot elements work properly */
+.kam-input-field, .kam-input-container, .kam-input-wrapper {
+    pointer-events: auto !important;
+    cursor: text !important;
+}
+
+.kam-send-button {
+    pointer-events: auto !important;
     cursor: pointer !important;
 }
 
@@ -125,25 +137,4 @@ body {
     -webkit-app-region: no-drag;
 }
 
-/* Hide when developer tools might be open */
-@media (max-height: 500px) {
-    .main-content {
-        filter: blur(5px);
-    }
-    
-    .main-content::before {
-        content: "⚠️ Developer tools detected. Close to continue.";
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255,0,0,0.9);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        z-index: 99999;
-        font-size: 18px;
-        text-align: center;
-        font-weight: bold;
-    }
-}
+/* Removed developer tools detection to avoid user warnings */

@@ -12,7 +12,8 @@ class WebsiteProtection {
         this.disableTextSelection();
         this.disableImageDragging();
         this.addCopyrightNotices();
-        this.detectDevTools();
+        // Developer tools detection disabled for better user experience
+        // this.detectDevTools();
         this.obfuscateSourceCode();
         this.addWatermarks();
         this.preventScreenshots();
@@ -110,30 +111,10 @@ class WebsiteProtection {
         document.body.appendChild(watermark);
     }
 
-    // Detect developer tools
+    // Developer tools detection disabled to avoid user warnings
     detectDevTools() {
-        let devtools = {
-            open: false,
-            orientation: null
-        };
-
-        setInterval(() => {
-            if (window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200) {
-                if (!devtools.open) {
-                    devtools.open = true;
-                    this.showDevToolsWarning();
-                }
-            } else {
-                devtools.open = false;
-            }
-        }, 500);
-
-        // Detect console usage
-        let originalLog = console.log;
-        console.log = function(...args) {
-            this.showDevToolsWarning();
-            return originalLog.apply(console, arguments);
-        }.bind(this);
+        // Detection disabled for better user experience
+        return false;
     }
 
     // Show warning for developer tools
@@ -183,43 +164,11 @@ class WebsiteProtection {
         }, 10000);
     }
 
-    // Show general warning
+    // Show general warning (disabled for better user experience)
     showWarning(message) {
-        // Create temporary warning toast
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ff4444;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            z-index: 999999;
-            font-family: Arial, sans-serif;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease-out;
-        `;
-        toast.innerHTML = `🔒 ${message}`;
-        
-        // Add slide-in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        document.body.appendChild(toast);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.remove();
-            }
-        }, 3000);
+        // Warnings disabled to avoid interrupting user experience
+        console.log('Protection notice:', message);
+        return;
     }
 
     // Basic code obfuscation
