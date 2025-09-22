@@ -42,8 +42,9 @@ try:
     from slowapi.util import get_remote_address
     from slowapi.errors import RateLimitExceeded
     RATE_LIMITING_ENABLED = True
-except ImportError:
-    print("⚠️ Rate limiting not available - install slowapi")
+    print("✅ Rate limiting (slowapi) loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Rate limiting not available - install slowapi: {e}")
     RATE_LIMITING_ENABLED = False
 
 # --- Structured Logging ---

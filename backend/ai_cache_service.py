@@ -45,13 +45,23 @@ class AIRateLimitCache:
             cache_ttl: Cache time-to-live in seconds
         """
         try:
-            # Use Redis.from_url for newer versions, fallback for older versions
+            # Import and connect to Redis with proper error handling
             try:
-                self.redis_client = redis.from_url(redis_url, decode_responses=True)
+                import redis
+                self.redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+            except ImportError:
+                logger.warning("Redis not available, falling back to memory cache")
+                self.cache_enabled = False
+                return
             except AttributeError:
-                # Fallback for older redis versions
-                import redis as redis_client
-                self.redis_client = redis_client.Redis.from_url(redis_url, decode_responses=True)
+                # Alternative Redis connection method
+                try:
+                    import redis
+                    self.redis_client = redis.from_url(redis_url, decode_responses=True)
+                except Exception:
+                    logger.warning("Redis connection failed, falling back to memory cache")
+                    self.cache_enabled = False
+                    return
             
             # Test connection
             self.redis_client.ping()
