@@ -1,3 +1,6 @@
+/* Font Loading for Arabic */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
 /* Arabic Language Support */
 [lang="ar"] {
   direction: rtl;
@@ -75,9 +78,6 @@
 [dir="rtl"] .btn {
   text-align: center;
 }
-
-/* Font Loading for Arabic */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
 
 /* Improve Arabic Text Rendering */
 [lang="ar"] {
