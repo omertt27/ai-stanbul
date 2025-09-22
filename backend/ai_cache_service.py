@@ -45,7 +45,14 @@ class AIRateLimitCache:
             cache_ttl: Cache time-to-live in seconds
         """
         try:
-            self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            # Use Redis.from_url for newer versions, fallback for older versions
+            try:
+                self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            except AttributeError:
+                # Fallback for older redis versions
+                import redis as redis_client
+                self.redis_client = redis_client.Redis.from_url(redis_url, decode_responses=True)
+            
             # Test connection
             self.redis_client.ping()
             self.cache_enabled = True
