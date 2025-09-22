@@ -81,11 +81,13 @@ class OpenAIProvider:
         
         try:
             if OPENAI_AVAILABLE:
-                self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                self.client = AsyncOpenAI(
+                    api_key=os.getenv("OPENAI_API_KEY")
+                )
             else:
                 self.client = None
-        except Exception:
-            logger.error("OpenAI client initialization failed")
+        except Exception as e:
+            logger.error(f"OpenAI client initialization failed: {e}")
             self.client = None
     
     async def generate(self, prompt: str, context: QueryContext) -> str:

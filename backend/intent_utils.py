@@ -13,7 +13,15 @@ if not api_key:
     logging.warning("OPENAI_API_KEY not found in environment variables")
     client = None
 else:
-    client = OpenAI(api_key=api_key)
+    try:
+        client = OpenAI(
+            api_key=api_key,
+            timeout=30.0,
+            max_retries=2
+        )
+    except Exception as e:
+        logging.error(f"Failed to initialize OpenAI client: {e}")
+        client = None
 
 def parse_user_input(user_input: str) -> dict:
     """Parse user input and extract intent and entities"""
