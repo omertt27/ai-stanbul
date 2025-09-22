@@ -32,7 +32,7 @@ const InteractiveMainPage = ({ onQuickStart }) => {
       return [
         { icon: '🌆', text: t('homepage.suggestions.evening.sunset'), query: t('homepage.queries.sunsetSpots') },
         { icon: '🍷', text: t('homepage.suggestions.evening.dining'), query: t('homepage.queries.romanticDinner') },
-        { icon: '🎭', text: t('homepage.suggestions.evening.nightlife'), query: t('homepage.queries.nightlife') }
+        { icon: '�', text: t('homepage.suggestions.evening.culturalShows'), query: t('homepage.queries.culturalShows') }
       ];
     }
   };

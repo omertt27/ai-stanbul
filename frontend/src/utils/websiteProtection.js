@@ -7,19 +7,22 @@ class WebsiteProtection {
     }
 
     init() {
-        this.disableRightClick();
-        this.disableKeyboardShortcuts();
-        this.disableTextSelection();
-        this.disableImageDragging();
-        this.addCopyrightNotices();
+        // All protection methods disabled
+        // this.disableRightClick();
+        // this.disableKeyboardShortcuts();
+        // this.disableTextSelection();
+        // this.disableImageDragging();
+        // this.addCopyrightNotices();
         // Developer tools detection disabled for better user experience
         // this.detectDevTools();
-        this.obfuscateSourceCode();
-        this.addWatermarks();
-        this.preventScreenshots();
-        this.blockCommonScrapingUserAgents();
-        this.addAntiDebugger();
-        this.protectConsole();
+        // this.obfuscateSourceCode();
+        // this.addWatermarks();
+        // this.preventScreenshots();
+        // this.blockCommonScrapingUserAgents();
+        // this.addAntiDebugger();
+        // this.protectConsole();
+        
+        console.log('Website protection disabled - development mode');
     }
 
     // Disable right-click context menu (silent protection)

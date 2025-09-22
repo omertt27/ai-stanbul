@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -21,40 +20,7 @@ const Donate = () => {
   );
 
   return (
-    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
-      
-      {/* Header with Centered Navbar Logo */}
-      <header className="w-full px-4 py-6 border-b transition-colors duration-200 bg-gray-800 border-gray-700">
-        <div className="max-w-6xl mx-auto flex justify-center">
-          <Link to="/" style={{textDecoration: 'none'}}>
-            <div 
-              style={{
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                transition: 'transform 0.2s ease, opacity 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <span style={{
-                fontSize: '2.6rem',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-              }}>
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ paddingTop: '6rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
       
       <div className="max-w-6xl mx-auto">
 

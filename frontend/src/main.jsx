@@ -2,11 +2,11 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './styles/arabic.css' // Arabic language support
-import './styles/anti-copy.css' // Anti-copy protection styles
+// import './styles/anti-copy.css' // Anti-copy protection styles - DISABLED
 import './i18n' // Initialize i18n
 import AppRouter from './AppRouter.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
-import './utils/websiteProtection.js' // Initialize website protection
+// import './utils/websiteProtection.js' // Initialize website protection - DISABLED
 
 console.log('Starting React app...')
 

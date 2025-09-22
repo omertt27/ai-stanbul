@@ -144,6 +144,36 @@
         "description": "Live-Fährpläne, Metro-Verbindungen und schnellste Routen zwischen Stadtteilen."
       }
     },
+    "technicalInnovation": {
+      "title": "⚡ Technische Innovation",
+      "subtitle": "Modernste Technologie für intelligente Reiseassistenz",
+      "features": {
+        "highPerformance": {
+          "title": "Hohe Leistung",
+          "description": "95+ Lighthouse-Score mit Antwortzeiten unter einer Sekunde und Echtzeit-Streaming"
+        },
+        "aiIntelligence": {
+          "title": "KI-Intelligenz",
+          "description": "OpenAI GPT-3.5 mit Kontextbewusstsein, Sitzungsgedächtnis und Absichtserkennung"
+        },
+        "security": {
+          "title": "Sicherheit & Datenschutz",
+          "description": "DSGVO-konforme Datenverarbeitung mit Benutzereinwilligung und minimaler Datensammlung"
+        },
+        "responsive": {
+          "title": "Responsives Design",
+          "description": "Für alle Geräte optimiert mit Progressive Web App-Fähigkeiten"
+        },
+        "realTimeApi": {
+          "title": "Echtzeit-APIs",
+          "description": "Google Places-Integration mit Live-Daten und Standortdiensten"
+        },
+        "multilingual": {
+          "title": "Mehrsprachige Engine",
+          "description": "Erweiterte i18n mit Unterstützung für Englisch, Türkisch, Arabisch, Russisch, Deutsch und Französisch"
+        }
+      }
+    },
     "privacy": {
       "title": "Datenschutz & Datenschutz",
       "description": "Ihr Datenschutz ist unsere Priorität. AI Istanbul ist vollständig DSGVO-konform und respektiert Ihre Datenrechte.",
@@ -190,7 +220,7 @@
       "evening": {
         "sunset": "Sonnenuntergangsblicke",
         "dining": "Abendessen",
-        "nightlife": "Nachtleben"
+        "culturalShows": "Kulturshows"
       }
     },
     "districts": {
@@ -251,7 +281,7 @@
       "lunchRestaurants": "gute Mittagsrestaurants",
       "sunsetSpots": "beste Sonnenuntergangspunkte Istanbul",
       "romanticDinner": "romantische Abendrestaurants",
-      "nightlife": "Istanbul Nachtleben Empfehlungen"
+      "culturalShows": "Kulturshows und Aufführungen in Istanbul"
     },
     "quickStart": "Chat schnell starten",
     "exploreMore": "Mehr erkunden",
@@ -314,7 +344,7 @@
     }
   },
   "contact": {
-    "title": "Kontakt AI/STANBUL",
+    "title": "Kontakt A/STANBUL",
     "getInTouch": "Kontakt aufnehmen",
     "email": "E-Mail",
     "location": "Standort",
@@ -343,7 +373,7 @@
     }
   },
   "donate": {
-    "title": "AI/STANBUL unterstützen",
+    "title": "A/STANBUL unterstützen",
     "subtitle": "Helfen Sie uns, Istanbuls besten KI-Reiseführer kostenlos und großartig für alle zu halten",
     "buyMeCoffee": "Kaufen Sie mir einen Kaffee",
     "coffeeDescription": "Der einfachste Weg, Ihre Wertschätzung zu zeigen und AIstanbul am Laufen zu halten",

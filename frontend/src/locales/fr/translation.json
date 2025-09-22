@@ -144,6 +144,36 @@
         "description": "Horaires de ferry en direct, connexions métro et itinéraires les plus rapides entre quartiers."
       }
     },
+    "technicalInnovation": {
+      "title": "⚡ Innovation Technique",
+      "subtitle": "Technologie de pointe alimentant l'assistance de voyage intelligente",
+      "features": {
+        "highPerformance": {
+          "title": "Haute Performance",
+          "description": "Score Lighthouse 95+ avec des temps de réponse inférieurs à une seconde et streaming en temps réel"
+        },
+        "aiIntelligence": {
+          "title": "Intelligence IA",
+          "description": "OpenAI GPT-3.5 avec conscience contextuelle, mémoire de session et reconnaissance d'intention"
+        },
+        "security": {
+          "title": "Sécurité et Confidentialité",
+          "description": "Traitement des données conforme au RGPD avec consentement utilisateur et collecte de données minimale"
+        },
+        "responsive": {
+          "title": "Design Responsive",
+          "description": "Optimisé pour tous les appareils avec des capacités d'application web progressive"
+        },
+        "realTimeApi": {
+          "title": "APIs en Temps Réel",
+          "description": "Intégration Google Places avec données en direct et services de localisation"
+        },
+        "multilingual": {
+          "title": "Moteur Multilingue",
+          "description": "i18n avancé avec support pour l'anglais, le turc, l'arabe, le russe, l'allemand et le français"
+        }
+      }
+    },
     "privacy": {
       "title": "Confidentialité et Protection des Données",
       "description": "Votre confidentialité est notre priorité. AI Istanbul est entièrement conforme au RGPD et respecte vos droits de données.",
@@ -190,7 +220,7 @@
       "evening": {
         "sunset": "Vues du coucher de soleil",
         "dining": "Dîner du soir",
-        "nightlife": "Vie nocturne"
+        "culturalShows": "Spectacles culturels"
       }
     },
     "districts": {
@@ -251,7 +281,7 @@
       "lunchRestaurants": "bons restaurants pour déjeuner",
       "sunsetSpots": "meilleurs points de coucher du soleil Istanbul",
       "romanticDinner": "restaurants pour dîner romantique",
-      "nightlife": "recommandations vie nocturne Istanbul"
+      "culturalShows": "spectacles culturels et performances Istanbul"
     },
     "quickStart": "Démarrage rapide du chat",
     "exploreMore": "Explorer plus",
@@ -314,7 +344,7 @@
     }
   },
   "contact": {
-    "title": "Contacter AI/STANBUL",
+    "title": "Contacter A/STANBUL",
     "getInTouch": "Prendre contact",
     "email": "E-mail",
     "location": "Localisation",
@@ -343,7 +373,7 @@
     }
   },
   "donate": {
-    "title": "Soutenir AI/STANBUL",
+    "title": "Soutenir A/STANBUL",
     "subtitle": "Aidez-nous à garder le meilleur guide de voyage IA d'Istanbul gratuit et fantastique pour tous",
     "buyMeCoffee": "Offrez-moi un café",
     "coffeeDescription": "La façon la plus simple de montrer votre appréciation et maintenir AIstanbul en fonctionnement",

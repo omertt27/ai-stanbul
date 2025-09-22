@@ -1,6 +1,7 @@
-/* Anti-Copy Protection Styles for AI Istanbul */
+/* Anti-Copy Protection Styles for AI Istanbul - DISABLED */
 
-/* Disable text selection globally */
+/* Disable text selection globally - DISABLED */
+/*
 * {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
@@ -9,8 +10,10 @@
     -webkit-touch-callout: none !important;
     -webkit-tap-highlight-color: transparent !important;
 }
+*/
 
-/* Allow selection and interaction for input fields only */
+/* Allow selection and interaction for input fields only - NOW ENABLED FOR ALL */
+/* 
 input, textarea, [contenteditable="true"], button {
     -webkit-user-select: text !important;
     -moz-user-select: text !important;
@@ -19,24 +22,47 @@ input, textarea, [contenteditable="true"], button {
     pointer-events: auto !important;
 }
 
-/* Disable drag and drop */
+/* Specifically ensure searchbar inputs work */
+.searchbar input, .searchbar, form.searchbar input, form.searchbar {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+    cursor: text !important;
+}
+
+/* Ensure all chatbot input fields work */
+.kam-input-field, .kam-input-container, .kam-input-wrapper {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    pointer-events: auto !important;
+    cursor: text !important;
+}
+*/
+
+/* Disable drag and drop - DISABLED */
+/*
 * {
     -webkit-user-drag: none !important;
     -khtml-user-drag: none !important;
     -moz-user-drag: none !important;
     -o-user-drag: none !important;
-    /* user-drag: none !important; */ /* Non-standard property */
 }
+*/
 
-/* Disable image saving */
+/* Disable image saving - DISABLED */
+/*
 img {
     pointer-events: none !important;
     -webkit-user-drag: none !important;
     -khtml-user-drag: none !important;
     -moz-user-drag: none !important;
     -o-user-drag: none !important;
-    /* user-drag: none !important; */ /* Non-standard property */
 }
+*/
 
 /* Copyright watermark overlay - REMOVED */
 /* 
@@ -56,14 +82,17 @@ body::before {
 }
 */
 
-/* Hide content when printing */
+/* Hide content when printing - DISABLED */
+/*
 @media print {
     * {
         visibility: hidden !important;
     }
 }
+*/
 
-/* Disable highlighting */
+/* Disable highlighting - DISABLED */
+/*
 ::selection {
     background: transparent !important;
 }
@@ -71,13 +100,17 @@ body::before {
 ::-moz-selection {
     background: transparent !important;
 }
+*/
 
-/* Protect against common scraping techniques */
+/* Protect against common scraping techniques - DISABLED */
+/*
 [data-testid], [data-cy], [data-test] {
     display: none !important;
 }
+*/
 
-/* Add subtle copyright notice to all major elements */
+/* Add subtle copyright notice to all major elements - DISABLED */
+/*
 .main-content::after,
 .app-container::after,
 .page-content::after {
@@ -89,37 +122,49 @@ body::before {
     color: rgba(0,0,0,0.1);
     pointer-events: none;
 }
+*/
 
-/* Disable text cursor */
+/* Disable text cursor - DISABLED */
+/*
 * {
     cursor: default !important;
 }
 
-input, textarea, button, a, [role="button"], .kam-input-field, .kam-send-button {
+input, textarea, button, a, [role="button"], .kam-input-field, .kam-send-button, .searchbar input, form.searchbar input {
+    cursor: text !important;
+}
+
+/* Buttons and clickable elements should have pointer cursor */
+button, a, [role="button"], .kam-send-button {
     cursor: pointer !important;
 }
 
 /* Ensure chatbot elements work properly */
-.kam-input-field, .kam-input-container, .kam-input-wrapper {
+.kam-input-field, .kam-input-container, .kam-input-wrapper, .searchbar, .searchbar input, form.searchbar, form.searchbar input {
     pointer-events: auto !important;
     cursor: text !important;
 }
+*/
 
 .kam-send-button {
     pointer-events: auto !important;
     cursor: pointer !important;
 }
 
-/* Anti-screenshot protection */
+/* Anti-screenshot protection - DISABLED */
+/*
 @supports (backdrop-filter: blur(0)) {
     body {
         backdrop-filter: blur(0.1px);
     }
 }
+*/
 
-/* Disable common inspection shortcuts */
+/* Disable common inspection shortcuts - DISABLED */
+/*
 body {
     -webkit-app-region: no-drag;
 }
+*/
 
 /* Removed developer tools detection to avoid user warnings */

@@ -144,6 +144,36 @@
         "description": "Live ferry schedules, metro connections, and the fastest routes between districts."
       }
     },
+    "technicalInnovation": {
+      "title": "⚡ Technical Innovation",
+      "subtitle": "Cutting-edge technology powering intelligent travel assistance",
+      "features": {
+        "highPerformance": {
+          "title": "High Performance",
+          "description": "95+ Lighthouse score with sub-second response times and real-time streaming"
+        },
+        "aiIntelligence": {
+          "title": "AI Intelligence", 
+          "description": "OpenAI GPT-3.5 with context awareness, session memory, and intent recognition"
+        },
+        "security": {
+          "title": "Security & Privacy",
+          "description": "GDPR-compliant data handling with user consent and minimal data collection"
+        },
+        "responsive": {
+          "title": "Responsive Design",
+          "description": "Optimized for all devices with progressive web app capabilities"
+        },
+        "realTimeApi": {
+          "title": "Real-time APIs",
+          "description": "Google Places integration with live data and location services"
+        },
+        "multilingual": {
+          "title": "Multilingual Engine",
+          "description": "Advanced i18n with support for English, Turkish, Arabic, Russian, German, and French"
+        }
+      }
+    },
     "privacy": {
       "title": "Privacy & Data Protection",
       "description": "Your privacy is our priority. AI Istanbul is fully compliant with GDPR and respects your data rights.",
@@ -190,7 +220,7 @@
       "evening": {
         "sunset": "Sunset Views",
         "dining": "Evening Dining",
-        "nightlife": "Nightlife"
+        "culturalShows": "Cultural Shows"
       }
     },
     "districts": {
@@ -251,7 +281,7 @@
       "lunchRestaurants": "good lunch restaurants",
       "sunsetSpots": "best sunset spots Istanbul",
       "romanticDinner": "romantic dinner restaurants",
-      "nightlife": "Istanbul nightlife recommendations"
+      "culturalShows": "Istanbul cultural shows and performances"
     },
     "quickStart": "Quick Start Chat",
     "exploreMore": "Explore More",
@@ -314,7 +344,7 @@
     }
   },
   "contact": {
-    "title": "Contact AI/STANBUL",
+    "title": "Contact A/STANBUL",
     "getInTouch": "Get in Touch",
     "email": "Email",
     "location": "Location",
@@ -343,7 +373,7 @@
     }
   },
   "donate": {
-    "title": "Support AI/STANBUL",
+    "title": "Support A/STANBUL",
     "subtitle": "Help us keep Istanbul's best AI travel guide free and amazing for everyone",
     "buyMeCoffee": "Buy Me a Coffee",
     "coffeeDescription": "The easiest way to show your appreciation and keep AIstanbul running",
