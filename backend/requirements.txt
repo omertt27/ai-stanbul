@@ -47,3 +47,13 @@ redis>=5.0.0
 
 # Structured logging
 structlog>=23.2.0
+
+# HTTP client for advanced features
+aiohttp>=3.9.0
+
+# Google Analytics Data API
+google-analytics-data>=0.18.0
+
+# Google Cloud APIs
+google-cloud-storage>=2.10.0
+google-auth>=2.23.0

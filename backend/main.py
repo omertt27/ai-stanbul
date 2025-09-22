@@ -1325,10 +1325,22 @@ async def ai_istanbul_router(request: Request):
         if not OpenAI_available or not openai_api_key:
             print("[ERROR] OpenAI API key not set or openai package missing.")
             raise RuntimeError("OpenAI API key not set or openai package missing.")
-        if OpenAI is not None:
-            client = OpenAI(api_key=openai_api_key)
-        else:
-            raise RuntimeError("OpenAI module not available")
+        
+        # Create OpenAI client with proper error handling
+        try:
+            if OpenAI is not None:
+                client = OpenAI(
+                    api_key=openai_api_key,
+                    timeout=30.0,
+                    max_retries=2
+                )
+                print("✅ OpenAI client initialized successfully")
+            else:
+                raise RuntimeError("OpenAI module not available")
+        except Exception as e:
+            print(f"❌ OpenAI client initialization failed: {e}")
+            # Create a fallback response instead of crashing
+            return create_fallback_response(user_input, [])
 
         # Create database session
         db = SessionLocal()
