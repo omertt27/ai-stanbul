@@ -15,9 +15,9 @@
     "published": true,
     "created_at": "2025-09-10T23:32:15.974864",
     "updated_at": "2025-09-10T23:32:15.974869",
-    "views": 188,
-    "likes": 29,
-    "likes_count": 29
+    "views": 202,
+    "likes": 33,
+    "likes_count": 33
   },
   {
     "id": "2",
@@ -55,7 +55,7 @@
     "published": true,
     "created_at": "2025-09-10T23:32:15.974872",
     "updated_at": "2025-09-10T23:32:15.974873",
-    "views": 138,
+    "views": 144,
     "likes": 22,
     "likes_count": 22
   },
@@ -78,5 +78,27 @@
     "views": 0,
     "likes": 1,
     "likes_count": 1
+  },
+  {
+    "id": "4",
+    "title": "Text Formatting Guide: Writing Beautiful Blog Posts",
+    "content": "Learn how to use different text formatting options to make your blog posts more engaging and readable. This guide demonstrates all available formatting features.\n\n***Text formatting*** is essential for creating engaging and readable blog posts. Here's how you can use different styles to enhance your content and guide your readers through your story.\n\n**Basic Text Formatting**\n\nYou can use *italic text* to emphasize important words or phrases. For stronger emphasis, use **bold text** to make key points stand out. When you need maximum impact, combine both styles for ***bold italic text***.\n\n**Creating Visual Hierarchy**\n\nUse headings to organize your content and make it scannable:\n\n**Main Section Title**\nStart each major section with a bold heading like this.\n\n**Subsection Title** \nBreak down complex topics into smaller, digestible parts.\n\n**Practical Examples**\n\nHere are some real-world examples of effective formatting:\n\n- Use *italics* for foreign words like *çay* (tea) or *meze* (appetizers)\n- Make **important warnings** or **key takeaways** bold\n- Combine styles for ***absolutely critical information***\n- Keep regular text unformatted for easy reading\n\n**Best Practices for Readability**\n\nRemember that formatting should enhance, not overwhelm your content:\n\n- Use formatting sparingly – ***too much emphasis*** loses its impact\n- Be consistent with your *formatting choices* throughout the post\n- **Bold text** works best for short phrases and key terms\n- Save *italics* for subtle emphasis and foreign terms\n\n**When to Use Each Style**\n\nChoose your formatting based on the message:\n\n- *Italic*: Subtle emphasis, book titles, foreign words, thoughts\n- **Bold**: Strong emphasis, important facts, warnings, key terms  \n- ***Bold Italic***: Maximum emphasis, critical information, standout quotes\n\n**Conclusion**\n\nEffective text formatting makes your blog posts more professional and easier to read. Experiment with these styles to find what works best for your writing style and audience.",
+    "author": "Editorial Team",
+    "author_name": "Editorial Team",
+    "category": "Digital",
+    "district": "Digital",
+    "tags": [
+      "formatting",
+      "writing",
+      "blog tips",
+      "markdown"
+    ],
+    "featured_image": null,
+    "published": true,
+    "created_at": "2024-12-15T14:30:00Z",
+    "updated_at": "2024-12-15T14:30:00Z",
+    "views": 157,
+    "likes": 156,
+    "likes_count": 156
   }
 ]

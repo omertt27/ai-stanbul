@@ -6,6 +6,7 @@ import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
 import CookieConsent from './components/CookieConsent';
+import NavBar from './components/NavBar';
 // import LiveActivityFeed from './components/LiveActivityFeed'; // Removed as requested
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
@@ -140,16 +141,23 @@ const App = () => {
 
   return (
     <WeatherThemeProvider>
-      <div style={{ width: '100vw', height: '100vh', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100vw', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
         <GoogleAnalytics />
         {/* <DebugInfo /> */}
 
-        <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', height: '100vh', paddingTop: '6rem'}}>
+        <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', minHeight: '100vh', paddingTop: '6rem', paddingBottom: '2rem'}}>
           {/* Live Activity Feed - Removed as requested */}
           {/* <LiveActivityFeed /> */}
           
           {/* Centered logo - using navbar logo style */}
-          <div style={{textAlign: 'center', marginBottom: '1rem'}} onClick={handleLogoClick}>
+          <div 
+            style={{
+              textAlign: 'center', 
+              marginBottom: '1rem', 
+              marginTop: '10px',
+            }} 
+            onClick={handleLogoClick}
+          >
             <div className="chat-title logo-istanbul main-page-logo">
               <span className="logo-text" style={{
                 fontSize: window.innerWidth < 768 ? '2.5rem' : '4rem',
@@ -170,7 +178,14 @@ const App = () => {
           </div>
           
           {/* Search bar positioned directly under the logo */}
-          <div style={{width: '100%', maxWidth: 1200, minWidth: 320, margin: '0 auto 2rem', padding: '1rem', zIndex: 10}}>
+          <div style={{
+            width: '100%', 
+            maxWidth: 1200, 
+            minWidth: 320, 
+            margin: '0 auto 2rem', 
+            padding: '1rem', 
+            zIndex: 10,
+          }}>
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -182,7 +197,9 @@ const App = () => {
           </div>
           
           {/* Interactive Main Page Content */}
-          <InteractiveMainPage onQuickStart={handleQuickStart} />
+          <div>
+            <InteractiveMainPage onQuickStart={handleQuickStart} />
+          </div>
           
         </div>
 

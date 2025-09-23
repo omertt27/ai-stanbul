@@ -203,7 +203,7 @@ const ChatMessageSkeleton = ({ variant = "enhanced", count = 1 }) => {
           <div className="typing-dot"></div>
         </div>
         <span style={{ color: '#6366f1', fontSize: '0.9rem', marginLeft: '8px' }}>
-          KAM is thinking...
+          Processing...
         </span>
       </div>
     );
@@ -220,7 +220,7 @@ const ChatMessageSkeleton = ({ variant = "enhanced", count = 1 }) => {
         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
              style={{ animationDelay: '0.4s', animationDuration: '1.4s' }} />
       </div>
-      <span className="text-sm text-gray-400 opacity-80">KAM is thinking...</span>
+      <span className="text-sm text-gray-400 opacity-80">Processing...</span>
     </div>
   );
 };

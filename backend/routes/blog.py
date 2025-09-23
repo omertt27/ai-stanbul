@@ -106,6 +106,7 @@ class BlogPostUpdate(BaseModel):
 
 # Blog storage (in production, this would be a database)
 BLOG_DATA_FILE = "blog_posts.json"
+USER_LIKES_FILE = "user_likes.json"
 UPLOAD_DIRECTORY = "uploads"
 
 # Ensure upload directory exists
@@ -736,27 +737,51 @@ async def get_tags():
         raise HTTPException(status_code=500, detail="Failed to retrieve tags")
 
 @router.post("/{post_id}/like")
-async def like_post(post_id: str):
-    """Like a blog post"""
+async def like_post(post_id: str, request: Request):
+    """Like/unlike a blog post"""
     try:
+        # Get user identifier from request body or query params
+        try:
+            body = await request.json()
+            user_id = body.get('user_id', 'default_user')
+        except:
+            user_id = request.query_params.get('user_id', 'default_user')
+        
         posts = load_blog_posts()
+        post_found = False
         
         for i, post in enumerate(posts):
             if post.get('id') == post_id:
-                # Update likes count
-                new_likes = post.get('likes', 0) + 1
+                post_found = True
+                
+                # Check if user has already liked this post
+                already_liked = check_user_like(user_id, post_id)
+                
+                if already_liked:
+                    # Unlike the post
+                    remove_user_like(user_id, post_id)
+                    new_likes = max(0, post.get('likes', 0) - 1)
+                    message = "Post unliked successfully"
+                else:
+                    # Like the post
+                    add_user_like(user_id, post_id)
+                    new_likes = post.get('likes', 0) + 1
+                    message = "Post liked successfully"
+                
                 posts[i]['likes'] = new_likes
                 posts[i]['likes_count'] = new_likes  # Ensure both fields are consistent
                 
                 if save_blog_posts(posts):
                     return {
-                        "message": "Post liked successfully",
-                        "likes_count": new_likes
+                        "message": message,
+                        "likes_count": new_likes,
+                        "isLiked": not already_liked
                     }
                 else:
                     raise HTTPException(status_code=500, detail="Failed to save like")
         
-        raise HTTPException(status_code=404, detail="Blog post not found")
+        if not post_found:
+            raise HTTPException(status_code=404, detail="Blog post not found")
     
     except HTTPException:
         raise
@@ -765,18 +790,18 @@ async def like_post(post_id: str):
         raise HTTPException(status_code=500, detail="Failed to like blog post")
 
 @router.get("/{post_id}/like-status")
-async def get_like_status(post_id: str, user_identifier: str = "default_user"):
-    """Check like status for a blog post (JSON file-based)"""
+async def get_like_status(post_id: str, user_id: str = "default_user"):
+    """Check like status for a blog post with user tracking"""
     try:
         posts = load_blog_posts()
         
         for post in posts:
             if post.get('id') == post_id:
                 likes_count = post.get('likes', 0) or post.get('likes_count', 0)
-                # For JSON-based storage, we don't track individual users
-                # so we always return False for isLiked but show the actual count
+                is_liked = check_user_like(user_id, post_id)
+                
                 return {
-                    "isLiked": False,  # Can't track individual users with JSON storage
+                    "isLiked": is_liked,
                     "likes": likes_count
                 }
         
@@ -1208,6 +1233,62 @@ async def get_like_status_db(post_id: int, user_identifier: str, db: Session = D
     except Exception as e:
         logger.error(f"Error checking like status for post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to check like status")
+
+def load_user_likes() -> Dict[str, List[str]]:
+    """Load user likes from JSON file"""
+    try:
+        if os.path.exists(USER_LIKES_FILE):
+            with open(USER_LIKES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        logger.error(f"Error loading user likes: {e}")
+        return {}
+
+def save_user_likes(likes: Dict[str, List[str]]) -> bool:
+    """Save user likes to JSON file"""
+    try:
+        with open(USER_LIKES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(likes, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving user likes: {e}")
+        return False
+
+def add_user_like(user_id: str, post_id: str) -> bool:
+    """Add a like for a user to a specific post"""
+    try:
+        likes = load_user_likes()
+        if user_id not in likes:
+            likes[user_id] = []
+        if post_id not in likes[user_id]:
+            likes[user_id].append(post_id)
+            return save_user_likes(likes)
+        return True  # Already liked
+    except Exception as e:
+        logger.error(f"Error adding user like: {e}")
+        return False
+
+def remove_user_like(user_id: str, post_id: str) -> bool:
+    """Remove a like for a user from a specific post"""
+    try:
+        likes = load_user_likes()
+        if user_id in likes and post_id in likes[user_id]:
+            likes[user_id].remove(post_id)
+            return save_user_likes(likes)
+        return True  # Already not liked
+    except Exception as e:
+        logger.error(f"Error removing user like: {e}")
+        return False
+
+def check_user_like(user_id: str, post_id: str) -> bool:
+    """Check if a user has liked a specific post"""
+    try:
+        likes = load_user_likes()
+        return user_id in likes and post_id in likes[user_id]
+    except Exception as e:
+        logger.error(f"Error checking user like: {e}")
+        return False
 
 # Initialize blog posts when module is imported
 initialize_blog_posts()

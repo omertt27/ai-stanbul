@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Format Test</title>
+</head>
+<body>
+    <h1>Debug Formatting Test</h1>
+    <div id="test1"></div>
+    <div id="test2"></div>
+    <div id="test3"></div>
+    
+    <script>
+        function formatInlineText(text) {
+            console.log('🔧 formatInlineText input:', text);
+            let result = text;
+            
+            // 1. Bold italic (***text***)
+            result = result.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            console.log('🔧 After bold-italic:', result);
+            
+            // 2. Bold (**text**)
+            result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            console.log('🔧 After bold:', result);
+            
+            // 3. Italic (*text*)
+            result = result.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+            console.log('🔧 After italic:', result);
+            
+            console.log('🔧 formatInlineText final output:', result);
+            return result;
+        }
+        
+        // Test cases
+        const test1 = '**Historic Greek Houses**: Painted in vibrant colors';
+        const test2 = 'This is *italic* text';
+        const test3 = 'This is ***bold italic*** text';
+        
+        document.getElementById('test1').innerHTML = `
+            <p><strong>Input:</strong> ${test1}</p>
+            <p><strong>Formatted:</strong> ${formatInlineText(test1)}</p>
+            <p><strong>Rendered:</strong> <span>${formatInlineText(test1)}</span></p>
+        `;
+        
+        document.getElementById('test2').innerHTML = `
+            <p><strong>Input:</strong> ${test2}</p>
+            <p><strong>Formatted:</strong> ${formatInlineText(test2)}</p>
+            <p><strong>Rendered:</strong> <span>${formatInlineText(test2)}</span></p>
+        `;
+        
+        document.getElementById('test3').innerHTML = `
+            <p><strong>Input:</strong> ${test3}</p>
+            <p><strong>Formatted:</strong> ${formatInlineText(test3)}</p>
+            <p><strong>Rendered:</strong> <span>${formatInlineText(test3)}</span></p>
+        `;
+    </script>
+</body>
+</html>

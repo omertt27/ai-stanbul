@@ -1761,6 +1761,107 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                 else:
                     return {"response": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
             
+            elif is_museum_query:
+                # Handle museum queries by searching the places table
+                print(f"🏛️ Museum query detected: {user_input}")
+                
+                # Extract location from query for better filtering
+                search_location = None
+                
+                # Try to extract specific location from the query
+                location_patterns = [
+                    r'in\s+([a-zA-Z\s]+)',
+                    r'near\s+([a-zA-Z\s]+)',
+                    r'around\s+([a-zA-Z\s]+)',
+                ]
+                for pattern in location_patterns:
+                    match = re.search(pattern, user_input.lower())
+                    if match:
+                        search_location = match.group(1).strip()
+                        break
+                
+                # Query museums from places table
+                museums_query = db.query(Place).filter(Place.category == 'Museum')
+                
+                # Filter by location if specified
+                if search_location:
+                    # Handle common location variations
+                    location_mapping = {
+                        'beyoglu': 'Beyoglu', 'beyoğlu': 'Beyoglu',
+                        'sultanahmet': 'Sultanahmet', 'fatih': 'Fatih',
+                        'besiktas': 'Besiktas', 'beşiktaş': 'Besiktas',
+                        'sisli': 'Sisli', 'şişli': 'Sisli',
+                        'kadikoy': 'Kadikoy', 'kadıköy': 'Kadikoy',
+                        'uskudar': 'Uskudar', 'üsküdar': 'Uskudar',
+                        'galata': 'Beyoglu', 'taksim': 'Beyoglu',  # Galata and Taksim are in Beyoğlu
+                        'karakoy': 'Beyoglu', 'karaköy': 'Beyoglu',  # Karaköy is also in Beyoğlu
+                        'istanbul': None  # Don't filter by district for general Istanbul queries
+                    }
+                    
+                    mapped_location = location_mapping.get(search_location.lower(), search_location.title())
+                    if mapped_location:  # Only filter if we have a specific district
+                        museums_query = museums_query.filter(Place.district.ilike(f"%{mapped_location}%"))
+                        print(f"🔍 Filtering museums by location: {mapped_location}")
+                    else:
+                        print(f"🔍 Showing all museums (general Istanbul query)")
+                        search_location = "Istanbul"  # For display purposes
+                
+                museums = museums_query.all()
+                print(f"🏛️ Found {len(museums)} museums")
+                
+                if museums:
+                    # Build response with museum information
+                    if search_location:
+                        response = f"Here are museums in {search_location.title()}:\n\n"
+                    else:
+                        response = "Here are some great museums to visit in Istanbul:\n\n"
+                    
+                    for i, museum in enumerate(museums[:8]):  # Limit to 8 museums
+                        response += f"{i+1}. **{museum.name}**\n"
+                        response += f"   Location: {museum.district}\n"
+                        
+                        # Add specific information for well-known museums
+                        museum_details = {
+                            'Pera Museum': 'Features rotating exhibitions of Ottoman-era paintings and contemporary art. Known for its impressive collection of Orientalist paintings.',
+                            'Istanbul Museum of Modern Art': 'Turkey\'s first modern and contemporary art museum. Showcases Turkish and international contemporary art.',
+                            'Museum Of Illusions Istanbul': 'Interactive museum with optical illusions, puzzles, and mind-bending exhibits. Great for families and photos.',
+                            'Yapı Kredi Kültür Sanat Museum': 'Cultural center with changing exhibitions of contemporary art, photography, and cultural events.',
+                            'Rahmi M. Koç Museum': 'Industrial museum featuring vintage cars, trains, submarines, and interactive science exhibits.',
+                            'Naval Museum': 'Maritime history museum with Ottoman-era ships, naval artifacts, and historical exhibits.',
+                            'Military Museum': 'Military history and Ottoman military artifacts. Famous for its Janissary band performances.',
+                            'Topkapi Palace Museum': 'Former Ottoman palace with imperial collections, including jewelry, weapons, and religious artifacts.',
+                            'Turkish & Islamic Arts Museum': 'One of the world\'s finest collections of Islamic art, carpets, and calligraphy.',
+                            'Archeology Museum': 'Ancient artifacts from the Ottoman Empire and earlier civilizations, including the famous Alexander Sarcophagus.'
+                        }
+                        
+                        detail = museum_details.get(str(museum.name), 'Interesting cultural attraction worth visiting.')
+                        response += f"   {detail}\n\n"
+                    
+                    response += "💡 **Tips:**\n"
+                    response += "- Most museums are closed on Mondays\n"
+                    response += "- Many offer student discounts with valid ID\n"
+                    response += "- Photography rules vary by museum\n"
+                    response += "- Consider getting a Museum Pass Istanbul for multiple visits\n"
+                    response += "- Check official websites for current hours and special exhibitions"
+                    
+                    # Update conversation context if AI Intelligence is enabled
+                    if AI_INTELLIGENCE_ENABLED:
+                        try:
+                            session_manager.update_context(current_session_id, {
+                                'last_search_type': 'museum',
+                                'last_search_location': search_location or 'Istanbul',
+                                'conversation_stage': 'completed'
+                            })
+                        except Exception as e:
+                            print(f"⚠️ Context update error: {e}")
+                    
+                    return {"response": clean_text_formatting(response), "session_id": session_id}
+                else:
+                    if search_location:
+                        return {"response": f"I couldn't find any museums specifically in {search_location.title()}. Try asking about museums in other areas like Beyoğlu, Sultanahmet, or general Istanbul museums."}
+                    else:
+                        return {"response": "I couldn't find museum information at the moment. Please try asking about specific museum areas like 'museums in Beyoğlu' or 'museums in Sultanahmet'."}
+            
             elif is_nightlife_query:
                 nightlife_response = """🌃 **Istanbul Nightlife**
 

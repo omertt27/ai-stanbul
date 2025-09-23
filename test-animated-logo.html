@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Logo Test - AIstanbul</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            height: 200vh; /* Make page scrollable */
+        }
+        
+        .test-section {
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .test-instructions {
+            background: rgba(139, 92, 246, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #8b5cf6;
+            margin-bottom: 2rem;
+        }
+        
+        .test-checklist {
+            background: rgba(99, 102, 241, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+        }
+        
+        .checklist-item {
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #8b5cf6;
+            display: inline-block;
+        }
+        
+        .success { background: #10b981; border-color: #10b981; }
+        .pending { background: #f59e0b; border-color: #f59e0b; }
+        .error { background: #ef4444; border-color: #ef4444; }
+        
+        .scroll-indicator {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(139, 92, 246, 0.9);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-section">
+        <h1 style="text-align: center; color: #8b5cf6; margin-bottom: 2rem;">
+            🎯 Animated Logo Functionality Test
+        </h1>
+        
+        <div class="test-instructions">
+            <h2>Test Instructions:</h2>
+            <ol>
+                <li>Open the AIstanbul homepage at <strong>http://localhost:3001</strong></li>
+                <li>Verify the large logo is centered on the main page</li>
+                <li>Scroll down slowly on the page</li>
+                <li>Check that the logo smoothly moves to the navbar when you scroll past ~15px</li>
+                <li>Scroll back up to the top</li>
+                <li>Verify the logo returns to the center of the page</li>
+                <li>Test on both desktop and mobile if possible</li>
+            </ol>
+        </div>
+        
+        <div class="test-checklist">
+            <h2>✅ Expected Behavior Checklist:</h2>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Main page shows large centered "A/STANBUL" logo</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Logo has smooth transition animations (opacity, transform)</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>When scrolling down ~15px, navbar appears from top</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Navbar contains the same logo in smaller size</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Main page logo fades out as navbar logo appears</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Search bar and other content also fade slightly when scrolled</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>When scrolling back up, navbar slides out and main logo returns</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>All transitions are smooth (0.3s ease)</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Logo clicking functionality works in both positions</span>
+            </div>
+            
+            <div class="checklist-item">
+                <span class="status-indicator pending"></span>
+                <span>Mobile version works properly</span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: center;">
+            <p><strong>🚀 Implementation Features:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Scroll threshold: 15px</li>
+                <li>Transition duration: 0.3s ease</li>
+                <li>Navbar background: Transparent (no background)</li>
+                <li>Logo opacity transitions: 1 ↔ 0</li>
+                <li>Transform animations: translateY and scale</li>
+                <li>Passive scroll listener for performance</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="scroll-indicator">
+        ⬇️ Scroll down to test the animation!
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 Technical Implementation Details:</h2>
+        <p>The animated logo functionality has been implemented with the following components:</p>
+        
+        <h3>App.jsx Changes:</h3>
+        <ul>
+            <li>Added scroll detection state management</li>
+            <li>Implemented useEffect with scroll listener</li>
+            <li>Added conditional NavBar rendering</li>
+            <li>Applied transition styles to main page elements</li>
+        </ul>
+        
+        <h3>NavBar.jsx Changes:</h3>
+        <ul>
+            <li>Added isAnimated prop for styling</li>
+            <li>Conditional background and backdrop-filter</li>
+            <li>Enhanced mobile support</li>
+        </ul>
+        
+        <h3>App.css Changes:</h3>
+        <ul>
+            <li>Added smooth scroll behavior</li>
+            <li>Enhanced navbar animation styles</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎨 Visual Design:</h2>
+        <p>The animation creates a seamless user experience:</p>
+        <ul>
+            <li><strong>Scroll Down:</strong> Main logo fades out while navbar logo appears</li>
+            <li><strong>Scroll Up:</strong> Navbar logo disappears while main logo returns</li>
+            <li><strong>Smooth Transitions:</strong> All elements use consistent 0.3s ease timing</li>
+            <li><strong>Performance:</strong> Uses transform and opacity for GPU-accelerated animations</li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -169,13 +169,16 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
     try {
       console.log('❤️ Liking blog post:', postId);
       
-      // Use the JSON file-based endpoint that doesn't require database records
+      // Use the JSON file-based endpoint that now tracks individual users
       const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          user_id: userIdentifier
+        }),
         timeout: 5000
       }, {
         maxAttempts: 2,
@@ -197,8 +200,8 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
     try {
       console.log(`🔍 Checking like status for post ${postId}`);
       
-      // Use the JSON file-based endpoint
-      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status?user_identifier=${userIdentifier}`, {
+      // Use the JSON file-based endpoint that now tracks individual users
+      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status?user_id=${userIdentifier}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'

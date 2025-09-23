@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const TypingIndicator = ({ message = "KAM is thinking..." }) => {
+const TypingIndicator = ({ message = "" }) => {
 
   // Add the keyframes to the document head if not already present
   useEffect(() => {

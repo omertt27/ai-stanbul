@@ -283,6 +283,7 @@ const BlogPost = () => {
         setLikesCount(postData.likes || postData.likes_count || 0); // Set initial likes count
         console.log('✅ BlogPost: Post loaded successfully from API:', postData?.title);
         trackBlogEvent('view_post', postData.title);
+        setLoading(false); // Set loading to false when API succeeds
         return;
       }
     } catch (err) {
@@ -344,7 +345,7 @@ const BlogPost = () => {
   };
 
   const handleLike = async () => {
-    if (!post?.id || likeLoading || alreadyLiked) return;
+    if (!post?.id || likeLoading) return;
     
     console.log('⭐ BlogPost: Liking post:', post.title);
     setLikeLoading(true);
@@ -354,11 +355,12 @@ const BlogPost = () => {
       const userIdentifier = getUserIdentifier();
       const likeResult = await likeBlogPost(post.id, userIdentifier);
       
-      // Update the likes count state
-      setLikesCount(likeResult.likes_count || (likesCount + 1));
-      setAlreadyLiked(true);
+      // Update the likes count and liked status from the response
+      setLikesCount(likeResult.likes_count || likesCount);
+      setAlreadyLiked(likeResult.isLiked || false);
+      
       trackBlogEvent('like_post', post?.title || 'Unknown Post');
-      console.log('✅ BlogPost: Post liked successfully - new count:', likeResult.likes_count);
+      console.log('✅ BlogPost: Post like updated - count:', likeResult.likes_count, 'isLiked:', likeResult.isLiked);
       
     } catch (err) {
       console.error('❌ BlogPost: Failed to like post:', err);
@@ -404,55 +406,144 @@ const BlogPost = () => {
   };
 
   const formatContent = (content) => {
-    const paragraphs = content.split('\n').filter(line => line.trim());
+    const lines = content.split('\n');
+    const elements = [];
+    let currentList = [];
     
-    return paragraphs.map((paragraph, index) => {
-      // Handle headers (lines that start and end with **)
-      if (paragraph.startsWith('**') && paragraph.endsWith('**') && !paragraph.includes('***')) {
-        const text = paragraph.slice(2, -2);
-        return (
-          <h3 key={index} className="text-xl font-bold mb-4 mt-6 text-white">
-            {text}
-          </h3>
-        );
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines
+      if (!trimmedLine) {
+        // If we were building a list, close it
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key={`list-${index}`} className="mb-4 ml-4 list-disc">
+              {currentList}
+            </ul>
+          );
+          currentList = [];
+        }
+        return;
       }
       
-      // Handle list items
-      if (paragraph.startsWith('- ')) {
-        const listText = paragraph.slice(2);
-        const formattedListText = formatInlineText(listText);
-        return (
+      // Handle different heading levels
+      if (trimmedLine.startsWith('# ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        const text = trimmedLine.slice(2);
+        elements.push(
+          <h1 key={index} className="text-3xl font-bold mb-6 mt-8 text-white" dangerouslySetInnerHTML={{ __html: formatInlineText(text) }} />
+        );
+      } else if (trimmedLine.startsWith('## ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        const text = trimmedLine.slice(3);
+        elements.push(
+          <h2 key={index} className="text-2xl font-bold mb-5 mt-7 text-white" dangerouslySetInnerHTML={{ __html: formatInlineText(text) }} />
+        );
+      } else if (trimmedLine.startsWith('### ')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        const text = trimmedLine.slice(4);
+        elements.push(
+          <h3 key={index} className="text-xl font-bold mb-4 mt-6 text-white" dangerouslySetInnerHTML={{ __html: formatInlineText(text) }} />
+        );
+      }
+      // Handle headers (lines that start and end with ** but no ###)
+      else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && !trimmedLine.includes('***') && !trimmedLine.startsWith('###')) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        const text = trimmedLine.slice(2, -2);
+        elements.push(
+          <h3 key={index} className="text-xl font-bold mb-4 mt-6 text-white" dangerouslySetInnerHTML={{ __html: formatInlineText(text) }} />
+        );
+      }
+      // Handle list items (- or • or *)
+      else if (trimmedLine.match(/^[-•*]\s/)) {
+        const listText = trimmedLine.replace(/^[-•*]\s/, '');
+        currentList.push(
           <li 
-            key={index} 
-            className="mb-2 ml-4"
-            dangerouslySetInnerHTML={{ __html: formattedListText }}
+            key={`li-${index}`} 
+            className="mb-2 text-gray-200"
+            dangerouslySetInnerHTML={{ __html: formatInlineText(listText) }}
           />
         );
       }
-      
-      // Handle regular paragraphs with inline formatting
-      const formattedText = formatInlineText(paragraph);
-      
-      return (
-        <p 
-          key={index} 
-          className="mb-4 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: formattedText }}
-        />
-      );
+      // Handle numbered lists
+      else if (trimmedLine.match(/^\d+\.\s/)) {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        const listText = trimmedLine.replace(/^\d+\.\s/, '');
+        elements.push(
+          <ol key={index} className="mb-4 ml-4 list-decimal">
+            <li className="mb-2 text-gray-200" dangerouslySetInnerHTML={{ __html: formatInlineText(listText) }} />
+          </ol>
+        );
+      }
+      // Regular paragraphs
+      else {
+        if (currentList.length > 0) {
+          elements.push(<ul key={`list-${index}`} className="mb-4 ml-4 list-disc">{currentList}</ul>);
+          currentList = [];
+        }
+        elements.push(
+          <p 
+            key={index} 
+            className="mb-4 leading-relaxed text-gray-200"
+            dangerouslySetInnerHTML={{ __html: formatInlineText(trimmedLine) }}
+          />
+        );
+      }
     });
+    
+    // Close any remaining list
+    if (currentList.length > 0) {
+      elements.push(
+        <ul key="final-list" className="mb-4 ml-4 list-disc">
+          {currentList}
+        </ul>
+      );
+    }
+    
+    return elements;
   };
 
   // Helper function to format inline text with bold, italic, and bold-italic
   const formatInlineText = (text) => {
-    return text
-      // Bold italic (***text***)
-      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-      // Bold (**text**)
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Italic (*text* or _text_)
-      .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
-      .replace(/_([^_]+?)_/g, '<em>$1</em>');
+    if (!text) return text;
+    
+    let result = text;
+    
+    // 1. Bold italic (***text***)
+    result = result.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    
+    // 2. Bold (**text**)
+    result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // 3. Italic (*text*)
+    result = result.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+    
+    // 4. Underscore italic (_text_)
+    result = result.replace(/\b_([^_]+?)_\b/g, '<em>$1</em>');
+    
+    // 5. Code (`text`)
+    result = result.replace(/`([^`]+?)`/g, '<code class="bg-gray-700 text-yellow-300 px-1 py-0.5 rounded text-sm">$1</code>');
+    
+    // 6. Links [text](url)
+    result = result.replace(/\[([^\]]+?)\]\(([^)]+?)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    return result;
   };
 
   const openImageModal = (image) => {

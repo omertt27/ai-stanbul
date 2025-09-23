@@ -548,8 +548,8 @@
 /* Hero Section Styles */
 .hero-section {
   text-align: center;
-  padding: 2rem 0 3rem 0;
-  margin-bottom: 2rem;
+  padding: 2rem 0 1rem 0; /* Reduced bottom padding from 3rem to 1rem */
+  margin-bottom: 1rem; /* Reduced margin from 2rem to 1rem */
   position: relative;
   background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
 }
@@ -602,7 +602,7 @@
 /* Responsive adjustments for hero section */
 @media (max-width: 768px) {
   .hero-section {
-    padding: 2rem 0 3rem 0;
+    padding: 2rem 0 1rem 0; /* Reduced bottom padding for consistency */
   }
   
   .hero-title {
@@ -616,7 +616,7 @@
 
 @media (max-width: 480px) {
   .hero-section {
-    padding: 1.5rem 0 2.5rem 0;
+    padding: 1.5rem 0 0.5rem 0; /* Reduced bottom padding for small screens */
   }
   
   .hero-content {
@@ -653,7 +653,7 @@
 
 .districts-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* Show exactly 2 districts per row */
   gap: 1.5rem;
   margin-top: 2rem;
 }
@@ -823,8 +823,8 @@
 /* Responsive design for districts gallery */
 @media (max-width: 768px) {
   .districts-gallery {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr); /* Keep 2 districts per row on mobile */
+    gap: 0.75rem; /* Smaller gap for mobile */
   }
   
   .district-card {
@@ -837,5 +837,13 @@
   
   .gallery-title p {
     font-size: 0.9rem;
+  }
+}
+
+/* For very small screens, switch to single column */
+@media (max-width: 480px) {
+  .districts-gallery {
+    grid-template-columns: 1fr; /* Single column on very small screens */
+    gap: 1rem;
   }
 }

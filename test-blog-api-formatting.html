@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .api-response {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .formatted-content {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button {
+            background-color: #007acc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        strong {
+            font-weight: bold;
+            color: #fff;
+        }
+        em {
+            font-style: italic;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Blog API Test & Formatting</h1>
+    
+    <div class="test-section">
+        <h2>API Response Test</h2>
+        <button onclick="testBlogAPI()">Fetch Blog Post #4</button>
+        <button onclick="testBlogAPI(1)">Fetch Blog Post #1</button>
+        <button onclick="testAllBlogs()">Fetch All Blog Posts</button>
+        <div id="api-status"></div>
+        <div class="api-response" id="api-response"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Formatted Content Preview</h2>
+        <div class="formatted-content" id="formatted-content"></div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8001';
+        
+        // Same formatInlineText function from BlogPost.jsx
+        const formatInlineText = (text) => {
+            if (!text) return text;
+            
+            let result = text;
+            
+            // 1. Bold italic (***text***)
+            result = result.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            
+            // 2. Bold (**text**)
+            result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // 3. Italic (*text*)
+            result = result.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+            
+            // 4. Underscore italic (_text_)
+            result = result.replace(/\b_([^_]+?)_\b/g, '<em>$1</em>');
+            
+            // 5. Code (`text`)
+            result = result.replace(/`([^`]+?)`/g, '<code class="bg-gray-700 text-yellow-300 px-1 py-0.5 rounded text-sm">$1</code>');
+            
+            // 6. Links [text](url)
+            result = result.replace(/\[([^\]]+?)\]\(([^)]+?)\)/g, '<a href="$2" class="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">$1</a>');
+            
+            return result;
+        };
+        
+        const formatContent = (content) => {
+            const lines = content.split('\n');
+            const elements = [];
+            
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                
+                // Skip empty lines
+                if (!trimmedLine) {
+                    return;
+                }
+                
+                // Handle different heading levels
+                if (trimmedLine.startsWith('# ')) {
+                    const text = trimmedLine.slice(2);
+                    elements.push(`<h1 class="text-3xl font-bold mb-6 mt-8">${formatInlineText(text)}</h1>`);
+                } else if (trimmedLine.startsWith('## ')) {
+                    const text = trimmedLine.slice(3);
+                    elements.push(`<h2 class="text-2xl font-bold mb-5 mt-7">${formatInlineText(text)}</h2>`);
+                } else if (trimmedLine.startsWith('### ')) {
+                    const text = trimmedLine.slice(4);
+                    elements.push(`<h3 class="text-xl font-bold mb-4 mt-6">${formatInlineText(text)}</h3>`);
+                } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && !trimmedLine.includes('***')) {
+                    const text = trimmedLine.slice(2, -2);
+                    elements.push(`<h3 class="text-xl font-bold mb-4 mt-6">${formatInlineText(text)}</h3>`);
+                } else if (trimmedLine.startsWith('- ')) {
+                    const listText = trimmedLine.slice(2);
+                    elements.push(`<li class="mb-2">${formatInlineText(listText)}</li>`);
+                } else {
+                    // Regular paragraph
+                    elements.push(`<p class="mb-4">${formatInlineText(trimmedLine)}</p>`);
+                }
+            });
+            
+            return elements.join('');
+        };
+        
+        async function testBlogAPI(postId = 4) {
+            const statusDiv = document.getElementById('api-status');
+            const responseDiv = document.getElementById('api-response');
+            const formattedDiv = document.getElementById('formatted-content');
+            
+            statusDiv.textContent = `Fetching blog post ${postId}...`;
+            responseDiv.textContent = '';
+            formattedDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/blog/${postId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                statusDiv.textContent = `✅ Successfully fetched blog post ${postId}`;
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+                // Format the content for preview
+                if (data.content) {
+                    const formattedContent = formatContent(data.content);
+                    formattedDiv.innerHTML = `
+                        <h2>${data.title}</h2>
+                        <p><strong>Author:</strong> ${data.author_name}</p>
+                        <p><strong>District:</strong> ${data.district}</p>
+                        <hr style="margin: 20px 0;">
+                        ${formattedContent}
+                    `;
+                }
+                
+            } catch (error) {
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                responseDiv.textContent = error.toString();
+            }
+        }
+        
+        async function testAllBlogs() {
+            const statusDiv = document.getElementById('api-status');
+            const responseDiv = document.getElementById('api-response');
+            
+            statusDiv.textContent = 'Fetching all blog posts...';
+            responseDiv.textContent = '';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/blog`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                statusDiv.textContent = `✅ Successfully fetched ${data.length} blog posts`;
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                responseDiv.textContent = error.toString();
+            }
+        }
+    </script>
+</body>
+</html>

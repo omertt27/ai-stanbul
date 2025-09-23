@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { Link, useLocation } from 'react-router-dom';
-import { trackNavigation, trackEvent } from './utils/analytics';
+import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
 import NavBar from './components/NavBar';
 import { 
   TypingSimulator, 
@@ -297,12 +297,20 @@ function Chatbot({ onDarkModeToggle }) {
   const [userScrolling, setUserScrolling] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollTimeoutRef = useRef(null);
 
   // Detect user scrolling behavior
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = (e) => {
       setUserScrolling(true);
+      
+      // Check if user is at the bottom and show/hide scroll button
+      const chatContainer = e.target.closest('.chatbot-messages') || e.target;
+      if (chatContainer && chatContainer.scrollHeight) {
+        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 50;
+        setShowScrollButton(!isAtBottom);
+      }
       
       // Clear existing timeout
       if (scrollTimeoutRef.current) {
@@ -365,6 +373,25 @@ function Chatbot({ onDarkModeToggle }) {
     }
   }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
 
+  // Check scroll position to show/hide scroll button
+  useEffect(() => {
+    const checkScrollPosition = () => {
+      if (messagesEndRef.current) {
+        const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+        if (chatContainer && chatContainer.scrollHeight) {
+          const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 50;
+          setShowScrollButton(!isAtBottom && messages.length > 0);
+        }
+      }
+    };
+
+    // Check immediately and after a short delay to account for rendering
+    checkScrollPosition();
+    const timeoutId = setTimeout(checkScrollPosition, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [messages]);
+
   // Removed suggestions functionality as requested
 
   // Enhanced input validation and processing
@@ -399,6 +426,17 @@ function Chatbot({ onDarkModeToggle }) {
     return true
   }
 
+  // Function to scroll to the bottom/newest messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        setShowScrollButton(false);
+      }
+    }
+  };
+
   const handleSend = async (customInput = null) => {
     const userInput = customInput || input.trim();
     
@@ -414,7 +452,7 @@ function Chatbot({ onDarkModeToggle }) {
     recordUserInteraction('message_sent', { messageLength: userInput.length });
     
     // Track chat message with Vercel Analytics
-    trackEvent.chatMessage('user_message', navigator.language || 'en');
+    trackChatEvent('user_message', userInput);
     
     // Enhanced input validation
     if (!validateInput(userInput)) {
@@ -446,6 +484,11 @@ function Chatbot({ onDarkModeToggle }) {
     try {
       await fetchStreamingResults(userInput, (chunk) => {
         streamedContent += chunk;
+        
+        // Hide loading indicator as soon as we get the first chunk
+        if (streamedContent.length > 0 && loading) {
+          setLoading(false);
+        }
         
         // Show typing indicator for the first chunk, then switch to content
         if (streamedContent.length > 0 && isTyping) {
@@ -1042,21 +1085,31 @@ function Chatbot({ onDarkModeToggle }) {
               </div>
             )}
             
-            {/* Enhanced typing indicator when KAM is thinking */}
-            {isTyping && !loading && (
-              <div className="mb-4">
-                <div className="flex justify-start">
-                  <div className="text-xs font-medium mb-1 text-gray-100">
-                    KAM
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
-                    <TypingIndicator variant="thinking" />
-                  </div>
-                </div>
+            {/* Scroll to Bottom Button */}
+            {showScrollButton && (
+              <div className="fixed bottom-24 right-6 z-10">
+                <button
+                  onClick={scrollToBottom}
+                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center"
+                  title="Go to newest messages"
+                >
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3" 
+                    />
+                  </svg>
+                </button>
               </div>
             )}
+
             
             <div ref={messagesEndRef} />
           </div>

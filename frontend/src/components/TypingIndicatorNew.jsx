@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TypingIndicator = ({ message = "KAM is thinking..." }) => {
+const TypingIndicator = ({ message = "" }) => {
   const isLightMode = document.body.classList.contains('light');
 
   const containerStyle = {

@@ -2,7 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=        async function testLikeStatus() {
+            log('🔍 Testing: Check like status for post #1');
+            const userIdentifier = `user_${Date.now()}_test`;
+            
+            try {
+                const response = await fetch(`${API_BASE}/blog/1/like-status?user_id=${userIdentifier}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Success: Like status checked`);
+                    log(`👤 User: ${userIdentifier}`);
+                    log(`❤️ Is Liked: ${data.isLiked}`);
+                    log(`📊 Total Likes: ${data.likes}`);
+                } else {
+                    log(`❌ Error: ${response.status} - ${data.detail || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }l-scale=1.0">
     <title>Blog Post Test</title>
     <style>
         body {
@@ -65,6 +84,7 @@
     <button onclick="testBlogPost()">Test Blog Post #1</button>
     <button onclick="testLikeStatus()">Test Like Status</button>
     <button onclick="testLikePost()">Test Like Post</button>
+    <button onclick="runFullTest()">🚀 Run Full Test</button>
     <button onclick="clearLogs()">Clear Logs</button>
     
     <h3>API Test Results:</h3>
@@ -110,7 +130,7 @@
             const userIdentifier = `user_${Date.now()}_test`;
             
             try {
-                const response = await fetch(`${API_BASE}/blog/posts/1/like-status?user_identifier=${userIdentifier}`);
+                const response = await fetch(`${API_BASE}/blog/1/like-status?user_identifier=${userIdentifier}`);
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -131,13 +151,13 @@
             const userIdentifier = `user_${Date.now()}_test`;
             
             try {
-                const response = await fetch(`${API_BASE}/blog/posts/1/like`, {
+                const response = await fetch(`${API_BASE}/blog/1/like`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        user_identifier: userIdentifier
+                        user_id: userIdentifier
                     })
                 });
                 const data = await response.json();
@@ -146,6 +166,7 @@
                     log(`✅ Success: Post liked`);
                     log(`👤 User: ${userIdentifier}`);
                     log(`📊 New like count: ${data.likes_count}`);
+                    log(`❤️ Is Liked: ${data.isLiked}`);
                     log(`💝 Message: ${data.message}`);
                 } else {
                     log(`❌ Error: ${response.status} - ${data.detail || 'Unknown error'}`, 'error');
@@ -153,6 +174,31 @@
             } catch (error) {
                 log(`❌ Network Error: ${error.message}`, 'error');
             }
+        }
+        
+        async function runFullTest() {
+            log('🚀 Starting comprehensive blog functionality test...');
+            log('');
+            
+            // Test 1: Blog Post Retrieval
+            await testBlogPost();
+            log('');
+            
+            // Test 2: Like Status Check
+            await testLikeStatus();
+            log('');
+            
+            // Test 3: Like Post
+            await testLikePost();
+            log('');
+            
+            // Test 4: Verify Like Count Updated
+            log('🔄 Verifying like count was updated...');
+            await testLikeStatus();
+            log('');
+            
+            log('✅ Full test sequence completed!');
+            log('🎯 Check results above to verify all functionality is working.');
         }
         
         // Auto-run initial test

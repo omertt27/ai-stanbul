@@ -27,7 +27,7 @@
     "welcome": "Welcome to Istanbul AI! How can I help you explore the city?",
     "placeholder": "What would you like to know about Istanbul?",
     "searchPlaceholder": "Discover the magic of Istanbul...",
-    "typing": "KAM is thinking...",
+    "typing": "",
     "suggestions": {
       "title": "Try asking about:",
       "restaurants": "Best restaurants in Sultanahmet",
