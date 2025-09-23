@@ -56,7 +56,7 @@ const EnhancedBlogPost = ({ postId }) => {
   const fetchBlogPost = async () => {
     try {
       // Fetch blog post
-      const postResponse = await fetch(`/api/blog/posts/${postId}`);
+      const postResponse = await fetch(`/blog/${postId}`);
       const postData = await postResponse.json();
       
       if (postData.success) {
@@ -76,7 +76,7 @@ const EnhancedBlogPost = ({ postId }) => {
     try {
       // Fetch weather data for mentioned locations
       if (post.locations && post.locations.length > 0) {
-        const weatherResponse = await fetch(`/api/weather/current?city=${post.locations[0]}`);
+        const weatherResponse = await fetch(`/weather/current?city=${post.locations[0]}`);
         const weatherData = await weatherResponse.json();
         if (weatherData.success) {
           setWeatherData(weatherData.data);
@@ -85,7 +85,7 @@ const EnhancedBlogPost = ({ postId }) => {
 
       // Fetch nearby restaurants if it's a food-related post
       if (post.category === 'food' || post.tags.includes('restaurants')) {
-        const placesResponse = await fetch(`/api/places/restaurants?query=${post.title}&limit=3`);
+        const placesResponse = await fetch(`/places/restaurants?query=${post.title}&limit=3`);
         const placesData = await placesResponse.json();
         if (placesData.success) {
           setNearbyPlaces(placesData.restaurants);
@@ -104,7 +104,7 @@ const EnhancedBlogPost = ({ postId }) => {
       formData.append('event_type', eventType);
       formData.append('metadata', JSON.stringify(metadata));
 
-      await fetch('/api/blog/analytics/track', {
+      await fetch('/blog/analytics/track', {
         method: 'POST',
         body: formData
       });

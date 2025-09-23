@@ -400,6 +400,13 @@ class CircuitBreaker {
       this.nextAttempt = Date.now() + this.resetTimeout;
     }
   }
+  
+  reset() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+    this.lastFailureTime = null;
+    this.nextAttempt = null;
+  }
 }
 
 export const createCircuitBreaker = (options) => new CircuitBreaker(options);

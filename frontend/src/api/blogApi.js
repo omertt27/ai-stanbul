@@ -167,7 +167,8 @@ export const uploadBlogImage = async (file) => {
 export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('❤️ Liking blog post:', postId);
+      console.log('❤️ Liking blog post:', postId, 'Type:', typeof postId);
+      console.log('🔗 Full like URL:', `${BLOG_API_URL}/${postId}/like`);
       
       // Use the JSON file-based endpoint that now tracks individual users
       const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
@@ -190,7 +191,8 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
       return data;
       
     } catch (error) {
-      throw handleBlogApiError(error, null, 'Like Blog Post');
+      console.error('❌ Like failed for post ID:', postId, 'Error:', error.message);
+      throw handleBlogApiError(error, null, `Like Blog Post (ID: ${postId})`);
     }
   });
 };
@@ -389,4 +391,50 @@ export const seedSamplePosts = async () => {
   // Backend automatically seeds sample posts on startup
   console.log('🌱 Sample posts are automatically seeded by backend');
   return { message: 'Sample posts already available' };
+};
+
+// Circuit breaker utilities
+export const resetBlogCircuitBreaker = () => {
+  blogCircuitBreaker.reset();
+  console.log('🔄 Blog circuit breaker has been reset');
+};
+
+export const getBlogCircuitBreakerState = () => {
+  return {
+    state: blogCircuitBreaker.state,
+    failureCount: blogCircuitBreaker.failureCount,
+    nextAttempt: blogCircuitBreaker.nextAttempt
+  };
+};
+
+// Validation utilities
+export const validatePostExists = async (postId) => {
+  try {
+    console.log('🔍 Validating post exists:', postId);
+    const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
+      method: 'GET',
+      headers: { 
+        'Accept': 'application/json'
+      },
+      timeout: 5000
+    }, {
+      maxAttempts: 1
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.warn('⚠️ Post validation failed for ID:', postId, error.message);
+    return false;
+  }
+};
+
+export const safeLikeBlogPost = async (postId, userIdentifier = 'default_user') => {
+  // First validate the post exists
+  const exists = await validatePostExists(postId);
+  if (!exists) {
+    console.error('❌ Cannot like non-existent post:', postId);
+    throw new Error(`Blog post with ID ${postId} does not exist`);
+  }
+  
+  return likeBlogPost(postId, userIdentifier);
 };

@@ -17,8 +17,8 @@ try:
     
     # Start the server
     import uvicorn
-    print("Starting uvicorn server on http://127.0.0.1:8001")
-    uvicorn.run(app, host="127.0.0.1", port=8001, log_level="info")
+    print("Starting uvicorn server on http://127.0.0.1:8000")
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
     
 except ImportError as e:
     print(f"❌ Import error: {e}")

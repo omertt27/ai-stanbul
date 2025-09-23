@@ -182,6 +182,7 @@ class DummyManager:
     def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
     def extract_entities(self, *args, **kwargs): return {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
     def enhance_recommendations(self, *args, **kwargs): return args[1] if len(args) > 1 else []
+    def analyze_query_context(self, *args, **kwargs): return {"locations": [], "cuisine_types": [], "price_indicators": [], "time_context": [], "group_context": None, "urgency_level": "normal", "query_complexity": "simple"}
 
 class DummyAdvancedAI:
     async def get_comprehensive_real_time_data(self, *args, **kwargs): return {}
@@ -260,11 +261,11 @@ logging.basicConfig(level=logging.INFO)
 # (Removed duplicate project imports and load_dotenv)
 
 def clean_text_formatting(text):
-    """Advanced text cleaning with expanded regex coverage and multi-pass filtering"""
+    """Enhanced text formatting for better readability while preserving structure"""
     if not text:
         return text
     
-    # Remove emojis (Unicode emoji ranges - comprehensive coverage)
+    # Remove excessive emojis but keep a few for context
     emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -280,7 +281,10 @@ def clean_text_formatting(text):
         u"\U0001F800-\U0001F8FF"  # supplemental arrows-c
         "]+", flags=re.UNICODE)
     
-    text = emoji_pattern.sub(r'', text)
+    # Count emojis and only remove if excessive (more than 3)
+    emoji_count = len(emoji_pattern.findall(text))
+    if emoji_count > 3:
+        text = emoji_pattern.sub(r'', text)
     
     # PHASE 1: Remove explicit currency amounts (all formats)
     text = re.sub(r'\$\d+[\d.,]*', '', text)      # $20, $15.50
@@ -291,76 +295,220 @@ def clean_text_formatting(text):
     text = re.sub(r'(?:\$|€|₺)\s*\d+[\d.,]*', '', text)  # $ 20, € 15.50
     
     # PHASE 2: Remove currency words and phrases
-    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds)s?', '', text, flags=re.IGNORECASE)  # "20 lira", "15 euros"
-    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)  # "lira 50", "turkish lira 20"
+    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds)s?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)
     
     # PHASE 3: Remove cost-related phrases with amounts
     cost_patterns = [
-        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+)?\$?\€?₺?\d+[\d.,]*',  # "cost: $20", "price around €15"
-        r'(?:entrance|admission|ticket)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?\d+',  # "entrance fee: $20"
-        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?\d+',  # "starting from $20"
-        r'(?:only|just)\s+\$?\€?₺?\d+[\d.,]*',  # "only $15", "just €20"
-        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?\d+',  # "per person: $25"
-        r'\$?\€?₺?\d+[\d.,]*\s*(?:per\s+person|each|pp)',  # "$25 per person"
+        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+)?\$?\€?₺?\d+[\d.,]*',
+        r'(?:entrance|admission|ticket)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?\d+',
+        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?\d+',
+        r'(?:only|just)\s+\$?\€?₺?\d+[\d.,]*',
+        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?\d+',
+        r'\$?\€?₺?\d+[\d.,]*\s*(?:per\s+person|each|pp)',
     ]
     
     for pattern in cost_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # PHASE 4: Remove pricing context words when followed by amounts
-    text = re.sub(r'(?:budget|cheap|expensive|affordable)\s*:?\s*\$?\€?₺?\d+', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'(?:range|ranges)\s*:?\s*\$?\€?₺?\d+', '', text, flags=re.IGNORECASE)
+    # PHASE 4: Remove money emojis and currency symbols
+    text = re.sub(r'💰|💵|💴|💶|💷', '', text)
+    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨]', '', text)
     
-    # PHASE 5: Remove common pricing symbols and indicators
-    text = re.sub(r'💰|💵|💴|💶|💷', '', text)  # Money emojis (backup)
-    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨]', '', text)  # All currency symbols
+    # PHASE 5: Enhance formatting for readability
+    # Convert markdown to readable format
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold** but keep content
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic* but keep content
     
-    # PHASE 6: Remove pricing-related standalone words in context
-    text = re.sub(r'\b(?:cost|price|fee|charge)\b(?=\s*(?:is|are|will\s+be|\d|\$|€|₺))', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\b(?:entrance|admission|ticket)\s+(?:fee|cost|price)\b', 'entry', text, flags=re.IGNORECASE)  # Replace with neutral word
+    # Improve bullet points and structure
+    text = re.sub(r'^[\s]*-\s*', '• ', text, flags=re.MULTILINE)  # Convert - to bullet points
+    text = re.sub(r'^\s*\*\s*', '• ', text, flags=re.MULTILINE)  # Convert * to bullet points
     
-    # PHASE 7: Clean up extra spaces and normalize
-    text = re.sub(r'\s+', ' ', text)  # Multiple spaces to single space
-    text = re.sub(r'\s*[:;,]\s*[:;,]+', ',', text)  # Clean up multiple punctuation
-    text = re.sub(r'\s*[,:]\s*$', '', text)  # Remove trailing punctuation
+    # Improve section headers
+    text = re.sub(r'^#+\s*([^#\n]*)', r'\n\1\n', text, flags=re.MULTILINE)  # Convert headers
     
-    # Remove markdown formatting
-    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold**
-    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic*
-    text = re.sub(r'#+ ', '', text)               # Remove hashtags at start of lines
-    text = re.sub(r' #\w+', '', text)             # Remove hashtags in text
+    # Ensure proper spacing around sections
+    text = re.sub(r'\n{3,}', '\n\n', text)  # Limit excessive line breaks
+    text = re.sub(r'([.!?])\s*\n\s*([A-Z])', r'\1\n\n\2', text)  # Add space between paragraphs
     
-    # Clean up extra whitespace but preserve line breaks
+    # Clean up spacing while preserving structure
     lines = text.split('\n')
-    cleaned_lines = [' '.join(line.split()) for line in lines]
+    cleaned_lines = []
+    for line in lines:
+        line = line.strip()
+        if line:  # Only process non-empty lines
+            line = re.sub(r'\s+', ' ', line)  # Multiple spaces to single space
+            line = re.sub(r'\s*[:;,]\s*[:;,]+', ',', line)  # Clean up punctuation
+            cleaned_lines.append(line)
+        else:
+            cleaned_lines.append('')  # Preserve empty lines for structure
+    
     text = '\n'.join(cleaned_lines)
     
-    return text.strip()
+    # Final cleanup
+    text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)  # No more than double line breaks
+    text = re.sub(r'^\s+|\s+$', '', text)  # Remove leading/trailing whitespace
+    
+    return text
+
+def get_museums_from_database() -> List[Dict[str, Any]]:
+    """Fetch museums from the database and return formatted data"""
+    try:
+        from database import SessionLocal
+        from models import Place
+        
+        # Create database session
+        db = SessionLocal()
+        
+        # Query museums from the places table
+        museums = db.query(Place).filter(Place.category == 'Museum').all()
+        
+        # Also query historical sites and palaces that are museum-like
+        historical_sites = db.query(Place).filter(Place.category == 'Historical Site').all()
+        palaces = db.query(Place).filter(Place.category == 'Palace').all()
+        
+        db.close()
+        
+        # Format the data
+        museum_data = []
+        
+        # Add actual museums
+        for museum in museums:
+            museum_data.append({
+                'name': museum.name,
+                'category': 'Museum',
+                'district': museum.district,
+                'type': 'museum'
+            })
+        
+        # Add historical sites (many are museum-like)
+        for site in historical_sites:
+            museum_data.append({
+                'name': site.name,
+                'category': 'Historical Site',
+                'district': site.district,
+                'type': 'historical'
+            })
+        
+        # Add palaces (which are museums)
+        for palace in palaces:
+            museum_data.append({
+                'name': palace.name,
+                'category': 'Palace Museum',
+                'district': palace.district,
+                'type': 'palace'
+            })
+        
+        return museum_data
+        
+    except Exception as e:
+        print(f"Error fetching museums from database: {e}")
+        return []
+
+def format_museums_response(museums_data: List[Dict[str, Any]]) -> str:
+    """Format museums data into a comprehensive response"""
+    if not museums_data:
+        return """**Best Museums to Visit in Istanbul**
+
+I'd love to help you discover Istanbul's amazing museums! Unfortunately, I'm having trouble accessing the latest museum information right now. Here are some must-visit museums:
+
+🏛️ **Topkapi Palace Museum** - Former Ottoman imperial palace
+⛪ **Hagia Sophia** - Iconic Byzantine church with incredible mosaics  
+🎨 **Istanbul Modern** - Contemporary Turkish and international art
+🖼️ **Pera Museum** - European art and rotating exhibitions
+
+Would you like me to help you with specific museum information or directions?"""
+    
+    # Group museums by type and district
+    museums_by_district = {}
+    museum_types = {'museum': [], 'historical': [], 'palace': []}
+    
+    for museum in museums_data:
+        district = museum['district']
+        if district not in museums_by_district:
+            museums_by_district[district] = []
+        museums_by_district[district].append(museum)
+        
+        # Group by type
+        museum_type = museum.get('type', 'museum')
+        if museum_type in museum_types:
+            museum_types[museum_type].append(museum)
+    
+    # Build the response
+    response = "**Best Museums to Visit in Istanbul**\n\n"
+    
+    # Museums section
+    if museum_types['museum']:
+        response += "**🏛️ Museums:**\n"
+        for museum in museum_types['museum']:
+            response += f"• **{museum['name']}** - {museum['district']} district\n"
+        response += "\n"
+    
+    # Historical sites section
+    if museum_types['historical']:
+        response += "**🏛️ Historical Sites & Museums:**\n"
+        for site in museum_types['historical']:
+            response += f"• **{site['name']}** - {site['district']} district\n"
+        response += "\n"
+    
+    # Palace museums section
+    if museum_types['palace']:
+        response += "**🏰 Palace Museums:**\n"
+        for palace in museum_types['palace']:
+            response += f"• **{palace['name']}** - {palace['district']} district\n"
+        response += "\n"
+    
+    # Add district-based recommendations
+    response += "**📍 By District:**\n"
+    for district, district_museums in sorted(museums_by_district.items()):
+        if len(district_museums) > 1:
+            response += f"**{district}:** "
+            museum_names = [m['name'] for m in district_museums]
+            response += ", ".join(museum_names) + "\n"
+    
+    response += "\n**💡 Visitor Tips:**\n"
+    response += "• **Museum Pass Istanbul** - Skip lines and save money at major museums\n"
+    response += "• **Best times:** Early morning or late afternoon to avoid crowds\n"
+    response += "• **Combined visits:** Sultanahmet area has several museums within walking distance\n"
+    response += "• **Photography:** Check each museum's photo policy\n\n"
+    
+    response += "Would you like detailed information about any specific museum or area?"
+    
+    return response
 
 def post_llm_cleanup(text):
-    """Post-LLM cleanup pass to catch any remaining pricing or unwanted content"""
+    """Post-LLM cleanup pass to catch any remaining pricing while preserving readable formatting"""
     if not text:
         return text
     
     # Catch any remaining pricing patterns that might have been generated
     post_patterns = [
-        r'\b(?:costs?|prices?)\s+(?:around\s+|about\s+)?\d+', # "costs around 20"
-        r'\d+\s*(?:lira|euro|dollar)s?\s*(?:per|each|only)', # "20 lira per"
-        r'(?:only|just|around)\s+\d+\s*(?:lira|euro|dollar)', # "only 20 lira"
-        r'budget\s*:\s*\d+', # "budget: 50"
-        r'price\s+range\s*:\s*\d+', # "price range: 30"
-        r'\b\d+\s*(?:-|to)\s*\d+\s*(?:lira|euro|dollar)', # "20-30 lira"
+        r'\b(?:costs?|prices?)\s+(?:around\s+|about\s+)?\d+',
+        r'\d+\s*(?:lira|euro|dollar)s?\s*(?:per|each|only)',
+        r'(?:(?:only|just|around)\s+)?\d+\s*(?:lira|euro|dollar)',
+        r'budget\s*:\s*\d+',
+        r'price\s+range\s*:\s*\d+',
+        r'\b\d+\s*(?:-|to)\s*\d+\s*(?:lira|euro|dollar)',
     ]
     
     for pattern in post_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # Remove any remaining standalone numbers that might be pricing
-    text = re.sub(r'\b\d{2,3}\s*(?=\s|$|[.,!?])', '', text)  # Remove standalone 2-3 digit numbers (likely prices)
+    # Remove any remaining standalone numbers that might be pricing (but be more conservative)
+    text = re.sub(r'\b\d{2,3}\s*(?=\s|$|[.,!?])', '', text)
     
-    # Final cleanup
-    text = re.sub(r'\s+', ' ', text)
-    text = re.sub(r'\s*[,:]\s*$', '', text)
+    # Improve readability formatting
+    # Ensure proper spacing around bullet points
+    text = re.sub(r'\n•\s*([^\n]+)', r'\n• \1', text)
+    
+    # Add spacing around sections if missing
+    text = re.sub(r'([a-z])\n([A-Z][^•\n]{10,})', r'\1\n\n\2', text)
+    
+    # Final cleanup - remove excessive spaces but preserve structure
+    text = re.sub(r' {2,}', ' ', text)  # Multiple spaces to single
+    text = re.sub(r'\n {2,}', '\n', text)  # Remove spaces at start of lines
+    text = re.sub(r' \n', '\n', text)  # Remove spaces before line breaks
+    text = re.sub(r'\n{4,}', '\n\n\n', text)  # Limit to max 3 line breaks
     
     return text.strip()
 
@@ -391,6 +539,48 @@ def generate_restaurant_info(restaurant_name, location="Istanbul"):
         return "A steakhouse specializing in premium cuts of meat and grilled dishes."
     else:
         return "A well-regarded restaurant offering quality dining and local cuisine."
+
+def enhance_ai_response_formatting(text):
+    """Enhance AI responses for better readability and structure"""
+    if not text:
+        return text
+    
+    # Ensure proper paragraph separation
+    # Add line breaks before new topics (sentences starting with capital after period)
+    text = re.sub(r'([.!?])\s+([A-Z][^.!?]{20,})', r'\1\n\n\2', text)
+    
+    # Improve list formatting - detect natural lists
+    # Convert sequences like "First, ... Second, ... Third, ..." into bullet points
+    text = re.sub(r'\b(First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth)[,:]?\s+', r'• ', text, flags=re.IGNORECASE)
+    text = re.sub(r'\b(\d+)[.)]\s+', r'• ', text)  # Convert "1. " to "• "
+    
+    # Improve section detection - capitalize important keywords
+    important_keywords = [
+        'highlights', 'location', 'hours', 'features', 'attractions', 'neighborhoods',
+        'districts', 'museums', 'restaurants', 'cuisine', 'atmosphere', 'specialties',
+        'recommended', 'popular', 'famous', 'historic', 'cultural', 'traditional'
+    ]
+    
+    for keyword in important_keywords:
+        # Make keywords at start of sentences stand out
+        pattern = r'\b' + keyword + r'\b(?=\s*:|\s+include|\s+are)'
+        text = re.sub(pattern, keyword.upper(), text, flags=re.IGNORECASE)
+    
+    # Improve readability of long sentences by adding breathing room
+    text = re.sub(r'([,;])\s*([A-Z][^,;.]{30,})', r'\1\n\2', text)
+    
+    # Ensure bullet points are properly formatted
+    text = re.sub(r'\n\s*[•·-]\s*', '\n• ', text)
+    text = re.sub(r'^[•·-]\s*', '• ', text, flags=re.MULTILINE)
+    
+    # Add proper spacing around sections
+    text = re.sub(r'\n([A-Z][^•\n]{10,})\n([•])', r'\n\1\n\n\2', text)
+    
+    # Clean up excessive spacing
+    text = re.sub(r'\n{4,}', '\n\n\n', text)
+    text = re.sub(r'\n\n\n+', '\n\n', text)
+    
+    return text.strip()
 
 app = FastAPI(title="AIstanbul API")
 
@@ -493,6 +683,7 @@ except ImportError as e:
 def create_fallback_response(user_input, places):
     """Create intelligent fallback responses when OpenAI API is unavailable"""
     user_input_lower = user_input.lower()
+    print(f"DEBUG: create_fallback_response called with input: '{user_input_lower}'")
     
     # District-specific responses
     if 'kadıköy' in user_input_lower or 'kadikoy' in user_input_lower:
@@ -521,7 +712,7 @@ Getting There:
 - Bus connections from major areas
 
 Kadıköy offers an authentic Istanbul experience away from tourist crowds!"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
     
     elif 'sultanahmet' in user_input_lower:
         response = """Sultanahmet Historic District
@@ -547,10 +738,35 @@ Tips:
 - Comfortable walking shoes essential
 - Many sites within 10-minute walk
 - Free WiFi in most cafes and museums"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
     
+    # Check for restaurant queries in Turkish before falling back to district info
     elif 'beyoğlu' in user_input_lower or 'beyoglu' in user_input_lower:
-        response = """Beyoğlu Cultural District
+        # Check if this is a restaurant query specifically
+        turkish_restaurant_keywords = ['restoran', 'restoranlar', 'en iyi', 'iyi', 'yemek', 'lokanta', 'tavsiye']
+        print(f"DEBUG: Checking Turkish restaurant keywords in '{user_input_lower}'")
+        print(f"DEBUG: Keywords: {turkish_restaurant_keywords}")
+        found_keywords = [keyword for keyword in turkish_restaurant_keywords if keyword in user_input_lower]
+        print(f"DEBUG: Found keywords: {found_keywords}")
+        if any(keyword in user_input_lower for keyword in turkish_restaurant_keywords):
+            response = """**Best Restaurants in Beyoğlu:**
+
+🍽️ **Pandeli** - Historic Ottoman restaurant in Eminönü serving traditional Turkish cuisine
+🥘 **Hamdi Restaurant** - Famous for lamb tandoor and kebabs
+🍷 **Mikla** - Modern Turkish cuisine with rooftop dining in Pera
+🧀 **Karaköy Lokantası** - Nostalgic ambiance in Karaköy, excellent meze
+🍕 **360 Istanbul** - Panoramic views in Galata, international cuisine
+🥙 **Datli Maya** - Organic and natural ingredients, healthy options
+
+**Area Recommendations:**
+• **Galata Tower area** - Romantic dinner spots
+• **Istiklal Street** - Quick dining options  
+• **Karaköy** - Trendy cafes and restaurants
+• **Cihangir** - Bohemian atmosphere, art cafes
+
+**Tip:** Don't forget to make reservations, especially for weekends!"""
+        else:
+            response = """Beyoğlu Cultural District
 
 Modern Istanbul's cultural and nightlife center!
 
@@ -574,7 +790,7 @@ Activities:
 - Explore art galleries in Karaköy
 - Experience Istanbul's nightlife
 - Browse vintage shops and bookstores"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
     
     # History and culture questions
     if any(word in user_input_lower for word in ['history', 'historical', 'culture', 'byzantine', 'ottoman']):
@@ -598,7 +814,7 @@ Modern Istanbul:
 - UNESCO World Heritage sites in historic areas
 
 Would you like to know about specific historical sites or districts?"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Food and cuisine questions (no static restaurant recommendations)
     elif any(word in user_input_lower for word in ['food', 'eat', 'cuisine', 'dish', 'meal', 'breakfast', 'lunch', 'dinner']):
@@ -609,7 +825,7 @@ I can provide live restaurant recommendations using Google Maps. Please ask for 
 Must-try Turkish dishes include döner kebab, simit, balık ekmek, midye dolma, iskender kebab, manti, lahmacun, börek, baklava, Turkish delight, künefe, Turkish tea, ayran, and raki.
 
 For restaurant recommendations, please specify your preference (e.g., 'seafood in Kadıköy')."""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Transportation questions
     elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'getting around']):
@@ -639,7 +855,7 @@ Tips:
 - Rush hours: 8-10 AM, 5-7 PM
 - Download offline maps
 - Learn basic Turkish transport terms"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Weather and timing questions
     elif any(word in user_input_lower for word in ['weather', 'climate', 'season', 'when to visit', 'best time']):
@@ -672,7 +888,7 @@ What to Pack:
 - Layers for temperature changes
 - Light rain jacket
 - Modest clothing for mosques"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Shopping questions
     elif any(word in user_input_lower for word in ['shop', 'shopping', 'bazaar', 'market', 'buy']):
@@ -700,7 +916,7 @@ Bargaining Tips:
 - Start at 30-50% of asking price
 - Be polite and patient
 - Compare prices at multiple shops"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # General recommendations
     elif any(word in user_input_lower for word in ['recommend', 'suggest', 'what to do', 'attractions', 'sights']):
@@ -730,7 +946,7 @@ Day Trip Ideas:
 - Belgrade Forest hiking
 
 Ask me about specific areas or activities for more detailed information!"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Family and special interest queries
     elif any(word in user_input_lower for word in ['family', 'families', 'kids', 'children', 'child', 'family friendly', 'baby', 'stroller']):
@@ -762,7 +978,7 @@ Tips for Families:
 - Strollers work well in most tourist areas
 - Public transport is stroller-friendly
 - Many restaurants welcome children"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Romantic and couples queries
     elif any(word in user_input_lower for word in ['romantic', 'couple', 'couples', 'honeymoon', 'anniversary', 'date', 'romance']):
@@ -795,7 +1011,7 @@ Romantic Views:
 - Maiden's Tower (Kız Kulesi) boat trip
 
 Perfect for couples seeking memorable experiences in this enchanting city!"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Rainy day and indoor activities
     elif any(word in user_input_lower for word in ['rainy', 'rain', 'indoor', 'indoors', 'bad weather', 'cold day', 'winter activities']):
@@ -831,7 +1047,7 @@ Cozy Cafes:
 - Hookah lounges for cultural experience
 
 Perfect activities to enjoy Istanbul regardless of weather!"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # Budget and free activities queries
     elif any(word in user_input_lower for word in ['budget', 'cheap', 'free', 'affordable', 'low cost', 'student', 'backpacker']):
@@ -869,7 +1085,7 @@ Money-Saving Tips:
 - Free WiFi widely available
 - Happy hour at many bars and restaurants
 - Local markets for fresh, affordable produce"""
-        return clean_text_formatting(response)
+        return enhance_ai_response_formatting(clean_text_formatting(response))
 
     # For all other queries (including casual conversation), return None to pass to OpenAI
     else:
@@ -1108,24 +1324,8 @@ async def ai_istanbul_router(request: Request):
         history_length=len(conversation_history)
     )
     
-    # Language detection from headers or data
-    language = data.get("language", "en")  # Default to English
-    accept_language = request.headers.get("accept-language", "")
-    if accept_language:
-        # Extract primary language from Accept-Language header
-        detected_lang = i18n_service.get_language_from_headers(accept_language)
-        if detected_lang in i18n_service.supported_languages:
-            language = detected_lang
-    
-    # Basic language detection from user input patterns
-    if user_input:
-        # Check for non-Latin scripts to detect language
-        if re.search(r'[\u0600-\u06FF]', user_input):  # Arabic
-            language = "ar"
-        elif re.search(r'[\u0400-\u04FF]', user_input):  # Cyrillic (Russian)
-            language = "ru"
-        elif re.search(r'[ğüşıöçĞÜŞIÖÇ]', user_input):  # Turkish characters
-            language = "tr"
+    # Use English as the primary language - simplified approach
+    language = "en"  # Always use English for responses
     
     # Validate input (more lenient in testing)
     if not user_input.strip():
@@ -1142,12 +1342,16 @@ async def ai_istanbul_router(request: Request):
     
     try:
         # Debug logging
+        logger.info(f"🌐 Detected language: {language}")
+        logger.info(f"📝 Original user_input: '{user_input}' (length: {len(user_input)})")
+        logger.info(f"🔗 Session ID: {session_id}, History length: {len(conversation_history)}")
         print(f"Detected language: {language}")
         print(f"Original user_input: '{user_input}' (length: {len(user_input)})")
         print(f"Session ID: {session_id}, History length: {len(conversation_history)}")
         
         # Correct typos and enhance query understanding
         enhanced_user_input = enhance_query_understanding(user_input)
+        logger.info(f"🚀 Enhanced user_input: '{enhanced_user_input}'")
         print(f"Enhanced user_input: '{enhanced_user_input}'")
         
         # Use enhanced input for processing
@@ -1177,21 +1381,21 @@ async def ai_istanbul_router(request: Request):
         except Exception as e:
             print(f"Enhanced validation error: {e}")
         
-        # Enhanced input validation and processing
+        # Enhanced input validation and processing - English focused
         if not user_input or len(user_input.strip()) < 1:
-            return {"response": i18n_service.translate("general_intro", language)}
+            return {"response": "I'm here to help you explore Istanbul! What would you like to know?"}
         
         # Check for very short input
         if len(user_input.strip()) < 2:
-            return {"response": i18n_service.translate("general_intro", language)}
+            return {"response": "I'm here to help you explore Istanbul! What would you like to know?"}
         
         # Check for spam-like input (repeated characters)
         if re.search(r'(.)\1{4,}', user_input):
-            return {"response": i18n_service.translate("error_message", language)}
+            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information."}
         
-        # Check for only special characters or numbers (include Arabic, Cyrillic, and Extended Latin Unicode ranges)
+        # Check for only special characters or numbers (accept any language input but respond in English)
         if not re.search(r'[a-zA-Z\u0600-\u06FF\u00C0-\u017F\u0400-\u04FF]', user_input):
-            return {"response": i18n_service.translate("error_message", language)}
+            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information."}
         
         # Sanitize and clean user input
         user_input = clean_text_formatting(user_input)
@@ -1267,29 +1471,44 @@ async def ai_istanbul_router(request: Request):
                 detected_intent, confidence = intent_recognizer.recognize_intent(user_input, context)
                 print(f"🎯 Detected intent: {detected_intent} (confidence: {confidence:.2f})")
                 
+                # Advanced query analysis for better understanding
+                query_analysis = intent_recognizer.analyze_query_context(user_input)
+                print(f"🔍 Query analysis: {query_analysis}")
+                
                 # Log intent recognition
                 structured_logger.info(
                     "Intent recognition",
                     session_id=current_session_id,
                     detected_intent=detected_intent,
                     confidence=confidence,
-                    has_context=bool(context)
+                    has_context=bool(context),
+                    query_complexity=query_analysis.get('query_complexity', 'simple')
                 )
                 
-                # Extract entities from user input
+                # Extract entities from user input (enhanced with query analysis)
                 entities = intent_recognizer.extract_entities(user_input)
-                print(f"📍 Extracted entities: {entities}")
+                # Merge with query analysis results
+                entities['locations'].extend(query_analysis.get('locations', []))
+                entities['cuisine_types'] = query_analysis.get('cuisine_types', [])
+                entities['budget_indicators'] = query_analysis.get('price_indicators', [])
+                # Remove duplicates
+                entities['locations'] = list(set(entities['locations']))
                 
-                # Learn from user query
+                print(f"📍 Enhanced entities: {entities}")
+                
+                # Learn from user query with enhanced context
                 preference_manager.learn_from_query(current_session_id, user_input, detected_intent)
                 
-                # Update conversation context
+                # Update conversation context with enhanced data
                 current_location = entities['locations'][0] if entities['locations'] else context.get('current_location', '')
                 session_manager.update_context(current_session_id, {
                     'current_intent': detected_intent,
+                    'previous_intent': context.get('current_intent'),
                     'current_location': current_location,
                     'entities': entities,
-                    'conversation_stage': 'processing'
+                    'query_analysis': query_analysis,
+                    'conversation_stage': 'processing',
+                    'last_query_time': datetime.utcnow().isoformat()
                 })
                 
                 # Log context update
@@ -1298,7 +1517,9 @@ async def ai_istanbul_router(request: Request):
                     session_id=current_session_id,
                     intent=detected_intent,
                     location=current_location,
-                    entity_count=sum(len(v) if isinstance(v, list) else 1 for v in entities.values())
+                    entity_count=sum(len(v) if isinstance(v, list) else 1 for v in entities.values()),
+                    has_cuisine_preference=bool(query_analysis.get('cuisine_types')),
+                    has_location_preference=bool(query_analysis.get('locations'))
                 )
                 
                 # Get personalized preferences for filtering
@@ -1343,8 +1564,8 @@ async def ai_istanbul_router(request: Request):
                 raise RuntimeError("OpenAI module not available")
         except Exception as e:
             print(f"❌ OpenAI client initialization failed: {e}")
-            # Create a fallback response instead of crashing
-            return create_fallback_response(user_input, [])
+            # Continue processing with restaurant detection logic even without OpenAI
+            client = None
 
         # Create database session
         db = SessionLocal()
@@ -1352,7 +1573,12 @@ async def ai_istanbul_router(request: Request):
             # Check for very specific queries that need database/API data
             restaurant_keywords = [
                 'restaurant', 'restaurants', 'restourant', 'resturant', 'restarnts', 'restrant', 'food', 
-                'eat', 'dining', 'eatery', 'cafe', 'cafes'
+                'eat', 'dining', 'eatery', 'cafe', 'cafes',
+                # Turkish restaurant keywords
+                'restoran', 'restoranlar', 'lokanta', 'yemek', 'yemekler', 'yiyecek', 'yiyecekler',
+                'yeme', 'ye', 'kahvaltı', 'öğle yemeği', 'akşam yemeği', 'kahve', 'kahveler',
+                'meyane', 'meyhane', 'en iyi', 'iyi', 'güzel', 'harika', 'muhteşem', 'lezzetli',
+                'nefis', 'şahane', 'öneri', 'öneriler', 'tavsiye', 'tavsiyeler'
             ]
             
             # Enhanced location-based restaurant detection
@@ -1371,7 +1597,22 @@ async def ai_istanbul_router(request: Request):
                 r'food\s+in\s+\w+',  # "food in kadikoy"
                 r'dining\s+in\s+\w+',  # "dining in taksim"
                 r'give\s+me\s+restaurants?\s+in\s+\w+',  # "give me restaurants in taksim"
-                r'show\s+me\s+restaurants?\s+in\s+\w+'   # "show me restaurants in galata"
+                r'show\s+me\s+restaurants?\s+in\s+\w+',   # "show me restaurants in galata"
+                # Turkish location-based restaurant patterns
+                r'restoranlar\s+\w+da',      # "restoranlar beyoğlunda"
+                r'restoranlar\s+\w+de',      # "restoranlar şişlide"
+                r'restoran\s+\w+da',         # "restoran beyoğlunda"
+                r'restoran\s+\w+de',         # "restoran taksimde"
+                r'en\s+iyi\s+restoranlar\s+\w+da',  # "en iyi restoranlar beyoğlunda"
+                r'en\s+iyi\s+restoranlar\s+\w+de',  # "en iyi restoranlar şişlide"
+                r'iyi\s+restoranlar\s+\w+da',       # "iyi restoranlar beyoğlunda"
+                r'iyi\s+restoranlar\s+\w+de',       # "iyi restoranlar şişlide"
+                r'güzel\s+restoranlar\s+\w+da',     # "güzel restoranlar beyoğlunda"
+                r'güzel\s+restoranlar\s+\w+de',     # "güzel restoranlar şişlide"
+                r'yemek\s+\w+da',            # "yemek beyoğlunda"
+                r'yemek\s+\w+de',            # "yemek taksimde"
+                r'lokanta\s+\w+da',          # "lokanta beyoğlunda"
+                r'lokanta\s+\w+de'           # "lokanta şişlide"
             ]
             museum_keywords = [
                 'list museums', 'show museums', 'museum list', 'museums in istanbul',
@@ -1392,6 +1633,7 @@ async def ai_istanbul_router(request: Request):
             ]
             district_keywords = [
                 'list districts', 'show districts', 'district list', 'neighborhoods in istanbul',
+                'show all districts', 'all districts', 'districts in istanbul',
                 'sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'uskudar',
                 'fatih', 'sisli', 'taksim', 'karakoy', 'ortakoy', 'bebek', 'arnavutkoy',
                 'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe', 'asian side', 'european side',
@@ -1440,10 +1682,6 @@ async def ai_istanbul_router(request: Request):
                                    'balat', 'fener', 'eminonu', 'bakirkoy', 'maltepe']
             is_single_district_query = (user_input.lower().strip() in single_district_names)
             
-            # More specific matching for different query types - prioritize restaurant and museum queries
-            is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords) or is_location_restaurant_query
-            is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
-            
             # --- Enhanced AI-Powered Query Classification ---
             # Use the AI intent recognition system instead of keyword matching
             if AI_INTELLIGENCE_ENABLED:
@@ -1454,9 +1692,24 @@ async def ai_istanbul_router(request: Request):
                 # Enhanced location detection from AI entities
                 extracted_locations = entities.get('locations', [])
                 
-                # Map AI intents to legacy query types for compatibility
-                is_restaurant_query = (primary_intent == 'restaurant_search' or 
-                                     any(keyword in user_input.lower() for keyword in restaurant_keywords))
+                # Prioritize AI intent detection over keyword matching
+                # Only use keyword fallback if confidence is very low
+                if intent_confidence >= 0.3:
+                    # Trust the AI intent when confidence is reasonable
+                    is_district_query = primary_intent == 'district_query'
+                    is_restaurant_query = primary_intent == 'restaurant_search'
+                    logger.info(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
+                    print(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
+                else:
+                    # Fall back to keyword matching for low confidence
+                    is_district_query = any(keyword in user_input.lower() for keyword in district_keywords)
+                    if is_district_query:
+                        is_restaurant_query = False
+                    else:
+                        is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords)
+                    logger.info(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
+                    print(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
+                
                 is_museum_query = primary_intent == 'museum_query'
                 is_attraction_query = primary_intent == 'attraction_query'
                 is_shopping_query = primary_intent == 'shopping_query'
@@ -1465,7 +1718,6 @@ async def ai_istanbul_router(request: Request):
                 is_culture_query = primary_intent == 'culture_query'
                 is_accommodation_query = primary_intent == 'accommodation_query'
                 is_events_query = primary_intent == 'events_query'
-                is_district_query = False  # Handled by location entities
                 
                 is_location_restaurant_query = bool(extracted_locations and is_restaurant_query)
                 is_location_place_query = bool(extracted_locations and is_attraction_query)
@@ -1473,16 +1725,39 @@ async def ai_istanbul_router(request: Request):
                 is_single_district_query = (len(extracted_locations) == 1 and 
                                           user_input.lower().strip() in extracted_locations)
                 
+                logger.info(f"🎯 AI-Enhanced Query Classification:")
+                logger.info(f"  Primary intent: {primary_intent} (confidence: {intent_confidence:.2f})")
+                logger.info(f"  Extracted locations: {extracted_locations}")
+                logger.info(f"  User preferences applied: {bool(user_preferences)}")
+                logger.info(f"  is_restaurant_query: {is_restaurant_query}")
+                logger.info(f"  is_district_query: {is_district_query}")
+                logger.info(f"  is_location_restaurant_query: {is_location_restaurant_query}")
                 print(f"🎯 AI-Enhanced Query Classification:")
                 print(f"  Primary intent: {primary_intent} (confidence: {intent_confidence:.2f})")
                 print(f"  Extracted locations: {extracted_locations}")
                 print(f"  User preferences applied: {bool(user_preferences)}")
+                print(f"  is_restaurant_query: {is_restaurant_query}")
+                print(f"  is_district_query: {is_district_query}")
+                print(f"  is_location_restaurant_query: {is_location_restaurant_query}")
                 
             else:
                 # Fallback to basic keyword matching when AI is not available
                 extracted_locations = []
-                is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords)
-                is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
+                
+                # --- District query detection fix ---
+                # If district keywords are present, prioritize district query over restaurant query
+                is_district_query = any(keyword in user_input.lower() for keyword in district_keywords)
+                if is_district_query:
+                    is_restaurant_query = False
+                else:
+                    # More specific matching for different query types - prioritize specific over general
+                    # Only trigger restaurant search for explicit food/dining queries
+                    is_restaurant_query = (
+                        any(keyword in user_input.lower() for keyword in restaurant_keywords) and 
+                        not any(word in user_input.lower() for word in ['culture', 'cultural', 'history', 'historical', 'tradition', 'traditional'])
+                    ) or is_location_restaurant_query
+                
+                is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
                 is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords)
                 is_shopping_query = 'shopping' in user_input.lower() or 'shop' in user_input.lower()
                 is_transportation_query = any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi', 'how to get'])
@@ -1490,7 +1765,6 @@ async def ai_istanbul_router(request: Request):
                 is_culture_query = 'culture' in user_input.lower() or 'cultural' in user_input.lower()
                 is_accommodation_query = 'hotel' in user_input.lower() or 'accommodation' in user_input.lower()
                 is_events_query = 'events' in user_input.lower() or 'concerts' in user_input.lower()
-                is_district_query = False
                 is_location_restaurant_query = False
                 is_location_place_query = False
                 is_location_museum_query = False
@@ -1552,6 +1826,15 @@ async def ai_istanbul_router(request: Request):
                 welcome_message = i18n_service.translate("welcome", language)
                 return {"response": welcome_message}
             
+            # Handle single district queries (just district name)
+            if is_single_district_query:
+                print(f"🏛️ Single district query detected: {user_input}")
+                # Get places from database for context
+                places = db.query(Place).all()
+                fallback_response = create_fallback_response(user_input, places)
+                if fallback_response and fallback_response.strip():
+                    return {"response": fallback_response, "session_id": session_id}
+            
             # Handle transportation queries with highest priority
             if is_transportation_query:
                 try:
@@ -1609,17 +1892,14 @@ async def ai_istanbul_router(request: Request):
 - Walk to Karaköy ferry terminal (5-10 min from Galata/Beyoğlu)
 - Take ferry from Karaköy to Kadıköy (15 min)
 - Beautiful Bosphorus views during the journey
-- Cost: ~15-20 TL
 
 **Option 2: Metro + Bus - 35 minutes**
 - Take M2 metro from Şişhane/Vezneciler to Vezneciler
 - Transfer to M1 metro to Zeytinburnu
 - Take Metrobus to Kadıköy
-- Cost: ~20-25 TL
 
 **Option 3: Taxi/Uber - 30-45 minutes**
 - Direct route via Galata Bridge
-- Cost: ~80-120 TL (depending on traffic)
 - Traffic can be heavy during rush hours
 
 **Recommended:** Take the ferry for the best experience and views of Istanbul!"""}
@@ -1644,6 +1924,73 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                 except Exception as e:
                     return {"response": "I can help you with transportation in Istanbul. Please ask about specific routes or general transport information!"}
             
+            # Handle district queries
+            elif is_district_query:
+                print(f"🏛️ District query detected: {user_input}")
+                try:
+                    # Return comprehensive district information for Istanbul
+                    district_response = """**Best Neighborhoods in Istanbul**
+
+**Historic European Side:**
+🏛️ **Sultanahmet** - Historic heart with Hagia Sophia, Blue Mosque, and Topkapi Palace
+🎭 **Beyoğlu** - Cultural center with Istiklal Avenue, Galata Tower, and vibrant nightlife
+🌉 **Galata** - Trendy waterfront area with modern restaurants and stunning Bosphorus views
+🏙️ **Karaköy** - Hip district with art galleries, boutique hotels, and rooftop bars
+
+**Modern European Districts:**
+🛍️ **Taksim** - Shopping and entertainment hub with easy metro access
+🏖️ **Beşiktaş** - Lively district with football culture, markets, and waterfront dining
+💼 **Levent** - Business district with modern shopping malls and upscale restaurants
+
+**Asian Side Favorites:**
+🎨 **Kadıköy** - Bohemian neighborhood with street art, cafes, and local markets
+🌅 **Üsküdar** - Traditional district with beautiful mosques and Bosphorus ferry connections
+🏡 **Moda** - Peaceful residential area with parks and seaside promenades
+
+**For Visitors, I recommend:**
+• **Sultanahmet** - Must-see historic sites
+• **Beyoğlu** - Culture and nightlife
+• **Kadıköy** - Local authentic experience
+• **Galata/Karaköy** - Modern Istanbul vibe
+
+Each district has its own character and attractions. Would you like detailed information about a specific neighborhood?"""
+                    
+                    # Apply enhanced formatting
+                    enhanced_response = enhance_ai_response_formatting(district_response)
+                    clean_response = clean_text_formatting(enhanced_response)
+                    return {"response": clean_response, "session_id": session_id}
+                    
+                except Exception as e:
+                    print(f"Error handling district query: {e}")
+                    return {"response": "I can help you learn about Istanbul's neighborhoods! Try asking about specific districts like Sultanahmet, Beyoğlu, or Kadıköy."}
+            
+            # Handle museum queries with comprehensive information
+            elif is_museum_query:
+                print(f"🏛️ Museum query detected: {user_input}")
+                try:
+                    # Fetch museums dynamically from database
+                    museums_data = get_museums_from_database()
+                    museum_response = format_museums_response(museums_data)
+                    
+                    # Apply enhanced formatting
+                    formatted_response = enhance_ai_response_formatting(museum_response)
+                    return {"response": formatted_response, "session_id": session_id}
+                    
+                except Exception as e:
+                    print(f"Error handling museum query: {e}")
+                    # Fallback to basic hardcoded response
+                    fallback_response = """**Best Museums to Visit in Istanbul**
+
+I'd love to help you discover Istanbul's amazing museums! Here are some must-visit options:
+
+🏛️ **Topkapi Palace Museum** - Former Ottoman imperial palace
+⛪ **Hagia Sophia** - Iconic Byzantine church with incredible mosaics  
+🎨 **Istanbul Modern** - Contemporary Turkish and international art
+🖼️ **Pera Museum** - European art and rotating exhibitions
+
+Would you like me to help you with specific museum information or directions?"""
+                    return {"response": fallback_response, "session_id": session_id}
+            
             elif is_restaurant_query:
                 # Extract location from query for better results
                 search_location = "Istanbul, Turkey"
@@ -1654,12 +2001,22 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                         r'near\s+([a-zA-Z\s]+)',
                         r'at\s+([a-zA-Z\s]+)',
                         r'around\s+([a-zA-Z\s]+)',
+                        # Turkish location patterns with suffixes
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)nda',    # "beyoğlunda" -> "beyoğlu"
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)nde',    # "şişlinde" -> "şişli"
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)da',     # "taksimda" -> "taksim"
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)de',     # "fatihde" -> "fatih"
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)ta',     # "galata'ta" -> "galata"
+                        r'([a-zA-ZğüşıöçĞÜŞIÖÇ]+)te',     # "galata'te" -> "galata"
                     ]
                     for pattern in location_patterns:
                         match = re.search(pattern, user_input.lower())
                         if match:
                             location = match.group(1).strip()
+                            # Remove common Turkish suffixes if they got included
+                            location = re.sub(r'(nda|nde|da|de|ta|te)$', '', location)
                             search_location = f"{location}, Istanbul, Turkey"
+                            print(f"🏛️ Extracted Turkish location: {location}")
                             break
                 
                 try:
@@ -1691,7 +2048,25 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                         weather_info = "Weather information not available"
                 
                 if places_data.get('results'):
-                    location_text = search_location.split(',')[0] if 'Istanbul' not in search_location else 'Istanbul'
+                    # Extract the specific district/location name from search_location
+                    # search_location format: "besiktas, Istanbul, Turkey" or "Istanbul, Turkey"
+                    location_parts = search_location.split(',')
+                    if len(location_parts) >= 2 and location_parts[0].strip().lower() != 'istanbul':
+                        # Use the specific district name and capitalize it properly
+                        location_text = location_parts[0].strip().title()
+                        # Handle Turkish character corrections
+                        location_text = location_text.replace('Besiktas', 'Beşiktaş')
+                        location_text = location_text.replace('Beyoglu', 'Beyoğlu')
+                        location_text = location_text.replace('Kadikoy', 'Kadıköy')
+                        location_text = location_text.replace('Uskudar', 'Üsküdar')
+                        location_text = location_text.replace('Karakoy', 'Karaköy')
+                        location_text = location_text.replace('Ortakoy', 'Ortaköy')
+                        location_text = location_text.replace('Arnavutkoy', 'Arnavutköy')
+                        location_text = location_text.replace('Bakirkoy', 'Bakırköy')
+                        location_text = location_text.replace('Sisli', 'Şişli')
+                        location_text = location_text.replace('Eminonu', 'Eminönü')
+                    else:
+                        location_text = 'Istanbul'
                     
                     # Apply personalized recommendations if AI Intelligence is enabled
                     if AI_INTELLIGENCE_ENABLED:
@@ -1714,7 +2089,6 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                     for i, place in enumerate(final_results):
                         name = place.get('name', 'Unknown')
                         rating = place.get('rating', 'N/A')
-                        price_level = place.get('price_level', 'N/A')
                         address = place.get('formatted_address', '')
                         
                         # Generate brief info about the restaurant based on name and location
@@ -1725,22 +2099,10 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                         if reason and AI_INTELLIGENCE_ENABLED:
                             restaurant_info += f" ({reason})"
                         
-                        # Format price level more user-friendly
-                        price_text = ''
-                        if price_level != 'N/A' and isinstance(price_level, int):
-                            if price_level == 1:
-                                price_text = " • Budget-friendly"
-                            elif price_level == 2:
-                                price_text = " • Moderate prices"
-                            elif price_level == 3:
-                                price_text = " • Expensive"
-                            elif price_level == 4:
-                                price_text = " • Very expensive"
-                        
                         # Format each restaurant entry with clean, readable formatting
                         restaurants_info += f"{i+1}. {name}\n"
                         restaurants_info += f"   {restaurant_info}\n"
-                        restaurants_info += f"   Rating: {rating}/5{price_text}\n\n"
+                        restaurants_info += f"   Rating: {rating}/5\n\n"
                     
                     restaurants_info += "Tip: You can search for these restaurants on Google Maps for directions and more details!"
                     
@@ -1755,545 +2117,27 @@ For specific routes, I recommend using Google Maps or Citymapper app for real-ti
                         except Exception as e:
                             print(f"⚠️ Context update error: {e}")
                     
-                    # Clean the response from any emojis, hashtags, or markdown if needed
-                    clean_response = clean_text_formatting(restaurants_info)
+                    # Clean and enhance the response formatting
+                    enhanced_response = enhance_ai_response_formatting(restaurants_info)
+                    clean_response = clean_text_formatting(enhanced_response)
                     return {"response": clean_response, "session_id": session_id}
                 else:
                     return {"response": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
             
-            elif is_museum_query:
-                # Handle museum queries by searching the places table
-                print(f"🏛️ Museum query detected: {user_input}")
-                
-                # Extract location from query for better filtering
-                search_location = None
-                
-                # Try to extract specific location from the query
-                location_patterns = [
-                    r'in\s+([a-zA-Z\s]+)',
-                    r'near\s+([a-zA-Z\s]+)',
-                    r'around\s+([a-zA-Z\s]+)',
-                ]
-                for pattern in location_patterns:
-                    match = re.search(pattern, user_input.lower())
-                    if match:
-                        search_location = match.group(1).strip()
-                        break
-                
-                # Query museums from places table
-                museums_query = db.query(Place).filter(Place.category == 'Museum')
-                
-                # Filter by location if specified
-                if search_location:
-                    # Handle common location variations
-                    location_mapping = {
-                        'beyoglu': 'Beyoglu', 'beyoğlu': 'Beyoglu',
-                        'sultanahmet': 'Sultanahmet', 'fatih': 'Fatih',
-                        'besiktas': 'Besiktas', 'beşiktaş': 'Besiktas',
-                        'sisli': 'Sisli', 'şişli': 'Sisli',
-                        'kadikoy': 'Kadikoy', 'kadıköy': 'Kadikoy',
-                        'uskudar': 'Uskudar', 'üsküdar': 'Uskudar',
-                        'galata': 'Beyoglu', 'taksim': 'Beyoglu',  # Galata and Taksim are in Beyoğlu
-                        'karakoy': 'Beyoglu', 'karaköy': 'Beyoglu',  # Karaköy is also in Beyoğlu
-                        'istanbul': None  # Don't filter by district for general Istanbul queries
-                    }
-                    
-                    mapped_location = location_mapping.get(search_location.lower(), search_location.title())
-                    if mapped_location:  # Only filter if we have a specific district
-                        museums_query = museums_query.filter(Place.district.ilike(f"%{mapped_location}%"))
-                        print(f"🔍 Filtering museums by location: {mapped_location}")
-                    else:
-                        print(f"🔍 Showing all museums (general Istanbul query)")
-                        search_location = "Istanbul"  # For display purposes
-                
-                museums = museums_query.all()
-                print(f"🏛️ Found {len(museums)} museums")
-                
-                if museums:
-                    # Build response with museum information
-                    if search_location:
-                        response = f"Here are museums in {search_location.title()}:\n\n"
-                    else:
-                        response = "Here are some great museums to visit in Istanbul:\n\n"
-                    
-                    for i, museum in enumerate(museums[:8]):  # Limit to 8 museums
-                        response += f"{i+1}. **{museum.name}**\n"
-                        response += f"   Location: {museum.district}\n"
-                        
-                        # Add specific information for well-known museums
-                        museum_details = {
-                            'Pera Museum': 'Features rotating exhibitions of Ottoman-era paintings and contemporary art. Known for its impressive collection of Orientalist paintings.',
-                            'Istanbul Museum of Modern Art': 'Turkey\'s first modern and contemporary art museum. Showcases Turkish and international contemporary art.',
-                            'Museum Of Illusions Istanbul': 'Interactive museum with optical illusions, puzzles, and mind-bending exhibits. Great for families and photos.',
-                            'Yapı Kredi Kültür Sanat Museum': 'Cultural center with changing exhibitions of contemporary art, photography, and cultural events.',
-                            'Rahmi M. Koç Museum': 'Industrial museum featuring vintage cars, trains, submarines, and interactive science exhibits.',
-                            'Naval Museum': 'Maritime history museum with Ottoman-era ships, naval artifacts, and historical exhibits.',
-                            'Military Museum': 'Military history and Ottoman military artifacts. Famous for its Janissary band performances.',
-                            'Topkapi Palace Museum': 'Former Ottoman palace with imperial collections, including jewelry, weapons, and religious artifacts.',
-                            'Turkish & Islamic Arts Museum': 'One of the world\'s finest collections of Islamic art, carpets, and calligraphy.',
-                            'Archeology Museum': 'Ancient artifacts from the Ottoman Empire and earlier civilizations, including the famous Alexander Sarcophagus.'
-                        }
-                        
-                        detail = museum_details.get(str(museum.name), 'Interesting cultural attraction worth visiting.')
-                        response += f"   {detail}\n\n"
-                    
-                    response += "💡 **Tips:**\n"
-                    response += "- Most museums are closed on Mondays\n"
-                    response += "- Many offer student discounts with valid ID\n"
-                    response += "- Photography rules vary by museum\n"
-                    response += "- Consider getting a Museum Pass Istanbul for multiple visits\n"
-                    response += "- Check official websites for current hours and special exhibitions"
-                    
-                    # Update conversation context if AI Intelligence is enabled
-                    if AI_INTELLIGENCE_ENABLED:
-                        try:
-                            session_manager.update_context(current_session_id, {
-                                'last_search_type': 'museum',
-                                'last_search_location': search_location or 'Istanbul',
-                                'conversation_stage': 'completed'
-                            })
-                        except Exception as e:
-                            print(f"⚠️ Context update error: {e}")
-                    
-                    return {"response": clean_text_formatting(response), "session_id": session_id}
-                else:
-                    if search_location:
-                        return {"response": f"I couldn't find any museums specifically in {search_location.title()}. Try asking about museums in other areas like Beyoğlu, Sultanahmet, or general Istanbul museums."}
-                    else:
-                        return {"response": "I couldn't find museum information at the moment. Please try asking about specific museum areas like 'museums in Beyoğlu' or 'museums in Sultanahmet'."}
-            
-            elif is_nightlife_query:
-                nightlife_response = """🌃 **Istanbul Nightlife**
-
-**Trendy Neighborhoods:**
-
-**Beyoğlu/Galata:**
-- Heart of Istanbul's nightlife
-- Mix of rooftop bars, clubs, and pubs
-
-- Istiklal Street has many options
-
-**Karaköy:**
-- Hip, artistic area with craft cocktail bars
-- Great Bosphorus views from rooftop venues
-- More upscale crowd
-
-**Beşiktaş:**
-- University area with younger crowd
-- Good mix of bars and clubs
-- More affordable options
-
-**Popular Venues:**
-- **360 Istanbul** - Famous rooftop with city views
-- **Mikla** - Upscale rooftop restaurant/bar
-- **Kloster** - Historic building, great atmosphere
-- **Under** - Underground club in Karaköy
-- **Sortie** - Upscale club in Maçka
-- **Reina** - Famous Bosphorus-side nightclub
-
-**Rooftop Bars:**
-- **Leb-i Derya** - Multiple locations, great views
-- **Nu Teras** - Sophisticated rooftop in Beyoğlu
-- **Banyan** - Asian-inspired rooftop bar
-- **The Marmara Pera** - Hotel rooftop with panoramic views
-
-**Tips:**
-- Most venues open after 9 PM
-- Dress code: Smart casual to upscale
-- Credit cards widely accepted
-- Many venues have entrance fees on weekends
-- Turkish beer (Efes) and rakı are popular local drinks
-- Some areas can be crowded on weekends"""
-                return {"response": clean_text_formatting(nightlife_response)}
-            
-            elif is_culture_query:
-                culture_response = """🎭 **Turkish Culture & Experiences**
-
-**Traditional Experiences:**
-- **Turkish Bath (Hamam)** - Historic Cagaloglu or Suleymaniye Hamams
-- **Whirling Dervishes** - Sema ceremony at various cultural centers
-- **Turkish Coffee** - UNESCO Intangible Cultural Heritage
-- **Traditional Music** - Turkish folk or Ottoman classical music
-
-**Cultural Venues:**
-- **Hodjapasha Cultural Center** - Traditional shows & performances
-- **Galata Mevlevihanesi** - Whirling dervish ceremonies
-- **Cemal Reşit Rey Concert Hall** - Classical music & opera
-- **Zorlu PSM** - Modern performing arts center
-
-**Festivals & Events:**
-- **Istanbul Music Festival** (June) - Classical music in historic venues
-- **Istanbul Biennial** (Fall, odd years) - Contemporary art
-- **Ramadan** - Special atmosphere, iftar meals at sunset
-- **Turkish National Days** - Republic Day (Oct 29), Victory Day (Aug 30)
-
-**Cultural Customs:**
-- Remove shoes when entering mosques or homes
-- Dress modestly in religious sites
-- Greetings: Handshakes common, kisses on both cheeks for friends
-- Hospitality is very important in Turkish culture
-- Tea (çay) is offered as sign of hospitality
-
-**Traditional Arts:**
-- **Calligraphy** - Ottoman Turkish writing art
-- **Miniature Painting** - Traditional Ottoman art form
-- **Carpet Weaving** - Intricate traditional patterns
-- **Ceramic Art** - Iznik tiles and pottery
-- **Marbled Paper (Ebru)** - Water-based art technique
-
-**Cultural Districts:**
-- **Balat** - Historic Jewish quarter with colorful houses
-- **Fener** - Greek Orthodox heritage area
-- **Süleymaniye** - Traditional Ottoman neighborhood
-- **Eyüp** - Religious significance, local life"""
-                return {"response": clean_text_formatting(culture_response)}
-            
-            elif is_accommodation_query:
-                accommodation_response = """🏨 **Where to Stay in Istanbul**
-
-**Best Neighborhoods:**
-
-**Sultanahmet (Historic Peninsula):**
-- Walk to major attractions (Blue Mosque, Hagia Sophia)
-- Traditional Ottoman hotels and boutique properties
-- Great for first-time visitors
-- Can be touristy and crowded
-
-**Beyoğlu/Galata:**
-- Trendy area with modern boutique hotels
-- Easy access to nightlife, restaurants, art galleries
-- Good transport connections
-- More contemporary vibe
-
-**Beşiktaş:**
-- Business district with luxury hotels
-- Near Dolmabahçe Palace and Bosphorus
-- Excellent shopping and dining
-- Great transport hub
-
-**Kadıköy (Asian Side):**
-- Authentic local experience
-- Great food scene and markets
-- Less touristy, more affordable
-- Easy ferry connection to European side
-
-**Accommodation Types:**
-
-**Luxury Hotels:**
-- **Four Seasons Sultanahmet** - Ottoman palace conversion
-- **Çırağan Palace Kempinski** - Former Ottoman palace
-- **The Ritz-Carlton Istanbul** - Modern luxury in Şişli
-- **Shangri-La Bosphorus** - Asian side luxury
-
-**Boutique Hotels:**
-- **Museum Hotel** - Antique-filled historic property
-- **Vault Karakoy** - Former bank building in Galata
-- **Georges Hotel Galata** - Stylish property near Galata Tower
-- **Soho House Istanbul** - Trendy members' club with rooms
-
-**Budget Options:**
-- **Cheers Hostel** - Well-reviewed hostel in Sultanahmet
-- **Marmara Guesthouse** - Budget-friendly in old city
-- **Istanbul Hostel** - Central location, clean facilities
-
-**Booking Tips:**
-- Book early for peak season (April-October)
-- Many hotels offer airport transfer services
-- Check if breakfast is included
-- Rooftop terraces are common and worth requesting
-- Some historic hotels have small rooms - check dimensions"""
-                return {"response": clean_text_formatting(accommodation_response)}
-            
-            elif is_events_query:
-                events_response = """🎪 **Events & Entertainment in Istanbul**
-
-**Regular Cultural Events:**
-
-**Weekly:**
-- **Friday Prayer** - Beautiful call to prayer across the city
-- **Weekend Markets** - Kadıköy Saturday Market, various neighborhood pazars
-
-**Monthly/Seasonal:**
-- **Whirling Dervish Ceremonies** - Various venues, usually weekends
-- **Traditional Music Concerts** - Cultural centers and historic venues
-- **Art Gallery Openings** - Especially in Beyoğlu and Karaköy
-
-**Major Annual Festivals:**
-
-**Spring:**
-- **Tulip Festival** (April) - Millions of tulips bloom in city parks
-- **Istanbul Music Festival** (June) - Classical music in historic venues
-
-**Summer:**
-- **Istanbul Jazz Festival** (July) - International artists, multiple venues
-- **Rock'n Coke Festival** - Major international music festival
-
-**Fall:**
-- **Istanbul Biennial** (Sept-Nov, odd years) - Contemporary art across the city
-- **Akbank Jazz Festival** (Oct) - Jazz performances citywide
-
-**Winter:**
-- **New Year Celebrations** - Taksim Square and various venues
-
-**Entertainment Venues:**
-
-**Concert Halls:**
-- **Zorlu PSM** - Major international shows
-- **Cemal Reşit Rey Concert Hall** - Classical music
-- **Volkswagen Arena** - Large concerts and sports
-
-**Theaters:**
-- **Istanbul State Opera and Ballet**
-- **Turkish State Theaters**
-- Various private theaters in Beyoğlu
-
-**Current Events Resources:**
-- **Biletix.com** - Main ticketing platform
-- **Time Out Istanbul** - Event listings
-- **Istanbul.com** - Tourism events
-- **Eventbrite** - International events
-
-**Tips:**
-- Check event calendars at hotel concierge
-- Many cultural events are free or low-cost
-- Book popular shows in advance
-- Some events may be in Turkish only - check beforehand"""
-                return {"response": clean_text_formatting(events_response)}
-            
+            # Handle all other query types with fallback response
             else:
-                # Use OpenAI for intelligent responses about Istanbul
-                # Get context from database
+                print(f"🔧 Using fallback response for query: {user_input}")
                 places = db.query(Place).all()
-                restaurants_context = "Available restaurants data from Google Maps API."
-                places_context = ""
+                fallback_response = create_fallback_response(user_input, places)
                 
-                if places:
-                    places_context = "Available places in Istanbul database:\n"
-                    for place in places[:20]:  # Limit context size
-                        places_context += f"- {place.name} ({place.category}) in {place.district}\n"
-                
-                # Get current weather information
-                try:
-                    weather_client = WeatherClient()
-                    weather_info = weather_client.get_istanbul_weather()
-                    weather_context = weather_client.format_weather_info(weather_info)
-                except Exception as e:
-                    logger.warning(f"Weather API failed: {e}")
-                    weather_context = "Weather information not available"
-                
-                # Create prompt for OpenAI
-                system_prompt = """You are KAM, a friendly Istanbul travel guide AI assistant. Your name 'KAM' comes from the ancient Turkic 'kam' — a wise shamanic figure who served as a bridge between the human and spiritual worlds. In this modern form, you embody the same spirit of guidance, insight, and protection, helping users navigate the vast digital world with clarity and wisdom.
-
-You have access to:
-1. Real-time restaurant data from Google Maps API
-2. A database of museums, attractions, and districts in Istanbul
-3. Current daily weather information for Istanbul
-
-PERSONALITY & CONVERSATION STYLE:
-- You are conversational, friendly, and helpful
-- You can engage in casual daily conversations (greetings, how are you, weather, etc.)
-- You can answer general questions but try to relate them back to Istanbul when relevant
-- You're enthusiastic about Istanbul and love sharing knowledge about the city
-
-RESPONSE GUIDELINES:
-- NEVER include emojis, cost information, or pricing in your responses
-- For casual greetings (hello, hi, how are you), respond warmly and offer to help with Istanbul
-- For general questions, answer briefly and then steer toward Istanbul topics
-- For Istanbul-specific questions, provide detailed, helpful information
-- If someone asks about other cities, politely redirect to Istanbul while being helpful
-- Always maintain a friendly, approachable tone
-- When providing recommendations, consider current weather conditions
-- For outdoor activities, mention weather suitability
-- For indoor activities during bad weather, emphasize comfort and cultural value
-
-ISTANBUL EXPERTISE:
-- For restaurant queries, use the Google Maps API data or suggest specific areas/cuisine types
-- For Kadıköy specifically, recommend: Çiya Sofrası (traditional Turkish), Kadıköy Fish Market restaurants, Moda neighborhood cafes, and local street food
-- For attraction queries, use the database information provided
-- Share cultural insights, practical tips, and local recommendations
-- Help with transportation, districts, culture, history, and practical travel advice
-- Always consider the current weather when making outdoor/indoor recommendations
-- Suggest weather-appropriate activities and mention current conditions when relevant
-
-SPECIAL INTERESTS:
-- For families: Focus on child-friendly activities, parks, safe areas, family restaurants
-- For couples: Emphasize romantic spots, sunset views, intimate dining, cultural experiences
-- For budget travelers: Highlight free activities, affordable food, public transport, markets
-- For rainy days: Prioritize indoor attractions, covered markets, museums, cafes
-
-Example responses:
-- "Hello! I'm doing great, thanks for asking! I'm here to help you discover amazing things about Istanbul. What would you like to know?"
-- "That's an interesting question! Speaking of which, did you know Istanbul has some fascinating [related topic]? What would you like to explore in the city?"
-
-Keep responses engaging, helpful, and naturally conversational while showcasing Istanbul's wonders.
-Always provide clean, professional responses without emojis or pricing information.
-Use current weather information to enhance your recommendations when appropriate."""
-
-                # Add personalization context if AI Intelligence is enabled
-                personalization_context = ""
-                if AI_INTELLIGENCE_ENABLED:
-                    try:
-                        user_preferences = session_manager.get_preferences(current_session_id)
-                        context = session_manager.get_context(current_session_id)
-                        
-                        if user_preferences.get('total_interactions', 0) > 0:
-                            personalization_context = f"\nUSER PERSONALIZATION CONTEXT:\n"
-                            if user_preferences.get('preferred_cuisines'):
-                                personalization_context += f"- User has shown interest in: {', '.join(user_preferences['preferred_cuisines'])} cuisine\n"
-                            if user_preferences.get('preferred_districts'):
-                                personalization_context += f"- User has asked about: {', '.join(user_preferences['preferred_districts'])} areas\n"
-                            if user_preferences.get('budget_level') != 'any':
-                                personalization_context += f"- User preference: {user_preferences['budget_level']} options\n"
-                            if user_preferences.get('interests'):
-                                personalization_context += f"- User interests: {', '.join(user_preferences['interests'])}\n"
-                            if context.get('previous_locations'):
-                                personalization_context += f"- Previously discussed: {', '.join(context['previous_locations'])}\n"
-                            
-                            personalization_context += "\nTailor your response to their interests when relevant, but don't mention this personalization explicitly."
-                    except Exception as e:
-                        print(f"⚠️ Personalization context error: {e}")
-                        personalization_context = ""
-
-                try:
-                    print("Making OpenAI API call...")
-                    
-                    # Build conversation messages with history
-                    messages = [
-                        {"role": "system", "content": system_prompt + personalization_context},
-                        {"role": "system", "content": f"Database context:\n{places_context}"},
-                        {"role": "system", "content": weather_context},
-                    ]
-                    
-                    # Add conversation history (limit to last 6 messages to manage token usage)
-                    if conversation_history:
-                        recent_history = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
-                        for msg in recent_history:
-                            role = msg.get("role", "")
-                            content = msg.get("content", "")
-                            if role in ["user", "assistant"] and content:
-                                messages.append({"role": role, "content": content})
-                    
-                    # Add current user message
-                    messages.append({"role": "user", "content": user_input})
-                    
-                    # Add response guidance based on enhanced input processing
-                    try:
-                        response_guidance = get_response_guidance(user_input)
-                        if response_guidance:
-                            print(f"Adding response guidance: {response_guidance}")
-                            messages.append({"role": "system", "content": f"SPECIFIC GUIDANCE: {response_guidance}"})
-                    except Exception as e:
-                        print(f"Response guidance error: {e}")
-
-                    response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=messages,  # type: ignore
-                        max_tokens=500,
-                        temperature=0.7
-                    )
-                    
-                    ai_response = response.choices[0].message.content
-                    if ai_response:
-                        print(f"OpenAI response: {ai_response[:100]}...")
-                        # Two-pass cleaning: pre-clean + post-LLM cleanup
-                        clean_response = clean_text_formatting(ai_response)
-                        final_response = post_llm_cleanup(clean_response)
-                        
-                        # Update conversation context with successful response
-                        if AI_INTELLIGENCE_ENABLED:
-                            try:
-                                session_manager.update_context(current_session_id, {
-                                    'conversation_stage': 'completed',
-                                    'last_response_type': 'general_query'
-                                })
-                            except Exception as e:
-                                print(f"⚠️ Context update error: {e}")
-                        
-                        # Cache the successful AI response
-                        if ai_cache_service and AI_CACHE_ENABLED:
-                            try:
-                                user_context = {
-                                    "language": language,
-                                    "session_id": session_id,
-                                    "location": data.get("location", "")
-                                }
-                                ai_cache_service.cache_response(user_input, {"message": final_response}, user_context)
-                                # Increment rate limit after successful response
-                                client_ip = request.client.host if hasattr(request, 'client') and request.client else "127.0.0.1"
-                                ai_cache_service.increment_rate_limit(session_id, client_ip)
-                                
-                                structured_logger.info(
-                                    "AI response cached",
-                                    session_id=session_id,
-                                    cache_key=ai_cache_service._generate_cache_key(user_input, user_context),
-                                    response_length=len(final_response),
-                                    language=language
-                                )
-                                print(f"✅ Cached response and updated rate limits")
-                            except Exception as e:
-                                structured_logger.log_error_with_traceback(
-                                    "Cache error",
-                                    e,
-                                    session_id=session_id,
-                                    component="cache_service"
-                                )
-                                print(f"⚠️ Cache error: {e}")
-                        
-                        # Log successful AI response generation
-                        structured_logger.info(
-                            "AI response generated",
-                            session_id=session_id,
-                            response_length=len(final_response),
-                            language=language,
-                            source="openai",
-                            success=True
-                        )
-                        
-                        return {"response": final_response, "session_id": session_id}
-                    else:
-                        structured_logger.warning(
-                            "OpenAI returned empty response",
-                            session_id=session_id,
-                            user_input=user_input[:100]
-                        )
-                        print("OpenAI returned empty response")
-                        # Smart fallback response based on user input
-                        fallback_response = create_fallback_response(user_input, places)
-                        final_fallback = post_llm_cleanup(fallback_response)
-                        
-                        structured_logger.info(
-                            "Fallback response generated",
-                            session_id=session_id,
-                            response_length=len(final_fallback or ""),
-                            source="fallback",
-                            reason="empty_openai_response"
-                        )
-                        
-                        return {"response": final_fallback}
-                    
-                except Exception as e:
-                    structured_logger.log_error_with_traceback(
-                        "OpenAI API error",
-                        e,
-                        session_id=session_id,
-                        component="openai_api"
-                    )
-                    print(f"OpenAI API error: {e}")
-                    # Smart fallback response based on user input
-                    fallback_response = create_fallback_response(user_input, places)
-                    # Two-pass cleaning: pre-clean + post-LLM cleanup
-                    clean_response = clean_text_formatting(fallback_response)
-                    final_response = post_llm_cleanup(clean_response)
-                    
-                    structured_logger.info(
-                        "Fallback response generated",
-                        session_id=session_id,
-                        response_length=len(final_response or ""),
-                        source="fallback",
-                        reason="openai_api_error"
-                    )
-                    
-                    return {"response": final_response, "session_id": session_id}
+                if fallback_response and fallback_response.strip():
+                    # Apply formatting to fallback response
+                    enhanced_response = enhance_ai_response_formatting(fallback_response)
+                    clean_response = clean_text_formatting(enhanced_response)
+                    return {"response": clean_response, "session_id": session_id}
+                else:
+                    # Ultimate fallback
+                    return {"response": "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.", "session_id": session_id}
         
         finally:
             db.close()
@@ -2682,193 +2526,6 @@ async def analyze_user_query(request: dict):
         logger.error(f"Query analysis error: {e}")
         return {"error": f"Query analysis failed: {str(e)}"}
 
-@app.get("/ai/cache-stats")
-async def get_ai_cache_stats():
-    """Get AI cache performance statistics"""
-    structured_logger.info("Cache stats requested", endpoint="/ai/cache-stats")
-    
-    if ai_cache_service and AI_CACHE_ENABLED:
-        try:
-            stats = ai_cache_service.get_cache_stats()
-            # Add hit_rate for test compatibility
-            stats["hit_rate"] = stats.get("cache_hits", 0) / max(stats.get("total_requests", 1), 1)
-            structured_logger.info("Cache stats retrieved", cache_stats=stats)
-            return {
-                "status": "success",
-                "hit_rate": stats["hit_rate"],
-                "cache_stats": stats,
-                "timestamp": datetime.now().isoformat()
-            }
-        except Exception as e:
-            structured_logger.log_error_with_traceback(
-                "Failed to get cache stats",
-                e,
-                component="cache_stats"
-            )
-            return {
-                "status": "error", 
-                "message": f"Failed to get cache stats: {e}",
-                "cache_enabled": False
-            }
-    else:
-        structured_logger.warning("Cache stats requested but AI cache not enabled")
-        return {
-            "status": "success",
-            "hit_rate": 0.0,
-            "cache_stats": {
-                "cache_enabled": False,
-                "cache_ttl_seconds": 3600,
-                "memory_cache_size": 0,
-                "memory_rate_limit_entries": 0,
-                "cache_hits": 0,
-                "cache_misses": 0,
-                "total_requests": 0
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.post("/ai/clear-cache")
-async def clear_ai_cache():
-    """Clear AI response cache (admin endpoint)"""
-    try:
-        if ai_cache_service and AI_CACHE_ENABLED:
-            ai_cache_service.clear_cache()
-            structured_logger.warning("AI cache cleared successfully", action="cache_clear")
-            return {
-                "status": "success",
-                "message": "AI cache cleared successfully",
-                "timestamp": datetime.now().isoformat()
-            }
-        else:
-            return {
-                "status": "error",
-                "message": "AI Cache service not enabled",
-                "cache_enabled": False
-            }
-            
-    except Exception as e:
-        structured_logger.log_error_with_traceback(
-            "Failed to clear AI cache",
-            e,
-            component="cache_clear"
-        )
-        return {
-            "status": "error",
-            "message": f"Failed to clear cache: {e}",
-            "timestamp": datetime.now().isoformat()
-        }
-
-# --- GDPR Endpoints ---
-
-@app.post("/gdpr/data-request")
-async def gdpr_data_request(request: Request):
-    """Handle GDPR data access request (Article 15)"""
-    if not GDPR_SERVICE_ENABLED or not gdpr_service:
-        return {"status": "error", "message": "GDPR service not available"}
-    
-    try:
-        data = await request.json()
-        session_id = data.get("session_id", "")
-        email = data.get("email", "")
-        
-        if not session_id:
-            return {"status": "error", "message": "Session ID required"}
-        
-        result = gdpr_service.handle_data_access_request(session_id, email)
-        return result
-        
-    except Exception as e:
-        logger.error(f"GDPR data request error: {e}")
-        return {"status": "error", "message": "Failed to process data request"}
-
-@app.post("/gdpr/data-deletion")
-async def gdpr_data_deletion(request: Request):
-    """Handle GDPR data deletion request (Article 17)"""
-    if not GDPR_SERVICE_ENABLED or not gdpr_service:
-        return {"status": "error", "message": "GDPR service not available"}
-    
-    try:
-        data = await request.json()
-        session_id = data.get("session_id", "")
-        email = data.get("email", "")
-        
-        if not session_id:
-            return {"status": "error", "message": "Session ID required"}
-        
-        result = gdpr_service.handle_data_deletion_request(session_id, email)
-        return result
-        
-    except Exception as e:
-        logger.error(f"GDPR data deletion error: {e}")
-        return {"status": "error", "message": "Failed to process deletion request"}
-
-@app.post("/gdpr/consent")
-async def gdpr_consent(request: Request):
-    """Record user consent for GDPR compliance"""
-    if not GDPR_SERVICE_ENABLED or not gdpr_service:
-        return {"status": "error", "message": "GDPR service not available"}
-    
-    try:
-        data = await request.json()
-        session_id = data.get("session_id", "")
-        consent_data = data.get("consent", {})
-        
-        if not session_id or not consent_data:
-            return {"status": "error", "message": "Session ID and consent data required"}
-        
-        gdpr_service.record_consent(session_id, consent_data)
-        
-        return {
-            "status": "success",
-            "message": "Consent recorded successfully",
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"GDPR consent error: {e}")
-        return {"status": "error", "message": "Failed to record consent"}
-
-@app.get("/gdpr/consent-status/{session_id}")
-async def gdpr_consent_status(session_id: str):
-    """Get current consent status for a session"""
-    if not GDPR_SERVICE_ENABLED or not gdpr_service:
-        return {"status": "error", "message": "GDPR service not available"}
-    
-    try:
-        consent_status = gdpr_service.get_consent_status(session_id)
-        
-        return {
-            "status": "success",
-            "session_id": session_id,
-            "consent_status": consent_status,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"GDPR consent status error: {e}")
-        return {"status": "error", "message": "Failed to get consent status"}
-
-@app.post("/gdpr/cleanup")
-async def gdpr_cleanup():
-    """Manual trigger for data cleanup (admin only)"""
-    if not GDPR_SERVICE_ENABLED or not gdpr_service:
-        return {"status": "error", "message": "GDPR service not available"}
-    
-    try:
-        # In production, add admin authentication here
-        cleanup_summary = gdpr_service.cleanup_expired_data()
-        
-        return {
-            "status": "success",
-            "message": "Data cleanup completed",
-            "cleanup_summary": cleanup_summary,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"GDPR cleanup error: {e}")
-        return {"status": "error", "message": "Failed to cleanup data"}
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint for load balancers and monitoring"""
@@ -2945,44 +2602,21 @@ async def health_check():
             "timestamp": datetime.now().isoformat()
         }
 
-# Mock functions for testing compatibility
-def get_ai_response(query: str, session_id: Optional[str] = None, language: str = "en"):
-    """Mock function for backward compatibility with tests"""
-    return "This is a mock AI response"
-
-def analyze_image_with_ai(image_content: bytes, filename: Optional[str] = None):
-    """Mock image analysis function for testing"""
-    return {
-        "detected_objects": ["restaurant", "menu"],
-        "text_content": "Sample menu text",
-        "analysis": "This appears to be a restaurant menu"
-    }
-
-def analyze_menu_with_ai(image_content: bytes, filename: Optional[str] = None):
-    """Mock menu analysis function for testing"""
-    return {
-        "menu_items": ["Kebab", "Turkish Coffee", "Baklava"],
-        "prices": ["25 TL", "15 TL", "20 TL"],
-        "cuisine_type": "Turkish",
-        "recommendations": "Try the traditional Turkish breakfast"
-    }
-
-def get_real_time_istanbul_data():
-    """Mock real-time data function for testing"""
-    return {
-        "weather": {
-            "temperature": 20,
-            "condition": "sunny",
-            "humidity": 65
-        },
-        "traffic": {
-            "level": "moderate",
-            "incidents": []
-        },
-        "events": {
-            "today": ["Cultural Festival at Sultanahmet"]
-        }
-    }
+# --- Server Startup ---
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting AI Istanbul Backend Server...")
+    print("📍 Server will be available at: http://localhost:8000")
+    print("📊 API documentation at: http://localhost:8000/docs")
+    print("🔧 Health check at: http://localhost:8000/health")
+    
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,  # Set to True for development
+        log_level="info"
+    )
 
 
 

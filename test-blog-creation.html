@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Blog Post Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .form-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 4px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background: #0a4d0a;
+            color: #4ade80;
+        }
+        .error {
+            background: #4d0a0a;
+            color: #f87171;
+        }
+        .posts-list {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .post-item {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #007acc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Blog Post Creation & Display</h1>
+    <p>This page tests the complete blog functionality: creating posts and displaying existing posts.</p>
+
+    <!-- Create New Post Form -->
+    <div class="form-section">
+        <h2>Create New Blog Post</h2>
+        <form id="blog-form">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" placeholder="Enter post title..." required>
+
+            <label for="content">Content:</label>
+            <textarea id="content" name="content" rows="8" placeholder="Write your Istanbul story here..." required></textarea>
+
+            <label for="author_name">Author Name:</label>
+            <input type="text" id="author_name" name="author_name" placeholder="Your name..." required>
+
+            <label for="district">District (optional):</label>
+            <select id="district" name="district">
+                <option value="">Select district...</option>
+                <option value="Sultanahmet">Sultanahmet</option>
+                <option value="Beyoğlu">Beyoğlu</option>
+                <option value="Galata">Galata</option>
+                <option value="Kadıköy">Kadıköy</option>
+                <option value="Beşiktaş">Beşiktaş</option>
+                <option value="Üsküdar">Üsküdar</option>
+                <option value="Fatih">Fatih</option>
+                <option value="Karaköy">Karaköy</option>
+            </select>
+
+            <label for="tags">Tags (comma-separated):</label>
+            <input type="text" id="tags" name="tags" placeholder="istanbul, travel, food, culture...">
+
+            <button type="submit">Create Blog Post</button>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <!-- Existing Posts Display -->
+    <div class="form-section">
+        <h2>Recent Blog Posts</h2>
+        <button onclick="loadRecentPosts()">Refresh Posts</button>
+        <div id="recent-posts" class="posts-list">
+            <p>Loading posts...</p>
+        </div>
+    </div>
+
+    <!-- Test Like Functionality -->
+    <div class="form-section">
+        <h2>Test Like Functionality</h2>
+        <label for="post-id">Post ID to Like:</label>
+        <input type="text" id="post-id" placeholder="Enter post ID (1, 2, 3, 4)">
+        <button onclick="testLikePost()">Like Post</button>
+        <div id="like-status"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8001';
+
+        // Load recent posts on page load
+        document.addEventListener('DOMContentLoaded', loadRecentPosts);
+
+        // Handle form submission
+        document.getElementById('blog-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status';
+            statusDiv.textContent = 'Creating blog post...';
+            
+            try {
+                const formData = {
+                    title: document.getElementById('title').value,
+                    content: document.getElementById('content').value,
+                    author_name: document.getElementById('author_name').value,
+                    district: document.getElementById('district').value || null,
+                    tags: document.getElementById('tags').value.split(',').map(tag => tag.trim()).filter(tag => tag),
+                    published: true
+                };
+                
+                console.log('Sending post data:', formData);
+                
+                const response = await fetch(`${API_BASE_URL}/blog/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Post created:', result);
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✅ Blog post created successfully! Post ID: ${result.post.id}`;
+                
+                // Clear form
+                document.getElementById('blog-form').reset();
+                
+                // Refresh posts list
+                loadRecentPosts();
+                
+            } catch (error) {
+                console.error('Error creating post:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        });
+        
+        async function loadRecentPosts() {
+            const postsDiv = document.getElementById('recent-posts');
+            postsDiv.innerHTML = '<p>Loading recent posts...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/blog/?limit=10`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const posts = data.posts || [];
+                
+                if (posts.length === 0) {
+                    postsDiv.innerHTML = '<p>No posts found.</p>';
+                    return;
+                }
+                
+                const postsHtml = posts.map(post => `
+                    <div class="post-item">
+                        <h3>${post.title}</h3>
+                        <p><strong>By:</strong> ${post.author_name || post.author || 'Unknown'}</p>
+                        <p><strong>District:</strong> ${post.district || 'N/A'}</p>
+                        <p><strong>Likes:</strong> ${post.likes || post.likes_count || 0}</p>
+                        <p><strong>Created:</strong> ${new Date(post.created_at).toLocaleString()}</p>
+                        <p><strong>Content Preview:</strong> ${post.content.substring(0, 150)}...</p>
+                        <p><strong>Post ID:</strong> ${post.id}</p>
+                    </div>
+                `).join('');
+                
+                postsDiv.innerHTML = postsHtml;
+                
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                postsDiv.innerHTML = `<p class="error">❌ Error loading posts: ${error.message}</p>`;
+            }
+        }
+        
+        async function testLikePost() {
+            const postId = document.getElementById('post-id').value;
+            const statusDiv = document.getElementById('like-status');
+            
+            if (!postId) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Please enter a post ID';
+                return;
+            }
+            
+            statusDiv.className = 'status';
+            statusDiv.textContent = 'Liking post...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/blog/${postId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: 'test_user_' + Date.now()
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Like result:', result);
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✅ Post liked! New like count: ${result.likes_count}`;
+                
+                // Refresh posts to show updated like count
+                loadRecentPosts();
+                
+            } catch (error) {
+                console.error('Error liking post:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

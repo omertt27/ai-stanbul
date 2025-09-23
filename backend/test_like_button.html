@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Like Button</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .like-btn { 
+            padding: 10px 20px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        .like-btn.liked { background: #28a745; }
+        .status { margin: 20px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Like Button Functionality</h1>
+    
+    <div class="status">
+        <strong>Post ID:</strong> 1<br>
+        <strong>Current Likes:</strong> <span id="likeCount">Loading...</span><br>
+        <strong>Status:</strong> <span id="status">Ready</span>
+    </div>
+    
+    <button id="likeBtn" class="like-btn" onclick="toggleLike()">
+        Like Post
+    </button>
+    
+    <div id="response" style="margin-top: 20px;"></div>
+
+    <script>
+        let isLiked = false;
+        let userId = 'test-user-' + Math.random().toString(36).substr(2, 9);
+        
+        async function loadPostInfo() {
+            try {
+                const response = await fetch('/blog/1');
+                const data = await response.json();
+                document.getElementById('likeCount').textContent = data.post.likes_count;
+            } catch (error) {
+                document.getElementById('status').textContent = 'Error loading post info';
+                console.error('Error:', error);
+            }
+        }
+        
+        async function toggleLike() {
+            const btn = document.getElementById('likeBtn');
+            const statusEl = document.getElementById('status');
+            
+            btn.disabled = true;
+            statusEl.textContent = 'Processing...';
+            
+            try {
+                const response = await fetch('/blog/1/like', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    isLiked = data.isLiked;
+                    btn.textContent = isLiked ? 'Unlike Post' : 'Like Post';
+                    btn.className = isLiked ? 'like-btn liked' : 'like-btn';
+                    document.getElementById('likeCount').textContent = data.likes_count;
+                    statusEl.textContent = data.message;
+                    
+                    document.getElementById('response').innerHTML = 
+                        `<strong>Response:</strong><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    statusEl.textContent = 'Error: ' + data.message;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Network error';
+                console.error('Error:', error);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        // Load initial post info
+        loadPostInfo();
+    </script>
+</body>
+</html>

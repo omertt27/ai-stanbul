@@ -167,8 +167,29 @@ const BlogList = () => {
     setError(null);
     
     try {
-      // Use mock data with sorting and filtering
-      let filteredPosts = [...mockBlogPosts];
+      // Try to fetch from API first
+      let filteredPosts = [];
+      
+      try {
+        console.log('🔗 BlogList: Attempting to fetch from backend API...');
+        const apiResponse = await fetchBlogPosts({
+          page: currentPage,
+          limit: 100, // Get all posts for client-side filtering
+          search: searchTerm,
+          district: selectedDistrict,
+          sort_by: sortBy
+        });
+        
+        if (apiResponse && apiResponse.posts && Array.isArray(apiResponse.posts)) {
+          filteredPosts = apiResponse.posts;
+          console.log('✅ BlogList: Successfully fetched', filteredPosts.length, 'posts from API');
+        } else {
+          throw new Error('Invalid API response structure');
+        }
+      } catch (apiErr) {
+        console.warn('⚠️ BlogList: API failed, falling back to mock data:', apiErr);
+        filteredPosts = [...mockBlogPosts];
+      }
       
       // Apply search filter
       if (searchTerm) {
@@ -387,12 +408,29 @@ const BlogList = () => {
                         <span className="font-medium">{post.district}</span>
                       </div>
                       
-                      <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-1 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        disabled={likingPosts.has(post.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
+                          likingPosts.has(post.id)
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:opacity-80 active:scale-95'
+                        }`}
+                        title="Like this post"
+                      >
+                        {likingPosts.has(post.id) ? (
+                          <div className="w-5 h-5 animate-spin">
+                            <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                        )}
                         <span className="font-medium">{post.likes_count || 0}</span>
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </article>
