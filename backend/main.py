@@ -193,18 +193,33 @@ class DummyAdvancedAI:
 try:
     from ai_intelligence import (
         session_manager, preference_manager, intent_recognizer, 
-        recommendation_engine
+        recommendation_engine, saved_session_manager
     )
     AI_INTELLIGENCE_ENABLED = True
-    print("✅ Enhanced AI Intelligence loaded successfully")
+    print("✅ AI Intelligence services imported successfully")
 except ImportError as e:
-    print(f"⚠️ AI Intelligence not available: {e}")
+    print(f"❌ AI Intelligence import failed: {e}")
     AI_INTELLIGENCE_ENABLED = False
-    # Use dummy objects to prevent errors
-    session_manager = DummyManager()
-    preference_manager = DummyManager()
-    intent_recognizer = DummyManager()
-    recommendation_engine = DummyManager()
+    
+    # Create dummy objects to prevent errors
+    class DummyAI:
+        def get_or_create_session(self, *args, **kwargs): return "dummy"
+        def get_preferences(self, *args, **kwargs): return {}
+        def update_preferences(self, *args, **kwargs): pass
+        def learn_from_query(self, *args, **kwargs): pass
+        def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
+        def enhance_recommendations(self, *args, **kwargs): return []
+        def save_session(self, *args, **kwargs): return True
+        def get_saved_sessions(self, *args, **kwargs): return []
+        def get_session_details(self, *args, **kwargs): return None
+        def delete_session(self, *args, **kwargs): return True
+        def get_context(self, *args, **kwargs): return {}
+        def update_context(self, *args, **kwargs): pass
+        def analyze_query_context(self, *args, **kwargs): return {}
+        def extract_entities(self, *args, **kwargs): return {}
+        def get_personalized_filter(self, *args, **kwargs): return {}
+    
+    session_manager = preference_manager = intent_recognizer = recommendation_engine = saved_session_manager = DummyAI()
 
 # --- Import Advanced AI Features ---
 try:
@@ -321,14 +336,7 @@ def clean_text_formatting(text):
     text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic* but keep content
     
     # Improve bullet points and structure
-    text = re.sub(r'^[\s]*-\s*', '• ', text, flags=re.MULTILINE)  # Convert - to bullet points
-    text = re.sub(r'^\s*\*\s*', '• ', text, flags=re.MULTILINE)  # Convert * to bullet points
-    
-    # Improve section headers
-    text = re.sub(r'^#+\s*([^#\n]*)', r'\n\1\n', text, flags=re.MULTILINE)  # Convert headers
-    
-    # Ensure proper spacing around sections
-    text = re.sub(r'\n{3,}', '\n\n', text)  # Limit excessive line breaks
+    text = re.sub(r'^[\s]*-\s*', '• ', text, flags=re.MULTILINE) 
     text = re.sub(r'([.!?])\s*\n\s*([A-Z])', r'\1\n\n\2', text)  # Add space between paragraphs
     
     # Clean up spacing while preserving structure
@@ -350,6 +358,55 @@ def clean_text_formatting(text):
     text = re.sub(r'^\s+|\s+$', '', text)  # Remove leading/trailing whitespace
     
     return text
+
+def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
+    """Generate response using OpenAI GPT for queries we can't handle with database/hardcoded responses"""
+    try:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not OpenAI_available or not openai_api_key or OpenAI is None:
+            return None
+        
+        # Create OpenAI client
+        client = OpenAI(api_key=openai_api_key, timeout=30.0, max_retries=2)
+        
+        # Create a specialized prompt for Istanbul tourism
+        system_prompt = """You are an expert Istanbul travel assistant. Provide helpful, accurate information about Istanbul tourism, culture, attractions, restaurants, and travel tips. Keep responses conversational but informative. Focus specifically on Istanbul, Turkey.
+
+Guidelines:
+- Be enthusiastic and helpful about Istanbul
+- Provide specific, actionable advice when possible  
+- Include practical details like locations, timing, or tips
+- Keep responses concise but comprehensive (200-400 words)
+- Use emojis sparingly for better readability
+- Always relate answers back to Istanbul specifically
+- If asked about something not related to Istanbul tourism, politely redirect to Istanbul topics
+
+Current specialties: Museums, art galleries, cultural sites, historical information, local experiences, food culture, shopping, nightlife, transportation, and general travel advice for Istanbul."""
+
+        # Make the API call
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Question about Istanbul: {user_input}"}
+            ],
+            max_tokens=500,
+            temperature=0.7,
+            timeout=25
+        )
+        
+        gpt_response = response.choices[0].message.content
+        if gpt_response:
+            gpt_response = gpt_response.strip()
+            print(f"✅ GPT response generated successfully for: {user_input[:50]}...")
+            return gpt_response
+        else:
+            print(f"⚠️ GPT returned empty content for: {user_input[:50]}...")
+            return None
+        
+    except Exception as e:
+        print(f"❌ GPT response generation failed: {e}")
+        return None
 
 def get_museums_from_database() -> List[Dict[str, Any]]:
     """Fetch museums from the database and return formatted data"""
@@ -582,6 +639,149 @@ def enhance_ai_response_formatting(text):
     
     return text.strip()
 
+def should_use_gpt_for_query(user_input: str) -> bool:
+    """Determine if a query should be handled by GPT instead of database/hardcoded responses"""
+    
+    # Keywords that suggest the query needs more nuanced/detailed answers
+    gpt_suitable_keywords = [
+        # Art and culture specific queries
+        'art museums', 'art galleries', 'contemporary art', 'modern art', 'art scene',
+        'cultural events', 'art exhibitions', 'gallery openings', 'art districts',
+        'street art', 'local artists', 'art history', 'byzantine art', 'ottoman art',
+        
+        # Detailed cultural questions  
+        'culture', 'cultural heritage', 'traditions', 'customs', 'local customs',
+        'turkish culture', 'byzantine culture', 'ottoman culture', 'cultural sites',
+        'cultural experiences', 'authentic experiences', 'local life', 'local lifestyle',
+        
+        # Complex travel questions
+        'itinerary', 'travel plan', 'how many days', 'best time to visit',
+        'what should i do', 'things to avoid', 'travel tips', 'first time visiting',
+        'budget travel', 'luxury travel', 'solo travel', 'family travel',
+        
+        # Complex transportation questions
+        'transportation options', 'transport system', 'public transport guide', 
+        'transportation tips', 'transport planning', 'transport costs', 'transport passes',
+        'airport transfer', 'airport transport', 'airport connection',
+        'late night transport', 'early morning transport', 'transport schedule',
+        'accessibility transport', 'disabled transport', 'wheelchair accessible',
+        'transport for families', 'transport with luggage', 'transport safety',
+        'cheapest transport', 'fastest transport', 'most comfortable transport',
+        'transport during rush hour', 'avoiding traffic', 'transport strikes',
+        
+        # Specific expertise questions
+        'history of', 'story behind', 'why is', 'how did', 'when was',
+        'what makes', 'tell me about', 'explain', 'describe', 'background',
+        
+        # Comparative questions
+        'compare', 'versus', 'vs', 'better than', 'difference between',
+        'similar to', 'like', 'alternative to', 'instead of',
+        
+        # Opinion-based questions
+        'recommend', 'suggest', 'opinion', 'thoughts', 'what do you think',
+        'best', 'favorite', 'top', 'must see', 'must do', 'essential',
+        
+        # Complex logistics
+        'how to plan', 'planning', 'organize', 'schedule', 'timing'
+    ]
+    
+    user_lower = user_input.lower()
+    
+    # Check if query contains GPT-suitable keywords
+    has_gpt_keywords = any(keyword in user_lower for keyword in gpt_suitable_keywords)
+    
+    # Also use GPT for questions (queries with question words)
+    question_words = ['what', 'why', 'how', 'when', 'where', 'which', 'who']
+    has_question_words = any(word in user_lower for word in question_words)
+    
+    # Use GPT for longer, more complex queries (likely to need detailed answers)
+    is_complex_query = len(user_input.split()) > 5
+    
+    return has_gpt_keywords or (has_question_words and is_complex_query)
+
+def is_complex_transportation_query(user_input: str) -> bool:
+    """Determine if a transportation query is complex and should use GPT fallback"""
+    
+    user_lower = user_input.lower()
+    
+    # Complex transportation scenarios that benefit from GPT
+    complex_transport_indicators = [
+        # General transportation guidance (not specific routes)
+        'transportation options', 'transport system', 'public transport guide', 
+        'transportation in istanbul', 'getting around istanbul', 'transport overview',
+        'how does transport work', 'transport explanation', 'transport help',
+        
+        # Cost and planning questions
+        'transport costs', 'transport prices', 'cheap transport', 'expensive transport',
+        'transport budget', 'transport planning', 'transport passes', 'transport cards',
+        'best way to travel', 'fastest way to travel', 'cheapest way to travel',
+        
+        # Time-sensitive questions
+        'late night transport', 'early morning transport', 'transport schedule',
+        'transport during rush hour', 'avoiding traffic', 'rush hour transport',
+        'transport at night', 'night buses', 'night transport',
+        
+        # Special needs transportation
+        'accessibility transport', 'disabled transport', 'wheelchair accessible',
+        'transport for families', 'transport with children', 'transport with luggage',
+        'transport with baby', 'stroller friendly transport',
+        
+        # Airport and long-distance connections
+        'airport transfer', 'airport transport', 'airport connection', 'airport shuttle',
+        'from airport to', 'to airport from', 'airport to city', 'city to airport',
+        
+        # Multi-modal or complex routing
+        'multiple stops', 'several places', 'tour multiple', 'visit multiple',
+        'day trip transport', 'transport for sightseeing', 'tourist transport',
+        
+        # Comparative transportation questions
+        'best transport option', 'transport comparison', 'metro vs bus', 'taxi vs metro',
+        'which transport is better', 'transport recommendations',
+        
+        # Transport system questions
+        'how to buy tickets', 'where to buy tickets', 'transport tickets',
+        'istanbulkart', 'transport card', 'oyster card equivalent',
+        
+        # Safety and comfort
+        'transport safety', 'safe transport', 'comfortable transport',
+        'transport tips', 'transport advice', 'transport warnings'
+    ]
+    
+    # Check for complex indicators
+    has_complex_indicators = any(indicator in user_lower for indicator in complex_transport_indicators)
+    
+    # Check for question words combined with transportation
+    transport_keywords = ['transport', 'metro', 'bus', 'ferry', 'taxi', 'travel', 'getting']
+    has_transport_keywords = any(keyword in user_lower for keyword in transport_keywords)
+    question_words = ['what', 'why', 'how', 'when', 'where', 'which', 'who']
+    has_question_with_transport = (any(word in user_lower for word in question_words) and has_transport_keywords)
+    
+    # Simple informational queries that should NOT be considered complex
+    simple_info_patterns = [
+        r'what.*metro.*lines?',           # "what are the metro lines"
+        r'metro.*lines?',                 # "metro lines in istanbul"
+        r'what.*bus.*routes?',            # "what bus routes"
+        r'what.*transport.*options?',     # "what transport options" (but this can be complex)
+        r'tell me about.*metro',          # "tell me about metro"
+        r'tell me about.*bus',            # "tell me about bus"
+    ]
+    
+    # If it's a simple informational query, prefer hardcoded response
+    is_simple_info = any(re.search(pattern, user_lower) for pattern in simple_info_patterns)
+    
+    # Simple route patterns that should use hardcoded responses
+    simple_route_patterns = [
+        r'from\s+\w+.*to\s+\w+',          # "from beyoglu to kadikoy"
+        r'\w+\s+to\s+\w+',                # "beyoglu to kadikoy"  
+        r'go.*\w+.*to\s+\w+',             # "go from beyoglu to kadikoy"
+        r'get.*\w+.*to\s+\w+',            # "get from beyoglu to kadikoy"
+    ]
+    
+    # If it's a simple route query, prefer hardcoded response
+    is_simple_route = any(re.search(pattern, user_lower) for pattern in simple_route_patterns)
+    
+    return (has_complex_indicators or has_question_with_transport) and not is_simple_route and not is_simple_info
+
 app = FastAPI(title="AIstanbul API")
 
 # Add CORS middleware with dynamic origins
@@ -610,6 +810,8 @@ CORS_ORIGINS = [
     "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
     "https://aistanbul-dz2rju4mf-omers-projects-3eea52d8.vercel.app",
     "https://aistanbul-e5rcj5qm3-omers-projects-3eea52d8.vercel.app",
+    # Allow file:// protocol (null origin) for admin dashboard
+    "null",
 ]
 
 # Add environment variable for additional origins
@@ -1598,7 +1800,7 @@ async def ai_istanbul_router(request: Request):
                 r'dining\s+in\s+\w+',  # "dining in taksim"
                 r'give\s+me\s+restaurants?\s+in\s+\w+',  # "give me restaurants in taksim"
                 r'show\s+me\s+restaurants?\s+in\s+\w+',   # "show me restaurants in galata"
-                # Turkish location-based restaurant patterns
+                # Turkish location-based restaurant patterns with suffixes
                 r'restoranlar\s+\w+da',      # "restoranlar beyoğlunda"
                 r'restoranlar\s+\w+de',      # "restoranlar şişlide"
                 r'restoran\s+\w+da',         # "restoran beyoğlunda"
@@ -1694,30 +1896,124 @@ async def ai_istanbul_router(request: Request):
                 
                 # Prioritize AI intent detection over keyword matching
                 # Only use keyword fallback if confidence is very low
-                if intent_confidence >= 0.3:
+                # Special overrides for queries that get misclassified as restaurants or transportation
+                is_metro_info_query = any(phrase in user_input.lower() for phrase in ['metro line', 'metro lines', 'subway line', 'subway lines', 'what are the metro', 'which metro'])
+                is_museum_info_query = any(phrase in user_input.lower() for phrase in ['museum', 'museums', 'tell me about museums', 'about museums', 'museum in istanbul', 'museums in istanbul'])
+                
+                # Check for general tips/advice queries that get misclassified as transportation
+                general_tips_phrases = [
+                    'tap water', 'safe to drink', 'water safe', 'drinking water',
+                    'tourist trap', 'avoid scam', 'scam', 'trap',
+                    'souvenir', 'buy', 'shopping', 'what to buy', 'gifts',
+                    'local custom', 'respect', 'culture', 'etiquette', 'tradition',
+                    'emergency', 'help', 'police', 'hospital', 'embassy',
+                    'stay safe', 'safety', 'secure', 'dangerous',
+                    'exchange money', 'currency', 'bank', 'atm', 'cash',
+                    'turkish phrase', 'language', 'speak', 'translate',
+                    'toilet', 'bathroom', 'restroom', 'wc',
+                    'how much cash', 'carry cash', 'money exchange',
+                    'what\'s the currency', 'turkish lira', 'lira',
+                    'avoid tourist traps', 'tourist scams',
+                    'what souvenirs', 'souvenirs to buy',
+                    'respect local', 'local customs',
+                    'best way to exchange', 'exchange rate',
+                    'case of emergency', 'emergency number',
+                    'turkish toilets', 'use toilets',
+                    'safe in istanbul', 'istanbul safety',
+                    'tip', 'tipping', 'gratuity', 'how much tip'
+                ]
+                is_general_tips_query = any(phrase in user_input.lower() for phrase in general_tips_phrases)
+                
+                if is_general_tips_query:
+                    # Force general/fallback classification for tips queries
+                    is_district_query = False
+                    is_restaurant_query = False
+                    is_museum_query = False
+                    is_attraction_query = False
+                    is_shopping_query = False
+                    is_transportation_query = False
+                    is_nightlife_query = False
+                    is_culture_query = False
+                    is_accommodation_query = False
+                    is_events_query = False
+                    print(f"💡 General tips query override: forcing fallback classification")
+                elif is_metro_info_query:
+                    # Force transportation classification for metro/subway information queries
+                    is_district_query = False
+                    is_restaurant_query = False
+                    is_museum_query = False
+                    is_attraction_query = False
+                    is_shopping_query = False
+                    is_transportation_query = True
+                    is_nightlife_query = False
+                    is_culture_query = False
+                    is_accommodation_query = False
+                    is_events_query = False
+                    print(f"🚇 Metro info query override: forcing transportation classification")
+                elif is_museum_info_query:
+                    # Force museum classification for museum information queries
+                    is_district_query = False
+                    is_restaurant_query = False
+                    is_museum_query = True
+                    is_attraction_query = False
+                    is_shopping_query = False
+                    is_transportation_query = False
+                    is_nightlife_query = False
+                    is_culture_query = False
+                    is_accommodation_query = False
+                    is_events_query = False
+                    print(f"🏛️ Museum info query override: forcing museum classification")
+                elif intent_confidence >= 0.3:
                     # Trust the AI intent when confidence is reasonable
                     is_district_query = primary_intent == 'district_query'
                     is_restaurant_query = primary_intent == 'restaurant_search'
-                    logger.info(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
-                    print(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
+                    is_museum_query = primary_intent == 'museum_query'
+                    is_attraction_query = primary_intent == 'attraction_query'
+                    is_shopping_query = primary_intent == 'shopping_query'
+                    is_transportation_query = primary_intent == 'transportation_query'
+                    is_nightlife_query = primary_intent == 'nightlife_query'
+                    is_culture_query = primary_intent == 'culture_query'
+                    is_accommodation_query = primary_intent == 'accommodation_query'
+                    is_events_query = primary_intent == 'events_query'
+                    logger.info(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}, is_transportation_query={is_transportation_query}")
+                    print(f"🤖 Using AI intent: {primary_intent} -> is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}, is_transportation_query={is_transportation_query}")
                 else:
-                    # Fall back to keyword matching for low confidence
+                    # Fall back to keyword matching for low confidence with proper priority order
                     is_district_query = any(keyword in user_input.lower() for keyword in district_keywords)
-                    if is_district_query:
-                        is_restaurant_query = False
-                    else:
+                    
+                    # Check transportation first (highest priority) - enhanced detection
+                    transportation_keywords = [
+                        'transport', 'metro', 'bus', 'taxi', 'how to get', 'ferry', 'marmaray', 'istanbulkart',
+                        'metro line', 'metro lines', 'subway', 'subway line', 'subway lines',
+                        'train', 'tram', 'dolmus', 'dolmuş', 'public transport',
+                        'transportation', 'travel', 'route', 'direction', 'directions'
+                    ]
+                    # Special handling for "metro lines" queries that get misclassified
+                    is_metro_info_query = any(phrase in user_input.lower() for phrase in ['metro line', 'metro lines', 'subway line', 'subway lines'])
+                    is_transportation_query = (
+                        any(word in user_input.lower() for word in transportation_keywords) or 
+                        is_metro_info_query
+                    )
+                    
+                    # Check museums/attractions second  
+                    is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
+                    is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords)
+                    
+                    # Only check restaurants if NOT a transportation, district, or museum query
+                    if not is_transportation_query and not is_district_query and not is_museum_query and not is_attraction_query:
                         is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords)
-                    logger.info(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
-                    print(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}")
-                
-                is_museum_query = primary_intent == 'museum_query'
-                is_attraction_query = primary_intent == 'attraction_query'
-                is_shopping_query = primary_intent == 'shopping_query'
-                is_transportation_query = primary_intent == 'transportation_query'
-                is_nightlife_query = primary_intent == 'nightlife_query'
-                is_culture_query = primary_intent == 'culture_query'
-                is_accommodation_query = primary_intent == 'accommodation_query'
-                is_events_query = primary_intent == 'events_query'
+                    else:
+                        is_restaurant_query = False
+                    
+                    # Set remaining query types  
+                    is_shopping_query = 'shopping' in user_input.lower() or 'shop' in user_input.lower()
+                    is_nightlife_query = 'nightlife' in user_input.lower() or 'bars' in user_input.lower()
+                    is_culture_query = 'culture' in user_input.lower() or 'cultural' in user_input.lower()
+                    is_accommodation_query = 'hotel' in user_input.lower() or 'accommodation' in user_input.lower()
+                    is_events_query = 'events' in user_input.lower() or 'concerts' in user_input.lower()
+                    
+                    logger.info(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}, is_transportation_query={is_transportation_query}")
+                    print(f"📝 Using keyword fallback: is_restaurant_query={is_restaurant_query}, is_district_query={is_district_query}, is_transportation_query={is_transportation_query}")
                 
                 is_location_restaurant_query = bool(extracted_locations and is_restaurant_query)
                 is_location_place_query = bool(extracted_locations and is_attraction_query)
@@ -1744,28 +2040,43 @@ async def ai_istanbul_router(request: Request):
                 # Fallback to basic keyword matching when AI is not available
                 extracted_locations = []
                 
-                # --- District query detection fix ---
-                # If district keywords are present, prioritize district query over restaurant query
+                # Use same priority order as AI fallback
                 is_district_query = any(keyword in user_input.lower() for keyword in district_keywords)
-                if is_district_query:
-                    is_restaurant_query = False
-                else:
-                    # More specific matching for different query types - prioritize specific over general
-                    # Only trigger restaurant search for explicit food/dining queries
-                    is_restaurant_query = (
-                        any(keyword in user_input.lower() for keyword in restaurant_keywords) and 
-                        not any(word in user_input.lower() for word in ['culture', 'cultural', 'history', 'historical', 'tradition', 'traditional'])
-                    ) or is_location_restaurant_query
                 
-                is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords) or is_location_museum_query
+                # Check transportation first (highest priority) - enhanced detection
+                transportation_keywords = [
+                    'transport', 'metro', 'bus', 'taxi', 'how to get', 'ferry', 'marmaray', 'istanbulkart',
+                    'metro line', 'metro lines', 'subway', 'subway line', 'subway lines',
+                    'train', 'tram', 'dolmus', 'dolmuş', 'public transport',
+                    'transportation', 'travel', 'route', 'direction', 'directions'
+                ]
+                # Special handling for "metro lines" queries that get misclassified
+                is_metro_info_query = any(phrase in user_input.lower() for phrase in ['metro line', 'metro lines', 'subway line', 'subway lines', 'what are the metro', 'which metro'])
+                is_transportation_query = (
+                    any(word in user_input.lower() for word in transportation_keywords) or 
+                    is_metro_info_query
+                )
+                
+                # Check museums/attractions second  
+                is_museum_query = any(keyword in user_input.lower() for keyword in museum_keywords)
                 is_attraction_query = any(keyword in user_input.lower() for keyword in attraction_keywords)
+                
+                # Only check restaurants if NOT a transportation, district, or museum query
+                if not is_transportation_query and not is_district_query and not is_museum_query and not is_attraction_query:
+                    is_restaurant_query = any(keyword in user_input.lower() for keyword in restaurant_keywords)
+                else:
+                    is_restaurant_query = False
+                
+                # Set remaining query types  
                 is_shopping_query = 'shopping' in user_input.lower() or 'shop' in user_input.lower()
-                is_transportation_query = any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi', 'how to get'])
                 is_nightlife_query = 'nightlife' in user_input.lower() or 'bars' in user_input.lower()
                 is_culture_query = 'culture' in user_input.lower() or 'cultural' in user_input.lower()
                 is_accommodation_query = 'hotel' in user_input.lower() or 'accommodation' in user_input.lower()
                 is_events_query = 'events' in user_input.lower() or 'concerts' in user_input.lower()
                 is_location_restaurant_query = False
+                is_location_place_query = False
+                is_location_museum_query = False
+                is_single_district_query = False
                 is_location_place_query = False
                 is_location_museum_query = False
                 is_single_district_query = False
@@ -1794,7 +2105,7 @@ async def ai_istanbul_router(request: Request):
                 is_location_museum_query = (is_location_museum_query or 
                                           any(re.search(pattern, user_input.lower()) for pattern in location_museum_patterns))
             
-            # Check transportation patterns specifically - more comprehensive patterns
+            # Check transportation patterns specifically for enhanced detection - more comprehensive patterns
             transportation_patterns = [
                 r'how.*can.*i.*go.*from.*to',         # "how can I go from beyoglu to kadikoy"
                 r'how.*can.*i.*go.*\w+.*from.*\w+',   # "how can I go kadikoy from beyoglu"
@@ -1817,8 +2128,14 @@ async def ai_istanbul_router(request: Request):
                 r'ferry.*to'                          # "ferry to kadikoy"
             ]
             is_transportation_pattern = any(re.search(pattern, user_input.lower()) for pattern in transportation_patterns)
-            is_transportation_query = is_transportation_query or is_transportation_pattern
+            # Enhance transportation detection but don't override if already set by AI
+            if is_transportation_pattern and not is_transportation_query:
+                is_transportation_query = True
+                print(f"📍 Transportation pattern detected, upgrading to transportation query")
+            
             print(f"  is_transportation_query: {is_transportation_query}")
+            print(f"  is_museum_query: {is_museum_query}")
+            print(f"  is_restaurant_query: {is_restaurant_query}")
             print(f"  is_single_district_query: {is_single_district_query}")
             
             # Handle simple greetings with template responses
@@ -1837,6 +2154,21 @@ async def ai_istanbul_router(request: Request):
             
             # Handle transportation queries with highest priority
             if is_transportation_query:
+                print(f"🚇 Transportation query detected: {user_input}")
+                
+                # Check if this is a complex transportation query that should use GPT
+                if is_complex_transportation_query(user_input):
+                    print(f"🤖 Complex transportation query - trying GPT first: {user_input[:50]}...")
+                    gpt_response = get_gpt_response(user_input, session_id)
+                    
+                    if gpt_response:
+                        # Apply formatting to GPT response
+                        enhanced_response = enhance_ai_response_formatting(gpt_response)
+                        clean_response = clean_text_formatting(enhanced_response)
+                        return {"response": clean_response, "session_id": session_id}
+                    else:
+                        print("⚠️ GPT failed for complex transportation query, falling back to hardcoded")
+                
                 try:
                     # Check if this is a specific route query (from X to Y)
                     route_patterns = [
@@ -1921,8 +2253,98 @@ async def ai_istanbul_router(request: Request):
 - Traffic can be heavy, especially bridges
 
 For specific routes, I recommend using Google Maps or Citymapper app for real-time public transport directions."""}
+                    else:
+                        # General transportation information query - provide comprehensive info instead of GPT fallback
+                        print(f"🚇 General transportation info query: {user_input}")
+                        
+                        # Check if it's specifically about metro lines
+                        if any(word in user_input.lower() for word in ['metro line', 'metro lines', 'subway line', 'subway lines']):
+                            return {"response": """**Istanbul Metro Lines**
+
+**Main Metro Lines:**
+
+🔴 **M1A Line (Red):** Yenikapı ↔ Atatürk Airport
+- Connects airport to city center via Zeytinburnu
+- Key stops: Airport, Bakırköy, Zeytinburnu, Aksaray, Eminönü
+
+🔵 **M2 Line (Blue):** Yenikapı ↔ Hacıosman  
+- Main north-south line on European side
+- Key stops: Taksim, Şişhane (Galata), Vezneciler (near Grand Bazaar), Fatih
+
+🟡 **M3 Line (Yellow):** Kirazlı ↔ Başakşehir/Olimpiyatköy
+- Serves northwestern districts
+- Connects to M1 line at Kirazlı
+
+🟠 **M4 Line (Orange):** Kadıköy ↔ Tavşantepe
+- Main Asian side metro line
+- Key stops: Kadıköy, Bostancı, Kartal
+
+🟢 **M5 Line (Green):** Üsküdar ↔ Çekmeköy
+- Asian side connection
+- Links to Marmaray at Üsküdar
+
+🟣 **M6 Line (Purple):** Levent ↔ Boğaziçi Üniversitesi
+- Short line serving Levent business district
+
+**Other Rail Lines:**
+🚆 **Marmaray:** Connects Europe and Asia via underwater tunnel
+🚊 **Tram Lines:** T1 (Bağcılar-Kabataş), T4 (Topkapı-Mescid-i Selam)
+
+**Tips:**
+- Use Istanbulkart for all metro lines
+- Download Citymapper app for real-time info
+- Metro runs 6 AM - 12 AM (extended on weekends)
+
+Need directions to a specific place? Ask me about getting from one district to another!""", "session_id": session_id}
+                        
+                        # For other general transportation queries, provide the comprehensive guide
+                        return {"response": """**Getting Around Istanbul**
+
+Istanbul has an excellent public transport system:
+
+**Istanbul Card (Istanbulkart):**
+- Essential for all public transport
+- Buy at metro stations or ferry terminals  
+- Works on metro, bus, tram, ferry, and dolmuş
+
+**Metro & Rail:**
+- M1 Line: Airport to city center (Red line)
+- M2 Line: Main north-south European side (Blue line)
+- M4 Line: Main Asian side line (Orange line)
+- Marmaray: Underground rail connecting Europe and Asia
+
+**Ferries:**
+- Cross between European & Asian sides
+- Scenic Bosphorus routes
+- Very affordable and beautiful views
+
+**Buses & Dolmuş:**
+- Extensive network covering all areas
+- Metrobus: Fast bus system on dedicated lanes
+- Regular city buses connect all neighborhoods
+
+**Trams:**
+- T1: Bağcılar to Kabataş (passes Sultanahmet)
+- Historic tram on İstiklal Avenue
+
+**Tips:**
+- Download Citymapper or Google Maps for navigation
+- Rush hours: 8-10 AM and 5-7 PM
+- Ferries offer the best views of Istanbul
+- Metro runs 6 AM - 12 AM daily
+
+For specific routes between districts, just ask me "How to get from X to Y"!""", "session_id": session_id}
+                        
                 except Exception as e:
-                    return {"response": "I can help you with transportation in Istanbul. Please ask about specific routes or general transport information!"}
+                    print(f"Error in transportation handling: {e}")
+                    # Try GPT as fallback for errors
+                    gpt_response = get_gpt_response(user_input, session_id)
+                    if gpt_response:
+                        enhanced_response = enhance_ai_response_formatting(gpt_response)
+                        clean_response = clean_text_formatting(enhanced_response)
+                        return {"response": clean_response, "session_id": session_id}
+                    else:
+                        return {"response": "I can help you with transportation in Istanbul. Please ask about specific routes or general transport information!"}
             
             # Handle district queries
             elif is_district_query:
@@ -2124,8 +2546,54 @@ Would you like me to help you with specific museum information or directions?"""
                 else:
                     return {"response": "Sorry, I couldn't find any restaurants matching your request in Istanbul."}
             
-            # Handle all other query types with fallback response
+            # Handle all other query types with fallback response or GPT for general tips
             else:
+                # Check if this is a general tips/advice query that should be answered by GPT
+                general_tips_phrases = [
+                    'tap water', 'drink water', 'water safe', 'safe to drink',
+                    'cash', 'money', 'currency', 'exchange', 'atm',
+                    'electricity', 'power', 'outlet', 'plug', 'adapter',
+                    'voltage', 'phone', 'sim card', 'internet', 'wifi',
+                    'language', 'english', 'speak', 'turkish',
+                    'dress code', 'what to wear', 'clothing',
+                    'weather', 'temperature', 'rain', 'sunny',
+                    'safety', 'safe', 'crime', 'dangerous',
+                    'scam', 'tourist trap', 'avoid',
+                    'budget', 'expensive', 'cheap', 'cost',
+                    'bargain', 'haggle', 'negotiate',
+                    'customs', 'tradition', 'culture', 'etiquette',
+                    'ramadan', 'prayer time', 'mosque rules',
+                    'case of emergency', 'emergency number',
+                    'turkish toilets', 'use toilets',
+                    'safe in istanbul', 'istanbul safety',
+                    'tip', 'tipping', 'gratuity', 'how much tip'
+                ]
+                is_general_tips_query = any(phrase in user_input.lower() for phrase in general_tips_phrases)
+                
+                if is_general_tips_query:
+                    print(f"💡 General tips query detected - using GPT for answer: {user_input}")
+                    try:
+                        # Generate GPT response for general tips/advice queries
+                        gpt_response = get_gpt_response(user_input, session_id)
+                        
+                        if gpt_response and gpt_response.strip():
+                            # Apply formatting to GPT response
+                            enhanced_response = enhance_ai_response_formatting(gpt_response)
+                            clean_response = clean_text_formatting(enhanced_response)
+                            return {"response": clean_response, "session_id": session_id}
+                        else:
+                            print(f"⚠️ GPT response was empty for general tips query")
+                            # Fall back to standard fallback if GPT fails
+                            places = db.query(Place).all()
+                            fallback_response = create_fallback_response(user_input, places)
+                            if fallback_response and fallback_response.strip():
+                                enhanced_response = enhance_ai_response_formatting(fallback_response)
+                                clean_response = clean_text_formatting(enhanced_response)
+                                return {"response": clean_response, "session_id": session_id}
+                    except Exception as gpt_error:
+                        print(f"⚠️ Error generating GPT response for general tips: {gpt_error}")
+                        # Continue to regular fallback response on GPT error
+                
                 print(f"🔧 Using fallback response for query: {user_input}")
                 places = db.query(Place).all()
                 fallback_response = create_fallback_response(user_input, places)
@@ -2602,6 +3070,118 @@ async def health_check():
             "timestamp": datetime.now().isoformat()
         }
 
+# --- Chat Session Management Endpoints ---
+
+@app.post("/api/chat-sessions")
+async def save_chat_session(request: Request):
+    """Save a chat session when user likes a message"""
+    try:
+        data = await request.json()
+        session_id = data.get('session_id')
+        messages = data.get('messages', [])
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
+        
+        if not session_id or not messages:
+            return {"error": "Missing session_id or messages"}, 400
+        
+        # Save the session using the saved session manager
+        success = saved_session_manager.save_session(session_id, messages, user_ip)
+        
+        if success:
+            return {"success": True, "message": "Chat session saved successfully"}
+        else:
+            return {"error": "Failed to save chat session"}, 500
+            
+    except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Failed to save chat session",
+            e,
+            component="session_save"
+        )
+        return {"error": "Internal server error"}, 500
+
+@app.get("/api/chat-sessions")
+async def get_saved_sessions(request: Request):
+    """Get all saved chat sessions for the user"""
+    try:
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
+        
+        # Get saved sessions for this user
+        sessions = saved_session_manager.get_saved_sessions(user_ip)
+        
+        return {"sessions": sessions}
+        
+    except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Failed to retrieve saved sessions",
+            e,
+            component="session_retrieve"
+        )
+        return {"error": "Internal server error"}, 500
+
+@app.get("/api/chat-sessions/{session_id}")
+async def get_session_details(session_id: str, request: Request):
+    """Get detailed information about a specific saved session"""
+    try:
+        # Get session details
+        session_data = saved_session_manager.get_session_details(session_id)
+        
+        if not session_data:
+            return {"error": "Session not found"}, 404
+        
+        # Only return session if it belongs to the requesting user (privacy check)
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
+        if session_data.get('user_ip') != user_ip:
+            return {"error": "Session not found"}, 404
+        
+        return {
+            "session": {
+                "id": session_data['session_id'],
+                "title": session_data['title'],
+                "messages": session_data['messages'],
+                "saved_at": session_data['saved_at'].isoformat(),
+                "message_count": len(session_data['messages'])
+            }
+        }
+        
+    except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Failed to get session details",
+            e,
+            component="session_details"
+        )
+        return {"error": "Internal server error"}, 500
+
+@app.delete("/api/chat-sessions/{session_id}")
+async def delete_saved_session(session_id: str, request: Request):
+    """Delete a saved chat session"""
+    try:
+        # Check if session exists and belongs to user
+        session_data = saved_session_manager.get_session_details(session_id)
+        if not session_data:
+            return {"error": "Session not found"}, 404
+        
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
+        if session_data.get('user_ip') != user_ip:
+            return {"error": "Session not found"}, 404
+        
+        # Delete the session
+        success = saved_session_manager.delete_session(session_id)
+        
+        if success:
+            return {"success": True, "message": "Session deleted successfully"}
+        else:
+            return {"error": "Failed to delete session"}, 500
+            
+    except Exception as e:
+        structured_logger.log_error_with_traceback(
+            "Failed to delete session",
+            e,
+            component="session_delete"
+        )
+        return {"error": "Internal server error"}, 500
+
+# --- End of Chat Session Management Endpoints ---
 # --- Server Startup ---
 if __name__ == "__main__":
     import uvicorn

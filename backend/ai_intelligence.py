@@ -188,14 +188,24 @@ class IntelligentIntentRecognizer:
                 'keywords': ['transport', 'transportation', 'metro', 'subway', 'bus', 'taxi', 'uber', 'lyft',
                             'how to get', 'directions', 'route', 'routes', 'travel', 'traveling', 'commute',
                             'ferry', 'boat', 'tram', 'train', 'public transport', 'getting around',
-                            'navigation', 'way to', 'path to', 'journey', 'trip', 'ride', 'drive', 'walk'],
+                            'navigation', 'way to', 'path to', 'journey', 'trip', 'ride', 'drive', 'walk',
+                            'transport system', 'transport options', 'transport in', 'transportation in',
+                            'getting around', 'how to travel', 'travel options', 'public transport',
+                            'istanbulkart', 'transport card', 'transport tips', 'transport guide',
+                            'airport transfer', 'airport transport', 'airport shuttle', 'airport connection',
+                            'transfer options', 'transfer from', 'transfer to', 'airport to city', 'city to airport'],
                 'patterns': [
                     r'how.*get.*from.*to', r'go.*from.*to', r'transport.*to', r'transportation.*to',
                     r'metro.*to', r'bus.*to', r'taxi.*to', r'directions.*to', r'route.*to',
                     r'how.*do.*i.*get.*to', r'what.*s.*the.*best.*way.*to', r'getting.*to',
-                    r'travel.*from.*to', r'commute.*from.*to', r'journey.*from.*to'
+                    r'travel.*from.*to', r'commute.*from.*to', r'journey.*from.*to',
+                    r'transport.*in.*istanbul', r'transportation.*in.*istanbul', r'getting.*around.*istanbul',
+                    r'how.*to.*get.*around', r'public.*transport.*in', r'transport.*system',
+                    r'transport.*options', r'how.*to.*travel.*in', r'best.*way.*to.*travel',
+                    r'airport.*transfer', r'airport.*transport', r'transfer.*from.*airport', r'transfer.*to.*airport',
+                    r'airport.*to.*city', r'city.*to.*airport', r'airport.*shuttle', r'airport.*connection'
                 ],
-                'boost': 0.3
+                'boost': 0.9  # High boost for transportation queries to compete with restaurants
             },
             'museum_query': {
                 'keywords': ['museum', 'museums', 'exhibition', 'exhibitions', 'art', 'gallery', 'galleries',
@@ -585,3 +595,75 @@ session_manager = SimpleSessionManager()
 preference_manager = EnhancedPreferenceManager(session_manager)
 intent_recognizer = IntelligentIntentRecognizer()
 recommendation_engine = PersonalizedRecommendationEngine(session_manager)
+
+class SavedSessionManager:
+    """Manages saved chat sessions with like/unlike functionality"""
+    
+    def __init__(self):
+        self.saved_sessions = {}  # In-memory storage for saved sessions
+    
+    def save_session(self, session_id: str, messages: List[Dict], user_ip: Optional[str] = None) -> bool:
+        """Save a chat session"""
+        try:
+            session_data = {
+                'session_id': session_id,
+                'messages': messages,
+                'saved_at': datetime.utcnow(),
+                'user_ip': user_ip,
+                'title': self._generate_session_title(messages)
+            }
+            self.saved_sessions[session_id] = session_data
+            return True
+        except Exception as e:
+            print(f"Error saving session: {e}")
+            return False
+    
+    def get_saved_sessions(self, user_ip: Optional[str] = None) -> List[Dict]:
+        """Get all saved sessions, optionally filtered by user IP"""
+        try:
+            sessions = []
+            for session_id, session_data in self.saved_sessions.items():
+                if user_ip is None or session_data.get('user_ip') == user_ip:
+                    sessions.append({
+                        'id': session_id,
+                        'title': session_data['title'],
+                        'saved_at': session_data['saved_at'].isoformat(),
+                        'message_count': len(session_data['messages'])
+                    })
+            # Sort by saved_at descending (most recent first)
+            return sorted(sessions, key=lambda x: x['saved_at'], reverse=True)
+        except Exception as e:
+            print(f"Error getting saved sessions: {e}")
+            return []
+    
+    def get_session_details(self, session_id: str) -> Optional[Dict]:
+        """Get full details of a saved session"""
+        return self.saved_sessions.get(session_id)
+    
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a saved session"""
+        try:
+            if session_id in self.saved_sessions:
+                del self.saved_sessions[session_id]
+                return True
+            return False
+        except Exception as e:
+            print(f"Error deleting session: {e}")
+            return False
+    
+    def _generate_session_title(self, messages: List[Dict]) -> str:
+        """Generate a meaningful title from the first user message"""
+        try:
+            for msg in messages:
+                if msg.get('role') == 'user' and msg.get('content'):
+                    content = msg['content'].strip()
+                    # Take first 50 characters and add ellipsis if longer
+                    if len(content) > 50:
+                        return content[:50].strip() + "..."
+                    return content
+            return "Untitled Chat"
+        except Exception:
+            return "Untitled Chat"
+
+# Global instance for saved sessions
+saved_session_manager = SavedSessionManager()

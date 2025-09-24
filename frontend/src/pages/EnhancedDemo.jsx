@@ -46,7 +46,7 @@ const EnhancedDemo = () => {
 
   const fetchContext = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
       const response = await fetch(`${cleanApiUrl}/ai/context/${sessionId}`);
       const data = await response.json();
@@ -62,7 +62,7 @@ const EnhancedDemo = () => {
     setIsTyping(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
       const response = await fetch(`${cleanApiUrl}/ai`, {
         method: 'POST',

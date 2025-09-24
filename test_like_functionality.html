@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Like/Unlike Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background-color: #2a2a2a;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        button {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #7c3aed;
+        }
+        .response {
+            background-color: #374151;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #8b5cf6;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 AI Istanbul - Like/Unlike Functionality Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Save a Chat Session</h2>
+        <p>This will simulate saving a chat session when user likes a message.</p>
+        <button onclick="testSaveSession()">Save Test Session</button>
+        <div id="saveResult" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Retrieve Saved Sessions</h2>
+        <p>This will fetch all saved sessions for the current user.</p>
+        <button onclick="testGetSessions()">Get Saved Sessions</button>
+        <div id="getResult" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Get Session Details</h2>
+        <p>This will get details of a specific saved session.</p>
+        <input type="text" id="sessionIdInput" placeholder="Enter session ID" style="padding: 5px; margin-right: 10px;">
+        <button onclick="testGetSessionDetails()">Get Session Details</button>
+        <div id="detailsResult" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Delete Saved Session</h2>
+        <p>This will delete a specific saved session.</p>
+        <input type="text" id="deleteSessionIdInput" placeholder="Enter session ID to delete" style="padding: 5px; margin-right: 10px;">
+        <button onclick="testDeleteSession()">Delete Session</button>
+        <div id="deleteResult" class="response"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        async function testSaveSession() {
+            const resultDiv = document.getElementById('saveResult');
+            resultDiv.innerHTML = 'Testing...';
+            
+            const testSessionData = {
+                session_id: 'test_session_' + Date.now(),
+                messages: [
+                    {
+                        role: 'user',
+                        content: 'What are the best restaurants in Sultanahmet?'
+                    },
+                    {
+                        role: 'assistant',
+                        content: 'Here are some excellent restaurants in Sultanahmet:\n\n1. **Pandeli** - Traditional Ottoman cuisine\n2. **Hamdi Restaurant** - Famous for döner kebab\n3. **Deraliye** - Palace cuisine\n\nAll of these offer authentic Turkish dining experiences!'
+                    },
+                    {
+                        role: 'user',
+                        content: 'Tell me more about Pandeli'
+                    },
+                    {
+                        role: 'assistant',
+                        content: 'Pandeli is a historic restaurant established in 1901, located in the Spice Bazaar. It\'s known for its beautiful turquoise tiles and traditional Ottoman dishes.'
+                    }
+                ],
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat-sessions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testSessionData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ Session saved successfully!</span><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testGetSessions() {
+            const resultDiv = document.getElementById('getResult');
+            resultDiv.innerHTML = 'Loading...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat-sessions`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ Found ${data.sessions.length} saved sessions:</span><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testGetSessionDetails() {
+            const sessionId = document.getElementById('sessionIdInput').value;
+            const resultDiv = document.getElementById('detailsResult');
+            
+            if (!sessionId) {
+                resultDiv.innerHTML = '<span class="error">❌ Please enter a session ID</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Loading...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ Session details loaded:</span><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+        
+        async function testDeleteSession() {
+            const sessionId = document.getElementById('deleteSessionIdInput').value;
+            const resultDiv = document.getElementById('deleteResult');
+            
+            if (!sessionId) {
+                resultDiv.innerHTML = '<span class="error">❌ Please enter a session ID</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Deleting...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat-sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ Session deleted successfully:</span><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Error: ${data.error}</span>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Network error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>

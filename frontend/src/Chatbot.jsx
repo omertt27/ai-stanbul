@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
-import { Link, useLocation } from 'react-router-dom';
 import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
 import NavBar from './components/NavBar';
 import { 
@@ -167,25 +166,29 @@ const processTextContent = (textContent, parts, keyPrefix) => {
   });
 };
 
-function Chatbot({ onDarkModeToggle }) {
+function Chatbot() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
-  const [suggestions, setSuggestions] = useState([])
   const [inputError, setInputError] = useState('')
   const [chatSessions, setChatSessions] = useState([])
   const [currentSessionId, setCurrentSessionId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [readingMessageId, setReadingMessageId] = useState(null)
-  const [speechSupported, setSpeechSupported] = useState(false)
+  const [readingMessageId, setReadingMessageId] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
   
-  // UX Enhancement states
-  const [isTyping, setIsTyping] = useState(false)
-  const [typingMessageId, setTypingMessageId] = useState(null)
+  // Add liked messages state
+  const [likedMessages, setLikedMessages] = useState(new Set());
+  const [savedSessions, setSavedSessions] = useState([]);
+
+  // Speech synthesis support
+  const speechSynthesis = useRef(window.speechSynthesis);
+  const speechSupported = 'speechSynthesis' in window;
+  const [speechSynthesisSupported, setSpeechSupported] = useState(speechSupported);
   
-  const messagesEndRef = useRef(null)
-  const speechSynthesis = useRef(null)
+  // Ref for auto-scrolling to bottom
+  const messagesEndRef = useRef(null);
 
   // Removed input suggestions as requested
 
@@ -293,7 +296,6 @@ function Chatbot({ onDarkModeToggle }) {
   };
 
   // Refs for scroll control
-  const chatContainerRef = useRef(null);
   const [userScrolling, setUserScrolling] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -629,7 +631,7 @@ function Chatbot({ onDarkModeToggle }) {
 
   // Read message aloud
   const readAloud = (text, messageIndex) => {
-    if (!speechSupported || !speechSynthesis.current) {
+    if (!speechSynthesisSupported || !speechSynthesis.current) {
       console.log('Speech synthesis not supported');
       return;
     }
@@ -684,6 +686,100 @@ function Chatbot({ onDarkModeToggle }) {
       setReadingMessageId(null);
     }
   };
+
+  // Like/Unlike message functionality
+  const toggleMessageLike = async (messageIndex, isLiked) => {
+    const newLikedMessages = new Set(likedMessages);
+    const messageId = `${currentSessionId}-${messageIndex}`;
+    
+    if (isLiked) {
+      newLikedMessages.add(messageId);
+    } else {
+      newLikedMessages.delete(messageId);
+    }
+    
+    setLikedMessages(newLikedMessages);
+    
+    // Save the chat session when a message is liked
+    if (isLiked && currentSessionId) {
+      await saveChatSession(currentSessionId, messages);
+    }
+  };
+
+  // Save chat session to backend
+  const saveChatSession = async (sessionId, messagesData) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chat-sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          messages: messagesData,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to save chat session');
+      }
+    } catch (error) {
+      console.error('Error saving chat session:', error);
+    }
+  };
+
+  // Load saved sessions
+  const loadSavedSessions = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chat-sessions`);
+      if (response.ok) {
+        const data = await response.json();
+        setSavedSessions(data.sessions || []);
+      }
+    } catch (error) {
+      console.error('Error loading saved sessions:', error);
+    }
+  };
+
+  // Load saved session details and display them
+  const loadSavedSession = async (sessionId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chat-sessions/${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.session.messages);
+        setCurrentSessionId(sessionId);
+        setSidebarOpen(false); // Close sidebar on mobile
+      }
+    } catch (error) {
+      console.error('Error loading saved session:', error);
+    }
+  };
+
+  // Delete a saved session
+  const deleteSavedSession = async (sessionId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chat-sessions/${sessionId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        // Refresh saved sessions list
+        loadSavedSessions();
+      }
+    } catch (error) {
+      console.error('Error deleting saved session:', error);
+    }
+  };
+
+  // Load saved sessions on component mount
+  useEffect(() => {
+    loadSavedSessions();
+  }, []);
 
   // Handle pending chat query from main page - START NEW CHAT
   useEffect(() => {
@@ -859,6 +955,79 @@ function Chatbot({ onDarkModeToggle }) {
                 ))}
               </div>
             )}
+            
+            {/* Saved Sessions Section */}
+            {savedSessions.length > 0 && (
+              <>
+                <div className="mt-8 mb-4 px-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.69 4.5 1.79C13.09 3.69 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                    <h3 className="text-sm font-semibold text-gray-200">Liked Sessions</h3>
+                  </div>
+                  <div className="h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent mt-2"></div>
+                </div>
+                
+                <div className="space-y-2">
+                  {savedSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="group relative cursor-pointer transition-all duration-200"
+                      style={{
+                        border: '1px solid rgba(234, 179, 8, 0.2)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        background: 'rgba(234, 179, 8, 0.05)'
+                      }}
+                      onClick={() => loadSavedSession(session.id)}
+                      onMouseEnter={(e) => {
+                        e.target.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.borderColor = 'rgba(234, 179, 8, 0.2)';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-3 h-3 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.69 4.5 1.79C13.09 3.69 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                            <p className="text-sm font-semibold truncate text-yellow-100">{session.title}</p>
+                          </div>
+                          <p className="text-xs mt-1 text-yellow-200/60">{formatSessionDate(session.saved_at)}</p>
+                          <p className="text-xs text-yellow-200/40">{session.message_count} messages</p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSavedSession(session.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ml-2"
+                          style={{
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#ef4444'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -921,12 +1090,9 @@ function Chatbot({ onDarkModeToggle }) {
             strokeWidth={2} 
             d={sidebarOpen 
               ? "M15 19l-7-7 7-7" 
-              : "M8 9l4-4 4 4m0 6l-4 4-4-4"
+              : "M4 6h16M4 12h16M4 18h16"
             } 
           />
-        </svg>
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
@@ -1032,32 +1198,50 @@ function Chatbot({ onDarkModeToggle }) {
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}>
                   
+                  {/* Like/Unlike Buttons - Only for assistant messages */}
+                  {msg.role === 'assistant' && (
+                    <button
+                      onClick={() => toggleMessageLike(index, !likedMessages.has(`${currentSessionId}-${index}`))}
+                      className={`kam-action-button kam-like-button ${
+                        likedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
+                      }`}
+                      title={likedMessages.has(`${currentSessionId}-${index}`) ? "Unlike this response" : "Like this response"}
+                    >
+                      <svg className="w-3 h-3" fill={likedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      <span className="text-xs">
+                        {likedMessages.has(`${currentSessionId}-${index}`) ? 'Unlike' : 'Like'}
+                      </span>
+                    </button>
+                  )}
+                  
                   {/* Copy Button */}
                   <button
                     onClick={() => copyToClipboard(msg.content, index)}
                     className="kam-action-button kam-copy-button"
                     title="Copy message"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <span className="text-xs">Copy</span>
                   </button>
                   
                   {/* Read Aloud Button */}
-                  {speechSupported && (
+                  {speechSynthesisSupported && (
                     <button
                       onClick={() => readingMessageId === index ? stopReading() : readAloud(msg.content, index)}
                       className={`kam-action-button kam-read-button ${readingMessageId === index ? 'active' : ''}`}
                       title={readingMessageId === index ? "Stop reading" : "Read aloud"}
                     >
                       {readingMessageId === index ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-6.219-8.56" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10l2 2 4-4" />
                         </svg>
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.575 12 18.586V5.414c0-.989-1.077-1.751-1.707-1.121L5.586 9z" />
                         </svg>
                       )}

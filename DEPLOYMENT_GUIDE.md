@@ -1,22 +1,30 @@
-# 🚀 DEPLOYMENT GUIDE - Istanbul AI Travel Blog
+# 🚀 AI Istanbul - Complete Deployment Guide
 
-## 📋 **RECOMMENDED DEPLOYMENT STACK**
+## 📋 **ARCHITECTURE OVERVIEW**
+- **Backend**: FastAPI application with PostgreSQL database (deployed on Render)
+- **Frontend**: React/Vite application (deployed on Vercel)
+- **Database**: PostgreSQL (Render's PostgreSQL add-on or external service)
 
-### **Option 1: Vercel + Railway (Recommended)**
-- **Frontend**: Vercel (Free tier available)
-- **Backend**: Railway (PostgreSQL included)
-- **Database**: Railway PostgreSQL
-- **Estimated Cost**: $5-20/month
+## 🎯 **DEPLOYMENT STACK (Updated)**
 
-### **Option 2: Netlify + Render**
-- **Frontend**: Netlify (Free tier available)
-- **Backend**: Render (Free tier available)
-- **Database**: Render PostgreSQL
-- **Estimated Cost**: $0-15/month
+### **Recommended: Render (Backend) + Vercel (Frontend)**
+- **Backend**: Render Web Service with PostgreSQL add-on
+- **Frontend**: Vercel static deployment
+- **Features**: Auto-scaling, SSL, health monitoring
+- **Cost**: ~$7-25/month (depending on usage)
 
-## 🔧 **STEP-BY-STEP DEPLOYMENT**
+## 🔧 **PREREQUISITES**
+1. **GitHub Repository**: Code pushed to GitHub
+2. **Render Account**: [render.com](https://render.com)
+3. **Vercel Account**: [vercel.com](https://vercel.com)
+4. **API Keys**: OpenAI, Google Maps, Google Places
 
-### **1. FRONTEND DEPLOYMENT (Vercel)**
+## 📂 **DEPLOYMENT FILES CREATED**
+- `render.yaml` - Render deployment configuration
+- `vercel.json` - Vercel deployment configuration
+- `frontend/.env.production` - Production environment variables
+
+## � **STEP 1: BACKEND DEPLOYMENT (Render)**
 
 ```bash
 # Install Vercel CLI

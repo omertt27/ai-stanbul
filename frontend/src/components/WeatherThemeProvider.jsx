@@ -8,7 +8,8 @@ const WeatherThemeProvider = ({ children }) => {
     // Fetch weather data from our backend
     const fetchWeather = async () => {
       try {
-        const response = await fetch('http://localhost:8001/blog/recommendations/weather?location=Istanbul&limit=1');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/blog/recommendations/weather?location=Istanbul&limit=1`);
         const data = await response.json();
         
         if (data.success && data.recommendations && data.recommendations.length > 0) {

@@ -6,7 +6,7 @@ const ConnectionStatus = () => {
 
   const checkConnection = async () => {
     setStatus('checking');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const cleanApiUrl = apiUrl.replace(/\/ai\/?$/, '');
     
     try {
@@ -84,7 +84,7 @@ const ConnectionStatus = () => {
           )}
           {status === 'error' && (
             <div className="text-xs text-red-600">
-              Check backend server on port 8001
+              Check backend server on port 8000
             </div>
           )}
         </div>
