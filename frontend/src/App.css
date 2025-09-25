@@ -640,6 +640,22 @@ html.chatbot-page {
   border-color: rgba(239, 68, 68, 0.7);
 }
 
+/* Dislike Button Styling */
+.kam-dislike-button.active {
+  background: rgba(156, 163, 175, 0.2);
+  border-color: rgba(156, 163, 175, 0.5);
+  color: #9ca3af;
+}
+
+.kam-dislike-button.active svg {
+  fill: #9ca3af;
+}
+
+.kam-dislike-button.active:hover {
+  background: rgba(156, 163, 175, 0.3);
+  border-color: rgba(156, 163, 175, 0.7);
+}
+
 /* Copy Button Styling */
 .kam-copy-button:hover {
   background: rgba(34, 197, 94, 0.2);
@@ -680,6 +696,101 @@ html.chatbot-page {
   
   .kam-message-actions {
     gap: 0.375rem;
+  }
+}
+
+/* Missing input container styles for chatbot search bar */
+.chatbot-input-area {
+  position: relative;
+  padding: 1rem;
+  background: rgba(17, 24, 39, 0.95);
+  border-top: 1px solid rgba(55, 65, 81, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.kam-input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
+.kam-input-container {
+  display: flex;
+  align-items: center;
+  background: rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.kam-input-container:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.kam-send-button {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+  border: none;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  margin-left: 0.5rem;
+}
+
+.kam-send-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.kam-send-button:disabled {
+  background: rgba(55, 65, 81, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.kam-send-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.kam-error-message {
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.send-button-loading {
+  background: rgba(55, 65, 81, 0.7) !important;
+  cursor: wait !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .chatbot-input-area {
+    padding: 0.75rem;
+  }
+  
+  .kam-input-container {
+    padding: 0.375rem;
+  }
+  
+  .kam-send-button {
+    padding: 0.625rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
   }
 }
 

@@ -276,78 +276,7 @@
         }
 
         .action-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Feedback Indicators */
-        .feedback-like {
-            color: #10b981;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            background: rgba(16, 185, 129, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            font-size: 0.8rem;
-        }
-
-        .feedback-dislike {
-            color: #ef4444;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            background: rgba(239, 68, 68, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            font-size: 0.8rem;
-        }
-
-        .feedback-mixed {
-            color: #f59e0b;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            background: rgba(245, 158, 11, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            font-size: 0.8rem;
-        }
-
-        .feedback-unknown {
-            color: #6b7280;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            background: rgba(107, 114, 128, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(107, 114, 128, 0.2);
-            font-size: 0.8rem;
-        }
-
-        /* Message Pair Styles */
-        .message-pair {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-        }
-
-        .user-message, .assistant-message {
-            padding: 1rem;
-        }
-
-        .user-message {
-            background: rgba(59, 130, 246, 0.1);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .assistant-message {
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .message-role {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            transform: scale(1.05);
         }
 
         /* Modal */
@@ -519,7 +448,7 @@
             </div>
 
             <!-- Stats Cards -->
-            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+            <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="total-sessions">-</div>
                     <div class="stat-label">Total Saved Sessions</div>
@@ -536,20 +465,12 @@
                     <div class="stat-value" id="avg-messages">-</div>
                     <div class="stat-label">Avg Messages/Session</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="liked-sessions" style="color: #10b981;">-</div>
-                    <div class="stat-label">👍 Liked Sessions</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="disliked-sessions" style="color: #ef4444;">-</div>
-                    <div class="stat-label">👎 Disliked Sessions</div>
-                </div>
             </div>
 
             <!-- Sessions Section -->
             <div class="sessions-section">
                 <div class="section-header">
-                    <h2>� All User Sessions (Liked & Disliked)</h2>
+                    <h2>💛 Liked Chat Sessions</h2>
                 </div>
                 
                 <div style="padding: 1.5rem;">
@@ -662,7 +583,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                         </svg>
                         <h3>No saved sessions found</h3>
-                        <p>Sessions will appear here when users give feedback (like or dislike) on AI responses</p>
+                        <p>Sessions will appear here when users like AI responses</p>
                     </div>
                 `;
                 return;
@@ -675,8 +596,7 @@
                             <th>💛 Session Title</th>
                             <th>👤 User IP</th>
                             <th>💬 Messages</th>
-                            <th>�👎 Feedback</th>
-                            <th>�📅 Saved Date</th>
+                            <th>📅 Saved Date</th>
                             <th>⚡ Actions</th>
                         </tr>
                     </thead>
@@ -686,29 +606,6 @@
             sessions.forEach(session => {
                 const saveDate = new Date(session.saved_at).toLocaleString();
                 const userIP = session.user_ip || 'unknown';
-                
-                // Determine feedback types from conversation history
-                let feedbackTypes = [];
-                if (session.conversation_history && Array.isArray(session.conversation_history)) {
-                    session.conversation_history.forEach(entry => {
-                        if (entry.feedback) {
-                            feedbackTypes.push(entry.feedback);
-                        }
-                    });
-                }
-                
-                // Create feedback display
-                const uniqueFeedbackTypes = [...new Set(feedbackTypes)];
-                let feedbackDisplay = '';
-                if (uniqueFeedbackTypes.includes('like') && uniqueFeedbackTypes.includes('dislike')) {
-                    feedbackDisplay = '<span class="feedback-mixed">👍👎 Mixed</span>';
-                } else if (uniqueFeedbackTypes.includes('like')) {
-                    feedbackDisplay = '<span class="feedback-like">👍 Liked</span>';
-                } else if (uniqueFeedbackTypes.includes('dislike')) {
-                    feedbackDisplay = '<span class="feedback-dislike">👎 Disliked</span>';
-                } else {
-                    feedbackDisplay = '<span class="feedback-unknown">❓ Unknown</span>';
-                }
                 
                 html += `
                     <tr class="session-row">
@@ -723,9 +620,6 @@
                         </td>
                         <td>
                             <span class="message-count">${session.message_count}</span>
-                        </td>
-                        <td>
-                            ${feedbackDisplay}
                         </td>
                         <td>${saveDate}</td>
                         <td>
@@ -796,39 +690,27 @@
                         <div style="max-height: 60vh; overflow-y: auto;">
                     `;
 
-                    // Use conversation_history instead of messages
-                    if (session.conversation_history && Array.isArray(session.conversation_history)) {
-                        session.conversation_history.forEach((entry, index) => {
-                            // Create feedback display for this entry
-                            let feedbackHtml = '';
-                            if (entry.feedback) {
-                                if (entry.feedback === 'like') {
-                                    feedbackHtml = ' <span class="feedback-like">👍 Liked</span>';
-                                } else if (entry.feedback === 'dislike') {
-                                    feedbackHtml = ' <span class="feedback-dislike">👎 Disliked</span>';
-                                }
-                            }
-                            
+                    const conversationHistory = session.conversation_history || [];
+                    
+                    if (conversationHistory.length > 0) {
+                        conversationHistory.forEach((conversation, index) => {
                             html += `
-                                <div class="message-pair" style="margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden;">
-                                    <div class="user-message">
-                                        <div class="message-role">
-                                            👤 User
-                                        </div>
-                                        <div>${entry.query.replace(/\n/g, '<br>')}</div>
+                                <div class="message user-message">
+                                    <div class="message-role">
+                                        👤 User Query
                                     </div>
-                                    <div class="assistant-message">
-                                        <div class="message-role" style="display: flex; justify-content: space-between; align-items: center;">
-                                            <span>🤖 AI Assistant</span>
-                                            ${feedbackHtml}
-                                        </div>
-                                        <div>${entry.response.replace(/\n/g, '<br>')}</div>
+                                    <div>${conversation.query || 'No query recorded'}</div>
+                                </div>
+                                <div class="message assistant-message">
+                                    <div class="message-role">
+                                        🤖 AI Response ${conversation.feedback === 'like' ? '💛' : ''}
                                     </div>
+                                    <div>${(conversation.response || 'No response recorded').replace(/\n/g, '<br>')}</div>
                                 </div>
                             `;
                         });
                     } else {
-                        html += '<div style="color: #6b7280; text-align: center; padding: 2rem;">No conversation history available</div>';
+                        html += '<div style="color: #888; text-align: center; padding: 2rem;">No conversation history available</div>';
                     }
 
                     html += '</div>';

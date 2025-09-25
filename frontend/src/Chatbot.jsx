@@ -178,8 +178,9 @@ function Chatbot() {
   const [readingMessageId, setReadingMessageId] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   
-  // Add liked messages state
+  // Add liked and disliked messages state
   const [likedMessages, setLikedMessages] = useState(new Set());
+  const [dislikedMessages, setDislikedMessages] = useState(new Set());
   const [savedSessions, setSavedSessions] = useState([]);
 
   // Speech synthesis support
@@ -207,6 +208,10 @@ function Chatbot() {
       // Stop any ongoing speech when component unmounts
       if (speechSynthesis.current) {
         speechSynthesis.current.cancel();
+      }
+      // Clear skeleton timeout
+      if (skeletonTimeoutRef.current) {
+        clearTimeout(skeletonTimeoutRef.current);
       }
     };
   }, []);
@@ -299,7 +304,11 @@ function Chatbot() {
   const [userScrolling, setUserScrolling] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  
+  // Ref to store skeleton timeout
+  const skeletonTimeoutRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
 
   // Detect user scrolling behavior
@@ -476,9 +485,17 @@ function Chatbot() {
     setLoading(true);
     setIsTyping(true);
     setInputError('');
+    setShowLoadingSkeleton(false); // Reset skeleton state
 
     // Start performance measurement
     const startTime = Date.now();
+
+    // Show loading skeleton after a short delay to avoid flickering for fast responses
+    skeletonTimeoutRef.current = setTimeout(() => {
+      if (loading) {
+        setShowLoadingSkeleton(true);
+      }
+    }, 300); // Show skeleton only if response takes more than 300ms
 
     // Start streaming response immediately
     let streamedContent = '';
@@ -490,6 +507,11 @@ function Chatbot() {
         // Hide loading indicator as soon as we get the first chunk
         if (streamedContent.length > 0 && loading) {
           setLoading(false);
+          setShowLoadingSkeleton(false);
+          if (skeletonTimeoutRef.current) {
+            clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
+            skeletonTimeoutRef.current = null;
+          }
         }
         
         // Show typing indicator for the first chunk, then switch to content
@@ -571,6 +593,11 @@ function Chatbot() {
       setLoading(false);
       setIsTyping(false);
       setSendingMessage(false); // Reset sending flag
+      setShowLoadingSkeleton(false); // Hide skeleton
+      if (skeletonTimeoutRef.current) {
+        clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
+        skeletonTimeoutRef.current = null;
+      }
       
       // Finalize the last message by removing streaming flag
       setMessages(prev => {
@@ -690,20 +717,48 @@ function Chatbot() {
   // Like/Unlike message functionality
   const toggleMessageLike = async (messageIndex, isLiked) => {
     const newLikedMessages = new Set(likedMessages);
+    const newDislikedMessages = new Set(dislikedMessages);
     const messageId = `${currentSessionId}-${messageIndex}`;
     
     if (isLiked) {
       newLikedMessages.add(messageId);
+      // Remove from dislikes if it was disliked
+      newDislikedMessages.delete(messageId);
     } else {
       newLikedMessages.delete(messageId);
     }
     
     setLikedMessages(newLikedMessages);
+    setDislikedMessages(newDislikedMessages);
+    
+    // Save feedback to backend
+    await saveFeedback(messageIndex, isLiked ? 'like' : 'unlike', messages[messageIndex]?.content);
     
     // Save the chat session when a message is liked
     if (isLiked && currentSessionId) {
       await saveChatSession(currentSessionId, messages);
     }
+  };
+
+  // Dislike message functionality
+  const toggleMessageDislike = async (messageIndex, isDisliked) => {
+    const newLikedMessages = new Set(likedMessages);
+    const newDislikedMessages = new Set(dislikedMessages);
+    const messageId = `${currentSessionId}-${messageIndex}`;
+    
+    if (isDisliked) {
+      newDislikedMessages.add(messageId);
+      // Remove from likes if it was liked
+      newLikedMessages.delete(messageId);
+    } else {
+      newDislikedMessages.delete(messageId);
+    }
+    
+    setLikedMessages(newLikedMessages);
+    setDislikedMessages(newDislikedMessages);
+    
+    // Save feedback to backend
+    await saveFeedback(messageIndex, isDisliked ? 'dislike' : 'undislike', messages[messageIndex]?.content);
   };
 
   // Save chat session to backend
@@ -727,6 +782,32 @@ function Chatbot() {
       }
     } catch (error) {
       console.error('Error saving chat session:', error);
+    }
+  };
+
+  // Save feedback to backend
+  const saveFeedback = async (messageIndex, feedbackType, messageContent) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          message_index: messageIndex,
+          feedback_type: feedbackType,
+          message_content: messageContent,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to save feedback');
+      }
+    } catch (error) {
+      console.error('Error saving feedback:', error);
     }
   };
 
@@ -1200,20 +1281,37 @@ function Chatbot() {
                   
                   {/* Like/Unlike Buttons - Only for assistant messages */}
                   {msg.role === 'assistant' && (
-                    <button
-                      onClick={() => toggleMessageLike(index, !likedMessages.has(`${currentSessionId}-${index}`))}
-                      className={`kam-action-button kam-like-button ${
-                        likedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
-                      }`}
-                      title={likedMessages.has(`${currentSessionId}-${index}`) ? "Unlike this response" : "Like this response"}
-                    >
-                      <svg className="w-3 h-3" fill={likedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                      <span className="text-xs">
-                        {likedMessages.has(`${currentSessionId}-${index}`) ? 'Unlike' : 'Like'}
-                      </span>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => toggleMessageLike(index, !likedMessages.has(`${currentSessionId}-${index}`))}
+                        className={`kam-action-button kam-like-button ${
+                          likedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
+                        }`}
+                        title={likedMessages.has(`${currentSessionId}-${index}`) ? "Unlike this response" : "Like this response"}
+                      >
+                        <svg className="w-3 h-3" fill={likedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span className="text-xs">
+                          {likedMessages.has(`${currentSessionId}-${index}`) ? 'Unlike' : 'Like'}
+                        </span>
+                      </button>
+                      
+                      <button
+                        onClick={() => toggleMessageDislike(index, !dislikedMessages.has(`${currentSessionId}-${index}`))}
+                        className={`kam-action-button kam-dislike-button ${
+                          dislikedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
+                        }`}
+                        title={dislikedMessages.has(`${currentSessionId}-${index}`) ? "Remove dislike" : "Dislike this response"}
+                      >
+                        <svg className="w-3 h-3" fill={dislikedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24" transform="rotate(180)">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span className="text-xs">
+                          {dislikedMessages.has(`${currentSessionId}-${index}`) ? 'Undislike' : 'Dislike'}
+                        </span>
+                      </button>
+                    </>
                   )}
                   
                   {/* Copy Button */}
@@ -1254,7 +1352,7 @@ function Chatbot() {
               </div>
             ))}
             
-            {loading && (
+            {showLoadingSkeleton && loading && (
               <div className="mb-4">
                 <div className="flex justify-start">
                   <div className="text-xs font-medium mb-1 text-gray-100">

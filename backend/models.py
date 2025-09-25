@@ -273,3 +273,45 @@ class EnhancedChatHistory(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     user_ip = Column(String(50))
 
+# User Feedback for Like/Dislike tracking
+class UserFeedback(Base):
+    __tablename__ = "user_feedback"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Feedback metadata
+    session_id = Column(String(100), nullable=False, index=True)
+    feedback_type = Column(String(20), nullable=False)  # "like", "dislike"
+    
+    # Original query and response
+    user_query = Column(Text)
+    response_preview = Column(Text)  # First 200 chars of the response
+    message_index = Column(Integer)  # Position in conversation
+    
+    # Session context
+    user_ip = Column(String(50))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    # Additional metadata
+    message_content = Column(Text)  # Full AI response content
+    conversation_context = Column(JSON, default=dict)  # Any additional context
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+    id = Column(String(100), primary_key=True)  # session_id as primary key
+    
+    # Session metadata
+    title = Column(String(200))  # Generated from first query or user-provided
+    user_ip = Column(String(50))
+    
+    # Session statistics
+    message_count = Column(Integer, default=0)
+    first_message_at = Column(DateTime, default=datetime.utcnow)
+    last_activity_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Save status - only sessions with liked messages are saved
+    is_saved = Column(Boolean, default=False)
+    saved_at = Column(DateTime)
+    
+    # Session data
+    conversation_history = Column(JSON, default=list)  # Store the full conversation
+
