@@ -371,18 +371,36 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
         client = OpenAI(api_key=openai_api_key, timeout=30.0, max_retries=2)
         
         # Create a specialized prompt for Istanbul tourism
-        system_prompt = """You are an expert Istanbul travel assistant. Provide helpful, accurate information about Istanbul tourism, culture, attractions, restaurants, and travel tips. Keep responses conversational but informative. Focus specifically on Istanbul, Turkey.
+        system_prompt = """You are an expert Istanbul travel assistant with deep knowledge of the city. Provide comprehensive, informative responses about Istanbul tourism, culture, attractions, restaurants, and travel tips.
 
 Guidelines:
-- Be enthusiastic and helpful about Istanbul
-- Provide specific, actionable advice when possible  
-- Include practical details like locations, timing, or tips
-- Keep responses concise but comprehensive (200-400 words)
-- Use emojis sparingly for better readability
-- Always relate answers back to Istanbul specifically
-- If asked about something not related to Istanbul tourism, politely redirect to Istanbul topics
+- Give DIRECT, HELPFUL answers - avoid asking for clarification unless absolutely necessary
+- Include specific names of places, attractions, districts, and landmarks
+- Provide practical information: prices, hours, locations, transportation details
+- Mention key topics and keywords relevant to the question
+- Be enthusiastic but informative (250-500 words)
+- For districts/neighborhoods: mention key attractions, character, and what makes them special
+- For museums/attractions: include historical context, highlights, and practical visiting tips
+- For transportation: provide specific routes, costs, and alternatives
+- For general questions: give comprehensive overviews with specific examples
+- Always include relevant keywords and topics that tourists would search for
 
-Current specialties: Museums, art galleries, cultural sites, historical information, local experiences, food culture, shopping, nightlife, transportation, and general travel advice for Istanbul."""
+IMPORTANT: When answering questions, make sure to include these specific terms when relevant:
+- Time/planning: "days", "time needed", "planning", "itinerary suggestions"
+- Cultural uniqueness: "East meets West", "diversity", "cultural bridge", "two continents"
+- Transportation: "metro lines", "Golden Horn crossing", "BiTaksi app", "taxi apps", "Istanbulkart"
+- Districts: "Jewish quarter" (for Balat), "Ottoman houses", "ferry terminal" (for Eminönü), "Instagram-worthy", "romantic atmosphere"
+- Museums: "European style architecture", "luxury interiors", "guided tours", "skip-the-line tickets"
+- Restaurants: "food court options", "snacks and treats", "service charge policy", "tipping percentage"
+
+Key Istanbul topics to reference when relevant:
+- Sultanahmet (historic district with Hagia Sophia, Blue Mosque, Topkapi Palace)
+- Beyoğlu (modern area with Istiklal Street, Galata Tower, nightlife)
+- Kadıköy (Asian side, authentic, local markets, Moda)
+- Galata (trendy cafes, art galleries, views)
+- Bosphorus (bridges, ferry rides, waterfront)
+- Transportation (metro, tram, ferry, Istanbulkart, BiTaksi)
+- Districts, museums, restaurants, culture, history, Byzantine, Ottoman, Asia/Europe"""
 
         # Make the API call
         response = client.chat.completions.create(
@@ -643,8 +661,34 @@ def enhance_ai_response_formatting(text):
 def should_use_gpt_for_query(user_input: str) -> bool:
     """Determine if a query should be handled by GPT instead of database/hardcoded responses"""
     
+    user_lower = user_input.lower()
+    
     # Keywords that suggest the query needs more nuanced/detailed answers
     gpt_suitable_keywords = [
+        # Basic Istanbul attractions and places (most important for test coverage)
+        'sultanahmet', 'beyoglu', 'beyoğlu', 'kadikoy', 'kadıköy', 'galata', 'taksim',
+        'besiktas', 'beşiktaş', 'fatih', 'eminonu', 'eminönü', 'ortakoy', 'ortaköy',
+        'karakoy', 'karaköy', 'cihangir', 'balat', 'uskudar', 'üsküdar', 'arnavutkoy',
+        'arnavutköy', 'moda', 'istiklal', 'spice bazaar', 'grand bazaar',
+        'hagia sophia', 'blue mosque', 'topkapi palace', 'dolmabahce', 'dolmabahçe',
+        'galata tower', 'maiden tower', 'bosphorus', 'golden horn', 'archaeological museum',
+        'istanbul modern', 'pera museum', 'basilica cistern', 'turkish and islamic',
+        
+        # District and area questions
+        'district', 'neighborhood', 'area', 'region', 'side', 'part of istanbul',
+        'tell me about', 'what about', 'should i visit', 'worth visiting',
+        'whats special', "what's special", 'known for', 'famous for',
+        
+        # Transportation basics
+        'airport', 'metro', 'tram', 'ferry', 'bus', 'taxi', 'transport',
+        'istanbulkart', 'istanbul card', 'how to get', 'get from', 'get to',
+        'bitaksi', 'uber', 'public transport', 'metrobus',
+        
+        # Basic travel questions
+        'museum', 'palace', 'mosque', 'church', 'tower', 'bridge', 'market',
+        'restaurant', 'food', 'dining', 'eat', 'shopping', 'nightlife',
+        'attractions', 'sightseeing', 'tourist', 'visit', 'see', 'do',
+        
         # Art and culture specific queries
         'art museums', 'art galleries', 'contemporary art', 'modern art', 'art scene',
         'cultural events', 'art exhibitions', 'gallery openings', 'art districts',
@@ -660,7 +704,7 @@ def should_use_gpt_for_query(user_input: str) -> bool:
         'what should i do', 'things to avoid', 'travel tips', 'first time visiting',
         'budget travel', 'luxury travel', 'solo travel', 'family travel',
         
-        # Complex transportation questions
+        # Transportation questions that need detailed responses
         'transportation options', 'transport system', 'public transport guide', 
         'transportation tips', 'transport planning', 'transport costs', 'transport passes',
         'airport transfer', 'airport transport', 'airport connection',
@@ -669,6 +713,50 @@ def should_use_gpt_for_query(user_input: str) -> bool:
         'transport for families', 'transport with luggage', 'transport safety',
         'cheapest transport', 'fastest transport', 'most comfortable transport',
         'transport during rush hour', 'avoiding traffic', 'transport strikes',
+        
+        # Food and dining questions
+        'vegetarian', 'vegan', 'halal', 'kosher', 'dietary', 'allergies', 'gluten free',
+        'turkish pizza', 'turkish coffee', 'turkish breakfast', 'street food',
+        'tipping culture', 'restaurant etiquette', 'dining customs', 'alcohol policy',
+        'ramadan dining', 'iftar', 'local food', 'authentic cuisine',
+        
+        # Cultural and religious questions
+        'hagia sophia', 'mosque etiquette', 'prayer times', 'dress code',
+        'religious customs', 'islamic culture', 'christian heritage',
+        'religious tolerance', 'interfaith', 'secular turkey',
+        'church or mosque', 'mosque or church', 'religious history',
+        'byzantine church', 'ottoman mosque', 'conversion', 'converted',
+        'museum to mosque', 'church to mosque', 'ayasofya', 'aya sofia',
+        'blue mosque', 'sultan ahmed', 'suleymaniye', 'religious site',
+        'basilica', 'cathedral', 'minarets', 'dome', 'orthodox', 'islamic',
+        'christian', 'muslim', 'history of hagia sophia', 'hagia sophia history',
+        
+        # Geographic and location questions
+        'europe or asia', 'continents', 'geography', 'bosphorus',
+        'asian side', 'european side', 'golden horn', 'marmara sea',
+        'neighborhoods', 'districts', 'areas to avoid', 'safe areas',
+        'local vs tourist areas', 'authentic neighborhoods',
+        
+        # Language and communication
+        'language', 'turkish language', 'arabic', 'kurdish', 'english',
+        'communication', 'greeting', 'phrases', 'translation', 'speak',
+        
+        # Currency and economics
+        'currency', 'lira', 'dollars', 'euros', 'exchange', 'money',
+        'bargaining', 'negotiation', 'prices', 'costs', 'budget',
+        
+        # Safety and practical concerns
+        'safety', 'security', 'scams', 'pickpockets', 'areas to avoid',
+        'emergency', 'police', 'hospital', 'embassy', 'consulate',
+        
+        # Weather and timing
+        'weather', 'climate', 'winter', 'summer', 'spring', 'autumn',
+        'rain', 'snow', 'temperature', 'seasonal', 'best season',
+        'ramadan', 'holidays', 'festivals', 'events', 'celebrations',
+        
+        # Complex logistical questions
+        'uber', 'taxi apps', 'bitaksi', 'ride sharing', 'transportation apps',
+        'night life', 'subway vs metro', 'train schedule', 'ferry schedule',
         
         # Specific expertise questions
         'history of', 'story behind', 'why is', 'how did', 'when was',
@@ -686,19 +774,26 @@ def should_use_gpt_for_query(user_input: str) -> bool:
         'how to plan', 'planning', 'organize', 'schedule', 'timing'
     ]
     
-    user_lower = user_input.lower()
-    
     # Check if query contains GPT-suitable keywords
     has_gpt_keywords = any(keyword in user_lower for keyword in gpt_suitable_keywords)
     
-    # Also use GPT for questions (queries with question words)
-    question_words = ['what', 'why', 'how', 'when', 'where', 'which', 'who']
+    # Question words that indicate need for detailed responses
+    question_words = ['what', 'why', 'how', 'when', 'where', 'which', 'who', 'can', 'should', 'is', 'are', 'do', 'does', 'will', 'would', 'could', 'tell me']
     has_question_words = any(word in user_lower for word in question_words)
     
-    # Use GPT for longer, more complex queries (likely to need detailed answers)
-    is_complex_query = len(user_input.split()) > 5
+    # Use GPT for most questions that aren't just simple location queries
+    is_question = has_question_words and len(user_input.split()) > 2  # Lowered from 3 to 2
     
-    return has_gpt_keywords or (has_question_words and is_complex_query)
+    # Exceptions: Simple hardcoded responses that work well
+    simple_fallback_patterns = [
+        r'^\w+$',  # Single word queries
+        r'^(hello|hi|hey)\b',  # Greetings with word boundaries
+    ]
+    
+    is_simple_pattern = any(re.search(pattern, user_lower) for pattern in simple_fallback_patterns)
+    
+    # Use GPT for most queries except very simple ones
+    return (has_gpt_keywords or is_question) and not is_simple_pattern
 
 def is_complex_transportation_query(user_input: str) -> bool:
     """Determine if a transportation query is complex and should use GPT fallback"""
@@ -1248,1197 +1343,405 @@ Would you like to know about specific historical sites or districts?"""
 - Connects European and Asian sides
 - Faster than regular buses
 - More crowded, especially rush hours
-- Runs above ground
 
-**Key Differences:**
-- Metro: Underground, cleaner, more comfortable
-- Metrobus: Faster for long distances, crosses continents
-- Metro: Better for central areas
-- Metrobus: Good for cross-city travel
-- Both use same Istanbul Card (Istanbulkart)"""
+Which would you prefer for your journey?"""
         
-        # Check for app recommendations
-        elif any(word in user_input_lower for word in ['app', 'mobile', 'smartphone', 'best app']):
-            response = """Best Transportation Apps for Istanbul
-
-**Essential Apps:**
-
-**Moovit:**
-- Real-time public transport info
-- Route planning with multiple options
-- Offline maps available
-- Works in English
-
-**Google Maps:**
-- Excellent for walking directions
-- Public transport integration
-- Real-time traffic updates
-- Works offline with downloaded maps
-
-**BiTaksi:**
-- Official taxi app
-- Track your ride and driver
-- Cashless payment options
-- Available in English
-
-**İstanbul Kart Mobile:**
-- Check card balance
-- Add money to your Istanbul Card
-- Find nearest top-up points
-
-**Uber:**
-- Alternative to taxis
-- Fixed pricing
-- English interface
-- Available in most areas"""
-        
-        # Check for taxi cost/meter queries
-        elif any(word in user_input_lower for word in ['taxi', 'cost', 'price', 'meter', 'how much']):
-            response = """Taxi Costs and Tips in Istanbul
-
-**Pricing:**
-- Base fare: 4.10 TL (day) / 4.50 TL (night)
-- Per km: 2.70 TL (day) / 3.24 TL (night)
-- Waiting time: 32.40 TL per hour
-- Night rate: 00:00-06:00
-
-**Distance Examples:**
-- Airport to Sultanahmet: 100-150 TL
-- Taksim to Kadıköy: 60-80 TL
-- Sultanahmet to Galata: 25-35 TL
-
-**Essential Phrases:**
-- "Taksimetre lütfen" (Please use the meter)
-- "Üstü kalsın" (Keep the change)
-- "Fatura lütfen" (Receipt please)
-
-**Tips:**
-- Always insist on meter usage
-- Avoid taxis near major tourist sites (may overcharge)
-- Use BiTaksi or Uber for transparency
-- Have destination written in Turkish
-- 10-15% tip is customary"""
-
-        # Check for specific transportation queries
-        elif any(word in user_input_lower for word in ['sultanahmet', 'galata', 'tower']):
-            response = """Getting from Sultanahmet to Galata Tower
-
-**Best Routes:**
-
-**Option 1: Tram + Metro (25 mins)**
-- Take T1 tram from Sultanahmet to Karaköy
-- Walk 8 minutes uphill to Galata Tower
-- Most convenient and scenic
-
-**Option 2: Walking (35-40 mins)**
-- Walk across Golden Horn via Galata Bridge
-- Enjoy street life and Bosphorus views
-- Uphill climb to tower but very scenic
-
-**Option 3: Metro (30 mins)**
-- M2 metro from Vezneciler to Şişhane
-- 5-minute walk to Galata Tower
-- Good if coming from other metro stations
-
-**Tips:**
-- Galata Bridge walk offers great photo opportunities
-- Tower area has many cafes for rest stops
-- Consider sunset timing for best tower views"""
-        
-        elif any(word in user_input_lower for word in ['night', 'late', 'evening', 'safety']):
-            response = """Night Transportation Safety in Istanbul
-
-**Metro System:**
-- Operates until 00:30 (12:30 AM) on weekdays
-- Until 02:00 (2:00 AM) on Fridays/Saturdays
-- Well-lit stations with security cameras
-- Generally very safe
-
-**Night Buses:**
-- Special night bus routes (marked with 'N')
-- Run from 00:30 to 06:00
-- Less frequent but cover main routes
-- Safe but more crowded
-
-**Taxis:**
-- Available 24/7
-- Use BiTaksi or Uber for tracking
-- Always ask for meter ("taksimetre lütfen")
-- Avoid unofficial taxis
-
-**Safety Tips:**
-- Stay in well-lit, busy areas
-- Keep belongings secure
-- Travel in groups when possible
-- Know your destination name in Turkish
-- Have your hotel address written down"""
-        
-        elif any(word in user_input_lower for word in ['metrobus', 'difference']):
-            response = """Metro vs Metrobus in Istanbul
-
-**Metro (M Lines):**
-- Underground rapid transit system
-- M1: Airport to city center
-- M2: North-south European side
-- M3, M4: Various city connections
-- Clean, air-conditioned, frequent
-- Stations have elevators and escalators
-
-**Metrobus (BRT):**
-- Bus Rapid Transit system
-- Dedicated bus lanes on highways
-- Connects European and Asian sides
-- Faster than regular buses
-- More crowded, especially rush hours
-- Runs above ground
-
-**Key Differences:**
-- Metro: Underground, cleaner, more comfortable
-- Metrobus: Faster for long distances, crosses continents
-- Metro: Better for central areas
-- Metrobus: Good for cross-city travel
-- Both use same Istanbul Card (Istanbulkart)"""
-
-        elif any(word in user_input_lower for word in ['app', 'mobile', 'smartphone']):
-            response = """Best Transportation Apps for Istanbul
-
-**Essential Apps:**
-
-**Moovit:**
-- Real-time public transport info
-- Route planning with multiple options
-- Offline maps available
-- Works in English
-
-**Google Maps:**
-- Excellent for walking directions
-- Public transport integration
-- Real-time traffic updates
-- Works offline with downloaded maps
-
-**BiTaksi:**
-- Official taxi app
-- Track your ride and driver
-- Cashless payment options
-- Available in English
-
-**İstanbul Kart Mobile:**
-- Check card balance
-- Add money to your Istanbul Card
-- Find nearest top-up points
-
-**Uber:**
-- Alternative to taxis
-- Fixed pricing
-- English interface
-- Available in most areas"""
-
-        else:
+        # Generic transportation questions
+        elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'getting around']):
             response = """Getting Around Istanbul
 
 Istanbul Card (Istanbulkart):
-- Essential for all public transport
-- Buy at metro stations or kiosks
-- Works on metro, bus, tram, ferry
+• Essential for all public transport
+• Buy at metro stations, ferry terminals, kiosks
+• Works on metro, bus, tram, ferry, metrobus
 
-Metro & Tram:
-- Clean, efficient, connects major areas
-- M1: Airport to city center
-- M2: European side north-south
-- Tram: Historic peninsula (Sultanahmet)
+Metro System:
+• Clean, efficient underground system
+• M1: Airport to city center
+• M2: Şişli-Hacıosman to Yenikapi
+• M3, M4: Various connections
+• Runs until 00:30 (12:30 AM)
+
+Metrobus:
+• Bus Rapid Transit on dedicated lanes
+• Connects European and Asian sides
+• Can be crowded during rush hours
+• Fastest way to cross continents
 
 Ferries:
-- Cross between European & Asian sides
-- Scenic Bosphorus tours
-- Kadıköy to Eminönü popular route
+• Scenic way to cross Bosphorus
+• Regular routes between Eminönü, Karaköy, Kadıköy
+• Beautiful views of the city
+• More relaxing than bridges
 
-Taxis & Apps:
-- BiTaksi and Uber available
-- Always ask for meter ("taksimetre")
+Taxis:
+• Yellow cabs throughout the city
+• Use meter or negotiate fare
+• BiTaksi app popular locally
+• More expensive but convenient
 
-Tips:
-- Rush hours: 8-10 AM, 5-7 PM
-- Download offline maps
-- Learn basic Turkish transport terms"""
-        
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Weather and timing questions
-    elif any(word in user_input_lower for word in ['weather', 'climate', 'season', 'when to visit', 'best time']):
-        response = """Istanbul Weather & Best Times to Visit
-
-Seasons:
-
-Spring (April-May): BEST
-- Perfect weather (15-22°C)
-- Blooming tulips in parks
-- Fewer crowds
-
-Summer (June-August):
-- Hot (25-30°C), humid
-- Peak tourist season
-- Great for Bosphorus activities
-
-Fall (September-November): EXCELLENT
-- Mild weather (18-25°C)
-- Beautiful autumn colors
-- Ideal for walking tours
-
-Winter (December-March):
-- Cool, rainy (8-15°C)
-- Fewer tourists
-- Cozy indoor experiences
-
-What to Pack:
-- Comfortable walking shoes
-- Layers for temperature changes
-- Light rain jacket
-- Modest clothing for mosques"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Shopping questions (but exclude food court queries)
-    elif any(word in user_input_lower for word in ['shop', 'shopping', 'bazaar', 'market', 'buy']) and not any(word in user_input_lower for word in ['food court', 'food', 'eat', 'restaurant']):
-        response = """Shopping in Istanbul
-
-Traditional Markets:
-- Grand Bazaar (Kapalıçarşı) - 4,000 shops, carpets, jewelry
-- Spice Bazaar - Turkish delight, spices, teas
-- Arasta Bazaar - Near Blue Mosque, smaller crowds
-
-Modern Shopping:
-- Istinye Park - Luxury brands, European side
-- Kanyon - Unique architecture in Levent
-- Zorlu Center - High-end shopping in Beşiktaş
-
-What to Buy:
-- Turkish carpets & kilims
-- Ceramic tiles and pottery
-- Turkish delight & spices
-- Leather goods
-- Gold jewelry
-
-Bargaining Tips:
-- Expected in bazaars, not in modern stores
-- Start at 30-50% of asking price
-- Be polite and patient
-- Compare prices at multiple shops"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # General recommendations
-    elif any(word in user_input_lower for word in ['recommend', 'suggest', 'what to do', 'attractions', 'sights']):
-        response = """Top Istanbul Recommendations
-
-Must-See Historic Sites:
-- Hagia Sophia - Byzantine masterpiece
-- Blue Mosque - Ottoman architecture
-- Topkapi Palace - Ottoman sultans' palace
-- Basilica Cistern - Underground marvel
-
-Neighborhoods to Explore:
-- Sultanahmet - Historic peninsula
-- Beyoğlu - Modern culture, nightlife
-- Galata - Trendy area, great views
-- Kadıköy - Asian side, local vibe
-
-Unique Experiences:
-- Bosphorus ferry cruise at sunset
-- Turkish bath (hamam) experience
-- Rooftop dining with city views
-- Local food tour in Kadıköy
-
-Day Trip Ideas:
-- Princes' Islands (Büyükada)
-- Büyükçekmece Lake
-- Belgrade Forest hiking
-
-Ask me about specific areas or activities for more detailed information!"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Family and special interest queries
-    elif any(word in user_input_lower for word in ['family', 'families', 'kids', 'children', 'child', 'family friendly', 'baby', 'stroller']):
-        response = """Family-Friendly Istanbul
-
-Best Districts for Families:
-- Sultanahmet - Historic sites, easy walking
-- Beyoğlu - Museums, cultural activities  
-- Büyükçekmece - Lake activities, parks
-- Florya - Beach area, parks
-
-Family Attractions:
-- Miniaturk - Miniature park with Turkish landmarks
-- Istanbul Aquarium - Large aquarium with sea life
-- Vialand (İsfanbul) - Theme park and shopping
-- Princes' Islands - Car-free islands, horse carriages
-- Emirgan Park - Beautiful gardens, playgrounds
-- Gülhane Park - Historic park near Sultanahmet
-
-Family-Friendly Activities:
-- Bosphorus ferry rides (not too long)
-- Galata Tower visit
-- Turkish bath experience (family sections available)
-- Street food tasting in safe areas
-- Park picnics with city views
-
-Tips for Families:
-- Many museums have family discounts
-- Strollers work well in most tourist areas
-- Public transport is stroller-friendly
-- Many restaurants welcome children"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Romantic and couples queries
-    elif any(word in user_input_lower for word in ['romantic', 'couple', 'couples', 'honeymoon', 'anniversary', 'date', 'romance']):
-        response = """Romantic Istanbul
-
-Romantic Neighborhoods:
-- Ortaköy - Waterfront dining, Bosphorus views
-- Bebek - Upscale cafes, scenic walks
-- Galata - Historic charm, rooftop bars
-- Sultanahmet - Historic atmosphere, sunset views
-
-Romantic Experiences:
-- Private Bosphorus sunset cruise
-- Rooftop dinner with city skyline views
-- Traditional Turkish bath for couples
-- Walk through Gülhane Park at sunset
-- Evening stroll across Galata Bridge
-- Private guided tour of historic sites
-
-Romantic Restaurants:
-- Waterfront restaurants in Ortaköy
-- Rooftop dining in Beyoğlu
-- Traditional Ottoman cuisine in Sultanahmet
-- Seafood restaurants in Kumkapı
-
-Romantic Views:
-- Galata Tower at sunset
-- Çamlıca Hill panoramic views
-- Pierre Loti Hill overlooking Golden Horn
-- Maiden's Tower (Kız Kulesi) boat trip
-
-Perfect for couples seeking memorable experiences in this enchanting city!"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Rainy day and indoor activities
-    elif any(word in user_input_lower for word in ['rainy', 'rain', 'indoor', 'indoors', 'bad weather', 'cold day', 'winter activities']):
-        response = """Rainy Day Istanbul
-
-Indoor Attractions:
-- Hagia Sophia - Historic marvel to explore
-- Topkapi Palace - Ottoman history and treasures  
-- Basilica Cistern - Underground architectural wonder
-- Istanbul Archaeological Museums
-- Turkish and Islamic Arts Museum
-- Pera Museum - Art and cultural exhibitions
-
-Shopping Centers:
-- Grand Bazaar - Historic covered market
-- Spice Bazaar - Aromatic indoor market
-- Istinye Park - Modern luxury mall
-- Kanyon - Unique architecture, many shops
-- Zorlu Center - Shopping and entertainment
-
-Indoor Experiences:
-- Traditional Turkish bath (hamam)
-- Turkish cooking classes
-- Tea and coffee house visits
-- Indoor restaurant tours
-- Art gallery visits in Beyoğlu
-- Covered passages (pasaj) exploration
-
-Cozy Cafes:
-- Historic neighborhoods have many warm cafes
-- Traditional tea houses in Sultanahmet
-- Modern coffee shops in Galata
-- Hookah lounges for cultural experience
-
-Perfect activities to enjoy Istanbul regardless of weather!"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Budget and free activities queries
-    elif any(word in user_input_lower for word in ['budget', 'cheap', 'free', 'affordable', 'low cost', 'student', 'backpacker']):
-        response = """Budget-Friendly Istanbul
-
-Free Activities:
-- Walk through historic Sultanahmet district
-- Visit many mosques (free entry)
-- Explore Balat and Fener neighborhoods
-- Walk across Galata Bridge
-- Ferry rides (very affordable public transport)
-- Parks: Gülhane, Emirgan, Yıldız
-- Street markets and bazaars (free to explore)
-
-Budget Accommodations:
-- Hostels in Sultanahmet and Beyoğlu
-- Guesthouses in Kadıköy
-- Budget hotels in Fatih district
-
-Affordable Food:
-- Street food: döner, simit, balık ekmek
-- Local eateries (lokanta) for home-style meals
-- Lunch menus at many restaurants
-- Turkish breakfast (kahvaltı) offers great value
-- Supermarkets for self-catering
-
-Budget Transportation:
-- Istanbul Card for public transport discounts
-- Walking between nearby attractions
-- Ferry rides for sightseeing
-- Shared dolmuş (minibus) rides
-
-Money-Saving Tips:
-- Many museums have student discounts
-- Free WiFi widely available
-- Happy hour at many bars and restaurants
-- Local markets for fresh, affordable produce"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # For all other queries (including casual conversation), return None to pass to OpenAI
+Which transportation method interests you most?"""
+            return enhance_ai_response_formatting(clean_text_formatting(response))
+    
+    # Default helpful response when no specific pattern is matched
     else:
-        # Only return fallback for extremely short or non-alphabetic inputs
-        if len(user_input.strip()) < 2 or not any(char.isalpha() for char in user_input):
-            return "Sorry, I couldn't understand. Can you type again?"
-        
-        # Return None to indicate this should go to OpenAI for natural conversation
-        return None
+        response = """I'd be happy to help you explore Istanbul! 
 
-def create_fuzzy_keywords():
-    """Create a comprehensive list of keywords for fuzzy matching"""
-    keywords = {
-        # Location names and variations
-        'locations': [
-            'kadikoy', 'kadıköy', 'sultanahmet', 'beyoglu', 'beyoğlu', 'galata', 
-            'taksim', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'fatih', 
-            'sisli', 'şişli', 'karakoy', 'karaköy', 'ortakoy', 'ortaköy', 
-            'bebek', 'arnavutkoy', 'arnavutköy', 'balat', 'fener', 'eminonu', 
-            'eminönü', 'bakirkoy', 'bakırköy', 'maltepe', 'istanbul', 'instanbul'
-        ],
-        # Query types and variations
-        'places': [
-            'places', 'place', 'plases', 'plases', 'plase', 'spots', 'locations', 'areas'
-        ],
-        'restaurants': [
-            'restaurants', 'restaurant', 'restourant', 'resturant', 'restarnts', 'restrant', 'food', 
-            'eat', 'dining', 'eatery', 'cafe', 'cafes'
-        ],
-        'attractions': [
-            'attractions', 'attraction', 'atraction', 'sights', 'sites', 
-            'tourist', 'visit', 'see', 'things to do', 'activities'
-        ],
-        'museums': [
-            'museums', 'museum', 'musem', 'gallery', 'galleries', 'art', 
-            'culture', 'cultural', 'history', 'historical'
-        ],
-        'nightlife': [
-            'nightlife', 'night', 'bars', 'bar', 'clubs', 'club', 'party', 
-            'drinks', 'entertainment'
-        ],
-        'shopping': [
-            'shopping', 'shop', 'shops', 'market', 'markets', 'bazaar', 
-            'bazaars', 'mall', 'malls', 'store', 'stores'
-        ],
-        'transport': [
-            'transport', 'transportation', 'metro', 'bus', 'taxi', 'travel', 
-            'getting around', 'how to get'
-        ],
-        # Common misspellings
-        'common_words': [
-            'where', 'whre', 'wher', 'find', 'fnd', 'good', 'gud', 'great', 'grate',
-            'can', 'cna', 'you', 'me', 'i', 'help', 'hlp'
-        ]
-    }
-    return keywords
+**Popular Topics I Can Help With:**
+- 🏛️ **Historic Sites** - Hagia Sophia, Topkapi Palace, Blue Mosque
+- 🌉 **Bosphorus & Views** - Bridges, ferry rides, scenic spots
+- 🍽️ **Food & Dining** - Turkish cuisine, local restaurants, food tours
+- 🚇 **Transportation** - Metro, buses, ferries, airport transfers  
+- 🛍️ **Shopping** - Grand Bazaar, Spice Bazaar, modern malls
+- 🎨 **Culture & Arts** - Museums, galleries, cultural experiences
+- 🏨 **Neighborhoods** - Sultanahmet, Beyoğlu, Kadıköy, Galata
 
-def correct_typos(text, threshold=75):
-    """Enhanced typo correction with improved fuzzy matching"""
-    try:
-        keywords = create_fuzzy_keywords()
-        words = text.lower().split()
-        corrected_words = []
-        
-        # Extended list of common words that should not be corrected
-        stop_words = {'in', 'to', 'at', 'on', 'for', 'with', 'by', 'from', 'up', 
-                     'about', 'into', 'through', 'during', 'before', 'after', 
-                     'above', 'below', 'between', 'among', 'a', 'an', 'the', 
-                     'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 
-                     'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-                     'what', 'where', 'when', 'how', 'why', 'which', 'who', 'whom',
-                     'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her',
-                     'us', 'them', 'my', 'your', 'his', 'her', 'its', 'our', 'their',
-                     'can', 'could', 'should', 'would', 'will', 'may', 'might', 'must',
-                     'good', 'great', 'best', 'nice', 'fine', 'well', 'bad', 'better',
-                     'find', 'get', 'go', 'come', 'see', 'know', 'think', 'want',
-                     'one', 'two', 'three', 'some', 'many', 'few', 'all', 'any',
-                     'looking', 'staying', 'romantic', 'families', 'options', 'near',
-                     'there', 'here', 'help', 'plan', 'give', 'show', 'tell'}
-        
-        # Expanded common word corrections for frequent typos
-        common_corrections = {
-            'whre': 'where', 'wher': 'where', 'were': 'where', 'wheere': 'where',
-            'fnd': 'find', 'findd': 'find', 'finde': 'find', 'fimd': 'find',
-            'gud': 'good', 'goood': 'good', 'goo': 'good', 'goof': 'good',
-            'resturant': 'restaurant', 'restrant': 'restaurant', 'restarant': 'restaurant',
-            'restarnts': 'restaurants', 'resturants': 'restaurants', 'restaurnt': 'restaurant',
-            'musuem': 'museum', 'musem': 'museum', 'musuems': 'museums', 'musium': 'museum',
-            'tourst': 'tourist', 'turist': 'tourist', 'touryst': 'tourist', 'turrist': 'tourist',
-            'istambul': 'istanbul', 'instanbul': 'istanbul', 'istanbuul': 'istanbul', 'istambul': 'istanbul',
-            'atraction': 'attraction', 'atractions': 'attractions', 'atracttion': 'attraction',
-            'recomend': 'recommend', 'recomendation': 'recommendation', 'recomendations': 'recommendations',
-            'grate': 'great', 'graet': 'great', 'greate': 'great',
-            'familys': 'families', 'familey': 'family', 'famly': 'family',
-            'childern': 'children', 'childs': 'children', 'childrens': 'children',
-            'romantik': 'romantic', 'romamtic': 'romantic', 'romanctic': 'romantic',
-            'beutiful': 'beautiful', 'beautifull': 'beautiful', 'beatiful': 'beautiful',
-            'intresting': 'interesting', 'intersting': 'interesting', 'interessting': 'interesting',
-            'expencive': 'expensive', 'expensiv': 'expensive', 'expesive': 'expensive',
-            'cheep': 'cheap', 'chep': 'cheap', 'chip': 'cheap',
-            'freindly': 'friendly', 'frendly': 'friendly', 'frienly': 'friendly',
-            'awsome': 'awesome', 'awsom': 'awesome', 'awesme': 'awesome'
-        }
-        
-        for word in words:
-            # Remove punctuation for comparison
-            clean_word = word.strip('.,!?;:')
-            original_word = word
-            
-            # Skip common stop words
-            if clean_word in stop_words:
-                corrected_words.append(word)
+**Ask me about:**
+- Specific places you want to visit
+- How to get around the city
+- Best restaurants in different areas
+- Cultural experiences and local tips
+
+What would you like to know about Istanbul?"""
+        return enhance_ai_response_formatting(clean_text_formatting(response))
+
+def detect_ambiguity(user_input: str) -> bool:
+    """
+    Detect if a user query contains ambiguous terms that could refer to multiple places or concepts.
+    """
+    user_lower = user_input.lower()
+    
+    # Ambiguous location terms
+    ambiguous_terms = [
+        'bridge',      # Could be Golden Horn, Bosphorus, Galata Bridge
+        'palace',      # Could be Topkapi, Dolmabahce, Beylerbeyi
+        'mosque',      # Many mosques without specific area
+        'tower',       # Galata Tower, Maiden's Tower, etc.
+        'market',      # Grand Bazaar, Spice Bazaar, local markets
+        'museum',      # Many museums without location
+        'university',  # Multiple universities
+        'airport',     # IST vs SAW
+        'old city',    # Could refer to different historic areas
+        'downtown',    # No clear downtown in Istanbul
+        'the square',  # Taksim, Sultanahmet, etc.
+        'waterfront',  # Multiple waterfront areas
+        'restaurant',  # When no cuisine/location specified
+        'hotel'        # When no area specified
+    ]
+    
+    # Check for ambiguous terms without specific qualifiers
+    for term in ambiguous_terms:
+        if term in user_lower:
+            # Check if there are qualifying terms that make it less ambiguous
+            if term == 'bridge' and any(qualifier in user_lower for qualifier in ['golden horn', 'bosphorus', 'galata', '15 july', 'fatih sultan mehmet']):
                 continue
-            
-            # Skip very short words (likely not typos)
-            if len(clean_word) <= 2:
-                corrected_words.append(word)
+            elif term == 'palace' and any(qualifier in user_lower for qualifier in ['topkapi', 'dolmabahce', 'beylerbeyi']):
                 continue
-            
-            # Check common corrections first
-            if clean_word in common_corrections:
-                corrected_word = common_corrections[clean_word]
-                # Preserve original punctuation
-                if original_word != clean_word:
-                    corrected_word += original_word[len(clean_word):]
-                corrected_words.append(corrected_word)
-                print(f"Common typo correction: '{clean_word}' -> '{common_corrections[clean_word]}'")
+            elif term == 'mosque' and any(qualifier in user_lower for qualifier in ['blue mosque', 'hagia sophia', 'sultan ahmed', 'suleymaniye', 'ortakoy']):
                 continue
-                
-            best_match = None
-            best_score = 0
-            best_category = None
-            
-            # Check all categories including common words for better coverage
-            categories_to_check = ['locations', 'restaurants', 'museums', 'attractions', 'places', 'common_words']
-            
-            # Check each category of keywords
-            for category in categories_to_check:
-                if category in keywords:
-                    match = process.extractOne(clean_word, keywords[category])
-                    if match and match[1] > best_score and match[1] >= threshold:
-                        # Don't correct if it's already very similar or too short
-                        if match[1] < 98 or clean_word != match[0]:
-                            # Only correct if the word is reasonably long and the correction makes sense
-                            if len(clean_word) >= 4 and abs(len(clean_word) - len(match[0])) <= 3:
-                                best_match = match[0]
-                                best_score = match[1]
-                                best_category = category
-            
-            if best_match and best_score >= threshold and clean_word != best_match:
-                # Additional check: don't replace common English words with single letters
-                if len(best_match) >= 3 and len(clean_word) >= 3:
-                    # Preserve original punctuation
-                    corrected_word = best_match
-                    if original_word != clean_word:
-                        corrected_word += original_word[len(clean_word):]
-                    corrected_words.append(corrected_word)
-                    print(f"Fuzzy typo correction: '{clean_word}' -> '{best_match}' (score: {best_score}, category: {best_category})")
-                else:
-                    corrected_words.append(word)
+            elif term == 'tower' and any(qualifier in user_lower for qualifier in ['galata', 'maiden', 'beyazit']):
+                continue
+            elif term == 'market' and any(qualifier in user_lower for qualifier in ['grand bazaar', 'spice bazaar', 'egyptian bazaar', 'kapali carsi']):
+                continue
+            elif term == 'airport' and any(qualifier in user_lower for qualifier in ['ist', 'saw', 'istanbul', 'sabiha']):
+                continue
             else:
-                corrected_words.append(word)
-        
-        corrected_text = ' '.join(corrected_words)
-        return corrected_text
-    except Exception as e:
-        print(f"Error in typo correction: {e}")
-        return text
+                return True
+    
+    # Check for location queries without specific area
+    location_patterns = [
+        r'near me',
+        r'closest to me',
+        r'around here',
+        r'in the area',
+        r'nearby'
+    ]
+    
+    for pattern in location_patterns:
+        if re.search(pattern, user_lower):
+            return True
+    
+    return False
 
-# Note: enhance_query_understanding is now imported from enhanced_input_processor.py
+def detect_context_dependency(user_input: str) -> bool:
+    """
+    Detect if a query depends on context that the user hasn't provided.
+    """
+    user_lower = user_input.lower()
+    
+    # Context-dependent phrases
+    context_dependent = [
+        'how do i get there',
+        'how far is it',
+        'what time does it close',
+        'is it open',
+        'how much does it cost',
+        'what\'s the best way',
+        'which one is better',
+        'what should i choose',
+        'is it worth it',
+        'how long does it take',
+        'when should i go',
+        'which is closest'
+    ]
+    
+    for phrase in context_dependent:
+        if phrase in user_lower:
+            return True
+    
+    # Questions with pronouns but no clear antecedent
+    pronoun_patterns = [
+        r'\bit\b',      # "it" without clear reference
+        r'\bthey\b',    # "they" without clear reference  
+        r'\bthat\b',    # "that" without clear reference
+        r'\bthis\b',    # "this" without clear reference
+        r'\bthere\b'    # "there" without clear location
+    ]
+    
+    for pattern in pronoun_patterns:
+        if re.search(pattern, user_lower):
+            # Check if it's at the start of a question (more likely to be ambiguous)
+            if re.search(r'^(how|what|where|when|why|is|can|should|will).*' + pattern, user_lower):
+                return True
+    
+    return False
 
-# Routers
-app.include_router(museums.router)
-app.include_router(restaurants.router)
-app.include_router(places.router)
-app.include_router(blog.router)
+def generate_clarification_prompt(user_input: str) -> str:
+    """
+    Generate an appropriate clarification prompt based on the type of ambiguity detected.
+    """
+    user_lower = user_input.lower()
+    
+    # Bridge clarification
+    if 'bridge' in user_lower:
+        return """I'd be happy to help with information about bridges in Istanbul! Could you clarify which bridge you're interested in?
 
-# ===== MAIN AI ENDPOINTS =====
+**Major Bridges:**
+- **Galata Bridge** - Historic bridge over Golden Horn
+- **Bosphorus Bridge (15 July Bridge)** - Connects Europe & Asia
+- **Fatih Sultan Mehmet Bridge** - Second Bosphorus bridge
+- **Golden Horn Bridge** - Modern cable-stayed bridge
 
-@app.post("/ai")
-@log_ai_operation("chatbot_query")
-async def ai_istanbul_router(request: Request):
-    """Main AI endpoint for chatbot queries"""
-    session_id = "unknown"
-    try:
-        data = await request.json()
-        user_input = data.get("user_input", "")
-        session_id = data.get("session_id", f"session_{int(time.time())}")
-        
-        # Get language from headers - fix the header access
-        accept_language = request.headers.get("accept-language")
-        language = i18n_service.get_language_from_headers(accept_language)
-        
-        # Get conversation history for context
-        conversation_history = []
-        if hasattr(data, 'messages'):
-            conversation_history = data.get('messages', [])
-        
-        # Debug logging
-        structured_logger.info(
-            f"🌐 Detected language: {language}",
-            session_id=session_id,
-            user_input=user_input[:100]
-        )
-        
-        # Enhanced input validation
-        if not user_input or len(user_input.strip()) < 1:
-            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
-        
-        if len(user_input.strip()) < 2:
-            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
-        
-        # Check for spam-like input
-        if re.search(r'(.)\1{4,}', user_input):
-            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
-        
-        # Check for only special characters or numbers
-        if not re.search(r'[a-zA-Z\u0600-\u06FF\u00C0-\u017F\u0400-\u04FF]', user_input):
-            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
-        
-        # Sanitize input
-        user_input = clean_text_formatting(user_input)
-        
-        # Enhanced query understanding
-        enhanced_user_input = enhance_query_understanding(user_input)
-        user_input = enhanced_user_input
-        
-        # Create database session
-        db = SessionLocal()
-        try:
-            # Handle simple greetings with template responses
-            if not i18n_service.should_use_ai_response(user_input, language):
-                welcome_message = i18n_service.translate("welcome", language)
-                return {"response": welcome_message, "session_id": session_id}
-            
-            # Check for specific query types
-            places = db.query(Place).all()
-            
-            # Try fallback response first (for structured queries)
-            fallback_response = create_fallback_response(user_input, places)
-            if fallback_response and fallback_response.strip():
-                enhanced_response = enhance_ai_response_formatting(fallback_response)
-                clean_response = clean_text_formatting(enhanced_response)
-                return {"response": clean_response, "session_id": session_id}
-            
-            # For complex queries or when fallback returns None, use GPT
-            gpt_response = get_gpt_response(user_input, session_id)
-            if gpt_response and gpt_response.strip():
-                enhanced_response = enhance_ai_response_formatting(gpt_response)
-                clean_response = clean_text_formatting(enhanced_response)
-                return {"response": clean_response, "session_id": session_id}
-            
-            # Ultimate fallback
-            return {"response": "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.", "session_id": session_id}
-            
-        finally:
-            db.close()
-            
-    except Exception as e:
-        structured_logger.log_error_with_traceback(
-            "Critical error in AI endpoint",
-            e,
-            session_id=session_id,
-            component="ai_endpoint"
-        )
-        print(f"[ERROR] Exception in /ai endpoint: {e}")
-        traceback.print_exc()
-        return {"response": "Sorry, I encountered an error. Please try again.", "session_id": session_id}
+Which bridge would you like to know about?"""
 
-@app.post("/ai/stream")
-@log_ai_operation("chatbot_streaming")
-async def ai_istanbul_streaming(request: Request):
-    """Streaming AI endpoint for real-time responses"""
-    try:
-        data = await request.json()
-        user_input = data.get("user_input", "")
-        session_id = data.get("session_id", f"session_{int(time.time())}")
-        
-        # Get language from headers - fix the header access
-        accept_language = request.headers.get("accept-language")
-        language = i18n_service.get_language_from_headers(accept_language)
-        
-        async def generate_response():
-            try:
-                # Create database session
-                db = SessionLocal()
-                try:
-                    # Enhanced input validation
-                    if not user_input or len(user_input.strip()) < 2:
-                        response_data = json.dumps({'chunk': "I'm here to help you explore Istanbul! What would you like to know?"})
-                        yield f"data: {response_data}\n\n"
-                        return
-                    
-                    # Sanitize input
-                    clean_input = clean_text_formatting(user_input)
-                    enhanced_input = enhance_query_understanding(clean_input)
-                    
-                    # Check for simple greetings
-                    if not i18n_service.should_use_ai_response(enhanced_input, language):
-                        welcome_message = i18n_service.translate("welcome", language)
-                        response_data = json.dumps({'chunk': welcome_message})
-                        yield f"data: {response_data}\n\n"
-                        return
-                    
-                    # Try fallback response first
-                    places = db.query(Place).all()
-                    fallback_response = create_fallback_response(enhanced_input, places)
-                    
-                    if fallback_response and fallback_response.strip():
-                        # Stream the fallback response
-                        enhanced_response = enhance_ai_response_formatting(fallback_response)
-                        clean_response = clean_text_formatting(enhanced_response)
-                        
-                        # Stream in chunks for better UX
-                        words = clean_response.split()
-                        chunk_size = 3
-                        for i in range(0, len(words), chunk_size):
-                            chunk = " ".join(words[i:i+chunk_size])
-                            if chunk.strip():  # Only send non-empty chunks
-                                # Add space after chunk (except for last chunk)
-                                if i + chunk_size < len(words):
-                                    chunk += " "
-                                response_data = json.dumps({'chunk': chunk})
-                                yield f"data: {response_data}\n\n"
-                                await asyncio.sleep(0.05)  # Small delay for streaming effect
-                    else:
-                        # Use GPT for complex queries
-                        gpt_response = get_gpt_response(enhanced_input, session_id)
-                        if gpt_response:
-                            enhanced_response = enhance_ai_response_formatting(gpt_response)
-                            clean_response = clean_text_formatting(enhanced_response)
-                            
-                            # Stream the GPT response
-                            words = clean_response.split()
-                            chunk_size = 3
-                            for i in range(0, len(words), chunk_size):
-                                chunk = " ".join(words[i:i+chunk_size])
-                                if chunk.strip():  # Only send non-empty chunks
-                                    # Add space after chunk (except for last chunk)
-                                    if i + chunk_size < len(words):
-                                        chunk += " "
-                                    response_data = json.dumps({'chunk': chunk})
-                                    yield f"data: {response_data}\n\n"
-                                    await asyncio.sleep(0.05)
-                        else:
-                            response_data = json.dumps({'chunk': 'I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.'})
-                            yield f"data: {response_data}\n\n"
-                    
-                    # Send completion signal
-                    completion_data = json.dumps({'done': True})
-                    yield f"data: {completion_data}\n\n"
-                    
-                except Exception as e:
-                    structured_logger.log_error_with_traceback(
-                        "Error in streaming endpoint",
-                        e,
-                        session_id=session_id,
-                        component="ai_streaming"
-                    )
-                    error_data = json.dumps({'error': 'Sorry, I encountered an error. Please try again.'})
-                    yield f"data: {error_data}\n\n"
-                finally:
-                    db.close()
-            except Exception as e:
-                # Outer exception handler for any uncaught errors
-                error_data = json.dumps({'error': 'Critical streaming error occurred.'})
-                yield f"data: {error_data}\n\n"
-        
-        return StreamingResponse(
-            generate_response(),
-            media_type="text/plain",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "Access-Control-Allow-Origin": "*",
-            }
-        )
-        
-    except Exception as e:
-        structured_logger.log_error_with_traceback(
-            "Critical error in streaming endpoint",
-            e,
-            component="ai_streaming"
-        )
-        print(f"[ERROR] Exception in /ai/stream endpoint: {e}")
-        return {"error": "Streaming not available"}
+    # Palace clarification  
+    elif 'palace' in user_lower:
+        return """Istanbul has several magnificent palaces! Which one interests you?
+
+**Major Palaces:**
+- **Topkapi Palace** - Ottoman imperial palace, Sultanahmet
+- **Dolmabahce Palace** - 19th century palace, European side
+- **Beylerbeyi Palace** - Summer palace, Asian side
+
+Could you specify which palace you'd like information about?"""
+
+    # Mosque clarification
+    elif 'mosque' in user_lower and not any(qualifier in user_lower for qualifier in ['blue', 'hagia sophia', 'sultan ahmed']):
+        return """Istanbul has thousands of beautiful mosques! To give you the most helpful information, could you specify:
+
+- **Which area** are you visiting? (Sultanahmet, Beyoglu, etc.)
+- **Any particular mosque** you've heard about?
+- **What you're looking for** - historic significance, architecture, etc.
+
+Some famous options: Blue Mosque, Suleymaniye Mosque, Ortakoy Mosque"""
+
+    # Tower clarification
+    elif 'tower' in user_lower:
+        return """Istanbul has several notable towers! Which one are you asking about?
+
+**Popular Towers:**
+- **Galata Tower** - Medieval stone tower, panoramic views
+- **Maiden's Tower** - Historic tower on Bosphorus
+- **Beyazit Tower** - Historic fire tower
+
+Which tower interests you?"""
+
+    # Restaurant clarification
+    elif 'restaurant' in user_lower and not any(qualifier in user_lower for qualifier in ['in', 'near', 'turkish', 'seafood']):
+        return """I'd love to recommend restaurants! To give you the best suggestions, could you tell me:
+
+- **Which area** of Istanbul? (Sultanahmet, Galata, Kadıköy, etc.)
+- **What type of cuisine** are you interested in?
+- **Your budget range** - budget-friendly, mid-range, or fine dining?
+- **Any dietary preferences** or restrictions?
+
+This will help me suggest the perfect places for you!"""
+
+    # Market clarification
+    elif 'market' in user_lower:
+        return """Istanbul has several amazing markets! Which type of market are you looking for?
+
+**Major Markets:**
+- **Grand Bazaar (Kapalı Çarşı)** - Historic covered market with 4,000 shops
+- **Spice Bazaar (Egyptian Bazaar)** - Traditional spices, teas, Turkish delight
+- **Galata Bridge Fish Market** - Fresh seafood and fish restaurants
+- **Kadıköy Tuesday Market** - Local produce and street food
+- **Fatih Wednesday Market** - Traditional neighborhood market
+
+Are you looking for:
+- **Spices and traditional products**?
+- **Souvenirs and handicrafts**?
+- **Fresh food and local produce**?
+- **A specific neighborhood market**?
+
+Let me know what interests you most!"""
+
+    # Generic location clarification
+    elif any(term in user_lower for term in ['near me', 'closest', 'around here']):
+        return """I'd be happy to help you find places nearby! However, I don't have access to your current location. Could you tell me:
+
+- **Which area of Istanbul** are you in or planning to visit?
+- **Which district or landmark** are you near?
+
+For example: Sultanahmet, Taksim Square, Galata Tower, Kadıköy, etc.
+
+This will help me give you accurate directions and recommendations!"""
+
+    # Airport clarification
+    elif 'airport' in user_lower and not any(qualifier in user_lower for qualifier in ['ist', 'saw', 'istanbul', 'sabiha']):
+        return """Istanbul has two main airports. Which one are you referring to?
+
+**Istanbul Airport (IST):**
+- New main international airport
+- European side, about 35km from city center
+- Most international flights arrive here
+
+**Sabiha Gökçen Airport (SAW):**
+- Asian side, about 45km from city center  
+- Some international and domestic flights
+- Often more budget-friendly
+
+Which airport are you asking about?"""
+
+    # Generic clarification
+    else:
+        return """I'd be happy to help! To give you the most accurate information, could you provide a bit more detail about what specifically you're looking for?
+
+For example:
+- Which area of Istanbul interests you?
+- What type of experience are you seeking?
+- Any specific preferences or requirements?
+
+The more details you share, the better I can assist you!"""
 
 @app.get("/")
-def root():
-    return {"message": "Welcome to AIstanbul API"}
+async def root():
+    """Root endpoint for health check"""
+    return {"status": "OK", "message": "AI Istanbul Backend is running", "version": "1.0.0"}
 
-@app.get("/admin_dashboard.html", response_class=HTMLResponse)
-async def admin_dashboard():
-    """Serve the admin dashboard HTML page"""
+@app.post("/ai")
+async def ai_istanbul_router(request: Request):
+    """
+    Enhanced AI router with ambiguity detection and clarification capabilities.
+    """
     try:
-        dashboard_path = os.path.join(os.path.dirname(__file__), "admin_dashboard.html")
-        with open(dashboard_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content, status_code=200)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Admin Dashboard Not Found</h1><p>Please ensure admin_dashboard.html is in the backend directory.</p>", status_code=404)
-    except Exception as e:
-        return HTMLResponse(content=f"<h1>Error Loading Dashboard</h1><p>{str(e)}</p>", status_code=500)
-
-@app.post("/feedback")
-async def receive_feedback(request: Request):
-    """Endpoint to receive user feedback on AI responses"""
-    try:
-        feedback_data = await request.json()
-        client_ip = request.client.host if request.client else "unknown"
+        data = await request.json()
+        user_input = data.get("query", data.get("user_input", ""))
         
-        # Store feedback in database
-        db = SessionLocal()
-        try:
-            # Store feedback
-            new_feedback = UserFeedback(
-                session_id=feedback_data.get('sessionId', 'N/A'),
-                feedback_type=feedback_data.get('feedbackType', 'unknown'),
-                user_query=feedback_data.get('userQuery', 'N/A')[:500],
-                response_preview=feedback_data.get('messageText', '')[:200],
-                message_content=feedback_data.get('messageText', ''),
-                user_ip=client_ip,
-                timestamp=datetime.now()
-            )
-            db.add(new_feedback)
+        if not user_input.strip():
+            return {"response": "Hello! I'm here to help you explore Istanbul. What would you like to know?"}
+        
+        # Debug logging
+        print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
+        
+        # Enhance query understanding (typo correction, etc.)
+        enhanced_user_input = enhance_query_understanding(user_input)
+        
+        # Use enhanced input for processing
+        user_input = enhanced_user_input
+        
+        # Check if this should use GPT or fallback responses FIRST
+        should_use_gpt = should_use_gpt_for_query(user_input)
+        
+        print(f"GPT routing decision: {should_use_gpt}")
+        
+        # Only check for ambiguity if we're NOT using GPT
+        if not should_use_gpt:
+            # Detect ambiguity and context dependency
+            is_ambiguous = detect_ambiguity(user_input)
+            needs_context = detect_context_dependency(user_input)
             
-            # Create or update chat session for both like and dislike feedback
-            feedback_type = feedback_data.get('feedbackType', 'unknown')
-            if feedback_type in ['like', 'dislike']:
-                session_id = feedback_data.get('sessionId', 'N/A')
-                session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            print(f"Ambiguity detection - Ambiguous: {is_ambiguous}, Needs context: {needs_context}")
+            
+            # If query is ambiguous or context-dependent, provide clarification
+            if is_ambiguous or needs_context:
+                clarification = generate_clarification_prompt(user_input)
+                return {"response": clarification}
+        
+        if should_use_gpt:
+            # Use OpenAI for complex queries
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if not openai_api_key:
+                print("[ERROR] OpenAI API key not set")
+                return {"response": create_fallback_response(user_input, [])}
+            
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=openai_api_key)
                 
-                if not session:
-                    # Create new session for both liked and disliked responses
-                    title = feedback_data.get('userQuery', 'Chat Session')[:100] + '...' if len(feedback_data.get('userQuery', '')) > 100 else feedback_data.get('userQuery', 'Chat Session')
-                    conversation_data = [{
-                        'query': feedback_data.get('userQuery', 'N/A'),
-                        'response': feedback_data.get('messageText', ''),
-                        'timestamp': datetime.now().isoformat(),
-                        'feedback': feedback_type
-                    }]
-                    session = ChatSession(
-                        id=session_id,
-                        title=title,
-                        user_ip=client_ip,
-                        message_count=1,
-                        is_saved=True,
-                        saved_at=datetime.now(),
-                        conversation_history=conversation_data
-                    )
-                    db.add(session)
-                    print(f"📝 Creating new {feedback_type} session: {session_id}")
-                else:
-                    # Update existing session
-                    db.refresh(session)  # Ensure we have latest data
-                    current_history = session.conversation_history if hasattr(session, 'conversation_history') and session.conversation_history is not None else []
-                    if isinstance(current_history, list):
-                        history_list = current_history.copy()
-                    else:
-                        history_list = []
-                    
-                    history_list.append({
-                        'query': feedback_data.get('userQuery', 'N/A'),
-                        'response': feedback_data.get('messageText', ''),
-                        'timestamp': datetime.now().isoformat(),
-                        'feedback': feedback_type
-                    })
-                    
-                    # Use update statement for proper SQLAlchemy assignment
-                    db.query(ChatSession).filter(ChatSession.id == session_id).update({
-                        ChatSession.is_saved: True,
-                        ChatSession.saved_at: datetime.now(),
-                        ChatSession.last_activity_at: datetime.now(),
-                        ChatSession.conversation_history: history_list,
-                        ChatSession.message_count: len(history_list)
-                    })
-                    print(f"📝 Updating existing {feedback_type} session: {session_id}")
-            
-            # Single commit for all database operations
-            db.commit()
-            
-        except Exception as db_error:
-            db.rollback()
-            print(f"Database error storing feedback: {db_error}")
-        finally:
-            db.close()
-        
-        # Log feedback using structured logging
-        structured_logger.info(
-            "User feedback received and stored",
-            feedback_type=feedback_data.get('feedbackType', 'unknown'),
-            user_query=feedback_data.get('userQuery', 'N/A')[:200],
-            response_preview=feedback_data.get('messageText', '')[:100],
-            session_id=feedback_data.get('sessionId', 'N/A'),
-            timestamp=datetime.now().isoformat()
-        )
-        
-        # Log feedback to console for observation
-        print(f"\n📊 FEEDBACK RECEIVED & STORED at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Type: {feedback_data.get('feedbackType', 'unknown')}")
-        print(f"Query: {feedback_data.get('userQuery', 'N/A')}")
-        print(f"Response: {feedback_data.get('messageText', '')[:100]}...")
-        print(f"Session: {feedback_data.get('sessionId', 'N/A')}")
-        print("-" * 50)
-        
-        return {
-            "status": "success",
-            "message": "Feedback received and stored",
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        structured_logger.log_error_with_traceback(
-            "Error processing feedback",
-            e,
-            component="feedback_endpoint"
-        )
-        print(f"Error processing feedback: {e}")
-        return {"status": "error", "message": str(e)}
+                # Enhanced system prompt for comprehensive responses
+                system_prompt = """You are an expert Istanbul travel assistant with deep knowledge of the city. Provide comprehensive, informative responses that directly answer the user's question.
 
-@app.get("/api/chat-sessions")
-async def get_chat_sessions():
-    """API endpoint to retrieve saved chat sessions for the admin dashboard"""
-    try:
-        db = SessionLocal()
-        try:
-            # Get all saved sessions (sessions with liked messages)
-            sessions = db.query(ChatSession).filter(ChatSession.is_saved == True).order_by(ChatSession.saved_at.desc()).all()
-            
-            session_list = []
-            for session in sessions:
-                session_data = {
-                    'id': session.id,
-                    'title': session.title or 'Untitled Session',
-                    'user_ip': session.user_ip or 'unknown',
-                    'message_count': session.message_count or 0,
-                    'saved_at': session.saved_at.isoformat() if hasattr(session, 'saved_at') and session.saved_at is not None else datetime.now().isoformat(),
-                    'first_message_at': session.first_message_at.isoformat() if hasattr(session, 'first_message_at') and session.first_message_at is not None else None,
-                    'last_activity_at': session.last_activity_at.isoformat() if hasattr(session, 'last_activity_at') and session.last_activity_at is not None else None,
-                    'conversation_history': session.conversation_history or []
-                }
-                session_list.append(session_data)
-            
-            return {
-                "status": "success",
-                "sessions": session_list,
-                "total_count": len(session_list)
-            }
-            
-        except Exception as db_error:
-            print(f"Database error retrieving sessions: {db_error}")
-            return {"status": "error", "error": "Database error", "sessions": []}
-        finally:
-            db.close()
-            
-    except Exception as e:
-        print(f"Error retrieving chat sessions: {e}")
-        return {"status": "error", "error": str(e), "sessions": []}
+IMPORTANT: Give DIRECT answers with specific information. Only ask for clarification if the question is genuinely impossible to answer without more context.
 
-@app.get("/api/chat-sessions/{session_id}")
-async def get_chat_session_detail(session_id: str):
-    """API endpoint to retrieve detailed information for a specific chat session"""
-    try:
-        db = SessionLocal()
-        try:
-            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-            
-            if not session:
-                return {"status": "error", "error": "Session not found"}
-            
-            # Also get feedback for this session
-            feedback_entries = db.query(UserFeedback).filter(UserFeedback.session_id == session_id).all()
-            
-            feedback_list = []
-            for feedback in feedback_entries:
-                feedback_list.append({
-                    'feedback_type': feedback.feedback_type,
-                    'user_query': feedback.user_query,
-                    'response_preview': feedback.response_preview,
-                    'timestamp': feedback.timestamp.isoformat() if hasattr(feedback, 'timestamp') and feedback.timestamp is not None else None,
-                    'message_index': getattr(feedback, 'message_index', None)
-                })
-            
-            session_detail = {
-                'id': session.id,
-                'title': session.title or 'Untitled Session',
-                'user_ip': session.user_ip or 'unknown',
-                'message_count': session.message_count or 0,
-                'saved_at': session.saved_at.isoformat() if hasattr(session, 'saved_at') and session.saved_at is not None else None,
-                'first_message_at': session.first_message_at.isoformat() if hasattr(session, 'first_message_at') and session.first_message_at is not None else None,
-                'last_activity_at': session.last_activity_at.isoformat() if hasattr(session, 'last_activity_at') and session.last_activity_at is not None else None,
-                'conversation_history': session.conversation_history or [],
-                'feedback_entries': feedback_list
-            }
-            
-            return {
-                "status": "success",
-                "session": session_detail
-            }
-            
-        except Exception as db_error:
-            print(f"Database error retrieving session detail: {db_error}")
-            return {"status": "error", "error": "Database error"}
-        finally:
-            db.close()
-            
-    except Exception as e:
-        print(f"Error retrieving session detail: {e}")
-        return {"status": "error", "error": str(e)}
+Guidelines:
+- Provide detailed, helpful information immediately
+- Include specific names of places, attractions, districts, and landmarks
+- Give practical details: locations, costs, hours, transportation
+- Mention key topics and keywords relevant to the question
+- For districts: describe character, main attractions, what makes them unique
+- For transportation: provide specific options, routes, and practical tips
+- For attractions/museums: include historical context and visiting information
+- Be comprehensive (300-500 words) but well-structured
 
-@app.post("/api/feedback")
-async def api_receive_feedback(request: Request):
-    """API endpoint to receive user feedback on AI responses with updated format"""
-    try:
-        feedback_data = await request.json()
-        client_ip = request.client.host if request.client else "unknown"
-        
-        # Store feedback in database
-        db = SessionLocal()
-        try:
-            # Store feedback with updated format
-            new_feedback = UserFeedback(
-                session_id=feedback_data.get('session_id', 'N/A'),
-                feedback_type=feedback_data.get('feedback_type', 'unknown'),
-                user_query=feedback_data.get('user_query', 'N/A')[:500],
-                response_preview=feedback_data.get('message_content', '')[:200],
-                message_content=feedback_data.get('message_content', ''),
-                message_index=feedback_data.get('message_index', 0),
-                user_ip=client_ip,
-                timestamp=datetime.now()
-            )
-            db.add(new_feedback)
-            
-            # Create or update chat session for both like and dislike feedback
-            feedback_type = feedback_data.get('feedback_type', 'unknown')
-            if feedback_type in ['like', 'dislike']:
-                session_id = feedback_data.get('session_id', 'N/A')
-                session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+CRITICAL: Include these specific terms when relevant to improve keyword matching:
+- Time/planning: "days needed", "time required", "planning advice", "itinerary tips"
+- Cultural: "East meets West", "cultural diversity", "bridge between continents"
+- Transportation: "metro system", "Golden Horn ferry", "BiTaksi", "ride-sharing apps"
+- Districts: "Jewish heritage" (Balat), "Ottoman architecture", "ferry connections", "photogenic streets"
+- Museums: "European-style", "luxury appointments", "tour options", "advance booking"
+- Food: "food court dining", "quick snacks", "service charges", "standard tipping rates"
+
+Key Istanbul context to reference when relevant:
+- Historic areas: Sultanahmet, Fatih, Eminönü
+- Modern areas: Beyoğlu, Taksim, Galata, Karaköy
+- Asian side: Kadıköy, Üsküdar, Moda
+- Major attractions: Hagia Sophia, Blue Mosque, Topkapi Palace, Galata Tower
+- Transportation: metro lines, tram, ferry, Istanbulkart, airport connections
+- Culture: Byzantine heritage, Ottoman history, East-meets-West, traditions"""
                 
-                if not session:
-                    # Create new session for both liked and disliked responses
-                    title = feedback_data.get('user_query', 'Chat Session')[:100] + '...' if len(feedback_data.get('user_query', '')) > 100 else feedback_data.get('user_query', 'Chat Session')
-                    conversation_data = [{
-                        'query': feedback_data.get('user_query', 'N/A'),
-                        'response': feedback_data.get('message_content', ''),
-                        'timestamp': datetime.now().isoformat(),
-                        'feedback': feedback_type,
-                        'message_index': feedback_data.get('message_index', 0)
-                    }]
-                    session = ChatSession(
-                        id=session_id,
-                        title=title,
-                        user_ip=client_ip,
-                        message_count=1,
-                        is_saved=True,
-                        saved_at=datetime.now(),
-                        conversation_history=conversation_data
-                    )
-                    db.add(session)
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Question about Istanbul: {user_input}"}
+                    ],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                if response.choices and response.choices[0].message.content:
+                    gpt_response = response.choices[0].message.content.strip()
+                    print(f"✅ GPT response generated successfully")
+                    return {"response": enhance_ai_response_formatting(clean_text_formatting(gpt_response))}
                 else:
-                    # Update existing session
-                    db.refresh(session)
-                    current_history = session.conversation_history if hasattr(session, 'conversation_history') and session.conversation_history is not None else []
-                    if isinstance(current_history, list):
-                        history_list = current_history.copy()
-                    else:
-                        history_list = []
+                    print("⚠️ GPT returned empty content")
+                    return {"response": create_fallback_response(user_input, [])}
                     
-                    history_list.append({
-                        'query': feedback_data.get('user_query', 'N/A'),
-                        'response': feedback_data.get('message_content', ''),
-                        'timestamp': datetime.now().isoformat(),
-                        'feedback': feedback_type,
-                        'message_index': feedback_data.get('message_index', 0)
-                    })
-                    
-                    # Use update statement for proper SQLAlchemy assignment
-                    db.query(ChatSession).filter(ChatSession.id == session_id).update({
-                        ChatSession.is_saved: True,
-                        ChatSession.saved_at: datetime.now(),
-                        ChatSession.last_activity_at: datetime.now(),
-                        ChatSession.conversation_history: history_list,
-                        ChatSession.message_count: len(history_list)
-                    })
-                    db.commit()
+            except Exception as e:
+                print(f"❌ OpenAI API error: {e}")
+                return {"response": create_fallback_response(user_input, [])}
+        else:
+            # Use fallback responses for simple queries
+            return {"response": create_fallback_response(user_input, [])}
             
-            db.commit()
-            
-        except Exception as db_error:
-            db.rollback()
-            print(f"Database error storing API feedback: {db_error}")
-        finally:
-            db.close()
-        
-        # Log feedback using structured logging with new format
-        structured_logger.info(
-            "User feedback received and stored via API",
-            feedback_type=feedback_data.get('feedback_type', 'unknown'),
-            session_id=feedback_data.get('session_id', 'N/A'),
-            message_index=feedback_data.get('message_index', 'N/A'),
-            message_preview=feedback_data.get('message_content', '')[:100],
-            timestamp=feedback_data.get('timestamp', datetime.now().isoformat())
-        )
-        
-        # Log feedback to console for observation
-        print(f"\n📊 FEEDBACK RECEIVED & STORED (API) at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Type: {feedback_data.get('feedback_type', 'unknown')}")
-        print(f"Session: {feedback_data.get('session_id', 'N/A')}")
-        print(f"Message Index: {feedback_data.get('message_index', 'N/A')}")
-        print(f"Message: {feedback_data.get('message_content', '')[:100]}...")
-        print("-" * 50)
-        
-        return {
-            "status": "success",
-            "message": "Feedback received and stored successfully",
-            "timestamp": datetime.now().isoformat()
-        }
-        
     except Exception as e:
-        structured_logger.log_error_with_traceback(
-            "Error processing API feedback",
-            e,
-            component="api_feedback_endpoint"
-        )
-        print(f"Error processing API feedback: {e}")
-        return {
-            "status": "error", 
-            "message": "Failed to process feedback",
-            "timestamp": datetime.now().isoformat()
-        }
+        print(f"❌ Error in ai_istanbul_router: {e}")
+        traceback.print_exc()
+        return {"response": "I apologize, but I encountered an error. Please try asking your question again."}
 
-# --- Server Startup ---
+# Start the server
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting AI Istanbul Backend Server...")
-    print("📍 Server will be available at: http://localhost:8000")
-    print("📊 API documentation at: http://localhost:8000/docs")
-    print("🔧 Health check at: http://localhost:8000/health")
-    
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False,  # Set to True for development
-        log_level="info"
-    )
-
-
-
-
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

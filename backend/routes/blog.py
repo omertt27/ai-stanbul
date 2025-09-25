@@ -618,7 +618,7 @@ async def get_all_posts(
     category: Optional[str] = None,
     tag: Optional[str] = None,
     published: bool = True,
-    limit: int = 10,
+    limit: int = 12,
     offset: int = 0,
     sort_by: str = "newest",  # newest, oldest, most_liked, most_popular, time_spent
     location: str = "Istanbul"
@@ -982,7 +982,7 @@ async def upload_image(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Failed to upload image")
 
 @router.get("/search/{query}")
-async def search_posts(query: str, limit: int = 10):
+async def search_posts(query: str, limit: int = 12):
     """Search blog posts by title and content"""
     try:
         posts = load_blog_posts()

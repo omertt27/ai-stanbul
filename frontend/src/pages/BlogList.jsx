@@ -146,7 +146,7 @@ const BlogList = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [likingPosts, setLikingPosts] = useState(new Set()); // Track which posts are being liked
 
-  const postsPerPage = 8; // Show 8 posts per page
+  const postsPerPage = 12; // Show 12 posts per page
 
   // Istanbul districts that are supported by the AI chatbot
   const chatbotDistricts = [
