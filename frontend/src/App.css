@@ -180,17 +180,16 @@ html {
 
 @media (max-width: 768px) {
   .main-page-logo .logo-text {
-    font-size: 10rem !important; /* Bigger mobile logo (was 7rem) */
-    font-weight: 700; /* Normal weight */
+    font-size: 4rem !important; /* Reduced from 10rem - more appropriate for mobile */
+    font-weight: 700;
     letter-spacing: 0.15em;
-    /* Consistent styling with other pages */
     text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
   }
 }
 
 @media (max-width: 640px) {
   .main-page-logo .logo-text {
-    font-size: 6rem !important; /* Bigger mobile logo (was 3rem) */
+    font-size: 3rem !important; /* Reduced from 6rem - more appropriate for mobile */
     font-weight: 700;
     letter-spacing: 0.12em;
     text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
@@ -199,7 +198,7 @@ html {
 
 @media (max-width: 480px) {
   .main-page-logo .logo-text {
-    font-size: 8rem !important; /* Bigger mobile logo (was 5rem) */
+    font-size: 2.5rem !important; /* Reduced from 8rem - more appropriate for mobile */
     font-weight: 700;
     letter-spacing: 0.1em;
     text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
@@ -976,6 +975,66 @@ select:focus {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Mobile search bar visibility fixes */
+@media (max-width: 768px) {
+  .searchbar {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+    margin: 1rem auto !important;
+    max-width: 95% !important;
+    width: 95% !important;
+  }
+  
+  .searchbar input {
+    font-size: 16px !important; /* Prevents iOS zoom */
+    min-height: 44px !important; /* iOS touch target size */
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  .searchbar button {
+    min-height: 44px !important; /* iOS touch target size */
+    min-width: 44px !important;
+    display: flex !important;
+  }
+}
+
+/* Ensure search container is visible on chat pages */
+@media (max-width: 768px) {
+  .chat-page .searchbar,
+  .expanded .searchbar {
+    display: flex !important;
+    visibility: visible !important;
+    position: relative !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Fix logo size conflicts on main page mobile */
+@media (max-width: 768px) {
+  .main-page-logo .logo-text {
+    font-size: 3rem !important; /* Consistent mobile logo size */
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-page-logo .logo-text {
+    font-size: 2.5rem !important; /* Consistent mobile logo size for small screens */
+    margin-bottom: 1rem;
+  }
+  
+  .searchbar {
+    max-width: 98% !important;
+    width: 98% !important;
+    margin: 0.5rem auto !important;
   }
 }
 

@@ -242,7 +242,7 @@ const NavBar = ({ hideLogo = false }) => {
               onClick={handleLogoClick}
             >
               <span style={{
-                fontSize: '2.2rem',
+                fontSize: '1.8rem', // Reduced from 2.2rem for better mobile experience
                 fontWeight: 700,
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
@@ -259,15 +259,16 @@ const NavBar = ({ hideLogo = false }) => {
             </div>
           )}
           
-          {/* Purple separator line below navbar */}
+          {/* Purple separator line below navbar - hidden on mobile */}
           <div style={{
             position: 'absolute',
-            bottom: '-8px', // Moved up 2px from -10px to -8px
+            bottom: '-8px',
             left: 0,
             right: 0,
             height: '2px',
             background: 'linear-gradient(90deg, transparent 0%, #8b5cf6 20%, #6366f1 50%, #8b5cf6 80%, transparent 100%)',
             boxShadow: '0 1px 8px rgba(139, 92, 246, 0.4)',
+            display: 'none', // Hidden on mobile
           }} />
         </div>
       )}
