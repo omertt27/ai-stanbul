@@ -20,11 +20,11 @@ const hasAnalyticsConsent = () => {
 
 // Initialize Google Analytics with GDPR compliance
 export const initGA = () => {
-  // Set default consent to denied
-  window.gtag = window.gtag || function() {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push(arguments);
-  };
+  // Ensure gtag is available (should be loaded from HTML)
+  if (typeof window.gtag === 'undefined') {
+    console.warn('Google Analytics not loaded. Make sure gtag script is in HTML head.');
+    return;
+  }
   
   // Set default consent mode
   window.gtag('consent', 'default', {
@@ -32,25 +32,6 @@ export const initGA = () => {
     'ad_storage': 'denied',
     'personalization_storage': 'denied'
   });
-
-  // Load gtag script
-  const script1 = document.createElement('script');
-  script1.async = true;
-  script1.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`;
-  document.head.appendChild(script1);
-
-  // Initialize gtag
-  const script2 = document.createElement('script');
-  script2.innerHTML = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${GA_TRACKING_ID}', {
-      page_title: document.title,
-      page_location: window.location.href,
-    });
-  `;
-  document.head.appendChild(script2);
 
   // Check existing consent and update if needed
   if (hasAnalyticsConsent()) {
@@ -162,10 +143,8 @@ export const GoogleAnalytics = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Initialize GA on first load
-    if (!window.gtag) {
-      initGA();
-    }
+    // Initialize consent settings (gtag should already be loaded from HTML)
+    initGA();
   }, []);
 
   useEffect(() => {
