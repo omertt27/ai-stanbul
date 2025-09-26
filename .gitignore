@@ -331,7 +331,6 @@ railway.toml
 render.yaml
 vercel.json
 Procfile
-requirements-minimal.txt
 deploy*.sh
 production_deploy.sh
 start-*.sh
