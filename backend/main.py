@@ -952,6 +952,37 @@ async def stream_chat(request: dict):
         print(f"❌ Stream chat error: {str(e)}")
         return {"error": f"Stream error: {str(e)}"}
 
+# Missing API endpoints that frontend expects
+@app.get("/ai/api/chat-sessions")
+async def get_chat_sessions():
+    """Get user's chat sessions"""
+    try:
+        # For now, return empty array since we don't have session persistence yet
+        return {"sessions": []}
+    except Exception as e:
+        print(f"❌ Error getting chat sessions: {str(e)}")
+        return {"error": f"Failed to get chat sessions: {str(e)}"}
+
+@app.post("/ai/api/chat-sessions")
+async def create_chat_session(request: dict):
+    """Create a new chat session"""
+    try:
+        # For now, just return a dummy session ID
+        return {"sessionId": "temp_session_" + str(hash(str(datetime.now())) % 10000)}
+    except Exception as e:
+        print(f"❌ Error creating chat session: {str(e)}")
+        return {"error": f"Failed to create chat session: {str(e)}"}
+
+@app.delete("/ai/api/chat-sessions/{session_id}")
+async def delete_chat_session(session_id: str):
+    """Delete a chat session"""
+    try:
+        # For now, just return success
+        return {"success": True, "message": f"Session {session_id} deleted"}
+    except Exception as e:
+        print(f"❌ Error deleting chat session: {str(e)}")
+        return {"error": f"Failed to delete chat session: {str(e)}"}
+
 # Include blog router
 app.include_router(blog.router)
 
@@ -1388,7 +1419,7 @@ Ottoman Era (1453-1922):
 Modern Istanbul:
 - Turkey's largest city with 15+ million people
 - Spans Europe and Asia across the Bosphorus
-- UNESCO World Heritage sites in historic areas
+    - UNESCO World Heritage sites in historic areas
 
 Would you like to know about specific historical sites or districts?"""
         return enhance_ai_response_formatting(clean_text_formatting(response))
@@ -1694,14 +1725,3 @@ For example:
 
 The more details you share, the better I can assist you!"""
         
-# Server startup
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting AI Istanbul Backend Server...")
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
