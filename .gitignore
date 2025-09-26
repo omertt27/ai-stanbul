@@ -334,6 +334,7 @@ Procfile
 deploy*.sh
 production_deploy.sh
 start-*.sh
+!start-render.sh
 pre-deploy.sh
 render-start.sh
 
