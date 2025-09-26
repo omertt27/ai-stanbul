@@ -921,6 +921,7 @@ CORS_ORIGINS = [
     "http://127.0.0.1:5173",
     # Production frontend URLs
     "https://aistanbul.vercel.app",
+    "https://aistanbul.net",
     # Remove file:// protocol support for security
 ]
 
@@ -1753,6 +1754,115 @@ Key Istanbul context to reference when relevant:
         print(f"❌ Error in ai_istanbul_router: {e}")
         traceback.print_exc()
         return {"response": "I apologize, but I encountered an error. Please try asking your question again."}
+
+@app.post("/ai/stream")
+async def ai_istanbul_streaming(request: Request):
+    """Streaming AI endpoint for real-time responses"""
+    try:
+        data = await request.json()
+        user_input = data.get("user_input", "")
+        session_id = data.get("session_id", f"session_{int(time.time())}")
+        
+        # Get language from headers
+        accept_language = request.headers.get("accept-language", "en")
+        language = "tr" if "tr" in accept_language.lower() else "en"
+        
+        async def generate_response():
+            try:
+                # Enhanced input validation
+                if not user_input or len(user_input.strip()) < 2:
+                    response_data = json.dumps({'chunk': "I'm here to help you explore Istanbul! What would you like to know?"})
+                    yield f"data: {response_data}\n\n"
+                    return
+                
+                # Sanitize and enhance input
+                enhanced_input = enhance_query_understanding(user_input)
+                
+                # Check for simple greetings
+                if not should_use_gpt_for_query(enhanced_input):
+                    welcome_message = "Hello! I'm your Istanbul guide. What would you like to know about the city?"
+                    response_data = json.dumps({'chunk': welcome_message})
+                    yield f"data: {response_data}\n\n"
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+                    return
+                
+                # Try fallback response first
+                fallback_response = create_fallback_response(enhanced_input, [])
+                
+                if fallback_response and fallback_response.strip():
+                    # Stream the fallback response
+                    clean_response = clean_text_formatting(fallback_response)
+                    
+                    # Stream in chunks for better UX
+                    words = clean_response.split()
+                    chunk_size = 3
+                    for i in range(0, len(words), chunk_size):
+                        chunk = " ".join(words[i:i+chunk_size])
+                        if chunk.strip():  # Only send non-empty chunks
+                            # Add space after chunk (except for last chunk)
+                            if i + chunk_size < len(words):
+                                chunk += " "
+                            response_data = json.dumps({'chunk': chunk})
+                            yield f"data: {response_data}\n\n"
+                            await asyncio.sleep(0.05)  # Small delay for streaming effect
+                else:
+                    # Use GPT for complex queries
+                    openai_api_key = os.getenv("OPENAI_API_KEY")
+                    if openai_api_key:
+                        try:
+                            from openai import OpenAI
+                            client = OpenAI(api_key=openai_api_key)
+                            
+                            system_prompt = """You are an expert Istanbul travel assistant. Provide helpful, accurate information about Istanbul's attractions, restaurants, transportation, culture, and travel tips. Be concise but informative."""
+                            
+                            response = client.chat.completions.create(
+                                model="gpt-3.5-turbo",
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": enhanced_input}
+                                ],
+                                max_tokens=500,
+                                temperature=0.7,
+                                stream=True
+                            )
+                            
+                            # Stream GPT response
+                            for chunk in response:
+                                if chunk.choices[0].delta.content:
+                                    content = chunk.choices[0].delta.content
+                                    response_data = json.dumps({'chunk': content})
+                                    yield f"data: {response_data}\n\n"
+                                    await asyncio.sleep(0.01)
+                                    
+                        except Exception as e:
+                            print(f"GPT streaming error: {e}")
+                            response_data = json.dumps({'chunk': 'I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.'})
+                            yield f"data: {response_data}\n\n"
+                    else:
+                        response_data = json.dumps({'chunk': 'I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.'})
+                        yield f"data: {response_data}\n\n"
+                
+                # Send completion signal
+                completion_data = json.dumps({'done': True})
+                yield f"data: {completion_data}\n\n"
+                
+            except Exception as e:
+                print(f"Error in streaming endpoint: {e}")
+                error_data = json.dumps({'error': 'Sorry, I encountered an error. Please try again.'})
+                yield f"data: {error_data}\n\n"
+        
+        return StreamingResponse(
+            generate_response(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            }
+        )
+        
+    except Exception as e:
+        print(f"[ERROR] Exception in /ai/stream endpoint: {e}")
+        return {"error": "Streaming not available"}
 
 # Start the server
 if __name__ == "__main__":
