@@ -58,7 +58,7 @@
     "published": true,
     "created_at": "2025-09-23T22:12:00.000000",
     "updated_at": "2025-09-23T22:12:00.000000",
-    "views": 0,
+    "views": 4,
     "likes": 1,
     "likes_count": 1
   },
@@ -142,7 +142,7 @@
     "published": true,
     "created_at": "2025-09-23T22:16:00.000000",
     "updated_at": "2025-09-23T22:16:00.000000",
-    "views": 0,
+    "views": 10,
     "likes": 3,
     "likes_count": 3
   },
@@ -226,7 +226,7 @@
     "published": true,
     "created_at": "2025-09-23T22:20:00.000000",
     "updated_at": "2025-09-23T22:20:00.000000",
-    "views": 0,
+    "views": 4,
     "likes": 3,
     "likes_count": 3
   },
@@ -268,7 +268,7 @@
     "published": true,
     "created_at": "2025-09-23T22:22:00.000000",
     "updated_at": "2025-09-23T22:22:00.000000",
-    "views": 0,
+    "views": 2,
     "likes": 2,
     "likes_count": 2
   },
@@ -289,7 +289,7 @@
     "published": true,
     "created_at": "2025-09-23T22:23:00.000000",
     "updated_at": "2025-09-23T22:23:00.000000",
-    "views": 0,
+    "views": 2,
     "likes": 6,
     "likes_count": 6
   },
@@ -457,7 +457,7 @@
     "published": true,
     "created_at": "2025-09-23T22:31:00.000000",
     "updated_at": "2025-09-23T22:31:00.000000",
-    "views": 0,
+    "views": 2,
     "likes": 6,
     "likes_count": 6
   },
@@ -478,7 +478,7 @@
     "published": true,
     "created_at": "2025-09-23T22:32:00.000000",
     "updated_at": "2025-09-23T22:32:00.000000",
-    "views": 0,
+    "views": 2,
     "likes": 7,
     "likes_count": 7
   },
@@ -499,8 +499,8 @@
     "published": true,
     "created_at": "2025-09-23T22:33:00.000000",
     "updated_at": "2025-09-23T22:33:00.000000",
-    "views": 0,
-    "likes": 10,
-    "likes_count": 10
+    "views": 2,
+    "likes": 11,
+    "likes_count": 11
   }
 ]

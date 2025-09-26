@@ -914,13 +914,58 @@ app = FastAPI(title="AIstanbul API")
 # Include blog router
 app.include_router(blog.router)
 
+# Health check endpoint
+@app.get("/")
+async def root():
+    return {"status": "OK", "message": "AI Istanbul Backend is running", "version": "1.0.0"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": str(datetime.now())}
+
+# Basic AI chat endpoints
+@app.post("/ai/chat")
+async def chat(request: dict):
+    try:
+        user_message = request.get("message", "")
+        if not user_message:
+            return {"error": "Message is required"}
+        
+        # Use the existing GPT response function
+        response = get_gpt_response(user_message, "test-session")
+        if not response:
+            response = create_fallback_response(user_message, [])
+        
+        return {"response": response}
+    except Exception as e:
+        return {"error": f"Chat error: {str(e)}"}
+
+@app.post("/ai/stream")
+async def stream_chat(request: dict):
+    try:
+        user_message = request.get("message", "")
+        if not user_message:
+            return {"error": "Message is required"}
+        
+        # For now, return the same as regular chat
+        # In production, this would be a streaming response
+        response = get_gpt_response(user_message, "test-session")
+        if not response:
+            response = create_fallback_response(user_message, [])
+        
+        return {"response": response}
+    except Exception as e:
+        return {"error": f"Stream error: {str(e)}"}
+
 # Add CORS middleware with secure origins
 CORS_ORIGINS = [
     # Development ports (only for development)
     "http://localhost:3000",
     "http://localhost:3001", 
+    "http://localhost:3002",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:3002",
     "http://127.0.0.1:5173",
     # Production frontend URLs
     "https://aistanbul.vercel.app",
@@ -1171,7 +1216,7 @@ Activities:
 - Bargaining expected for food items too
 - Combine with Spice Bazaar visit for more food options"""
 
-        # Check for Ottoman cuisine queries
+        # Check for Ottoman cuisine queries  
         elif any(word in user_input_lower for word in ['ottoman', 'historic', 'traditional', 'authentic', 'palace']):
             response = """Authentic Ottoman Cuisine in Istanbul
 
@@ -1641,234 +1686,15 @@ For example:
 - Any specific preferences or requirements?
 
 The more details you share, the better I can assist you!"""
-
-@app.get("/")
-async def root():
-    """Root endpoint for health check"""
-    return {"status": "OK", "message": "AI Istanbul Backend is running", "version": "1.0.0"}
-
-@app.post("/ai")
-async def ai_istanbul_router(request: Request):
-    """
-    Enhanced AI router with ambiguity detection and clarification capabilities.
-    """
-    try:
-        data = await request.json()
-        user_input = data.get("query", data.get("user_input", ""))
         
-        if not user_input.strip():
-            return {"response": "Hello! I'm here to help you explore Istanbul. What would you like to know?"}
-        
-        # Debug logging
-        print(f"Received user_input: '{user_input}' (length: {len(user_input)})")
-        
-        # Enhance query understanding (typo correction, etc.)
-        enhanced_user_input = enhance_query_understanding(user_input)
-        
-        # Use enhanced input for processing
-        user_input = enhanced_user_input
-        
-        # Check if this should use GPT or fallback responses FIRST
-        should_use_gpt = should_use_gpt_for_query(user_input)
-        
-        print(f"GPT routing decision: {should_use_gpt}")
-        
-        # Only check for ambiguity if we're NOT using GPT
-        if not should_use_gpt:
-            # Detect ambiguity and context dependency
-            is_ambiguous = detect_ambiguity(user_input)
-            needs_context = detect_context_dependency(user_input)
-            
-            print(f"Ambiguity detection - Ambiguous: {is_ambiguous}, Needs context: {needs_context}")
-            
-            # If query is ambiguous or context-dependent, provide clarification
-            if is_ambiguous or needs_context:
-                clarification = generate_clarification_prompt(user_input)
-                return {"response": clarification}
-        
-        if should_use_gpt:
-            # Use OpenAI for complex queries
-            openai_api_key = os.getenv("OPENAI_API_KEY")
-            if not openai_api_key:
-                print("[ERROR] OpenAI API key not set")
-                return {"response": create_fallback_response(user_input, [])}
-            
-            try:
-                from openai import OpenAI
-                client = OpenAI(api_key=openai_api_key)
-                
-                # Enhanced system prompt for comprehensive responses
-                system_prompt = """You are an expert Istanbul travel assistant with deep knowledge of the city. Provide comprehensive, informative responses that directly answer the user's question.
-
-IMPORTANT: Give DIRECT answers with specific information. Only ask for clarification if the question is genuinely impossible to answer without more context.
-
-Guidelines:
-- Provide detailed, helpful information immediately
-- Include specific names of places, attractions, districts, and landmarks
-- Give practical details: locations, costs, hours, transportation
-- Mention key topics and keywords relevant to the question
-- For districts: describe character, main attractions, what makes them unique
-- For transportation: provide specific options, routes, and practical tips
-- For attractions/museums: include historical context and visiting information
-- Be comprehensive (300-500 words) but well-structured
-
-CRITICAL: Include these specific terms when relevant to improve keyword matching:
-- Time/planning: "days needed", "time required", "planning advice", "itinerary tips"
-- Cultural: "East meets West", "cultural diversity", "bridge between continents"
-- Transportation: "metro system", "Golden Horn ferry", "BiTaksi", "ride-sharing apps"
-- Districts: "Jewish heritage" (Balat), "Ottoman architecture", "ferry connections", "photogenic streets"
-- Museums: "European-style", "luxury appointments", "tour options", "advance booking"
-- Food: "food court dining", "quick snacks", "service charges", "standard tipping rates"
-
-Key Istanbul context to reference when relevant:
-- Historic areas: Sultanahmet, Fatih, Eminönü
-- Modern areas: Beyoğlu, Taksim, Galata, Karaköy
-- Asian side: Kadıköy, Üsküdar, Moda
-- Major attractions: Hagia Sophia, Blue Mosque, Topkapi Palace, Galata Tower
-- Transportation: metro lines, tram, ferry, Istanbulkart, airport connections
-- Culture: Byzantine heritage, Ottoman history, East-meets-West, traditions"""
-                
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"Question about Istanbul: {user_input}"}
-                    ],
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                
-                if response.choices and response.choices[0].message.content:
-                    gpt_response = response.choices[0].message.content.strip()
-                    print(f"✅ GPT response generated successfully")
-                    return {"response": enhance_ai_response_formatting(clean_text_formatting(gpt_response))}
-                else:
-                    print("⚠️ GPT returned empty content")
-                    return {"response": create_fallback_response(user_input, [])}
-                    
-            except Exception as e:
-                print(f"❌ OpenAI API error: {e}")
-                return {"response": create_fallback_response(user_input, [])}
-        else:
-            # Use fallback responses for simple queries
-            return {"response": create_fallback_response(user_input, [])}
-            
-    except Exception as e:
-        print(f"❌ Error in ai_istanbul_router: {e}")
-        traceback.print_exc()
-        return {"response": "I apologize, but I encountered an error. Please try asking your question again."}
-
-@app.post("/ai/stream")
-async def ai_istanbul_streaming(request: Request):
-    """Streaming AI endpoint for real-time responses"""
-    try:
-        data = await request.json()
-        user_input = data.get("user_input", "")
-        session_id = data.get("session_id", f"session_{int(time.time())}")
-        
-        # Get language from headers
-        accept_language = request.headers.get("accept-language", "en")
-        language = "tr" if "tr" in accept_language.lower() else "en"
-        
-        async def generate_response():
-            try:
-                # Enhanced input validation
-                if not user_input or len(user_input.strip()) < 2:
-                    response_data = json.dumps({'chunk': "I'm here to help you explore Istanbul! What would you like to know?"})
-                    yield f"data: {response_data}\n\n"
-                    return
-                
-                # Sanitize and enhance input
-                enhanced_input = enhance_query_understanding(user_input)
-                
-                # Check for simple greetings
-                if not should_use_gpt_for_query(enhanced_input):
-                    welcome_message = "Hello! I'm your Istanbul guide. What would you like to know about the city?"
-                    response_data = json.dumps({'chunk': welcome_message})
-                    yield f"data: {response_data}\n\n"
-                    yield f"data: {json.dumps({'done': True})}\n\n"
-                    return
-                
-                # Try fallback response first
-                fallback_response = create_fallback_response(enhanced_input, [])
-                
-                if fallback_response and fallback_response.strip():
-                    # Stream the fallback response
-                    clean_response = clean_text_formatting(fallback_response)
-                    
-                    # Stream in chunks for better UX
-                    words = clean_response.split()
-                    chunk_size = 3
-                    for i in range(0, len(words), chunk_size):
-                        chunk = " ".join(words[i:i+chunk_size])
-                        if chunk.strip():  # Only send non-empty chunks
-                            # Add space after chunk (except for last chunk)
-                            if i + chunk_size < len(words):
-                                chunk += " "
-                            response_data = json.dumps({'chunk': chunk})
-                            yield f"data: {response_data}\n\n"
-                            await asyncio.sleep(0.05)  # Small delay for streaming effect
-                else:
-                    # Use GPT for complex queries
-                    openai_api_key = os.getenv("OPENAI_API_KEY")
-                    if openai_api_key:
-                        try:
-                            from openai import OpenAI
-                            client = OpenAI(api_key=openai_api_key)
-                            
-                            system_prompt = """You are an expert Istanbul travel assistant. Provide helpful, accurate information about Istanbul's attractions, restaurants, transportation, culture, and travel tips. Be concise but informative."""
-                            
-                            response = client.chat.completions.create(
-                                model="gpt-3.5-turbo",
-                                messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": enhanced_input}
-                                ],
-                                max_tokens=500,
-                                temperature=0.7,
-                                stream=True
-                            )
-                            
-                            # Stream GPT response
-                            for chunk in response:
-                                if chunk.choices[0].delta.content:
-                                    content = chunk.choices[0].delta.content
-                                    response_data = json.dumps({'chunk': content})
-                                    yield f"data: {response_data}\n\n"
-                                    await asyncio.sleep(0.01)
-                                    
-                        except Exception as e:
-                            print(f"GPT streaming error: {e}")
-                            response_data = json.dumps({'chunk': 'I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.'})
-                            yield f"data: {response_data}\n\n"
-                    else:
-                        response_data = json.dumps({'chunk': 'I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation.'})
-                        yield f"data: {response_data}\n\n"
-                
-                # Send completion signal
-                completion_data = json.dumps({'done': True})
-                yield f"data: {completion_data}\n\n"
-                
-            except Exception as e:
-                print(f"Error in streaming endpoint: {e}")
-                error_data = json.dumps({'error': 'Sorry, I encountered an error. Please try again.'})
-                yield f"data: {error_data}\n\n"
-        
-        return StreamingResponse(
-            generate_response(),
-            media_type="text/plain",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-            }
-        )
-        
-    except Exception as e:
-        print(f"[ERROR] Exception in /ai/stream endpoint: {e}")
-        return {"error": "Streaming not available"}
-
-# Start the server
+# Server startup
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print("🚀 Starting AI Istanbul Backend Server...")
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
