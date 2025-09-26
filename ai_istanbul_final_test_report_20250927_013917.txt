@@ -1,0 +1,105 @@
+🎯 AI ISTANBUL CHATBOT - FINAL COMPREHENSIVE TEST REPORT
+============================================================
+Test Date: 2025-09-27 01:35:47
+Total Tests: 80
+
+🏆 OVERALL PERFORMANCE
+------------------------------
+Final Score: 1.95/5.0
+Letter Grade: F
+Average Relevance: 2.61/5.0
+Average Completeness: 1.33/5.0
+Cultural Awareness: 1.68/5.0
+Feature Coverage: 26.6%
+Location Accuracy: 90.0%
+
+📊 CATEGORY BREAKDOWN
+------------------------------
+DAILY TALKS:
+  Relevance: 2.49/5.0
+  Completeness: 1.41/5.0
+  Feature Coverage: 28.1%
+  Tests: 16
+
+RESTAURANT ADVICE:
+  Relevance: 2.11/5.0
+  Completeness: 1.17/5.0
+  Feature Coverage: 23.4%
+  Tests: 16
+
+DISTRICT ADVICE:
+  Relevance: 2.65/5.0
+  Completeness: 1.02/5.0
+  Feature Coverage: 20.3%
+  Tests: 16
+
+MUSEUM ADVICE:
+  Relevance: 2.96/5.0
+  Completeness: 1.64/5.0
+  Feature Coverage: 32.8%
+  Tests: 16
+
+TRANSPORTATION ADVICE:
+  Relevance: 2.87/5.0
+  Completeness: 1.41/5.0
+  Feature Coverage: 28.1%
+  Tests: 16
+
+📝 SAMPLE DETAILED RESULTS
+------------------------------
+Query: Merhaba! How are you today?
+Category: daily_talks | Difficulty: easy
+Relevance: 2.3/5 | Features: 2/3
+Response: Merhaba! I'm doing well, thank you! Since you're interested in Istanbul today, I recommend exploring the historic district of Sultanahmet. Start your day by visiting the iconic Hagia Sophia, the breat...
+----------------------------------------
+Query: I'm feeling overwhelmed by Istanbul's size. Any tips?
+Category: daily_talks | Difficulty: medium
+Relevance: 2.5/5 | Features: 2/4
+Response: If you're feeling overwhelmed by Istanbul's size, here are some practical tips to help you navigate the city more comfortably:
+
+ **Break It Down**: Istanbul is a vast city, but try focusing on one dis...
+----------------------------------------
+Query: What's the weather like in Istanbul right now?
+Category: daily_talks | Difficulty: easy
+Relevance: 3.0/5 | Features: 1/3
+Response: Istanbul experiences a temperate Mediterranean climate with hot, dry summers and mild, wet winters. Right now, in the immediate time context, it's recommended to check a reliable weather website or ap...
+----------------------------------------
+Query: I just arrived at Istanbul Airport. What should I do first?
+Category: daily_talks | Difficulty: medium
+Relevance: 2.0/5 | Features: 2/4
+Response: After arriving at Istanbul Airport, your first step should be arranging transportation to your accommodation or desired destination in the city. Istanbul Airport is located on the European side of the...
+----------------------------------------
+Query: I'm tired of tourist traps. Show me the real Istanbul!
+Category: daily_talks | Difficulty: hard
+Relevance: 2.3/5 | Features: 1/4
+Response: If you're looking to experience the authentic side of Istanbul away from the tourist traps, there are several places you should explore to discover the real essence of the city.
+
+1. **Balat**: This hi...
+----------------------------------------
+Query: My Turkish is terrible. Will I survive in Istanbul?
+Category: daily_talks | Difficulty: medium
+Relevance: 2.4/5 | Features: 1/4
+Response: Absolutely, you can definitely survive in Istanbul even if your Turkish is not great. Many people in Istanbul, especially in tourist areas, speak English to some extent. In popular areas like Sultanah...
+----------------------------------------
+Query: I'm traveling solo as a woman. Is Istanbul safe?
+Category: daily_talks | Difficulty: hard
+Relevance: 2.6/5 | Features: 1/4
+Response: As a solo female traveler in Istanbul, safety is a valid concern. Istanbul is generally safe for tourists, including solo female travelers. However, like any major city, it's essential to take precaut...
+----------------------------------------
+Query: What's a typical day like for locals in Istanbul?
+Category: daily_talks | Difficulty: medium
+Relevance: 3.1/5 | Features: 0/4
+Response: A typical day for locals in Istanbul can be a vibrant mix of tradition, culture, and modern life.
+
+Many locals start their day with a rich Turkish breakfast, including simit (sesame bread rings) and ç...
+----------------------------------------
+Query: I'm on a tight budget. Can I still enjoy Istanbul?
+Category: daily_talks | Difficulty: medium
+Relevance: 2.7/5 | Features: 2/4
+Response: Absolutely, you can still enjoy Istanbul on a tight budget! Istanbul offers a myriad of affordable and even free activities that allow you to experience the city's rich culture and history without bre...
+----------------------------------------
+Query: The crowds are crazy! When is the best time to visit attractions?
+Category: daily_talks | Difficulty: medium
+Relevance: 2.8/5 | Features: 1/4
+Response: In Istanbul, the best time to visit attractions to avoid crowds is early in the morning or late afternoon. Popular sites like Hagia Sophia, Blue Mosque, and Topkapi Palace typically have fewer visitor...
+----------------------------------------
