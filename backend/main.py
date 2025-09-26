@@ -6,11 +6,12 @@ import asyncio
 import json
 import time
 import html
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 import traceback
+from collections import defaultdict
 
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, UploadFile, File, Form
@@ -22,6 +23,11 @@ from thefuzz import fuzz, process
 
 # Load environment variables first, before any other imports
 load_dotenv()
+
+# Daily usage tracking
+daily_usage = defaultdict(int)  # IP -> count
+last_reset_date = date.today()
+DAILY_LIMIT = 20  # 20 requests per IP per day
 
 # Add the current directory to Python path for imports (must be before project imports)
 # Handle different deployment scenarios
@@ -303,7 +309,7 @@ def clean_text_formatting(text):
     if emoji_count > 3:
         text = emoji_pattern.sub(r'', text)
     
-    # PHASE 1: Remove explicit currency amounts (all formats)
+    # PHASE 1: Remove explicit currency amounts (all formats) - ENHANCED
     text = re.sub(r'\$\d+[\d.,]*', '', text)      # $20, $15.50
     text = re.sub(r'€\d+[\d.,]*', '', text)       # €20, €15.50
     text = re.sub(r'₺\d+[\d.,]*', '', text)       # ₺20, ₺15.50
@@ -311,26 +317,39 @@ def clean_text_formatting(text):
     text = re.sub(r'\d+\s*(?:\$|€|₺)', '', text)  # 20$, 50 €
     text = re.sub(r'(?:\$|€|₺)\s*\d+[\d.,]*', '', text)  # $ 20, € 15.50
     
-    # PHASE 2: Remove currency words and phrases
-    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds)s?', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)
+    # Additional currency patterns
+    text = re.sub(r'£\d+[\d.,]*', '', text)       # £20, £15.50
+    text = re.sub(r'\d+£', '', text)              # 50£
+    text = re.sub(r'(?:USD|EUR|GBP|TRY|TL)\s*\d+[\d.,]*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\d+\s*(?:USD|EUR|GBP|TRY|TL)', '', text, flags=re.IGNORECASE)
     
-    # PHASE 3: Remove cost-related phrases with amounts
+    # PHASE 2: Remove currency words and phrases - ENHANCED
+    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur|gbp|try)s?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:around|about|approximately|roughly)\s+\d+\s*(?:lira|euro|euros|dollar|dollars)', '', text, flags=re.IGNORECASE)
+    
+    # PHASE 3: Remove cost-related phrases with amounts - ENHANCED
     cost_patterns = [
-        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+)?\$?\€?₺?\d+[\d.,]*',
-        r'(?:entrance|admission|ticket)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?\d+',
-        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?\d+',
-        r'(?:only|just)\s+\$?\€?₺?\d+[\d.,]*',
-        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?\d+',
-        r'\$?\€?₺?\d+[\d.,]*\s*(?:per\s+person|each|pp)',
+        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+|roughly\s+)?\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:entrance|admission|ticket|entry)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?£?\d+',
+        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?£?\d+',
+        r'(?:only|just)\s+\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?£?\d+',
+        r'\$?\€?₺?£?\d+[\d.,]*\s*(?:per\s+person|each|pp)',
+        r'(?:budget|spend|pay)\s*:?\s*(?:around\s+|about\s+)?\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:between|from)\s+\$?\€?₺?£?\d+\s*(?:and|to|-|–)\s*\$?\€?₺?£?\d+',
+        r'(?:range|varies)\s+(?:from|between)\s+\$?\€?₺?£?\d+',
     ]
     
     for pattern in cost_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # PHASE 4: Remove money emojis and currency symbols
-    text = re.sub(r'💰|💵|💴|💶|💷', '', text)
-    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨]', '', text)
+    # PHASE 4: Remove money emojis and currency symbols - ENHANCED
+    text = re.sub(r'💰|💵|💴|💶|💷|💸', '', text)
+    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨₡₵₼₢₨₹₿]', '', text)
+    
+    # Remove currency codes
+    text = re.sub(r'\b(?:USD|EUR|GBP|TRY|TL|JPY|CHF|CAD|AUD)\b', '', text, flags=re.IGNORECASE)
     
     # PHASE 5: Enhance formatting for readability
     # Convert markdown to readable format
@@ -387,7 +406,7 @@ def sanitize_user_input(user_input: str) -> str:
     return user_input.strip()
 
 def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
-    """Generate response using OpenAI GPT for queries we can't handle with database/hardcoded responses"""
+    """Generate response using OpenAI GPT with advanced query analysis for better relevance"""
     try:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not OpenAI_available or not openai_api_key or OpenAI is None:
@@ -398,21 +417,54 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
         if not user_input:
             return None
         
+        # Import and use advanced query analysis and location enhancement
+        try:
+            from query_analyzer import analyze_and_enhance_query, QueryType, LocationContext
+            from location_enhancer import get_location_enhanced_gpt_prompt, enhance_response_with_location_context
+            
+            analysis, enhanced_user_prompt = analyze_and_enhance_query(user_input)
+            
+            print(f"🔍 Query Analysis - Type: {analysis.query_type.value}, Location: {analysis.location_context.value}, Confidence: {analysis.confidence_score:.2f}")
+            
+            # Further enhance prompt with location-specific context
+            if analysis.location_context != LocationContext.NONE:
+                enhanced_user_prompt = get_location_enhanced_gpt_prompt(enhanced_user_prompt, analysis.location_context.value)
+                print(f"📍 Location-enhanced prompt generated for {analysis.location_context.value}")
+            
+            # Use enhanced prompt instead of basic user input
+            user_message = enhanced_user_prompt
+            
+        except ImportError:
+            print("⚠️ Query analyzer/location enhancer not available, using basic prompt")
+            user_message = f"Question about Istanbul: {user_input}"
+            analysis = None
+        
         # Create OpenAI client
         client = OpenAI(api_key=openai_api_key, timeout=30.0, max_retries=2)
         
-        # Create a specialized prompt for Istanbul tourism
-        system_prompt = """You are an expert Istanbul travel assistant with deep knowledge of the city. Provide comprehensive, informative responses about Istanbul tourism, culture, attractions, restaurants, and travel tips.
+        # Enhanced system prompt with query analysis insights
+        if analysis and analysis.location_context != LocationContext.NONE:
+            location_focus = f"\n\nSPECIAL LOCATION FOCUS: The user is asking specifically about {analysis.location_context.value.title()}. Make sure your entire response is focused on this area with specific local details, walking distances to landmarks, and practical information for that neighborhood."
+        else:
+            location_focus = ""
+            
+        system_prompt = f"""You are an expert Istanbul travel assistant with deep knowledge of the city. Provide comprehensive, informative responses about Istanbul tourism, culture, attractions, restaurants, and travel tips.
+
+CRITICAL RULES:
+1. LOCATION FOCUS: Only provide information about ISTANBUL, Turkey. If asked about other cities (Ankara, Izmir, etc.), politely redirect to Istanbul or clarify that you specialize in Istanbul only.
+2. NO PRICING: Never include specific prices, costs, fees, or monetary amounts. Instead use terms like "affordable", "moderate", "upscale", "budget-friendly", "varies".
+3. NO CURRENCY: Avoid all currency symbols, numbers with currency words, or specific cost amounts.
+4. DIRECT RELEVANCE: Answer exactly what the user asks. Don't provide generic information - be specific to their query.
 
 Guidelines:
 - Give DIRECT, HELPFUL answers - avoid asking for clarification unless absolutely necessary
-- Include specific names of places, attractions, districts, and landmarks
-- Provide practical information: prices, hours, locations, transportation details
+- Include specific names of places, attractions, districts, and landmarks IN ISTANBUL
+- Provide practical information: hours, locations, transportation details (but NOT costs/prices)
 - Mention key topics and keywords relevant to the question
 - Be enthusiastic but informative (250-500 words)
 - For districts/neighborhoods: mention key attractions, character, and what makes them special
 - For museums/attractions: include historical context, highlights, and practical visiting tips
-- For transportation: provide specific routes, costs, and alternatives
+- For transportation: provide specific routes and alternatives (but avoid specific costs)
 - For general questions: give comprehensive overviews with specific examples
 - Always include relevant keywords and topics that tourists would search for
 
@@ -431,16 +483,16 @@ Key Istanbul topics to reference when relevant:
 - Galata (trendy cafes, art galleries, views)
 - Bosphorus (bridges, ferry rides, waterfront)
 - Transportation (metro, tram, ferry, Istanbulkart, BiTaksi)
-- Districts, museums, restaurants, culture, history, Byzantine, Ottoman, Asia/Europe"""
+- Districts, museums, restaurants, culture, history, Byzantine, Ottoman, Asia/Europe{location_focus}"""
 
-        # Make the API call
+        # Make the API call with enhanced prompt
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Question about Istanbul: {user_input}"}
+                {"role": "user", "content": user_message}
             ],
-            max_tokens=350,
+            max_tokens=450,
             temperature=0.7,
             timeout=25
         )
@@ -448,6 +500,26 @@ Key Istanbul topics to reference when relevant:
         gpt_response = response.choices[0].message.content
         if gpt_response:
             gpt_response = gpt_response.strip()
+            
+            # Apply post-LLM cleanup to remove pricing and fix location issues
+            gpt_response = post_llm_cleanup(gpt_response)
+            
+            # Temporarily disable ALL location enhancement to see core GPT responses
+            print(f"📝 Using pure GPT response without enhancement for debugging")
+            
+            # Check if response was truncated due to token limit
+            finish_reason = response.choices[0].finish_reason
+            if finish_reason == "length":
+                # Response was cut off due to token limit
+                print(f"⚠️ Response truncated due to token limit for query ID: {hash(user_input) % 10000}")
+                
+                # Add indication that response was truncated (only if it doesn't end with punctuation)
+                if not gpt_response.endswith(('.', '!', '?', ':')):
+                    gpt_response += "\n\n*[Response was truncated due to length limit. Ask a more specific question for a complete answer.]*"
+                else:
+                    # If it ends with punctuation, it might be a natural ending
+                    print(f"✅ Response ended naturally with punctuation despite length limit")
+            
             print(f"✅ GPT response generated successfully for query ID: {hash(user_input) % 10000}")
             return gpt_response
         else:
@@ -584,25 +656,68 @@ Would you like me to help you with specific museum information or directions?"""
     return response
 
 def post_llm_cleanup(text):
-    """Post-LLM cleanup pass to catch any remaining pricing while preserving readable formatting"""
+    """Post-LLM cleanup pass to catch any remaining pricing and location issues while preserving readable formatting"""
     if not text:
         return text
     
-    # Catch any remaining pricing patterns that might have been generated
+    # ENHANCED PRICING REMOVAL - More aggressive patterns
     post_patterns = [
-        r'\b(?:costs?|prices?)\s+(?:around\s+|about\s+)?\d+',
-        r'\d+\s*(?:lira|euro|dollar)s?\s*(?:per|each|only)',
-        r'(?:(?:only|just|around)\s+)?\d+\s*(?:lira|euro|dollar)',
-        r'budget\s*:\s*\d+',
-        r'price\s+range\s*:\s*\d+',
-        r'\b\d+\s*(?:-|to)\s*\d+\s*(?:lira|euro|dollar)',
+        # Direct cost patterns
+        r'\b(?:costs?|prices?)\s+(?:around\s+|about\s+|approximately\s+)?\d+[\d.,]*',
+        r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur)\s*(?:per|each|only|approximately|around)?',
+        r'(?:(?:only|just|around|about|approximately)\s+)?\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur)',
+        r'budget\s*:?\s*\d+[\d.,]*',
+        r'price\s*(?:range|list)?\s*:?\s*\d+[\d.,]*',
+        r'\b\d+\s*(?:-|to|–)\s*\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur)',
+        
+        # Cost indicators with numbers
+        r'(?:entrance|admission|ticket|entry)\s*(?:cost|price|fee)s?\s*:?\s*\d+[\d.,]*',
+        r'(?:starting|starts)\s+(?:from|at)\s+\d+[\d.,]*',
+        r'(?:pay|spend|budget)\s+(?:around|about|approximately)?\s*\d+[\d.,]*',
+        r'(?:between|from)\s+\d+\s*(?:and|to|-|–)\s*\d+\s*(?:lira|euro|euros|dollar|dollars)',
+        
+        # Currency symbols with numbers
+        r'[₺$€£¥]\s*\d+[\d.,]*',
+        r'\d+[\d.,]*\s*[₺$€£¥]',
+        
+        # Turkish Lira specific patterns
+        r'\d+\s*(?:turkish\s+)?lira',
+        r'(?:turkish\s+)?lira\s*\d+',
+        r'\d+\s*tl\b',
+        r'\btl\s*\d+',
+        
+        # Additional cost phrases
+        r'(?:costs?|charges?|fees?)\s+(?:around|about|approximately|roughly)?\s*\d+',
+        r'(?:expensive|cheap|affordable)\s*[–-]\s*\d+',
+        r'per\s+(?:person|adult|child|visit)\s*:?\s*\d+',
+        r'\d+\s*per\s+(?:person|adult|child|visit|entry)',
     ]
     
     for pattern in post_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # Remove any remaining standalone numbers that might be pricing (but be more conservative)
-    text = re.sub(r'\b\d{2,3}\s*(?=\s|$|[.,!?])', '', text)
+    # Remove standalone currency amounts that might have been missed
+    text = re.sub(r'\b\d{1,4}[\d.,]*\s*(?=\s|$|[.,!?]|\n)', lambda m: '' if any(c in text.lower() for c in ['lira', 'euro', 'dollar', 'cost', 'price', 'fee']) else m.group(), text)
+    
+    # LOCATION CORRECTION - Fix mentions of wrong cities in Istanbul context
+    wrong_city_patterns = [
+        # Replace mentions of other Turkish cities with Istanbul context
+        (r'\b(?:ankara|izmir|antalya|bursa|adana)\b(?!\s+(?:vs|versus|compared?))', 'Istanbul', re.IGNORECASE),
+        # Fix "Turkey" to "Istanbul, Turkey" for restaurant context
+        (r'\bin\s+turkey\b(?!\s*,)', 'in Istanbul, Turkey', re.IGNORECASE),
+        (r'\brestaurants?\s+in\s+turkey\b', 'restaurants in Istanbul', re.IGNORECASE),
+        (r'\bfood\s+in\s+turkey\b', 'food in Istanbul', re.IGNORECASE),
+        # Fix generic Turkey mentions when clearly talking about Istanbul
+        (r'\bturkey\s+offers\b', 'Istanbul offers', re.IGNORECASE),
+        (r'\bturkey\s+is\s+known\b', 'Istanbul is known', re.IGNORECASE),
+    ]
+    
+    for pattern, replacement, flags in wrong_city_patterns:
+        text = re.sub(pattern, replacement, text, flags=flags)
+    
+    # Clean up any resulting grammar issues
+    text = re.sub(r'\bIstanbul\s+Istanbul\b', 'Istanbul', text)
+    text = re.sub(r'\bin\s+Istanbul,?\s+Istanbul\b', 'in Istanbul', text, flags=re.IGNORECASE)
     
     # Improve readability formatting
     # Ensure proper spacing around bullet points
@@ -616,6 +731,9 @@ def post_llm_cleanup(text):
     text = re.sub(r'\n {2,}', '\n', text)  # Remove spaces at start of lines
     text = re.sub(r' \n', '\n', text)  # Remove spaces before line breaks
     text = re.sub(r'\n{4,}', '\n\n\n', text)  # Limit to max 3 line breaks
+    
+    # Remove any empty lines created by pricing removal
+    text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)
     
     return text.strip()
 
@@ -911,6 +1029,363 @@ def is_complex_transportation_query(user_input: str) -> bool:
 
 app = FastAPI(title="AIstanbul API")
 
+# Daily usage tracking functions
+import hashlib
+import sqlite3
+from datetime import datetime, timedelta
+
+# Initialize daily usage database
+def init_daily_usage_db():
+    """Initialize the daily usage tracking database"""
+    try:
+        conn = sqlite3.connect('daily_usage.db')
+        cursor = conn.cursor()
+        
+        # Create daily_usage table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS daily_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_hash TEXT NOT NULL,
+                date TEXT NOT NULL,
+                usage_count INTEGER DEFAULT 1,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(ip_hash, date)
+            )
+        ''')
+        
+        # Create index for faster lookups
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_ip_date ON daily_usage (ip_hash, date)
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("✅ Daily usage database initialized")
+        
+    except Exception as e:
+        print(f"❌ Error initializing daily usage database: {str(e)}")
+
+def get_usage_db():
+    """Get database connection for usage tracking"""
+    try:
+        conn = sqlite3.connect('daily_usage.db')
+        conn.row_factory = sqlite3.Row  # Enable named access to columns
+        return conn
+    except Exception as e:
+        print(f"❌ Error connecting to usage database: {str(e)}")
+        raise
+
+def get_client_ip(request):
+    """Extract client IP address from request headers"""
+    # Check for forwarded IP headers (common in reverse proxy setups)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # Take the first IP in case of multiple forwarded IPs
+        return forwarded_for.split(",")[0].strip()
+    
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    
+    # Fallback to client host
+    return request.client.host if request.client else "unknown"
+
+def hash_ip(ip_address):
+    """Create a hash of IP address for privacy"""
+    return hashlib.sha256(ip_address.encode()).hexdigest()[:16]
+
+def check_and_update_daily_usage(client_ip, daily_limit=1000):
+    """Check and update daily usage for a client IP"""
+    try:
+        conn = get_usage_db()
+        cursor = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        ip_hash = hash_ip(client_ip)
+        
+        # Check current usage
+        cursor.execute("""
+            SELECT usage_count FROM daily_usage 
+            WHERE ip_hash = ? AND date = ?
+        """, (ip_hash, today))
+        
+        result = cursor.fetchone()
+        current_usage = result[0] if result else 0
+        
+        # Check if limit exceeded
+        if current_usage >= daily_limit:
+            conn.close()
+            return {
+                'allowed': False,
+                'current_usage': current_usage,
+                'daily_limit': daily_limit,
+                'remaining': 0,
+                'message': f'Daily limit of {daily_limit} requests exceeded',
+                'reset_time': (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat()
+            }
+        
+        # Update usage count
+        cursor.execute("""
+            INSERT OR REPLACE INTO daily_usage (ip_hash, date, usage_count)
+            VALUES (?, ?, ?)
+        """, (ip_hash, today, current_usage + 1))
+        
+        conn.commit()
+        conn.close()
+        
+        new_usage = current_usage + 1
+        remaining = daily_limit - new_usage
+        
+        return {
+            'allowed': True,
+            'current_usage': new_usage,
+            'daily_limit': daily_limit,
+            'remaining': remaining,
+            'message': 'Request allowed',
+            'reset_time': (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in daily usage check: {str(e)}")
+        # On error, allow the request to proceed
+        return {
+            'allowed': True,
+            'current_usage': 0,
+            'daily_limit': daily_limit,
+            'remaining': daily_limit,
+            'message': 'Usage check failed, request allowed',
+            'reset_time': (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat()
+        }
+
+def get_daily_usage_stats():
+    """Get daily usage statistics for monitoring"""
+    try:
+        conn = get_usage_db()
+        cursor = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Get total usage today
+        cursor.execute("""
+            SELECT COUNT(*) as unique_ips, SUM(usage_count) as total_requests
+            FROM daily_usage WHERE date = ?
+        """, (today,))
+        
+        result = cursor.fetchone()
+        unique_ips = result[0] if result else 0
+        total_requests = result[1] if result else 0
+        
+        # Get top usage IPs today
+        cursor.execute("""
+            SELECT ip_hash, usage_count FROM daily_usage 
+            WHERE date = ? ORDER BY usage_count DESC LIMIT 10
+        """, (today,))
+        
+        top_usage = cursor.fetchall()
+        
+        # Get usage over last 7 days
+        cursor.execute("""
+            SELECT date, COUNT(*) as unique_ips, SUM(usage_count) as total_requests
+            FROM daily_usage 
+            WHERE date >= date('now', '-7 days')
+            GROUP BY date ORDER BY date DESC
+        """)
+        
+        weekly_stats = cursor.fetchall()
+        conn.close()
+        
+        return {
+            'today': {
+                'date': today,
+                'unique_ips': unique_ips,
+                'total_requests': total_requests
+            },
+            'top_usage_today': [
+                {'ip_hash': row[0], 'requests': row[1]} 
+                for row in top_usage
+            ],
+            'weekly_stats': [
+                {'date': row[0], 'unique_ips': row[1], 'total_requests': row[2]}
+                for row in weekly_stats
+            ]
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting usage stats: {str(e)}")
+        return {
+            'error': str(e),
+            'today': {'date': datetime.now().strftime("%Y-%m-%d"), 'unique_ips': 0, 'total_requests': 0},
+            'top_usage_today': [],
+            'weekly_stats': []
+        }
+
+def reset_daily_usage(force=False):
+    """Reset daily usage counters"""
+    try:
+        conn = get_usage_db()
+        cursor = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        if force:
+            # Reset all usage data
+            cursor.execute("DELETE FROM daily_usage")
+            rows_affected = cursor.rowcount
+            conn.commit()
+            conn.close()
+            return {
+                'message': 'All usage data cleared',
+                'rows_affected': rows_affected,
+                'force': True
+            }
+        else:
+            # Only reset today's data
+            cursor.execute("DELETE FROM daily_usage WHERE date = ?", (today,))
+            rows_affected = cursor.rowcount
+            conn.commit()
+            conn.close()
+            return {
+                'message': f'Usage data cleared for {today}',
+                'rows_affected': rows_affected,
+                'date': today,
+                'force': False
+            }
+            
+    except Exception as e:
+        print(f"❌ Error resetting usage: {str(e)}")
+        return {
+            'error': str(e),
+            'message': 'Failed to reset usage data'
+        }
+
+def get_ip_usage_info(client_ip):
+    """Get usage information for a specific IP address"""
+    try:
+        conn = get_usage_db()
+        cursor = conn.cursor()
+        ip_hash = hash_ip(client_ip)
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Get today's usage
+        cursor.execute("""
+            SELECT usage_count FROM daily_usage 
+            WHERE ip_hash = ? AND date = ?
+        """, (ip_hash, today))
+        
+        result = cursor.fetchone()
+        today_usage = result[0] if result else 0
+        
+        # Get usage over last 7 days
+        cursor.execute("""
+            SELECT date, usage_count FROM daily_usage 
+            WHERE ip_hash = ? AND date >= date('now', '-7 days')
+            ORDER BY date DESC
+        """, (ip_hash,))
+        
+        weekly_usage = cursor.fetchall()
+        conn.close()
+        
+        return {
+            'ip_hash': ip_hash,
+            'today_usage': today_usage,
+            'today_date': today,
+            'weekly_usage': [
+                {'date': row[0], 'requests': row[1]} 
+                for row in weekly_usage
+            ],
+            'total_weekly': sum(row[1] for row in weekly_usage)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting IP usage info: {str(e)}")
+        return {
+            'error': str(e),
+            'ip_hash': hash_ip(client_ip),
+            'today_usage': 0,
+            'weekly_usage': [],
+            'total_weekly': 0
+        }
+
+# --- Daily Usage Tracking Middleware ---
+from fastapi import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+import json
+
+class DailyUsageMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Skip usage tracking for admin endpoints and health checks
+        if request.url.path.startswith(("/admin", "/health", "/static")):
+            return await call_next(request)
+        
+        # Get client IP
+        client_ip = get_client_ip(request)
+        
+        # Check and update daily usage
+        usage_check = check_and_update_daily_usage(client_ip)
+        
+        # If usage limit exceeded, return error
+        if not usage_check['allowed']:
+            return Response(
+                content=json.dumps({
+                    "error": "Daily request limit exceeded",
+                    "message": usage_check['message'],
+                    "remaining": usage_check['remaining'],
+                    "reset_time": usage_check['reset_time']
+                }),
+                status_code=429,
+                media_type="application/json"
+            )
+        
+        # Add usage info to response headers
+        response = await call_next(request)
+        response.headers["X-Daily-Usage"] = str(usage_check['current_usage'])
+        response.headers["X-Daily-Limit"] = str(usage_check['daily_limit'])
+        response.headers["X-Daily-Remaining"] = str(usage_check['remaining'])
+        
+        return response
+
+# Add daily usage middleware
+app.add_middleware(DailyUsageMiddleware)
+
+# Admin endpoint for monitoring daily usage
+@app.get("/admin/usage-stats")
+async def get_usage_stats():
+    """Get daily usage statistics for monitoring"""
+    try:
+        stats = get_daily_usage_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        print(f"❌ Error getting usage stats: {str(e)}")
+        return {"error": f"Failed to get usage stats: {str(e)}"}
+
+@app.post("/admin/reset-usage")
+async def reset_usage_admin(request: dict = None):
+    """Reset daily usage counters (admin only)"""
+    try:
+        force = request.get("force", False) if request else False
+        result = reset_daily_usage(force=force)
+        return {
+            "status": "success",
+            "result": result
+        }
+    except Exception as e:
+        print(f"❌ Error resetting usage: {str(e)}")
+        return {"error": f"Failed to reset usage: {str(e)}"}
+
+@app.get("/admin/ip-usage/{ip_hash}")
+async def get_ip_usage_admin(ip_hash: str):
+    """Get usage info for a specific IP (using hash for privacy)"""
+    try:
+        # This is a simplified version - in real implementation you'd need to reverse the hash
+        # or store IP mappings securely
+        return {
+            "status": "success", 
+            "message": "Use get_ip_usage_info() function directly with actual IP address"
+        }
+    except Exception as e:
+        print(f"❌ Error getting IP usage: {str(e)}")
+        return {"error": f"Failed to get IP usage: {str(e)}"}
+
 # Basic AI chat endpoints - add these BEFORE including other routers
 @app.post("/ai/chat")
 async def chat(request: dict):
@@ -921,12 +1396,85 @@ async def chat(request: dict):
         
         print(f"💬 Chat request received: {user_message[:50]}...")
         
-        # Use the existing GPT response function
-        response = get_gpt_response(user_message, "test-session")
-        if not response:
-            response = create_fallback_response(user_message, [])
+        # Use advanced query analysis for better routing
+        try:
+            from query_analyzer import analyze_and_enhance_query, QueryType, LocationContext
+            from location_enhancer import location_enhancer
+            
+            analysis, enhanced_prompt = analyze_and_enhance_query(user_message)
+            
+            print(f"🔍 Query Analysis: {analysis.query_type.value} | {analysis.location_context.value} | Confidence: {analysis.confidence_score:.2f}")
+            
+            # Log analysis for debugging
+            if analysis.dietary_restrictions:
+                print(f"🥗 Dietary restrictions detected: {analysis.dietary_restrictions}")
+            if analysis.time_context:
+                print(f"⏰ Time context: {analysis.time_context}")
+            if analysis.location_context != LocationContext.NONE:
+                print(f"📍 Location focus: {analysis.location_context.value}")
+            
+            # Detect additional locations from query if analysis missed it
+            detected_location = location_enhancer.detect_location_from_query(user_message)
+            if detected_location and analysis.location_context == LocationContext.NONE:
+                print(f"📍 Additional location detected by location enhancer: {detected_location}")
+                
+        except ImportError:
+            print("⚠️ Query analyzer/location enhancer not available, using legacy detection")
+            analysis = None
+            detected_location = None
         
-        print(f"✅ Chat response generated: {len(response)} characters")
+        # Check for location confusion first
+        is_confused, confusion_response = detect_location_confusion(user_message)
+        if is_confused and confusion_response:
+            print(f"📍 Location confusion detected, providing redirection...")
+            return {"response": confusion_response}
+        
+        # Enhanced restaurant query detection using analysis
+        user_lower = user_message.lower()
+        response = None  # Initialize response variable
+        
+        # Use query analysis for better restaurant detection
+        if analysis and analysis.query_type in [QueryType.RESTAURANT_SPECIFIC, QueryType.RESTAURANT_GENERAL]:
+            if analysis.location_context != LocationContext.NONE or analysis.confidence_score >= 0.5:
+                print(f"🍽️ Restaurant query with location/high confidence detected, trying Google Maps integration...")
+                response = get_live_restaurant_recommendations(user_message)
+                if response:
+                    print(f"✅ Google Maps restaurant response generated: {len(response)} characters")
+                else:
+                    print(f"⚠️ Google Maps integration failed, falling back to GPT...")
+        elif is_specific_restaurant_query(user_message):
+            # Fallback to legacy detection
+            print(f"🍽️ Legacy restaurant query detection, trying Google Maps integration...")
+            response = get_live_restaurant_recommendations(user_message)
+            if response:
+                print(f"✅ Google Maps restaurant response generated: {len(response)} characters")
+            else:
+                print(f"⚠️ Google Maps integration failed, falling back to GPT...")
+        
+        # Enhanced vague query detection using analysis
+        if not response:
+            if analysis and analysis.query_type == QueryType.RESTAURANT_GENERAL and analysis.confidence_score < 0.3:
+                print(f"🤔 Vague food query detected via analysis, asking for clarification...")
+                response = create_clarification_response(user_message)
+                print(f"✅ Clarification response generated: {len(response)} characters")
+                return {"response": response}
+            else:
+                # Legacy vague query detection
+                food_keywords = ['food', 'eat', 'hungry', 'where eat', 'best place']
+                if any(keyword in user_lower for keyword in food_keywords):
+                    if len(user_message.strip().split()) <= 3:  # Short vague queries
+                        print(f"🤔 Legacy vague food query detected, asking for clarification...")
+                        response = create_clarification_response(user_message)
+                        print(f"✅ Clarification response generated: {len(response)} characters")
+                        return {"response": response}
+        
+        # Fall back to GPT if no Google Maps response or not a restaurant query
+        if not response:
+            response = get_gpt_response(user_message, "test-session")
+            if not response:
+                response = "I'd be happy to help you with information about Istanbul! Could you please provide more details about what you're looking for?"
+        
+        print(f"✅ Final response generated: {len(response)} characters")
         return {"response": response}
     except Exception as e:
         print(f"❌ Chat error: {str(e)}")
@@ -941,10 +1489,39 @@ async def stream_chat(request: dict):
         
         print(f"🔄 Stream chat request received: {user_message[:50]}...")
         
-        # Generate response using the same logic as regular chat
-        response = get_gpt_response(user_message, "test-session")
+        # Check for location confusion first
+        is_confused, confusion_response = detect_location_confusion(user_message)
+        if is_confused and confusion_response:
+            print(f"📍 Location confusion detected, providing redirection...")
+            return {"response": confusion_response}
+        
+        # Check if this is a restaurant query 
+        user_lower = user_message.lower()
+        response = None  # Initialize response variable
+        
+        # Check for specific restaurant queries (not vague ones)
+        if is_specific_restaurant_query(user_message):
+            print(f"🍽️ Specific restaurant query detected, trying Google Maps integration...")
+            response = get_live_restaurant_recommendations(user_message)
+            if response:
+                print(f"✅ Google Maps restaurant response generated: {len(response)} characters")
+            else:
+                print(f"⚠️ Google Maps integration failed, falling back to GPT...")
+        else:
+            # Check if it's a vague food-related query that needs clarification
+            food_keywords = ['food', 'eat', 'hungry', 'where eat', 'best place']
+            if any(keyword in user_lower for keyword in food_keywords):
+                if len(user_message.strip().split()) <= 3:  # Short vague queries
+                    print(f"🤔 Vague food query detected, asking for clarification...")
+                    response = create_clarification_response(user_message)
+                    print(f"✅ Clarification response generated: {len(response)} characters")
+                    return {"response": response}
+        
+        # Fall back to GPT if no response generated yet
         if not response:
-            response = create_fallback_response(user_message, [])
+            response = get_gpt_response(user_message, "test-session")
+            if not response:
+                response = "I'd be happy to help you with information about Istanbul! Could you please provide more details about what you're looking for?"
         
         print(f"✅ Stream chat response generated: {len(response)} characters")
         return {"response": response}
@@ -1039,13 +1616,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+       
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
         
         return response
 
-# Add security headers middleware
+# Add security and usage tracking middleware
 app.add_middleware(SecurityHeadersMiddleware)
+# Daily usage middleware will be added after function definitions
 
 # Mount static files for admin dashboard
 app.mount("/static", StaticFiles(directory="."), name="static")
@@ -1082,429 +1661,523 @@ except ImportError as e:
     GDPR_SERVICE_ENABLED = False
     gdpr_service = None
 
-def create_fallback_response(user_input, places):
-    """Create intelligent fallback responses when OpenAI API is unavailable"""
-    user_input_lower = user_input.lower()
-    print(f"DEBUG: create_fallback_response called with input: '{user_input_lower}'")
+def is_specific_restaurant_query(user_input: str) -> bool:
+    """Determine if query is specific enough to warrant restaurant recommendations"""
+    user_lower = user_input.strip().lower()
     
-    # District-specific responses
-    if 'kadıköy' in user_input_lower or 'kadikoy' in user_input_lower:
-        response = """Kadıköy District Guide
-
-Kadıköy is Istanbul's vibrant Asian side cultural hub!
-
-Top Attractions in Kadıköy:
-- Moda Seaside - Waterfront promenade with cafes
-- Kadıköy Market - Bustling local market 
-- Fenerbahçe Park - Green space by the sea
-- Barlar Sokağı - Famous bar street for nightlife
-- Yeldeğirmeni - Artsy neighborhood with murals
-- Haydarpaşa Train Station - Historic Ottoman architecture
-
-What to Do:
-- Stroll along Moda seafront
-- Browse vintage shops and bookstores
-- Try local street food at the market
-- Experience authentic Turkish neighborhood life
-- Take ferry to European side for Bosphorus views
-
-Getting There:
-- Ferry from Eminönü or Beşiktaş (most scenic)
-- Metro from Ayrılık Çeşmesi station
-- Bus connections from major areas
-
-Kadıköy offers an authentic Istanbul experience away from tourist crowds!"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
+    # Filter out very vague single-word or short queries
+    if len(user_input.strip().split()) <= 1:
+        vague_words = ['food', 'eat', 'hungry', 'restaurant', 'dinner', 'lunch', 'breakfast']
+        if user_lower in vague_words:
+            return False
     
-    elif 'sultanahmet' in user_input_lower:
-        response = """Sultanahmet Historic District
-
-Istanbul's historic heart with UNESCO World Heritage sites!
-
-Major Attractions:
-- Hagia Sophia - Former Byzantine church and Ottoman mosque
-- Blue Mosque - Stunning Ottoman architecture  
-- Topkapi Palace - Ottoman imperial palace
-- Grand Bazaar - Historic covered market
-- Basilica Cistern - Underground Byzantine cistern
-- Hippodrome - Ancient Roman chariot racing arena
-
-Walking Distance Sites:
-- Gülhane Park - Historic park
-- Turkish and Islamic Arts Museum
-- Soğukçeşme Street - Ottoman houses
-- Archaeological Museums
-
-Tips:
-- Start early to avoid crowds
-- Comfortable walking shoes essential
-- Many sites within 10-minute walk
-- Free WiFi in most cafes and museums"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
+    # Filter out very short vague phrases
+    vague_phrases = [
+        'where eat', 'where eat?', 'eat something', 'eat something good', 
+        'best place', 'good food', 'what eat', 'what to eat'
+    ]
+    if user_lower in vague_phrases:
+        return False
     
-    # Check for restaurant queries in Turkish before falling back to district info
-    elif 'beyoğlu' in user_input_lower or 'beyoglu' in user_input_lower:
-        # Check if this is a restaurant query specifically
-        turkish_restaurant_keywords = ['restoran', 'restoranlar', 'en iyi', 'iyi', 'yemek', 'lokanta', 'tavsiye']
-        print(f"DEBUG: Checking Turkish restaurant keywords in '{user_input_lower}'")
-        print(f"DEBUG: Keywords: {turkish_restaurant_keywords}")
-        found_keywords = [keyword for keyword in turkish_restaurant_keywords if keyword in user_input_lower]
-        print(f"DEBUG: Found keywords: {found_keywords}")
-        if any(keyword in user_input_lower for keyword in turkish_restaurant_keywords):
-            response = """**Best Restaurants in Beyoğlu:**
-
-🍽️ **Pandeli** - Historic Ottoman restaurant in Eminönü serving traditional Turkish cuisine
-🥘 **Hamdi Restaurant** - Famous for lamb tandoor and kebabs
-🍷 **Mikla** - Modern Turkish cuisine with rooftop dining in Pera
-🧀 **Karaköy Lokantası** - Nostalgic ambiance in Karaköy, excellent meze
-🍕 **360 Istanbul** - Panoramic views in Galata, international cuisine
-🥙 **Datli Maya** - Organic and natural ingredients, healthy options
-
-**Area Recommendations:**
-• **Galata Tower area** - Romantic dinner spots
-• **Istiklal Street** - Quick dining options  
-• **Karaköy** - Trendy cafes and restaurants
-• **Cihangir** - Bohemian atmosphere, art cafes
-
-**Tip:** Don't forget to make reservations, especially for weekends!"""
-        else:
-            response = """Beyoğlu Cultural District
-
-Modern Istanbul's cultural and nightlife center!
-
-Key Areas:
-- Istiklal Avenue - Main pedestrian street
-- Galata Tower - Iconic medieval tower
-- Taksim Square - Central meeting point
-- Karaköy - Trendy waterfront area
-- Cihangir - Bohemian neighborhood
-
-Attractions:
-- Galata Tower views
-- Pera Museum
-- Istanbul Modern Art Museum
-- Historic trams on Istiklal
-- Rooftop bars and restaurants
-
-Activities:
-- Walk the length of Istiklal Avenue
-- Take nostalgic tram ride
-- Explore art galleries in Karaköy
-- Experience Istanbul's nightlife
-- Browse vintage shops and bookstores"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
+    # Filter out cooking/recipe queries (not restaurant location queries)
+    cooking_indicators = [
+        'how to cook', 'recipe', 'cooking', 'ingredients', 'make at home',
+        'prepare', 'homemade', 'cooking class', 'learn to cook'
+    ]
+    if any(indicator in user_lower for indicator in cooking_indicators):
+        return False
     
-    # Food and cuisine questions - check BEFORE history/culture to avoid conflicts
-    elif any(word in user_input_lower for word in ['food', 'eat', 'cuisine', 'dish', 'meal', 'breakfast', 'lunch', 'dinner', 'restaurant', 'restaurants', 'tipping', 'tip']):
-        # Check for Bosphorus view restaurant queries first
-        if any(word in user_input_lower for word in ['bosphorus', 'view', 'waterfront', 'water view', 'sea view', 'scenic']):
-            response = """Restaurants with Bosphorus Views
-
-**Ortaköy Area:**
-- House Cafe Ortaköy - Waterfront dining with mosque views
-- Feriye Palace Restaurant - Ottoman palace setting
-- Reina - Upscale nightclub with Bosphorus terrace
-
-**Bebek & Arnavutköy:**
-- Bebek Restaurant - Classic seafood with water views
-- Arnavutköy Balıkçısı - Traditional fish restaurant
-- Lucca Style - Italian cuisine with Bosphorus panorama
-
-**Asian Side:**
-- Maiden's Tower Restaurant - Unique tower location
-- Çubuklu 29 - Elegant dining with European side views
-- Körfez Restaurant - Local favorite in Kanlıca
-
-**Rooftop Options:**
-- 360 Istanbul (Beyoğlu) - Panoramic city and water views
-- Mikla - Modern Turkish cuisine with skyline views
-- Leb-i Derya - Trendy rooftop in Beyoğlu
-
-**Tips:**
-- Make reservations for sunset timing
-- Dress smart casual for upscale places
-- Consider ferry ride to restaurant for full Bosphorus experience"""
-
-        # Check for Grand Bazaar food court queries
-        elif any(word in user_input_lower for word in ['grand bazaar', 'kapalıçarşı', 'food court', 'bazaar food']):
-            response = """Grand Bazaar Food Experience
-
-**Food Court Options:**
-- Traditional Turkish köfte (meatballs)
-- Fresh pide (Turkish pizza) 
-- Döner kebab stalls
-- Turkish delight and baklava
-- Turkish tea and coffee
-
-**Nearby Traditional Eateries:**
-- Havuzlu Restaurant - Historic restaurant inside the bazaar
-- Pandeli Restaurant - Ottoman-era restaurant near Spice Bazaar
-- Local çay (tea) houses for breaks
-
-**What to Try:**
-- Fresh simit (Turkish bagel)
-- Lokum (Turkish delight) - try before buying
-- Turkish coffee preparation demonstrations
-- Seasonal fruit juices
-- Traditional pastries
-
-**Tips:**
-- Food court gets busy during lunch hours
-- Try samples before purchasing sweets
-- Bargaining expected for food items too
-- Combine with Spice Bazaar visit for more food options"""
-
-        # Check for Ottoman cuisine queries  
-        elif any(word in user_input_lower for word in ['ottoman', 'historic', 'traditional', 'authentic', 'palace']):
-            response = """Authentic Ottoman Cuisine in Istanbul
-
-**Historic Restaurants:**
-- Pandeli Restaurant - Established 1901, serves Ottoman palace recipes
-- Hamdi Restaurant - Traditional tandoor cooking methods
-- Deraliye Ottoman Palace Cuisine - Recreates historical palace dishes
-- Tugra Restaurant - Fine Ottoman dining in Four Seasons hotel
-
-**Signature Ottoman Dishes:**
-- Hünkar Beğendi - Lamb stew with eggplant puree
-- İmam Bayıldı - Stuffed eggplant (vegetarian)
-- Kuzu Tandır - Slow-roasted lamb
-- Ottoman-style rice pilaf
-- Traditional meze selections
-- Turkish coffee service (UNESCO recognized)
-
-**Palace-Style Dining:**
-- Çırağan Palace Restaurant - Actual Ottoman palace
-- Esma Sultan Mansion - Restored Ottoman waterfront mansion
-- Les Ottomans Hotel Restaurant - Ottoman-themed fine dining
-
-**Cultural Experience:**
-- Some restaurants offer traditional music
-- Authentic Ottoman table setting and service
-- Historical recipes dating back centuries"""
-
-        # Check for tipping culture queries  
-        elif any(word in user_input_lower for word in ['tipping', 'tip', 'service', 'gratuity', 'how much']):
-            response = """Tipping Culture in Istanbul Restaurants
-
-**Standard Tipping:**
-- 10-15% is standard for good service
-- Round up to nearest 5-10 TL for casual places
-- 15-20% for upscale restaurants
-
-**How to Tip:**
-- Cash is preferred over adding to card
-- Leave tip on table or give directly to server
-- Say "Üstü kalsın" (keep the change)
-
-**Service Charge:**
-- Some upscale places add 10% service charge
-- Check your bill - additional tip not required if service charge included
-- Ask "Servis ücreti dahil mi?" (Is service charge included?)
-
-**When NOT to Tip:**
-- Fast food places
-- Self-service cafes
-- If service was genuinely poor
-
-**Cultural Notes:**
-- Tipping shows appreciation for good service
-- Turkish hospitality culture appreciates recognition
-- Don't feel obligated if service was poor"""
-
-        # Check for Turkish breakfast queries
-        elif any(word in user_input_lower for word in ['breakfast', 'kahvaltı']):
-            response = """Turkish Breakfast Culture (Kahvaltı)
-
-Traditional Turkish breakfast is a feast! Key components:
-
-**Essential Items:**
-- Fresh Turkish bread (ekmek)
-- Various cheeses (beyaz peynir, kaşar)
-- Olives (black and green varieties)
-- Turkish tea (çay) - served in small glasses
-- Honey and jam varieties
-- Tomatoes, cucumbers, peppers
-- Börek (flaky pastry)
-- Sucuklu yumurta (eggs with Turkish sausage)
-
-**Popular Breakfast Places:**
-- Van Kahvaltı Evi (traditional Van breakfast)
-- Çiya Sofrası in Kadıköy
-- Pandeli Restaurant
-- Local breakfast houses in Beyoğlu
-
-**Culture:**
-- Breakfast is a leisurely social meal
-- Weekends often feature extended family breakfasts
-- Tea is essential - coffee is not traditional for breakfast"""
-        
-        elif any(word in user_input_lower for word in ['bosphorus', 'view', 'waterfront']):
-            response = """Restaurants with Bosphorus Views
-
-**Ortaköy Area:**
-- House Cafe Ortaköy - Waterfront dining with mosque views
-- Feriye Palace Restaurant - Ottoman palace setting
-- Reina - Upscale nightclub with Bosphorus terrace
-
-**Bebek & Arnavutköy:**
-- Bebek Restaurant - Classic seafood with water views
-- Arnavutköy Balıkçısı - Traditional fish restaurant
-- Lucca Style - Italian cuisine with Bosphorus panorama
-
-**Asian Side:**
-- Maiden's Tower Restaurant - Unique tower location
-- Çubuklu 29 - Elegant dining with European side views
-- Körfez Restaurant - Local favorite in Kanlıca
-
-**Rooftop Options:**
-- 360 Istanbul (Beyoğlu) - Panoramic city and water views
-- Mikla - Modern Turkish cuisine with skyline views
-- Leb-i Derya - Trendy rooftop in Beyoğlu"""
-
-        elif any(word in user_input_lower for word in ['tipping', 'tip', 'service']):
-            response = """Tipping Culture in Istanbul Restaurants
-
-**Standard Tipping:**
-- 10-15% is standard for good service
-- Round up to nearest 5-10 TL for casual places
-- 15-20% for upscale restaurants
-
-**How to Tip:**
-- Cash is preferred over adding to card
-- Leave tip on table or give directly to server
-- Say "Üstü kalsın" (keep the change)
-
-**Service Charge:**
-- Some upscale places add 10% service charge
-- Check your bill - additional tip not required if service charge included
-- Ask "Servis ücreti dahil mi?" (Is service charge included?)
-
-**When NOT to Tip:**
-- Fast food places
-- Self-service cafes
-- If service was genuinely poor
-
-**Cultural Notes:**
-- Tipping shows appreciation for good service
-- Turkish hospitality culture appreciates recognition
-- Don't feel obligated if service was poor"""
-
-        else:
-            response = """Turkish Cuisine in Istanbul
-
-I can provide live restaurant recommendations using Google Maps. Please ask for a specific type of restaurant or cuisine, and I'll fetch the latest options for you!
-
-Must-try Turkish dishes include döner kebab, simit, balık ekmek, midye dolma, iskender kebab, manti, lahmacun, börek, baklava, Turkish delight, künefe, Turkish tea, ayran, and raki.
-
-For restaurant recommendations, please specify your preference (e.g., 'seafood in Kadıköy')."""
-        
-        return enhance_ai_response_formatting(clean_text_formatting(response))
+    # Filter out queries about other cities
+    other_cities = ['ankara', 'izmir', 'antalya', 'bursa', 'adana']
+    if any(city in user_lower for city in other_cities) and 'istanbul' not in user_lower:
+        return False
     
-    # History and culture questions
-    elif any(word in user_input_lower for word in ['history', 'historical', 'culture', 'byzantine', 'ottoman']):
-        response = """Istanbul's Rich History
-
-Istanbul has over 2,500 years of history! Here are key highlights:
-
-Byzantine Era (330-1453 CE):
-- Originally called Constantinople
-- Hagia Sophia built in 537 CE
-- Capital of Byzantine Empire
-
-Ottoman Era (1453-1922):
-- Conquered by Mehmed II in 1453
-- Became capital of Ottoman Empire
-- Blue Mosque, Topkapi Palace built
-
-Modern Istanbul:
-- Turkey's largest city with 15+ million people
-- Spans Europe and Asia across the Bosphorus
-    - UNESCO World Heritage sites in historic areas
-
-Would you like to know about specific historical sites or districts?"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
-
-    # Transportation questions
-    elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'getting around']):
-        # Check for metro vs metrobus comparison first
-        if any(word in user_input_lower for word in ['metrobus', 'difference', 'vs', 'versus', 'compare']):
-            response = """Metro vs Metrobus in Istanbul
-
-**Metro (M Lines):**
-- Underground rapid transit system
-- M1: Airport to city center
-- M2: North-south European side
-- M3, M4: Various city connections
-- Clean, air-conditioned, frequent
-- Stations have elevators and escalators
-
-**Metrobus (BRT):**
-- Bus Rapid Transit system
-- Dedicated bus lanes on highways
-- Connects European and Asian sides
-- Faster than regular buses
-- More crowded, especially rush hours
-
-Which would you prefer for your journey?"""
-        
-        # Generic transportation questions
-        elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'getting around']):
-            response = """Getting Around Istanbul
-
-Istanbul Card (Istanbulkart):
-• Essential for all public transport
-• Buy at metro stations, ferry terminals, kiosks
-• Works on metro, bus, tram, ferry, metrobus
-
-Metro System:
-• Clean, efficient underground system
-• M1: Airport to city center
-• M2: Şişli-Hacıosman to Yenikapi
-• M3, M4: Various connections
-• Runs until 00:30 (12:30 AM)
-
-Metrobus:
-• Bus Rapid Transit on dedicated lanes
-• Connects European and Asian sides
-• Can be crowded during rush hours
-• Fastest way to cross continents
-
-Ferries:
-• Scenic way to cross Bosphorus
-• Regular routes between Eminönü, Karaköy, Kadıköy
-• Beautiful views of the city
-• More relaxing than bridges
-
-Taxis:
-• Yellow cabs throughout the city
-• Use meter or negotiate fare
-• BiTaksi app popular locally
-• More expensive but convenient
-
-Which transportation method interests you most?"""
-            return enhance_ai_response_formatting(clean_text_formatting(response))
+    # Filter out general Turkey queries (should be Istanbul-specific)
+    if 'turkey' in user_lower and 'istanbul' not in user_lower:
+        if len(user_input.split()) < 4:  # Short general queries like "restaurants in Turkey"
+            return False
     
-    # Default helpful response when no specific pattern is matched
+    # Now check for legitimate restaurant query indicators
+    specific_restaurant_indicators = [
+        'restaurant', 'restaurants', 'dining', 'where to eat',
+        'best places to eat', 'recommendations', 'suggest', 'recommend',
+        'seafood', 'vegetarian', 'vegan', 'fine dining', 'rooftop',
+        'bosphorus view', 'waterfront', 'turkish cuisine', 'ottoman cuisine',
+        'meze', 'kebab', 'breakfast place', 'lunch spot', 'dinner',
+        'near', 'in sultanahmet', 'in beyoglu', 'in kadikoy', 'in galata'
+    ]
+    
+    has_specific_indicators = any(indicator in user_lower for indicator in specific_restaurant_indicators)
+    
+    # Must have specific indicators AND be reasonably detailed (more than 2 words for most cases)
+    if has_specific_indicators and len(user_input.split()) >= 2:
+        return True
+    
+    # Allow some specific single-word cuisine queries
+    cuisine_words = ['seafood', 'vegetarian', 'vegan', 'italian', 'japanese', 'chinese']
+    if user_lower in cuisine_words:
+        return True
+    
+    return False
+
+def create_clarification_response(user_input: str) -> str:
+    """Create a response asking for clarification on vague queries"""
+    user_lower = user_input.lower()
+    
+    if user_lower in ['food', 'eat', 'hungry']:
+        return """I'd love to help you find great food in Istanbul! To give you the best recommendations, could you tell me:
+
+• What type of cuisine are you interested in? (Turkish, Italian, seafood, vegetarian, etc.)
+• Which area of Istanbul are you in or planning to visit?
+• What's your preferred dining style? (Fine dining, casual, street food, etc.)
+• Any specific dietary requirements?
+
+For example, you could ask: "vegetarian restaurants in Sultanahmet" or "seafood places with Bosphorus view" """
+
+    elif 'where eat' in user_lower:
+        return """I can help you find excellent restaurants in Istanbul! To provide better suggestions, please let me know:
+
+• What area of Istanbul? (Sultanahmet, Beyoğlu, Kadıköy, etc.)
+• What type of food do you prefer?
+• Any budget preferences?
+
+Try asking something like: "best Turkish restaurants in Galata" or "budget-friendly places in Kadıköy" """
+
     else:
-        response = """I'd be happy to help you explore Istanbul! 
+        return """To help you find the perfect restaurant in Istanbul, I'd need a bit more information:
 
-**Popular Topics I Can Help With:**
-- 🏛️ **Historic Sites** - Hagia Sophia, Topkapi Palace, Blue Mosque
-- 🌉 **Bosphorus & Views** - Bridges, ferry rides, scenic spots
-- 🍽️ **Food & Dining** - Turkish cuisine, local restaurants, food tours
-- 🚇 **Transportation** - Metro, buses, ferries, airport transfers  
-- 🛍️ **Shopping** - Grand Bazaar, Spice Bazaar, modern malls
-- 🎨 **Culture & Arts** - Museums, galleries, cultural experiences
-- 🏨 **Neighborhoods** - Sultanahmet, Beyoğlu, Kadıköy, Galata
+• What type of cuisine interests you?
+• Which district or area are you looking at?
+• What's the occasion? (casual meal, special dinner, quick bite, etc.)
 
-**Ask me about:**
-- Specific places you want to visit
-- How to get around the city
-- Best restaurants in different areas
-- Cultural experiences and local tips
+Feel free to ask something specific like: "romantic restaurants with Bosphorus view" or "traditional Turkish breakfast places in Sultanahmet" """
 
-What would you like to know about Istanbul?"""
-        return enhance_ai_response_formatting(clean_text_formatting(response))
+# Enhanced restaurant advice with Google Maps integration
+def get_live_restaurant_recommendations(user_input: str) -> Optional[str]:
+    """Get live restaurant recommendations from Google Maps API"""
+    try:
+        # Try to get live data from Google Places API
+        places_client = GooglePlacesClient()
+        
+        # Parse query to determine search parameters
+        user_lower = user_input.lower()
+        
+        search_params = {
+            "location": "Istanbul, Turkey",
+            "radius": 5000,  # 5km radius
+            "min_rating": 3.5
+        }
+        
+        # Customize search based on query type
+        if "vegetarian" in user_lower or "vegan" in user_lower:
+            search_params["keyword"] = "vegetarian restaurant Istanbul"
+        elif "seafood" in user_lower or "fish" in user_lower:
+            search_params["keyword"] = "seafood restaurant Istanbul"
+        elif "fine dining" in user_lower or "luxury" in user_lower:
+            search_params["keyword"] = "fine dining restaurant Istanbul"
+        elif "traditional" in user_lower or "turkish" in user_lower:
+            search_params["keyword"] = "traditional Turkish restaurant Istanbul"
+        elif "bosphorus" in user_lower or "view" in user_lower:
+            search_params["keyword"] = "restaurant Bosphorus view Istanbul"
+        elif "rooftop" in user_lower:
+            search_params["keyword"] = "rooftop restaurant Istanbul"
+        elif "breakfast" in user_lower or "kahvaltı" in user_lower:
+            search_params["keyword"] = "Turkish breakfast Istanbul"
+        elif any(district in user_lower for district in ['sultanahmet', 'beyoğlu', 'beyoglu', 'galata', 'kadıköy', 'kadikoy']):
+            district = next(d for d in ['sultanahmet', 'beyoğlu', 'beyoglu', 'galata', 'kadıköy', 'kadikoy'] if d in user_lower)
+            search_params["keyword"] = f"restaurant {district} Istanbul"
+        else:
+            search_params["keyword"] = "restaurant Istanbul"
+        
+        # Get results from Google Maps
+        results = places_client.search_restaurants(**search_params)
+        
+        if results.get("results"):
+            return format_google_restaurants_response(results["results"], user_input)
+        else:
+            return None  # Fall back to static response
+            
+    except Exception as e:
+        print(f"⚠️ Error getting live restaurant data: {e}")
+        return None  # Fall back to static response
+
+def format_google_restaurants_response(restaurants: list, query_type: str) -> str:
+    """Format Google Maps restaurant results into a clean response with comprehensive location enhancement"""
+    if not restaurants:
+        return None
+    
+    # Try to enhance with comprehensive location context
+    try:
+        from comprehensive_location_enhancer import enhance_response_comprehensively
+        
+        # Create basic restaurant response first
+        basic_response = _create_basic_restaurant_response(restaurants, query_type)
+        
+        # Enhance with comprehensive location information
+        enhanced_response = enhance_response_comprehensively(query_type, basic_response)
+        
+        # ALWAYS use the basic Google Maps response for restaurants - don't override with templates
+        print("� Using live Google Maps restaurant data with location context")
+        return basic_response
+            
+    except ImportError:
+        print("⚠️ Comprehensive location enhancer not available, using basic response")
+        return _create_basic_restaurant_response(restaurants, query_type)
+
+def _create_basic_restaurant_response(restaurants: list, query_type: str) -> str:
+    """Create comprehensive restaurant response with live Google Maps data and location context"""
+    # Take top 5 restaurants for more focused results
+    top_restaurants = restaurants[:5]
+    
+    # Import location enhancer for neighborhood context
+    try:
+        from location_enhancer import location_enhancer
+    except ImportError:
+        location_enhancer = None
+    
+    query_lower = query_type.lower()
+    
+    # Detect location from query
+    detected_location = None
+    if location_enhancer:
+        detected_location = location_enhancer.detect_location_from_query(query_type)
+    
+    # Create location-specific header
+    location_context = ""
+    if detected_location and location_enhancer:
+        location_data = location_enhancer.location_database.get(detected_location.lower())
+        if location_data:
+            location_context = f"🏛️ **{location_data.name} Dining Scene**\n"
+            location_context += f"{location_data.description}\n"
+            location_context += f"Known for: {', '.join(location_data.dining_specialties[:3])}\n\n"
+    
+    # Build response with context-specific intro
+    response = location_context
+    
+    if "vegetarian" in query_lower:
+        response += "🌱 **Top Vegetarian Restaurants:**\n\n"
+    elif "seafood" in query_lower or "fish" in query_lower:
+        response += "🐟 **Fresh Seafood Restaurants:**\n\n"
+    elif "kebab" in query_lower or "kebap" in query_lower:
+        response += "🥙 **Authentic Kebab Houses:**\n\n"
+    elif "breakfast" in query_lower or "kahvaltı" in query_lower:
+        response += "☕ **Traditional Turkish Breakfast:**\n\n"
+    elif "view" in query_lower or "bosphorus" in query_lower:
+        response += "🌅 **Restaurants with Stunning Views:**\n\n"
+    elif "romantic" in query_lower:
+        response += "❤️ **Romantic Dining Experiences:**\n\n"
+    elif "fine dining" in query_lower or "upscale" in query_lower:
+        response += "🍾 **Fine Dining Establishments:**\n\n"
+    else:
+        response += "🍽️ **Top Restaurant Recommendations:**\n\n"
+    
+    for i, restaurant in enumerate(top_restaurants, 1):
+        name = restaurant.get("name", "Restaurant")
+        rating = restaurant.get("rating", 0)
+        user_ratings_total = restaurant.get("user_ratings_total", 0)
+        vicinity = restaurant.get("vicinity", "Istanbul")
+        price_level = restaurant.get("price_level", 0)
+        types = restaurant.get("types", [])
+        
+        # Get more detailed information from place details
+        place_id = restaurant.get("place_id")
+        
+        # Format price level with more detail
+        if price_level == 1:
+            price_indicator = "💰 Budget-friendly (₺₺)"
+        elif price_level == 2:
+            price_indicator = "💰💰 Moderate (₺₺₺)"
+        elif price_level == 3:
+            price_indicator = "💰💰💰 Upscale (₺₺₺₺)"
+        elif price_level == 4:
+            price_indicator = "💰💰💰💰 Fine dining (₺₺₺₺₺)"
+        else:
+            price_indicator = "💰 Price varies"
+        
+        # Format rating with more precision
+        if rating >= 4.7:
+            stars = "⭐⭐⭐⭐⭐ Exceptional"
+        elif rating >= 4.4:
+            stars = "⭐⭐⭐⭐⭐ Excellent"
+        elif rating >= 4.0:
+            stars = "⭐⭐⭐⭐ Very Good"
+        elif rating >= 3.5:
+            stars = "⭐⭐⭐⭐ Good"
+        else:
+            stars = "⭐⭐⭐ Decent"
+        
+        # Add cuisine type context
+        cuisine_type = ""
+        if "restaurant" in types:
+            # Try to determine cuisine from name or location
+            name_lower = name.lower()
+            if any(word in name_lower for word in ['kebap', 'kebab', 'döner', 'çiğ köfte']):
+                cuisine_type = "🥙 Turkish Kebab"
+            elif any(word in name_lower for word in ['balık', 'fish', 'seafood']):
+                cuisine_type = "🐟 Seafood"
+            elif any(word in name_lower for word in ['meze', 'rakı', 'taverna']):
+                cuisine_type = "🍽️ Turkish Meze"
+            elif any(word in name_lower for word in ['kahvaltı', 'breakfast']):
+                cuisine_type = "☕ Turkish Breakfast"
+            elif any(word in name_lower for word in ['pizza', 'italian']):
+                cuisine_type = "🍕 Italian"
+            elif any(word in name_lower for word in ['sushi', 'japanese']):
+                cuisine_type = "🍣 Japanese"
+            else:
+                cuisine_type = "🍽️ Turkish Cuisine"
+        
+        response += f"**{i}. {name}**\n"
+        response += f"   {stars} ({rating}/5.0 • {user_ratings_total:,} reviews)\n"
+        response += f"   {price_indicator}\n"
+        if cuisine_type:
+            response += f"   {cuisine_type}\n"
+        response += f"   📍 {vicinity}\n"
+        
+        # Add location-specific context if available
+        if detected_location and location_enhancer:
+            location_data = location_enhancer.location_database.get(detected_location.lower())
+            if location_data and location_data.walking_distances:
+                # Find relevant walking distance
+                for route, distance in location_data.walking_distances.items():
+                    if any(landmark in route.lower() for landmark in ['square', 'station', 'mosque', 'palace']):
+                        response += f"   🚶 {distance} from major attractions\n"
+                        break
+        
+        response += "\n"
+    
+    # Add location-specific practical tips
+    response += "💡 **Local Dining Tips:**\n"
+    
+    if detected_location and location_enhancer:
+        location_data = location_enhancer.location_database.get(detected_location.lower())
+        if location_data:
+            # Add location-specific tips
+            for tip in location_data.practical_tips[:2]:
+                if any(word in tip.lower() for word in ['restaurant', 'dining', 'book', 'reservation']):
+                    response += f"• {tip}\n"
+            
+            # Add neighborhood-specific dining advice
+            if location_data.dining_specialties:
+                response += f"• This area is known for: {', '.join(location_data.dining_specialties[:2])}\n"
+    
+    # Add general Istanbul dining tips
+    response += "• Reservations recommended for dinner (7-9 PM peak hours)\n"
+    response += "• Tipping 10-15% is standard for good service\n"
+    response += "• Try 'meze' (appetizers) for authentic Turkish dining experience\n"
+    response += "• Many restaurants offer excellent lunch specials\n\n"
+    
+    # Add transportation info if location detected
+    if detected_location and location_enhancer:
+        location_data = location_enhancer.location_database.get(detected_location.lower())
+        if location_data:
+            response += "🚇 **Getting There:**\n"
+            if location_data.metro_stations:
+                response += f"• Metro: {', '.join(location_data.metro_stations)}\n"
+            if location_data.tram_stops:
+                response += f"• Tram: {', '.join(location_data.tram_stops)}\n"
+            if location_data.ferry_terminals:
+                response += f"• Ferry: {', '.join(location_data.ferry_terminals)}\n"
+            response += "\n"
+    
+    return clean_response_formatting(response)
+
+def clean_response_formatting(response: str) -> str:
+    """Clean up response formatting to remove double asterisks and improve aesthetics"""
+    if not response:
+        return response
+    
+    # Fix the ugly double asterisks issue
+    response = response.replace("** **", "")
+    response = response.replace("**  **", "")
+    response = response.replace("**   **", "")
+    response = response.replace("****", "")
+    
+    # Remove extra spacing around markdown formatting
+    response = re.sub(r'\*\*\s+\*\*', '', response)
+    response = re.sub(r'\*\*\s*\*\*', '', response)
+    
+    # Fix bullet point formatting  
+    response = response.replace("•  **", "• **")
+    response = response.replace("- **", "• **")
+    
+    # Ensure consistent spacing after headers
+    response = re.sub(r'\*\*:\s*\n', '**:\n', response)
+    
+    # Clean up multiple newlines but preserve structure
+    response = re.sub(r'\n\n\n\n+', '\n\n', response)
+    response = re.sub(r'\n\n\n', '\n\n', response)
+    
+    # Ensure proper emoji spacing
+    response = re.sub(r'🍽️\s*\*\*', '🍽️ **', response)
+    response = re.sub(r'💡\s*\*\*', '💡 **', response)
+    response = re.sub(r'🗺️\s*\*', '🗺️ *', response)
+    
+    return response.strip()
+
+def create_enhanced_transportation_fallback(user_input: str) -> str:
+    """Enhanced transportation fallback responses with better formatting"""
+    user_lower = user_input.lower()
+    
+    # Metro system specific
+    if 'metro' in user_lower and not any(word in user_lower for word in ['bus', 'ferry']):
+        return """🚇 Istanbul Metro System Guide
+
+🗺️ **Metro Lines Overview:**
+
+• **M1A (Red Line):** Yenikapı ↔ Atatürk Airport
+• **M1B (Red Line):** Yenikapı ↔ Kirazlı  
+• **M2 (Green Line):** Yenikapı ↔ Hacıosman
+• **M3 (Blue Line):** Kirazlı ↔ Başakşehir/Kayaşehir
+• **M4 (Pink Line):** Kadıköy ↔ Sabiha Gökçen Airport
+• **M5 (Purple Line):** Üsküdar ↔ Çekmeköy
+• **M6 (Brown Line):** Levent ↔ Boğaziçi University
+• **M7 (Light Blue):** Mecidiyeköy ↔ Mahmutbey
+
+🎫 **Using the Metro:**
+• Get **Istanbulkart** from machines or kiosks
+• Valid for metro, bus, tram, ferry, metrobus
+• Tap card at entry and exit turnstiles
+• Keep ticket/card until you exit
+
+⏰ **Operating Hours:**
+• **Daily:** 6:00 AM - 12:30 AM (00:30)
+• **Frequency:** Every 3-5 minutes during peak hours
+• **Peak hours:** 7-9 AM, 5-7 PM (avoid if possible)
+
+🚇 **Key Connections:**
+• **Yenikapı:** M1, M2 interchange + ferry terminal
+• **Vezneciler:** M2 line for Sultanahmet area
+• **Şişli-Mecidiyeköy:** M2, M7 interchange
+• **Kadıköy:** M4 line terminus + ferry connections
+
+💡 **Metro Tips:**
+• Download "Metro Istanbul" app for real-time info
+• Stand right on escalators, walk left
+• Priority seating for elderly, disabled, pregnant
+• Clean and air-conditioned stations"""
+
+    # Ferry system specific  
+    elif 'ferry' in user_lower:
+        return """⛴️ Istanbul Ferry System Guide
+
+🌊 **Ferry Routes & Terminals:**
+
+• **Bosphorus Line:** Eminönü ↔ Üsküdar ↔ Beşiktaş ↔ Sarıyer
+• **Golden Horn:** Eminönü ↔ Eyüp ↔ Sütlüce
+• **Kadıköy Lines:** Kadıköy ↔ Karaköy ↔ Eminönü ↔ Beşiktaş
+• **Princess Islands:** Kabataş/Bostancı ↔ Adalar
+
+🎫 **Ferry Tickets:**
+• Use **Istanbulkart** - same card as metro/bus
+• Cash tickets available at terminals
+• Discounts for students, seniors
+
+⏰ **Schedule & Frequency:**
+• **Peak hours:** Every 15-20 minutes
+• **Off-peak:** Every 30-45 minutes  
+• **First ferry:** Around 6:30 AM
+• **Last ferry:** Around 9-10 PM (varies by route)
+
+🏛️ **Major Ferry Terminals:**
+• **Eminönü:** Historic peninsula, near Spice Bazaar
+• **Karaköy:** Galata area, near Galata Tower
+• **Kadıköy:** Asian side, vibrant local area
+• **Beşiktaş:** European side, Dolmabahçe Palace area
+• **Üsküdar:** Asian side, historic mosques
+
+🌅 **Scenic Routes:**
+• **Bosphorus tour ferries** - 2-hour round trips
+• **Sunset ferries** - Best views 5-7 PM
+• **Weekend long cruises** - Full Bosphorus to Black Sea
+
+💡 **Ferry Tips:**
+• Arrive 10 minutes early during peak times
+• Upper deck offers best views (weather permitting)  
+• Ferries are slower but more scenic than bridges
+• Great way to avoid traffic between continents"""
+
+    # Transportation costs and cards
+    elif any(word in user_lower for word in ['istanbulkart', 'card', 'cost', 'price']):
+        return """🎫 Istanbul Transport Cards & Costs
+
+💳 **Istanbulkart - Your Essential Transport Card:**
+• **Card cost:** ₺13 (one-time purchase)
+• **Where to buy:** Metro stations, ferry terminals, kiosks, some shops
+• **Works on:** Metro, bus, tram, ferry, metrobus, funicular
+• **Top-up:** Minimum ₺5, maximum ₺300
+
+💰 **Transportation Costs (2024):**
+• **Single ride:** ₺5-7 for most transport
+• **Transfers:** Discounted within 2 hours
+• **Daily maximum:** Around ₺30 per day
+• **Student discount:** 50% off with student card
+
+🚌 **Transport Options & Costs:**
+• **Metro/Tram:** ₺5 per ride
+• **Bus:** ₺5 per ride
+• **Ferry:** ₺7-10 depending on route
+• **Metrobus:** ₺6 per ride
+• **Taxi:** ₺15 starting fare + ₺3 per km
+
+💡 **Money-Saving Tips:**
+• **Transfer discounts:** Use within 2 hours for reduced fare
+• **Multiple rides:** Card shared among family (each person taps)
+• **Monthly pass:** Available for regular commuters
+• **Student rates:** Bring student ID for discounted card
+• **Tourist pass:** Special tourist cards available at airports
+
+⚠️ **Important Notes:**
+• Keep minimum ₺5 balance on card
+• Card can be used by multiple people (each taps separately)
+• Lost cards can be replaced with remaining balance
+• Refunds available at main stations"""
+
+    # General transportation
+    else:
+        return """🚌 Getting Around Istanbul
+
+🎫 **Istanbulkart - Your Transport Key:**
+• **Essential** for all public transport
+• Available at: Metro stations, ferry terminals, kiosks
+• Works on: Metro, bus, tram, ferry, metrobus, funicular
+• **Cost:** ₺13 card + credit you add
+
+🚇 **Transport Options:**
+
+• **Metro:** Fast, clean, air-conditioned underground system
+• **Metrobus:** Dedicated bus lanes, connects Europe-Asia quickly  
+• **Regular Buses:** Extensive network, can be crowded
+• **Trams:** Historic trams in Beyoğlu, modern trams elsewhere
+• **Ferries:** Scenic water transport, slower but beautiful views
+• **Funicular:** Tünel (historic), cable cars to high areas
+
+🗺️ **Key Routes for Tourists:**
+• **Airport to city:** M1 metro line or Havaist bus
+• **Sultanahmet:** Tram T1 or metro M2 to Vezneciler
+• **Galata Tower:** M2 to Şişhane or funicular from Karaköy
+• **Asian side:** Ferry from Eminönü/Karaköy to Kadıköy/Üsküdar
+
+⏰ **Operating Hours:**
+• **Metro/Bus:** 6:00 AM - 12:30 AM
+• **Ferries:** 6:30 AM - 9:00 PM (varies by route)  
+• **Night buses:** Limited service after midnight
+
+💰 **Costs (with Istanbulkart):**
+• **Single ride:** ₺5-7 for most transport
+• **Transfers:** Discounted within 2 hours
+• **Daily maximum:** Around ₺30
+
+🚖 **Taxis & Ride Apps:**
+• **Yellow taxis:** Use meter or negotiate fare
+• **BiTaksi:** Popular local ride app
+• **Uber:** Limited availability
+• **Typical costs:** ₺20-50 for cross-city trips
+
+💡 **Transport Tips:**
+• Download "Moovit" app for real-time directions
+• Rush hours: 7-9 AM, 5-7 PM - expect crowds
+• Keep Istanbulkart topped up - minimum ₺5 balance
+• Ferry rides offer best city views - highly recommended"""
 
 def detect_ambiguity(user_input: str) -> bool:
     """
@@ -1725,3 +2398,32 @@ For example:
 
 The more details you share, the better I can assist you!"""
         
+def detect_location_confusion(user_input: str) -> tuple[bool, Optional[str]]:
+    """Detect if query mentions other cities and needs Istanbul-specific redirection"""
+    user_lower = user_input.lower()
+    
+    # Check for other Turkish cities
+    other_cities = ['ankara', 'izmir', 'antalya', 'bursa', 'adana', 'trabzon', 'konya', 'gaziantep']
+    mentioned_city = None
+    
+    for city in other_cities:
+        if city in user_lower:
+            mentioned_city = city
+            break
+    
+    # If another city is mentioned
+    if mentioned_city:
+        # But Istanbul is also mentioned - this is a comparison, not confusion
+        if 'istanbul' in user_lower:
+            return False, None
+        
+        # Check if it's a general Turkey query that should be Istanbul-focused
+        if 'turkey' in user_lower and not 'istanbul' in user_lower:
+            if any(word in user_lower for word in ['restaurant', 'food', 'eat', 'museum', 'attraction', 'visit', 'travel']):
+                return True, f"I specialize in Istanbul travel advice. While {mentioned_city.title()} is a great city, I can provide detailed information about Istanbul's {', '.join([w for w in ['restaurants', 'attractions', 'museums', 'districts', 'transportation'] if any(k in user_lower for k in [w[:-1], w])])}. Would you like to know about Istanbul instead?"
+        
+        # Direct query about another city
+        elif any(word in user_lower for word in ['restaurant', 'food', 'museum', 'attraction', 'hotel', 'transport', 'visit']):
+            return True, f"I'm specialized in Istanbul tourism and can't provide specific information about {mentioned_city.title()}. However, I can offer comprehensive advice about Istanbul's attractions, restaurants, transportation, and districts. Would you like to explore what Istanbul has to offer?"
+    
+    return False, None

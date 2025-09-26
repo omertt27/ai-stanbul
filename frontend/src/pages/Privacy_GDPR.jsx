@@ -6,8 +6,8 @@ function Privacy() {
   const { darkMode } = useTheme();
   
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} style={{ paddingTop: '6rem', paddingBottom: '4rem', paddingLeft: '2rem', paddingRight: '2rem' }}>
-      <div className="max-w-4xl mx-auto">
+    <div className={`chatbot-background min-h-screen transition-colors duration-300`} style={{ paddingTop: '6rem', paddingBottom: '4rem', paddingLeft: '2rem', paddingRight: '2rem' }}>
+      <div className="max-w-4xl mx-auto text-white">
         <h1>Privacy Policy & GDPR Compliance</h1>
       <p><em>Last updated: September 2025</em></p>
 
@@ -32,7 +32,7 @@ function Privacy() {
       <h2>Data Controller Information</h2>
       <p>
         <strong>Data Controller:</strong> AI Istanbul Guide<br />
-        <strong>Contact:</strong> privacy@aiistanbul.guide<br />
+        <strong>Contact:</strong> omertahtaci@aistanbul.net<br />
         <strong>Legal Basis:</strong> Legitimate interest for analytics, consent for personalization
       </p>
 
@@ -148,8 +148,8 @@ function Privacy() {
       <h2>Contact & Data Protection</h2>
       <p>For privacy-related questions or to exercise your GDPR rights:</p>
       <ul>
-        <li><strong>Email:</strong> privacy@aiistanbul.guide</li>
-        <li><strong>Data Protection Officer:</strong> dpo@aiistanbul.guide</li>
+        <li><strong>Email:</strong> omertahtaci@aistanbul.net</li>
+        <li><strong>Data Protection Officer:</strong> omertahtaci@aistanbul.net</li>
         <li><strong>GDPR Portal:</strong> <Link to="/gdpr">aiistanbul.guide/gdpr</Link></li>
       </ul>
 

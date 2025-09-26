@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
 import NavBar from './components/NavBar';
+import MobileOptimizer from './components/MobileOptimizer';
 import { 
   TypingSimulator, 
   StreamingText, 
@@ -437,14 +438,34 @@ function Chatbot() {
     return true
   }
 
-  // Function to scroll to the bottom/newest messages
-  const scrollToBottom = () => {
+  // Enhanced function to scroll to the bottom/newest messages
+  const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
       const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
       if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (isMobile) {
+          // Mobile-optimized scrolling
+          chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto'
+          });
+        } else {
+          // Desktop scrolling
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
         setShowScrollButton(false);
       }
+    }
+  };
+
+  // Mobile-specific auto-scroll behavior
+  const autoScrollToBottom = () => {
+    if (isMobile && !userScrolling) {
+      // On mobile, always auto-scroll during AI responses
+      setTimeout(() => scrollToBottom(true), 100);
+    } else if (!isMobile) {
+      // Desktop behavior - scroll only if near bottom
+      scrollToBottom(false);
     }
   };
 
@@ -886,8 +907,93 @@ function Chatbot() {
     }
   }, []); // Run only once on mount to check for pending queries
 
+  // Mobile-specific state and behavior
+  const [isMobile, setIsMobile] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  
+  // Mobile detection and keyboard handling
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(isMobileDevice);
+    };
+
+    const handleResize = () => {
+      checkIfMobile();
+      // Detect virtual keyboard on mobile
+      if (isMobile && inputFocused) {
+        const heightChange = window.innerHeight < window.screen.height * 0.75;
+        setKeyboardVisible(heightChange);
+      }
+    };
+
+    const handleScroll = () => {
+      if (messagesEndRef.current) {
+        const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+        if (chatContainer) {
+          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+          setShowScrollButton(!isNearBottom && messages.length > 0);
+          
+          // Detect user scrolling to prevent auto-scroll interruption
+          setUserScrolling(true);
+          clearTimeout(window.scrollTimeout);
+          window.scrollTimeout = setTimeout(() => setUserScrolling(false), 1000);
+        }
+      }
+    };
+
+    checkIfMobile();
+    window.addEventListener('resize', handleResize);
+    
+    // Add scroll listener for mobile scroll behavior
+    const chatContainer = document.querySelector('.chatbot-messages');
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (chatContainer) {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      }
+      if (window.scrollTimeout) {
+        clearTimeout(window.scrollTimeout);
+      }
+    };
+  }, [isMobile, inputFocused, messages.length]);
+
+  // Enhanced mobile scroll management
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+      if (chatContainer) {
+        // During AI responses, always scroll to bottom unless user is actively scrolling
+        const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
+        
+        if (isAIResponding && !userScrolling) {
+          // During AI response, always scroll to bottom regardless of position
+          setTimeout(() => {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }, 50); // Faster scroll during AI responses
+        } else if (!userScrolling && !inputFocused && !sendingMessage) {
+          // For regular messages, check if user is near the bottom
+          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
+          
+          if (isNearBottom) {
+            setTimeout(() => {
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 100);
+          }
+        }
+      }
+    }
+  }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
+
   return (
     <div className="chatbot-page">
+      {/* Mobile Optimization Component */}
+      <MobileOptimizer />
+      
       {/* Standard Site Navigation */}
       <NavBar />
       
@@ -1367,16 +1473,28 @@ function Chatbot() {
               </div>
             )}
             
-            {/* Scroll to Bottom Button */}
+            {/* Mobile-optimized Scroll to Bottom Button */}
             {showScrollButton && (
-              <div className="fixed bottom-24 right-6 z-10">
+              <div className={`fixed z-10 transition-all duration-200 ${
+                isMobile 
+                  ? 'bottom-24 right-4' // Mobile positioning - above input area
+                  : 'bottom-24 right-6' // Desktop positioning
+              }`}>
                 <button
-                  onClick={scrollToBottom}
-                  className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center"
+                  onClick={() => scrollToBottom(true)}
+                  className={`${
+                    isMobile
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center min-h-12 min-w-12'
+                      : 'bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center'
+                  }`}
                   title="Go to newest messages"
+                  style={{
+                    transform: isMobile ? 'scale(1.1)' : 'scale(1)', // Slightly larger on mobile
+                    boxShadow: isMobile ? '0 8px 25px rgba(59, 130, 246, 0.3)' : undefined
+                  }}
                 >
                   <svg 
-                    className="w-5 h-5" 
+                    className={isMobile ? "w-6 h-6" : "w-5 h-5"} 
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -1426,33 +1544,62 @@ function Chatbot() {
                 }}
                 onFocus={(e) => {
                   setInputFocused(true);
-                  // Prevent browser's default scroll-to-focus behavior
-                  e.preventDefault();
-                  // Prevent any scroll triggered by focus
-                  const currentScrollY = window.scrollY;
-                  const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
-                  setTimeout(() => {
-                    window.scrollTo(0, currentScrollY);
-                    const chatContainer = e.target.closest('.chatbot-messages');
-                    if (chatContainer) {
-                      chatContainer.scrollTop = currentScrollTop;
-                    }
-                  }, 0);
+                  
+                  // Mobile-specific focus handling
+                  if (isMobile) {
+                    // Scroll to bottom when input is focused on mobile
+                    setTimeout(() => {
+                      if (messagesEndRef.current) {
+                        messagesEndRef.current.scrollIntoView({ 
+                          behavior: 'smooth', 
+                          block: 'end' 
+                        });
+                      }
+                    }, 300); // Delay to account for keyboard animation
+                    
+                    // Track keyboard state
+                    setTimeout(() => setKeyboardVisible(true), 300);
+                  } else {
+                    // Desktop focus behavior (prevent scroll)
+                    e.preventDefault();
+                    const currentScrollY = window.scrollY;
+                    const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
+                    setTimeout(() => {
+                      window.scrollTo(0, currentScrollY);
+                      const chatContainer = e.target.closest('.chatbot-messages');
+                      if (chatContainer) {
+                        chatContainer.scrollTop = currentScrollTop;
+                      }
+                    }, 0);
+                  }
                 }}
-                onBlur={() => setInputFocused(false)}
+                onBlur={() => {
+                  setInputFocused(false);
+                  if (isMobile) {
+                    setTimeout(() => setKeyboardVisible(false), 300);
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !loading) {
                     e.preventDefault();
                     if (input.trim()) {
                       handleSend();
+                      // On mobile, blur input after sending to hide keyboard
+                      if (isMobile) {
+                        e.target.blur();
+                      }
                     }
                   }
                 }}
-                placeholder="What would you like to know about Istanbul?"
+                placeholder={isMobile ? "Ask about Istanbul..." : "What would you like to know about Istanbul?"}
                 className="kam-input-field"
                 disabled={loading}
                 autoComplete="off"
                 autoFocus={false}
+                inputMode="text"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck="true"
               />
               
               {/* Enhanced Send Button */}
@@ -1460,11 +1607,17 @@ function Chatbot() {
                 onClick={() => {
                   if (!loading && input.trim()) {
                     handleSend();
+                    // On mobile, blur input after sending to hide keyboard
+                    if (isMobile) {
+                      const inputElement = document.querySelector('.kam-input-field');
+                      if (inputElement) inputElement.blur();
+                    }
                   }
                 }} 
                 disabled={loading || !input.trim()}
-                className={`kam-send-button ${loading ? 'send-button-loading' : ''}`}
+                className={`kam-send-button ${loading ? 'send-button-loading' : ''} ${isMobile ? 'mobile-optimized' : ''}`}
                 aria-label="Send message"
+                type="button"
               >
                 {loading ? (
                   <LoadingSpinner variant="spinner" size="medium" />

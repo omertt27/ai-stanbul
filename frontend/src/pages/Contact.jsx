@@ -36,7 +36,7 @@ function Contact() {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">{t('contact.email')}</h3>
-                    <p className="text-gray-300">info@aistanbul.com</p>
+                    <p className="text-gray-300">omertahtaci@aistanbul.net</p>
                   </div>
                 </div>
 

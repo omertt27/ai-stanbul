@@ -1,0 +1,25 @@
+🇹🇷 AI ISTANBUL CHATBOT - AUTOMATED TEST REPORT
+============================================================
+
+📅 Test Date: 2025-09-27 00:58:21
+🌐 API Base URL: http://localhost:8001
+
+📊 SUMMARY STATISTICS:
+------------------------------
+Total Tests: 20
+Successful: 20
+Failed: 0
+Success Rate: 100.0%
+Overall Grade: F
+
+📈 AVERAGE SCORES (0-5 scale):
+------------------------------
+Accuracy: 1.0/5
+Relevance: 0.01/5
+Completeness: 1.32/5
+Cultural Awareness: 0.0/5
+Overall: 0.58/5
+
+💡 RECOMMENDATION:
+------------------------------
+POOR: Significant improvements needed before production deployment.

@@ -1,0 +1,114 @@
+🇹🇷 AI ISTANBUL CHATBOT - 20 DAILY TALK TEST INPUTS 🇹🇷
+================================================================
+
+📋 TESTING GUIDE:
+• Copy each input to the AI Istanbul chat interface
+• Test response quality, accuracy, and local knowledge
+• Check cultural awareness and practical information
+• Verify that responses encourage further exploration
+
+================================================================
+
+🍽️ RESTAURANT & FOOD QUERIES (5 inputs)
+────────────────────────────────────────
+
+TEST #1:
+I'm staying in Sultanahmet and want authentic Turkish breakfast. What are the best traditional places nearby?
+
+TEST #2:
+Can you recommend good seafood restaurants in Karaköy with Bosphorus views? I'm looking for something romantic for dinner tonight.
+
+TEST #3:
+I'm vegetarian and staying in Beyoğlu. Where can I find good vegetarian Turkish food? Also, what traditional dishes should I try?
+
+TEST #4:
+What are the must-try street foods in Istanbul? I want to experience local flavors but I'm concerned about food safety.
+
+TEST #5:
+I have a gluten allergy. Can you suggest restaurants in Kadıköy that cater to gluten-free diets and understand Turkish cuisine restrictions?
+
+================================================================
+
+🚌 TRANSPORTATION & NAVIGATION (4 inputs)
+──────────────────────────────────────
+
+TEST #6:
+How do I get from Istanbul Airport to Sultanahmet using public transportation? What's the cheapest and fastest way?
+
+TEST #7:
+I want to take a ferry from Eminönü to Üsküdar. What's the schedule and how much does it cost? Any scenic spots to see during the ride?
+
+TEST #8:
+What's the best way to travel between the European and Asian sides of Istanbul? I'll be doing this daily for a week.
+
+TEST #9:
+I'm at Taksim Square and need to get to the Grand Bazaar. Should I take the metro, bus, or taxi? What about walking routes?
+
+================================================================
+
+🏛️ CULTURAL SITES & MUSEUMS (4 inputs)
+────────────────────────────────────
+
+TEST #10:
+I have 2 days in Istanbul. What are the absolute must-see historical sites? Can you suggest an itinerary with timing?
+
+TEST #11:
+Tell me about Hagia Sophia. What's the best time to visit to avoid crowds? What should I know about the history and current status?
+
+TEST #12:
+I'm interested in Ottoman history. Beyond the obvious sites, what lesser-known museums or historical places would you recommend?
+
+TEST #13:
+Can you explain the difference between the Blue Mosque and other mosques in Istanbul? What's the proper etiquette for visiting?
+
+================================================================
+
+🛒 SHOPPING & LOCAL MARKETS (3 inputs)
+───────────────────────────────────
+
+TEST #14:
+I want to buy authentic Turkish carpets and ceramics. Where should I go and how do I avoid tourist traps? Any negotiation tips?
+
+TEST #15:
+What's the difference between the Grand Bazaar and the Spice Bazaar? Which one is better for souvenirs and local products?
+
+TEST #16:
+I'm looking for modern Turkish design and fashion. Can you recommend contemporary shopping areas beyond the traditional markets?
+
+================================================================
+
+✈️ GENERAL TRAVEL & PRACTICAL (4 inputs)
+─────────────────────────────────────
+
+TEST #17:
+What's the weather like in Istanbul in December? What should I pack and are there any seasonal activities or closures to know about?
+
+TEST #18:
+I have a 12-hour layover in Istanbul. Can I leave the airport and see some sights? What's possible in that timeframe?
+
+TEST #19:
+What are some common cultural mistakes tourists make in Istanbul? I want to be respectful to local customs and traditions.
+
+TEST #20:
+Can you help me with basic Turkish phrases for dining and shopping? Also, how widely is English spoken in tourist areas?
+
+================================================================
+
+📊 EVALUATION CRITERIA:
+• Accuracy of local information
+• Cultural sensitivity and awareness
+• Practical usefulness of recommendations
+• Encouragement of further exploration
+• Response completeness and clarity
+• Integration of real-time data (if available)
+
+================================================================
+
+💡 ADDITIONAL TEST VARIATIONS:
+Try follow-up questions based on AI responses:
+• "Can you give me more details about..."
+• "What if I'm traveling with children?"
+• "Any options for budget travelers?"
+• "What about accessibility for disabled visitors?"
+
+================================================================

@@ -135,7 +135,7 @@ class GooglePlacesClient:
                                         location: Optional[str] = None,
                                         lat_lng: Optional[str] = None,
                                         radius: int = 1500,
-                                        limit: int = 20,
+                                        limit: int = 5,
                                         keyword: Optional[str] = None) -> List[Dict]:
         """
         Get restaurants with detailed descriptions and reviews.
