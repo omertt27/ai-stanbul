@@ -7,7 +7,7 @@ import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
 import CookieConsent from './components/CookieConsent';
 import NavBar from './components/NavBar';
-import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils';
+import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
