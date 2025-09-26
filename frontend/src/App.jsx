@@ -7,6 +7,22 @@ import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
 import CookieConsent from './components/CookieConsent';
 import NavBar from './components/NavBar';
+import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils';
+// import LiveActivityFeed from './components/LiveActivityFeed'; // Removed as requested
+// import DebugInfo from './components/DebugInfo';
+import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
+import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
+import './App.css';
+import './components/InteractiveMainPage.css';
+// import './components/LiveActivityFeed.css'; // Removed as requesteduseState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import SearchBar from './components/SearchBar';
+import ResultCard from './components/ResultCard';
+import InteractiveMainPage from './components/InteractiveMainPage';
+import WeatherThemeProvider from './components/WeatherThemeProvider';
+import CookieConsent from './components/CookieConsent';
+import NavBar from './components/NavBar';
 // import LiveActivityFeed from './components/LiveActivityFeed'; // Removed as requested
 // import DebugInfo from './components/DebugInfo';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
@@ -46,6 +62,16 @@ const App = () => {
   });
   const [sessionId] = useState(() => getSessionId()); // Get persistent session ID
   const chatScrollRef = useRef(null);
+
+  // Mobile utilities hook
+  const { 
+    isMobile, 
+    isTouch, 
+    orientation, 
+    hapticFeedback, 
+    handleTouchStart, 
+    handleTouchEnd 
+  } = useMobileUtils();
 
   // Auto-expand when navigating to /chat route
   useEffect(() => {
@@ -205,6 +231,9 @@ const App = () => {
 
         {/* Cookie Consent Banner */}
         <CookieConsent />
+        
+        {/* PWA Install Button */}
+        <InstallPWAButton />
       </div>
     </WeatherThemeProvider>
   );

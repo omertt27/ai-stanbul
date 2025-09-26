@@ -329,10 +329,6 @@
         "question": "Do you have information about all Istanbul districts?",
         "answer": "Yes! We have comprehensive data about all major Istanbul districts including Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, and many more. Each district entry includes historical context, main attractions, and cultural significance."
       },
-      "languages": {
-        "question": "Can I get recommendations in different languages?",
-        "answer": "Yes! Our AI supports multiple languages including English, Turkish, Russian, German, French, and Arabic. Simply switch your language preference and start chatting."
-      },
       "updates": {
         "question": "How often is the information updated?",
         "answer": "Restaurant data is updated in real-time through Google Maps API. Our museum and attraction information is manually curated and updated regularly to ensure accuracy. We review and update our database monthly."

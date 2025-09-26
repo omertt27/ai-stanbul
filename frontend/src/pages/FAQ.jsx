@@ -28,11 +28,6 @@ function FAQ() {
       category: "coverage"
     },
     {
-      question: t('faq.questions.languages.question'),
-      answer: t('faq.questions.languages.answer'),
-      category: "features"
-    },
-    {
       question: t('faq.questions.updates.question'),
       answer: t('faq.questions.updates.answer'),
       category: "accuracy"
@@ -163,7 +158,7 @@ function FAQ() {
             </Link>
 
             <a
-              href="mailto:help@aiistanbul.guide"
+              href="mailto:omertahtaci@aistanbul.net"
               className="p-4 rounded-lg transition-all duration-300 hover:scale-105 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
               <h3 className="font-semibold mb-1 transition-colors duration-300 text-white">

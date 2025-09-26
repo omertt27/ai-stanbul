@@ -273,10 +273,6 @@
         "question": "Tüm İstanbul ilçeleri hakkında bilginiz var mı?",
         "answer": "Evet! Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar ve daha birçok önemli İstanbul ilçesi hakkında kapsamlı verilerimiz var. Her ilçe girişi tarihi bağlam, ana cazibe merkezleri ve kültürel önemi içerir."
       },
-      "languages": {
-        "question": "Farklı dillerde öneri alabilir miyim?",
-        "answer": "Evet! AI'mız İngilizce, Türkçe, Rusça, Almanca, Fransızca ve Arapça dahil birçok dili destekler. Sadece dil tercihinizi değiştirin ve sohbete başlayın."
-      },
       "updates": {
         "question": "Bilgiler ne sıklıkla güncelleniyor?",
         "answer": "Restoran verileri Google Maps API üzerinden gerçek zamanlı olarak güncellenir. Müze ve cazibe merkezi bilgilerimiz elle seçilir ve doğruluğu sağlamak için düzenli olarak güncellenir. Veritabanımızı aylık olarak gözden geçirip güncelliyoruz."

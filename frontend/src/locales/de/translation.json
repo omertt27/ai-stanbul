@@ -329,10 +329,6 @@
         "question": "Haben Sie Informationen über alle Istanbul-Stadtteile?",
         "answer": "Ja! Wir haben umfassende Daten über alle wichtigen Istanbul-Stadtteile einschließlich Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar und viele mehr. Jeder Stadtteil-Eintrag beinhaltet historischen Kontext, Hauptattraktionen und kulturelle Bedeutung."
       },
-      "languages": {
-        "question": "Kann ich Empfehlungen in verschiedenen Sprachen erhalten?",
-        "answer": "Ja! Unsere KI unterstützt mehrere Sprachen einschließlich Englisch, Türkisch, Russisch, Deutsch, Französisch und Arabisch. Wechseln Sie einfach Ihre Spracheinstellung und beginnen Sie zu chatten."
-      },
       "updates": {
         "question": "Wie oft werden die Informationen aktualisiert?",
         "answer": "Restaurant-Daten werden in Echtzeit über die Google Maps API aktualisiert. Unsere Museum- und Attraktionsinformationen werden manuell kuratiert und regelmäßig aktualisiert, um Genauigkeit zu gewährleisten. Wir überprüfen und aktualisieren unsere Datenbank monatlich."

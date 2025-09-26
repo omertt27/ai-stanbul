@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Test - AI Istanbul</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .device-simulation {
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 10px;
+            margin: 10px 0;
+            background: #000;
+        }
+        
+        .device-screen {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        
+        .test-button {
+            background: #007AFF;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            min-height: 44px;
+        }
+        
+        .test-button:hover {
+            background: #0056CC;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .status.good { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .device-sizes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .device-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .responsive-test {
+            resize: horizontal;
+            overflow: auto;
+            border: 2px solid #007AFF;
+            min-width: 320px;
+            max-width: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .device-sizes {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-container {
+                padding: 10px;
+                margin: 0 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>📱 Mobile Test - AI Istanbul Travel Assistant</h1>
+        
+        <div class="status good">
+            <strong>✅ Website URL:</strong> <a href="https://aistanbul.vercel.app" target="_blank">https://aistanbul.vercel.app</a>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Quick Mobile Tests</h2>
+            <p>Test these scenarios on your actual mobile device:</p>
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button class="test-button" onclick="testMobileKeyboard()">📱 Keyboard Test</button>
+                <button class="test-button" onclick="testTouchTargets()">👆 Touch Test</button>
+                <button class="test-button" onclick="testScrolling()">📜 Scroll Test</button>
+                <button class="test-button" onclick="testRotation()">🔄 Rotation Test</button>
+                <button class="test-button" onclick="testPerformance()">⚡ Speed Test</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📐 Device Size Simulation</h2>
+            <div class="device-sizes">
+                <div class="device-box">
+                    <h3>📱 iPhone SE</h3>
+                    <p>375px × 667px</p>
+                    <div class="device-simulation" style="width: 375px; height: 400px; margin: 0 auto;">
+                        <div class="device-screen">
+                            <iframe src="https://aistanbul.vercel.app" style="height: 380px;"></iframe>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="device-box">
+                    <h3>📱 iPhone 14</h3>
+                    <p>390px × 844px</p>
+                    <div class="device-simulation" style="width: 390px; height: 400px; margin: 0 auto;">
+                        <div class="device-screen">
+                            <iframe src="https://aistanbul.vercel.app" style="height: 380px;"></iframe>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="device-box">
+                    <h3>📱 Android</h3>
+                    <p>412px × 915px</p>
+                    <div class="device-simulation" style="width: 412px; height: 400px; margin: 0 auto;">
+                        <div class="device-screen">
+                            <iframe src="https://aistanbul.vercel.app" style="height: 380px;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Responsive Test</h2>
+            <p>Drag the right edge to test different screen widths:</p>
+            <div class="device-simulation responsive-test" style="width: 100%;">
+                <div class="device-screen">
+                    <iframe src="https://aistanbul.vercel.app"></iframe>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 Mobile Checklist</h2>
+            <div id="checklist">
+                <div class="status warning">
+                    <strong>⚠️ Test Required:</strong> Open your website on a real mobile device to complete this checklist
+                </div>
+                
+                <h3>Layout & Design:</h3>
+                <label><input type="checkbox"> Text is readable without zooming</label><br>
+                <label><input type="checkbox"> All buttons are easy to tap (min 44px)</label><br>
+                <label><input type="checkbox"> No horizontal scrolling required</label><br>
+                <label><input type="checkbox"> Content fits screen width properly</label><br>
+                <label><input type="checkbox"> Images scale appropriately</label><br>
+                
+                <h3>Functionality:</h3>
+                <label><input type="checkbox"> Chat input works correctly</label><br>
+                <label><input type="checkbox"> Can send messages successfully</label><br>
+                <label><input type="checkbox"> Keyboard doesn't cover input field</label><br>
+                <label><input type="checkbox"> Touch scrolling is smooth</label><br>
+                <label><input type="checkbox"> Navigation menu works on mobile</label><br>
+                
+                <h3>Performance:</h3>
+                <label><input type="checkbox"> Website loads quickly on mobile data</label><br>
+                <label><input type="checkbox"> Images load without delays</label><br>
+                <label><input type="checkbox"> Chat responses appear promptly</label><br>
+                <label><input type="checkbox"> No crashes or freezing</label><br>
+                
+                <h3>Orientation:</h3>
+                <label><input type="checkbox"> Works in portrait mode</label><br>
+                <label><input type="checkbox"> Works in landscape mode</label><br>
+                <label><input type="checkbox"> Rotation is smooth</label><br>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🚨 Common Mobile Issues to Look For</h2>
+            <div class="status error">
+                <strong>❌ Red Flags:</strong>
+                <ul>
+                    <li>Weather indicator overlaps chat messages</li>
+                    <li>Background image is too large for mobile data</li>
+                    <li>Fixed elements cover important content</li>
+                    <li>Text input gets cut off by keyboard</li>
+                    <li>Buttons are too small to tap accurately</li>
+                    <li>Scrolling feels laggy or broken</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>💡 Optimization Suggestions</h2>
+            <div class="status good">
+                <strong>✅ Quick Wins:</strong>
+                <ul>
+                    <li>Test the weather indicator position on small screens</li>
+                    <li>Ensure Istanbul background image is optimized for mobile</li>
+                    <li>Check that all touch targets are minimum 44px</li>
+                    <li>Verify chat interface adapts to keyboard</li>
+                    <li>Test with slow 3G network simulation</li>
+                </ul>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        function testMobileKeyboard() {
+            alert('📱 Keyboard Test:\n\n1. Tap on the chat input\n2. Type a message\n3. Check if keyboard covers input\n4. Try sending the message');
+        }
+        
+        function testTouchTargets() {
+            alert('👆 Touch Test:\n\n1. Try tapping all buttons\n2. Check if they respond immediately\n3. Ensure no accidental taps\n4. Test with different finger sizes');
+        }
+        
+        function testScrolling() {
+            alert('📜 Scroll Test:\n\n1. Scroll through chat messages\n2. Try scrolling the main page\n3. Check for smooth scrolling\n4. Test momentum scrolling');
+        }
+        
+        function testRotation() {
+            alert('🔄 Rotation Test:\n\n1. Rotate your device\n2. Check if layout adapts\n3. Ensure content is still accessible\n4. Test both orientations');
+        }
+        
+        function testPerformance() {
+            alert('⚡ Speed Test:\n\n1. Use mobile data (not WiFi)\n2. Clear browser cache\n3. Load the website fresh\n4. Time how long it takes\n5. Test sending messages');
+        }
+        
+        // Auto-update checklist based on screen size
+        function updateChecklist() {
+            const width = window.innerWidth;
+            const checklistDiv = document.getElementById('checklist');
+            
+            if (width < 768) {
+                checklistDiv.innerHTML += '<div class="status good"><strong>✅ Mobile Detected:</strong> You\'re viewing this on a mobile device! Perfect for testing.</div>';
+            }
+        }
+        
+        window.addEventListener('resize', updateChecklist);
+        updateChecklist();
+    </script>
+</body>
+</html>

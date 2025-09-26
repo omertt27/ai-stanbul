@@ -4,13 +4,18 @@
   "description": "Your intelligent travel companion for Istanbul",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f23",
-  "theme_color": "#1a1a3a",
+  "background_color": "#0f1011",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "categories": ["travel", "productivity", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/favicon.svg",
-      "sizes": "32x32",
-      "type": "image/svg+xml"
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon-16x16.svg",
@@ -19,8 +24,24 @@
     },
     {
       "src": "/apple-touch-icon.svg",
-      "sizes": "64x64",
+      "sizes": "180x180",
       "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Chat",
+      "short_name": "Chat",
+      "description": "Start a new conversation with AI Istanbul",
+      "url": "/?action=chat",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Weather Check",
+      "short_name": "Weather",
+      "description": "Check Istanbul weather",
+      "url": "/?action=weather",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     }
   ]
 }

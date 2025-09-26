@@ -329,10 +329,6 @@
         "question": "Avez-vous des informations sur tous les quartiers d'Istanbul ?",
         "answer": "Oui ! Nous avons des données complètes sur tous les principaux quartiers d'Istanbul incluant Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, et beaucoup d'autres. Chaque entrée de quartier inclut le contexte historique, les principales attractions et la signification culturelle."
       },
-      "languages": {
-        "question": "Puis-je obtenir des recommandations dans différentes langues ?",
-        "answer": "Oui ! Notre IA supporte plusieurs langues incluant l'anglais, le turc, le russe, l'allemand, le français et l'arabe. Changez simplement votre préférence de langue et commencez à chatter."
-      },
       "updates": {
         "question": "À quelle fréquence les informations sont-elles mises à jour ?",
         "answer": "Les données de restaurants sont mises à jour en temps réel via l'API Google Maps. Nos informations sur les musées et attractions sont curées manuellement et mises à jour régulièrement pour assurer la précision. Nous révisons et mettons à jour notre base de données mensuellement."

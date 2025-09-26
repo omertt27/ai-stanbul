@@ -777,20 +777,205 @@ html.chatbot-page {
   cursor: wait !important;
 }
 
-/* Responsive adjustments */
+/* ==============================================
+   MOBILE ENHANCEMENTS & TOUCH OPTIMIZATIONS
+   ============================================== */
+
+/* Improved touch targets for mobile (44px minimum recommended by Apple/Google) */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enhanced button touch targets */
+button, .btn, .kam-action-button, input[type="submit"] {
+  min-height: 44px;
+  touch-action: manipulation; /* Prevents double-tap zoom */
+  -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+}
+
+/* Improved input fields for mobile keyboards */
+input[type="text"], 
+input[type="email"], 
+textarea {
+  min-height: 44px;
+  font-size: 16px; /* Prevents zoom on iOS */
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+/* Better mobile keyboard support */
+.chat-input {
+  font-size: 16px !important; /* Prevents iOS zoom */
+  -webkit-appearance: none;
+  appearance: none;
+  resize: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  min-height: 44px;
+  line-height: 1.4;
+}
+
+/* Enhanced mobile scrolling */
+.chat-messages, 
+.scrollable-container {
+  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
+  scroll-behavior: smooth;
+}
+
+/* Improved mobile navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 16, 17, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 12px 0;
+  z-index: 1000;
+}
+
+/* Mobile-optimized weather indicator */
 @media (max-width: 768px) {
-  .chatbot-input-area {
-    padding: 0.75rem;
+  .weather-indicator {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    border-radius: 20px;
+  }
+}
+
+/* Enhanced mobile chat interface */
+@media (max-width: 640px) {
+  .chat-container {
+    padding: 10px;
+    margin-bottom: 60px; /* Space for mobile nav if added */
   }
   
-  .kam-input-container {
-    padding: 0.375rem;
+  .chat-message {
+    max-width: 85%;
+    font-size: 15px;
+    line-height: 1.4;
+    padding: 12px 16px;
   }
   
-  .kam-send-button {
-    padding: 0.625rem;
-    min-width: 2.25rem;
-    min-height: 2.25rem;
+  .chat-input-container {
+    padding: 12px;
+    gap: 8px;
+  }
+}
+
+/* Swipe gesture support (basic) */
+.swipeable {
+  touch-action: pan-y; /* Allow vertical scrolling, handle horizontal swipes */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Loading states optimized for mobile */
+.mobile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+/* Mobile-friendly animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Pull-to-refresh support */
+.pull-to-refresh {
+  overscroll-behavior-y: contain;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Enhanced mobile focus states */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Mobile-optimized modal/dialog */
+@media (max-width: 640px) {
+  .modal,
+  .dialog {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 2rem);
+    border-radius: 12px;
+  }
+}
+
+/* Improved mobile typography */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  
+  .small-text {
+    font-size: 12px;
+  }
+}
+
+/* Safe area support for devices with notches */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Haptic feedback simulation (visual feedback) */
+.haptic-feedback:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* Mobile-optimized loading spinner */
+.mobile-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(99, 102, 241, 0.2);
+  border-left-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

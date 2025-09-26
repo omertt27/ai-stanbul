@@ -216,3 +216,166 @@ business_plans/
 internal_tools/
 admin_scripts/
 maintenance/
+
+# Test Files and Reports (Keep codebase clean)
+*test_results*.json
+*test_report*.json
+challenging_inputs_test_results_*.json
+comprehensive_test_results_*.json
+comprehensive_test_report_*.json
+extended_test_results_*.json
+test_results.json
+test_results.log
+test_validation_report.json
+gdpr_security_report_*.json
+
+# Markdown Reports and Summaries (Portfolio only - not for repo)
+*_SUMMARY.md
+*_REPORT.md
+*_ANALYSIS.md
+*_COMPLETE.md
+*_STATUS.md
+*_IMPLEMENTATION*.md
+*_GUIDE.md
+*_CHECKLIST.md
+*_ROADMAP.md
+ADVANCED_*.md
+AI_*.md
+ARABIC_*.md
+BACKEND_*.md
+BLOG_*.md
+CHALLENGING_*.md
+CHATBOT_*.md
+CICD_*.md
+COMPETITIVE_*.md
+COMPLETE_*.md
+COMPREHENSIVE_*.md
+DEPENDENCIES_*.md
+DEPLOYMENT*.md
+DETAILED_*.md
+DOCKER_*.md
+ENHANCEMENT_*.md
+FEEDBACK_*.md
+FINAL_*.md
+FORMATTING_*.md
+FRONTEND_*.md
+FULL_*.md
+FUTURE_*.md
+FUZZYWUZZY_*.md
+GDPR_*.md
+GOOGLE_*.md
+HANDLING_*.md
+HOOKS_*.md
+I18N_*.md
+INPUT_*.md
+LIVE_*.md
+MULTILINGUAL_*.md
+NAVIGATION_*.md
+PHASE_*.md
+PRIORITY_*.md
+PROBLEMATIC_*.md
+PRODUCTION_*.md
+PYLANCE_*.md
+PYTHON_*.md
+QUICK_*.md
+RENDER_*.md
+RESPONSIVE_*.md
+RESTAURANT_*.md
+RUSSIAN_*.md
+SECURITY_*.md
+SQLALCHEMY_*.md
+STRESS_*.md
+SUGGESTIONS_*.md
+TECHNICAL_*.md
+TESTING_*.md
+TEST_*.md
+ULTRA_*.md
+UX_*.md
+VICTORY_*.md
+
+# Test and Debug Files
+test_*.py
+*_test.py
+debug_*.py
+verify_*.py
+comprehensive_*.py
+challenging_*.py
+fix_*.py
+optimize_*.py
+real_api_*.py
+
+# Log Files
+*.log
+nohup.out
+server.log
+server_startup.log
+ai_istanbul.log
+frontend.log
+frontend_optimized.log
+
+# Coverage Reports
+htmlcov/
+.coverage
+coverage.json
+
+# Temporary and Cache Files
+.mypy_cache/
+.pytest_cache/
+node_modules/
+.DS_Store
+
+# Build and Deployment Files (Keep repo clean)
+Dockerfile.prod
+docker-compose.prod.yml
+railway.toml
+render.yaml
+vercel.json
+Procfile
+requirements-minimal.txt
+deploy*.sh
+production_deploy.sh
+start-*.sh
+pre-deploy.sh
+render-start.sh
+
+# Shell Scripts and Utilities (Development only)
+cleanup_*.sh
+security_*.sh
+setup_*.sh
+test_*.sh
+run_*.sh
+
+# HTML Test Files
+test-*.html
+debug-*.html
+*-test.html
+cors_test.html
+responsive_test.html
+restaurant_test.html
+
+# Data Files (User generated)
+blog_posts.json
+user_likes.json
+
+# Configuration Files (Development artifacts)
+ai-stanbul.code-workspace
+pytest.ini
+pyproject.toml
+vscode_performance_fixes.md
+chatbot-testing-plan.md
+chatbot_analysis.md
+chatbot_improvements_summary.md
+
+# Admin and Demo Files
+admin_dashboard.html
+advanced_ai_demo.html
+saved_sessions_viewer.html
+pre-launch-checklist.html
+
+# Project Artifacts
+ai_stanbul
+.python-version
+
+# Keep Essential Files for Portfolio:
+# README.md, backend/, frontend/, requirements.txt, .env.example
+# Dockerfile, docker-compose.yml, .gitignore, package.json

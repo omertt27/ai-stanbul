@@ -86,7 +86,7 @@ const Donate = () => {
             {t('donate.otherWaysToHelp')}
           </h2>
           
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             <a 
               href="https://twitter.com/intent/tweet?text=Check%20out%20AIstanbul%20-%20the%20best%20AI%20travel%20guide%20for%20Istanbul!%20🇹🇷✨&url=https://aistanbul.com" 
               target="_blank" 
@@ -104,7 +104,7 @@ const Donate = () => {
             </a>
             
             <a 
-              href="mailto:feedback@aistanbul.com?subject=AIstanbul%20Feedback&body=Hi!%20I%20have%20some%20feedback%20about%20AIstanbul..." 
+              href="mailto:omertahtaci@aistanbul.net?subject=AIstanbul%20Feedback&body=Hi!%20I%20have%20some%20feedback%20about%20AIstanbul..." 
               className="block p-6 rounded-lg border-2 border-dashed transition-all duration-300 hover:scale-105 border-gray-600 hover:border-green-500 hover:bg-green-900/20"
             >
               <div className="flex items-center mb-2">
@@ -114,22 +114,6 @@ const Donate = () => {
               </div>
               <p className="text-sm transition-colors duration-300 text-gray-300">
                 {t('donate.sendFeedbackDesc')}
-              </p>
-            </a>
-            
-            <a 
-              href="https://github.com/omertt27/ai-stanbul" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block p-6 rounded-lg border-2 border-dashed transition-all duration-300 hover:scale-105 border-gray-600 hover:border-purple-500 hover:bg-purple-900/20"
-            >
-              <div className="flex items-center mb-2">
-                <h3 className="font-semibold text-lg transition-colors duration-300 text-white">
-                  {t('donate.contributeOnGithub')}
-                </h3>
-              </div>
-              <p className="text-sm transition-colors duration-300 text-gray-300">
-                {t('donate.contributeOnGithubDesc')}
               </p>
             </a>
           </div>

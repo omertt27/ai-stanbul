@@ -5,6 +5,7 @@ import re
 import asyncio
 import json
 import time
+import html
 from datetime import datetime
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
@@ -360,11 +361,41 @@ def clean_text_formatting(text):
     
     return text
 
+def sanitize_user_input(user_input: str) -> str:
+    """Sanitize user input to prevent injection attacks"""
+    if not user_input:
+        return ""
+    
+    # Limit input length
+    max_length = 1000
+    if len(user_input) > max_length:
+        user_input = user_input[:max_length]
+    
+    # Remove potentially dangerous characters
+    user_input = html.escape(user_input)
+    
+    # Remove SQL injection patterns
+    dangerous_patterns = [
+        r'union\s+select', r'drop\s+table', r'delete\s+from', r'insert\s+into',
+        r'update\s+set', r'create\s+table', r'alter\s+table', r'exec\s*\(',
+        r'script\s*>', r'javascript:', r'vbscript:', r'on\w+\s*=', r'<\s*script'
+    ]
+    
+    for pattern in dangerous_patterns:
+        user_input = re.sub(pattern, '', user_input, flags=re.IGNORECASE)
+    
+    return user_input.strip()
+
 def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
     """Generate response using OpenAI GPT for queries we can't handle with database/hardcoded responses"""
     try:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not OpenAI_available or not openai_api_key or OpenAI is None:
+            return None
+        
+        # Sanitize input
+        user_input = sanitize_user_input(user_input)
+        if not user_input:
             return None
         
         # Create OpenAI client
@@ -417,10 +448,10 @@ Key Istanbul topics to reference when relevant:
         gpt_response = response.choices[0].message.content
         if gpt_response:
             gpt_response = gpt_response.strip()
-            print(f"✅ GPT response generated successfully for: {user_input[:50]}...")
+            print(f"✅ GPT response generated successfully for query ID: {hash(user_input) % 10000}")
             return gpt_response
         else:
-            print(f"⚠️ GPT returned empty content for: {user_input[:50]}...")
+            print(f"⚠️ GPT returned empty content for query ID: {hash(user_input) % 10000}")
             return None
         
     except Exception as e:
@@ -880,34 +911,17 @@ def is_complex_transportation_query(user_input: str) -> bool:
 
 app = FastAPI(title="AIstanbul API")
 
-# Add CORS middleware with dynamic origins
+# Add CORS middleware with secure origins
 CORS_ORIGINS = [
-    # Development ports
+    # Development ports (only for development)
     "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    "http://localhost:3003",
-    "http://localhost:3004",
+    "http://localhost:3001", 
     "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "http://localhost:5176",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    "http://127.0.0.1:3002",
-    "http://127.0.0.1:3003",
-    "http://127.0.0.1:3004",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174",
-    "http://127.0.0.1:5175",
-    "http://127.0.0.1:5176",
     # Production frontend URLs
     "https://aistanbul.vercel.app",
-    "https://aistanbul-fdsqdpks5-omers-projects-3eea52d8.vercel.app",
-    "https://aistanbul-dz2rju4mf-omers-projects-3eea52d8.vercel.app",
-    "https://aistanbul-e5rcj5qm3-omers-projects-3eea52d8.vercel.app",
-    # Allow file:// protocol (null origin) for admin dashboard
-    "null",
+    # Remove file:// protocol support for security
 ]
 
 # Add environment variable for additional origins

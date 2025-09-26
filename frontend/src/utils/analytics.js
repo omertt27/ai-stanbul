@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { track } from '@vercel/analytics';
 
 // Google Analytics configuration
-const GA_TRACKING_ID = 'G-WRDCM59VZP';
+// TODO: Replace with your actual GA4 tracking ID
+const GA_TRACKING_ID = 'G-2XXEMVNC7Z';
 
 // Check if user has consented to analytics
 const hasAnalyticsConsent = () => {
