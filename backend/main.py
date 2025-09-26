@@ -440,7 +440,7 @@ Key Istanbul topics to reference when relevant:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Question about Istanbul: {user_input}"}
             ],
-            max_tokens=500,
+            max_tokens=350,
             temperature=0.7,
             timeout=25
         )
@@ -911,6 +911,47 @@ def is_complex_transportation_query(user_input: str) -> bool:
 
 app = FastAPI(title="AIstanbul API")
 
+# Basic AI chat endpoints - add these BEFORE including other routers
+@app.post("/ai/chat")
+async def chat(request: dict):
+    try:
+        user_message = request.get("message", "")
+        if not user_message:
+            return {"error": "Message is required"}
+        
+        print(f"💬 Chat request received: {user_message[:50]}...")
+        
+        # Use the existing GPT response function
+        response = get_gpt_response(user_message, "test-session")
+        if not response:
+            response = create_fallback_response(user_message, [])
+        
+        print(f"✅ Chat response generated: {len(response)} characters")
+        return {"response": response}
+    except Exception as e:
+        print(f"❌ Chat error: {str(e)}")
+        return {"error": f"Chat error: {str(e)}"}
+
+@app.post("/ai/stream")
+async def stream_chat(request: dict):
+    try:
+        user_message = request.get("message", "")
+        if not user_message:
+            return {"error": "Message is required"}
+        
+        print(f"🔄 Stream chat request received: {user_message[:50]}...")
+        
+        # Generate response using the same logic as regular chat
+        response = get_gpt_response(user_message, "test-session")
+        if not response:
+            response = create_fallback_response(user_message, [])
+        
+        print(f"✅ Stream chat response generated: {len(response)} characters")
+        return {"response": response}
+    except Exception as e:
+        print(f"❌ Stream chat error: {str(e)}")
+        return {"error": f"Stream error: {str(e)}"}
+
 # Include blog router
 app.include_router(blog.router)
 
@@ -922,40 +963,6 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": str(datetime.now())}
-
-# Basic AI chat endpoints
-@app.post("/ai/chat")
-async def chat(request: dict):
-    try:
-        user_message = request.get("message", "")
-        if not user_message:
-            return {"error": "Message is required"}
-        
-        # Use the existing GPT response function
-        response = get_gpt_response(user_message, "test-session")
-        if not response:
-            response = create_fallback_response(user_message, [])
-        
-        return {"response": response}
-    except Exception as e:
-        return {"error": f"Chat error: {str(e)}"}
-
-@app.post("/ai/stream")
-async def stream_chat(request: dict):
-    try:
-        user_message = request.get("message", "")
-        if not user_message:
-            return {"error": "Message is required"}
-        
-        # For now, return the same as regular chat
-        # In production, this would be a streaming response
-        response = get_gpt_response(user_message, "test-session")
-        if not response:
-            response = create_fallback_response(user_message, [])
-        
-        return {"response": response}
-    except Exception as e:
-        return {"error": f"Stream error: {str(e)}"}
 
 # Add CORS middleware with secure origins
 CORS_ORIGINS = [
