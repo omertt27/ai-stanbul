@@ -911,6 +911,9 @@ def is_complex_transportation_query(user_input: str) -> bool:
 
 app = FastAPI(title="AIstanbul API")
 
+# Include blog router
+app.include_router(blog.router)
+
 # Add CORS middleware with secure origins
 CORS_ORIGINS = [
     # Development ports (only for development)
