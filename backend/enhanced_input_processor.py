@@ -6,7 +6,7 @@ Handles fuzzy matching, typo correction, context understanding, and query enhanc
 
 import re
 from typing import Dict, List, Tuple, Optional
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 
 class EnhancedInputProcessor:
     def __init__(self):

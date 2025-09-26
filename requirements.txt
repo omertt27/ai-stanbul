@@ -11,3 +11,7 @@ slowapi
 structlog
 bleach
 python-multipart
+thefuzz
+python-levenshtein
+aiofiles
+httpx

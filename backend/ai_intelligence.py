@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 import re
 
 class SimpleSessionManager:

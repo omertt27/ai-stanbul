@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 
 # Load environment variables first, before any other imports
 load_dotenv()

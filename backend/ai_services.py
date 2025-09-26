@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc, update
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 import re
 
 from models import (

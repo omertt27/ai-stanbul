@@ -11,7 +11,7 @@ import json
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
-from fuzzywuzzy import fuzz, process
+from thefuzz import fuzz, process
 
 
 @dataclass
