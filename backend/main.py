@@ -1573,3 +1573,30 @@ async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_d
         # Extract data from request
         user_message = data.get("message", "").strip()
         session_id = data.get("session_id", f"session_{int(time.time())}")
+
+        
+        if not user_message:
+            return {"error": "Message cannot be empty"}
+        
+        # Get client IP for rate limiting
+        client_ip = get_remote_address(request)
+        
+        # Generate AI response using existing function
+        ai_response = get_gpt_response(user_message, session_id)
+        
+        if not ai_response:
+            return {"error": "Unable to generate response at this time"}
+        
+        return {
+            "response": ai_response,
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {str(e)}")
+        return {"error": "An error occurred while processing your request"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
