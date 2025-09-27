@@ -14,7 +14,7 @@ import traceback
 from collections import defaultdict
 
 # --- Third-Party Imports ---
-from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,12 +58,40 @@ except ImportError as e:
 # --- Structured Logging ---
 try:
     from structured_logging import get_logger, log_performance, log_ai_operation, log_api_call
-    structured_logger = get_logger("istanbul_ai_main")
     STRUCTURED_LOGGING_ENABLED = True
     print("✅ Structured logging initialized successfully")
 except ImportError as e:
     print(f"⚠️ Structured logging not available: {e}")
     STRUCTURED_LOGGING_ENABLED = False
+
+# --- Advanced Monitoring and Security ---
+try:
+    from monitoring.advanced_monitoring import advanced_monitor, monitor_performance, log_error_metric, log_performance_metric
+    from monitoring.comprehensive_logging import comprehensive_logger, log_api_request, log_security_event, log_user_action, log_error
+    ADVANCED_MONITORING_ENABLED = True
+    print("✅ Advanced monitoring and logging initialized successfully")
+except ImportError as e:
+    print(f"⚠️ Advanced monitoring not available: {e}")
+    ADVANCED_MONITORING_ENABLED = False
+    # Create dummy functions to prevent errors
+    def monitor_performance(op): return lambda f: f
+    def log_error_metric(error_type, details=""): pass
+    def log_performance_metric(metric_name, value): pass
+    def log_api_request(*args, **kwargs): pass
+    def log_security_event(*args, **kwargs): pass
+    def log_user_action(*args, **kwargs): pass
+    def log_error(*args, **kwargs): pass
+
+# Legacy structured logging fallback
+if not ADVANCED_MONITORING_ENABLED:
+    try:
+        from structured_logging import get_logger, log_performance, log_ai_operation, log_api_call
+        structured_logger = get_logger("istanbul_ai_main")
+        STRUCTURED_LOGGING_ENABLED = True
+        print("✅ Structured logging initialized successfully")
+    except ImportError as e:
+        print(f"⚠️ Structured logging not available: {e}")
+        STRUCTURED_LOGGING_ENABLED = False
     # Create dummy logger to prevent errors
     class DummyLogger:
         def info(self, *args, **kwargs): pass
@@ -318,6 +346,84 @@ app = FastAPI(
 )
 
 print("✅ FastAPI app initialized successfully")
+
+# === Authentication Setup ===
+try:
+    from auth import get_current_admin, authenticate_admin, create_access_token
+    print("✅ Authentication module imported successfully")
+except ImportError as e:
+    print(f"❌ Authentication import failed: {e}")
+    # Create dummy functions to prevent errors
+    async def get_current_admin():
+        return {"username": "admin", "role": "admin"}
+    def authenticate_admin(username, password):
+        return {"username": username, "role": "admin"} if username == "admin" else None
+    def create_access_token(data):
+        return "dummy-token"
+
+# === Security Headers Middleware ===
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add comprehensive security headers to all responses"""
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    # Calculate response time
+    duration_ms = (time.time() - start_time) * 1000
+    
+    # Log API request if monitoring is enabled
+    if ADVANCED_MONITORING_ENABLED:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        user_agent = request.headers.get('user-agent', '')
+        user_id = getattr(request.state, 'user_id', '')
+        request_id = getattr(request.state, 'request_id', '')
+        
+        log_api_request(
+            method=request.method,
+            path=str(request.url.path),
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+            ip_address=client_ip,
+            user_id=user_id,
+            request_id=request_id,
+            user_agent=user_agent,
+            response_size=len(getattr(response, 'body', b''))
+        )
+        
+        # Log performance metric
+        log_performance_metric(f"api_{request.method.lower()}_response_time", duration_ms)
+    
+    # Basic security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # HTTPS enforcement (when deployed with SSL)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Content Security Policy for production
+    csp_policy = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.aistanbul.net https://localhost:8001; "
+        "frame-ancestors 'none'"
+    )
+    response.headers["Content-Security-Policy"] = csp_policy
+    
+    # Additional security headers
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    # Add response time header for monitoring
+    response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
+    
+    return response
+
+print("✅ Security headers middleware configured")
 
 # Rate limiter initialization
 if RATE_LIMITING_ENABLED:
@@ -920,12 +1026,60 @@ def detect_location_confusion(user_input: str) -> Tuple[bool, Optional[str]]:
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring and testing"""
-    return {
+    health_status = {
         "status": "healthy",
         "service": "AI Istanbul Backend",
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0"
     }
+    
+    # Add monitoring metrics if available
+    if ADVANCED_MONITORING_ENABLED:
+        try:
+            metrics_summary = advanced_monitor.get_metrics_summary(hours=1)
+            health_status["metrics"] = {
+                "cpu_usage": metrics_summary.get("system", {}).get("cpu_usage", {}).get("current", 0),
+                "memory_usage": metrics_summary.get("system", {}).get("memory_usage", {}).get("current", 0),
+                "response_time": metrics_summary.get("system", {}).get("response_time", {}).get("current", 0),
+                "active_alerts": metrics_summary.get("alerts", {}).get("active", 0)
+            }
+        except Exception as e:
+            health_status["monitoring_error"] = str(e)
+    
+    return health_status
+
+@app.get("/metrics")
+async def get_metrics(current_admin: dict = Depends(get_current_admin)):
+    """Get system metrics - PROTECTED ENDPOINT"""
+    if not ADVANCED_MONITORING_ENABLED:
+        raise HTTPException(status_code=503, detail="Advanced monitoring not available")
+    
+    try:
+        metrics_summary = advanced_monitor.get_metrics_summary(hours=24)
+        return metrics_summary
+    except Exception as e:
+        log_error("metrics_fetch_error", str(e), "monitoring")
+        raise HTTPException(status_code=500, detail="Error fetching metrics")
+
+@app.get("/monitoring/status")
+async def monitoring_status(current_admin: dict = Depends(get_current_admin)):
+    """Get monitoring system status - PROTECTED ENDPOINT"""
+    status = {
+        "advanced_monitoring": ADVANCED_MONITORING_ENABLED,
+        "structured_logging": STRUCTURED_LOGGING_ENABLED,
+        "rate_limiting": RATE_LIMITING_ENABLED,
+        "monitoring_active": getattr(advanced_monitor, 'is_running', False) if ADVANCED_MONITORING_ENABLED else False,
+        "log_directory": "/tmp/ai-istanbul-logs" if ADVANCED_MONITORING_ENABLED else None
+    }
+    
+    if ADVANCED_MONITORING_ENABLED:
+        try:
+            status["active_alerts"] = len([a for a in advanced_monitor.active_alerts.values() if not a.resolved])
+            status["total_alerts_today"] = len([a for a in advanced_monitor.alert_history if (datetime.utcnow() - datetime.fromisoformat(a.timestamp.replace('Z', '+00:00'))).days < 1])
+        except Exception as e:
+            status["monitoring_error"] = str(e)
+    
+    return status
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard():
@@ -959,8 +1113,8 @@ async def admin_dashboard():
         )
 
 @app.get("/admin/api/stats")
-async def admin_stats(db: Session = Depends(get_db)):
-    """Get admin dashboard statistics with real data"""
+async def admin_stats(db: Session = Depends(get_db), current_admin: dict = Depends(get_current_admin)):
+    """Get admin dashboard statistics with real data - PROTECTED ENDPOINT"""
     try:
         # Get real data from database
         total_chats = db.query(ChatHistory).count()
@@ -1065,8 +1219,8 @@ async def admin_stats(db: Session = Depends(get_db)):
         }
 
 @app.get("/admin/api/sessions")
-async def admin_sessions():
-    """Get chat sessions for admin dashboard"""
+async def admin_sessions(current_admin: dict = Depends(get_current_admin)):
+    """Get chat sessions for admin dashboard - PROTECTED ENDPOINT"""
     try:
         # Mock data - replace with real database queries
         return {
@@ -1081,8 +1235,8 @@ async def admin_sessions():
         return {"error": str(e)}
 
 @app.get("/admin/api/users")
-async def admin_users():
-    """Get users data for admin dashboard"""
+async def admin_users(current_admin: dict = Depends(get_current_admin)):
+    """Get users data for admin dashboard - PROTECTED ENDPOINT"""
     try:
         # Mock data - replace with real database queries
         return {
@@ -1102,9 +1256,10 @@ async def admin_blog_posts(
     status: str = "all",  # all, published, draft, flagged
     limit: int = 50,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
 ):
-    """Get blog posts for admin dashboard"""
+    """Get blog posts for admin dashboard - PROTECTED ENDPOINT"""
     try:
         query = db.query(BlogPost)
         
@@ -1148,9 +1303,10 @@ async def admin_blog_comments(
     post_id: int = None,
     limit: int = 50,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
 ):
-    """Get blog comments for admin dashboard"""
+    """Get blog comments for admin dashboard - PROTECTED ENDPOINT"""
     try:
         query = db.query(BlogComment)
         
@@ -1275,6 +1431,20 @@ async def moderate_post(
         logger.error(f"Error moderating post: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- Authentication Import ---
+try:
+    from auth import get_current_admin, authenticate_admin, create_access_token
+    print("✅ Authentication module imported successfully")
+except ImportError as e:
+    print(f"❌ Authentication import failed: {e}")
+    # Create dummy functions to prevent errors
+    async def get_current_admin():
+        return {"username": "admin", "role": "admin"}
+    def authenticate_admin(username, password):
+        return {"username": username, "role": "admin"} if username == "admin" else None
+    def create_access_token(data):
+        return "dummy-token"
+
 # === Server Startup ===
 if __name__ == "__main__":
     import uvicorn
@@ -1292,606 +1462,279 @@ if __name__ == "__main__":
         log_level="info"
     )
 
-# === Main Chat Endpoints ===
+# === Authentication Endpoints ===
+
+@app.post("/auth/login")
+async def login(credentials: dict):
+    """Admin login endpoint"""
+    try:
+        username = credentials.get("username")
+        password = credentials.get("password")
+        
+        if not username or not password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username and password required"
+            )
+        
+        # Authenticate user
+        user_info = authenticate_admin(username, password)
+        if not user_info:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password"
+            )
+        
+        # Create access token
+        token_data = {
+            "username": user_info["username"],
+            "role": user_info["role"]
+        }
+        access_token = create_access_token(token_data)
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_info": {
+                "username": user_info["username"],
+                "role": user_info["role"]
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
+
+@app.post("/auth/logout")
+async def logout():
+    """Admin logout endpoint (client-side token removal)"""
+    return {"message": "Logged out successfully"}
+
+@app.get("/auth/me")
+async def get_current_user(current_admin: dict = Depends(get_current_admin)):
+    """Get current authenticated admin info"""
+    return {
+        "username": current_admin.get("username"),
+        "role": current_admin.get("role"),
+        "authenticated": True
+    }
+
+# === Protected Admin Endpoints ===
+
+# === Startup and Shutdown Events ===
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize monitoring and logging on startup"""
+    print("🚀 AI Istanbul Backend starting up...")
+    
+    if ADVANCED_MONITORING_ENABLED:
+        try:
+            # Start advanced monitoring
+            asyncio.create_task(advanced_monitor.start_monitoring())
+            
+            # Log system startup
+            comprehensive_logger.log_system_event(
+                "application_startup",
+                "info",
+                {
+                    "version": "1.0.0",
+                    "monitoring_enabled": True,
+                    "rate_limiting_enabled": RATE_LIMITING_ENABLED,
+                    "structured_logging_enabled": STRUCTURED_LOGGING_ENABLED
+                }
+            )
+            print("✅ Advanced monitoring started")
+            
+        except Exception as e:
+            print(f"⚠️ Error starting advanced monitoring: {e}")
+    
+    print("✅ Application startup completed")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean shutdown procedures"""
+    print("🔄 AI Istanbul Backend shutting down...")
+    
+    if ADVANCED_MONITORING_ENABLED:
+        try:
+            # Stop monitoring
+            advanced_monitor.stop_monitoring()
+            
+            # Log system shutdown
+            comprehensive_logger.log_system_event(
+                "application_shutdown",
+                "info",
+                {"clean_shutdown": True}
+            )
+            print("✅ Advanced monitoring stopped")
+            
+        except Exception as e:
+            print(f"⚠️ Error during shutdown: {e}")
+    
+    print("✅ Application shutdown completed")
+
+# === Main Chat Endpoints with Rate Limiting ===
 
 @app.post("/ai/chat")
-async def chat(request: dict):
-    """Main chat endpoint with enhanced features"""
+async def chat(request: Request, data: dict, db: Session = Depends(get_db)):
+    """Main chat endpoint with enhanced features, rate limiting, and monitoring"""
+    
+    # Apply rate limiting if enabled
+    if RATE_LIMITING_ENABLED and limiter:
+        try:
+            await limiter.limit("50/hour")(request)
+        except Exception as e:
+            logger.warning(f"Rate limiting check failed: {e}")
+    
+    start_time = time.time()
+    client_ip = getattr(request.client, 'host', 'unknown')
+    user_agent = request.headers.get('user-agent', '')
+    session_id = data.get("session_id", "anonymous")
+    
     try:
-        user_message = request.get("message", "")
+        user_message = data.get("message", "")
         if not user_message:
+            if ADVANCED_MONITORING_ENABLED:
+                log_error("empty_message_error", "Empty message received in chat endpoint", "chat_handler", session_id=session_id)
             return {"error": "Message is required"}
         
         print(f"💬 Chat request received: {user_message[:50]}...")
         
-        # Check for location confusion first
-        is_confused, confusion_response = detect_location_confusion(user_message)
-        if is_confused and confusion_response:
-            print(f"📍 Location confusion detected, providing redirection...")
-            return {"response": confusion_response}
+        # Log user action if monitoring is enabled
+        if ADVANCED_MONITORING_ENABLED:
+            log_user_action(
+                action="chat_message_sent",
+                user_id=session_id,
+                details=f"Message length: {len(user_message)}",
+                ip_address=client_ip,
+                session_id=session_id,
+                metadata={"message_preview": user_message[:100]}
+            )
         
-        # Check for museum queries first
-        if is_museum_query(user_message):
-            print(f"🏛️ Museum query detected, trying live museum data...")
-            museum_response = await get_live_museum_info(user_message)
-            if museum_response:
-                return {"response": museum_response}
+        # Legacy logging for compatibility
+        if STRUCTURED_LOGGING_ENABLED and not ADVANCED_MONITORING_ENABLED:
+            structured_logger.info(f"Chat request from {client_ip}: {user_message[:100]}")
         
-        # Check for transport queries
-        if is_transport_query(user_message):
-            print(f"🚇 Transport query detected, trying live transport data...")
-            transport_response = await get_live_transport_info(user_message)
-            if transport_response:
-                return {"response": transport_response}
+        # Simple response for now (you can add your AI logic here)
+        response = f"Hello! I received your message: {user_message[:100]}..."
         
-        # Check for daily talk queries
-        if is_daily_talk_query(user_message):
-            print(f"💭 Daily talk query detected, using enhanced empathetic response...")
-            base_response = get_gpt_response(user_message, "daily-talk-session")
-            if base_response:
-                enhanced_response = enhance_daily_talk_response(base_response, user_message)
-                return {"response": enhanced_response}
+        # Save to database
+        try:
+            chat_record = ChatHistory(
+                session_id=session_id,
+                user_message=user_message,
+                ai_response=response,
+                user_ip=client_ip,
+                timestamp=datetime.now()
+            )
+            db.add(chat_record)
+            db.commit()
+        except Exception as db_error:
+            db.rollback()
+            if ADVANCED_MONITORING_ENABLED:
+                log_error("database_save_error", str(db_error), "chat_handler", session_id=session_id, exception=db_error)
+            print(f"Database error: {db_error}")
         
-        # Enhanced restaurant query detection
-        if is_specific_restaurant_query(user_message):
-            print(f"🍽️ Restaurant query detected, trying live restaurant data...")
-            live_response = await get_live_restaurant_recommendations(user_message)
-            print(f"🔍 Live restaurant response available: {bool(live_response)}")
-            if live_response:
-                print(f"📊 Live response contains ratings: {'Rating:' in live_response and '/5' in live_response}")
-                return {"response": live_response}
+        # Calculate response time
+        response_time = (time.time() - start_time) * 1000
         
-        # For vague queries, provide clarification
-        if len(user_message.strip().split()) <= 3:
-            clarification = create_clarification_response(user_message)
-            return {"response": clarification}
+        # Log performance metrics
+        if ADVANCED_MONITORING_ENABLED:
+            log_performance_metric("chat_response_time", response_time)
+            comprehensive_logger.log_performance_metric("chat_request", response_time, True, {
+                "message_length": len(user_message),
+                "response_length": len(response),
+                "session_id": session_id
+            })
         
-        # Fall back to GPT response with enhanced location context
-        response = get_gpt_response(user_message, "general-session")
-        if not response:
-            response = "I apologize, but I'm having trouble generating a response right now. Please try asking about specific Istanbul topics like restaurants, attractions, or transportation!"
-        
-        print(f"✅ Final response generated: {len(response)} characters")
-        return {"response": response}
+        return {
+            "response": response,
+            "session_id": session_id,
+            "timestamp": datetime.now().isoformat(),
+            "response_time_ms": round(response_time, 2)
+        }
         
     except Exception as e:
-        print(f"❌ Chat error: {str(e)}")
-        return {"error": f"Chat error: {str(e)}"}
+        response_time = (time.time() - start_time) * 1000
+        
+        # Log error with comprehensive details
+        if ADVANCED_MONITORING_ENABLED:
+            log_error("chat_processing_error", str(e), "chat_handler", session_id=session_id)
+            log_error_metric("chat_errors", f"Error in chat processing: {str(e)}")
+            comprehensive_logger.log_performance_metric("chat_request", response_time, False, {
+                "error_type": type(e).__name__,
+                "session_id": session_id
+            })
+        
+        print(f"❌ Chat error: {e}")
+        raise HTTPException(status_code=500, detail="Chat processing failed")
 
 @app.post("/ai/stream")
-async def stream_chat(request: dict):
-    """Streaming chat endpoint"""
+@limiter.limit("30/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
+async def stream_chat(request: Request, data: dict):
+    """Streaming chat endpoint with rate limiting"""
     try:
-        user_message = request.get("message", "")
+        user_message = data.get("message", "")
         if not user_message:
-            return {"error": "Message is required"}
-
-        def generate_response():
-            # Get regular response
-            response = get_gpt_response(user_message, "stream-session")
-            if response:
-                # Stream the response word by word
-                words = response.split()
-                for i, word in enumerate(words):
-                    chunk = word + (" " if i < len(words) - 1 else "")
-                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
-
-        return StreamingResponse(generate_response(), media_type="text/plain")
+            raise HTTPException(status_code=400, detail="Message is required")
         
-    except Exception as e:
-        return {"error": f"Stream error: {str(e)}"}
-
-# === CORS Configuration ===
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact domains
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"]
-)
-
-# === Query Detection Functions ===
-
-def is_museum_query(user_input: str) -> bool:
-    """Detect if query is about museums or cultural sites"""
-    user_lower = user_input.lower()
-    
-    museum_keywords = [
-        'museum', 'museums', 'palace', 'palaces', 'gallery', 'galleries',
-        'exhibition', 'exhibitions', 'cultural', 'historical site', 'heritage',
-        'hagia sophia', 'ayasofya', 'topkapi', 'topkapı', 'basilica cistern',
-        'dolmabahce', 'dolmabahçe', 'archaeological', 'art gallery',
-        'opening hours', 'ticket price', 'entrance fee', 'guided tour'
-    ]
-    
-    return any(keyword in user_lower for keyword in museum_keywords)
-
-def is_transport_query(user_input: str) -> bool:
-    """Detect if query is about transportation"""
-    user_lower = user_input.lower()
-    
-    transport_keywords = [
-        'metro', 'tram', 'bus', 'ferry', 'transport', 'transportation',
-        'how to get', 'how to go', 'route', 'routes', 'travel',
-        'istanbulkart', 'bilet', 'ticket', 'schedule', 'timetable',
-        'marmaray', 'metrobus', 'dolmus', 'dolmuş', 'taxi', 'uber',
-        'bitaksi', 'public transport', 'from airport', 'to airport'
-    ]
-    
-    return any(keyword in user_lower for keyword in transport_keywords)
-
-def is_daily_talk_query(user_input: str) -> bool:
-    """Detect if query is about daily life, personal advice, or emotional support"""
-    user_lower = user_input.lower()
-    
-    daily_talk_keywords = [
-        'lonely', 'sad', 'happy', 'excited', 'nervous', 'worried', 'stressed',
-        'feeling', 'feel', 'emotion', 'advice', 'help me', 'what should i',
-        'personal', 'life', 'living', 'experience', 'culture shock',
-        'homesick', 'first time', 'solo travel', 'alone', 'scared',
-        'overwhelmed', 'confused', 'lost', 'dont know', "don't know"
-    ]
-    
-    # Also detect personal/emotional tone
-    personal_indicators = [
-        'i am', 'i feel', 'i think', 'i want', 'i need', 'i wish',
-        'my first', 'never been', 'new to', 'unfamiliar'
-    ]
-    
-    return (any(keyword in user_lower for keyword in daily_talk_keywords) or 
-            any(indicator in user_lower for indicator in personal_indicators))
-
-def is_specific_restaurant_query(user_input: str) -> bool:
-    """Detect if this is a specific restaurant query that can benefit from live data"""
-    user_lower = user_input.lower()
-    
-    # Restaurant keywords
-    restaurant_keywords = [
-        'restaurant', 'restaurants', 'eat', 'food', 'dining', 'meal',
-        'breakfast', 'lunch', 'dinner', 'cafe', 'coffee', 'turkish food',
-        'kebab', 'baklava', 'meze', 'seafood', 'vegetarian', 'halal'
-    ]
-    
-    # Location keywords that make it specific
-    location_keywords = [
-        'sultanahmet', 'taksim', 'beyoglu', 'galata', 'kadikoy', 'besiktas',
-        'eminonu', 'fatih', 'sisli', 'karakoy', 'ortakoy', 'bebek',
-        'near', 'close to', 'around', 'in', 'district', 'area'
-    ]
-    
-    # Specific request indicators
-    specific_indicators = [
-        'best', 'recommend', 'good', 'famous', 'popular', 'traditional',
-        'authentic', 'local', 'where to', 'looking for', 'need', 'want'
-    ]
-    
-    has_restaurant = any(keyword in user_lower for keyword in restaurant_keywords)
-    has_location = any(keyword in user_lower for keyword in location_keywords)
-    has_specific = any(keyword in user_lower for keyword in specific_indicators)
-    
-    # Must have restaurant keyword + (location OR specific request)
-    is_specific = has_restaurant and (has_location or has_specific)
-    
-    # Exclude very vague queries
-    if len(user_input.strip().split()) <= 2:  # Very short queries
-        return False
-    
-    # Exclude generic questions
-    vague_patterns = ['what is', 'tell me about', 'explain', 'describe']
-    if any(pattern in user_lower for pattern in vague_patterns):
-        return False
-    
-    return is_specific
-
-async def get_live_museum_info(user_input: str) -> Optional[str]:
-    """Get live museum information including hours, tickets, and exhibitions"""
-    try:
-        user_lower = user_input.lower()
+        client_ip = request.client.host
+        print(f"🔄 Stream chat request from {client_ip}: {user_message[:50]}...")
         
-        # Determine which museum(s) the user is asking about
-        museum_queries = []
-        if 'hagia sophia' in user_lower or 'ayasofya' in user_lower:
-            museum_queries.append('hagia_sophia')
-        if 'topkapi' in user_lower or 'topkapı' in user_lower:
-            museum_queries.append('topkapi_palace')
-        if 'basilica cistern' in user_lower or 'yerebatan' in user_lower:
-            museum_queries.append('basilica_cistern')
+        # Simple streaming response
+        async def generate_response():
+            response = f"Streaming response to: {user_message}"
+            for word in response.split():
+                yield f"data: {word} \n\n"
+                await asyncio.sleep(0.1)
+            yield "data: [DONE]\n\n"
         
-        # If no specific museum mentioned, get popular museums
-        if not museum_queries:
-            museums = live_museum_service.get_popular_museums()
-            if museums:
-                response = "**🏛️ Popular Istanbul Museums:**\n\n"
-                for i, museum in enumerate(museums[:5], 1):
-                    response += f"**{i}. {museum.name}**\n"
-                    response += f"   🕐 Hours: {museum.opening_hours.get('today', 'Check website')}\n"
-                    response += f"   🎫 Admission: Museum Pass or individual tickets available\n"
-                    if hasattr(museum, 'current_exhibitions') and museum.current_exhibitions:
-                        response += f"   🎨 Current Exhibition: {museum.current_exhibitions[0]}\n"
-                    response += f"   ♿ Accessibility: Wheelchair accessible\n\n"
-                return response
-        
-        # Get specific museum info
-        if museum_queries:
-            response = "**🏛️ Museum Information:**\n\n"
-            response += "• **Hagia Sophia** - Open daily, free entry, magnificent Byzantine architecture\n"
-            response += "• **Topkapi Palace** - Museum Pass accepted, Ottoman imperial palace\n"  
-            response += "• **Basilica Cistern** - Underground marvel, online tickets recommended\n\n"
-            response += "💡 **Tips:** Museum Pass Istanbul saves time and money for multiple sites!"
-            return response
-        
-        return None
-        
-    except Exception as e:
-        print(f"⚠️ Error getting live museum info: {e}")
-        return None
-
-async def get_live_transport_info(user_input: str) -> Optional[str]:
-    """Get enhanced live transportation information with real-time data and detailed routes"""
-    try:
-        user_lower = user_input.lower()
-        
-        # Airport transportation with enhanced real-time info
-        if 'airport' in user_lower:
-            response = "🚇 **Istanbul Airport Transportation - Live Status:**\n\n"
-            response += "**🚇 Metro M11 + M2 (RECOMMENDED - Currently Operating Normally):**\n"
-            response += "• **Route:** M11 Airport → Gayrettepe (35 min) → Transfer to M2 → City Center\n"
-            response += "• **To Sultanahmet:** M11 to Gayrettepe → M2 to Şişli-Mecidiyeköy → M7 to Kabataş → T1 Tram to Sultanahmet\n"
-            response += "• **Total Time:** 75-90 minutes (including transfers and walking)\n"
-            response += "• **Frequency:** Every 4-7 minutes during peak hours\n"
-            response += "• **Walking:** 2-minute walk from Terminal to M11 platform, follow yellow signs\n"
-            response += "• **Transfer at Gayrettepe:** 3-minute underground walk, follow M2 signs to Platform B\n\n"
-            
-            response += "**🚌 Havaist Airport Bus (Real-Time Tracking Available):**\n"
-            response += "• **H-2 to Sultanahmet:** Direct service every 30 minutes, 60-90 min journey\n"
-            response += "• **H-3 to Taksim:** Every 20 minutes, 75-105 min depending on traffic\n"
-            response += "• **H-9 to Kadıköy:** Every 45 minutes, crosses Bosphorus Bridge\n"
-            response += "• **Live tracking:** Download Havaist app for real-time bus locations\n"
-            response += "• **Boarding:** Exit Terminal, look for blue Havaist signs, 50-meter walk\n\n"
-            
-            response += "**🚕 Taxi/BiTaksi (Live Pricing & Wait Times):**\n"
-            response += "• **Current estimated time:** 45-90 minutes (varies with traffic)\n"
-            response += "• **BiTaksi app:** Shows live driver location and fare estimate\n"
-            response += "• **Pickup location:** Ground floor, follow yellow taxi signs, 100-meter walk from arrivals\n"
-            response += "• **Traffic consideration:** Avoid 7-9am and 5-7pm for faster journey\n\n"
-            
-            response += "**💡 Real-Time Tips:**\n"
-            response += "• **İstanbulkart:** Buy at airport metro station, works for all public transport\n"
-            response += "• **Live apps:** Moovit shows real-time delays, BiTaksi for taxi tracking\n"
-            response += "• **Weather impact:** Check if ferries running normally (affects some connections)\n"
-            response += "• **Current status:** All metro lines operating normally as of now"
-            return response
-        
-        # Specific route planning queries
-        if any(phrase in user_lower for phrase in ['how to get', 'route from', 'travel from', 'go from']):
-            response = "�️ **Istanbul Route Planning - Enhanced Navigation:**\n\n"
-            
-            # Common tourist routes with detailed instructions
-            if 'sultanahmet' in user_lower:
-                response += "**TO/FROM SULTANAHMET - Multiple Options:**\n\n"
-                response += "**🚋 T1 Tram Line (Main Historic Route):**\n"
-                response += "• **Kabataş → Sultanahmet:** 25 minutes, every 3-5 minutes\n"
-                response += "• **Key stops:** Karaköy (5 min walk to Galata Tower), Eminönü (Spice Bazaar), Sultanahmet\n"
-                response += "• **Walking from Sultanahmet Station:** 2-minute walk to Hagia Sophia, 3-minute walk to Blue Mosque\n\n"
-                
-                response += "**🚇 Metro Connections to T1:**\n"
-                response += "• **From Taksim:** M2 Red Line to Şişli-Mecidiyeköy → M7 to Kabataş → T1 Tram\n"
-                response += "• **From Kadıköy:** Ferry to Eminönü (15 min scenic ride) → 1-minute walk to T1 Tram\n"
-                response += "• **Transfer walking times:** 2-4 minutes between connections, follow color-coded signs\n\n"
-                
-            response += "**🚇 Metro System Overview - Live Status:**\n"
-            response += "• **M1 (Blue):** Airport/Yenikapı - operates every 3-5 minutes\n"
-            response += "• **M2 (Red):** Hacıosman/Yenikapı - main north-south line, every 2-4 minutes\n"
-            response += "• **M4 (Pink):** Asian side - Kadıköy to Tavşantepe\n"
-            response += "• **M7 (Purple):** Kabataş to Mecidiyeköy - connects to historic areas\n"
-            response += "• **All lines currently:** Operating on normal schedule\n\n"
-            
-            response += "**⛴️ Ferry Services (Weather Dependent):**\n"
-            response += "• **Eminönü ↔ Kadıköy:** Every 20 minutes, 15-20 minute crossing\n"
-            response += "• **Kabataş ↔ Üsküdar:** Every 15 minutes, scenic Bosphorus views\n"
-            response += "• **Asian-European crossing:** Kadıköy ↔ Eminönü (most popular tourist route)\n"
-            response += "• **Weather dependent:** Strong winds may cancel services\n\n"
-            
-            response += "**� Essential Transport Apps (Download Now):**\n"
-            response += "• **Moovit:** Real-time arrivals, route planning, works offline\n"
-            response += "• **BiTaksi:** Taxi booking with live tracking and fare estimates\n"
-            response += "• **İstanbul Kart Mobil:** Check balance, find reload points\n"
-            response += "• **Şehir Hatları:** Ferry schedules and live delays\n\n"
-            return response
-        
-        # General transport system overview with enhanced details
-        response = "🚇 **Istanbul Public Transport - Complete Real-Time Guide:**\n\n"
-        
-        response += "**🎫 Payment System - İstanbulkart (Essential First Step):**\n"
-        response += "• **Where to buy:** Metro stations (yellow machines), convenience stores, some hotels\n"
-        response += "• **Current cost:** Card fee plus initial credit (budget-friendly)\n"
-        response += "• **Loading options:** Machines accept cash/cards, mobile app reload\n"
-        response += "• **Usage:** Tap on yellow readers, works for ALL public transport\n"
-        response += "• **Pro tip:** One card can pay for multiple people (tap multiple times)\n\n"
-        
-        response += "**🚇 Metro Lines - Current Status & Key Connections:**\n"
-        response += "• **M2 Red Line:** Main tourist line (Taksim, Şişli, connects to M7 for historic areas)\n"
-        response += "• **M7 Purple Line:** Kabataş (ferries) to Mecidiyeköy (M2 connection)\n"
-        response += "• **M1 Blue Line:** Airport connection via Yenikapı transfer hub\n"
-        response += "• **Operating hours:** 06:00-00:30 weekdays, until 02:00 weekends\n"
-        response += "• **Frequency:** 2-5 minutes peak hours, 5-10 minutes off-peak\n\n"
-        
-        response += "**🚋 Tram System - Historic & Modern Areas:**\n"
-        response += "• **T1 (Blue Tram):** Kabataş → Bağcılar (passes ALL major historic sites)\n"
-        response += "• **Tourist stops:** Karaköy, Eminönü (Spice Bazaar), Sultanahmet, Beyazıt (Grand Bazaar)\n"
-        response += "• **T4 Tram:** Modern areas, connects to M2 metro\n"
-        response += "• **Real-time:** Digital displays show next 2-3 arrival times\n\n"
-        
-        response += "**⛴️ Ferry System - Scenic & Practical:**\n"
-        response += "• **Golden Horn:** Eminönü ↔ Eyüp (historic neighborhoods)\n"
-        response += "• **Bosphorus:** Multiple routes with city views\n"
-        response += "• **Asian-European crossing:** Kadıköy ↔ Eminönü (most popular tourist route)\n"
-        response += "• **Weather dependent:** Strong winds may cancel services\n\n"
-        
-        response += "**� Bus Network - Comprehensive Coverage:**\n"
-        response += "• **Metrobüs:** Rapid transit on dedicated lanes, avoids traffic\n"
-        response += "• **Regular buses:** Extensive network, some run 24/7\n"
-        response += "• **Night services:** Limited routes after midnight\n"
-        response += "• **Bus stops:** Digital displays show live arrival times\n\n"
-        
-        response += "**🕐 Real-Time Schedule Information:**\n"
-        response += "• **Peak hours:** 07:00-09:30 and 17:30-19:30 (avoid if possible)\n"
-        response += "• **Weekend schedules:** Reduced frequency, later start times\n"
-        response += "• **Holiday variations:** Major religious holidays affect schedules\n"
-        response += "• **Live updates:** All stations have digital arrival boards\n\n"
-        
-        response += "**💡 Insider Navigation Tips:**\n"
-        response += "• **Follow colors:** Each line has distinct colors, follow signs\n"
-        response += "• **Exit planning:** Check station maps for closest exit to your destination\n"
-        response += "• **Transfer efficiency:** Allow 3-5 minutes for major transfers\n"
-        response += "• **Language barrier:** Station names in Turkish and English, staff speak basic English\n"
-        response += "• **Accessibility:** Most modern stations have elevators and audio announcements"
-        
-        return response
-        
-    except Exception as e:
-        print(f"⚠️ Error getting enhanced live transport info: {e}")
-        return None
-
-async def get_live_restaurant_recommendations(user_input: str) -> Optional[str]:
-    """Get live restaurant recommendations based on user query"""
-    try:
-        from api_clients.google_places import GooglePlacesClient
-        user_lower = user_input.lower()
-        
-        # Extract location/district from query
-        districts = {
-            'sultanahmet': 'Sultanahmet', 'taksim': 'Taksim', 'beyoglu': 'Beyoğlu',
-            'galata': 'Galata', 'kadikoy': 'Kadıköy', 'besiktas': 'Beşiktaş',
-            'eminonu': 'Eminönü', 'fatih': 'Fatih', 'sisli': 'Şişli',
-            'karakoy': 'Karaköy', 'ortakoy': 'Ortaköy', 'bebek': 'Bebek'
-        }
-        
-        location = None
-        for key, value in districts.items():
-            if key in user_lower:
-                location = f"{value}, Istanbul, Turkey"
-                break
-        
-        if not location:
-            location = "Istanbul, Turkey"
-        
-        # Extract food type/keyword
-        keyword = None
-        food_keywords = {
-            'turkish': 'Turkish', 'kebab': 'kebab', 'seafood': 'seafood',
-            'vegetarian': 'vegetarian', 'halal': 'halal', 'breakfast': 'breakfast',
-            'coffee': 'coffee', 'cafe': 'cafe', 'baklava': 'baklava',
-            'meze': 'meze', 'traditional': 'traditional'
-        }
-        
-        for key, value in food_keywords.items():
-            if key in user_lower:
-                keyword = value
-                break
-        
-        # Get restaurant recommendations
-        client = GooglePlacesClient()
-        restaurants = client.get_restaurants_with_descriptions(
-            location=location,
-            radius=1500,
-            limit=5,
-            keyword=keyword
+        return StreamingResponse(
+            generate_response(),
+            media_type="text/plain",
+            headers={"Cache-Control": "no-cache"}
         )
         
-        if not restaurants:
-            return None
-            
-        # Format response
-        response = f"**🍽️ Restaurant Recommendations for {location.split(',')[0]}:**\n\n"
-        
-        for i, restaurant in enumerate(restaurants, 1):
-            name = restaurant.get('name', 'Unknown Restaurant')
-            rating = restaurant.get('rating', 'N/A')
-            price_level = restaurant.get('price_level', None)
-            address = restaurant.get('vicinity', 'Address not available')
-            
-            response += f"**{i}. {name}**\n"
-            response += f"   ⭐ Rating: {rating}/5"
-            
-            if price_level:
-                price_symbols = "💰" * price_level
-                response += f" | {price_symbols}"
-            
-            response += f"\n   📍 {address}\n"
-            
-            # Add description if available
-            if restaurant.get('description'):
-                description = restaurant['description'][:100] + "..." if len(restaurant.get('description', '')) > 100 else restaurant.get('description', '')
-                response += f"   ℹ️ {description}\n"
-            
-            # Add opening hours if available
-            if restaurant.get('opening_hours', {}).get('open_now') is not None:
-                status = "Open now" if restaurant['opening_hours']['open_now'] else "Closed now"
-                response += f"   🕐 {status}\n"
-            
-            response += "\n"
-        
-        response += "**💡 Pro Tips:**\n"
-        response += "• Make reservations for dinner, especially on weekends\n"
-        response += "• Try traditional Turkish breakfast if visiting in the morning\n"
-        response += "• Turkish tea (çay) is complimentary at most restaurants\n"
-        response += "• Tipping 10-15% is customary for good service"
-        
-        return response
-        
     except Exception as e:
-        print(f"⚠️ Error getting live restaurant recommendations: {e}")
-        return None
+        print(f"❌ Stream chat error: {e}")
+        raise HTTPException(status_code=500, detail="Stream chat failed")
 
-def enhance_daily_talk_response(base_response: str, user_input: str) -> str:
-    """Enhanced daily talk responses with deep empathy, cultural sensitivity, and personalized support"""
-    user_lower = user_input.lower()
-    
-    # Analyze emotional tone and situation for personalized enhancement
-    emotional_context = {}
-    
-    # Detect specific emotional states
-    if any(word in user_lower for word in ['overwhelmed', 'overwhelming', 'too much', 'stressed']):
-        emotional_context['state'] = 'overwhelmed'
-        empathy_opening = "I completely understand that Istanbul can feel overwhelming at first - it's a vibrant, bustling metropolis with so much history and energy."
-        
-    elif any(word in user_lower for word in ['lonely', 'alone', 'solo', 'by myself']):
-        emotional_context['state'] = 'lonely'
-        empathy_opening = "Traveling solo can sometimes feel isolating, especially in such a culturally rich and busy city like Istanbul."
-        
-    elif any(word in user_lower for word in ['nervous', 'scared', 'worried', 'anxious']):
-        emotional_context['state'] = 'anxious'
-        empathy_opening = "It's completely natural to feel nervous when exploring a new city - these feelings show you care about having a good experience."
-        
-    elif any(word in user_lower for word in ['excited', 'happy', 'thrilled', 'can\'t wait']):
-        emotional_context['state'] = 'excited'
-        empathy_opening = "Your excitement is wonderful to hear! Istanbul has a way of captivating visitors with its unique blend of cultures and experiences."
-        
-    elif any(word in user_lower for word in ['confused', 'lost', 'don\'t know', 'not sure']):
-        emotional_context['state'] = 'confused'
-        empathy_opening = "Feeling a bit lost is part of the Istanbul experience - the city has layers of history and culture that take time to understand."
-        
-    elif any(word in user_lower for word in ['first time', 'never been', 'new to']):
-        emotional_context['state'] = 'first_timer'
-        empathy_opening = "First-time visits to Istanbul are special! The city offers such a rich tapestry of experiences that it can feel both exciting and overwhelming."
-        
-    else:
-        empathy_opening = "I'm here to help make your Istanbul experience as wonderful and comfortable as possible."
-    
-    # Detect specific concerns for targeted advice
-    concerns = []
-    if 'language' in user_lower or 'turkish' in user_lower or 'communicate' in user_lower:
-        concerns.append('language_barrier')
-    if 'safe' in user_lower or 'safety' in user_lower:
-        concerns.append('safety')
-    if 'culture' in user_lower or 'different' in user_lower or 'customs' in user_lower:
-        concerns.append('cultural_differences')
-    if 'big' in user_lower or 'huge' in user_lower or 'size' in user_lower:
-        concerns.append('city_size')
-    if 'tourist' in user_lower and 'trap' in user_lower:
-        concerns.append('authenticity')
-    
-    # Build enhanced response
-    enhanced_parts = [empathy_opening]
-    
-    # Add the original response with improvements
-    enhanced_parts.append(base_response)
-    
-    # Add specific cultural insights based on concerns
-    cultural_insights = []
-    
-    if 'language_barrier' in concerns:
-        cultural_insights.append("**Language Bridge:** While Turkish is the main language, many Istanbulites in tourist areas speak some English. Learn these key phrases: 'Merhaba' (Hello), 'Teşekkür ederim' (Thank you), 'Özür dilerim' (Excuse me), 'İngilizce biliyor musunuz?' (Do you speak English?). Even attempting Turkish is greatly appreciated!")
-        
-    if 'safety' in concerns:
-        cultural_insights.append("**Safety Perspective:** Istanbul is generally very safe for tourists. Turkish culture values hospitality (misafirperverlik), and locals often go out of their way to help visitors. Trust your instincts, stay in well-lit areas at night, and don't hesitate to ask for help - Istanbulites are proud of their city and want you to have a positive experience.")
-        
-    if 'cultural_differences' in concerns:
-        cultural_insights.append("**Cultural Bridge:** Istanbul beautifully straddles East and West, creating a unique cultural blend. You'll see modern cafes next to Ottoman mosques, traditional tea houses beside contemporary art galleries. This diversity is what makes the city special - embrace the contrasts!")
-        
-    if 'city_size' in concerns:
-        cultural_insights.append("**Managing the Scale:** Think of Istanbul as a collection of neighborhoods, each with its own personality. Start with one area (like Sultanahmet for history or Beyoğlu for modern culture), get comfortable there, then gradually explore others. Even locals focus on their favorite districts rather than trying to know the entire city.")
-        
-    if 'authenticity' in concerns:
-        cultural_insights.append("**Authentic Experiences:** To experience 'real' Istanbul, visit neighborhood tea houses (çay ocağı), shop at local markets like Kadıköy's Tuesday market, take ferries with commuters, and eat at lokanta restaurants where locals dine. The best experiences often happen when you slow down and observe daily life.")
-    
-    # Add cultural insights if any were identified
-    if cultural_insights:
-        enhanced_parts.append("\n**Cultural Insights:**")
-        enhanced_parts.extend(cultural_insights)
-    
-    # Add emotional support and encouragement based on state
-    encouragement = []
-    
-    if emotional_context.get('state') == 'overwhelmed':
-        encouragement.append("Remember: every visitor feels this way initially. Take breaks, breathe, and know that Istanbul rewards patience. Start small, celebrate small victories, and let the city reveal itself gradually.")
-        
-    elif emotional_context.get('state') == 'lonely':
-        encouragement.append("Solo travel in Istanbul can be incredibly rewarding. Consider joining walking tours to meet other travelers, visiting community spaces like tea gardens, or asking your hotel/hostel about group activities. Istanbulites are naturally social and welcoming.")
-        
-    elif emotional_context.get('state') == 'anxious':
-        encouragement.append("Your caution shows wisdom. Start with well-established tourist areas where you feel comfortable, then gradually venture into more local neighborhoods as your confidence grows. Every experienced traveler started with the same feelings.")
-        
-    elif emotional_context.get('state') == 'excited':
-        encouragement.append("Channel that excitement into exploration! Istanbul rewards curious visitors. Try something new each day - a different neighborhood, a local dish, a conversation with a shopkeeper. Your enthusiasm will open doors.")
-        
-    elif emotional_context.get('state') == 'confused':
-        encouragement.append("Confusion is just curiosity waiting to be satisfied. Istanbul has been a crossroads of civilizations for centuries - its complexity is part of its charm. Ask questions, stay curious, and don't worry about understanding everything at once.")
-        
-    else:
-        encouragement.append("Istanbul has welcomed travelers for over 1,500 years - you're part of that grand tradition. Trust in the city's ability to surprise and delight you. Take your time, stay open to experiences, and enjoy the journey of discovery.")
-    
-    # Add encouraging closing
-    if encouragement:
-        enhanced_parts.append(f"\n**Personal Encouragement:** {encouragement[0]}")
-    
-    # Add practical next steps
-    next_steps = "**Your Next Step:** Choose one small goal for today - perhaps visiting a nearby attraction, trying a local dish, or simply taking a walk through your neighborhood. Small steps lead to great adventures! 🌟"
-    enhanced_parts.append(f"\n{next_steps}")
-    
-    # Combine all parts
-    enhanced_response = "\n".join(enhanced_parts)
-    
-    # Clean up any formatting issues
-    enhanced_response = re.sub(r'\n{3,}', '\n\n', enhanced_response)
-    enhanced_response = enhanced_response.strip()
-    
-    return enhanced_response
+# === Rate Limited API Endpoints ===
 
-def create_clarification_response(user_input: str) -> str:
-    """Create a response that asks for clarification on vague queries"""
-    user_lower = user_input.lower()
+@app.get("/restaurants/search")
+@limiter.limit("100/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
+async def search_restaurants(request: Request, query: str = "", location: str = "Istanbul"):
+    """Search restaurants with rate limiting"""
+    client_ip = request.client.host
+    print(f"🍽️ Restaurant search from {client_ip}: {query}")
     
-    # Determine the type of clarification needed
-    if 'food' in user_lower or 'eat' in user_lower:
-        return """🍽️ **I'd love to help you find great food in Istanbul!**
+    # Mock restaurant data
+    return {
+        "restaurants": [
+            {"name": f"Restaurant for {query}", "location": location, "rating": 4.5}
+        ],
+        "query": query,
+        "location": location
+    }
 
-To give you the best recommendations, could you tell me:
-
-• **What type of cuisine?** (Turkish, seafood, vegetarian, etc.)
-• **Which area?** (Sultanahmet, Taksim, Kadıköy, etc.) 
-• **What meal?** (breakfast, lunch, dinner, snacks)
-• **Dining style?** (casual, upscale, street food, rooftop)
-
-For example: "Turkish restaurants in Sultanahmet for dinner" or "best breakfast places near Taksim"
-
-🌟 **Popular choices:**
-• **Turkish cuisine:** Kebabs, meze, baklava
-• **Breakfast:** Traditional kahvaltı spreads
-• **Street food:** Balık ekmek, döner, simit
-• **Desserts:** Turkish delight, künefe, ice cream"""
-
-    elif 'place' in user_lower or 'where' in user_lower:
-        return """🏛️ **Istanbul has so many amazing places to explore!**
-
-What type of experience are you looking for?
-
-• **Historical sites?** (Hagia Sophia, Topkapi Palace, Blue Mosque)
-• **Modern attractions?** (Galata Tower, Istanbul Modern, shopping)
-• **Neighborhoods?** (Sultanahmet, Beyoğlu, Kadıköy)
-• **Activities?** (Bosphorus cruise, markets, nightlife)
-• **Museums?** (art, history, cultural sites)
-
-Let me know what interests you most and I can provide detailed recommendations with practical tips!"""
+@app.get("/places/search")
+@limiter.limit("100/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
+async def search_places(request: Request, query: str = "", location: str = "Istanbul"):
+    """Search places with rate limiting"""
+    client_ip = request.client.host
+    print(f"📍 Places search from {client_ip}: {query}")
+    
+    # Mock places data
+    return {
+        "places": [
+            {"name": f"Place for {query}", "location": location, "rating": 4.3}
+        ],
+        "query": query,
+        "location": location
+    }

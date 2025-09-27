@@ -1,37 +1,67 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import BlogAnalyticsDashboard from '../components/BlogAnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { darkMode } = useTheme();
   const { t } = useTranslation();
   const [authenticated, setAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Simple password protection - you can change this password
-  const ADMIN_PASSWORD = 'admin123';
-
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      // Redirect to unified admin dashboard
-      window.location.href = 'http://localhost:8000/admin';
-    } else {
-      setError('invalid');
+    setLoading(true);
+    setError('');
+
+    try {
+      const API_BASE_URL = process.env.NODE_ENV === 'production' 
+        ? 'https://ai-istanbul-backend.render.com'
+        : 'http://localhost:8000';
+
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('adminAuth', 'true');
+        localStorage.setItem('authToken', data.access_token);
+        setAuthenticated(true);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || 'Invalid credentials');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     setAuthenticated(false);
+    setUsername('');
     setPassword('');
     localStorage.removeItem('adminAuth');
+    localStorage.removeItem('authToken');
   };
 
   // Check if already authenticated
   useEffect(() => {
     const isAuth = localStorage.getItem('adminAuth') === 'true';
-    setAuthenticated(isAuth);
+    const token = localStorage.getItem('authToken');
+    if (isAuth && token) {
+      setAuthenticated(true);
+    }
   }, []);
 
   if (!authenticated) {
@@ -62,6 +92,27 @@ const AdminDashboard = () => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
+              <label htmlFor="username" className={`block text-sm font-medium mb-2 transition-colors duration-200 ${
+                darkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none transition-all duration-200 ${
+                  darkMode 
+                    ? 'bg-gray-700 text-white border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20' 
+                    : 'bg-white text-gray-900 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                }`}
+                placeholder="Enter username"
+                required
+              />
+            </div>
+
+            <div>
               <label htmlFor="password" className={`block text-sm font-medium mb-2 transition-colors duration-200 ${
                 darkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -84,15 +135,16 @@ const AdminDashboard = () => {
 
             {error && (
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-red-500 text-sm">{error === 'invalid' ? t('admin.invalidPassword') : error}</p>
+                <p className="text-red-500 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              disabled={loading}
+              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {t('admin.loginButton')}
+              {loading ? 'Signing in...' : t('admin.loginButton')}
             </button>
           </form>
 
@@ -102,7 +154,7 @@ const AdminDashboard = () => {
             <p className={`text-sm transition-colors duration-200 ${
               darkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              <strong>Demo Password:</strong> admin123
+              <strong>Secure Login:</strong> Use your admin credentials
             </p>
           </div>
         </div>

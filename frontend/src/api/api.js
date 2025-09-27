@@ -9,16 +9,17 @@ import {
 } from '../utils/errorHandler.js';
 
 // API utility that works for both local and deployed environments
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // Use correct port 8000
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Ensure BASE_URL doesn't end with /ai to prevent double /ai/ai paths
-const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
+// Clean up BASE_URL and construct proper endpoints
+const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
-const API_URL = `${cleanBaseUrl}/ai`;
+// Correct API endpoints - backend uses /ai/chat not /ai/ai/chat
+const API_URL = `${cleanBaseUrl}/ai/chat`;  // Fixed: direct path to chat endpoint
 const STREAM_API_URL = `${cleanBaseUrl}/ai/stream`;
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/restaurants/search`;
 const PLACES_API_URL = `${cleanBaseUrl}/places/`;
-// Chat history endpoints
+// Chat history endpoints  
 const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/chat/history`;
 
 // Session management

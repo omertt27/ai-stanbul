@@ -836,7 +836,7 @@ async def get_post(post_id: str):
                 elif 'view_count' not in posts[i]:
                     posts[i]['view_count'] = 0
                 
-                return {"post": posts[i]}
+                return posts[i]  # Return post directly, not wrapped in "post" object
         
         raise HTTPException(status_code=404, detail="Blog post not found")
     

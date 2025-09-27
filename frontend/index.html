@@ -46,9 +46,10 @@
         <p>If this message doesn't disappear, check the browser console for errors.</p>
       </div>
     </div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" crossorigin src="/src/main.jsx"></script>
     
-    <!-- Service Worker Registration for PWA -->
+    <!-- Service Worker Registration for PWA - TEMPORARILY DISABLED -->
+    <!--
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -62,5 +63,6 @@
         });
       }
     </script>
+    -->
   </body>
 </html>

@@ -9,7 +9,7 @@ import {
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
-const BLOG_API_URL = `${cleanBaseUrl}/blog`;
+const BLOG_API_URL = `${cleanBaseUrl}/blog/`;
 
 // Debug logging
 console.log('🔧 API Configuration:');
@@ -56,7 +56,7 @@ export const fetchBlogPosts = async (params = {}) => {
         }
       });
       
-      const url = `${BLOG_API_URL}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      const url = `${BLOG_API_URL}${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
       console.log('🔍 Fetching blog posts from:', url);
       
       const response = await fetchWithRetry(url, {
@@ -86,9 +86,9 @@ export const fetchBlogPost = async (postId) => {
     try {
       console.log('📖 Fetching blog post:', postId);
       console.log('🔗 Blog API URL:', BLOG_API_URL);
-      console.log('🎯 Full URL:', `${BLOG_API_URL}/${postId}`);
+      console.log('🎯 Full URL:', `${BLOG_API_URL}${postId}`);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -114,7 +114,7 @@ export const createBlogPost = async (postData) => {
     try {
       console.log('✍️ Creating blog post:', postData.title);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export const uploadBlogImage = async (file) => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/upload-image`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}upload-image`, {
         method: 'POST',
         body: formData,
         timeout: 30000 // Longer timeout for file uploads
@@ -168,10 +168,10 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
   return blogCircuitBreaker.call(async () => {
     try {
       console.log('❤️ Liking blog post:', postId, 'Type:', typeof postId);
-      console.log('🔗 Full like URL:', `${BLOG_API_URL}/${postId}/like`);
+      console.log('🔗 Full like URL:', `${BLOG_API_URL}${postId}/like`);
       
       // Use the JSON file-based endpoint that now tracks individual users
-      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
@@ -203,7 +203,7 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
       console.log(`🔍 Checking like status for post ${postId}`);
       
       // Use the JSON file-based endpoint that now tracks individual users
-      const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}/like-status?user_id=${userIdentifier}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like-status?user_id=${userIdentifier}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -232,7 +232,7 @@ export const fetchBlogDistricts = async () => {
     try {
       console.log('📍 Fetching blog districts');
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/districts`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}districts`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -258,7 +258,7 @@ export const fetchBlogTags = async () => {
     try {
       console.log('📋 Fetching blog tags');
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/tags`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}tags`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -284,7 +284,7 @@ export const fetchFeaturedPosts = async (limit = 3) => {
     try {
       console.log('⭐ Fetching featured posts');
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/featured?limit=${limit}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}featured?limit=${limit}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -310,7 +310,7 @@ export const fetchTrendingPosts = async (limit = 5) => {
     try {
       console.log('🔥 Fetching trending posts');
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/trending?limit=${limit}`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}trending?limit=${limit}`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -336,7 +336,7 @@ export const fetchBlogStats = async () => {
     try {
       console.log('📊 Fetching blog stats');
       
-      const response = await fetchWithRetry(`${BLOG_API_URL}/stats`, {
+      const response = await fetchWithRetry(`${BLOG_API_URL}stats`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -411,7 +411,7 @@ export const getBlogCircuitBreakerState = () => {
 export const validatePostExists = async (postId) => {
   try {
     console.log('🔍 Validating post exists:', postId);
-    const response = await fetchWithRetry(`${BLOG_API_URL}/${postId}`, {
+    const response = await fetchWithRetry(`${BLOG_API_URL}${postId}`, {
       method: 'GET',
       headers: { 
         'Accept': 'application/json'
