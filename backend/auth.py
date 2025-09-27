@@ -82,7 +82,7 @@ async def get_current_admin(credentials: Optional[HTTPAuthorizationCredentials] 
         )
     
     # Verify user still exists and is valid
-    username = payload.get("username")
+    username = payload.get("sub") or payload.get("username")  # Handle both "sub" and "username" fields
     if username != ADMIN_USERNAME:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

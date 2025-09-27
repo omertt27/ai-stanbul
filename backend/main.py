@@ -347,6 +347,14 @@ app = FastAPI(
 
 print("✅ FastAPI app initialized successfully")
 
+# === Include Routers ===
+try:
+    from routes.blog import router as blog_router
+    app.include_router(blog_router)
+    print("✅ Blog router included successfully")
+except ImportError as e:
+    print(f"⚠️ Blog router import failed: {e}")
+
 # === Authentication Setup ===
 try:
     from auth import get_current_admin, authenticate_admin, create_access_token
@@ -1023,6 +1031,35 @@ def detect_location_confusion(user_input: str) -> Tuple[bool, Optional[str]]:
 
 # === Health and Status Endpoints ===
 
+@app.post("/admin/login")
+async def admin_login(credentials: Dict[str, Any]):
+    """Admin login endpoint"""
+    try:
+        username = credentials.get("username")
+        password = credentials.get("password")
+        
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Username and password required")
+        
+        # Authenticate admin
+        admin_data = authenticate_admin(username, password)
+        if not admin_data:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Create JWT token
+        access_token = create_access_token(data={"sub": username, "role": "admin"})
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "admin": admin_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring and testing"""
@@ -1219,522 +1256,320 @@ async def admin_stats(db: Session = Depends(get_db), current_admin: dict = Depen
         }
 
 @app.get("/admin/api/sessions")
-async def admin_sessions(current_admin: dict = Depends(get_current_admin)):
-    """Get chat sessions for admin dashboard - PROTECTED ENDPOINT"""
+async def admin_sessions(db: Session = Depends(get_db), current_admin: dict = Depends(get_current_admin)):
+    """Get chat sessions for admin dashboard with real data - PROTECTED ENDPOINT"""
     try:
-        # Mock data - replace with real database queries
-        return {
-            "sessions": [
-                {"id": "sess_001", "user": "user_123", "messages": 15, "duration": "8m 32s", "rating": 4.5, "status": "Complete"},
-                {"id": "sess_002", "user": "user_456", "messages": 23, "duration": "12m 45s", "rating": 4.2, "status": "Complete"},
-                {"id": "sess_003", "user": "user_789", "messages": 8, "duration": "4m 12s", "rating": 4.8, "status": "Active"},
-                {"id": "sess_004", "user": "user_012", "messages": 31, "duration": "18m 23s", "rating": 3.9, "status": "Complete"}
-            ]
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/admin/api/users")
-async def admin_users(current_admin: dict = Depends(get_current_admin)):
-    """Get users data for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        # Mock data - replace with real database queries
-        return {
-            "users": [
-                {"id": "user_123", "last_active": "2 minutes ago", "sessions": 24, "avg_rating": 4.3, "status": "Online"},
-                {"id": "user_456", "last_active": "15 minutes ago", "sessions": 18, "avg_rating": 4.1, "status": "Online"},
-                {"id": "user_789", "last_active": "1 hour ago", "sessions": 35, "avg_rating": 4.6, "status": "Offline"},
-                {"id": "user_012", "last_active": "3 hours ago", "sessions": 12, "avg_rating": 3.8, "status": "Offline"}
-            ]
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-# Blog moderation endpoints
-@app.get("/admin/api/blog/posts")
-async def admin_blog_posts(
-    status: str = "all",  # all, published, draft, flagged
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get blog posts for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        query = db.query(BlogPost)
+        # Get real chat sessions from database
+        chat_sessions = db.query(ChatSession).order_by(ChatSession.last_activity_at.desc()).limit(20).all()
         
-        if status == "published":
-            query = query.filter(BlogPost.is_published == True)
-        elif status == "draft":
-            query = query.filter(BlogPost.is_published == False)
-        
-        posts = query.order_by(BlogPost.created_at.desc()).offset(offset).limit(limit).all()
-        
-        posts_data = []
-        for post in posts:
-            posts_data.append({
-                "id": post.id,
-                "title": post.title,
-                "author_name": post.author_name or "Anonymous",
-                "district": post.district,
-                "created_at": post.created_at.isoformat() if post.created_at else None,
-                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
-                "is_published": post.is_published,
-                "likes_count": post.likes_count,
-                "comment_count": len(post.comments) if post.comments else 0,
-                "content_preview": post.content[:200] + "..." if len(post.content) > 200 else post.content,
-                "tags": json.loads(post.tags) if post.tags else []
-            })
-        
-        total_count = db.query(BlogPost).count()
-        return {
-            "posts": posts_data,
-            "total": total_count,
-            "limit": limit,
-            "offset": offset
-        }
-    except Exception as e:
-        logger.error(f"Error fetching blog posts: {e}")
-        return {"posts": [], "total": 0, "error": str(e)}
-
-@app.get("/admin/api/blog/comments")
-async def admin_blog_comments(
-    status: str = "all",  # all, approved, rejected, flagged, spam
-    post_id: int = None,
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get blog comments for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        query = db.query(BlogComment)
-        
-        if post_id:
-            query = query.filter(BlogComment.blog_post_id == post_id)
+        sessions_data = []
+        for session in chat_sessions:
+            # Calculate session duration
+            if session.first_message_at and session.last_activity_at:
+                duration_seconds = int((session.last_activity_at - session.first_message_at).total_seconds())
+                duration = f"{duration_seconds // 60}m {duration_seconds % 60}s"
+            else:
+                duration = "Unknown"
             
-        if status == "approved":
-            query = query.filter(BlogComment.is_approved == True, BlogComment.is_spam == False, BlogComment.is_flagged == False)
-        elif status == "rejected":
-            query = query.filter(BlogComment.is_approved == False, BlogComment.is_spam == False, BlogComment.is_flagged == False)
-        elif status == "flagged":
-            query = query.filter(BlogComment.is_flagged == True)
-        elif status == "spam":
-            query = query.filter(BlogComment.is_spam == True)
-        elif status == "rejected":
-            query = query.filter(BlogComment.is_approved == False, BlogComment.is_spam == False, BlogComment.is_flagged == False)
-        
-        comments = query.order_by(BlogComment.created_at.desc()).offset(offset).limit(limit).all()
-        
-        comments_data = []
-        for comment in comments:
-            comments_data.append({
-                "id": comment.id,
-                "blog_post_id": comment.blog_post_id,
-                "blog_post_title": comment.blog_post.title if comment.blog_post else "Unknown",
-                "author_name": comment.author_name,
-                "author_email": comment.author_email,
-                "content": comment.content,
-                "is_approved": comment.is_approved,
-                "is_flagged": comment.is_flagged,
-                "is_spam": comment.is_spam,
-                "flagged_reason": comment.flagged_reason,
-                "created_at": comment.created_at.isoformat() if comment.created_at else None,
-                "approved_at": comment.approved_at.isoformat() if comment.approved_at else None,
-                "approved_by": comment.approved_by
+            # Get feedback for this session to calculate rating
+            likes = db.query(UserFeedback).filter(
+                UserFeedback.session_id == session.id,
+                UserFeedback.feedback_type == "like"
+            ).count()
+            dislikes = db.query(UserFeedback).filter(
+                UserFeedback.session_id == session.id,
+                UserFeedback.feedback_type == "dislike"
+            ).count()
+            
+            # Calculate a rating based on likes vs dislikes
+            total_feedback = likes + dislikes
+            if total_feedback > 0:
+                rating = round((likes / total_feedback) * 5.0, 1)
+            else:
+                rating = None
+            
+            # Determine status
+            status = "Saved" if session.is_saved else "Active"
+            
+            sessions_data.append({
+                "id": session.id,
+                "user": session.user_ip or "Anonymous",
+                "messages": session.message_count,
+                "duration": duration,
+                "rating": rating,
+                "status": status,
+                "likes": likes,
+                "dislikes": dislikes,
+                "title": session.title[:50] + "..." if session.title and len(session.title) > 50 else session.title,
+                "last_activity": session.last_activity_at.isoformat() if session.last_activity_at else None
             })
         
-        total_count = db.query(BlogComment).count()
+        return {"sessions": sessions_data}
+    except Exception as e:
+        logger.error(f"Error fetching chat sessions: {e}")
+        return {"error": str(e), "sessions": []}
+
+@app.get("/admin/api/chat/sessions")
+async def admin_chat_sessions(
+    feedback_filter: str = "all",  # all, liked, disliked, mixed, no_feedback
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get chat sessions with feedback status for admin dashboard - PROTECTED ENDPOINT"""
+    try:
+        from sqlalchemy import func, case
+        
+        # Build a query to get sessions with feedback summaries
+        query = db.query(
+            ChatSession.id.label("session_id"),
+            ChatSession.title,
+            ChatSession.message_count,
+            ChatSession.first_message_at,
+            ChatSession.last_activity_at,
+            ChatSession.user_ip,
+            ChatSession.is_saved,
+            func.count(case((UserFeedback.feedback_type == "like", 1))).label("likes"),
+            func.count(case((UserFeedback.feedback_type == "dislike", 1))).label("dislikes"),
+            func.count(UserFeedback.id).label("total_feedback")
+        ).outerjoin(
+            UserFeedback, ChatSession.id == UserFeedback.session_id
+        ).group_by(ChatSession.id)
+        
+        # Apply filters
+        if feedback_filter == "liked":
+            query = query.having(func.count(case((UserFeedback.feedback_type == "like", 1))) > 0)
+        elif feedback_filter == "disliked":
+            query = query.having(func.count(case((UserFeedback.feedback_type == "dislike", 1))) > 0)
+        elif feedback_filter == "mixed":
+            query = query.having(
+                func.count(case((UserFeedback.feedback_type == "like", 1))) > 0,
+                func.count(case((UserFeedback.feedback_type == "dislike", 1))) > 0
+            )
+        elif feedback_filter == "no_feedback":
+            query = query.having(func.count(UserFeedback.id) == 0)
+        
+        # Order by last activity
+        query = query.order_by(ChatSession.last_activity_at.desc())
+        
+        # Apply pagination
+        sessions = query.offset(offset).limit(limit).all()
+        
+        # Format response
+        sessions_data = []
+        for session in sessions:
+            sessions_data.append({
+                "session_id": session.session_id,
+                "title": session.title or f"Chat {session.session_id[:8]}...",
+                "message_count": session.message_count,
+                "first_message_at": session.first_message_at.isoformat() if session.first_message_at else None,
+                "last_activity_at": session.last_activity_at.isoformat() if session.last_activity_at else None,
+                "user_ip": session.user_ip,
+                "is_saved": session.is_saved,
+                "feedback_summary": {
+                    "likes": session.likes,
+                    "dislikes": session.dislikes,
+                    "total_feedback": session.total_feedback,
+                    "satisfaction_rate": round((session.likes / session.total_feedback * 100), 1) if session.total_feedback > 0 else 0,
+                    "status": "liked" if session.likes > session.dislikes else "disliked" if session.dislikes > session.likes else "mixed" if session.total_feedback > 0 else "no_feedback"
+                }
+            })
+        
+        # Get total count for pagination
+        total_count = db.query(ChatSession).count()
+        
         return {
-            "comments": comments_data,
+            "sessions": sessions_data,
             "total": total_count,
             "limit": limit,
             "offset": offset
         }
+        
     except Exception as e:
-        logger.error(f"Error fetching blog comments: {e}")
-        return {"comments": [], "total": 0, "error": str(e)}
+        logger.error(f"Error fetching chat sessions: {e}")
+        return {"sessions": [], "total": 0, "error": str(e)}
 
-@app.post("/admin/api/blog/comments/{comment_id}/moderate")
-async def moderate_comment(
-    comment_id: int,
-    request: Dict[str, Any],
-    db: Session = Depends(get_db)
+@app.get("/admin/api/chat/sessions/{session_id}")
+async def admin_chat_session_detail(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
 ):
-    """Moderate a blog comment"""
+    """Get detailed chat session with conversation history and feedback - PROTECTED ENDPOINT"""
     try:
-        action = request.get("action")  # approve, reject, flag, spam, unflag
-        reason = request.get("reason", None)
-        admin_name = request.get("admin_name", "Admin")
+        # Get session info
+        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
         
-        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
-        if not comment:
-            raise HTTPException(status_code=404, detail="Comment not found")
+        # Get conversation history from ChatHistory table
+        chat_history = db.query(ChatHistory).filter(
+            ChatHistory.session_id == session_id
+        ).order_by(ChatHistory.timestamp).all()
         
-        if action == "approve":
-            comment.is_approved = True
-            comment.approved_at = datetime.utcnow()
-            comment.approved_by = admin_name
-            comment.is_flagged = False
-        elif action == "reject":
-            comment.is_approved = False
-            comment.approved_at = None
-            comment.approved_by = None
-            comment.is_flagged = False
-        elif action == "flag":
-            comment.is_flagged = True
-            comment.flagged_reason = reason or "Flagged for review"
-        elif action == "spam":
-            comment.is_spam = True
-            comment.is_approved = False
-            comment.is_flagged = False
-        elif action == "unflag":
-            comment.is_flagged = False
-            comment.flagged_reason = None
+        # Get feedback for this session
+        feedback = db.query(UserFeedback).filter(
+            UserFeedback.session_id == session_id
+        ).order_by(UserFeedback.timestamp).all()
         
-        comment.updated_at = datetime.utcnow()
-        db.commit()
+        # Format conversation history with feedback
+        conversation = []
+        for chat in chat_history:
+            # Find feedback for this message
+            message_feedback = [f for f in feedback if f.message_index == len(conversation)]
+            
+            conversation.append({
+                "user_message": chat.user_message,
+                "ai_response": chat.ai_response,
+                "timestamp": chat.timestamp.isoformat() if chat.timestamp else None,
+                "feedback": [
+                    {
+                        "type": f.feedback_type,
+                        "timestamp": f.timestamp.isoformat() if f.timestamp else None
+                    } for f in message_feedback
+                ]
+            })
         
-        return {"success": True, "message": f"Comment {action}ed successfully"}
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error moderating comment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/admin/api/blog/posts/{post_id}/moderate")
-async def moderate_post(
-    post_id: int,
-    request: Dict[str, Any],
-    db: Session = Depends(get_db)
-):
-    """Moderate a blog post"""
-    try:
-        action = request.get("action")  # publish, unpublish, delete
-        
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-        
-        if action == "publish":
-            post.is_published = True
-        elif action == "unpublish":
-            post.is_published = False
-        elif action == "delete":
-            db.delete(post)
-        
-        post.updated_at = datetime.utcnow()
-        db.commit()
-        
-        return {"success": True, "message": f"Post {action}ed successfully"}
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error moderating post: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# --- Authentication Import ---
-try:
-    from auth import get_current_admin, authenticate_admin, create_access_token
-    print("✅ Authentication module imported successfully")
-except ImportError as e:
-    print(f"❌ Authentication import failed: {e}")
-    # Create dummy functions to prevent errors
-    async def get_current_admin():
-        return {"username": "admin", "role": "admin"}
-    def authenticate_admin(username, password):
-        return {"username": username, "role": "admin"} if username == "admin" else None
-    def create_access_token(data):
-        return "dummy-token"
-
-# === Server Startup ===
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    
-    print(f"🚀 Starting AI Istanbul Backend server on port {port}")
-    print(f"📊 Health check endpoint: http://localhost:{port}/health")
-    print(f"💬 Chat endpoint: http://localhost:{port}/ai/chat")
-    
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0", 
-        port=port, 
-        reload=False,
-        log_level="info"
-    )
-
-# === Authentication Endpoints ===
-
-@app.post("/auth/login")
-async def login(credentials: dict):
-    """Admin login endpoint"""
-    try:
-        username = credentials.get("username")
-        password = credentials.get("password")
-        
-        if not username or not password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username and password required"
-            )
-        
-        # Authenticate user
-        user_info = authenticate_admin(username, password)
-        if not user_info:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password"
-            )
-        
-        # Create access token
-        token_data = {
-            "username": user_info["username"],
-            "role": user_info["role"]
-        }
-        access_token = create_access_token(token_data)
+        # Get feedback summary
+        likes_count = len([f for f in feedback if f.feedback_type == "like"])
+        dislikes_count = len([f for f in feedback if f.feedback_type == "dislike"])
+        total_feedback = likes_count + dislikes_count
         
         return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user_info": {
-                "username": user_info["username"],
-                "role": user_info["role"]
+            "session": {
+                "session_id": session.id,
+                "title": session.title or f"Chat {session.id[:8]}...",
+                "message_count": session.message_count,
+                "first_message_at": session.first_message_at.isoformat() if session.first_message_at else None,
+                "last_activity_at": session.last_activity_at.isoformat() if session.last_activity_at else None,
+                "user_ip": session.user_ip,
+                "is_saved": session.is_saved
+            },
+            "conversation": conversation,
+            "feedback_summary": {
+                "likes": likes_count,
+                "dislikes": dislikes_count,
+                "total_feedback": total_feedback,
+                "satisfaction_rate": round((likes_count / total_feedback * 100), 1) if total_feedback > 0 else 0
             }
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Login error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
-        )
+        logger.error(f"Error fetching chat session detail: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/auth/logout")
-async def logout():
-    """Admin logout endpoint (client-side token removal)"""
-    return {"message": "Logged out successfully"}
-
-@app.get("/auth/me")
-async def get_current_user(current_admin: dict = Depends(get_current_admin)):
-    """Get current authenticated admin info"""
-    return {
-        "username": current_admin.get("username"),
-        "role": current_admin.get("role"),
-        "authenticated": True
-    }
-
-# === Protected Admin Endpoints ===
-
-# === Startup and Shutdown Events ===
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize monitoring and logging on startup"""
-    print("🚀 AI Istanbul Backend starting up...")
-    
-    if ADVANCED_MONITORING_ENABLED:
-        try:
-            # Start advanced monitoring
-            asyncio.create_task(advanced_monitor.start_monitoring())
-            
-            # Log system startup
-            comprehensive_logger.log_system_event(
-                "application_startup",
-                "info",
-                {
-                    "version": "1.0.0",
-                    "monitoring_enabled": True,
-                    "rate_limiting_enabled": RATE_LIMITING_ENABLED,
-                    "structured_logging_enabled": STRUCTURED_LOGGING_ENABLED
-                }
-            )
-            print("✅ Advanced monitoring started")
-            
-        except Exception as e:
-            print(f"⚠️ Error starting advanced monitoring: {e}")
-    
-    print("✅ Application startup completed")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean shutdown procedures"""
-    print("🔄 AI Istanbul Backend shutting down...")
-    
-    if ADVANCED_MONITORING_ENABLED:
-        try:
-            # Stop monitoring
-            advanced_monitor.stop_monitoring()
-            
-            # Log system shutdown
-            comprehensive_logger.log_system_event(
-                "application_shutdown",
-                "info",
-                {"clean_shutdown": True}
-            )
-            print("✅ Advanced monitoring stopped")
-            
-        except Exception as e:
-            print(f"⚠️ Error during shutdown: {e}")
-    
-    print("✅ Application shutdown completed")
-
-# === Main Chat Endpoints with Rate Limiting ===
-
-@app.post("/ai/chat")
-async def chat(request: Request, data: dict, db: Session = Depends(get_db)):
-    """Main chat endpoint with enhanced features, rate limiting, and monitoring"""
-    
-    # Apply rate limiting if enabled
-    if RATE_LIMITING_ENABLED and limiter:
-        try:
-            await limiter.limit("50/hour")(request)
-        except Exception as e:
-            logger.warning(f"Rate limiting check failed: {e}")
-    
-    start_time = time.time()
-    client_ip = getattr(request.client, 'host', 'unknown')
-    user_agent = request.headers.get('user-agent', '')
-    session_id = data.get("session_id", "anonymous")
-    
+# AI Chat Feedback endpoints
+@app.get("/admin/api/chat/feedback")
+async def admin_chat_feedback(
+    session_id: str = None,
+    feedback_type: str = "all",  # all, like, dislike
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get AI chat feedback (likes/unlikes) for admin dashboard - PROTECTED ENDPOINT"""
     try:
-        user_message = data.get("message", "")
-        if not user_message:
-            if ADVANCED_MONITORING_ENABLED:
-                log_error("empty_message_error", "Empty message received in chat endpoint", "chat_handler", session_id=session_id)
-            return {"error": "Message is required"}
+        query = db.query(UserFeedback)
         
-        print(f"💬 Chat request received: {user_message[:50]}...")
+        if session_id:
+            query = query.filter(UserFeedback.session_id == session_id)
+            
+        if feedback_type == "like":
+            query = query.filter(UserFeedback.feedback_type == "like")
+        elif feedback_type == "dislike":
+            query = query.filter(UserFeedback.feedback_type == "dislike")
         
-        # Log user action if monitoring is enabled
-        if ADVANCED_MONITORING_ENABLED:
-            log_user_action(
-                action="chat_message_sent",
-                user_id=session_id,
-                details=f"Message length: {len(user_message)}",
-                ip_address=client_ip,
-                session_id=session_id,
-                metadata={"message_preview": user_message[:100]}
-            )
+        feedback_entries = query.order_by(UserFeedback.timestamp.desc()).offset(offset).limit(limit).all()
         
-        # Legacy logging for compatibility
-        if STRUCTURED_LOGGING_ENABLED and not ADVANCED_MONITORING_ENABLED:
-            structured_logger.info(f"Chat request from {client_ip}: {user_message[:100]}")
-        
-        # Simple response for now (you can add your AI logic here)
-        response = f"Hello! I received your message: {user_message[:100]}..."
-        
-        # Save to database
-        try:
-            chat_record = ChatHistory(
-                session_id=session_id,
-                user_message=user_message,
-                ai_response=response,
-                user_ip=client_ip,
-                timestamp=datetime.now()
-            )
-            db.add(chat_record)
-            db.commit()
-        except Exception as db_error:
-            db.rollback()
-            if ADVANCED_MONITORING_ENABLED:
-                log_error("database_save_error", str(db_error), "chat_handler", session_id=session_id, exception=db_error)
-            print(f"Database error: {db_error}")
-        
-        # Calculate response time
-        response_time = (time.time() - start_time) * 1000
-        
-        # Log performance metrics
-        if ADVANCED_MONITORING_ENABLED:
-            log_performance_metric("chat_response_time", response_time)
-            comprehensive_logger.log_performance_metric("chat_request", response_time, True, {
-                "message_length": len(user_message),
-                "response_length": len(response),
-                "session_id": session_id
+        feedback_data = []
+        for feedback in feedback_entries:
+            feedback_data.append({
+                "id": feedback.id,
+                "session_id": feedback.session_id,
+                "feedback_type": feedback.feedback_type,
+                "user_query": feedback.user_query,
+                "response_preview": feedback.response_preview,
+                "message_index": feedback.message_index,
+                "user_ip": feedback.user_ip,
+                "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else None,
+                "message_content": feedback.message_content
             })
         
+        # Get summary statistics
+        total_likes = db.query(UserFeedback).filter(UserFeedback.feedback_type == "like").count()
+        total_dislikes = db.query(UserFeedback).filter(UserFeedback.feedback_type == "dislike").count()
+        total_feedback = total_likes + total_dislikes
+        total_count = len(feedback_data)
+        
         return {
-            "response": response,
-            "session_id": session_id,
-            "timestamp": datetime.now().isoformat(),
-            "response_time_ms": round(response_time, 2)
+            "feedback": feedback_data,
+            "total": total_count,
+            "summary": {
+                "total_likes": total_likes,
+                "total_dislikes": total_dislikes,
+                "total_feedback": total_feedback,
+                "satisfaction_rate": round((total_likes / total_feedback * 100), 1) if total_feedback > 0 else 0
+            },
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        logger.error(f"Error fetching chat feedback: {e}")
+        return {"feedback": [], "total": 0, "error": str(e), "summary": {"total_likes": 0, "total_dislikes": 0, "total_feedback": 0, "satisfaction_rate": 0}}
+
+@app.post("/ai/feedback")
+async def submit_chat_feedback(request: Request, data: dict, db: Session = Depends(get_db)):
+    """Submit feedback (like/dislike) for AI chat responses"""
+    try:
+        session_id = data.get("session_id")
+        feedback_type = data.get("feedback_type")  # "like" or "dislike"
+        user_query = data.get("user_query", "")
+        ai_response = data.get("ai_response", "")
+        message_index = data.get("message_index", 0)
+        
+        if not session_id or feedback_type not in ["like", "dislike"]:
+            raise HTTPException(status_code=400, detail="Invalid feedback data")
+        
+        client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Create feedback record
+        feedback_record = UserFeedback(
+            session_id=session_id,
+            feedback_type=feedback_type,
+            user_query=user_query,
+            response_preview=ai_response[:200] if ai_response else "",
+            message_content=ai_response,
+            message_index=message_index,
+            user_ip=client_ip,
+            timestamp=datetime.utcnow()
+        )
+        
+        db.add(feedback_record)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Feedback ({feedback_type}) submitted successfully",
+            "feedback_id": feedback_record.id
         }
         
     except Exception as e:
-        response_time = (time.time() - start_time) * 1000
-        
-        # Log error with comprehensive details
-        if ADVANCED_MONITORING_ENABLED:
-            log_error("chat_processing_error", str(e), "chat_handler", session_id=session_id)
-            log_error_metric("chat_errors", f"Error in chat processing: {str(e)}")
-            comprehensive_logger.log_performance_metric("chat_request", response_time, False, {
-                "error_type": type(e).__name__,
-                "session_id": session_id
-            })
-        
-        print(f"❌ Chat error: {e}")
-        raise HTTPException(status_code=500, detail="Chat processing failed")
+        db.rollback()
+        logger.error(f"Error submitting feedback: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/ai/stream")
-@limiter.limit("30/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
-async def stream_chat(request: Request, data: dict):
-    """Streaming chat endpoint with rate limiting"""
+# Chat endpoint for AI responses
+@app.post("/ai/chat")
+async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_db)):
+    """
+    Main chat endpoint for AI Istanbul chatbot.
+    Processes user messages and returns AI-generated responses.
+    """
     try:
-        user_message = data.get("message", "")
-        if not user_message:
-            raise HTTPException(status_code=400, detail="Message is required")
-        
-        client_ip = request.client.host
-        print(f"🔄 Stream chat request from {client_ip}: {user_message[:50]}...")
-        
-        # Simple streaming response
-        async def generate_response():
-            response = f"Streaming response to: {user_message}"
-            for word in response.split():
-                yield f"data: {word} \n\n"
-                await asyncio.sleep(0.1)
-            yield "data: [DONE]\n\n"
-        
-        return StreamingResponse(
-            generate_response(),
-            media_type="text/plain",
-            headers={"Cache-Control": "no-cache"}
-        )
-        
-    except Exception as e:
-        print(f"❌ Stream chat error: {e}")
-        raise HTTPException(status_code=500, detail="Stream chat failed")
-
-# === Rate Limited API Endpoints ===
-
-@app.get("/restaurants/search")
-@limiter.limit("100/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
-async def search_restaurants(request: Request, query: str = "", location: str = "Istanbul"):
-    """Search restaurants with rate limiting"""
-    client_ip = request.client.host
-    print(f"🍽️ Restaurant search from {client_ip}: {query}")
-    
-    # Mock restaurant data
-    return {
-        "restaurants": [
-            {"name": f"Restaurant for {query}", "location": location, "rating": 4.5}
-        ],
-        "query": query,
-        "location": location
-    }
-
-@app.get("/places/search")
-@limiter.limit("100/hour") if RATE_LIMITING_ENABLED and limiter else lambda f: f
-async def search_places(request: Request, query: str = "", location: str = "Istanbul"):
-    """Search places with rate limiting"""
-    client_ip = request.client.host
-    print(f"📍 Places search from {client_ip}: {query}")
-    
-    # Mock places data
-    return {
-        "places": [
-            {"name": f"Place for {query}", "location": location, "rating": 4.3}
-        ],
-        "query": query,
-        "location": location
-    }
+        # Extract data from request
+        user_message = data.get("message", "").strip()
+        session_id = data.get("session_id", f"session_{int(time.time())}")

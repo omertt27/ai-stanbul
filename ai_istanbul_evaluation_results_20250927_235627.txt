@@ -1,0 +1,20 @@
+AI Istanbul Comprehensive Evaluation Results
+==================================================
+Date: 2025-09-27 23:56
+Total Tests: 80
+Scoring: Accuracy(0-3) + Completeness(0-3) + Cultural(0-2) + Practical(0-2) = Total(0-10)
+
+TEST #1 - Transportation
+Q: How do I get from Istanbul Airport to Sultanahmet?
+A: [PASTE AI RESPONSE HERE]
+Score: ___/10
+Issues: _____
+Notes: _____
+--------------------------------------------------
+TEST #2 - Transportation
+Q: What's the best way to get from Taksim to Grand Bazaar?
+A: [PASTE AI RESPONSE HERE]
+Score: ___/10
+Issues: _____
+Notes: _____
+--------------------------------------------------

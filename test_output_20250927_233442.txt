@@ -1,0 +1,9 @@
+🚀 AI Istanbul Manual Test Suite
+Choose an option:
+1. View all 80 tests
+2. View tests by category
+3. Get specific test by number
+4. Create evaluation template
+5. Show evaluation criteria
+
+Enter your choice (1-5): 

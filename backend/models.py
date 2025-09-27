@@ -54,9 +54,8 @@ class ChatHistory(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), nullable=False, index=True)
     user_message = Column(Text, nullable=False)
-    bot_response = Column(Text, nullable=False)
+    ai_response = Column(Text, nullable=False)  # Fixed to match actual database column
     timestamp = Column(DateTime, default=datetime.utcnow)
-    user_ip = Column(String(50))
 
 class BlogPost(Base):
     __tablename__ = "blog_posts"
