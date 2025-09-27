@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import BlogAnalyticsDashboard from '../components/BlogAnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { darkMode } = useTheme();
@@ -16,9 +15,8 @@ const AdminDashboard = () => {
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      setError('');
-      localStorage.setItem('adminAuth', 'true');
+      // Redirect to unified admin dashboard
+      window.location.href = 'http://localhost:8000/admin';
     } else {
       setError('invalid');
     }

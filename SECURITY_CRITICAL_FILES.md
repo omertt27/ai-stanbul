@@ -1,7 +1,7 @@
 # AI Istanbul - Critical Files Protection Guide
 # ==============================================
 # This file documents all critical files that must be protected
-# Last Updated: September 22, 2025
+# Last Updated: September 27, 2025
 
 ## NEVER COMMIT OR EXPOSE THESE FILES:
 
@@ -26,10 +26,20 @@
 - server.log, server_startup.log
 - Any *.log files
 
-### 5. Test Results & Coverage Data
-- *test_results*.json (may contain API responses)
+### 5. Test Results & Coverage Data (CRITICAL - Contains API Responses & System Data)
+- All test_*.py, *_test.py, *_tester.py files
+- test-*.js, *-test.js, *_test.js files
+- tests/ directory and all subdirectories
+- *test_results*.json (may contain API responses with sensitive data)
+- *test_results*.txt (system outputs and logs)
+- ai_istanbul_test_*.json (contains actual API call results)
+- ai_istanbul_final_test_*.json (production test data)
+- comprehensive_test_*.json (detailed system analysis)
+- restaurant_google_maps_test_*.json (Google Places API responses)
 - gdpr_security_report_*.json (security audit data)
-- coverage.json
+- coverage.json, coverage.xml, .coverage files
+- Test HTML files: test-*.html, *-test.html, mobile_test.html
+- Frontend test files: frontend/test-*.js, frontend/dist/*test*.html
 
 ### 6. Source Maps & Build Files
 - *.map files (expose source code structure)

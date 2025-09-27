@@ -1,5 +1,5 @@
 // AI Istanbul - Service Worker for PWA functionality
-const CACHE_NAME = 'ai-istanbul-v1.0.0';
+const CACHE_NAME = 'ai-istanbul-v1.2.0'; // Updated version to force cache refresh
 const OFFLINE_URL = '/offline.html';
 
 // Resources to cache for offline functionality
@@ -8,10 +8,8 @@ const CACHE_URLS = [
   '/offline.html',
   '/favicon.svg',
   '/apple-touch-icon.svg',
-  '/manifest.json',
-  // Add main app resources
-  '/src/main.jsx',
-  '/src/App.css'
+  '/manifest.json'
+  // Removed main.jsx from cache - let Vite handle it directly
 ];
 
 // Install event - cache resources
@@ -50,6 +48,14 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve cached content when offline
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip caching for JavaScript modules to avoid MIME type issues
+  if (url.pathname.endsWith('.jsx') || url.pathname.endsWith('.js') || url.pathname.startsWith('/src/')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   if (event.request.mode === 'navigate') {
     // Handle navigation requests
     event.respondWith(
@@ -73,6 +79,12 @@ self.addEventListener('fetch', (event) => {
             headers: { 'Content-Type': 'image/svg+xml' }
           });
         }
+        // Return a proper error response for other failed requests
+        return new Response('Network Error', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/plain' }
+        });
       })
     );
   }

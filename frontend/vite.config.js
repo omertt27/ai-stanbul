@@ -4,19 +4,24 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  root: '.',
   publicDir: 'public',
   server: {
     port: 3000,
-    host: true,
-    historyApiFallback: true,
+    host: '0.0.0.0',
+    strictPort: false,
     hmr: {
       overlay: false
     },
-    watch: {
-      usePolling: false,
-      interval: 1000
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    },
+    middlewareMode: false,
+    fs: {
+      strict: false
     }
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('development')
   },
   build: {
     outDir: 'dist',

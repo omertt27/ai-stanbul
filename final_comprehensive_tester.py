@@ -48,7 +48,7 @@ class TestResult:
     estimated_cultural_score: float = 0.0
 
 class ComprehensiveTester:
-    def __init__(self, base_url: str = "http://localhost:8001"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.results: List[TestResult] = []
         self.session = requests.Session()
@@ -481,7 +481,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Comprehensive AI Istanbul Chatbot Tester')
-    parser.add_argument('--url', default='http://localhost:8001', help='Backend API URL')
+    parser.add_argument('--url', default='http://localhost:8000', help='Backend API URL')
     parser.add_argument('--sample', type=int, help='Run test on random sample of N inputs')
     parser.add_argument('--category', choices=list(TEST_CATEGORIES.keys()), help='Test specific category only')
     

@@ -339,23 +339,12 @@ pre-deploy.sh
 render-start.sh
 
 # Shell Scripts and Utilities (Development only)
+# Shell Scripts and Utilities (Development only)
 cleanup_*.sh
 security_*.sh
 setup_*.sh
 test_*.sh
 run_*.sh
-
-# HTML Test Files
-test-*.html
-debug-*.html
-*-test.html
-cors_test.html
-responsive_test.html
-restaurant_test.html
-
-# Data Files (User generated)
-blog_posts.json
-user_likes.json
 
 # Configuration Files (Development artifacts)
 ai-stanbul.code-workspace
@@ -366,11 +355,98 @@ chatbot-testing-plan.md
 chatbot_analysis.md
 chatbot_improvements_summary.md
 
-# Admin and Demo Files
+# Data Files (User generated)
+blog_posts.json
+user_likes.json
+
+# ==============================================
+# Test Files & Results (SENSITIVE - May Contain API Responses)
+# ==============================================
+
+# Python Test Files
+test_*.py
+*_test.py
+*_tester.py
+tests/
+__tests__/
+test/
+
+# JavaScript Test Files
+test-*.js
+*-test.js
+*_test.js
+test.js
+spec.js
+*_spec.js
+
+# Test Results & Coverage
+*test_results*.json
+*test_results*.txt
+test-results/
+test_coverage/
+coverage.json
+coverage.xml
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# AI Testing & Analysis Results
+ai_istanbul_test_*.txt
+ai_istanbul_test_*.json
+ai_istanbul_final_test_*.txt
+ai_istanbul_final_test_*.json
+*_test_analysis.md
+*_test_suite.py
+*_test_suite.html
+comprehensive_test_*.py
+comprehensive_test_*.json
+final_test_*.py
+final_comprehensive_*.py
+automated_*_tester.py
+enhanced_*_tester.py
+test_*_edge_cases.py
+challenging_inputs_test_*.py
+restaurant_google_maps_test_*.py
+restaurant_google_maps_test_results_*.json
+quick_retest.py
+
+# HTML Test Files
+test-*.html
+debug-*.html
+*-test.html
+cors_test.html
+responsive_test.html
+restaurant_test.html
+mobile_test.html
+test_like_functionality.html
+test-blog-creation.html
+
+# Shell Scripts and Utilities (Development only)
+# ==============================================
+
+# Admin Dashboard HTML Files (Contains Password Hashes & Security Config)
 admin_dashboard.html
 advanced_ai_demo.html
 saved_sessions_viewer.html
 pre-launch-checklist.html
+unified_admin_dashboard.html
+unified_admin_dashboard_production_*.html
+
+# Admin Dashboard Security Tools & Configuration Files
+generate_admin_password.py
+check_dashboard_config.py
+clean_dashboard_production.py
+ADMIN_DASHBOARD_DEPLOYMENT.md
+PRODUCTION_READY_SUMMARY.md
+FINAL_DEPLOYMENT_CONFIG.md
+
+# Security and Admin Related Files
+*admin_password*
+*dashboard_config*
+*production_dashboard*
+admin_*.html
+dashboard_*.html
 
 # Project Artifacts
 ai_stanbul

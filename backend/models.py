@@ -77,8 +77,8 @@ class BlogPost(Base):
     
     # Relationship with likes
     likes = relationship("BlogLike", back_populates="blog_post")
-    # Relationship with likes
-    likes = relationship("BlogLike", back_populates="blog_post")
+    # Relationship with comments
+    comments = relationship("BlogComment", back_populates="blog_post")
 
 class BlogImage(Base):
     __tablename__ = "blog_images"
@@ -105,6 +105,33 @@ class BlogLike(Base):
     
     # Relationship with blog post
     blog_post = relationship("BlogPost", back_populates="likes")
+
+class BlogComment(Base):
+    __tablename__ = "blog_comments"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    blog_post_id = Column(Integer, ForeignKey("blog_posts.id"), nullable=False)
+    
+    # Comment content
+    author_name = Column(String(100), nullable=False)
+    author_email = Column(String(100), nullable=True)  # Optional
+    content = Column(Text, nullable=False)
+    
+    # Moderation fields
+    is_approved = Column(Boolean, default=True)   # Auto-approved by default
+    is_flagged = Column(Boolean, default=False)   # Flagged for review
+    is_spam = Column(Boolean, default=False)      # Marked as spam
+    flagged_reason = Column(String(200), nullable=True)  # Reason for flagging
+    
+    # Metadata
+    user_ip = Column(String(50))
+    user_agent = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(String(100), nullable=True)  # Admin who approved
+    
+    # Relationships
+    blog_post = relationship("BlogPost", back_populates="comments")
 
 # Enhanced AI Models for Intelligent Conversation
 class UserSession(Base):
