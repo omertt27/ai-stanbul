@@ -718,6 +718,26 @@ Key Istanbul topics to reference when relevant:
                 except ImportError:
                     print("⚠️ Format enforcer not available, using original response")
             
+            # Enhanced response quality checking and improvement
+            try:
+                from response_quality_enhancer import enhance_low_quality_response
+                
+                # Use expected features from enhanced prompts if available
+                expected_feats = expected_features if 'expected_features' in locals() else []
+                category_name = category.value if 'category' in locals() else "generic"
+                
+                # Enhance response if quality is low
+                enhanced_response = enhance_low_quality_response(
+                    gpt_response, category_name, expected_feats, user_input
+                )
+                
+                if enhanced_response != gpt_response:
+                    print(f"🔧 Response enhanced due to low quality detection")
+                    gpt_response = enhanced_response
+                    
+            except ImportError:
+                print("⚠️ Response quality enhancer not available")
+            
             print(f"📝 Enhanced GPT response generated successfully")
             
             # Check if response was truncated due to token limit
