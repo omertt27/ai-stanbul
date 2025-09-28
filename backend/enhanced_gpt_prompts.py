@@ -459,7 +459,7 @@ FORMATTING REQUIREMENTS:
 - Write in natural plain text only
 
 ENHANCED ARCHITECTURAL & HISTORICAL SPECIFICS:
-✅ HAGIA SOPHIA: Former Byzantine church (537 AD), Ottoman mosque (1453-1934), museum (1935-2020), active mosque since 2020, 55-meter dome, Christian mosaics + Islamic calligraphy, free entry but prayer time restrictions
+✅ HAGIA SOPHIA: ACTIVE MOSQUE since 2020 (formerly Byzantine church 537 AD, museum 1935-2020), 55-meter dome, Christian mosaics + Islamic calligraphy, FREE ENTRY, CLOSED during 5 daily prayer times, modest dress required, shoes removed, no photos during prayers
 ✅ BLUE MOSQUE (Sultan Ahmed): Six minarets (unique in Istanbul), 20,000 handmade blue Iznik tiles, built 1609-1616 for Sultan Ahmed I, still active mosque, free entry, modest dress required, shoes removed
 ✅ TOPKAPI PALACE: Ottoman imperial residence 1465-1856, four courtyards, Harem quarters, Sacred Relics collection, Treasury with emeralds/diamonds, panoramic Bosphorus views, moderate entry fee, 2-3 hours needed
 ✅ BASILICA CISTERN: Underground Byzantine water reservoir (532 AD), 336 marble columns, two Medusa head bases, atmospheric lighting, 30-minute visit, moderate entry, wheelchair accessible via elevator
@@ -683,78 +683,77 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
         return self.prompts[category].expected_features
     
     def detect_category_from_query(self, query: str) -> PromptCategory:
-        """Enhanced category detection for better prompt selection"""
+        """Enhanced category detection for better prompt selection - prioritize specific categories first"""
         query_lower = query.lower()
         
-        # Daily talk patterns - prioritize emotional/personal queries
-        daily_talk_indicators = [
-            # Greetings and conversational starters
-            'hi', 'hello', 'merhaba', 'good morning', 'how are you', 'thanks', 'thank you',
-            
-            # Emotional states and feelings (primary indicators)
-            'feeling', 'feel', 'overwhelmed', 'confused', 'lost', 'scared', 'nervous', 'worried',
-            'stressed', 'anxious', 'tired', 'exhausted', 'frustrated', 'excited', 'happy', 
-            'sad', 'lonely', 'homesick', 'culture shock', 'struggling',
-            
-            # Travel experience and personal situation
-            'first time', 'just arrived', 'never been', 'solo', 'alone', 'traveling alone',
-            'by myself', 'on my own', 'solo travel', 'solo traveler', 'female traveler',
-            
-            # Help-seeking and advice requests
-            'help me', 'what should i', 'any tips', 'advice', 'guide me', 'show me',
-            'dont know', "don't know", 'not sure', 'uncertain', 'unfamiliar',
-            'new to', 'never done', 'how do i',
-            
-            # Personal pronouns and experiences
-            'i am', 'i feel', 'i think', 'i want', 'i need', 'i wish', 'i hope',
-            'my first', 'my experience', 'personal', 'individual',
-            
-            # City size and navigation concerns
-            'big city', 'huge city', 'size', 'navigate', 'overwhelming size',
-            'too big', 'massive', 'getting around',
-            
-            # Authenticity and local experience seeking
-            'real istanbul', 'authentic', 'local experience', 'like a local',
-            'tired of tourist', 'beyond tourists', 'hidden', 'off beaten path',
-            
-            # Language and communication concerns
-            'language barrier', 'turkish language', 'communication', 'speak english',
-            'language problem', 'dont speak turkish',
-            
-            # Safety and comfort concerns (emotional context)
-            'safe for', 'is it safe', 'safety concerns', 'comfortable', 'worry about'
+        # PRIORITY 1: Transportation patterns (must be detected first)
+        transport_indicators = [
+            'transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'airport', 'havaist', 'istanbulkart',
+            'get to', 'how to reach', 'travel from', 'route', 'directions', 'connection',
+            'istanbul airport', 'sabiha gokçen', 'atatürk airport', 'kabataş', 'taksim',
+            'grand bazaar', 'sultanahmet', 'galata bridge', 'eminönü', 'üsküdar',
+            'm1a', 'm2', 't1', 'marmaray', 'funicular', 'dolmuş', 'minibüs',
+            'schedule', 'frequency', 'cost', 'cheapest way', 'night transport'
         ]
+        if any(indicator in query_lower for indicator in transport_indicators):
+            return PromptCategory.TRANSPORTATION
         
-        # Check for daily talk first since these are often emotional queries
-        if any(indicator in query_lower for indicator in daily_talk_indicators):
-            return PromptCategory.DAILY_TALK
+        # PRIORITY 2: Museum/cultural patterns (must detect before daily talk)
+        museum_indicators = [
+            'museum', 'palace', 'mosque', 'church', 'hagia sophia', 'topkapi', 'blue mosque',
+            'basilica cistern', 'galata tower', 'archaeological', 'cultural sites', 'heritage',
+            'art museum', 'exhibition', 'opening hours', 'ticket price', 'visiting',
+            'byzantine', 'ottoman', 'historical significance', 'architectural',
+            'grand bazaar', 'spice bazaar', 'chora church', 'dolmabahçe'
+        ]
+        if any(indicator in query_lower for indicator in museum_indicators):
+            return PromptCategory.MUSEUM_ADVICE
         
-        # Restaurant patterns
-        if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'dining', 'breakfast', 'lunch', 'dinner', 'kebab', 'turkish cuisine', 'meal']):
+        # PRIORITY 3: Restaurant patterns
+        restaurant_indicators = [
+            'restaurant', 'food', 'eat', 'dining', 'breakfast', 'lunch', 'dinner', 
+            'kebab', 'turkish cuisine', 'meal', 'street food', 'vegetarian',
+            'gluten-free', 'halal', 'seafood', 'dessert', 'baklava', 'coffee house'
+        ]
+        if any(indicator in query_lower for indicator in restaurant_indicators):
             if any(word in query_lower for word in ['in ', 'near', 'around', 'specific', 'best in']) and any(area in query_lower for area in ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata']):
                 return PromptCategory.RESTAURANT_SPECIFIC
             return PromptCategory.RESTAURANT_GENERAL
         
-        # District/neighborhood patterns  
-        if any(word in query_lower for word in ['district', 'neighborhood', 'area', 'quarter', 'sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata', 'eminonu', 'balat', 'ortakoy', 'uskudar']):
+        # PRIORITY 4: District/neighborhood patterns  
+        district_indicators = [
+            'district', 'neighborhood', 'area', 'quarter', 'character', 'atmosphere',
+            'sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata', 'eminonu', 
+            'balat', 'ortakoy', 'uskudar', 'besiktas', 'sisli', 'european side',
+            'asian side', 'bosphorus', 'waterfront', 'local life', 'gentrification'
+        ]
+        if any(indicator in query_lower for indicator in district_indicators):
             if not any(word in query_lower for word in ['restaurant', 'food', 'eat']):
                 return PromptCategory.DISTRICT_ADVICE
         
-        # Museum/cultural patterns
-        if any(word in query_lower for word in ['museum', 'palace', 'mosque', 'church', 'hagia sophia', 'topkapi', 'blue mosque', 'historical', 'cultural', 'heritage', 'art', 'exhibition']):
-            return PromptCategory.MUSEUM_ADVICE
-        
-        # Transportation patterns
-        if any(word in query_lower for word in ['transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'get to', 'how to reach', 'travel from', 'route', 'directions', 'istanbulkart']):
-            return PromptCategory.TRANSPORTATION
-        
-        # Safety and practical patterns
-        if any(word in query_lower for word in ['safe', 'safety', 'scam', 'money', 'currency', 'tip', 'etiquette', 'customs', 'language', 'emergency']):
-            # Don't classify emotional safety queries as safety_practical - they should be daily_talk
-            if not any(indicator in query_lower for indicator in ['feeling', 'feel', 'worried', 'scared', 'nervous']):
+        # PRIORITY 5: Safety and practical patterns
+        practical_indicators = [
+            'safe', 'safety', 'scam', 'money', 'currency', 'tip', 'etiquette', 
+            'customs', 'language', 'emergency', 'visa', 'bureaucracy', 'weather',
+            'turkish phrases', 'ramadan', 'business culture', 'healthcare'
+        ]
+        if any(indicator in query_lower for indicator in practical_indicators):
+            # Don't classify emotional safety queries as safety_practical
+            if not any(emotional in query_lower for emotional in ['feeling', 'feel', 'worried', 'scared', 'nervous', 'overwhelmed']):
                 return PromptCategory.SAFETY_PRACTICAL
         
-        return PromptCategory.DAILY_TALK  # Default for conversational queries
+        # PRIORITY 6: Daily talk patterns (only if no other category matches)
+        daily_talk_indicators = [
+            'hi', 'hello', 'merhaba', 'good morning', 'how are you', 'thanks', 'thank you',
+            'feeling', 'feel', 'overwhelmed', 'confused', 'lost', 'scared', 'nervous', 
+            'worried', 'stressed', 'anxious', 'first time', 'just arrived', 'solo',
+            'help me', 'what should i', 'advice', 'guide me', 'dont know', "don't know"
+        ]
+        if any(indicator in query_lower for indicator in daily_talk_indicators):
+            return PromptCategory.DAILY_TALK
+        
+        # DEFAULT: For queries that don't clearly fit categories, use practical advice
+        return PromptCategory.SAFETY_PRACTICAL
 
 # Global instance
 enhanced_prompts = EnhancedGPTPromptsSystem()

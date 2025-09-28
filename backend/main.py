@@ -705,6 +705,19 @@ Key Istanbul topics to reference when relevant:
             # Apply post-LLM cleanup to remove pricing and fix location issues
             gpt_response = post_llm_cleanup(gpt_response)
             
+            # Apply format enforcement for enhanced prompts
+            if use_enhanced_prompts:
+                try:
+                    from format_enforcer import enforce_response_format
+                    original_response = gpt_response
+                    gpt_response = enforce_response_format(gpt_response, category)
+                    
+                    if gpt_response != original_response:
+                        print(f"📋 Format enforcement applied for category: {category.value}")
+                    
+                except ImportError:
+                    print("⚠️ Format enforcer not available, using original response")
+            
             print(f"📝 Enhanced GPT response generated successfully")
             
             # Check if response was truncated due to token limit
