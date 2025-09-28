@@ -149,6 +149,91 @@ class BlogComment(Base):
     # Relationships
     blog_post = relationship("BlogPost", back_populates="comments")
 
+class UserMemory(Base):
+    __tablename__ = "user_memory"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), ForeignKey("user_sessions.session_id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Memory categories
+    memory_type = Column(String(50), nullable=False, index=True)  # 'preference', 'visited', 'interest', 'experience'
+    memory_key = Column(String(100), nullable=False)  # e.g., 'favorite_district', 'visited_place', 'food_preference'
+    memory_value = Column(Text, nullable=False)  # The actual memory content
+    memory_context = Column(JSON)  # Additional context like timestamps, ratings, etc.
+    
+    # Memory metadata
+    confidence_score = Column(Float, default=0.8)  # How confident we are about this memory
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_referenced = Column(DateTime, default=datetime.utcnow)
+    reference_count = Column(Integer, default=1)
+    
+    # Memory importance and persistence
+    importance_level = Column(Integer, default=1)  # 1-5 scale
+    is_persistent = Column(Boolean, default=False)  # Should this memory persist across long periods?
+    
+    # Unique constraint to prevent duplicate memories
+    __table_args__ = (UniqueConstraint('session_id', 'memory_type', 'memory_key', name='unique_user_memory'),)
+    
+    # Relationships
+    session = relationship("UserSession", back_populates="memories")
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), ForeignKey("user_sessions.session_id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Cuisine preferences
+    preferred_cuisines = Column(JSON)  # Array of preferred cuisines
+    avoided_cuisines = Column(JSON)   # Array of avoided cuisines
+    
+    # Budget and travel preferences
+    budget_level = Column(String(20))  # 'budget', 'mid-range', 'luxury'
+    travel_style = Column(String(30))  # 'family', 'couple', 'business', 'group'
+    
+    # Location and time preferences
+    preferred_districts = Column(JSON)  # Array of preferred districts
+    preferred_time_of_day = Column(JSON)  # Array of preferred times
+    
+    # General preferences
+    interests = Column(JSON)  # Array of interest categories
+    transportation_preference = Column(String(20))  # 'walking', 'metro', 'taxi', etc.
+    language = Column(String(10))  # Language preference
+    
+    # Metadata
+    confidence_score = Column(Float, default=0.8)  # How confident we are about preferences
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    total_interactions = Column(Integer, default=0)  # Number of interactions that informed preferences
+    
+    # Relationships
+    session = relationship("UserSession", back_populates="user_preferences")
+
+class ConversationContext(Base):
+    __tablename__ = "conversation_context"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), ForeignKey("user_sessions.session_id"), nullable=False, index=True)
+    
+    # Context tracking
+    current_topic = Column(String(100))  # Current conversation topic
+    topics_discussed = Column(JSON, default=list)  # List of topics covered in session
+    places_mentioned = Column(JSON, default=list)  # Places that have been discussed
+    
+    # User journey tracking
+    travel_stage = Column(String(50))  # 'planning', 'visiting', 'exploring', 'departing'
+    visit_duration = Column(String(50))  # '1 day', '3 days', '1 week', etc.
+    travel_style = Column(String(50))  # 'solo', 'family', 'business', 'romantic', 'adventure'
+    
+    # Current context
+    last_location_discussed = Column(String(200))
+    current_need = Column(String(100))  # 'directions', 'recommendations', 'planning', 'cultural_info'
+    conversation_mood = Column(String(50))  # 'excited', 'confused', 'planning', 'urgent'
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    session = relationship("UserSession", back_populates="conversation_contexts")
+
 # Enhanced AI Models for Intelligent Conversation
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -161,78 +246,10 @@ class UserSession(Base):
     is_active = Column(Boolean, default=True)
     
     # Relationships
-    preferences = relationship("UserPreference", back_populates="session", uselist=False)
-    conversations = relationship("ConversationContext", back_populates="session")
+    memories = relationship("UserMemory", back_populates="session")
+    user_preferences = relationship("UserPreference", back_populates="session")
+    conversation_contexts = relationship("ConversationContext", back_populates="session")
     interactions = relationship("UserInteraction", back_populates="session")
-
-class UserPreference(Base):
-    __tablename__ = "user_preferences"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String(100), ForeignKey("user_sessions.session_id"), unique=True, nullable=False)
-    
-    # Cuisine preferences (JSON array)
-    preferred_cuisines = Column(JSON, default=list)  # ["turkish", "italian", "seafood"]
-    avoided_cuisines = Column(JSON, default=list)   # ["spicy", "vegetarian"]
-    
-    # Budget preferences
-    budget_level = Column(String(20))  # "budget", "mid-range", "luxury", "any"
-    
-    # Interest categories (JSON array)
-    interests = Column(JSON, default=list)  # ["museums", "nightlife", "shopping", "culture"]
-    
-    # Travel style
-    travel_style = Column(String(30))  # "solo", "couple", "family", "business", "group"
-    
-    # Time preferences
-    preferred_time_of_day = Column(JSON, default=list)  # ["morning", "afternoon", "evening", "night"]
-    
-    # Districts of interest
-    preferred_districts = Column(JSON, default=list)  # ["sultanahmet", "beyoglu", "kadikoy"]
-    
-    # Transportation preferences
-    transportation_preference = Column(String(20))  # "walking", "public", "taxi", "mixed"
-    
-    # Language preference
-    language = Column(String(10), default="en")  # "en", "tr"
-    
-    # Learning metadata
-    confidence_score = Column(Float, default=0.0)  # How confident we are in these preferences
-    last_updated = Column(DateTime, default=datetime.utcnow)
-    total_interactions = Column(Integer, default=0)
-    
-    # Relationship
-    session = relationship("UserSession", back_populates="preferences")
-
-class ConversationContext(Base):
-    __tablename__ = "conversation_context"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String(100), ForeignKey("user_sessions.session_id"), nullable=False)
-    
-    # Conversation state
-    current_intent = Column(String(50))  # "restaurant_search", "transportation", "attractions"
-    context_data = Column(JSON, default=dict)  # Flexible context storage
-    
-    # Location context
-    current_location = Column(String(100))  # Current area of interest
-    previous_locations = Column(JSON, default=list)  # History of searched locations
-    
-    # Topic tracking
-    current_topic = Column(String(50))
-    topic_history = Column(JSON, default=list)
-    
-    # Follow-up handling
-    expecting_followup = Column(Boolean, default=False)
-    followup_type = Column(String(30))  # "location_clarification", "preference_confirmation"
-    followup_data = Column(JSON, default=dict)
-    
-    # Conversation flow
-    conversation_stage = Column(String(30), default="initial")  # "initial", "exploring", "deciding", "completed"
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationship
-    session = relationship("UserSession", back_populates="conversations")
 
 class UserInteraction(Base):
     __tablename__ = "user_interactions"

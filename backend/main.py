@@ -347,6 +347,17 @@ app = FastAPI(
 
 print("✅ FastAPI app initialized successfully")
 
+# Add CORS middleware to allow frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+print("✅ CORS middleware configured")
+
 # === Include Routers ===
 try:
     from routes.blog import router as blog_router
@@ -578,7 +589,7 @@ def sanitize_user_input(user_input: str) -> str:
     return user_input.strip()
 
 def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
-    """Generate response using OpenAI GPT with enhanced category-specific prompts for maximum relevance"""
+    """Generate response using OpenAI GPT with enhanced category-specific prompts and personalized memory"""
     try:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not OpenAI_available or not openai_api_key or OpenAI is None:
@@ -588,6 +599,22 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
+        
+        # Get database session for personalization
+        from database import SessionLocal
+        db = SessionLocal()
+        
+        # Get personalized context from memory system
+        try:
+            from personalized_memory import get_personalized_context, generate_personalized_prompt_enhancement
+            personalization = get_personalized_context(session_id, user_input, db)
+            print(f"🧠 Personalization context loaded: {personalization.get('has_history', False)}")
+        except ImportError as e:
+            print(f"⚠️ Personalized memory not available: {e}")
+            personalization = {"has_history": False}
+        except Exception as e:
+            print(f"⚠️ Error loading personalization: {e}")
+            personalization = {"has_history": False}
         
         # Use enhanced category-specific prompts
         try:
@@ -603,6 +630,52 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
                 user_input, location_context
             )
             
+            # 🍽️ INTEGRATE REAL GOOGLE MAPS RESTAURANT DATA
+            google_maps_data = None
+            if category.value == "restaurant_specific" or category.value == "restaurant_general":
+                try:
+                    from google_maps_restaurant_service import get_live_restaurant_recommendations
+                    print(f"🍽️ Fetching live restaurant data from Google Maps for query: {user_input[:50]}...")
+                    google_maps_data = get_live_restaurant_recommendations(user_input, location_context)
+                    
+                    if google_maps_data.get('success') and google_maps_data.get('restaurants'):
+                        restaurants_count = len(google_maps_data['restaurants'])
+                        print(f"✅ Successfully fetched {restaurants_count} live restaurants from Google Maps")
+                        
+                        # Enhance the system prompt with real restaurant data
+                        restaurant_data_text = "\n\nREAL GOOGLE MAPS RESTAURANT DATA (Use this live data in your response):\n"
+                        for i, restaurant in enumerate(google_maps_data['restaurants'][:6], 1):
+                            restaurant_data_text += f"{i}. {restaurant['name']}\n"
+                            restaurant_data_text += f"   - Rating: {restaurant['rating']}\n"
+                            restaurant_data_text += f"   - Address: {restaurant['address']}\n"
+                            restaurant_data_text += f"   - Price Level: {restaurant['price_level']}\n"
+                            if restaurant['cuisine_types']:
+                                restaurant_data_text += f"   - Cuisine: {', '.join(restaurant['cuisine_types'])}\n"
+                            if restaurant['is_open'] is not None:
+                                status = "Open now" if restaurant['is_open'] else "Currently closed"
+                                restaurant_data_text += f"   - Status: {status}\n"
+                            restaurant_data_text += f"   - Google Maps: {restaurant['google_maps_link']}\n\n"
+                        
+                        restaurant_data_text += f"Search performed for: {google_maps_data['search_location']} - {google_maps_data['search_keyword']}\n"
+                        restaurant_data_text += f"Data retrieved: {google_maps_data['timestamp']}\n\n"
+                        restaurant_data_text += "IMPORTANT: Use the above real Google Maps data in your response. Include restaurant names, addresses, and ratings from this live data.\n"
+                        
+                        # Append the real data to the system prompt
+                        enhanced_system_prompt += restaurant_data_text
+                        print(f"✅ Enhanced system prompt with live Google Maps restaurant data")
+                        
+                    else:
+                        print(f"⚠️ Google Maps restaurant data not available: {google_maps_data.get('message', 'Unknown error')}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Error fetching Google Maps restaurant data: {e}")
+                    google_maps_data = None
+            
+            # 🧠 ENHANCE PROMPT WITH PERSONALIZATION
+            if personalization.get('has_history'):
+                enhanced_system_prompt = generate_personalized_prompt_enhancement(personalization, enhanced_system_prompt)
+                print(f"🧠 Personalized prompt enhancement applied")
+            
             # Dynamic token optimization based on query complexity
             query_complexity_indicators = [
                 len(user_input.split()) > 15,  # Long query
@@ -614,7 +687,7 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
             
             complexity_score = sum(query_complexity_indicators)
             
-            # Adjust tokens based on complexity and category
+            # Adjust tokens based on complexity and category (add extra for personalization)
             if complexity_score >= 3:  # High complexity
                 max_tokens = min(max_tokens + 100, 800)  # Increase but cap at 800
                 print(f"🔧 High complexity query detected, increasing tokens to {max_tokens}")
@@ -622,7 +695,11 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
                 max_tokens = max(max_tokens - 100, 300)  # Decrease but minimum 300
                 print(f"🔧 Simple query detected, optimizing tokens to {max_tokens}")
             
-            print(f"🎯 Enhanced Prompts - Category: {category.value}, Location: {location_context}, Max Tokens: {max_tokens}")
+            # Add tokens for personalization if history exists
+            if personalization.get('has_history'):
+                max_tokens = min(max_tokens + 50, 850)  # Small boost for personalization
+            
+            print(f"🎯 Enhanced Prompts - Category: {category.value}, Location: {location_context}, Max Tokens: {max_tokens}, Personalized: {personalization.get('has_history', False)}")
             
             # Use the enhanced system prompt and user input directly
             system_prompt = enhanced_system_prompt
@@ -1121,12 +1198,16 @@ async def admin_login(credentials: Dict[str, Any]):
         if not admin_data:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        # Create JWT token
-        access_token = create_access_token(data={"sub": username, "role": "admin"})
+        # Create JWT tokens (access + refresh)
+        token_data = {"sub": username, "username": username, "role": "admin"}
+        access_token = create_access_token(data=token_data)
+        refresh_token = create_refresh_token(data=token_data)
         
         return {
             "access_token": access_token,
+            "refresh_token": refresh_token,
             "token_type": "bearer",
+            "expires_in": 15 * 60,  # 15 minutes in seconds
             "admin": admin_data
         }
     except HTTPException:
@@ -1598,7 +1679,7 @@ async def admin_chat_feedback(
 
 @app.post("/ai/feedback")
 async def submit_chat_feedback(request: Request, data: dict, db: Session = Depends(get_db)):
-    """Submit feedback (like/dislike) for AI chat responses"""
+    """Submit feedback (like/dislike) for AI chat responses and save chat session"""
     try:
         session_id = data.get("session_id")
         feedback_type = data.get("feedback_type")  # "like" or "dislike"
@@ -1610,6 +1691,43 @@ async def submit_chat_feedback(request: Request, data: dict, db: Session = Depen
             raise HTTPException(status_code=400, detail="Invalid feedback data")
         
         client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Check if ChatSession exists, if not create it (only for sessions with feedback)
+        existing_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not existing_session:
+            # Create new chat session since user provided feedback
+            chat_session = ChatSession(
+                id=session_id,
+                title=user_query[:50] + "..." if len(user_query) > 50 else user_query,
+                message_count=1,  # At least one message to get feedback
+                first_message_at=datetime.utcnow(),
+                last_activity_at=datetime.utcnow(),
+                user_ip=client_ip,
+                is_saved=True  # Mark as saved since it has feedback
+            )
+            db.add(chat_session)
+            print(f"📝 Chat session created for feedback: {session_id[:8]}...")
+        else:
+            # Update existing session
+            existing_session.last_activity_at = datetime.utcnow()
+            existing_session.is_saved = True
+            print(f"📝 Updated existing chat session: {session_id[:8]}...")
+        
+        # Save the conversation to ChatHistory (only when feedback is provided)
+        existing_chat = db.query(ChatHistory).filter(
+            ChatHistory.session_id == session_id,
+            ChatHistory.user_message == user_query
+        ).first()
+        
+        if not existing_chat and user_query and ai_response:
+            chat_history = ChatHistory(
+                session_id=session_id,
+                user_message=user_query,
+                ai_response=ai_response,
+                timestamp=datetime.utcnow()
+            )
+            db.add(chat_history)
+            print(f"💾 Chat conversation saved for session: {session_id[:8]}...")
         
         # Create feedback record
         feedback_record = UserFeedback(
@@ -1625,6 +1743,8 @@ async def submit_chat_feedback(request: Request, data: dict, db: Session = Depen
         
         db.add(feedback_record)
         db.commit()
+        
+        print(f"✅ Feedback ({feedback_type}) saved for session: {session_id[:8]}...")
         
         return {
             "success": True,
@@ -1643,6 +1763,7 @@ async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_d
     """
     Main chat endpoint for AI Istanbul chatbot.
     Processes user messages and returns AI-generated responses.
+    Saves chat history to database for admin monitoring.
     """
     try:
         # Extract data from request
@@ -1677,6 +1798,39 @@ async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_d
                 "error": "Unable to generate response at this time. Please try again.",
                 "retry_suggested": True
             }
+        
+        # Save chat conversation to database for admin monitoring
+        # NOTE: Only saving sessions that receive feedback (like/dislike)
+        # Regular chat conversations are not saved to reduce database storage
+        try:
+            pass  # Chat sessions will be saved only when feedback is provided
+            print(f"💬 Chat response generated for session: {session_id[:8]}... (not saved - awaiting feedback)")
+            
+        except Exception as db_error:
+            # Log database error but don't fail the chat response
+            print(f"⚠️ Failed to save chat to database: {db_error}")
+            db.rollback()
+        
+        # 🧠 PROCESS PERSONALIZED MEMORY - Learn from this conversation
+        try:
+            print(f"🧠 Starting memory processing for session: {session_id[:8]}...")
+            from personalized_memory import process_conversation_memory
+            memory_result = process_conversation_memory(session_id, user_message, ai_response, db)
+            print(f"🧠 Memory processing result: {memory_result}")
+            if memory_result.get('success'):
+                memories_count = memory_result.get('memories_extracted', 0)
+                if memories_count > 0:
+                    print(f"🧠 Extracted and stored {memories_count} memories for session: {session_id[:8]}...")
+                else:
+                    print(f"🧠 No new memories extracted for session: {session_id[:8]}")
+            else:
+                print(f"⚠️ Memory processing failed: {memory_result.get('error', 'Unknown error')}")
+        except Exception as memory_error:
+            # Don't fail the chat response if memory processing fails
+            print(f"⚠️ Memory processing error: {memory_error}")
+            import traceback
+            traceback.print_exc()
+            db.rollback()
         
         return {
             "response": ai_response,

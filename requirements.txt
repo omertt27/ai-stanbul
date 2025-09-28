@@ -15,3 +15,5 @@ thefuzz
 python-levenshtein
 aiofiles
 httpx
+passlib[bcrypt]
+python-jose[cryptography]

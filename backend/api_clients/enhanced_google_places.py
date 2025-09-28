@@ -112,23 +112,15 @@ class EnhancedGooglePlacesClient:
         """Execute real Google Places API search."""
         url = f"{self.base_url}/textsearch/json"
         
-        # Build search query
-        query_parts = ["restaurant"]
-        
-        if location:
-            query_parts.append(f"in {location}")
-        elif lat_lng:
-            # Convert coordinates to location if possible
-            geocode_result = self._reverse_geocode(lat_lng)
-            if geocode_result:
-                query_parts.append(f"in {geocode_result}")
+        # Build search query - improved query construction
+        if keyword and location:
+            query = f"{keyword} restaurant in {location}"
+        elif keyword:
+            query = f"{keyword} restaurant in Istanbul Turkey"
+        elif location:
+            query = f"Turkish restaurant in {location} Istanbul"
         else:
-            query_parts.append("in Istanbul, Turkey")
-            
-        if keyword:
-            query_parts.append(keyword)
-        
-        query = " ".join(query_parts)
+            query = "Turkish restaurant in Istanbul Turkey"
         
         params = {
             "key": self.api_key,
@@ -136,31 +128,49 @@ class EnhancedGooglePlacesClient:
             "type": "restaurant",
         }
         
-        if radius and radius <= 50000:
-            params["radius"] = radius
-            
-        response = requests.get(url, params=params, timeout=10)
+        logger.info(f"🔍 Google Places API query: {query}")
+        
+        response = requests.get(url, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
         
+        logger.info(f"📊 Google Places API returned {len(data.get('results', []))} results with status: {data.get('status')}")
+        
         # Filter by rating if specified
         if min_rating and "results" in data:
+            original_count = len(data["results"])
             data["results"] = [
                 place for place in data["results"] 
                 if place.get("rating", 0) >= min_rating
             ]
+            logger.info(f"🎯 Filtered by rating {min_rating}+: {original_count} → {len(data['results'])} results")
         
-        # Enhance results with additional details
-        enhanced_results = []
-        for place in data.get("results", [])[:10]:  # Limit to 10 to save API calls
-            enhanced_place = self._enhance_place_data(place)
-            enhanced_results.append(enhanced_place)
+        # Process and structure results for better response
+        structured_results = []
+        for i, place in enumerate(data.get("results", [])[:8]):  # Limit to 8 for better response
+            structured_place = {
+                "name": place.get("name", "Unknown Restaurant"),
+                "rating": place.get("rating"),
+                "address": place.get("formatted_address", "Address not available"),
+                "price_level": place.get("price_level"),
+                "types": place.get("types", []),
+                "place_id": place.get("place_id"),
+                "opening_hours": place.get("opening_hours", {}),
+                "photos": place.get("photos", []),
+                "geometry": place.get("geometry", {}),
+                "plus_code": place.get("plus_code", {}),
+                "business_status": place.get("business_status", "OPERATIONAL")
+            }
+            structured_results.append(structured_place)
         
-        data["results"] = enhanced_results
-        data["data_source"] = "real_api"
-        data["timestamp"] = datetime.now().isoformat()
-        
-        return data
+        return {
+            "restaurants": structured_results,  # Changed key for clarity
+            "status": data.get("status"),
+            "data_source": "google_places_api",
+            "timestamp": datetime.now().isoformat(),
+            "query_used": query,
+            "total_results": len(data.get("results", []))
+        }
     
     def _enhance_place_data(self, place: Dict) -> Dict:
         """Enhance place data with additional details if API quota allows."""

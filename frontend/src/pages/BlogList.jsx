@@ -7,130 +7,6 @@ import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
 import '../App.css';
 
-// Mock blog data for demo purposes
-const mockBlogPosts = [
-  {
-    id: 1,
-    title: "Hidden Gems in Sultanahmet: Beyond the Tourist Trail",
-    content: "Discover the secret courtyards, ancient cisterns, and local eateries that most visitors miss in Istanbul's historic heart. From the peaceful Soğukçeşme Sokağı to the underground wonders of Şerefiye Cistern...",
-    author_name: "Mehmet Yılmaz",
-    district: "Sultanahmet",
-    created_at: "2024-12-01T10:00:00Z",
-    likes_count: 47,
-    images: []
-  },
-  {
-    id: 2,
-    title: "Best Rooftop Views for Sunset in Galata",
-    content: "Experience Istanbul's magic hour from the best rooftop terraces in Galata. From trendy bars to quiet cafes, here are the spots where locals go to watch the sun set over the Golden Horn...",
-    author_name: "Ayşe Demir",
-    district: "Galata",
-    created_at: "2024-11-28T15:30:00Z",
-    likes_count: 73,
-    images: []
-  },
-  {
-    id: 3,
-    title: "Street Food Paradise: Kadıköy's Culinary Adventures",
-    content: "Dive into the vibrant food scene of Kadıköy, where traditional Turkish flavors meet modern creativity. From the famous fish sandwich vendors to hidden meyhanes serving authentic mezze...",
-    author_name: "Can Özkan",
-    district: "Kadıköy",
-    created_at: "2024-11-25T12:15:00Z",
-    likes_count: 92,
-    images: []
-  },
-  {
-    id: 4,
-    title: "Shopping Like a Local: Beyoğlu's Alternative Markets",
-    content: "Skip the tourist shops and discover where Istanbulites really shop. From vintage treasures in Çukurcuma to artisan crafts in the backstreets of Galata, here's your insider guide...",
-    author_name: "Zeynep Kaya",
-    district: "Beyoğlu",
-    created_at: "2024-11-20T09:45:00Z",
-    likes_count: 64,
-    images: []
-  },
-  {
-    id: 5,
-    title: "Early Morning Magic: Bosphorus at Dawn",
-    content: "Join the fishermen and early risers for a completely different perspective of Istanbul. The city awakens slowly along the Bosphorus shores, offering peaceful moments and stunning photography opportunities...",
-    author_name: "Emre Şahin",
-    district: "Beşiktaş",
-    created_at: "2024-11-18T06:00:00Z",
-    likes_count: 38,
-    images: []
-  },
-  {
-    id: 6,
-    title: "Traditional Hammam Experience: A First-Timer's Guide",
-    content: "Nervous about trying a Turkish bath? This comprehensive guide covers everything from what to expect to proper etiquette, helping you enjoy this centuries-old Istanbul tradition with confidence...",
-    author_name: "Fatma Arslan",
-    district: "Fatih",
-    created_at: "2024-11-15T14:20:00Z",
-    likes_count: 156,
-    images: []
-  },
-  {
-    id: 7,
-    title: "Art & Culture in Karaköy: Where Creativity Meets History",
-    content: "Explore the vibrant art scene in Karaköy district, where contemporary galleries blend with historic Ottoman architecture. From the Istanbul Modern to hidden artist studios...",
-    author_name: "Selin Yücel",
-    district: "Karaköy",
-    created_at: "2024-11-12T16:45:00Z",
-    likes_count: 82,
-    images: []
-  },
-  {
-    id: 8,
-    title: "Ferry Adventures: Island Hopping from Eminönü",
-    content: "Take the scenic route to Büyükada and Heybeliada. This guide covers the best ferry schedules, what to see on each island, and local seafood restaurants you shouldn't miss...",
-    author_name: "Burak Şen",
-    district: "Eminönü",
-    created_at: "2024-11-10T11:30:00Z",
-    likes_count: 95,
-    images: []
-  },
-  {
-    id: 9,
-    title: "Night Markets and Street Life in Şişli",
-    content: "When the sun goes down, Şişli comes alive with bustling night markets, late-night eateries, and vibrant street culture. Here's your guide to experiencing Istanbul after dark...",
-    author_name: "Deniz Aktaş",
-    district: "Şişli",
-    created_at: "2024-11-08T20:15:00Z",
-    likes_count: 67,
-    images: []
-  },
-  {
-    id: 10,
-    title: "Historic Churches and Mosques: A Spiritual Journey",
-    content: "Discover the religious heritage of Istanbul through its magnificent churches and mosques. From Hagia Sophia to Chora Church, explore the spiritual heart of the city...",
-    author_name: "Prof. Ahmet Güler",
-    district: "Fatih",
-    created_at: "2024-11-05T13:00:00Z",
-    likes_count: 134,
-    images: []
-  },
-  {
-    id: 11,
-    title: "Coffee Culture: From Traditional to Third Wave",
-    content: "Journey through Istanbul's evolving coffee scene, from traditional Turkish coffee ceremonies to modern specialty coffee shops. Discover the best cafes in every district...",
-    author_name: "Elif Özdemir",
-    district: "Beyoğlu",
-    created_at: "2024-11-02T08:30:00Z",
-    likes_count: 113,
-    images: []
-  },
-  {
-    id: 12,
-    title: "Weekend Escape: Üsküdar's Asian Side Charm",
-    content: "Cross the Bosphorus to discover Üsküdar's peaceful atmosphere, historic sites, and stunning views of the European side. Perfect for a relaxing weekend exploration...",
-    author_name: "Murat Kaya",
-    district: "Üsküdar",
-    created_at: "2024-10-30T15:45:00Z",
-    likes_count: 78,
-    images: []
-  }
-];
-
 const BlogList = () => {
   console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
@@ -181,14 +57,21 @@ const BlogList = () => {
         });
         
         if (apiResponse && apiResponse.posts && Array.isArray(apiResponse.posts)) {
-          filteredPosts = apiResponse.posts;
+          // Transform API posts to match frontend expectations
+          filteredPosts = apiResponse.posts.map(post => ({
+            ...post,
+            author_name: post.author_name || post.author || 'Unknown Author',
+            district: post.district || 'Istanbul (general)',
+            images: post.images || []
+          }));
           console.log('✅ BlogList: Successfully fetched', filteredPosts.length, 'posts from API');
         } else {
           throw new Error('Invalid API response structure');
         }
       } catch (apiErr) {
-        console.warn('⚠️ BlogList: API failed, falling back to mock data:', apiErr);
-        filteredPosts = [...mockBlogPosts];
+        console.error('❌ BlogList: API failed:', apiErr);
+        setError('Failed to load blog posts. Please try again later.');
+        filteredPosts = []; // Empty array instead of mock data
       }
       
       // Apply search filter
