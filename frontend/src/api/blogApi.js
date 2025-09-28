@@ -170,16 +170,13 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
       console.log('❤️ Liking blog post:', postId, 'Type:', typeof postId);
       console.log('🔗 Full like URL:', `${BLOG_API_URL}${postId}/like`);
       
-      // Use the JSON file-based endpoint that now tracks individual users
+      // Use the new database-backed endpoint
       const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          user_id: userIdentifier
-        }),
         timeout: 5000
       }, {
         maxAttempts: 2,
@@ -187,7 +184,7 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
       });
       
       const data = await response.json();
-      console.log('✅ Post liked:', data.likes_count, 'total likes');
+      console.log('✅ Post like response:', data);
       return data;
       
     } catch (error) {
@@ -202,8 +199,8 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
     try {
       console.log(`🔍 Checking like status for post ${postId}`);
       
-      // Use the JSON file-based endpoint that now tracks individual users
-      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like-status?user_id=${userIdentifier}`, {
+      // Use the new database-backed endpoint
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like-status`, {
         method: 'GET',
         headers: { 
           'Accept': 'application/json'
@@ -217,12 +214,12 @@ export const checkLikeStatus = async (postId, userIdentifier = 'default_user') =
 
       const data = await response.json();
       console.log('✅ Like status checked:', data);
-      return data; // { isLiked: boolean, likes: number }
+      return data; // { success: true, isLiked: boolean, likes_count: number }
       
     } catch (error) {
       console.error('❌ Error checking like status:', error);
       // Return default values on error
-      return { isLiked: false, likes: 0 };
+      return { success: false, isLiked: false, likes_count: 0 };
     }
   });
 };

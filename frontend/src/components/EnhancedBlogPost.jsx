@@ -62,6 +62,20 @@ const EnhancedBlogPost = ({ postId }) => {
       if (postData.success) {
         setPost(postData.post);
         
+        // Fetch like status
+        const likeResponse = await fetch(`/blog/${postId}/like-status`);
+        const likeData = await likeResponse.json();
+        
+        if (likeData.success) {
+          setIsLiked(likeData.isLiked);
+          // Update post with current likes count from database
+          setPost(prev => ({
+            ...prev,
+            likes_count: likeData.likes_count,
+            likes: likeData.likes_count
+          }));
+        }
+        
         // Fetch contextual data
         await fetchContextualData(postData.post);
       }
@@ -114,8 +128,36 @@ const EnhancedBlogPost = ({ postId }) => {
   };
 
   const handleLike = async () => {
-    setIsLiked(!isLiked);
-    await trackEngagement('like', { action: isLiked ? 'unlike' : 'like' });
+    try {
+      const response = await fetch(`/blog/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setIsLiked(result.isLiked);
+        // Update the post likes count if we have access to post state
+        if (post) {
+          setPost(prev => ({
+            ...prev,
+            likes_count: result.likes_count,
+            likes: result.likes_count
+          }));
+        }
+        await trackEngagement('like', { 
+          action: result.isLiked ? 'like' : 'unlike',
+          likes_count: result.likes_count
+        });
+      } else {
+        console.error('Failed to like/unlike post:', result.message);
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
   };
 
   const handleBookmark = async () => {
@@ -224,13 +266,18 @@ const EnhancedBlogPost = ({ postId }) => {
             </Box>
 
             {/* Action Buttons */}
-            <Box display="flex" gap={1}>
-              <IconButton 
-                onClick={handleLike}
-                color={isLiked ? "primary" : "default"}
-              >
-                <ThumbUp />
-              </IconButton>
+            <Box display="flex" gap={1} alignItems="center">
+              <Box display="flex" alignItems="center">
+                <IconButton 
+                  onClick={handleLike}
+                  color={isLiked ? "primary" : "default"}
+                >
+                  <ThumbUp />
+                </IconButton>
+                <Typography variant="body2" color="text.secondary">
+                  {post.likes_count || post.likes || 0}
+                </Typography>
+              </Box>
               
               <IconButton 
                 onClick={handleBookmark}

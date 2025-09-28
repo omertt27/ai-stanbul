@@ -166,7 +166,8 @@ You are an Istanbul restaurant expert with access to Google Maps data and 10+ ye
 
 MANDATORY RESTAURANT RESPONSE FORMAT:
 1. DIRECT RECOMMENDATION: Address their specific cuisine/dining request immediately
-2. TOP RESTAURANT RECOMMENDATIONS (4-6 verified locations with Google Maps data):
+2. GOOGLE MAPS SEARCH TIP: "For the most current restaurant information, hours, and reviews, search these recommended restaurants on Google Maps for live updates and directions."
+3. TOP RESTAURANT RECOMMENDATIONS (4-6 verified locations):
    - Restaurant names verified through Google Maps with current operational status
    - Complete addresses with neighborhood, postal codes, and directions
    - Current operating hours and contact information from Google Maps
@@ -251,7 +252,8 @@ You are an Istanbul culinary expert providing comprehensive guidance about Turki
 
 MANDATORY GENERAL FOOD RESPONSE FORMAT:
 1. DIRECT CUISINE ANSWER: Address their specific food interest with immediate, relevant information  
-2. ESSENTIAL TURKISH DISHES (5-7 must-try items):
+2. GOOGLE MAPS TIP: "Use Google Maps to find these recommended restaurants and food areas with current reviews, hours, and directions."
+3. ESSENTIAL TURKISH DISHES (5-7 must-try items):
    - Exact dish names with simple pronunciation guides (Kebab: keh-BAHB)
    - Detailed ingredient descriptions and preparation methods
    - Cultural significance and traditional serving context
@@ -686,7 +688,18 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
         """Enhanced category detection for better prompt selection - prioritize specific categories first"""
         query_lower = query.lower()
         
-        # PRIORITY 1: Transportation patterns (must be detected first)
+        # PRIORITY 1: Restaurant patterns (check FIRST to avoid location conflicts)
+        restaurant_indicators = [
+            'restaurant', 'food', 'eat', 'dining', 'breakfast', 'lunch', 'dinner', 
+            'kebab', 'turkish cuisine', 'meal', 'street food', 'vegetarian',
+            'gluten-free', 'halal', 'seafood', 'dessert', 'baklava', 'coffee house'
+        ]
+        if any(indicator in query_lower for indicator in restaurant_indicators):
+            if any(word in query_lower for word in ['in ', 'near', 'around', 'specific', 'best in']) and any(area in query_lower for area in ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata']):
+                return PromptCategory.RESTAURANT_SPECIFIC
+            return PromptCategory.RESTAURANT_GENERAL
+        
+        # PRIORITY 2: Transportation patterns (only if no food/restaurant keywords)
         transport_indicators = [
             'transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'airport', 'havaist', 'istanbulkart',
             'get to', 'how to reach', 'travel from', 'route', 'directions', 'connection',
@@ -695,10 +708,12 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
             'm1a', 'm2', 't1', 'marmaray', 'funicular', 'dolmuş', 'minibüs',
             'schedule', 'frequency', 'cost', 'cheapest way', 'night transport'
         ]
-        if any(indicator in query_lower for indicator in transport_indicators):
+        # Only classify as transportation if no food/restaurant keywords present
+        if (any(indicator in query_lower for indicator in transport_indicators) and 
+            not any(food_word in query_lower for food_word in ['restaurant', 'food', 'eat', 'dining', 'meal'])):
             return PromptCategory.TRANSPORTATION
         
-        # PRIORITY 2: Museum/cultural patterns (must detect before daily talk)
+        # PRIORITY 3: Museum/cultural patterns (must detect before daily talk)
         museum_indicators = [
             'museum', 'palace', 'mosque', 'church', 'hagia sophia', 'topkapi', 'blue mosque',
             'basilica cistern', 'galata tower', 'archaeological', 'cultural sites', 'heritage',
@@ -708,13 +723,6 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
         ]
         if any(indicator in query_lower for indicator in museum_indicators):
             return PromptCategory.MUSEUM_ADVICE
-        
-        # PRIORITY 3: Restaurant patterns
-        restaurant_indicators = [
-            'restaurant', 'food', 'eat', 'dining', 'breakfast', 'lunch', 'dinner', 
-            'kebab', 'turkish cuisine', 'meal', 'street food', 'vegetarian',
-            'gluten-free', 'halal', 'seafood', 'dessert', 'baklava', 'coffee house'
-        ]
         if any(indicator in query_lower for indicator in restaurant_indicators):
             if any(word in query_lower for word in ['in ', 'near', 'around', 'specific', 'best in']) and any(area in query_lower for area in ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata']):
                 return PromptCategory.RESTAURANT_SPECIFIC

@@ -603,6 +603,25 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
                 user_input, location_context
             )
             
+            # Dynamic token optimization based on query complexity
+            query_complexity_indicators = [
+                len(user_input.split()) > 15,  # Long query
+                any(word in user_input.lower() for word in ['detailed', 'comprehensive', 'everything', 'all about']),  # Detailed request
+                any(word in user_input.lower() for word in ['walking', 'directions', 'step by step']),  # Needs detailed instructions
+                user_input.count('?') > 1,  # Multiple questions
+                any(word in user_input.lower() for word in ['compare', 'difference', 'versus', 'vs'])  # Comparison request
+            ]
+            
+            complexity_score = sum(query_complexity_indicators)
+            
+            # Adjust tokens based on complexity and category
+            if complexity_score >= 3:  # High complexity
+                max_tokens = min(max_tokens + 100, 800)  # Increase but cap at 800
+                print(f"🔧 High complexity query detected, increasing tokens to {max_tokens}")
+            elif complexity_score <= 1 and category.value in ['daily_talk', 'safety_practical']:  # Simple queries
+                max_tokens = max(max_tokens - 100, 300)  # Decrease but minimum 300
+                print(f"🔧 Simple query detected, optimizing tokens to {max_tokens}")
+            
             print(f"🎯 Enhanced Prompts - Category: {category.value}, Location: {location_context}, Max Tokens: {max_tokens}")
             
             # Use the enhanced system prompt and user input directly
@@ -683,20 +702,30 @@ Key Istanbul topics to reference when relevant:
             max_tokens = 450
             temperature = 0.7
         
-        # Create OpenAI client
-        client = OpenAI(api_key=openai_api_key, timeout=30.0, max_retries=2)
+        # Create OpenAI client with improved reliability settings
+        client = OpenAI(api_key=openai_api_key, timeout=45.0, max_retries=3)
         
-        # Make the API call with enhanced prompt
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            timeout=25
-        )
+        # Make the API call with enhanced prompt and retry logic
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    timeout=40
+                )
+                break  # Success, exit retry loop
+            except Exception as e:
+                print(f"⚠️ OpenAI API attempt {attempt + 1} failed: {str(e)}")
+                if attempt == max_attempts - 1:
+                    print(f"❌ All {max_attempts} attempts failed")
+                    return None
+                time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
         
         gpt_response = response.choices[0].message.content
         if gpt_response:
@@ -720,15 +749,15 @@ Key Istanbul topics to reference when relevant:
             
             # Enhanced response quality checking and improvement
             try:
-                from response_quality_enhancer import enhance_low_quality_response
+                from advanced_response_enhancer import enhance_response_quality
                 
                 # Use expected features from enhanced prompts if available
                 expected_feats = expected_features if 'expected_features' in locals() else []
                 category_name = category.value if 'category' in locals() else "generic"
                 
                 # Enhance response if quality is low
-                enhanced_response = enhance_low_quality_response(
-                    gpt_response, category_name, expected_feats, user_input
+                enhanced_response = enhance_response_quality(
+                    gpt_response, category_name, user_input
                 )
                 
                 if enhanced_response != gpt_response:
@@ -737,21 +766,34 @@ Key Istanbul topics to reference when relevant:
                     
             except ImportError:
                 print("⚠️ Response quality enhancer not available")
+            except Exception as e:
+                print(f"❌ Enhancement error: {e}")
             
             print(f"📝 Enhanced GPT response generated successfully")
             
-            # Check if response was truncated due to token limit
+            # Smart response length management
             finish_reason = response.choices[0].finish_reason
             if finish_reason == "length":
-                # Response was cut off due to token limit
                 print(f"⚠️ Response truncated due to token limit for query ID: {hash(user_input) % 10000}")
                 
-                # Add indication that response was truncated (only if it doesn't end with punctuation)
+                # Try to create a more complete response by optimizing content
                 if not gpt_response.endswith(('.', '!', '?', ':')):
-                    gpt_response += "\n\n*[Response was truncated due to length limit. Ask a more specific question for a complete answer.]*"
+                    # Response was cut off mid-sentence - need better handling
+                    # Find the last complete sentence
+                    sentences = gpt_response.split('.')
+                    if len(sentences) > 1:
+                        # Keep all complete sentences, add summary
+                        complete_sentences = '.'.join(sentences[:-1]) + '.'
+                        gpt_response = complete_sentences + f"\n\n📝 For more detailed information about this topic, please ask a more specific question."
+                    else:
+                        gpt_response += "\n\n*[Ask a more specific question for complete details.]*"
                 else:
-                    # If it ends with punctuation, it might be a natural ending
-                    print(f"✅ Response ended naturally with punctuation despite length limit")
+                    # Natural ending - likely complete response despite length limit
+                    print(f"✅ Response appears complete despite token limit")
+                    
+                # Log for optimization
+                word_count = len(gpt_response.split())
+                print(f"📊 Response stats: {word_count} words, Max tokens: {max_tokens}, Category: {category.value if 'category' in locals() else 'unknown'}")
             
             # Enhanced feature analysis for debugging
             try:
@@ -1614,11 +1656,27 @@ async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_d
         # Get client IP for rate limiting
         client_ip = get_remote_address(request)
         
-        # Generate AI response using existing function
-        ai_response = get_gpt_response(user_message, session_id)
+        # Generate AI response using existing function with retry logic
+        max_attempts = 3
+        ai_response = None
+        
+        for attempt in range(max_attempts):
+            try:
+                ai_response = get_gpt_response(user_message, session_id)
+                if ai_response:
+                    break
+                else:
+                    print(f"⚠️ Empty response attempt {attempt + 1}")
+            except Exception as e:
+                print(f"⚠️ Chat generation attempt {attempt + 1} failed: {str(e)}")
+                if attempt < max_attempts - 1:
+                    time.sleep(1)  # Brief wait between attempts
         
         if not ai_response:
-            return {"error": "Unable to generate response at this time"}
+            return {
+                "error": "Unable to generate response at this time. Please try again.",
+                "retry_suggested": True
+            }
         
         return {
             "response": ai_response,
@@ -1630,6 +1688,156 @@ async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_d
         logger.error(f"Error in chat endpoint: {str(e)}")
         return {"error": "An error occurred while processing your request"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+@app.get("/admin/api/blog/comments")
+async def admin_blog_comments(
+    status: str = "all",  # all, approved, pending, flagged, spam
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get blog comments for admin dashboard - PROTECTED ENDPOINT"""
+    try:
+        query = db.query(BlogComment)
+        
+        # Apply status filters
+        if status == "approved":
+            query = query.filter(BlogComment.is_approved == True)
+        elif status == "pending":
+            query = query.filter(BlogComment.is_approved == False, BlogComment.is_spam == False, BlogComment.is_flagged == False)
+        elif status == "flagged":
+            query = query.filter(BlogComment.is_flagged == True)
+        elif status == "spam":
+            query = query.filter(BlogComment.is_spam == True)
+        
+        # Order by most recent
+        comments = query.order_by(BlogComment.created_at.desc()).offset(offset).limit(limit).all()
+        
+        # Format response
+        comments_data = []
+        for comment in comments:
+            # Get blog post title
+            post = db.query(BlogPost).filter(BlogPost.id == comment.post_id).first()
+            post_title = post.title if post else "Unknown Post"
+            
+            # Determine status
+            status_text = "approved" if comment.is_approved else "pending"
+            if comment.is_spam:
+                status_text = "spam"
+            elif comment.is_flagged:
+                status_text = "flagged"
+            
+            comments_data.append({
+                "id": comment.id,
+                "author_name": comment.author_name,
+                "author_email": comment.author_email,
+                "content": comment.content,
+                "post_id": comment.post_id,
+                "post_title": post_title,
+                "created_at": comment.created_at.isoformat() if comment.created_at else None,
+                "is_approved": comment.is_approved,
+                "is_spam": comment.is_spam,
+                "is_flagged": comment.is_flagged,
+                "status": status_text
+            })
+        
+        # Get totals for pagination
+        total_count = db.query(BlogComment).count()
+        approved_count = db.query(BlogComment).filter(BlogComment.is_approved == True).count()
+        pending_count = db.query(BlogComment).filter(
+            BlogComment.is_approved == False, 
+            BlogComment.is_spam == False, 
+            BlogComment.is_flagged == False
+        ).count()
+        flagged_count = db.query(BlogComment).filter(BlogComment.is_flagged == True).count()
+        spam_count = db.query(BlogComment).filter(BlogComment.is_spam == True).count()
+        
+        return {
+            "comments": comments_data,
+            "total": total_count,
+            "summary": {
+                "approved": approved_count,
+                "pending": pending_count,
+                "flagged": flagged_count,
+                "spam": spam_count
+            },
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching blog comments: {e}")
+        return {
+            "comments": [],
+            "total": 0,
+            "summary": {"approved": 0, "pending": 0, "flagged": 0, "spam": 0},
+            "error": str(e)
+        }
+
+@app.get("/admin/api/blog/posts")
+async def admin_blog_posts(
+    status: str = "all",  # all, published, draft
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get blog posts for admin dashboard - PROTECTED ENDPOINT"""
+    try:
+        query = db.query(BlogPost)
+        
+        # Apply status filters
+        if status == "published":
+            query = query.filter(BlogPost.is_published == True)
+        elif status == "draft":
+            query = query.filter(BlogPost.is_published == False)
+        
+        # Order by most recent
+        posts = query.order_by(BlogPost.created_at.desc()).offset(offset).limit(limit).all()
+        
+        # Format response
+        posts_data = []
+        for post in posts:
+            # Get comment count for this post
+            comment_count = db.query(BlogComment).filter(BlogComment.post_id == post.id).count()
+            
+            posts_data.append({
+                "id": post.id,
+                "title": post.title,
+                "slug": post.slug,
+                "excerpt": post.excerpt,
+                "content": post.content[:200] + "..." if post.content and len(post.content) > 200 else post.content,
+                "author": post.author,
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
+                "is_published": post.is_published,
+                "status": "published" if post.is_published else "draft",
+                "comment_count": comment_count,
+                "views": post.view_count or 0,
+                "likes": post.like_count or 0
+            })
+        
+        # Get totals
+        total_count = db.query(BlogPost).count()
+        published_count = db.query(BlogPost).filter(BlogPost.is_published == True).count()
+        draft_count = db.query(BlogPost).filter(BlogPost.is_published == False).count()
+        
+        return {
+            "posts": posts_data,
+            "total": total_count,
+            "summary": {
+                "published": published_count,
+                "draft": draft_count
+            },
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching blog posts: {e}")
+        return {
+            "posts": [],
+            "total": 0,
+            "summary": {"published": 0, "draft": 0},
+            "error": str(e)
+        }

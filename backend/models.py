@@ -62,14 +62,31 @@ class BlogPost(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
-    tags = Column(Text, nullable=True)  # JSON string of tags
-    district = Column(String(100), nullable=True)  # Single district
-    author_name = Column(String(100), nullable=True)  # User name
-    author_photo = Column(String(500), nullable=True)  # Profile photo URL
+    author = Column(String(100), nullable=True)  # Matches existing 'author' column
+    district = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    is_published = Column(Boolean, default=True)
     likes_count = Column(Integer, default=0)
+    
+    # Add missing columns with defaults for compatibility
+    @property
+    def tags(self):
+        return None
+    
+    @property
+    def author_name(self):
+        return self.author
+    
+    @property
+    def author_photo(self):
+        return None
+    
+    @property
+    def updated_at(self):
+        return self.created_at
+    
+    @property
+    def is_published(self):
+        return True
 
     # Relationship with images
     images = relationship("BlogImage", back_populates="blog_post")

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from database import get_db
+from models import BlogPost as BlogPostModel, BlogLike as BlogLikeModel
 from enhanced_blog_features import (
     PersonalizedContentEngine,
     BlogAnalyticsEngine
@@ -737,78 +738,92 @@ async def get_tags():
         raise HTTPException(status_code=500, detail="Failed to retrieve tags")
 
 @router.post("/{post_id}/like")
-async def like_post(post_id: str, request: Request):
-    """Like/unlike a blog post"""
+async def like_post(post_id: str, request: Request, db: Session = Depends(get_db)):
+    """Like/unlike a blog post using database"""
     try:
-        # Get user identifier from request body or query params
-        try:
-            body = await request.json()
-            user_id = body.get('user_id', 'default_user')
-        except:
-            user_id = request.query_params.get('user_id', 'default_user')
+        # Get user identifier (IP address)
+        user_ip = request.client.host
         
-        posts = load_blog_posts()
-        post_found = False
-        
-        for i, post in enumerate(posts):
-            if post.get('id') == post_id:
-                post_found = True
-                
-                # Check if user has already liked this post
-                already_liked = check_user_like(user_id, post_id)
-                
-                if already_liked:
-                    # Unlike the post
-                    remove_user_like(user_id, post_id)
-                    new_likes = max(0, post.get('likes', 0) - 1)
-                    message = "Post unliked successfully"
-                else:
-                    # Like the post
-                    add_user_like(user_id, post_id)
-                    new_likes = post.get('likes', 0) + 1
-                    message = "Post liked successfully"
-                
-                posts[i]['likes'] = new_likes
-                posts[i]['likes_count'] = new_likes  # Ensure both fields are consistent
-                
-                if save_blog_posts(posts):
-                    return {
-                        "message": message,
-                        "likes_count": new_likes,
-                        "isLiked": not already_liked
-                    }
-                else:
-                    raise HTTPException(status_code=500, detail="Failed to save like")
-        
-        if not post_found:
+        # First, check if the blog post exists in database
+        blog_post = db.query(BlogPostModel).filter(BlogPostModel.id == int(post_id)).first()
+        if not blog_post:
             raise HTTPException(status_code=404, detail="Blog post not found")
+        
+        # Check if user has already liked this post
+        existing_like = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == int(post_id),
+            BlogLikeModel.user_identifier == user_ip
+        ).first()
+        
+        if existing_like:
+            # Unlike the post - remove the like record
+            db.delete(existing_like)
+            
+            # Decrease likes count
+            if blog_post.likes_count > 0:
+                blog_post.likes_count -= 1
+            
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": "Post unliked successfully",
+                "likes_count": blog_post.likes_count,
+                "isLiked": False
+            }
+        else:
+            # Like the post - add new like record
+            new_like = BlogLikeModel(
+                blog_post_id=int(post_id),
+                user_identifier=user_ip
+            )
+            db.add(new_like)
+            
+            # Increase likes count
+            blog_post.likes_count += 1
+            
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": "Post liked successfully", 
+                "likes_count": blog_post.likes_count,
+                "isLiked": True
+            }
     
-    except HTTPException:
-        raise
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid post ID")
     except Exception as e:
-        logger.error(f"Error liking blog post {post_id}: {e}")
+        db.rollback()
+        logger.error(f"Error liking post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to like blog post")
 
 @router.get("/{post_id}/like-status")
-async def get_like_status(post_id: str, user_id: str = "default_user"):
-    """Check like status for a blog post with user tracking"""
+async def get_like_status(post_id: str, request: Request, db: Session = Depends(get_db)):
+    """Check like status for a blog post using database"""
     try:
-        posts = load_blog_posts()
+        # Get user identifier (IP address)
+        user_ip = request.client.host
         
-        for post in posts:
-            if post.get('id') == post_id:
-                likes_count = post.get('likes', 0) or post.get('likes_count', 0)
-                is_liked = check_user_like(user_id, post_id)
-                
-                return {
-                    "isLiked": is_liked,
-                    "likes": likes_count
-                }
+        # Check if the blog post exists
+        blog_post = db.query(BlogPostModel).filter(BlogPostModel.id == int(post_id)).first()
+        if not blog_post:
+            raise HTTPException(status_code=404, detail="Blog post not found")
         
-        raise HTTPException(status_code=404, detail="Blog post not found")
+        # Check if user has liked this post
+        existing_like = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == int(post_id),
+            BlogLikeModel.user_identifier == user_ip
+        ).first()
+        
+        return {
+            "success": True,
+            "isLiked": existing_like is not None,
+            "likes_count": blog_post.likes_count
+        }
     
-    except HTTPException:
-        raise
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid post ID")
     except Exception as e:
         logger.error(f"Error checking like status for post {post_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to check like status")
@@ -1163,10 +1178,7 @@ async def track_page_view(request: Request, page_path: str = "/blog"):
 async def like_blog_post_db(post_id: int, like_request: dict, db: Session = Depends(get_db)):
     """Like a blog post (increment like count) - Database version"""
     try:
-        # Import models here to avoid circular imports
-        from models import BlogPost, BlogLike
-        
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
@@ -1175,26 +1187,26 @@ async def like_blog_post_db(post_id: int, like_request: dict, db: Session = Depe
             raise HTTPException(status_code=400, detail="user_identifier is required")
         
         # Check if user has already liked this post
-        existing_like = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id,
-            BlogLike.user_identifier == user_identifier
+        existing_like = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == post_id,
+            BlogLikeModel.user_identifier == user_identifier
         ).first()
         
         if existing_like:
             # User has already liked this post
-            likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count()
+            likes_count = db.query(BlogLikeModel).filter(BlogLikeModel.blog_post_id == post_id).count()
             return {"message": "Post already liked", "likes_count": likes_count}
         
         # Create new like entry
-        new_like = BlogLike(
+        new_like = BlogLikeModel(
             blog_post_id=post_id,
             user_identifier=user_identifier
         )
         db.add(new_like)
         
         # Update post likes count
-        likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count() + 1
-        db.query(BlogPost).filter(BlogPost.id == post_id).update({"likes_count": likes_count})
+        likes_count = db.query(BlogLikeModel).filter(BlogLikeModel.blog_post_id == post_id).count() + 1
+        db.query(BlogPostModel).filter(BlogPostModel.id == post_id).update({"likes_count": likes_count})
         
         db.commit()
         
@@ -1211,20 +1223,17 @@ async def like_blog_post_db(post_id: int, like_request: dict, db: Session = Depe
 async def get_like_status_db(post_id: int, user_identifier: str, db: Session = Depends(get_db)):
     """Check if a user has liked a blog post and return like status and count - Database version"""
     try:
-        # Import models here to avoid circular imports
-        from models import BlogPost, BlogLike
-        
-        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
         if not post:
             raise HTTPException(status_code=404, detail="Blog post not found")
         
-        like_entry = db.query(BlogLike).filter(
-            BlogLike.blog_post_id == post_id, 
-            BlogLike.user_identifier == user_identifier
+        like_entry = db.query(BlogLikeModel).filter(
+            BlogLikeModel.blog_post_id == post_id, 
+            BlogLikeModel.user_identifier == user_identifier
         ).first()
         
         is_liked = like_entry is not None
-        likes_count = db.query(BlogLike).filter(BlogLike.blog_post_id == post_id).count()
+        likes_count = db.query(BlogLikeModel).filter(BlogLikeModel.blog_post_id == post_id).count()
         
         return {"isLiked": is_liked, "likes": likes_count}
         
