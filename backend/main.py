@@ -181,6 +181,38 @@ except ImportError as e:
             return {"query_type": "general"}
     input_processor = InputProcessor()
 
+# --- Import Enhanced Services ---
+try:
+    from enhanced_transportation_service import EnhancedTransportationService
+    from enhanced_museum_service import EnhancedMuseumService  
+    from enhanced_actionability_service import EnhancedActionabilityService
+    
+    # Initialize enhanced services
+    enhanced_transport_service = EnhancedTransportationService()
+    enhanced_museum_service = EnhancedMuseumService()
+    enhanced_actionability_service = EnhancedActionabilityService()
+    
+    ENHANCED_SERVICES_ENABLED = True
+    print("✅ Enhanced services (transportation, museum, actionability) imported successfully")
+except ImportError as e:
+    print(f"⚠️ Enhanced services not available: {e}")
+    ENHANCED_SERVICES_ENABLED = False
+    
+    # Create dummy services to prevent errors
+    class DummyEnhancedService:
+        def get_transportation_info(self, *args, **kwargs): return {}
+        def get_route_info(self, *args, **kwargs): return {}
+        def get_museum_info(self, *args, **kwargs): return {}
+        def search_museums(self, *args, **kwargs): return []
+        def enhance_response_actionability(self, *args, **kwargs): return {"success": False}
+        def format_structured_response(self, *args, **kwargs): return ""
+        def add_cultural_context(self, *args, **kwargs): return ""
+        def translate_key_phrases(self, *args, **kwargs): return ""
+    
+    enhanced_transport_service = DummyEnhancedService()
+    enhanced_museum_service = DummyEnhancedService()
+    enhanced_actionability_service = DummyEnhancedService()
+
 # Import live data services for museums and transport
 try:
     from live_museum_service import LiveMuseumService
@@ -368,7 +400,7 @@ except ImportError as e:
 
 # === Authentication Setup ===
 try:
-    from auth import get_current_admin, authenticate_admin, create_access_token
+    from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
     print("✅ Authentication module imported successfully")
 except ImportError as e:
     print(f"❌ Authentication import failed: {e}")
@@ -625,51 +657,188 @@ def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
             analysis, _ = analyze_and_enhance_query(user_input)
             location_context = analysis.location_context.value if analysis.location_context != LocationContext.NONE else None
             
+            # 📍 ENHANCED LOCATION CONTEXT PROCESSING
+            enhanced_location_info = ""
+            if location_context:
+                try:
+                    from actionability_service import actionability_enhancer
+                    
+                    # Get detailed location information
+                    location_info = actionability_enhancer.get_location_actionable_info(location_context)
+                    
+                    if location_info:
+                        enhanced_location_info = f"""
+
+🌍 ENHANCED LOCATION CONTEXT FOR {location_context.upper()}:
+- Exact Address Area: {location_info.exact_address}
+- Nearest Metro: {location_info.nearest_metro_station}
+- Walking Distance from Metro: {location_info.walking_distance_from_metro}
+- GPS Coordinates: {location_info.gps_coordinates or 'Available on Google Maps'}
+- Landmark References: {', '.join(location_info.landmark_references) if location_info.landmark_references else 'See local landmarks'}
+
+LOCATION-SPECIFIC INSTRUCTIONS:
+- Focus all recommendations within walking distance of {location_context}
+- Include exact walking directions from the nearest metro station
+- Mention specific street names and local landmarks in {location_context}
+- Provide neighborhood-specific cultural context and atmosphere
+- Include local insider tips specific to {location_context}
+
+"""
+                        print(f"📍 Enhanced location context added for {location_context}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Enhanced location context error: {e}")
+                    enhanced_location_info = ""
+            
             # Get category-specific enhanced prompt
             category, enhanced_system_prompt, max_tokens, temperature, expected_features = get_category_specific_prompt(
                 user_input, location_context
             )
             
-            # 🍽️ INTEGRATE REAL GOOGLE MAPS RESTAURANT DATA
+            # 🗺️ INTEGRATE COMPREHENSIVE GOOGLE MAPS DATA FOR ALL PLACE TYPES
             google_maps_data = None
-            if category.value == "restaurant_specific" or category.value == "restaurant_general":
+            
+            # Determine what type of Google Maps data to fetch based on category
+            maps_search_type = None
+            if category.value in ["restaurant_specific", "restaurant_general"]:
+                maps_search_type = "restaurant"
+            elif category.value == "museum_advice":
+                maps_search_type = "museum"  
+            elif category.value == "transportation":
+                maps_search_type = "transportation"
+            elif category.value in ["district_advice", "cultural_sites"]:
+                maps_search_type = "attraction"
+            
+            if maps_search_type:
                 try:
-                    from google_maps_restaurant_service import get_live_restaurant_recommendations
-                    print(f"🍽️ Fetching live restaurant data from Google Maps for query: {user_input[:50]}...")
-                    google_maps_data = get_live_restaurant_recommendations(user_input, location_context)
+                    from enhanced_google_maps_service import enhanced_google_maps
+                    print(f"🗺️ Fetching live {maps_search_type} data from Google Maps for query: {user_input[:50]}...")
                     
-                    if google_maps_data.get('success') and google_maps_data.get('restaurants'):
-                        restaurants_count = len(google_maps_data['restaurants'])
-                        print(f"✅ Successfully fetched {restaurants_count} live restaurants from Google Maps")
+                    # Fetch comprehensive Google Maps data
+                    if maps_search_type == "restaurant":
+                        google_maps_data = enhanced_google_maps.search_restaurants(user_input, location_context)
+                    elif maps_search_type == "museum":
+                        google_maps_data = enhanced_google_maps.search_museums(user_input, location_context)
+                    elif maps_search_type == "attraction":
+                        google_maps_data = enhanced_google_maps.search_attractions(user_input, location_context)
+                    elif maps_search_type == "transportation":
+                        google_maps_data = enhanced_google_maps.search_transportation(user_input, location_context)
+                    
+                    if google_maps_data.get('success') and google_maps_data.get('places'):
+                        places_count = len(google_maps_data['places'])
+                        print(f"✅ Successfully fetched {places_count} live {maps_search_type} places from Google Maps")
                         
-                        # Enhance the system prompt with real restaurant data
-                        restaurant_data_text = "\n\nREAL GOOGLE MAPS RESTAURANT DATA (Use this live data in your response):\n"
-                        for i, restaurant in enumerate(google_maps_data['restaurants'][:6], 1):
-                            restaurant_data_text += f"{i}. {restaurant['name']}\n"
-                            restaurant_data_text += f"   - Rating: {restaurant['rating']}\n"
-                            restaurant_data_text += f"   - Address: {restaurant['address']}\n"
-                            restaurant_data_text += f"   - Price Level: {restaurant['price_level']}\n"
-                            if restaurant['cuisine_types']:
-                                restaurant_data_text += f"   - Cuisine: {', '.join(restaurant['cuisine_types'])}\n"
-                            if restaurant['is_open'] is not None:
-                                status = "Open now" if restaurant['is_open'] else "Currently closed"
-                                restaurant_data_text += f"   - Status: {status}\n"
-                            restaurant_data_text += f"   - Google Maps: {restaurant['google_maps_link']}\n\n"
+                        # Enhance the system prompt with real Google Maps data
+                        maps_data_text = f"\n\nREAL GOOGLE MAPS {maps_search_type.upper()} DATA (Use this live data in your response):\n"
                         
-                        restaurant_data_text += f"Search performed for: {google_maps_data['search_location']} - {google_maps_data['search_keyword']}\n"
-                        restaurant_data_text += f"Data retrieved: {google_maps_data['timestamp']}\n\n"
-                        restaurant_data_text += "IMPORTANT: Use the above real Google Maps data in your response. Include restaurant names, addresses, and ratings from this live data.\n"
+                        for i, place in enumerate(google_maps_data['places'][:6], 1):
+                            maps_data_text += f"{i}. {place.name}\n"
+                            maps_data_text += f"   - Rating: {place.rating}/5 ({place.user_ratings_total} reviews)\n"
+                            maps_data_text += f"   - Address: {place.formatted_address}\n"
+                            
+                            if place.price_level:
+                                maps_data_text += f"   - Price Level: {place.price_level}\n"
+                            
+                            if place.is_open_now is not None:
+                                status = "Open now" if place.is_open_now else "Currently closed"
+                                maps_data_text += f"   - Status: {status}\n"
+                            
+                            if place.phone:
+                                maps_data_text += f"   - Phone: {place.phone}\n"
+                            
+                            if place.website:
+                                maps_data_text += f"   - Website: {place.website}\n"
+                            
+                            maps_data_text += f"   - Google Maps: {place.google_maps_link}\n"
+                            
+                            if place.fact_checked:
+                                maps_data_text += f"   - ✅ Fact-checked from: {place.official_source}\n"
+                            
+                            maps_data_text += "\n"
+                        
+                        maps_data_text += f"Search performed for: {google_maps_data['location_context']} - {user_input[:50]}\n"
+                        maps_data_text += f"Data retrieved: {google_maps_data['timestamp']}\n\n"
+                        maps_data_text += f"IMPORTANT: Use the above real Google Maps data in your response. Include exact names, addresses, ratings, and contact details from this live data.\n"
                         
                         # Append the real data to the system prompt
-                        enhanced_system_prompt += restaurant_data_text
-                        print(f"✅ Enhanced system prompt with live Google Maps restaurant data")
+                        enhanced_system_prompt += maps_data_text
+                        print(f"✅ Enhanced system prompt with live Google Maps {maps_search_type} data")
                         
                     else:
-                        print(f"⚠️ Google Maps restaurant data not available: {google_maps_data.get('message', 'Unknown error')}")
+                        print(f"⚠️ Google Maps {maps_search_type} data not available: {google_maps_data.get('message', 'Unknown error')}")
                         
                 except Exception as e:
-                    print(f"⚠️ Error fetching Google Maps restaurant data: {e}")
+                    print(f"⚠️ Error fetching Google Maps {maps_search_type} data: {e}")
                     google_maps_data = None
+            
+            # 🚌🏛️ ENHANCED SERVICES INTEGRATION
+            enhanced_service_data = ""
+            if ENHANCED_SERVICES_ENABLED:
+                try:
+                    # Enhanced Transportation Service Integration
+                    if category.value == "transportation" or any(word in user_input.lower() for word in ['metro', 'bus', 'transport', 'how to get', 'travel to', 'route']):
+                        print(f"🚌 Fetching enhanced transportation data...")
+                        transport_data = enhanced_transport_service.get_transportation_info(user_input, location_context)
+                        
+                        if transport_data.get('success'):
+                            enhanced_service_data += f"\n\nREAL-TIME ISTANBUL TRANSPORTATION DATA:\n"
+                            
+                            # Route information
+                            if transport_data.get('routes'):
+                                enhanced_service_data += f"📍 RECOMMENDED ROUTES:\n"
+                                for route in transport_data['routes'][:3]:  # Top 3 routes
+                                    enhanced_service_data += f"• {route['summary']}\n"
+                                    enhanced_service_data += f"  Duration: {route['duration']} | Distance: {route['distance']}\n"
+                                    enhanced_service_data += f"  Instructions: {route['instructions']}\n\n"
+                            
+                            # Live transit data
+                            if transport_data.get('live_data'):
+                                enhanced_service_data += f"🚇 LIVE TRANSIT STATUS:\n"
+                                live_data = transport_data['live_data']
+                                for line, status in live_data.items():
+                                    enhanced_service_data += f"• {line}: {status}\n"
+                                enhanced_service_data += f"\n"
+                            
+                            print(f"✅ Enhanced transportation data integrated")
+                    
+                    # Enhanced Museum Service Integration
+                    if category.value == "museum_advice" or any(word in user_input.lower() for word in ['museum', 'gallery', 'exhibition', 'art', 'history', 'culture']):
+                        print(f"🏛️ Fetching enhanced museum data...")
+                        museum_data = enhanced_museum_service.get_museum_info(user_input, location_context)
+                        
+                        if museum_data.get('success'):
+                            enhanced_service_data += f"\n\nENHANCED MUSEUM & CULTURAL SITE DATA:\n"
+                            
+                            # Museum recommendations
+                            if museum_data.get('museums'):
+                                enhanced_service_data += f"🏛️ RECOMMENDED MUSEUMS:\n"
+                                for museum in museum_data['museums'][:4]:  # Top 4 museums
+                                    enhanced_service_data += f"• {museum['name']}\n"
+                                    enhanced_service_data += f"  Location: {museum['location']}\n"
+                                    enhanced_service_data += f"  Highlights: {museum['highlights']}\n"
+                                    enhanced_service_data += f"  Practical Info: {museum['practical_info']}\n"
+                                    if museum.get('cultural_context'):
+                                        enhanced_service_data += f"  Cultural Context: {museum['cultural_context']}\n"
+                                    enhanced_service_data += f"\n"
+                            
+                            # Cultural insights
+                            if museum_data.get('cultural_insights'):
+                                enhanced_service_data += f"🎭 CULTURAL INSIGHTS:\n{museum_data['cultural_insights']}\n\n"
+                            
+                            print(f"✅ Enhanced museum data integrated")
+                    
+                    # Add enhanced service data to system prompt
+                    if enhanced_service_data:
+                        enhanced_service_data += f"IMPORTANT: Use the above enhanced service data to provide detailed, actionable responses with specific transit routes, museum details, and cultural context.\n"
+                        enhanced_system_prompt += enhanced_service_data
+                        print(f"✅ Enhanced services data added to system prompt")
+                        
+                except Exception as e:
+                    print(f"⚠️ Error integrating enhanced services: {e}")
+                    
+            # 📍 ADD ENHANCED LOCATION CONTEXT TO PROMPT
+            if enhanced_location_info:
+                enhanced_system_prompt += enhanced_location_info
             
             # 🧠 ENHANCE PROMPT WITH PERSONALIZATION
             if personalization.get('has_history'):
@@ -810,6 +979,83 @@ Key Istanbul topics to reference when relevant:
             
             # Apply post-LLM cleanup to remove pricing and fix location issues
             gpt_response = post_llm_cleanup(gpt_response)
+            
+            # 🔍 FACT-CHECKING LAYER
+            fact_check_result = None
+            try:
+                from fact_checking_service import fact_checker
+                category_name = category.value if 'category' in locals() else "general"
+                
+                print(f"🔍 Running fact-check for {category_name} response...")
+                fact_check_result = fact_checker.fact_check_response(gpt_response, category_name)
+                
+                print(f"✅ Fact-check completed - Accuracy: {fact_check_result.accuracy_score:.2f}, Verified facts: {len(fact_check_result.verified_facts)}")
+                
+                # If accuracy is very low, let GPT handle it with a warning
+                if fact_checker.should_use_gpt_fallback(fact_check_result.accuracy_score, category_name):
+                    print(f"⚠️ Low accuracy detected ({fact_check_result.accuracy_score:.2f}) - Adding verification notice")
+                    gpt_response += f"\n\n⚠️ VERIFICATION NOTICE: Some information in this response may need verification. Please check official sources for critical details like opening hours, prices, and schedules."
+                
+            except ImportError:
+                print("⚠️ Fact-checking service not available")
+            except Exception as e:
+                print(f"⚠️ Fact-checking error: {e}")
+            
+            # 🎯 ENHANCED ACTIONABILITY & CULTURAL ENHANCEMENT
+            try:
+                if ENHANCED_SERVICES_ENABLED:
+                    # Use enhanced actionability service with Turkish support and structured format
+                    category_name = category.value if 'category' in locals() else "general"
+                    
+                    print(f"🎯 Applying enhanced actionability with cultural context for {category_name}...")
+                    enhanced_result = enhanced_actionability_service.enhance_response_actionability(
+                        gpt_response, user_input, category_name, location_context
+                    )
+                    
+                    if enhanced_result.get("success"):
+                        actionability_score = enhanced_result.get("actionability_score", 0.5)
+                        print(f"✅ Enhanced actionability applied - Score: {actionability_score:.2f}")
+                        
+                        # Apply structured formatting (Address → Directions → Timing → Tips)
+                        if enhanced_result.get("structured_response"):
+                            gpt_response = enhanced_result["structured_response"]
+                            print(f"📋 Structured format applied (Address → Directions → Timing → Tips)")
+                        
+                        # Add Turkish language support and cultural context
+                        if enhanced_result.get("cultural_enhancement"):
+                            gpt_response += f"\n\n{enhanced_result['cultural_enhancement']}"
+                            print(f"🇹🇷 Cultural context and Turkish phrases added")
+                        
+                        # Add local insights if available
+                        if enhanced_result.get("local_insights"):
+                            gpt_response += f"\n\n💡 **Local Insider Tips:** {enhanced_result['local_insights']}"
+                            print(f"💡 Local insider tips added")
+                    else:
+                        print(f"⚠️ Enhanced actionability failed: {enhanced_result.get('error', 'Unknown error')}")
+                else:
+                    # Fallback to original actionability service
+                    from actionability_service import actionability_enhancer
+                    category_name = category.value if 'category' in locals() else "general"
+                    
+                    print(f"🎯 Using fallback actionability enhancement for {category_name}...")
+                    actionability_result = actionability_enhancer.enhance_response_actionability(
+                        gpt_response, user_input, category_name
+                    )
+                    
+                    if actionability_result.get("success"):
+                        actionability_score = actionability_result["actionability_score"]
+                        print(f"✅ Fallback actionability enhanced - Score: {actionability_score:.2f}")
+                        
+                        if actionability_score < 0.7 and actionability_result.get("enhanced_response"):
+                            print(f"🔧 Using enhanced response due to low actionability ({actionability_score:.2f})")
+                            gpt_response = actionability_result["enhanced_response"]
+                    else:
+                        print(f"⚠️ Fallback actionability enhancement failed: {actionability_result.get('error', 'Unknown error')}")
+                    
+            except ImportError:
+                print("⚠️ Actionability enhancement services not available")
+            except Exception as e:
+                print(f"⚠️ Actionability enhancement error: {e}")
             
             # Apply format enforcement for enhanced prompts
             if use_enhanced_prompts:

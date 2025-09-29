@@ -20,6 +20,27 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
+# Import accurate museum database
+try:
+    from accurate_museum_database import IstanbulMuseumDatabase
+    MUSEUM_DATABASE_AVAILABLE = True
+    museum_db = IstanbulMuseumDatabase()
+    print("✅ Accurate museum database loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Accurate museum database not available: {e}")
+    MUSEUM_DATABASE_AVAILABLE = False
+    museum_db = None
+
+# Import accurate transportation database
+try:
+    from accurate_transportation_database import IstanbulTransportationDatabase, transport_db
+    TRANSPORT_DATABASE_AVAILABLE = True
+    print("✅ Accurate transportation database loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Accurate transportation database not available: {e}")
+    TRANSPORT_DATABASE_AVAILABLE = False
+    transport_db = None
+
 class PromptCategory(Enum):
     """Categories for specialized prompts"""
     DAILY_TALK = "daily_talk"
@@ -55,24 +76,33 @@ class EnhancedGPTPromptsSystem:
         """Core rules that apply to all prompts"""
         return """
 CRITICAL RULES (APPLY TO ALL RESPONSES):
-1. LOCATION FOCUS: Only provide information about ISTANBUL, Turkey. If asked about other cities, redirect to Istanbul.
-2. NO PRICING: Never include specific prices, costs, or monetary amounts. Use terms like "affordable", "moderate", "upscale".
-3. NO CURRENCY: Avoid currency symbols or specific cost amounts.
-4. COMPLETENESS: Address ALL aspects of the user's question thoroughly with multiple specific examples and actionable details.
-5. CULTURAL SENSITIVITY: Include appropriate cultural context and etiquette guidance with explanations.
-6. PRACTICAL DETAILS: Always include specific names, exact locations, operating hours, and detailed transportation directions.
-7. LOCAL PERSPECTIVE: Write as if you have deep local knowledge and experience living in Istanbul for years.
-8. WALKING DISTANCES: Always include walking times/distances between locations and from major landmarks.
-9. SPECIFIC EXAMPLES: Provide 4-6 specific examples for every recommendation category.
-10. ACTIONABLE ADVICE: Every suggestion must be immediately actionable with clear next steps.
+
+🎯 RELEVANCE FIRST: Answer EXACTLY what the user asks. Stay focused on their specific question throughout your response.
+
+1. DIRECT ANSWER: Start with a direct, immediate answer to their question in the first 1-2 sentences.
+2. LOCATION FOCUS: Only provide information about ISTANBUL, Turkey. If asked about other cities, redirect to Istanbul.
+3. NO PRICING: Never include specific prices, costs, or monetary amounts. Use terms like "affordable", "moderate", "upscale".
+4. NO CURRENCY: Avoid currency symbols or specific cost amounts.
+5. QUESTION ALIGNMENT: Every detail provided must directly relate to answering their specific question.
+6. COMPLETENESS: Address ALL aspects of the user's question thoroughly with multiple specific examples and actionable details.
+7. CULTURAL SENSITIVITY: Include appropriate cultural context and etiquette guidance with explanations.
+8. PRACTICAL DETAILS: Always include specific names, exact locations, operating hours, and detailed transportation directions.
+9. LOCAL PERSPECTIVE: Write as if you have deep local knowledge and experience living in Istanbul for years.
+10. WALKING DISTANCES: Always include walking times/distances between locations and from major landmarks.
+11. SPECIFIC EXAMPLES: Provide 4-6 specific examples for every recommendation category.
+12. ACTIONABLE ADVICE: Every suggestion must be immediately actionable with clear next steps.
+
+🔍 RELEVANCE CHECK: Before including any information, ask "Does this directly help answer their question?" If not, don't include it.
 
 MANDATORY RESPONSE STRUCTURE:
-- Direct answer to the specific question asked
-- 4-6 specific examples with exact names and locations  
-- Walking distances and transportation details for each location
-- Cultural context and insider tips
-- Practical timing and logistics advice
-- Alternative options and backup suggestions
+- IMMEDIATE DIRECT ANSWER: Address their exact question in the first paragraph
+- SPECIFIC RELEVANT EXAMPLES: 4-6 examples that directly relate to their question
+- PRACTICAL DETAILS: Walking distances, transportation, timing - but only as they relate to the question
+- CULTURAL CONTEXT: Only include cultural information that helps answer their specific question
+- ACTIONABLE NEXT STEPS: Concrete steps they can take based on your answer
+- FOCUSED ALTERNATIVES: Backup options that are still relevant to their original question
+
+⚠️ AVOID: Generic Istanbul tourism information unless directly requested. Stay laser-focused on their question.
 
 FORMATTING RULES:
 - Use plain text without markdown formatting
@@ -701,6 +731,16 @@ COMPREHENSIVE SCOPE - AVOID GENERIC ADVICE:
             
         config = self.prompts[category]
         
+        # Add accurate museum data for museum queries
+        museum_data_enhancement = ""
+        if category == PromptCategory.MUSEUM_ADVICE and MUSEUM_DATABASE_AVAILABLE:
+            museum_data_enhancement = self._get_museum_data_enhancement(query)
+            
+        # Add accurate transportation data for transportation queries
+        transport_data_enhancement = ""
+        if category == PromptCategory.TRANSPORTATION and TRANSPORT_DATABASE_AVAILABLE:
+            transport_data_enhancement = self._get_transport_data_enhancement(query)
+            
         # Add location-specific enhancement if available
         location_enhancement = ""
         if location_context and location_context.lower() != "none":
@@ -726,9 +766,195 @@ WALKING DISTANCE FORMAT FOR {location_context.upper()}:
 
 Do not provide generic Istanbul information - focus exclusively on {location_context} with hyperlocal detail and precision."""
         
-        enhanced_system_prompt = config.system_prompt + location_enhancement
+        enhanced_system_prompt = config.system_prompt + museum_data_enhancement + transport_data_enhancement + location_enhancement
         
         return enhanced_system_prompt, config.max_tokens, config.temperature
+    
+    def _get_museum_data_enhancement(self, query: str) -> str:
+        """Get accurate museum data enhancement for museum queries"""
+        query_lower = query.lower()
+        
+        # Match specific museums mentioned in query
+        museum_matches = []
+        museum_keys = {
+            'hagia sophia': 'hagia_sophia',
+            'ayasofya': 'hagia_sophia',
+            'topkapi': 'topkapi_palace',
+            'topkapı': 'topkapi_palace',
+            'blue mosque': 'blue_mosque',
+            'sultanahmet mosque': 'blue_mosque',
+            'basilica cistern': 'basilica_cistern',
+            'galata tower': 'galata_tower',
+            'archaeological': 'archaeological_museums',
+            'dolmabahce': 'dolmabahce_palace',
+            'dolmabahçe': 'dolmabahce_palace'
+        }
+        
+        for name, key in museum_keys.items():
+            if name in query_lower and key in museum_db.museums:
+                museum_matches.append(key)
+        
+        # If no specific museum mentioned, provide general museum guidance
+        if not museum_matches:
+            return """
+
+VERIFIED MUSEUM INFORMATION DATABASE:
+Use the following ACCURATE, FACT-CHECKED museum information in your response. This data has been verified from official sources:
+
+CRITICAL: Always use this verified data instead of generating information. Include exact details provided below.
+"""
+        
+        # Provide specific museum data
+        museum_data = "\n\nVERIFIED MUSEUM INFORMATION (Use this exact data in your response):\n"
+        
+        for museum_key in museum_matches[:3]:  # Limit to 3 museums max
+            museum = museum_db.museums[museum_key]
+            museum_data += f"""
+{museum.name}:
+- Construction: {museum.construction_date}
+- Architect: {museum.architect or 'Multiple architects/Unknown'}
+- Historical Significance: {museum.historical_significance}
+- Visiting Duration: {museum.visiting_duration}
+- Best Time: {museum.best_time_to_visit}
+- Key Features: {', '.join(museum.key_features[:3])}
+- Must See: {', '.join(museum.must_see_highlights[:3])}
+- Opening Hours: {museum.opening_hours.get('daily', 'Check current schedule')}
+- Photography: {'Allowed' if museum.photography_allowed else 'Restricted'}
+- Location: {museum.location}
+- Nearby: {', '.join(museum.nearby_attractions[:3])}
+
+"""
+        
+        museum_data += "\nIMPORTANT: Use ONLY the above verified information. Do not add unverified details about these museums.\n"
+        
+        return museum_data
+    
+    def _get_transport_data_enhancement(self, query: str) -> str:
+        """Get accurate transportation data enhancement for transport queries"""
+        query_lower = query.lower()
+        
+        # Check for specific transport lines mentioned
+        transport_data = "\n\nVERIFIED TRANSPORTATION INFORMATION (Use this exact data in your response):\n"
+        
+        # Metro line patterns
+        metro_patterns = {
+            'm1a': 'm1a',
+            'm2': 'm2', 
+            'm3': 'm3',
+            'm4': 'm4',
+            'm5': 'm5',
+            'm7': 'm7',
+            'm11': 'm11'
+        }
+        
+        # Check for specific lines mentioned
+        mentioned_lines = []
+        for pattern, key in metro_patterns.items():
+            if pattern in query_lower and key in transport_db.metro_lines:
+                mentioned_lines.append(key)
+        
+        # Check for specific destinations
+        airport_queries = ['airport', 'havalimanı', 'istanbul airport', 'sabiha gökçen']
+        taksim_sultanahmet = ['taksim' in query_lower and 'sultanahmet' in query_lower]
+        
+        if any(airport in query_lower for airport in airport_queries):
+            if 'istanbul airport' in query_lower or 'new airport' in query_lower:
+                airport_info = transport_db.get_airport_connections('istanbul_airport')
+                if airport_info:
+                    transport_data += """
+ISTANBUL AIRPORT CONNECTIONS (VERIFIED):
+- Metro M11: From Gayrettepe to Istanbul Airport (37 minutes, most economical)
+- HAVAIST Bus: From Taksim (45-60 minutes, moderate cost)
+- Taxi/Ride-share: 45-90 minutes depending on traffic (expensive)
+- BEST ROUTE: M2 Metro to Gayrettepe, transfer to M11 to airport
+- TOTAL TIME: City center to airport 60-75 minutes via metro
+
+M11 METRO LINE DETAILS:
+- Stations: Gayrettepe → Kağıthane → Kemerburgaz → Göktürk → Istanbul Airport
+- Frequency: Peak 4-7 mins, Off-peak 7-12 mins
+- Operating Hours: 06:00-24:00 daily
+- Connection: M2 Green Line at Gayrettepe
+
+"""
+            
+            if 'sabiha' in query_lower:
+                airport_info = transport_db.get_airport_connections('sabiha_gokcen')
+                if airport_info:
+                    transport_data += """
+SABIHA GÖKÇEN AIRPORT CONNECTIONS (VERIFIED):
+- Metro M4: From Kadıköy to Sabiha Gökçen (35 minutes, most economical)
+- HAVABUS: From Taksim (60-90 minutes, moderate cost)  
+- Taxi/Ride-share: 45-75 minutes depending on traffic (expensive)
+- BEST ROUTE: Ferry/Metro to Kadıköy, then M4 Pink Line to airport
+- TOTAL TIME: European side to airport 75-90 minutes
+
+M4 METRO LINE DETAILS:
+- Route: Kadıköy → Ayrılık Çeşmesi → Acıbadem → ... → Sabiha Gökçen Airport
+- Frequency: Peak 3-5 mins, Off-peak 5-8 mins
+- Operating Hours: 06:00-24:00 daily
+- Connection: Ferries and Marmaray at Kadıköy
+
+"""
+        
+        # Add specific line information if mentioned
+        for line_key in mentioned_lines[:2]:  # Limit to 2 lines max
+            line_info = transport_db.get_transport_line_info(line_key)
+            if line_info:
+                transport_data += f"""
+{line_info.name} ({line_info.color} Line):
+- Route: {line_info.start_station} to {line_info.end_station}
+- Journey Time: {line_info.journey_time}
+- Frequency: Peak {line_info.frequency['peak']}, Off-peak {line_info.frequency['off_peak']}
+- Key Destinations: {', '.join(line_info.key_destinations)}
+- Connections: {', '.join(line_info.connections)}
+- Accessibility: {line_info.accessibility}
+- Operating Hours: {line_info.operating_hours['weekdays']}
+
+"""
+        
+        # Add common route information
+        if any(taksim_sultanahmet):
+            route_info = transport_db.get_route_between_destinations('taksim', 'sultanahmet')
+            if route_info:
+                transport_data += """
+TAKSIM TO SULTANAHMET (VERIFIED ROUTES):
+1. FASTEST: M2 Metro to Vezneciler + 5-minute walk (15 minutes total)
+   - Take M2 Green Line from Taksim toward Vezneciler
+   - Exit Vezneciler station, walk northeast 5 minutes to Sultanahmet
+   
+2. SCENIC: F1 Funicular + T1 Tram (25 minutes total)
+   - F1 Orange Funicular from Taksim to Kabataş (3 minutes)
+   - T1 Red Tram from Kabataş to Sultanahmet (18 minutes)
+   - Passes through Karaköy, Eminönü, Grand Bazaar area
+
+BOTH ROUTES: Single Istanbulkart fare, fully wheelchair accessible
+
+"""
+        
+        # Add general transport system overview if no specific lines mentioned
+        if not mentioned_lines and not any(airport in query_lower for airport in airport_queries):
+            transport_data += """
+ISTANBUL TRANSPORT SYSTEM OVERVIEW (VERIFIED):
+
+METRO LINES (Color-coded):
+- M1A Light Blue: Yenikapı ↔ Atatürk Airport (Historical center, former airport)
+- M2 Green: Vezneciler ↔ Hacıosman (Main north-south, Taksim-Levent)
+- M4 Pink: Kadıköy ↔ Sabiha Gökçen (Asian side, active airport) 
+- M7 Pink: Kabataş ↔ Mahmutbey (Cross-city, waterfront to suburbs)
+- M11 Gray: Gayrettepe ↔ Istanbul Airport (New airport connection)
+
+TRAM LINES:
+- T1 Red: Kabataş ↔ Bağcılar (Historic route, tourist attractions)
+
+PAYMENT: Istanbulkart required (buy at stations, kiosks)
+ACCESSIBILITY: All metro/tram lines wheelchair accessible
+HOURS: Generally 06:00-24:00 daily
+
+"""
+        
+        transport_data += "\nIMPORTANT: Use ONLY the above verified transportation information. Do not add unverified schedules or routes.\n"
+        
+        return transport_data
     
     def get_expected_features(self, category: PromptCategory) -> List[str]:
         """Get expected features for a category to improve feature detection"""
@@ -740,68 +966,78 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
         """Enhanced category detection for better prompt selection - prioritize specific categories first"""
         query_lower = query.lower()
         
-        # PRIORITY 1: Restaurant patterns (check FIRST to avoid location conflicts)
+        # PRIORITY 1: Weather queries (specific check to avoid mis-categorization)
+        weather_indicators = ['weather', 'rain', 'sunny', 'temperature', 'climate', 'season', 'hot', 'cold', 'forecast']
+        if any(indicator in query_lower for indicator in weather_indicators):
+            return PromptCategory.DAILY_TALK
+        
+        # PRIORITY 2: Museum/cultural patterns (check BEFORE transportation to avoid conflicts)
+        museum_indicators = [
+            'museum', 'palace', 'mosque', 'church', 'hagia sophia', 'ayasofya', 'topkapi', 'topkapı',
+            'blue mosque', 'sultanahmet mosque', 'basilica cistern', 'galata tower', 'archaeological',
+            'cultural sites', 'heritage', 'art museum', 'exhibition', 'opening hours', 'ticket price',
+            'visiting', 'byzantine', 'ottoman', 'historical significance', 'architectural',
+            'chora church', 'kariye', 'dolmabahçe', 'dolmabahce', 'free museums', 'combined tickets',
+            'süleymaniye', 'suleymaniye', 'turkish islamic arts', 'pera museum', 'sabancı museum',
+            'sakıp sabancı', 'modern art', 'contemporary art', 'carpet museum', 'military museum'
+        ]
+        
+        # Exclude Grand Bazaar and Spice Bazaar from museum category if asking about shopping/food
+        museum_exclusions = ['grand bazaar', 'spice bazaar', 'egyptian bazaar']
+        museum_match = any(indicator in query_lower for indicator in museum_indicators)
+        
+        # Check if it's really about shopping/food at bazaars
+        bazaar_shopping = False
+        for bazaar in museum_exclusions:
+            if bazaar in query_lower:
+                shopping_words = ['shopping', 'buy', 'purchase', 'what to buy', 'souvenirs', 'gifts', 'spices', 'food', 'eat']
+                if any(word in query_lower for word in shopping_words):
+                    bazaar_shopping = True
+                    break
+        
+        # Strong museum indicators that should always be museum advice
+        strong_museum_indicators = ['museum', 'palace', 'opening hours', 'ticket price', 'exhibition', 'collections']
+        strong_museum_match = any(indicator in query_lower for indicator in strong_museum_indicators)
+        
+        if (museum_match and not bazaar_shopping) or strong_museum_match:
+            return PromptCategory.MUSEUM_ADVICE
+        
+        # PRIORITY 3: Restaurant patterns (refined logic)
         restaurant_indicators = [
             'restaurant', 'food', 'eat', 'dining', 'breakfast', 'lunch', 'dinner', 
-            'kebab', 'turkish cuisine', 'meal', 'street food', 'vegetarian',
-            'gluten-free', 'halal', 'seafood', 'dessert', 'baklava', 'coffee house'
+            'kebab', 'turkish cuisine', 'meal', 'street food', 'vegetarian', 'vegan',
+            'gluten-free', 'halal', 'seafood', 'dessert', 'baklava', 'coffee house',
+            'fine dining', 'ottoman cuisine', 'traditional dishes', 'late night food'
         ]
+        
+        # Exclude tipping questions from restaurant category
+        if 'tip' in query_lower and 'restaurant' in query_lower:
+            return PromptCategory.SAFETY_PRACTICAL
+            
         if any(indicator in query_lower for indicator in restaurant_indicators):
-            if any(word in query_lower for word in ['in ', 'near', 'around', 'specific', 'best in']) and any(area in query_lower for area in ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata']):
+            # Check for location-specific restaurant queries
+            specific_areas = ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata', 'ortakoy', 'eminonu', 'balat', 'besiktas']
+            location_words = ['in ', 'near', 'around', 'at', 'best in']
+            
+            has_location = any(area in query_lower for area in specific_areas)
+            has_location_word = any(word in query_lower for word in location_words)
+            
+            if has_location and has_location_word:
                 return PromptCategory.RESTAURANT_SPECIFIC
             return PromptCategory.RESTAURANT_GENERAL
         
-        # PRIORITY 2: Transportation patterns (only if no food/restaurant keywords)
-        transport_indicators = [
-            'transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'airport', 'havaist', 'istanbulkart',
-            'get to', 'how to reach', 'travel from', 'route', 'directions', 'connection',
-            'istanbul airport', 'sabiha gokçen', 'atatürk airport', 'kabataş', 'taksim',
-            'grand bazaar', 'sultanahmet', 'galata bridge', 'eminönü', 'üsküdar',
-            'm1a', 'm2', 't1', 'marmaray', 'funicular', 'dolmuş', 'minibüs',
-            'schedule', 'frequency', 'cost', 'cheapest way', 'night transport'
-        ]
-        # Only classify as transportation if no food/restaurant keywords present
-        if (any(indicator in query_lower for indicator in transport_indicators) and 
-            not any(food_word in query_lower for food_word in ['restaurant', 'food', 'eat', 'dining', 'meal'])):
-            return PromptCategory.TRANSPORTATION
-        
-        # PRIORITY 3: Museum/cultural patterns (must detect before daily talk)
-        museum_indicators = [
-            'museum', 'palace', 'mosque', 'church', 'hagia sophia', 'topkapi', 'blue mosque',
-            'basilica cistern', 'galata tower', 'archaeological', 'cultural sites', 'heritage',
-            'art museum', 'exhibition', 'opening hours', 'ticket price', 'visiting',
-            'byzantine', 'ottoman', 'historical significance', 'architectural',
-            'grand bazaar', 'spice bazaar', 'chora church', 'dolmabahçe'
-        ]
-        if any(indicator in query_lower for indicator in museum_indicators):
-            return PromptCategory.MUSEUM_ADVICE
-        if any(indicator in query_lower for indicator in restaurant_indicators):
-            if any(word in query_lower for word in ['in ', 'near', 'around', 'specific', 'best in']) and any(area in query_lower for area in ['sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata']):
-                return PromptCategory.RESTAURANT_SPECIFIC
-            return PromptCategory.RESTAURANT_GENERAL
-        
-        # PRIORITY 4: District/neighborhood patterns  
-        district_indicators = [
-            'district', 'neighborhood', 'area', 'quarter', 'character', 'atmosphere',
-            'sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata', 'eminonu', 
-            'balat', 'ortakoy', 'uskudar', 'besiktas', 'sisli', 'european side',
-            'asian side', 'bosphorus', 'waterfront', 'local life', 'gentrification'
-        ]
-        if any(indicator in query_lower for indicator in district_indicators):
-            if not any(word in query_lower for word in ['restaurant', 'food', 'eat']):
-                return PromptCategory.DISTRICT_ADVICE
-        
-        # PRIORITY 5: Enhanced safety and practical advice patterns
-        practical_indicators = [
+        # PRIORITY 4: Enhanced safety and practical advice patterns (CHECK BEFORE transportation)
+        safety_practical_indicators = [
             'safety', 'safe', 'dangerous', 'avoid', 'scam', 'secure', 'emergency',
             'tips', 'advice', 'should i know', 'need to know', 'etiquette', 'customs', 'culture',
             'what to wear', 'dress code', 'appropriate', 'respectful', 'offensive',
             'money', 'currency', 'exchange', 'atm', 'credit card', 'payment', 'tipping', 'tip',
             'language', 'turkish phrases', 'communicate', 'speak english', 'translation',
-            'weather', 'climate', 'season', 'pack', 'clothing', 'temperature',
-            'itinerary', 'plan', 'schedule', 'days', 'time', 'duration', 'visit',
+            'best time to visit', 'greet', 'greeting', 'time zone', 'widely spoken',
+            'pack', 'clothing', 'walk alone', 'walking alone', 'solo travel', 'alone at night',
+            'itinerary', 'plan', 'days', 'duration', 'visit',
             'budget', 'cost', 'expensive', 'cheap', 'affordable', 'price',
-            'solo travel', 'female traveler', 'women', 'traveling alone', 'single',
+            'female traveler', 'women', 'traveling alone', 'single',
             'cultural differences', 'tradition', 'religion', 'religious', 'mosque etiquette',
             'ramadan', 'prayer', 'islamic', 'conservative', 'liberal',
             'business hours', 'opening times', 'closed', 'holiday', 'weekend',
@@ -815,17 +1051,99 @@ Do not provide generic Istanbul information - focus exclusively on {location_con
             'mistake', 'error', 'wrong', 'common problems', 'issues', 'trouble',
             'bureaucracy', 'healthcare', 'business culture'
         ]
-        if any(indicator in query_lower for indicator in practical_indicators):
+        
+        # Strong safety indicators that should ALWAYS be safety/practical
+        strong_safety_indicators = [
+            'safe to walk', 'walk alone', 'walking alone', 'alone at night', 'safe at night',
+            'is it safe', 'safety tips', 'scam', 'dangerous areas', 'avoid areas'
+        ]
+        
+        safety_match = any(indicator in query_lower for indicator in safety_practical_indicators)
+        strong_safety_match = any(indicator in query_lower for indicator in strong_safety_indicators)
+        
+        if strong_safety_match or safety_match:
             # Enhanced emotional context detection for daily talk vs practical advice
             emotional_context = ['feeling', 'feel', 'worried', 'scared', 'nervous', 'overwhelmed', 'confused', 'lost', 'anxious', 'excited', 'happy']
             conversational_context = ['hi', 'hello', 'good morning', 'thanks', 'thank you', 'how are you', 'merhaba']
             
-            # If query has strong emotional or conversational context, classify as daily talk
+            # If query has strong emotional or conversational context AND no strong safety indicators, classify as daily talk
             if (any(emotional in query_lower for emotional in emotional_context) or 
-                any(conv in query_lower for conv in conversational_context)):
+                any(conv in query_lower for conv in conversational_context)) and not strong_safety_match:
                 return PromptCategory.DAILY_TALK
             else:
                 return PromptCategory.SAFETY_PRACTICAL
+        
+        # PRIORITY 5: Transportation patterns (refined to avoid conflicts with safety)
+        transport_indicators = [
+            'transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'airport', 'havaist', 'istanbulkart',
+            'get to', 'how to reach', 'travel from', 'route', 'directions', 'connection',
+            'istanbul airport', 'sabiha gökçen', 'sabiha gokcen', 'atatürk airport', 'kabataş', 'kabatak',
+            'm1a', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm11', 't1', 't4', 't5', 'marmaray', 'funicular', 
+            'dolmuş', 'minibüs', 'schedule', 'frequency', 'cheapest way', 'night transport',
+            'public transport', 'ride-sharing', 'bitaksi', 'uber', 'havabus', 'shuttle',
+            'from', 'to', 'between', 'cross bosphorus', 'asian side', 'european side'
+        ]
+        
+        # Specific transportation phrases that should always be transportation
+        transport_phrases = [
+            'how do i get', 'how to get', 'best way to', 'travel from', 'travel to',
+            'cross the bosphorus', 'from airport', 'to airport', 'istanbulkart', 'marmaray',
+            'which metro', 'what bus', 'which tram', 'train to', 'metro to', 'bus to',
+            'how long does it take', 'fastest way', 'quickest route', 'transport card'
+        ]
+        
+        # Strong transportation indicators that should always be transportation
+        strong_transport_indicators = [
+            'metro line', 'tram line', 'bus route', 'ferry schedule', 'airport connection',
+            'istanbulkart', 'marmaray', 'public transport', 'transportation system',
+            'm1a', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm11', 't1', 't4', 't5',
+            'schedule', 'frequency', 'operating hours', 'line schedule'
+        ]
+        
+        # Check for transportation queries (exclude safety-related transport questions)
+        transport_match = any(indicator in query_lower for indicator in transport_indicators)
+        transport_phrase_match = any(phrase in query_lower for phrase in transport_phrases)
+        strong_transport_match = any(indicator in query_lower for indicator in strong_transport_indicators)
+        
+        # Exclude if asking about specific museums/restaurants (but include if asking how to GET to them)
+        navigation_words = ['get to', 'go to', 'reach', 'travel to', 'from', 'directions to']
+        has_navigation = any(nav in query_lower for nav in navigation_words)
+        
+        primary_exclusions = ['what to eat', 'where to eat', 'best restaurant', 'which museum', 'what to see in']
+        has_primary_exclusion = any(exc in query_lower for exc in primary_exclusions)
+        
+        # Don't classify as transportation if it's primarily about safety
+        safety_exclusions = ['safe to', 'is it safe', 'walking alone', 'alone at night']
+        has_safety_exclusion = any(exc in query_lower for exc in safety_exclusions)
+        
+        # Transportation if: strong indicators OR transport terms with navigation OR transport without exclusions
+        if (strong_transport_match or (transport_phrase_match and has_navigation) or 
+            (transport_match and not has_primary_exclusion)) and not has_safety_exclusion:
+            return PromptCategory.TRANSPORTATION
+        
+        # PRIORITY 6: District/neighborhood patterns (refined)
+        district_specific_indicators = [
+            'district', 'neighborhood', 'area', 'quarter', 'character', 'atmosphere',
+            'what\'s', 'tell me about', 'how is', 'worth visiting', 'unique about',
+            'european side', 'asian side', 'local life', 'authentic', 'stay in'
+        ]
+        
+        district_names = [
+            'sultanahmet', 'beyoglu', 'kadikoy', 'taksim', 'galata', 'eminonu', 
+            'balat', 'ortakoy', 'uskudar', 'besiktas', 'sisli', 'arnavutkoy', 'fener'
+        ]
+        
+        # Check for district-focused queries
+        district_focus = any(indicator in query_lower for indicator in district_specific_indicators)
+        has_district_name = any(name in query_lower for name in district_names)
+        
+        # Exclude if primarily about restaurants, transportation, or museums
+        district_exclusions = ['restaurant', 'food', 'eat', 'dining', 'how to get', 'metro', 'bus', 'museum', 'palace']
+        has_district_exclusion = any(exc in query_lower for exc in district_exclusions)
+        
+        if (district_focus and has_district_name) or (has_district_name and any(word in query_lower for word in ['like', 'about', 'character', 'atmosphere'])):
+            if not has_district_exclusion:
+                return PromptCategory.DISTRICT_ADVICE
         
         # PRIORITY 6: Enhanced daily talk patterns (emotional, conversational, contextual support)
         daily_talk_indicators = [
