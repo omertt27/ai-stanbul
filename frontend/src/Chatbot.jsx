@@ -962,6 +962,21 @@ function Chatbot() {
     };
   }, [isMobile, inputFocused, messages.length]);
 
+  // Handle keyboard-visible class for mobile optimization
+  useEffect(() => {
+    if (isMobile) {
+      if (keyboardVisible) {
+        document.body.classList.add('keyboard-visible');
+      } else {
+        document.body.classList.remove('keyboard-visible');
+      }
+    }
+    
+    return () => {
+      document.body.classList.remove('keyboard-visible');
+    };
+  }, [keyboardVisible, isMobile]);
+
   // Enhanced mobile scroll management
   useEffect(() => {
     if (messagesEndRef.current) {

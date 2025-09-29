@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
+import { formatLikesCount, getNumberTextSize } from '../utils/formatNumbers';
 import '../App.css';
 
 const BlogList = () => {
@@ -294,7 +295,7 @@ const BlogList = () => {
                       <button
                         onClick={() => handleLike(post.id)}
                         disabled={likingPosts.has(post.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
+                        className={`flex items-center gap-2 px-3 py-2 min-w-[60px] rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
                           likingPosts.has(post.id)
                             ? 'opacity-50 cursor-not-allowed'
                             : 'hover:opacity-80 active:scale-95'
@@ -312,7 +313,9 @@ const BlogList = () => {
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                         )}
-                        <span className="font-medium">{post.likes_count || 0}</span>
+                        <span className={`font-medium ${getNumberTextSize(post.likes_count || 0)}`}>
+                          {formatLikesCount(post.likes_count || 0)}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -593,7 +596,7 @@ const BlogList = () => {
                       <button
                         onClick={() => handleLike(post.id)}
                         disabled={likingPosts.has(post.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
+                        className={`flex items-center gap-2 px-3 py-2 min-w-[70px] rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
                           likingPosts.has(post.id)
                             ? 'opacity-50 cursor-not-allowed'
                             : 'hover:opacity-80 active:scale-95'
@@ -611,7 +614,9 @@ const BlogList = () => {
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                         )}
-                        <span className="font-medium text-base sm:text-lg">{post.likes_count || 0}</span>
+                        <span className={`font-medium text-base sm:text-lg ${getNumberTextSize(post.likes_count || 0)}`}>
+                          {formatLikesCount(post.likes_count || 0)}
+                        </span>
                       </button>
                     </div>
                   </div>

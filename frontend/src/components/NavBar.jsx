@@ -223,11 +223,11 @@ const NavBar = ({ hideLogo = false }) => {
           zIndex: 1005,
           background: 'rgba(15, 16, 17, 0.95)', // More opaque for better contrast
           backdropFilter: 'blur(10px)', // Add subtle blur back
-          padding: '8px 16px 12px', // Reduced padding significantly
+          padding: '2px 10px 4px', // Even more reduced padding for ultra-compact navbar
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          height: '50px', // Reduced from 70px to 50px
+          height: '32px', // Ultra-compact mobile navbar - reduced from 40px to 32px
           borderBottom: '1px solid rgba(139, 92, 246, 0.2)', // Add subtle border
         }}>
           {/* Logo in mobile navbar - smaller */}
@@ -262,22 +262,23 @@ const NavBar = ({ hideLogo = false }) => {
         </div>
       )}
 
-      {/* Mobile Bottom Tab Bar Navigation - more compact */}
+      {/* Mobile Bottom Tab Bar Navigation - Smaller and Slider */}
       {isMobile && (
         <div style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          bottom: '0px',
+          left: '0px',
+          right: '0px',
           zIndex: 1006,
           background: 'rgba(15, 16, 17, 0.98)',
           backdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(139, 92, 246, 0.3)',
-          padding: '8px 16px 12px', // Reduced padding
+          padding: '4px 8px 6px', // Much smaller padding
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
-          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)',
+          boxShadow: 'rgba(0, 0, 0, 0.3) 0px -4px 20px',
+          height: '50px', // Fixed height - matches CSS calculation
         }}>
           {/* Chat Tab */}
           <Link 
@@ -287,19 +288,20 @@ const NavBar = ({ hideLogo = false }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px', // Reduced gap
+              gap: '1px', // Reduced gap
               textDecoration: 'none',
-              color: location.pathname === '/chat' ? '#8b5cf6' : '#9ca3af',
-              transition: 'all 0.2s ease',
-              padding: '6px', // Reduced padding
-              borderRadius: '6px', // Smaller radius
-              minWidth: '44px', // Maintain touch target
+              color: location.pathname === '/chat' ? '#8b5cf6' : 'rgb(156, 163, 175)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth slider transition
+              padding: '3px', // Much smaller padding
+              borderRadius: '4px', // Smaller radius
+              minWidth: '36px', // Smaller touch target
+              transform: location.pathname === '/chat' ? 'translateY(-2px) scale(1.05)' : 'translateY(0) scale(1)', // Slider effect
             }}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"> {/* Reduced from 24 to 20 */}
-              <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"> {/* Smaller icon */}
+              <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
             </svg>
-            <span style={{fontSize: '0.65rem', fontWeight: '500', marginTop: '2px'}}>{t('navigation.chat')}</span> {/* Reduced font size */}
+            <span style={{fontSize: '0.55rem', fontWeight: '500', marginTop: '1px'}}>Chat</span> {/* Smaller text, no translation for compact look */}
           </Link>
 
           {/* Blog Tab */}
@@ -310,19 +312,20 @@ const NavBar = ({ hideLogo = false }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px',
+              gap: '1px',
               textDecoration: 'none',
-              color: location.pathname.startsWith('/blog') ? '#8b5cf6' : '#9ca3af',
-              transition: 'all 0.2s ease',
-              padding: '6px',
-              borderRadius: '6px',
-              minWidth: '44px',
+              color: location.pathname.startsWith('/blog') ? 'rgb(139, 92, 246)' : 'rgb(156, 163, 175)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              padding: '3px',
+              borderRadius: '4px',
+              minWidth: '36px',
+              transform: location.pathname.startsWith('/blog') ? 'translateY(-2px) scale(1.05)' : 'translateY(0) scale(1)',
             }}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"></path>
             </svg>
-            <span style={{fontSize: '0.65rem', fontWeight: '500', marginTop: '2px'}}>{t('navigation.blog')}</span>
+            <span style={{fontSize: '0.55rem', fontWeight: '500', marginTop: '1px'}}>Blog</span>
           </Link>
 
           {/* About Tab */}
@@ -333,19 +336,20 @@ const NavBar = ({ hideLogo = false }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px',
+              gap: '1px',
               textDecoration: 'none',
-              color: location.pathname === '/about' ? '#8b5cf6' : '#9ca3af',
-              transition: 'all 0.2s ease',
-              padding: '6px',
-              borderRadius: '6px',
-              minWidth: '44px',
+              color: location.pathname === '/about' ? 'rgb(139, 92, 246)' : 'rgb(156, 163, 175)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              padding: '3px',
+              borderRadius: '4px',
+              minWidth: '36px',
+              transform: location.pathname === '/about' ? 'translateY(-2px) scale(1.05)' : 'translateY(0) scale(1)',
             }}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span style={{fontSize: '0.65rem', fontWeight: '500', marginTop: '2px'}}>{t('navigation.about')}</span>
+            <span style={{fontSize: '0.55rem', fontWeight: '500', marginTop: '1px'}}>About</span>
           </Link>
 
           {/* FAQ Tab */}
@@ -356,19 +360,20 @@ const NavBar = ({ hideLogo = false }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px',
+              gap: '1px',
               textDecoration: 'none',
-              color: location.pathname === '/faq' ? '#8b5cf6' : '#9ca3af',
-              transition: 'all 0.2s ease',
-              padding: '6px',
-              borderRadius: '6px',
-              minWidth: '44px',
+              color: location.pathname === '/faq' ? 'rgb(139, 92, 246)' : 'rgb(156, 163, 175)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              padding: '3px',
+              borderRadius: '4px',
+              minWidth: '36px',
+              transform: location.pathname === '/faq' ? 'translateY(-2px) scale(1.05)' : 'translateY(0) scale(1)',
             }}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span style={{fontSize: '0.65rem', fontWeight: '500', marginTop: '2px'}}>{t('navigation.faq')}</span>
+            <span style={{fontSize: '0.55rem', fontWeight: '500', marginTop: '1px'}}>FAQ</span>
           </Link>
 
           {/* Donate Tab */}
@@ -379,19 +384,20 @@ const NavBar = ({ hideLogo = false }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '2px',
+              gap: '1px',
               textDecoration: 'none',
-              color: location.pathname === '/donate' ? '#8b5cf6' : '#9ca3af',
-              transition: 'all 0.2s ease',
-              padding: '6px',
-              borderRadius: '6px',
-              minWidth: '44px',
+              color: location.pathname === '/donate' ? 'rgb(139, 92, 246)' : 'rgb(156, 163, 175)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              padding: '3px',
+              borderRadius: '4px',
+              minWidth: '36px',
+              transform: location.pathname === '/donate' ? 'translateY(-2px) scale(1.05)' : 'translateY(0) scale(1)',
             }}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
             </svg>
-            <span style={{fontSize: '0.65rem', fontWeight: '500', marginTop: '2px'}}>{t('navigation.donate')}</span>
+            <span style={{fontSize: '0.55rem', fontWeight: '500', marginTop: '1px'}}>Donate</span>
           </Link>
         </div>
       )}

@@ -296,43 +296,40 @@ html {
   min-height: 0;
 }
 
-/* Specific styling for kam-input-field class - matches search bar */
-.kam-input-field {
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  color: #f3f4f6 !important;
-  font-size: 1rem !important;
-  padding: 0.75rem 3rem 0.75rem 1rem !important;
-  width: 100% !important;
-  border-radius: 1rem !important;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
-  box-sizing: border-box !important;
-}
+  /* Base styling for kam-input-field class */
+  .kam-input-field {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #f3f4f6 !important;
+    font-size: 1rem !important;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+    box-sizing: border-box !important;
+  }
 
-.kam-input-field::placeholder {
-  color: rgba(243, 244, 246, 0.6) !important;
-  font-weight: 400 !important;
-}
+  .kam-input-field::placeholder {
+    color: rgba(243, 244, 246, 0.6) !important;
+    font-weight: 400 !important;
+  }
 
-.kam-input-field:focus {
-  outline: none !important;
-  border: none !important;
-}
+  .kam-input-field:focus {
+    outline: none !important;
+    border: none !important;
+  }
 
-/* Prevent auto-scroll behavior when search input is focused */
-.chatbot-page .kam-input-field:focus {
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  scroll-margin: 0 !important;
-  scroll-padding: 0 !important;
-  scroll-behavior: auto !important;
-}
+  /* Prevent auto-scroll behavior when search input is focused */
+  .chatbot-page .kam-input-field:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    scroll-margin: 0 !important;
+    scroll-padding: 0 !important;
+    scroll-behavior: auto !important;
+  }
 
-/* Prevent page from scrolling when any input in chatbot is focused */
-.chatbot-page input:focus {
-  scroll-margin: 0 !important;
+  /* Prevent page from scrolling when any input in chatbot is focused */
+  .chatbot-page input:focus {
+    scroll-margin: 0 !important;
   scroll-padding: 0 !important;
   scroll-behavior: auto !important;
 }
@@ -383,12 +380,9 @@ html {
   outline: none !important;
   color: #f3f4f6 !important;
   font-size: 1rem !important;
-  padding: 0.75rem 3rem 0.75rem 1rem !important;
-  width: 100% !important;
-  border-radius: 1rem !important;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
   box-sizing: border-box !important;
-  line-height: 0.1 !important;
+  line-height: 1.5 !important;
   font-weight: 400 !important;
 }
 
@@ -515,46 +509,155 @@ html.chatbot-page {
 
 /* Missing Chatbot CSS Classes */
 
-/* Main chat container - Fixed viewport layout */
-.chatbot-main-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 5rem); /* Fixed height accounting for navbar */
-  max-width: 1050px; /* Changed from 800px to 1050px */
-  width: 100%;
-  margin: 5rem auto 0 auto; /* Top margin for navbar, no bottom margin */
-  overflow: hidden;
-  justify-content: flex-end;
-  padding: 0 1rem;
-  scroll-behavior: auto !important; /* Disable smooth scrolling */
-}
+/* DESKTOP STYLES - Only apply to screens larger than 768px */
+@media (min-width: 769px) {
+  /* Main chat container - Fixed viewport layout for DESKTOP only */
+  .chatbot-main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 5rem); /* Fixed height accounting for navbar */
+    max-width: 1050px; /* Changed from 800px to 1050px */
+    width: 100%;
+    margin: 5rem auto 0 auto; /* Top margin for navbar, no bottom margin */
+    overflow: hidden;
+    justify-content: flex-end;
+    padding: 0 1rem;
+    scroll-behavior: auto !important; /* Disable smooth scrolling */
+  }
+  
+  /* Purple box container for chat - Fixed layout for DESKTOP */
+  .chatbot-purple-box {
+    flex: 1;
+    background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 20px 0 rgba(10, 10, 10, 0.25);
+    border: 2px solid #6366f1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin: 0.5rem 0; /* Normal margins for proper spacing */
+    height: calc(100vh - 6rem); /* Fixed height accounting for margins and navbar */
+    position: relative; /* Add relative positioning for absolute search bar */
+    scroll-behavior: auto; /* Prevent smooth scrolling that might cause auto-scroll */
+  }
+  
+  /* Messages container - Fixed layout with internal scrolling for DESKTOP */
+  .chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem 100px 1.5rem; /* Add bottom padding to prevent overlap with search bar */
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 100px); /* Full height minus input area */
+    margin-bottom: 0;
+  }
+  
+  /* Desktop input area styling */
+  .chatbot-input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 1.5rem;
+    background: rgba(17, 24, 39, 0.95);
+    border-top: 1px solid rgba(55, 65, 81, 0.3);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+  }
+  
+  .kam-input-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+  }
 
-/* Purple box container for chat - Fixed layout */
-.chatbot-purple-box {
-  flex: 1;
-  background: linear-gradient(135deg, #23272f 0%, #2d323c 100%);
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 20px 0 rgba(10, 10, 10, 0.25);
-  border: 2px solid #6366f1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  margin: 0.5rem 0; /* Normal margins for proper spacing */
-  height: calc(100vh - 6rem); /* Fixed height accounting for margins and navbar */
-  position: relative; /* Add relative positioning for absolute search bar */
-  scroll-behavior: auto; /* Prevent smooth scrolling that might cause auto-scroll */
-}
+  .kam-input-container {
+    display: flex;
+    align-items: center;
+    background: rgba(31, 41, 55, 0.8);
+    border: 1px solid rgba(55, 65, 81, 0.5);
+    border-radius: 1rem;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    gap: 0.75rem;
+  }
 
-/* Messages container - Fixed layout with internal scrolling */
-.chatbot-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem 1.5rem 80px 1.5rem; /* Add bottom padding to prevent overlap with search bar */
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 80px); /* Full height minus input area */
-  margin-bottom: 0;
+  .kam-input-container:focus-within {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  
+  .kam-input-field {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f3f4f6;
+    font-size: 1rem;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    padding: 0;
+    line-height: 1.5;
+    min-height: 1.5rem !important;
+    width: 100% !important;
+    resize: none !important;
+  }
+  
+  .kam-input-field::placeholder {
+    color: rgba(243, 244, 246, 0.6);
+    font-weight: 400;
+  }
+
+  .kam-send-button {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+  }
+
+  .kam-send-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5b5bf6, #4338ca);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .kam-send-button:disabled {
+    background: rgba(55, 65, 81, 0.5);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    opacity: 0.6;
+  }
+
+  .kam-send-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  
+  .kam-error-message {
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    color: #fca5a5;
+  }
+
+  .send-button-loading {
+    background: rgba(55, 65, 81, 0.7) !important;
+    cursor: wait !important;
+  }
 }
 
 /* Scrollable area styling */
@@ -695,387 +798,77 @@ html.chatbot-page {
   .kam-message-actions {
     gap: 0.375rem;
   }
+  
+
 }
 
-/* Missing input container styles for chatbot search bar */
-.chatbot-input-area {
-  position: relative;
-  padding: 1rem;
-  background: rgba(17, 24, 39, 0.95);
-  border-top: 1px solid rgba(55, 65, 81, 0.3);
-  backdrop-filter: blur(10px);
+/* ====== MOBILE BODY OPTIMIZATION FOR CHATBOT ====== */
+/* Ensure proper mobile viewport behavior for chatbot */
+body.chatbot-page {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100vh !important;
+  touch-action: manipulation !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
-.kam-input-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
+html.chatbot-page,
+body.chatbot-page {
+  overscroll-behavior: none !important; /* Prevent pull-to-refresh and bounce */
 }
 
-.kam-input-container {
-  display: flex;
-  align-items: center;
-  background: rgba(31, 41, 55, 0.8);
-  border: 1px solid rgba(55, 65, 81, 0.5);
-  border-radius: 1rem;
-  padding: 0.5rem;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
-}
-
-.kam-input-container:focus-within {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.kam-send-button {
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
-  border: none;
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
-  margin-left: 0.5rem;
-}
-
-.kam-send-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.kam-send-button:disabled {
-  background: rgba(55, 65, 81, 0.5);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.kam-send-button svg {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.kam-error-message {
-  background: rgba(220, 38, 38, 0.1);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.send-button-loading {
-  background: rgba(55, 65, 81, 0.7) !important;
-  cursor: wait !important;
-}
-
-/* ==============================================
-   MOBILE ENHANCEMENTS & TOUCH OPTIMIZATIONS
-   ============================================== */
-
-/* Improved touch targets for mobile (44px minimum recommended by Apple/Google) */
-.mobile-touch-target {
-  min-height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Enhanced button touch targets */
-button, .btn, .kam-action-button, input[type="submit"] {
-  min-height: 44px;
-  touch-action: manipulation; /* Prevents double-tap zoom */
-  -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
-}
-
-/* Improved input fields for mobile keyboards */
-input[type="text"], 
-input[type="email"], 
-textarea {
-  min-height: 44px;
-  font-size: 16px; /* Prevents zoom on iOS */
-  -webkit-appearance: none;
-  appearance: none;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
-
-/* Better mobile keyboard support */
-.chat-input {
-  font-size: 16px !important; /* Prevents iOS zoom */
-  -webkit-appearance: none;
-  appearance: none;
-  resize: none;
-  border-radius: 25px;
-  padding: 12px 20px;
-  min-height: 44px;
-  line-height: 1.4;
-}
-
-/* Enhanced mobile scrolling */
-.chat-messages, 
-.scrollable-container {
-  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
-  scroll-behavior: smooth;
-}
-
-/* Improved mobile navigation */
-.mobile-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(15, 16, 17, 0.95);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(99, 102, 241, 0.3);
-  padding: 12px 0;
-  z-index: 1000;
-}
-
-/* Mobile-optimized weather indicator */
+/* Mobile-specific optimizations for chatbot page */
 @media (max-width: 768px) {
-  .weather-indicator {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    right: 1rem;
-    width: auto;
-    text-align: center;
-    padding: 8px 12px;
-    font-size: 0.75rem;
-    border-radius: 20px;
-  }
-}
-
-/* Enhanced mobile chat interface */
-@media (max-width: 640px) {
-  .chat-container {
-    padding: 10px;
-    margin-bottom: 60px; /* Space for mobile nav if added */
+  body.chatbot-page {
+    user-select: none !important; /* Prevent text selection on mobile UI elements */
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important; /* Disable callout on iOS */
   }
   
-  .chat-message {
-    max-width: 85%;
-    font-size: 15px;
-    line-height: 1.4;
-    padding: 12px 16px;
-  }
-  
-  .chat-input-container {
-    padding: 12px;
-    gap: 8px;
+  /* Ensure proper keyboard handling */
+  body.chatbot-page.keyboard-visible {
+    height: calc(100vh - env(keyboard-height, 0px)) !important;
   }
 }
 
-/* Swipe gesture support (basic) */
-.swipeable {
-  touch-action: pan-y; /* Allow vertical scrolling, handle horizontal swipes */
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Loading states optimized for mobile */
-.mobile-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1rem;
-  text-align: center;
-}
-
-/* Mobile-friendly animations */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Pull-to-refresh support */
-.pull-to-refresh {
-  overscroll-behavior-y: contain;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Enhanced mobile focus states */
-button:focus,
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid #6366f1;
-  outline-offset: 2px;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* Mobile-optimized modal/dialog */
-@media (max-width: 640px) {
-  .modal,
-  .dialog {
-    margin: 1rem;
-    max-width: calc(100vw - 2rem);
-    max-height: calc(100vh - 2rem);
-    border-radius: 12px;
-  }
-}
-
-/* Improved mobile typography */
-@media (max-width: 480px) {
-  body {
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  
-  h1 { font-size: 1.75rem; }
-  h2 { font-size: 1.5rem; }
-  h3 { font-size: 1.25rem; }
-  
-  .small-text {
-    font-size: 12px;
-  }
-}
-
-/* Safe area support for devices with notches */
-@supports (padding: max(0px)) {
-  .safe-area-top {
-    padding-top: max(1rem, env(safe-area-inset-top));
-  }
-  
-  .safe-area-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
-}
-
-/* Haptic feedback simulation (visual feedback) */
-.haptic-feedback:active {
-  transform: scale(0.98);
-  transition: transform 0.1s ease;
-}
-
-/* Mobile-optimized loading spinner */
-.mobile-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(99, 102, 241, 0.2);
-  border-left-color: #6366f1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Mobile search bar visibility fixes */
+/* ====== OPTIMIZED MOBILE CHATBOT INTERFACE ====== */
 @media (max-width: 768px) {
-  .searchbar {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    position: relative !important;
-    z-index: 100 !important;
-    margin: 1rem auto !important;
-    max-width: 95% !important;
-    width: 95% !important;
-  }
-  
-  .searchbar input {
-    font-size: 16px !important; /* Prevents iOS zoom */
-    min-height: 44px !important; /* iOS touch target size */
-    display: block !important;
-    visibility: visible !important;
-  }
-  
-  .searchbar button {
-    min-height: 44px !important; /* iOS touch target size */
-    min-width: 44px !important;
-    display: flex !important;
-  }
-}
-
-/* Ensure search container is visible on chat pages */
-@media (max-width: 768px) {
-  .chat-page .searchbar,
-  .expanded .searchbar {
-    display: flex !important;
-    visibility: visible !important;
-    position: relative !important;
-    margin-top: 1rem !important;
-    margin-bottom: 1rem !important;
-  }
-}
-
-/* Fix logo size conflicts on main page mobile */
-@media (max-width: 768px) {
-  .main-page-logo .logo-text {
-    font-size: 3rem !important; /* Consistent mobile logo size */
-    margin-bottom: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .main-page-logo .logo-text {
-    font-size: 2.5rem !important; /* Consistent mobile logo size for small screens */
-    margin-bottom: 1rem;
-  }
-  
-  .searchbar {
-    max-width: 98% !important;
-    width: 98% !important;
-    margin: 0.5rem auto !important;
-  }
-}
-
-/* ====== ENHANCED MOBILE CHATBOT INTERFACE - ChatGPT Style ====== */
-@media (max-width: 768px) {
-  /* Override existing mobile styles with ChatGPT-inspired improvements */
-  
-  /* Full-screen mobile chat container */
+  /* Mobile chat page container - properly sized for mobile navbars */
   .chatbot-page .chatbot-main-container {
-    height: 100vh !important;
+    height: calc(100vh - 82px) !important; /* 32px top navbar + 50px bottom navbar */
     width: 100vw !important;
     max-width: 100vw !important;
     margin: 0 !important;
     padding: 0 !important;
     position: fixed !important;
-    top: 0 !important;
+    top: 32px !important; /* Below top navbar */
     left: 0 !important;
     right: 0 !important;
-    bottom: 0 !important;
-    background: #0f0f0f !important; /* ChatGPT dark background */
+    bottom: 50px !important; /* Above bottom navbar */
+    background: #343541 !important; /* ChatGPT background */
   }
 
-  /* Full-screen chat container */
+  /* Mobile chat container */
   .chatbot-page .chatbot-purple-box {
-    height: 100vh !important;
-    width: 100vw !important;
+    height: 100% !important;
+    width: 100% !important;
     border-radius: 0 !important;
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #0f0f0f !important; /* Consistent dark background */
+    background: #343541 !important;
     display: flex !important;
     flex-direction: column !important;
     position: relative !important;
   }
 
-  /* Messages area with proper spacing */
+  /* Messages area - optimized spacing */
   .chatbot-page .chatbot-messages {
     flex: 1 !important;
     overflow-y: auto !important;
-    padding: 60px 16px 140px 16px !important; /* Top space for navbar, bottom for input */
-    background: #0f0f0f !important;
+    padding: 16px 12px 80px 12px !important; /* Bottom padding for input area */
+    background: #343541 !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
   }
@@ -1084,256 +877,26 @@ select:focus {
     display: none !important;
   }
 
-  /* Enhanced mobile input area - Always visible */
+  /* Mobile input area - positioned at bottom of chat area */
   .chatbot-page .chatbot-input-area {
-    position: fixed !important;
+    position: absolute !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    background: linear-gradient(180deg, 
-      rgba(15, 15, 15, 0) 0%, 
-      rgba(15, 15, 15, 0.8) 20%, 
-      rgba(15, 15, 15, 1) 100%) !important;
-    padding: 20px 16px calc(env(safe-area-inset-bottom, 0px) + 20px) 16px !important;
-    z-index: 1001 !important; /* Above navbar */
-    border: none !important;
-    backdrop-filter: blur(10px) !important;
-  }
-
-  /* ChatGPT-style input container */
-  .chatbot-page .kam-input-container {
-    background: #40414f !important; /* ChatGPT input background */
-    border: 1px solid #565869 !important; /* Subtle border */
-    border-radius: 12px !important;
-    padding: 12px !important;
-    display: flex !important;
-    align-items: flex-end !important;
-    gap: 8px !important;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1) !important;
-    transition: border-color 0.2s ease !important;
-  }
-
-  .chatbot-page .kam-input-container:focus-within {
-    border-color: #10a37f !important;
-  }
-
-  /* ChatGPT input field - exact replica */
-  .chatbot-page .kam-input-field {
-    background: transparent !important;
-    border: none !important;
-    color: #ececf1 !important; /* ChatGPT text color */
-    font-size: 16px !important;
-    line-height: 24px !important;
-    padding: 0 !important;
-    flex: 1 !important;
-    outline: none !important;
-    resize: none !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    max-height: 200px !important;
-    overflow-y: auto !important;
-  }
-
-  .chatbot-page .kam-input-field::placeholder {
-    color: #8e8ea0 !important; /* ChatGPT placeholder */
-  }
-
-  /* ChatGPT send button - exact styling */
-  .chatbot-page .kam-send-button {
-    background: #19c37d !important; /* ChatGPT green */
-    border: none !important;
-    border-radius: 6px !important;
-    width: 32px !important;
-    height: 32px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: white !important;
-    flex-shrink: 0 !important;
-    transition: background 0.2s !important;
-  }
-
-  .chatbot-page .kam-send-button:disabled {
-    background: #2f2f2f !important;
-    color: #8e8ea0 !important;
-  }
-
-  .chatbot-page .kam-send-button svg {
-    width: 16px !important;
-    height: 16px !important;
-  }
-
-  /* Welcome screen - ChatGPT style */
-  .chatbot-page .chatbot-messages > div:first-child {
     background: #343541 !important;
-    padding: 40px 20px !important;
-    text-align: center !important;
-  }
-
-  .chatbot-page .chatbot-messages h1 {
-    color: #ececf1 !important;
-    font-size: 20px !important;
-    font-weight: 600 !important;
-    margin-bottom: 8px !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  }
-
-  .chatbot-page .chatbot-messages p {
-    color: #8e8ea0 !important;
-    font-size: 14px !important;
-    line-height: 20px !important;
-    margin-bottom: 24px !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  }
-
-  /* Suggestion pills - ChatGPT style */
-  .chatbot-page .kam-suggestion-pill {
-    background: #40414f !important;
-    border: 1px solid #565869 !important;
-    color: #ececf1 !important;
-    padding: 12px 16px !important;
-    border-radius: 8px !important;
-    font-size: 14px !important;
-    margin: 4px !important;
-    display: inline-block !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    transition: all 0.2s !important;
-  }
-
-  .chatbot-page .kam-suggestion-pill:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-  }
-}
-
-/* ====== TRUE ChatGPT MOBILE INTERFACE - Exact Replica ====== */
-@media (max-width: 768px) {
-  /* ChatGPT exact mobile layout */
-  
-  /* Page-level overrides for true ChatGPT experience */
-  .chatbot-page {
-    background: #343541 !important; /* ChatGPT's exact background */
-  }
-  
-  /* Full-screen container - ChatGPT exact style */
-  .chatbot-page .chatbot-main-container {
-    background: #343541 !important; /* ChatGPT background */
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    height: 100vh !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .chatbot-page .chatbot-purple-box {
-    background: #343541 !important; /* ChatGPT background */
-    height: 100vh !important;
-    width: 100vw !important;
-    border: none !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  /* Messages area - ChatGPT exact styling */
-  .chatbot-page .chatbot-messages {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding: 50px 0 80px 0 !important; /* Navbar space + input space */
-    background: #343541 !important;
-    scroll-behavior: smooth !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  /* ChatGPT user messages - full width alternating pattern */
-  .chatbot-page .message-bubble.user {
-    background: #343541 !important; /* Same as main background */
-    color: #ececf1 !important; /* ChatGPT text color */
-    max-width: 100% !important;
-    width: 100% !important;
-    padding: 20px !important; /* ChatGPT padding */
-    margin: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    font-size: 16px !important;
-    line-height: 28px !important; /* ChatGPT line height */
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    display: flex !important;
-    justify-content: flex-start !important;
-    box-shadow: none !important;
-  }
-
-  /* ChatGPT bot messages - alternating background */
-  .chatbot-page .message-bubble.bot {
-    background: #444654 !important; /* ChatGPT assistant background */
-    color: #ececf1 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    padding: 20px !important;
-    margin: 0 !important;
-    border: none !important;
-    border-radius: 0 !important;
-    font-size: 16px !important;
-    line-height: 28px !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    display: flex !important;
-    justify-content: flex-start !important;
-    box-shadow: none !important;
-  }
-
-  /* Message actions integrated into message */
-  .chatbot-page .kam-message-actions {
-    background: #444654 !important;
-    padding: 0 20px 20px 20px !important;
-    margin: 0 !important;
-    gap: 8px !important;
-    display: flex !important;
-    align-items: center !important;
-    border: none !important;
-  }
-
-  .chatbot-page .kam-action-button {
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: none !important;
-    color: #ececf1 !important;
-    padding: 6px 12px !important;
-    border-radius: 4px !important;
-    font-size: 12px !important;
-    height: 32px !important;
-    transition: background 0.2s !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  }
-
-  .chatbot-page .kam-action-button:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-  }
-
-  /* ChatGPT input area - exact positioning */
-  .chatbot-page .chatbot-input-area {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    background: #343541 !important; /* Solid background */
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-    padding: 12px 20px calc(env(safe-area-inset-bottom) + 12px) 20px !important;
+    padding: 12px !important;
     z-index: 1000 !important;
   }
 
-  /* ChatGPT input container - exact styling */
+  /* Mobile input container - ChatGPT style */
   .chatbot-page .kam-input-container {
-    background: #40414f !important; /* ChatGPT input color */
+    background: #40414f !important;
     border: 1px solid #565869 !important;
     border-radius: 12px !important;
     padding: 12px !important;
     display: flex !important;
-    align-items: flex-end !important;
+    align-items: center !important;
     gap: 8px !important;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.1) !important;
     transition: border-color 0.2s ease !important;
@@ -1343,39 +906,41 @@ select:focus {
     border-color: #10a37f !important;
   }
 
-  /* ChatGPT input field - exact replica */
+  /* Mobile input field */
   .chatbot-page .kam-input-field {
     background: transparent !important;
     border: none !important;
-    color: #ececf1 !important; /* ChatGPT text color */
-    font-size: 16px !important;
-    line-height: 24px !important;
-    padding: 0 !important;
+    color: #ececf1 !important;
+    font-size: 16px !important; /* Prevents iOS zoom */
+    line-height: 1.4 !important;
+    padding: 8px 0 !important;
     flex: 1 !important;
     outline: none !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    min-height: 24px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
     resize: none !important;
-    font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    max-height: 200px !important;
-    overflow-y: auto !important;
   }
 
   .chatbot-page .kam-input-field::placeholder {
-    color: #8e8ea0 !important; /* ChatGPT placeholder */
+    color: #8e8ea0 !important;
   }
 
-  /* ChatGPT send button - exact styling */
+  /* Mobile send button */
   .chatbot-page .kam-send-button {
-    background: #19c37d !important; /* ChatGPT green */
+    background: #19c37d !important;
     border: none !important;
-    border-radius: 6px !important;
-    width: 32px !important;
-    height: 32px !important;
+    border-radius: 8px !important;
+    width: 40px !important;
+    height: 40px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     color: white !important;
     flex-shrink: 0 !important;
     transition: background 0.2s !important;
+    touch-action: manipulation !important; /* Optimize for touch */
   }
 
   .chatbot-page .kam-send-button:disabled {
@@ -1384,10 +949,10 @@ select:focus {
   }
 
   .chatbot-page .kam-send-button svg {
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
   }
-
+  
   /* Welcome screen - ChatGPT style */
   .chatbot-page .chatbot-messages > div:first-child {
     background: #343541 !important;
@@ -1430,65 +995,158 @@ select:focus {
   }
 }
 
-/* ====== MOBILE INPUT VISIBILITY FIX ====== */
+/* Additional mobile enhancements */
 @media (max-width: 768px) {
-  /* Ensure input is always visible and accessible */
-  .chatbot-page .kam-input-field {
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    transform: translateZ(0) !important; /* Force hardware acceleration */
-    backface-visibility: hidden !important;
+  /* Ensure mobile search bar visibility */
+  .chatbot-page .chatbot-input-area,
+  .chatbot-page .chatbot-input-area * {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
-  
-  /* Force input to be visible on all mobile browsers */
-  .chatbot-page .kam-input-container {
-    position: relative !important;
-    z-index: 999 !important;
+
+  /* Hardware acceleration for smooth performance */
+  .chatbot-page .chatbot-input-area {
     transform: translateZ(0) !important;
   }
-  
-  /* Prevent iOS zoom on input focus */
-  .chatbot-page .kam-input-field:focus {
-    font-size: 16px !important; /* Prevents zoom */
-    -webkit-transform: translateZ(0) !important;
-    transform: translateZ(0) !important;
+}
+
+/* Mobile touch enhancements */
+.chatbot-page .kam-send-button:active {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease !important;
   }
   
-  /* Mobile keyboard handling */
+  .chatbot-page .kam-action-button:active {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease !important;
+  }
+  
+  /* Improve scrolling performance on mobile */
+  .chatbot-page .chatbot-messages {
+    will-change: scroll-position !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Better mobile message spacing */
+  .chatbot-page .message-row {
+    margin-bottom: 8px !important;
+  }
+  
+  /* Mobile loading states */
+  .chatbot-page .loading-skeleton {
+    background: #444654 !important;
+    padding: 16px !important;
+    border-radius: 0 !important;
+  }
+
+/* Mobile keyboard state handling */
+  .chatbot-page.keyboard-visible .chatbot-main-container {
+    height: calc(100vh - 82px - 200px) !important; /* Reduced height when keyboard is visible */
+  }
+  
   .chatbot-page.keyboard-visible .chatbot-messages {
-    padding-bottom: 60px !important;
+    padding-bottom: 120px !important; /* More space when keyboard is visible */
   }
   
   .chatbot-page.keyboard-visible .chatbot-input-area {
     position: fixed !important;
-    bottom: 0 !important;
-    transform: translateY(0) !important;
+    bottom: 0 !important; /* Stick to bottom when keyboard is visible */
+    background: #343541 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: none !important; /* Remove blur for performance */
   }
   
-  /* Ensure scrolling works properly on mobile */
-  .chatbot-page .chatbot-messages {
-    -webkit-overflow-scrolling: touch !important;
-    scroll-behavior: smooth !important;
+  /* Enhanced mobile message styling for better readability */
+  .chatbot-page .message-bubble.user {
+    border-left: 3px solid #6366f1 !important; /* Visual indicator for user messages */
   }
   
-  /* Mobile touch improvements */
-  .chatbot-page .kam-send-button,
-  .chatbot-page .kam-action-button,
-  .chatbot-page .kam-suggestion-pill {
-    -webkit-tap-highlight-color: transparent !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
+  .chatbot-page .message-bubble.bot {
+    border-left: 3px solid #10a37f !important; /* Visual indicator for bot messages */
   }
-}
+  
+  /* Mobile typing indicator styling */
+  .chatbot-page .typing-indicator {
+    background: #444654 !important;
+    padding: 16px !important;
+    border-radius: 0 !important;
+    border-left: 3px solid #10a37f !important;
+  }
+  
+  /* Better mobile link styling */
+  .chatbot-page .message-bubble a {
+    color: #60a5fa !important;
+    text-decoration: underline !important;
+    word-break: break-word !important;
+    touch-action: manipulation !important;
+  }
 
-/* Force hardware acceleration on mobile for smooth performance */
-@media (max-width: 768px) {
+/* Mobile performance optimizations */
   .chatbot-page * {
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
-    -webkit-perspective: 1000 !important;
-    perspective: 1000 !important;
   }
-}
+  
+  /* Optimize animations for mobile */
+  .chatbot-page .message-bubble,
+  .chatbot-page .kam-action-button,
+  .chatbot-page .kam-send-button {
+    will-change: transform !important;
+  }
+  
+  /* Reduce animation duration on slower devices */
+  @media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
+    .chatbot-page * {
+      transition-duration: 0.15s !important;
+      animation-duration: 0.15s !important;
+    }
+  }
+
+/* Desktop chatbot page optimizations */
+@media (min-width: 769px) {
+  body.chatbot-page {
+    overflow: hidden !important;
+    height: 100vh !important;
+    position: static !important;
+  }
+  
+  .chatbot-page {
+    background: #111827 !important;
+    position: static !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .chatbot-page .chatbot-main-container {
+    background: transparent !important;
+    position: relative !important;
+  }
+  
+  /* Override mobile-specific fixed positioning on desktop */
+  .chatbot-page #root {
+    height: 100vh !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+}  /* Desktop search bar final styling */
+  .chatbot-input-area {
+    background: rgba(17, 24, 39, 0.95) !important;
+    border-top: 1px solid rgba(99, 102, 241, 0.2) !important;
+  }
+  
+  .kam-input-container {
+    background: rgba(31, 41, 55, 0.8) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    min-height: 3rem !important;
+  }
+  
+  .kam-input-field {
+    color: #f3f4f6 !important;
+    font-size: 1rem !important;
+  }
 
 
