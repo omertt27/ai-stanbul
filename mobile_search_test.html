@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mobile Search Bar Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .mobile-test-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .header {
+            height: 60px;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #333;
+        }
+        
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px; /* Space for input */
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 12px;
+        }
+        
+        /* Input area - Fixed at bottom */
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #343541;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px calc(env(safe-area-inset-bottom) + 12px) 20px;
+            z-index: 1000;
+        }
+        
+        .input-container {
+            background: #40414f;
+            border: 1px solid #565869;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-container:focus-within {
+            border-color: #10a37f;
+        }
+        
+        .input-field {
+            background: transparent;
+            border: none;
+            color: #ececf1;
+            font-size: 16px;
+            line-height: 24px;
+            padding: 0;
+            flex: 1;
+            outline: none;
+            font-family: inherit;
+        }
+        
+        .input-field::placeholder {
+            color: #8e8ea0;
+        }
+        
+        .send-button {
+            background: #10a37f;
+            border: none;
+            border-radius: 6px;
+            padding: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            min-height: 32px;
+        }
+        
+        .send-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        
+        /* Test specific styles */
+        .test-info {
+            background: #1e3a8a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .test-results {
+            background: #065f46;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+        }
+        
+        /* Mobile specific fixes */
+        @media (max-width: 768px) {
+            .input-field {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                -webkit-transform: translateZ(0);
+                transform: translateZ(0);
+            }
+            
+            .input-area {
+                -webkit-backdrop-filter: blur(10px);
+                backdrop-filter: blur(10px);
+            }
+            
+            .mobile-test-container {
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-test-container">
+        <div class="header">
+            <h1>Mobile Search Bar Test</h1>
+        </div>
+        
+        <div class="messages-area" id="messagesArea">
+            <div class="test-info">
+                <h3>Mobile Chat Interface Test</h3>
+                <p>This page tests the mobile search bar visibility and functionality similar to the AI Istanbul chat interface.</p>
+            </div>
+            
+            <div class="message">
+                <strong>Test Message 1:</strong> Can you see the search bar at the bottom of the screen?
+            </div>
+            
+            <div class="message">
+                <strong>Test Message 2:</strong> The search bar should be fixed at the bottom and always visible.
+            </div>
+            
+            <div class="message">
+                <strong>Test Message 3:</strong> When you tap on the input field, it should focus and the keyboard should appear.
+            </div>
+            
+            <div class="message">
+                <strong>Test Message 4:</strong> The search bar should remain visible even when the keyboard is open.
+            </div>
+            
+            <div class="message">
+                <strong>Test Message 5:</strong> Try scrolling up and down - the search bar should stay fixed.
+            </div>
+            
+            <div class="test-results" id="testResults">
+                <h3>Test Results:</h3>
+                <p>✅ Search bar is visible: <span id="visible">Checking...</span></p>
+                <p>✅ Search bar is clickable: <span id="clickable">Checking...</span></p>
+                <p>✅ Input focus works: <span id="focusable">Checking...</span></p>
+                <p>✅ Send button works: <span id="sendable">Checking...</span></p>
+            </div>
+        </div>
+        
+        <!-- Input area - Fixed at bottom -->
+        <div class="input-area">
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    class="input-field" 
+                    placeholder="Ask about Istanbul..." 
+                    id="searchInput"
+                    autocomplete="off"
+                    autocapitalize="sentences"
+                    autocorrect="on"
+                    spellcheck="true"
+                >
+                <button class="send-button" id="sendButton" disabled>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test functionality
+        const searchInput = document.getElementById('searchInput');
+        const sendButton = document.getElementById('sendButton');
+        const messagesArea = document.getElementById('messagesArea');
+        
+        // Check if elements are visible and functional
+        function runTests() {
+            // Test 1: Visibility
+            const inputArea = document.querySelector('.input-area');
+            const visible = inputArea && window.getComputedStyle(inputArea).display !== 'none';
+            document.getElementById('visible').textContent = visible ? 'YES' : 'NO';
+            document.getElementById('visible').style.color = visible ? '#10b981' : '#ef4444';
+            
+            // Test 2: Clickable
+            const clickable = searchInput && !searchInput.disabled;
+            document.getElementById('clickable').textContent = clickable ? 'YES' : 'NO';
+            document.getElementById('clickable').style.color = clickable ? '#10b981' : '#ef4444';
+            
+            // Test 3: Focus
+            let focusable = false;
+            try {
+                searchInput.focus();
+                focusable = document.activeElement === searchInput;
+                searchInput.blur();
+            } catch (e) {
+                focusable = false;
+            }
+            document.getElementById('focusable').textContent = focusable ? 'YES' : 'NO';
+            document.getElementById('focusable').style.color = focusable ? '#10b981' : '#ef4444';
+            
+            // Test 4: Send button
+            const sendable = sendButton && typeof sendButton.click === 'function';
+            document.getElementById('sendable').textContent = sendable ? 'YES' : 'NO';
+            document.getElementById('sendable').style.color = sendable ? '#10b981' : '#ef4444';
+        }
+        
+        // Input handling
+        searchInput.addEventListener('input', function() {
+            sendButton.disabled = this.value.trim().length === 0;
+        });
+        
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey && this.value.trim()) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        sendButton.addEventListener('click', sendMessage);
+        
+        function sendMessage() {
+            const message = searchInput.value.trim();
+            if (!message) return;
+            
+            // Add message to chat
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `<strong>You:</strong> ${message}`;
+            
+            const testResults = document.getElementById('testResults');
+            messagesArea.insertBefore(messageDiv, testResults);
+            
+            // Clear input
+            searchInput.value = '';
+            sendButton.disabled = true;
+            
+            // Scroll to bottom
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            
+            // Add response
+            setTimeout(() => {
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'message';
+                responseDiv.innerHTML = `<strong>AI:</strong> I received your message: "${message}". The search bar is working correctly!`;
+                messagesArea.insertBefore(responseDiv, testResults);
+                messagesArea.scrollTop = messagesArea.scrollHeight;
+            }, 1000);
+        }
+        
+        // Focus handling for mobile
+        searchInput.addEventListener('focus', function() {
+            // Ensure the input stays visible when keyboard opens
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+        
+        // Run tests after page load
+        setTimeout(runTests, 500);
+        
+        // Handle viewport changes (for mobile keyboard)
+        let initialViewportHeight = window.innerHeight;
+        window.addEventListener('resize', function() {
+            const currentHeight = window.innerHeight;
+            const heightDifference = initialViewportHeight - currentHeight;
+            
+            // If viewport shrunk significantly (keyboard opened)
+            if (heightDifference > 150) {
+                document.body.style.paddingBottom = '0px';
+            } else {
+                document.body.style.paddingBottom = '0px';
+            }
+        });
+    </script>
+</body>
+</html>

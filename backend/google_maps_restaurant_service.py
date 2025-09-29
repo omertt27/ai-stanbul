@@ -94,10 +94,16 @@ class GoogleMapsRestaurantService:
         query_lower = user_query.lower()
         search_params = {}
         
-        # Extract location preference
+        # Extract location preference - enhanced with more areas and variations  
         istanbul_areas = [
             'sultanahmet', 'beyoglu', 'galata', 'karakoy', 'taksim', 
             'kadikoy', 'besiktas', 'ortakoy', 'eminonu', 'fatih',
+            'sisli', 'levent', 'maslak', 'etiler', 'bebek', 'arnavutkoy',
+            'sariyer', 'bakirkoy', 'yesilkoy', 'atakoy', 'florya',
+            'zeytinburnu', 'aksaray', 'laleli', 'beyazit', 'capa',
+            'balat', 'fener', 'eyup', 'kasimpasa', 'haskoy',
+            'uskudar', 'cengelkoy', 'beylerbeyi', 'camlica', 'altunizade',
+            'bostanci', 'goztepe', 'bagdat caddesi', 'moda', 'caddebostan',
             'sisli', 'bebek', 'arnavutkoy', 'balat', 'fener'
         ]
         
@@ -112,15 +118,20 @@ class GoogleMapsRestaurantService:
         else:
             search_params["location"] = "Istanbul Turkey"
         
-        # Extract cuisine/keyword preferences
+        # Extract cuisine/keyword preferences - enhanced with more options
         cuisine_keywords = {
-            'turkish': ['turkish', 'ottoman', 'traditional', 'kebab', 'döner'],
-            'seafood': ['seafood', 'fish', 'balık', 'deniz'],
-            'italian': ['italian', 'pizza', 'pasta'],
-            'asian': ['asian', 'sushi', 'japanese', 'chinese'],
-            'vegetarian': ['vegetarian', 'vegan', 'plant-based'],
-            'fine dining': ['fine dining', 'upscale', 'luxury', 'elegant'],
-            'casual': ['casual', 'family', 'budget', 'affordable']
+            'turkish': ['turkish', 'ottoman', 'traditional', 'kebab', 'döner', 'authentic', 'local', 'anatolian'],
+            'seafood': ['seafood', 'fish', 'balık', 'deniz', 'marine', 'fresh fish', 'sea food'],
+            'italian': ['italian', 'pizza', 'pasta', 'pizzeria'],
+            'asian': ['asian', 'sushi', 'japanese', 'chinese', 'thai', 'indian'],
+            'vegetarian': ['vegetarian', 'vegan', 'plant-based', 'veggie', 'meat-free'],
+            'fine dining': ['fine dining', 'upscale', 'luxury', 'elegant', 'michelin', 'gourmet'],
+            'casual': ['casual', 'family', 'budget', 'affordable', 'cheap'],
+            'breakfast': ['breakfast', 'kahvaltı', 'morning', 'brunch', 'turkish breakfast'],
+            'dessert': ['dessert', 'sweet', 'baklava', 'lokum', 'turkish delight', 'pastry'],
+            'meze': ['meze', 'appetizer', 'small plate', 'mezze', 'starter'],
+            'coffee': ['coffee', 'cafe', 'kahve', 'turkish coffee', 'espresso'],
+            'street food': ['street', 'fast', 'quick', 'street food', 'local food']
         }
         
         detected_keywords = []
@@ -133,12 +144,42 @@ class GoogleMapsRestaurantService:
         else:
             search_params["keyword"] = "Turkish"  # Default to Turkish cuisine
         
-        # Extract quality preferences
-        if any(word in query_lower for word in ['good', 'best', 'top', 'recommended', 'quality']):
-            search_params["min_rating"] = 4.0
-        elif any(word in query_lower for word in ['excellent', 'amazing', 'outstanding']):
-            search_params["min_rating"] = 4.5
+        # Extract quality preferences - more nuanced rating requirements
+        quality_indicators = {
+            'excellent': ['excellent', 'amazing', 'outstanding', 'exceptional', 'superb'],
+            'very_good': ['very good', 'great', 'fantastic', 'wonderful', 'top', 'best'],
+            'good': ['good', 'nice', 'decent', 'quality', 'recommended'],
+            'any': ['any', 'whatever', 'anything']
+        }
         
+        min_rating = None
+        for quality_level, indicators in quality_indicators.items():
+            if any(indicator in query_lower for indicator in indicators):
+                if quality_level == 'excellent':
+                    min_rating = 4.5
+                elif quality_level == 'very_good':
+                    min_rating = 4.2
+                elif quality_level == 'good':
+                    min_rating = 4.0
+                else:  # any
+                    min_rating = 3.5
+                break
+        
+        if min_rating:
+            search_params["min_rating"] = min_rating
+        
+        # Extract price preferences
+        price_indicators = {
+            'expensive': ['expensive', 'upscale', 'fine dining', 'luxury', 'high-end'],
+            'moderate': ['moderate', 'mid-range', 'reasonable'],
+            'cheap': ['cheap', 'budget', 'affordable', 'inexpensive']
+        }
+        
+        for price_level, indicators in price_indicators.items():
+            if any(indicator in query_lower for indicator in indicators):
+                search_params["price_preference"] = price_level
+                break
+
         return search_params
     
     def _direct_google_places_search(self, search_params: Dict) -> Dict[str, Any]:
@@ -165,28 +206,86 @@ class GoogleMapsRestaurantService:
             'type': 'restaurant'
         }
         
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data.get('status') != 'OK':
+                status = data.get('status')
+                error_msg = data.get('error_message', 'Unknown error')
+                
+                # Handle specific API errors
+                if status == 'ZERO_RESULTS':
+                    logger.info(f"No restaurants found for query: {query}")
+                    return {'success': False, 'restaurants': [], 'message': 'No restaurants found'}
+                elif status == 'OVER_QUERY_LIMIT':
+                    logger.error("Google Places API quota exceeded")
+                    raise Exception("API quota exceeded - try again later")
+                elif status == 'REQUEST_DENIED':
+                    logger.error("Google Places API request denied - check API key")
+                    raise Exception("API access denied - check configuration")
+                else:
+                    raise Exception(f"Google Places API error: {status} - {error_msg}")
+                    
+        except requests.RequestException as e:
+            logger.error(f"Network error calling Google Places API: {e}")
+            raise Exception(f"Network error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error parsing Google Places API response: {e}")
+            raise
         
-        data = response.json()
-        
-        if data.get('status') != 'OK':
-            raise Exception(f"Google Places API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}")
-        
-        # Convert to our expected format
+        # Convert to our expected format with filtering
         restaurants = []
-        for place in data.get('results', [])[:10]:  # Limit to 10 results
+        min_rating = search_params.get('min_rating')
+        price_preference = search_params.get('price_preference')
+        
+        for place in data.get('results', [])[:15]:  # Get more results for better filtering
+            # Skip if business is closed permanently
+            if place.get('business_status') == 'CLOSED_PERMANENTLY':
+                continue
+                
+            # Apply rating filter
+            rating = place.get('rating')
+            if min_rating and rating:
+                if rating < min_rating:
+                    continue
+            
+            # Apply price filter if specified
+            price_level = place.get('price_level')
+            if price_preference and price_level is not None:
+                if price_preference == 'cheap' and price_level > 2:
+                    continue
+                elif price_preference == 'expensive' and price_level < 3:
+                    continue
+                elif price_preference == 'moderate' and (price_level < 2 or price_level > 3):
+                    continue
+            
+            # Enhanced restaurant data
             restaurant = {
                 'place_id': place.get('place_id'),
-                'name': place.get('name'),
-                'rating': place.get('rating'),
-                'address': place.get('formatted_address', ''),
-                'price_level': place.get('price_level'),
+                'name': place.get('name', 'Unknown Restaurant'),
+                'rating': rating,
+                'user_ratings_total': place.get('user_ratings_total', 0),
+                'address': place.get('formatted_address', 'Address not available'),
+                'price_level': price_level,
                 'types': place.get('types', []),
                 'opening_hours': place.get('opening_hours', {}),
-                'business_status': place.get('business_status', 'OPERATIONAL')
+                'business_status': place.get('business_status', 'OPERATIONAL'),
+                'vicinity': place.get('vicinity', ''),
+                'geometry': place.get('geometry', {}),
+                # Add enhanced fields
+                'rating_summary': self._create_rating_summary(rating, place.get('user_ratings_total', 0)),
+                'cuisine_type': self._extract_cuisine_from_types(place.get('types', [])),
+                'is_highly_rated': rating and rating >= 4.2,
+                'has_many_reviews': place.get('user_ratings_total', 0) >= 100
             }
             restaurants.append(restaurant)
+            
+            # Stop when we have enough good results
+            if len(restaurants) >= 10:
+                break
         
         return {
             'success': True,
@@ -252,6 +351,46 @@ class GoogleMapsRestaurantService:
             "google_maps_tip": "Search Google Maps directly for 'restaurants in Istanbul' to find current recommendations with live data.",
             "timestamp": datetime.now().isoformat()
         }
+    
+    def _create_rating_summary(self, rating, user_ratings_total):
+        """Create a human-readable rating summary for a restaurant"""
+        if rating is None:
+            return "No rating available"
+        if user_ratings_total is None or user_ratings_total == 0:
+            return f"Rated {rating}/5 (no reviews)"
+        if rating >= 4.5 and user_ratings_total >= 100:
+            return f"Excellent ({rating}/5, {user_ratings_total} reviews)"
+        elif rating >= 4.2:
+            return f"Very good ({rating}/5, {user_ratings_total} reviews)"
+        elif rating >= 4.0:
+            return f"Good ({rating}/5, {user_ratings_total} reviews)"
+        else:
+            return f"Rated {rating}/5 ({user_ratings_total} reviews)"
+
+    def _extract_cuisine_from_types(self, types):
+        """Extract cuisine type from Google Places types list"""
+        if not types:
+            return "Unknown"
+        cuisine_map = {
+            'turkish': ['turkish', 'kebab', 'doner', 'meze'],
+            'seafood': ['seafood', 'fish', 'balik'],
+            'italian': ['italian', 'pizza', 'pasta'],
+            'asian': ['asian', 'sushi', 'japanese', 'chinese', 'thai', 'indian'],
+            'vegetarian': ['vegetarian', 'vegan'],
+            'dessert': ['dessert', 'baklava', 'pastry'],
+            'coffee': ['coffee', 'cafe', 'kahve'],
+            'street food': ['street_food', 'fast_food']
+        }
+        for cuisine, keywords in cuisine_map.items():
+            for t in types:
+                t_lower = t.lower().replace('_', ' ')
+                if any(keyword in t_lower for keyword in keywords):
+                    return cuisine.title()
+        # Fallback: use first type that's not generic
+        for t in types:
+            if t not in ['restaurant', 'food', 'establishment', 'point_of_interest']:
+                return t.replace('_', ' ').title()
+        return "Restaurant"
 
 # Global instance for easy import
 google_restaurant_service = GoogleMapsRestaurantService()

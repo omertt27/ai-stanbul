@@ -1075,11 +1075,16 @@ HOURS: Generally 06:00-24:00 daily
         
         # PRIORITY 5: Transportation patterns (refined to avoid conflicts with safety)
         transport_indicators = [
-            'transport', 'metro', 'bus', 'tram', 'ferry', 'taxi', 'airport', 'havaist', 'istanbulkart',
+            'transport', 'metro', 'bus', 'tram', 'ferry', 'ferries', 'boat', 'boats', 'taxi', 'airport', 'havaist', 'istanbulkart',
             'get to', 'how to reach', 'travel from', 'route', 'directions', 'connection',
             'istanbul airport', 'sabiha gökçen', 'sabiha gokcen', 'atatürk airport', 'kabataş', 'kabatak',
             'm1a', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm11', 't1', 't4', 't5', 'marmaray', 'funicular', 
             'dolmuş', 'minibüs', 'schedule', 'frequency', 'cheapest way', 'night transport',
+            'prince islands', 'princes islands', 'adalar', 'büyükada', 'heybeliada', 'burgazada', 'kınalıada',
+            'sedefadası', 'yassıada', 'sivriada', 'kaşık adası', 'tavşan adası', 'i̇ncir adası',
+            'marmara islands', 'marmara adası', 'avşa adası', 'avsa adasi', 'ekinlik adası', 'paşalimanı',
+            'galatasaray adası', 'suada', 'kuruçeşme adası', 'tekirdağ', 'erdek', 'bandırma',
+            'bosphorus', 'boğaz', 'golden horn', 'haliç', 'eminönü', 'karaköy', 'üsküdar', 'beşiktaş',
             'public transport', 'ride-sharing', 'bitaksi', 'uber', 'havabus', 'shuttle',
             'from', 'to', 'between', 'cross bosphorus', 'asian side', 'european side'
         ]
@@ -1094,7 +1099,8 @@ HOURS: Generally 06:00-24:00 daily
         
         # Strong transportation indicators that should always be transportation
         strong_transport_indicators = [
-            'metro line', 'tram line', 'bus route', 'ferry schedule', 'airport connection',
+            'metro line', 'tram line', 'bus route', 'ferry schedule', 'ferry route', 'airport connection',
+            'are there ferries', 'ferry to', 'ferry from', 'boat to', 'cross bosphorus',
             'istanbulkart', 'marmaray', 'public transport', 'transportation system',
             'm1a', 'm2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm11', 't1', 't4', 't5',
             'schedule', 'frequency', 'operating hours', 'line schedule'

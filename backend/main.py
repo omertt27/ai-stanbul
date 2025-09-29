@@ -382,7 +382,14 @@ print("✅ FastAPI app initialized successfully")
 # Add CORS middleware to allow frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001",
+        "http://localhost:5173",  # Vite default port
+        "http://127.0.0.1:5173"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -776,7 +783,7 @@ LOCATION-SPECIFIC INSTRUCTIONS:
             if ENHANCED_SERVICES_ENABLED:
                 try:
                     # Enhanced Transportation Service Integration
-                    if category.value == "transportation" or any(word in user_input.lower() for word in ['metro', 'bus', 'transport', 'how to get', 'travel to', 'route']):
+                    if category.value == "transportation" or any(word in user_input.lower() for word in ['metro', 'bus', 'transport', 'how to get', 'travel to', 'route', 'ferry', 'ferries', 'boat', 'boats', 'cross', 'bosphorus', 'golden horn', 'prince islands', 'kadıköy', 'üsküdar', 'beşiktaş', 'eminönü', 'karaköy', 'kabataş', 'directions', 'way to', 'get from', 'get to']):
                         print(f"🚌 Fetching enhanced transportation data...")
                         transport_data = enhanced_transport_service.get_transportation_info(user_input, location_context)
                         

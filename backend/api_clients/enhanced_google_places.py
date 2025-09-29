@@ -12,6 +12,10 @@ class EnhancedGooglePlacesClient:
     """Enhanced Google Places API client with real data priority, caching, and rate limiting."""
     
     def __init__(self, api_key: Optional[str] = None):
+        # Load environment variables
+        from dotenv import load_dotenv
+        load_dotenv()
+        
         self.api_key = (api_key or 
                        os.getenv("GOOGLE_PLACES_API_KEY") or 
                        os.getenv("GOOGLE_MAPS_API_KEY") or
@@ -114,13 +118,24 @@ class EnhancedGooglePlacesClient:
         
         # Build search query - improved query construction
         if keyword and location:
-            query = f"{keyword} restaurant in {location}"
+            # Extract specific cuisine or restaurant type from keyword
+            cuisine_terms = ['turkish', 'seafood', 'vegetarian', 'kebab', 'meze', 'ottoman']
+            has_cuisine = any(term in keyword.lower() for term in cuisine_terms)
+            
+            if has_cuisine:
+                query = f"{keyword} restaurant in {location} Istanbul"
+            else:
+                query = f"{keyword} turkish restaurant in {location} Istanbul"
         elif keyword:
-            query = f"{keyword} restaurant in Istanbul Turkey"
+            # Check if keyword already includes location context
+            if 'istanbul' not in keyword.lower():
+                query = f"{keyword} restaurant in Istanbul Turkey"
+            else:
+                query = f"{keyword} restaurant"
         elif location:
-            query = f"Turkish restaurant in {location} Istanbul"
+            query = f"best turkish restaurant in {location} Istanbul"
         else:
-            query = "Turkish restaurant in Istanbul Turkey"
+            query = "authentic turkish restaurant in Istanbul Turkey"
         
         params = {
             "key": self.api_key,
@@ -151,16 +166,32 @@ class EnhancedGooglePlacesClient:
             structured_place = {
                 "name": place.get("name", "Unknown Restaurant"),
                 "rating": place.get("rating"),
+                "user_ratings_total": place.get("user_ratings_total", 0),
                 "address": place.get("formatted_address", "Address not available"),
-                "price_level": place.get("price_level"),
+                "price_level": self._format_price_level(place.get("price_level")),
                 "types": place.get("types", []),
                 "place_id": place.get("place_id"),
                 "opening_hours": place.get("opening_hours", {}),
-                "photos": place.get("photos", []),
+                "is_open_now": place.get("opening_hours", {}).get("open_now"),
+                "photos": place.get("photos", [])[:3],  # Limit photos
                 "geometry": place.get("geometry", {}),
                 "plus_code": place.get("plus_code", {}),
-                "business_status": place.get("business_status", "OPERATIONAL")
+                "business_status": place.get("business_status", "OPERATIONAL"),
+                "vicinity": place.get("vicinity", ""),
+                # Enhanced rating information
+                "rating_summary": self._create_rating_summary(place.get("rating"), place.get("user_ratings_total", 0)),
+                # Extract cuisine type from place types
+                "cuisine_type": self._extract_cuisine_type(place.get("types", [])),
+                # Add distance estimation from major landmarks
+                "location_context": self._get_location_context(place.get("geometry", {}))
             }
+            
+            # Try to get enhanced details if we have place_id and are within rate limits
+            if structured_place["place_id"] and self._check_rate_limit():
+                enhanced_details = self._get_basic_place_details(structured_place["place_id"])
+                if enhanced_details:
+                    structured_place.update(enhanced_details)
+            
             structured_results.append(structured_place)
         
         return {
@@ -406,3 +437,138 @@ class EnhancedGooglePlacesClient:
             "cache_entries": len(self._cache),
             "data_source": "real_api" if (self.has_api_key and self.use_real_apis) else "mock_data"
         }
+    
+    def _format_price_level(self, price_level: Optional[int]) -> str:
+        """Convert numeric price level to descriptive text"""
+        if price_level is None:
+            return "Price not available"
+        
+        price_map = {
+            0: "Free",
+            1: "Inexpensive (₺)",
+            2: "Moderate (₺₺)", 
+            3: "Expensive (₺₺₺)",
+            4: "Very Expensive (₺₺₺₺)"
+        }
+        return price_map.get(price_level, "Price not available")
+    
+    def _create_rating_summary(self, rating: Optional[float], review_count: int) -> str:
+        """Create a descriptive rating summary"""
+        if not rating:
+            return "No ratings available"
+        
+        if review_count == 0:
+            return f"{rating}/5 stars (no reviews)"
+        elif review_count == 1:
+            return f"{rating}/5 stars (1 review)"
+        elif review_count < 10:
+            return f"{rating}/5 stars ({review_count} reviews)"
+        elif review_count < 100:
+            return f"{rating}/5 stars ({review_count} reviews)"
+        else:
+            return f"{rating}/5 stars ({review_count}+ reviews)"
+    
+    def _extract_cuisine_type(self, types: List[str]) -> str:
+        """Extract cuisine type from Google place types"""
+        cuisine_mapping = {
+            "turkish_restaurant": "Turkish",
+            "mediterranean_restaurant": "Mediterranean", 
+            "seafood_restaurant": "Seafood",
+            "vegetarian_restaurant": "Vegetarian",
+            "middle_eastern_restaurant": "Middle Eastern",
+            "european_restaurant": "European",
+            "asian_restaurant": "Asian"
+        }
+        
+        for place_type in types:
+            if place_type in cuisine_mapping:
+                return cuisine_mapping[place_type]
+        
+        # Check for general restaurant types
+        if "restaurant" in types:
+            return "Restaurant"
+        elif "meal_takeaway" in types:
+            return "Takeaway"
+        elif "cafe" in types:
+            return "Cafe"
+        
+        return "Restaurant"
+    
+    def _get_location_context(self, geometry: Dict) -> str:
+        """Get location context relative to Istanbul landmarks"""
+        if not geometry or "location" not in geometry:
+            return "Istanbul"
+        
+        lat = geometry["location"].get("lat")
+        lng = geometry["location"].get("lng")
+        
+        if not lat or not lng:
+            return "Istanbul"
+        
+        # Major Istanbul landmarks for context
+        landmarks = {
+            "Sultanahmet": (41.0054, 28.9768),
+            "Taksim": (41.0369, 28.9850),
+            "Galata": (41.0256, 28.9752),
+            "Beyoglu": (41.0341, 28.9788),
+            "Kadikoy": (40.9929, 29.0275),
+            "Besiktas": (41.0420, 29.0024)
+        }
+        
+        min_distance = float('inf')
+        closest_landmark = "Istanbul"
+        
+        for landmark, (landmark_lat, landmark_lng) in landmarks.items():
+            # Simple distance calculation
+            distance = ((lat - landmark_lat) ** 2 + (lng - landmark_lng) ** 2) ** 0.5
+            if distance < min_distance:
+                min_distance = distance
+                closest_landmark = landmark
+        
+        return f"Near {closest_landmark}"
+    
+    def _get_basic_place_details(self, place_id: str) -> Optional[Dict]:
+        """Get basic place details without consuming too much quota"""
+        try:
+            url = f"{self.base_url}/details/json"
+            params = {
+                "key": self.api_key,
+                "place_id": place_id,
+                "fields": "website,formatted_phone_number,editorial_summary,reviews"
+            }
+            
+            response = requests.get(url, params=params, timeout=8)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get("status") == "OK":
+                result = data.get("result", {})
+                enhanced_data = {}
+                
+                if result.get("website"):
+                    enhanced_data["website"] = result["website"]
+                
+                if result.get("formatted_phone_number"):
+                    enhanced_data["phone"] = result["formatted_phone_number"]
+                
+                if result.get("editorial_summary"):
+                    enhanced_data["description"] = result["editorial_summary"].get("overview", "")
+                
+                # Add a sample review if available
+                reviews = result.get("reviews", [])
+                if reviews:
+                    top_review = reviews[0]
+                    enhanced_data["sample_review"] = {
+                        "text": top_review.get("text", "")[:150] + "...",
+                        "rating": top_review.get("rating"),
+                        "author": top_review.get("author_name", "Anonymous"),
+                        "time": top_review.get("relative_time_description", "")
+                    }
+                
+                self._request_count += 1
+                return enhanced_data
+                
+        except Exception as e:
+            logger.warning(f"Failed to get enhanced details for place {place_id}: {e}")
+        
+        return None

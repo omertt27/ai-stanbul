@@ -1513,10 +1513,9 @@ function Chatbot() {
             
             <div ref={messagesEndRef} />
           </div>
-        </div>
-
-        {/* Redesigned Input Area - Modern and Elegant */}
-        <div className="chatbot-input-area">
+          
+          {/* Redesigned Input Area - Modern and Elegant */}
+          <div className="chatbot-input-area">
           
           {/* Error message with improved styling */}
           {inputError && (
@@ -1631,6 +1630,7 @@ function Chatbot() {
           </div>
           
           {/* Quick suggestions (optional) - removed from here as moved to welcome screen */}
+          </div>
         </div>
         </div>
       </div>
