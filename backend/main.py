@@ -1503,6 +1503,25 @@ async def get_real_museums():
         logger.error(f"Error fetching real museums: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
 
+@app.get("/api/real-museums/nearby")
+async def get_nearby_museums(lat: float, lng: float, radius: int = 5000):
+    """Search for museums near a location"""
+    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
+        raise HTTPException(status_code=503, detail="Real museum service not available")
+    
+    try:
+        museums = await real_museum_service.search_museums_nearby(lat, lng, radius)
+        return {
+            "success": True,
+            "museums": [real_museum_service.to_dict(museum) for museum in museums],
+            "total": len(museums),
+            "search_params": {"lat": lat, "lng": lng, "radius": radius},
+            "last_updated": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error searching nearby museums: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to search museums: {str(e)}")
+
 @app.get("/api/real-museums/{museum_key}")
 async def get_real_museum(museum_key: str):
     """Get real-time information for a specific museum"""
@@ -1524,25 +1543,6 @@ async def get_real_museum(museum_key: str):
     except Exception as e:
         logger.error(f"Error fetching museum {museum_key}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
-
-@app.get("/api/real-museums/nearby")
-async def get_nearby_museums(lat: float, lng: float, radius: int = 5000):
-    """Search for museums near a location"""
-    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
-        raise HTTPException(status_code=503, detail="Real museum service not available")
-    
-    try:
-        museums = await real_museum_service.search_museums_nearby(lat, lng, radius)
-        return {
-            "success": True,
-            "museums": [real_museum_service.to_dict(museum) for museum in museums],
-            "total": len(museums),
-            "search_params": {"lat": lat, "lng": lng, "radius": radius},
-            "last_updated": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error searching nearby museums: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to search museums: {str(e)}")
 
 @app.post("/api/real-transportation/routes")
 async def get_real_transportation_routes(data: dict):
@@ -1646,3 +1646,162 @@ async def get_services_status():
         },
         "timestamp": datetime.now().isoformat()
     }
+
+# ====== CHAT INTEGRATION ENDPOINT ======
+
+@app.post("/api/chat")
+async def chat_endpoint(data: dict):
+    """Process chat messages and provide intelligent responses about Istanbul"""
+    try:
+        message = data.get('message', '').strip()
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        # Simple keyword-based routing to demonstrate integration
+        message_lower = message.lower()
+        
+        # Museum-related queries
+        museum_keywords = ['museum', 'hagia sophia', 'topkapi', 'blue mosque', 'basilica cistern', 'opening hours', 'visiting']
+        if any(keyword in message_lower for keyword in museum_keywords):
+            if REAL_MUSEUM_SERVICE_ENABLED and real_museum_service:
+                try:
+                    # Try to extract specific museum name
+                    museum_key = extract_museum_key_from_input(message)
+                    if museum_key and museum_key != 'hagia_sophia':  # Default fallback
+                        museum = await real_museum_service.get_museum_info(museum_key)
+                        if museum:
+                            response_text = f"Here's information about {museum.name}:\n\n"
+                            response_text += f"📍 Address: {museum.address}\n"
+                            response_text += f"⭐ Rating: {museum.rating}/5 ({museum.total_ratings} reviews)\n"
+                            
+                            if museum.opening_hours_text:
+                                response_text += f"🕒 Hours: {', '.join(museum.opening_hours_text[:2])}\n"
+                            
+                            response_text += f"🌐 Website: {museum.website}\n" if museum.website else ""
+                            response_text += f"📞 Phone: {museum.phone}\n" if museum.phone else ""
+                            
+                            return {
+                                "success": True,
+                                "response": response_text,
+                                "type": "museum_info",
+                                "data": real_museum_service.to_dict(museum)
+                            }
+                    
+                    # General museum information
+                    museums = await real_museum_service.get_all_museums()
+                    response_text = f"I found {len(museums)} major museums in Istanbul:\n\n"
+                    for key, museum in list(museums.items())[:3]:  # Show top 3
+                        response_text += f"🏛️ **{museum.name}**\n"
+                        response_text += f"   Rating: {museum.rating}/5 | Status: {museum.current_status}\n\n"
+                    
+                    response_text += "Would you like detailed information about any specific museum?"
+                    
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "type": "museum_list",
+                        "data": {key: real_museum_service.to_dict(museum) for key, museum in museums.items()}
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error in museum chat integration: {str(e)}")
+        
+        # Transportation-related queries
+        transport_keywords = ['transport', 'metro', 'bus', 'ferry', 'tram', 'route', 'how to get', 'travel', 'directions', 'get from', 'go to']
+        if any(keyword in message_lower for keyword in transport_keywords):
+            if REAL_TRANSPORT_SERVICE_ENABLED and real_transportation_service:
+                try:
+                    # Extract potential origin/destination from message (simplified)
+                    locations = []
+                    location_keywords = ['sultanahmet', 'taksim', 'galata', 'eminonu', 'kadikoy', 'besiktas', 'airport']
+                    for loc in location_keywords:
+                        if loc in message_lower:
+                            locations.append(loc.title())
+                    
+                    if len(locations) >= 2:
+                        # Get routes between two locations
+                        origin, destination = locations[0], locations[1]
+                        routes = await real_transportation_service.get_real_time_routes(origin, destination)
+                        if routes:
+                            response_text = f"Here are the best routes from {origin} to {destination}:\n\n"
+                            for i, route in enumerate(routes[:3], 1):  # Show top 3 routes
+                                response_text += f"{i}. **{route.transport_type.title()} - {route.line_name}**\n"
+                                response_text += f"   Duration: {route.duration_minutes} min | Cost: {route.cost_tl} TL\n"
+                                if route.next_departures:
+                                    response_text += f"   Next: {', '.join(route.next_departures[:2])}\n\n"
+                            
+                            return {
+                                "success": True,
+                                "response": response_text,
+                                "type": "transportation_routes",
+                                "data": [real_transportation_service.to_dict(route) for route in routes]
+                            }
+                    
+                    # General transportation information
+                    alerts = await real_transportation_service.get_service_alerts()
+                    response_text = "Istanbul Transportation Information:\n\n"
+                    response_text += "🚇 **Metro Lines**: M1, M2, M3, M4, M5, M6, M7\n"
+                    response_text += "🚊 **Tram Lines**: T1, T4\n"
+                    response_text += "⛴️ **Ferry Routes**: Multiple Bosphorus and Golden Horn routes\n"
+                    response_text += "🚌 **Buses**: Extensive IETT network\n\n"
+                    
+                    if alerts:
+                        response_text += f"⚠️ Current Alerts ({len(alerts)}):\n"
+                        for alert in alerts[:2]:  # Show first 2 alerts
+                            response_text += f"   {alert.get('title', 'Service Update')}\n"
+                    
+                    response_text += "\nAsk me about routes between specific locations!"
+                    
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "type": "transportation_info",
+                        "data": {"alerts": alerts}
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"Error in transportation chat integration: {str(e)}")
+            else:
+                # Fallback response when service is not available
+                return {
+                    "success": True,
+                    "response": "Istanbul has an excellent public transportation system including:\n\n🚇 **Metro**: 7 lines (M1-M7) connecting major districts\n🚊 **Tram**: T1 (connects to historic peninsula) and T4\n⛴️ **Ferry**: Beautiful Bosphorus and Golden Horn routes\n🚌 **Bus**: Extensive IETT network throughout the city\n\nFor real-time routes and schedules, I recommend using the official IETT mobile app or Google Maps.",
+                    "type": "transportation_fallback"
+                }
+        
+        # General Istanbul information
+        general_keywords = ['istanbul', 'turkey', 'visit', 'tourist', 'attraction', 'recommendation']
+        if any(keyword in message_lower for keyword in general_keywords):
+            response_text = "Welcome to Istanbul! 🏛️\n\n"
+            response_text += "I can help you with:\n"
+            response_text += "🏛️ **Museums**: Hagia Sophia, Topkapi Palace, Blue Mosque, and more\n"
+            response_text += "🚇 **Transportation**: Metro, bus, ferry, and tram routes\n"
+            response_text += "📍 **Locations**: Opening hours, directions, and recommendations\n\n"
+            response_text += "Try asking me:\n"
+            response_text += "• 'What museums are near me?'\n"
+            response_text += "• 'How do I get from Sultanahmet to Taksim?'\n"
+            response_text += "• 'What are the opening hours for Hagia Sophia?'"
+            
+            return {
+                "success": True,
+                "response": response_text,
+                "type": "general_info"
+            }
+        
+        # Default response
+        return {
+            "success": True,
+            "response": "I'm your Istanbul AI assistant! I can help you with museum information and transportation routes. What would you like to know about Istanbul?",
+            "type": "default"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+
+@app.post("/chat")
+async def chat_endpoint_legacy(data: dict):
+    """Legacy chat endpoint - redirects to /api/chat"""
+    return await chat_endpoint(data)
