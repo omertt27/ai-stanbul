@@ -215,30 +215,22 @@ except ImportError as e:
 
 # Import live data services for museums and transport
 try:
-    from live_museum_service import LiveMuseumService
-    live_museum_service = LiveMuseumService()
-    print("✅ Live museum service import successful")
+    from real_museum_service import real_museum_service
+    print("✅ Real museum service import successful")
+    REAL_MUSEUM_SERVICE_ENABLED = True
 except ImportError as e:
-    print(f"⚠️ Live museum service import failed: {e}")
-    # Create dummy service
-    class DummyMuseumService:
-        async def get_museum_info(self, museum_name): return None
-        async def search_museums(self, location=None, query=None): return []
-        def get_popular_museums(self): return []
-    live_museum_service = DummyMuseumService()
+    print(f"⚠️ Real museum service import failed: {e}")
+    real_museum_service = None
+    REAL_MUSEUM_SERVICE_ENABLED = False
 
 try:
-    from real_time_transport import RealTimeTransportService
-    transport_service = RealTimeTransportService()
-    print("✅ Real-time transport service import successful")
+    from real_transportation_service import real_transportation_service
+    print("✅ Real transportation service import successful")
+    REAL_TRANSPORT_SERVICE_ENABLED = True
 except ImportError as e:
-    print(f"⚠️ Real-time transport service import failed: {e}")
-    # Create dummy service
-    class DummyTransportService:
-        async def get_route(self, from_loc, to_loc): return None
-        async def get_line_status(self, line_name): return None
-        def get_live_delays(self): return []
-    transport_service = DummyTransportService()
+    print(f"⚠️ Real transportation service import failed: {e}")
+    real_transportation_service = None
+    REAL_TRANSPORT_SERVICE_ENABLED = False
 
 from sqlalchemy.orm import Session
 
@@ -627,7 +619,7 @@ def sanitize_user_input(user_input: str) -> str:
     
     return user_input.strip()
 
-def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
+async def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
     """Generate response using OpenAI GPT with enhanced category-specific prompts and personalized memory"""
     try:
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -782,10 +774,45 @@ LOCATION-SPECIFIC INSTRUCTIONS:
             enhanced_service_data = ""
             if ENHANCED_SERVICES_ENABLED:
                 try:
-                    # Enhanced Transportation Service Integration
-                    if category.value == "transportation" or any(word in user_input.lower() for word in ['metro', 'bus', 'transport', 'how to get', 'travel to', 'route', 'ferry', 'ferries', 'boat', 'boats', 'cross', 'bosphorus', 'golden horn', 'prince islands', 'kadıköy', 'üsküdar', 'beşiktaş', 'eminönü', 'karaköy', 'kabataş', 'directions', 'way to', 'get from', 'get to']):
-                        print(f"🚌 Fetching enhanced transportation data...")
-                        transport_data = enhanced_transport_service.get_transportation_info(user_input, location_context)
+                    # Real Transportation Service Integration (with fallback to enhanced service)
+                    if category.value == "transportation" or any(word in user_message.lower() for word in ['metro', 'bus', 'transport', 'how to get', 'travel to', 'route', 'ferry', 'ferries', 'boat', 'boats', 'cross', 'bosphorus', 'golden horn', 'prince islands', 'kadıköy', 'üsküdar', 'beşiktaş', 'eminönü', 'karaköy', 'kabataş', 'directions', 'way to', 'get from', 'get to']):
+                        print(f"🚌 Fetching real-time transportation data...")
+                        
+                        # Try real transportation service first
+                        transport_data = None
+                        if REAL_TRANSPORT_SERVICE_ENABLED and real_transportation_service:
+                            try:
+                                # Extract origin and destination from user input
+                                origin = location_context or "Current Location"
+                                destination = user_input  # Simplified - could be improved with NLP
+                                
+                                # Get real-time routes
+                                routes = await real_transportation_service.get_real_time_routes(origin, destination)
+                                if routes:
+                                    # Get service alerts
+                                    service_alerts = await real_transportation_service.get_service_alerts()
+                                    
+                                    transport_data = {
+                                        'success': True,
+                                        'routes': [
+                                            {
+                                                'summary': f"{route.transport_type.title()} {route.line_number or route.line_name}",
+                                                'duration': f"{route.duration_minutes} min",
+                                                'cost': f"{route.cost_tl:.2f} TL",
+                                                'instructions': route.instructions[:2],
+                                                'next_departures': route.next_departures,
+                                                'real_time_status': route.real_time_status
+                                            } for route in routes[:5]
+                                        ],
+                                        'service_alerts': service_alerts
+                                    }
+                                    print(f"✅ Real transportation service provided {len(routes)} routes")
+                            except Exception as e:
+                                print(f"⚠️ Real transportation service error: {e}")
+                        
+                        # Fallback to enhanced service if real service fails
+                        if not transport_data:
+                            transport_data = enhanced_transport_service.get_transportation_info(user_input, location_context)
                         
                         if transport_data.get('success'):
                             enhanced_service_data += f"\n\nREAL-TIME ISTANBUL TRANSPORTATION DATA:\n"
@@ -808,10 +835,56 @@ LOCATION-SPECIFIC INSTRUCTIONS:
                             
                             print(f"✅ Enhanced transportation data integrated")
                     
-                    # Enhanced Museum Service Integration
-                    if category.value == "museum_advice" or any(word in user_input.lower() for word in ['museum', 'gallery', 'exhibition', 'art', 'history', 'culture']):
-                        print(f"🏛️ Fetching enhanced museum data...")
-                        museum_data = enhanced_museum_service.get_museum_info(user_input, location_context)
+                    # Real Museum Service Integration (with fallback to enhanced service)
+                    if category.value == "museum_advice" or any(word in user_message.lower() for word in ['museum', 'gallery', 'exhibition', 'art', 'history', 'culture']):
+                        print(f"🏛️ Fetching real museum data...")
+                        
+                        # Try real museum service first
+                        museum_data = None
+                        if REAL_MUSEUM_SERVICE_ENABLED and real_museum_service:
+                            try:
+                                # Extract museum name or search for all museums
+                                if any(museum_name in user_message.lower() for museum_name in ['hagia sophia', 'topkapi', 'blue mosque', 'basilica cistern', 'galata tower', 'dolmabahce']):
+                                    # Get specific museum
+                                    museum_key = extract_museum_key_from_input(user_message)
+                                    if museum_key:
+                                        museum_info = await real_museum_service.get_museum_info(museum_key)
+                                        if museum_info:
+                                            museum_data = {
+                                                'success': True,
+                                                'museums': [{
+                                                    'name': museum_info.name,
+                                                    'location': museum_info.address,
+                                                    'highlights': f"Rating: {museum_info.rating}/5 ({museum_info.total_ratings} reviews)",
+                                                    'practical_info': f"Status: {museum_info.current_status}, Hours: {', '.join(museum_info.opening_hours_text[:2])}",
+                                                    'cultural_context': f"Website: {museum_info.website or 'N/A'}"
+                                                }],
+                                                'real_time_data': True
+                                            }
+                                else:
+                                    # Get all museums for general queries
+                                    all_museums = await real_museum_service.get_all_museums()
+                                    if all_museums:
+                                        museum_data = {
+                                            'success': True,
+                                            'museums': [
+                                                {
+                                                    'name': museum_info.name,
+                                                    'location': museum_info.address,
+                                                    'highlights': f"Rating: {museum_info.rating}/5" if museum_info.rating else "Popular Istanbul museum",
+                                                    'practical_info': f"Status: {museum_info.current_status}",
+                                                    'cultural_context': f"Phone: {museum_info.phone or 'N/A'}"
+                                                } for museum_info in list(all_museums.values())[:4]
+                                            ],
+                                            'real_time_data': True
+                                        }
+                                print(f"✅ Real museum service provided data")
+                            except Exception as e:
+                                print(f"⚠️ Real museum service error: {e}")
+                        
+                        # Fallback to enhanced service if real service fails
+                        if not museum_data:
+                            museum_data = enhanced_museum_service.get_museum_info(user_input, location_context)
                         
                         if museum_data.get('success'):
                             enhanced_service_data += f"\n\nENHANCED MUSEUM & CULTURAL SITE DATA:\n"
@@ -1372,879 +1445,204 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
-def get_enhanced_location_context(user_input: str, category: str = "general") -> str:
-    """Get enhanced location context using the comprehensive location enhancer"""
-    try:
-        from comprehensive_location_enhancer import ComprehensiveLocationEnhancer
-        
-        # Initialize the location enhancer
-        enhancer = ComprehensiveLocationEnhancer()
-        
-        # Get enhanced context
-        enhanced_context = enhancer.enhance_location_context(user_input, category)
-        
-        return enhanced_context
-        
-    except Exception as e:
-        print(f"⚠️ Error getting enhanced location context: {e}")
-        
-        # Fallback to basic location context
-        user_lower = user_input.lower()
-        
-        # Basic district detection
-        districts = {
-            'sultanahmet': 'Historic Sultanahmet district - home to Hagia Sophia, Blue Mosque, and Topkapı Palace',
-            'taksim': 'Modern Taksim area - shopping, dining, and nightlife center',
-            'beyoglu': 'Historic Beyoğlu - cultural district with Galata Tower and İstiklal Street',
-            'kadikoy': 'Asian side Kadıköy - trendy neighborhood with great food scene',
-            'besiktas': 'Beşiktaş district - mix of business and residential with waterfront views',
-            'ortakoy': 'Charming Ortaköy - famous for its mosque and Bosphorus views',
-            'karakoy': 'Historic Karaköy - art galleries and boutique hotels',
-            'galata': 'Galata area - historic tower and panoramic city views'
-        }
-        
-        context = ""
-        for district, description in districts.items():
-            if district in user_lower:
-                context += f"\n🏘️ **About {district.title()}:** {description}\n"
-        
-        # Add general Istanbul context if no specific district found
-        if not context:
-            context = "\n🏙️ **Istanbul Context:** This magnificent city spans Europe and Asia, offering rich history, delicious cuisine, and vibrant culture.\n"
-        
-        return context
-
-def detect_location_confusion(user_input: str) -> Tuple[bool, Optional[str]]:
-    """Detect if user is asking about locations other than Istanbul and provide redirection"""
-    user_lower = user_input.lower()
+# Helper function for museum key extraction
+def extract_museum_key_from_input(user_input: str) -> str:
+    """Extract museum key from user input based on keywords"""
+    input_lower = user_input.lower()
     
-    # Common Turkish cities that people might confuse with Istanbul
-    other_cities = ['ankara', 'izmir', 'antalya', 'bursa', 'adana', 'gaziantep', 'konya']
-    
-    # Check if user mentions other cities
-    for city in other_cities:
-        if city in user_lower:
-            return True, f"I specialize in Istanbul travel advice! If you're asking about {city.title()}, I'd recommend checking local resources for that city. However, I'd be happy to help you plan your Istanbul experience - what would you like to know about Istanbul?"
-    
-    # Check for generic "Turkey" questions that might need Istanbul focus
-    if 'turkey' in user_lower and not 'istanbul' in user_lower:
-        turkey_indicators = ['restaurants in turkey', 'food in turkey', 'places in turkey', 'visit turkey']
-        if any(indicator in user_lower for indicator in turkey_indicators):
-            return True, "I focus specifically on Istanbul! While Turkey has many amazing destinations, I can provide detailed advice about Istanbul's restaurants, attractions, and experiences. What would you like to know about Istanbul specifically?"
-    
-    return False, None
-
-# === Health and Status Endpoints ===
-
-@app.post("/admin/login")
-async def admin_login(credentials: Dict[str, Any]):
-    """Admin login endpoint"""
-    try:
-        username = credentials.get("username")
-        password = credentials.get("password")
-        
-        if not username or not password:
-            raise HTTPException(status_code=400, detail="Username and password required")
-        
-        # Authenticate admin
-        admin_data = authenticate_admin(username, password)
-        if not admin_data:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        
-        # Create JWT tokens (access + refresh)
-        token_data = {"sub": username, "username": username, "role": "admin"}
-        access_token = create_access_token(data=token_data)
-        refresh_token = create_refresh_token(data=token_data)
-        
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "expires_in": 15 * 60,  # 15 minutes in seconds
-            "admin": admin_data
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail="Login failed")
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring and testing"""
-    health_status = {
-        "status": "healthy",
-        "service": "AI Istanbul Backend",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+    # Museum keyword mapping
+    museum_mappings = {
+        'hagia sophia': 'hagia_sophia',
+        'ayasofya': 'hagia_sophia',
+        'topkapi': 'topkapi_palace',
+        'topkapı': 'topkapi_palace',
+        'blue mosque': 'blue_mosque',
+        'sultan ahmed': 'blue_mosque',
+        'basilica cistern': 'basilica_cistern',
+        'yerebatan': 'basilica_cistern',
+        'galata tower': 'galata_tower',
+        'galata kulesi': 'galata_tower',
+        'dolmabahce': 'dolmabahce_palace',
+        'dolmabahçe': 'dolmabahce_palace',
+        'archaeology': 'istanbul_archaeology',
+        'arkeoloji': 'istanbul_archaeology',
+        'islamic arts': 'turkish_islamic_arts',
+        'türk islam': 'turkish_islamic_arts',
+        'pera museum': 'pera_museum',
+        'pera müzesi': 'pera_museum',
+        'istanbul modern': 'istanbul_modern',
+        'modern sanat': 'istanbul_modern'
     }
     
-    # Add monitoring metrics if available
-    if ADVANCED_MONITORING_ENABLED:
-        try:
-            metrics_summary = advanced_monitor.get_metrics_summary(hours=1)
-            health_status["metrics"] = {
-                "cpu_usage": metrics_summary.get("system", {}).get("cpu_usage", {}).get("current", 0),
-                "memory_usage": metrics_summary.get("system", {}).get("memory_usage", {}).get("current", 0),
-                "response_time": metrics_summary.get("system", {}).get("response_time", {}).get("current", 0),
-                "active_alerts": metrics_summary.get("alerts", {}).get("active", 0)
-            }
-        except Exception as e:
-            health_status["monitoring_error"] = str(e)
+    # Find matching museum
+    for keyword, museum_key in museum_mappings.items():
+        if keyword in input_lower:
+            return museum_key
     
-    return health_status
+    # Default to hagia sophia if no specific match
+    return 'hagia_sophia'
 
-@app.get("/metrics")
-async def get_metrics(current_admin: dict = Depends(get_current_admin)):
-    """Get system metrics - PROTECTED ENDPOINT"""
-    if not ADVANCED_MONITORING_ENABLED:
-        raise HTTPException(status_code=503, detail="Advanced monitoring not available")
+# ====== REAL API ENDPOINTS FOR MUSEUMS AND TRANSPORTATION ======
+
+@app.get("/api/real-museums")
+async def get_real_museums():
+    """Get real-time information for all Istanbul museums"""
+    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
+        raise HTTPException(status_code=503, detail="Real museum service not available")
+
     
     try:
-        metrics_summary = advanced_monitor.get_metrics_summary(hours=24)
-        return metrics_summary
+        museums = await real_museum_service.get_all_museums()
+        return {
+            "success": True,
+            "museums": {key: real_museum_service.to_dict(museum) for key, museum in museums.items()},
+            "total": len(museums),
+            "last_updated": datetime.now().isoformat()
+        }
     except Exception as e:
-        log_error("metrics_fetch_error", str(e), "monitoring")
-        raise HTTPException(status_code=500, detail="Error fetching metrics")
+        logger.error(f"Error fetching real museums: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
 
-@app.get("/monitoring/status")
-async def monitoring_status(current_admin: dict = Depends(get_current_admin)):
-    """Get monitoring system status - PROTECTED ENDPOINT"""
-    status = {
-        "advanced_monitoring": ADVANCED_MONITORING_ENABLED,
-        "structured_logging": STRUCTURED_LOGGING_ENABLED,
-        "rate_limiting": RATE_LIMITING_ENABLED,
-        "monitoring_active": getattr(advanced_monitor, 'is_running', False) if ADVANCED_MONITORING_ENABLED else False,
-        "log_directory": "/tmp/ai-istanbul-logs" if ADVANCED_MONITORING_ENABLED else None
-    }
+@app.get("/api/real-museums/{museum_key}")
+async def get_real_museum(museum_key: str):
+    """Get real-time information for a specific museum"""
+    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
+        raise HTTPException(status_code=503, detail="Real museum service not available")
     
-    if ADVANCED_MONITORING_ENABLED:
-        try:
-            status["active_alerts"] = len([a for a in advanced_monitor.active_alerts.values() if not a.resolved])
-            status["total_alerts_today"] = len([a for a in advanced_monitor.alert_history if (datetime.utcnow() - datetime.fromisoformat(a.timestamp.replace('Z', '+00:00'))).days < 1])
-        except Exception as e:
-            status["monitoring_error"] = str(e)
-    
-    return status
-
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard():
-    """Serve the unified admin dashboard"""
     try:
-        # Look for the unified dashboard in multiple locations
-        dashboard_paths = [
-            os.path.join(os.path.dirname(__file__), "..", "unified_admin_dashboard.html"),
-            os.path.join(os.path.dirname(__file__), "unified_admin_dashboard.html"),
-            "/Users/omer/Desktop/ai-stanbul/unified_admin_dashboard.html"
-        ]
-        
-        dashboard_content = None
-        for path in dashboard_paths:
-            if os.path.exists(path):
-                with open(path, 'r', encoding='utf-8') as f:
-                    dashboard_content = f.read()
-                break
-        
-        if dashboard_content:
-            return HTMLResponse(content=dashboard_content)
-        else:
-            return HTMLResponse(
-                content="<h1>Admin Dashboard Not Found</h1><p>Please ensure unified_admin_dashboard.html is available.</p>", 
-                status_code=404
-            )
-    except Exception as e:
-        return HTMLResponse(
-            content=f"<h1>Admin Dashboard Error</h1><p>Error loading dashboard: {str(e)}</p>", 
-            status_code=500
-        )
-
-@app.get("/admin/api/stats")
-async def admin_stats(db: Session = Depends(get_db), current_admin: dict = Depends(get_current_admin)):
-    """Get admin dashboard statistics with real data - PROTECTED ENDPOINT"""
-    try:
-        # Get real data from database
-        total_chats = db.query(ChatHistory).count()
-        total_sessions = db.query(ChatSession).count()
-        total_blog_posts = db.query(BlogPost).count()
-        total_blog_comments = db.query(BlogComment).count()
-        
-        # Comment moderation stats (focus on problematic content)
-        rejected_comments = db.query(BlogComment).filter(BlogComment.is_approved == False, BlogComment.is_spam == False, BlogComment.is_flagged == False).count()
-        flagged_comments = db.query(BlogComment).filter(BlogComment.is_flagged == True).count()
-        spam_comments = db.query(BlogComment).filter(BlogComment.is_spam == True).count()
-        approved_comments = db.query(BlogComment).filter(BlogComment.is_approved == True).count()
-        
-        # Blog post stats
-        published_posts = db.query(BlogPost).filter(BlogPost.is_published == True).count()
-        draft_posts = db.query(BlogPost).filter(BlogPost.is_published == False).count()
-        
-        # Recent activity (last 10 activities)
-        recent_comments = db.query(BlogComment).order_by(BlogComment.created_at.desc()).limit(5).all()
-        recent_posts = db.query(BlogPost).order_by(BlogPost.created_at.desc()).limit(3).all()
-        recent_chats = db.query(ChatHistory).order_by(ChatHistory.timestamp.desc()).limit(3).all()
-        
-        recent_activity = []
-        
-        # Add recent comments to activity
-        for comment in recent_comments:
-            status = "approved" if comment.is_approved else "pending approval"
-            if comment.is_spam:
-                status = "marked as spam"
-            elif comment.is_flagged:
-                status = "flagged for review"
-            recent_activity.append({
-                "time": f"{int((datetime.utcnow() - comment.created_at).total_seconds() // 60)} minutes ago" if comment.created_at else "Recently",
-                "message": f"New comment by {comment.author_name} - {status}",
-                "type": "comment"
-            })
-        
-        # Add recent posts to activity
-        for post in recent_posts:
-            status = "published" if post.is_published else "saved as draft"
-            recent_activity.append({
-                "time": f"{int((datetime.utcnow() - post.created_at).total_seconds() // 60)} minutes ago" if post.created_at else "Recently",
-                "message": f"Blog post '{post.title[:30]}...' {status}",
-                "type": "blog"
-            })
-        
-        # Add recent chats to activity
-        for chat in recent_chats:
-            recent_activity.append({
-                "time": f"{int((datetime.utcnow() - chat.timestamp).total_seconds() // 60)} minutes ago" if chat.timestamp else "Recently", 
-                "message": f"Chat query: '{chat.user_message[:30]}...'",
-                "type": "chat"
-            })
-        
-        # Sort by time and limit to 10 most recent
-        recent_activity = sorted(recent_activity, key=lambda x: x["time"])[:10]
-        
-        return {
-            "total_chats": total_chats,
-            "total_sessions": total_sessions,
-            "total_blog_posts": total_blog_posts,
-            "total_blog_comments": total_blog_comments,
-            "published_posts": published_posts,
-            "draft_posts": draft_posts,
-            "rejected_comments": rejected_comments,
-            "flagged_comments": flagged_comments,
-            "spam_comments": spam_comments,
-            "approved_comments": approved_comments,
-            "avg_rating": 4.2,  # This could be calculated from actual feedback
-            "response_time": "1.2s",
-            "recent_activity": recent_activity,
-            "system_status": {
-                "api_server": "online",
-                "database": "connected",
-                "google_maps_api": "active",
-                "openai_api": "active"
-            }
-        }
-    except Exception as e:
-        logger.error(f"Error fetching admin stats: {e}")
-        # Fallback to mock data if there's an error
-        return {
-            "total_chats": 0,
-            "total_sessions": 0, 
-            "total_blog_posts": 0,
-            "total_blog_comments": 0,
-            "published_comments": 0,
-            "draft_posts": 0,
-            "pending_comments": 0,
-            "flagged_comments": 0,
-            "spam_comments": 0,
-            "avg_rating": 4.2,
-            "response_time": "1.2s",
-            "recent_activity": [],
-            "system_status": {
-                "api_server": "online",
-                "database": "error",
-                "google_maps_api": "active",
-                "openai_api": "active"
-            },
-            "error": str(e)
-        }
-
-@app.get("/admin/api/sessions")
-async def admin_sessions(db: Session = Depends(get_db), current_admin: dict = Depends(get_current_admin)):
-    """Get chat sessions for admin dashboard with real data - PROTECTED ENDPOINT"""
-    try:
-        # Get real chat sessions from database
-        chat_sessions = db.query(ChatSession).order_by(ChatSession.last_activity_at.desc()).limit(20).all()
-        
-        sessions_data = []
-        for session in chat_sessions:
-            # Calculate session duration
-            if session.first_message_at and session.last_activity_at:
-                duration_seconds = int((session.last_activity_at - session.first_message_at).total_seconds())
-                duration = f"{duration_seconds // 60}m {duration_seconds % 60}s"
-            else:
-                duration = "Unknown"
-            
-            # Get feedback for this session to calculate rating
-            likes = db.query(UserFeedback).filter(
-                UserFeedback.session_id == session.id,
-                UserFeedback.feedback_type == "like"
-            ).count()
-            dislikes = db.query(UserFeedback).filter(
-                UserFeedback.session_id == session.id,
-                UserFeedback.feedback_type == "dislike"
-            ).count()
-            
-            # Calculate a rating based on likes vs dislikes
-            total_feedback = likes + dislikes
-            if total_feedback > 0:
-                rating = round((likes / total_feedback) * 5.0, 1)
-            else:
-                rating = None
-            
-            # Determine status
-            status = "Saved" if session.is_saved else "Active"
-            
-            sessions_data.append({
-                "id": session.id,
-                "user": session.user_ip or "Anonymous",
-                "messages": session.message_count,
-                "duration": duration,
-                "rating": rating,
-                "status": status,
-                "likes": likes,
-                "dislikes": dislikes,
-                "title": session.title[:50] + "..." if session.title and len(session.title) > 50 else session.title,
-                "last_activity": session.last_activity_at.isoformat() if session.last_activity_at else None
-            })
-        
-        return {"sessions": sessions_data}
-    except Exception as e:
-        logger.error(f"Error fetching chat sessions: {e}")
-        return {"error": str(e), "sessions": []}
-
-@app.get("/admin/api/chat/sessions")
-async def admin_chat_sessions(
-    feedback_filter: str = "all",  # all, liked, disliked, mixed, no_feedback
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get chat sessions with feedback status for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        from sqlalchemy import func, case
-        
-        # Build a query to get sessions with feedback summaries
-        query = db.query(
-            ChatSession.id.label("session_id"),
-            ChatSession.title,
-            ChatSession.message_count,
-            ChatSession.first_message_at,
-            ChatSession.last_activity_at,
-            ChatSession.user_ip,
-            ChatSession.is_saved,
-            func.count(case((UserFeedback.feedback_type == "like", 1))).label("likes"),
-            func.count(case((UserFeedback.feedback_type == "dislike", 1))).label("dislikes"),
-            func.count(UserFeedback.id).label("total_feedback")
-        ).outerjoin(
-            UserFeedback, ChatSession.id == UserFeedback.session_id
-        ).group_by(ChatSession.id)
-        
-        # Apply filters
-        if feedback_filter == "liked":
-            query = query.having(func.count(case((UserFeedback.feedback_type == "like", 1))) > 0)
-        elif feedback_filter == "disliked":
-            query = query.having(func.count(case((UserFeedback.feedback_type == "dislike", 1))) > 0)
-        elif feedback_filter == "mixed":
-            query = query.having(
-                func.count(case((UserFeedback.feedback_type == "like", 1))) > 0,
-                func.count(case((UserFeedback.feedback_type == "dislike", 1))) > 0
-            )
-        elif feedback_filter == "no_feedback":
-            query = query.having(func.count(UserFeedback.id) == 0)
-        
-        # Order by last activity
-        query = query.order_by(ChatSession.last_activity_at.desc())
-        
-        # Apply pagination
-        sessions = query.offset(offset).limit(limit).all()
-        
-        # Format response
-        sessions_data = []
-        for session in sessions:
-            sessions_data.append({
-                "session_id": session.session_id,
-                "title": session.title or f"Chat {session.session_id[:8]}...",
-                "message_count": session.message_count,
-                "first_message_at": session.first_message_at.isoformat() if session.first_message_at else None,
-                "last_activity_at": session.last_activity_at.isoformat() if session.last_activity_at else None,
-                "user_ip": session.user_ip,
-                "is_saved": session.is_saved,
-                "feedback_summary": {
-                    "likes": session.likes,
-                    "dislikes": session.dislikes,
-                    "total_feedback": session.total_feedback,
-                    "satisfaction_rate": round((session.likes / session.total_feedback * 100), 1) if session.total_feedback > 0 else 0,
-                    "status": "liked" if session.likes > session.dislikes else "disliked" if session.dislikes > session.likes else "mixed" if session.total_feedback > 0 else "no_feedback"
-                }
-            })
-        
-        # Get total count for pagination
-        total_count = db.query(ChatSession).count()
-        
-        return {
-            "sessions": sessions_data,
-            "total": total_count,
-            "limit": limit,
-            "offset": offset
-        }
-        
-    except Exception as e:
-        logger.error(f"Error fetching chat sessions: {e}")
-        return {"sessions": [], "total": 0, "error": str(e)}
-
-@app.get("/admin/api/chat/sessions/{session_id}")
-async def admin_chat_session_detail(
-    session_id: str,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get detailed chat session with conversation history and feedback - PROTECTED ENDPOINT"""
-    try:
-        # Get session info
-        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-        if not session:
-            raise HTTPException(status_code=404, detail="Chat session not found")
-        
-        # Get conversation history from ChatHistory table
-        chat_history = db.query(ChatHistory).filter(
-            ChatHistory.session_id == session_id
-        ).order_by(ChatHistory.timestamp).all()
-        
-        # Get feedback for this session
-        feedback = db.query(UserFeedback).filter(
-            UserFeedback.session_id == session_id
-        ).order_by(UserFeedback.timestamp).all()
-        
-        # Format conversation history with feedback
-        conversation = []
-        for chat in chat_history:
-            # Find feedback for this message
-            message_feedback = [f for f in feedback if f.message_index == len(conversation)]
-            
-            conversation.append({
-                "user_message": chat.user_message,
-                "ai_response": chat.ai_response,
-                "timestamp": chat.timestamp.isoformat() if chat.timestamp else None,
-                "feedback": [
-                    {
-                        "type": f.feedback_type,
-                        "timestamp": f.timestamp.isoformat() if f.timestamp else None
-                    } for f in message_feedback
-                ]
-            })
-        
-        # Get feedback summary
-        likes_count = len([f for f in feedback if f.feedback_type == "like"])
-        dislikes_count = len([f for f in feedback if f.feedback_type == "dislike"])
-        total_feedback = likes_count + dislikes_count
-        
-        return {
-            "session": {
-                "session_id": session.id,
-                "title": session.title or f"Chat {session.id[:8]}...",
-                "message_count": session.message_count,
-                "first_message_at": session.first_message_at.isoformat() if session.first_message_at else None,
-                "last_activity_at": session.last_activity_at.isoformat() if session.last_activity_at else None,
-                "user_ip": session.user_ip,
-                "is_saved": session.is_saved
-            },
-            "conversation": conversation,
-            "feedback_summary": {
-                "likes": likes_count,
-                "dislikes": dislikes_count,
-                "total_feedback": total_feedback,
-                "satisfaction_rate": round((likes_count / total_feedback * 100), 1) if total_feedback > 0 else 0
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching chat session detail: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# AI Chat Feedback endpoints
-@app.get("/admin/api/chat/feedback")
-async def admin_chat_feedback(
-    session_id: str = None,
-    feedback_type: str = "all",  # all, like, dislike
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get AI chat feedback (likes/unlikes) for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        query = db.query(UserFeedback)
-        
-        if session_id:
-            query = query.filter(UserFeedback.session_id == session_id)
-            
-        if feedback_type == "like":
-            query = query.filter(UserFeedback.feedback_type == "like")
-        elif feedback_type == "dislike":
-            query = query.filter(UserFeedback.feedback_type == "dislike")
-        
-        feedback_entries = query.order_by(UserFeedback.timestamp.desc()).offset(offset).limit(limit).all()
-        
-        feedback_data = []
-        for feedback in feedback_entries:
-            feedback_data.append({
-                "id": feedback.id,
-                "session_id": feedback.session_id,
-                "feedback_type": feedback.feedback_type,
-                "user_query": feedback.user_query,
-                "response_preview": feedback.response_preview,
-                "message_index": feedback.message_index,
-                "user_ip": feedback.user_ip,
-                "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else None,
-                "message_content": feedback.message_content
-            })
-        
-        # Get summary statistics
-        total_likes = db.query(UserFeedback).filter(UserFeedback.feedback_type == "like").count()
-        total_dislikes = db.query(UserFeedback).filter(UserFeedback.feedback_type == "dislike").count()
-        total_feedback = total_likes + total_dislikes
-        total_count = len(feedback_data)
-        
-        return {
-            "feedback": feedback_data,
-            "total": total_count,
-            "summary": {
-                "total_likes": total_likes,
-                "total_dislikes": total_dislikes,
-                "total_feedback": total_feedback,
-                "satisfaction_rate": round((total_likes / total_feedback * 100), 1) if total_feedback > 0 else 0
-            },
-            "limit": limit,
-            "offset": offset
-        }
-    except Exception as e:
-        logger.error(f"Error fetching chat feedback: {e}")
-        return {"feedback": [], "total": 0, "error": str(e), "summary": {"total_likes": 0, "total_dislikes": 0, "total_feedback": 0, "satisfaction_rate": 0}}
-
-@app.post("/ai/feedback")
-async def submit_chat_feedback(request: Request, data: dict, db: Session = Depends(get_db)):
-    """Submit feedback (like/dislike) for AI chat responses and save chat session"""
-    try:
-        session_id = data.get("session_id")
-        feedback_type = data.get("feedback_type")  # "like" or "dislike"
-        user_query = data.get("user_query", "")
-        ai_response = data.get("ai_response", "")
-        message_index = data.get("message_index", 0)
-        
-        if not session_id or feedback_type not in ["like", "dislike"]:
-            raise HTTPException(status_code=400, detail="Invalid feedback data")
-        
-        client_ip = getattr(request.client, 'host', 'unknown')
-        
-        # Check if ChatSession exists, if not create it (only for sessions with feedback)
-        existing_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-        if not existing_session:
-            # Create new chat session since user provided feedback
-            chat_session = ChatSession(
-                id=session_id,
-                title=user_query[:50] + "..." if len(user_query) > 50 else user_query,
-                message_count=1,  # At least one message to get feedback
-                first_message_at=datetime.utcnow(),
-                last_activity_at=datetime.utcnow(),
-                user_ip=client_ip,
-                is_saved=True  # Mark as saved since it has feedback
-            )
-            db.add(chat_session)
-            print(f"📝 Chat session created for feedback: {session_id[:8]}...")
-        else:
-            # Update existing session
-            existing_session.last_activity_at = datetime.utcnow()
-            existing_session.is_saved = True
-            print(f"📝 Updated existing chat session: {session_id[:8]}...")
-        
-        # Save the conversation to ChatHistory (only when feedback is provided)
-        existing_chat = db.query(ChatHistory).filter(
-            ChatHistory.session_id == session_id,
-            ChatHistory.user_message == user_query
-        ).first()
-        
-        if not existing_chat and user_query and ai_response:
-            chat_history = ChatHistory(
-                session_id=session_id,
-                user_message=user_query,
-                ai_response=ai_response,
-                timestamp=datetime.utcnow()
-            )
-            db.add(chat_history)
-            print(f"💾 Chat conversation saved for session: {session_id[:8]}...")
-        
-        # Create feedback record
-        feedback_record = UserFeedback(
-            session_id=session_id,
-            feedback_type=feedback_type,
-            user_query=user_query,
-            response_preview=ai_response[:200] if ai_response else "",
-            message_content=ai_response,
-            message_index=message_index,
-            user_ip=client_ip,
-            timestamp=datetime.utcnow()
-        )
-        
-        db.add(feedback_record)
-        db.commit()
-        
-        print(f"✅ Feedback ({feedback_type}) saved for session: {session_id[:8]}...")
+        museum = await real_museum_service.get_museum_info(museum_key)
+        if not museum:
+            raise HTTPException(status_code=404, detail=f"Museum '{museum_key}' not found")
         
         return {
             "success": True,
-            "message": f"Feedback ({feedback_type}) submitted successfully",
-            "feedback_id": feedback_record.id
+            "museum": real_museum_service.to_dict(museum),
+            "last_updated": datetime.now().isoformat()
         }
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        db.rollback()
-        logger.error(f"Error submitting feedback: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching museum {museum_key}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
 
-# Chat endpoint for AI responses
-@app.post("/ai/chat")
-async def chat_with_ai(request: Request, data: dict, db: Session = Depends(get_db)):
-    """
-    Main chat endpoint for AI Istanbul chatbot.
-    Processes user messages and returns AI-generated responses.
-    Saves chat history to database for admin monitoring.
-    """
+@app.get("/api/real-museums/nearby")
+async def get_nearby_museums(lat: float, lng: float, radius: int = 5000):
+    """Search for museums near a location"""
+    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
+        raise HTTPException(status_code=503, detail="Real museum service not available")
+    
     try:
-        # Extract data from request
-        user_message = data.get("message", "").strip()
-        session_id = data.get("session_id", f"session_{int(time.time())}")
+        museums = await real_museum_service.search_museums_nearby(lat, lng, radius)
+        return {
+            "success": True,
+            "museums": [real_museum_service.to_dict(museum) for museum in museums],
+            "total": len(museums),
+            "search_params": {"lat": lat, "lng": lng, "radius": radius},
+            "last_updated": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error searching nearby museums: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to search museums: {str(e)}")
 
+@app.post("/api/real-transportation/routes")
+async def get_real_transportation_routes(data: dict):
+    """Get real-time transportation routes between two points"""
+    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
+        raise HTTPException(status_code=503, detail="Real transportation service not available")
+    
+    try:
+        origin = data.get('origin')
+        destination = data.get('destination')
+        transport_modes = data.get('transport_modes', ['bus', 'metro', 'ferry', 'tram'])
         
-        if not user_message:
-            return {"error": "Message cannot be empty"}
+        if not origin or not destination:
+            raise HTTPException(status_code=400, detail="Origin and destination are required")
         
-        # Get client IP for rate limiting
-        client_ip = get_remote_address(request)
+        routes = await real_transportation_service.get_real_time_routes(origin, destination, transport_modes)
+        service_alerts = await real_transportation_service.get_service_alerts()
         
-        # Generate AI response using existing function with retry logic
-        max_attempts = 3
-        ai_response = None
+        return {
+            "success": True,
+            "routes": [real_transportation_service.to_dict(route) for route in routes],
+            "service_alerts": service_alerts,
+            "total_routes": len(routes),
+            "search_params": {
+                "origin": origin,
+                "destination": destination,
+                "transport_modes": transport_modes
+            },
+            "last_updated": datetime.now().isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching transportation routes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch routes: {str(e)}")
+
+@app.get("/api/real-transportation/stops/{stop_id}")
+async def get_real_stop_info(stop_id: str):
+    """Get real-time information for a specific transport stop"""
+    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
+        raise HTTPException(status_code=503, detail="Real transportation service not available")
+    
+    try:
+        stop_info = await real_transportation_service.get_stop_info(stop_id)
+        if not stop_info:
+            raise HTTPException(status_code=404, detail=f"Stop '{stop_id}' not found")
         
-        for attempt in range(max_attempts):
-            try:
-                ai_response = get_gpt_response(user_message, session_id)
-                if ai_response:
-                    break
-                else:
-                    print(f"⚠️ Empty response attempt {attempt + 1}")
-            except Exception as e:
-                print(f"⚠️ Chat generation attempt {attempt + 1} failed: {str(e)}")
-                if attempt < max_attempts - 1:
-                    time.sleep(1)  # Brief wait between attempts
-        
-        if not ai_response:
-            return {
-                "error": "Unable to generate response at this time. Please try again.",
-                "retry_suggested": True
+        return {
+            "success": True,
+            "stop": real_transportation_service.to_dict(stop_info),
+            "last_updated": datetime.now().isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching stop info {stop_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch stop info: {str(e)}")
+
+@app.get("/api/real-transportation/alerts")
+async def get_transportation_alerts():
+    """Get current transportation service alerts"""
+    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
+        raise HTTPException(status_code=503, detail="Real transportation service not available")
+    
+    try:
+        alerts = await real_transportation_service.get_service_alerts()
+        return {
+            "success": True,
+            "alerts": alerts,
+            "total_alerts": len(alerts),
+            "last_updated": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching transportation alerts: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch alerts: {str(e)}")
+
+@app.get("/api/services/status")
+async def get_services_status():
+    """Get status of all real API services"""
+    return {
+        "success": True,
+        "services": {
+            "real_museum_service": {
+                "enabled": REAL_MUSEUM_SERVICE_ENABLED,
+                "available": real_museum_service is not None,
+                "api_key_configured": bool(os.getenv('GOOGLE_MAPS_API_KEY'))
+            },
+            "real_transportation_service": {
+                "enabled": REAL_TRANSPORT_SERVICE_ENABLED,
+                "available": real_transportation_service is not None,
+                "google_maps_configured": bool(os.getenv('GOOGLE_MAPS_API_KEY')),
+                "iett_configured": bool(os.getenv('IETT_API_KEY')),
+                "metro_configured": bool(os.getenv('METRO_ISTANBUL_API_KEY')),
+                "ferry_configured": bool(os.getenv('IDO_FERRY_API_KEY'))
+            },
+            "enhanced_services": {
+                "enabled": ENHANCED_SERVICES_ENABLED,
+                "transportation": enhanced_transport_service is not None,
+                "museum": enhanced_museum_service is not None
             }
-        
-        # Save chat conversation to database for admin monitoring
-        # NOTE: Only saving sessions that receive feedback (like/dislike)
-        # Regular chat conversations are not saved to reduce database storage
-        try:
-            pass  # Chat sessions will be saved only when feedback is provided
-            print(f"💬 Chat response generated for session: {session_id[:8]}... (not saved - awaiting feedback)")
-            
-        except Exception as db_error:
-            # Log database error but don't fail the chat response
-            print(f"⚠️ Failed to save chat to database: {db_error}")
-            db.rollback()
-        
-        # 🧠 PROCESS PERSONALIZED MEMORY - Learn from this conversation
-        try:
-            print(f"🧠 Starting memory processing for session: {session_id[:8]}...")
-            from personalized_memory import process_conversation_memory
-            memory_result = process_conversation_memory(session_id, user_message, ai_response, db)
-            print(f"🧠 Memory processing result: {memory_result}")
-            if memory_result.get('success'):
-                memories_count = memory_result.get('memories_extracted', 0)
-                if memories_count > 0:
-                    print(f"🧠 Extracted and stored {memories_count} memories for session: {session_id[:8]}...")
-                else:
-                    print(f"🧠 No new memories extracted for session: {session_id[:8]}")
-            else:
-                print(f"⚠️ Memory processing failed: {memory_result.get('error', 'Unknown error')}")
-        except Exception as memory_error:
-            # Don't fail the chat response if memory processing fails
-            print(f"⚠️ Memory processing error: {memory_error}")
-            import traceback
-            traceback.print_exc()
-            db.rollback()
-        
-        return {
-            "response": ai_response,
-            "session_id": session_id,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in chat endpoint: {str(e)}")
-        return {"error": "An error occurred while processing your request"}
-
-@app.get("/admin/api/blog/comments")
-async def admin_blog_comments(
-    status: str = "all",  # all, approved, pending, flagged, spam
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get blog comments for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        query = db.query(BlogComment)
-        
-        # Apply status filters
-        if status == "approved":
-            query = query.filter(BlogComment.is_approved == True)
-        elif status == "pending":
-            query = query.filter(BlogComment.is_approved == False, BlogComment.is_spam == False, BlogComment.is_flagged == False)
-        elif status == "flagged":
-            query = query.filter(BlogComment.is_flagged == True)
-        elif status == "spam":
-            query = query.filter(BlogComment.is_spam == True)
-        
-        # Order by most recent
-        comments = query.order_by(BlogComment.created_at.desc()).offset(offset).limit(limit).all()
-        
-        # Format response
-        comments_data = []
-        for comment in comments:
-            # Get blog post title
-            post = db.query(BlogPost).filter(BlogPost.id == comment.post_id).first()
-            post_title = post.title if post else "Unknown Post"
-            
-            # Determine status
-            status_text = "approved" if comment.is_approved else "pending"
-            if comment.is_spam:
-                status_text = "spam"
-            elif comment.is_flagged:
-                status_text = "flagged"
-            
-            comments_data.append({
-                "id": comment.id,
-                "author_name": comment.author_name,
-                "author_email": comment.author_email,
-                "content": comment.content,
-                "post_id": comment.post_id,
-                "post_title": post_title,
-                "created_at": comment.created_at.isoformat() if comment.created_at else None,
-                "is_approved": comment.is_approved,
-                "is_spam": comment.is_spam,
-                "is_flagged": comment.is_flagged,
-                "status": status_text
-            })
-        
-        # Get totals for pagination
-        total_count = db.query(BlogComment).count()
-        approved_count = db.query(BlogComment).filter(BlogComment.is_approved == True).count()
-        pending_count = db.query(BlogComment).filter(
-            BlogComment.is_approved == False, 
-            BlogComment.is_spam == False, 
-            BlogComment.is_flagged == False
-        ).count()
-        flagged_count = db.query(BlogComment).filter(BlogComment.is_flagged == True).count()
-        spam_count = db.query(BlogComment).filter(BlogComment.is_spam == True).count()
-        
-        return {
-            "comments": comments_data,
-            "total": total_count,
-            "summary": {
-                "approved": approved_count,
-                "pending": pending_count,
-                "flagged": flagged_count,
-                "spam": spam_count
-            },
-            "limit": limit,
-            "offset": offset
-        }
-        
-    except Exception as e:
-        logger.error(f"Error fetching blog comments: {e}")
-        return {
-            "comments": [],
-            "total": 0,
-            "summary": {"approved": 0, "pending": 0, "flagged": 0, "spam": 0},
-            "error": str(e)
-        }
-
-@app.get("/admin/api/blog/posts")
-async def admin_blog_posts(
-    status: str = "all",  # all, published, draft
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    current_admin: dict = Depends(get_current_admin)
-):
-    """Get blog posts for admin dashboard - PROTECTED ENDPOINT"""
-    try:
-        query = db.query(BlogPost)
-        
-        # Apply status filters
-        if status == "published":
-            query = query.filter(BlogPost.is_published == True)
-        elif status == "draft":
-            query = query.filter(BlogPost.is_published == False)
-        
-        # Order by most recent
-        posts = query.order_by(BlogPost.created_at.desc()).offset(offset).limit(limit).all()
-        
-        # Format response
-        posts_data = []
-        for post in posts:
-            # Get comment count for this post
-            comment_count = db.query(BlogComment).filter(BlogComment.post_id == post.id).count()
-            
-            posts_data.append({
-                "id": post.id,
-                "title": post.title,
-                "slug": post.slug,
-                "excerpt": post.excerpt,
-                "content": post.content[:200] + "..." if post.content and len(post.content) > 200 else post.content,
-                "author": post.author,
-                "created_at": post.created_at.isoformat() if post.created_at else None,
-                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
-                "is_published": post.is_published,
-                "status": "published" if post.is_published else "draft",
-                "comment_count": comment_count,
-                "views": post.view_count or 0,
-                "likes": post.like_count or 0
-            })
-        
-        # Get totals
-        total_count = db.query(BlogPost).count()
-        published_count = db.query(BlogPost).filter(BlogPost.is_published == True).count()
-        draft_count = db.query(BlogPost).filter(BlogPost.is_published == False).count()
-        
-        return {
-            "posts": posts_data,
-            "total": total_count,
-            "summary": {
-                "published": published_count,
-                "draft": draft_count
-            },
-            "limit": limit,
-            "offset": offset
-        }
-        
-    except Exception as e:
-        logger.error(f"Error fetching blog posts: {e}")
-        return {
-            "posts": [],
-            "total": 0,
-            "summary": {"published": 0, "draft": 0},
-            "error": str(e)
-        }
+        },
+        "timestamp": datetime.now().isoformat()
+    }
