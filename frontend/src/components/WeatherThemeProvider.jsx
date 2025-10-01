@@ -10,6 +10,13 @@ const WeatherThemeProvider = ({ children }) => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
         const response = await fetch(`${apiUrl}/blog/recommendations/weather?location=Istanbul&limit=1`);
+        
+        // Check if the endpoint exists
+        if (!response.ok) {
+          console.log('Weather recommendations endpoint not available, using default theme');
+          return;
+        }
+        
         const data = await response.json();
         
         if (data.success && data.recommendations && data.recommendations.length > 0) {

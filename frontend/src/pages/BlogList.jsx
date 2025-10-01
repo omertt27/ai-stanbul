@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchBlogPosts, likeBlogPost } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { useBlog } from '../contexts/BlogContext';
 import { useTranslation } from 'react-i18next';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
 import { formatLikesCount, getNumberTextSize } from '../utils/formatNumbers';
+import SEOHead from '../components/SEOHead';
 import '../App.css';
+import '../styles/blog-responsive.css';
 
 const BlogList = () => {
   console.log('🔧 BlogList: Component instance created');
   const { darkMode } = useTheme();
   const { t } = useTranslation();
+  const { updatePosts, updatePostLikes, getPostLikes } = useBlog();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -114,6 +118,7 @@ const BlogList = () => {
       setPosts(paginatedPosts);
       setTotalPosts(filteredPosts.length);
       setTotalPages(Math.ceil(filteredPosts.length / postsPerPage));
+      updatePosts(filteredPosts); // Update global context with all posts
       
       console.log('✅ BlogList: Posts loaded successfully', {
         total: filteredPosts.length,
@@ -184,6 +189,9 @@ const BlogList = () => {
         )
       );
       
+      // Update global context
+      updatePostLikes(postId, result.likes_count, result.isLiked);
+      
       console.log('✅ Post liked successfully:', result);
     } catch (error) {
       console.error('❌ Error liking post:', error);
@@ -219,6 +227,28 @@ const BlogList = () => {
 
   return (
     <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1rem', paddingRight: '1rem', paddingBottom: '2rem' }}>
+      <SEOHead
+        title="Istanbul Travel Blog"
+        description="Discover authentic Istanbul experiences through local insights, travel guides, and insider tips. From hidden gems in Sultanahmet to rooftop views in Galata."
+        keywords={['Istanbul blog', 'travel guide', 'Istanbul tips', 'Turkey travel', 'Ottoman history', 'Turkish culture', 'Bosphorus', 'Grand Bazaar']}
+        url="/blog"
+        type="website"
+        structuredData={{
+          "@type": "Blog",
+          "name": "AI Istanbul Travel Blog",
+          "description": "Your guide to authentic Istanbul experiences",
+          "blogPost": posts.slice(0, 5).map(post => ({
+            "@type": "BlogPosting",
+            "headline": post.title,
+            "url": `${window.location.origin}/blog/${post.id}`,
+            "datePublished": post.created_at,
+            "author": {
+              "@type": "Person", 
+              "name": post.author_name || post.author
+            }
+          }))
+        }}
+      />
       <div className="max-w-6xl mx-auto">
 
       {/* Scrollable Content */}
@@ -283,37 +313,37 @@ const BlogList = () => {
                       {truncateText(post.content, 200)}
                     </p>
                     
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="blog-post-meta flex items-center justify-between flex-wrap gap-3">
+                      <div className="district-info flex items-center text-sm">
+                        <svg className="w-4 h-4 mr-1.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span className="font-medium">{post.district}</span>
+                        <span className="font-medium text-gray-600 dark:text-gray-400 truncate">{post.district}</span>
                       </div>
                       
                       <button
                         onClick={() => handleLike(post.id)}
                         disabled={likingPosts.has(post.id)}
-                        className={`flex items-center gap-2 px-3 py-2 min-w-[60px] rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
+                        className={`like-button-container like-button blog-like-button flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all duration-200 hover:scale-105 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 flex-shrink-0 ${
                           likingPosts.has(post.id)
                             ? 'opacity-50 cursor-not-allowed'
-                            : 'hover:opacity-80 active:scale-95'
+                            : 'hover:shadow-md active:scale-95'
                         }`}
                         title="Like this post"
                       >
                         {likingPosts.has(post.id) ? (
-                          <div className="w-5 h-5 animate-spin">
+                          <div className="w-4 h-4 animate-spin">
                             <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </div>
                         ) : (
-                          <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <svg className="like-button-heart w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                         )}
-                        <span className={`font-medium ${getNumberTextSize(post.likes_count || 0)}`}>
+                        <span className="likes-count font-semibold text-sm text-red-600 dark:text-red-400">
                           {formatLikesCount(post.likes_count || 0)}
                         </span>
                       </button>
@@ -498,10 +528,10 @@ const BlogList = () => {
                  `${totalPosts} posts total`}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div className="blog-post-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
             {posts.map((post) => (            <article
               key={post.id}
-              className={`rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
+              className={`blog-post-card blog-list-card rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 ${
                 darkMode
                   ? 'bg-gray-800 hover:bg-gray-750 shadow-xl'
                   : 'bg-white hover:bg-gray-50 shadow-lg hover:shadow-2xl border border-gray-100'

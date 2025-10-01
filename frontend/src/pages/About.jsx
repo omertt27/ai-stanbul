@@ -9,19 +9,19 @@ const About = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
+    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900 mobile-scroll-optimized" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
       <div className="max-w-6xl mx-auto">
 
       {/* Scrollable Content */}
       <div className="pt-4 pb-24">
         {/* Hero Section */}
         <div className="pb-16">
-        <div className="max-w-4xl mx-auto px-12 text-center">
+        <div className="max-w-4xl mx-auto px-12 text-center mobile-touch-optimized">
           <div className="mb-8">
-            <h1 className="text-5xl font-bold mb-6 pt-28 transition-colors duration-300 text-white">
+            <h1 className="text-5xl md:text-5xl sm:text-4xl font-bold mb-6 pt-28 md:pt-20 sm:pt-16 transition-colors duration-300 text-white">
               {t('about.title')} <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">STANBUL</span>
             </h1>
-            <p className="text-xl leading-relaxed transition-colors duration-300 text-gray-300">
+            <p className="text-xl md:text-xl sm:text-lg leading-relaxed transition-colors duration-300 text-gray-300">
               {t('about.subtitle')}
             </p>
           </div>

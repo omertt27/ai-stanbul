@@ -1,0 +1,126 @@
+/* Blog Layout Enhancements - Mobile-first responsive design */
+
+/* Fix like button layout on small screens */
+.blog-list-card .like-button-container {
+  min-width: fit-content;
+  flex-shrink: 0;
+}
+
+/* Ensure district info doesn't overflow */
+.blog-list-card .district-info {
+  flex: 1;
+  min-width: 0; /* Allow flex item to shrink below content size */
+}
+
+/* Mobile responsive blog post grid */
+@media (max-width: 640px) {
+  .blog-post-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .blog-post-card {
+    margin: 0 -0.5rem;
+    padding: 1rem;
+  }
+  
+  .blog-post-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .blog-like-button {
+    align-self: flex-end;
+    min-width: 80px; /* Ensure consistent button width */
+  }
+
+  /* Enhanced mobile like button positioning */
+  .blog-post-card .like-button-container {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Tablet responsive adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .blog-post-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1025px) {
+  .blog-post-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+/* Like button animations - Mobile optimized */
+.like-button-heart {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Only apply hover effects on devices that support hover */
+@media (hover: hover) {
+  .like-button:hover .like-button-heart {
+    transform: scale(1.1);
+  }
+}
+
+/* Touch feedback for all devices */
+.like-button:active .like-button-heart,
+.blog-like-button:active .like-button-heart {
+  transform: scale(0.9);
+  transition: transform 0.1s ease;
+}
+
+/* Mobile-specific like button feedback */
+@media (max-width: 768px) {
+  .like-button:active,
+  .blog-like-button:active {
+    background-color: rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* Ensure text doesn't break awkwardly */
+.likes-count {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Social share buttons responsive */
+.social-share-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .social-share-buttons {
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  
+  .social-share-buttons button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Blog post content responsive typography */
+@media (max-width: 640px) {
+  .blog-post-title {
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+  
+  .blog-post-content {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+}

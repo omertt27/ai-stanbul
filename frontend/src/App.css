@@ -1,7 +1,7 @@
-/* Main page background with Istanbul image */
+/* Main page background - simplified to match other pages */
 .main-page-background {
   position: relative;
-  background: linear-gradient(135deg, #0f1011 0%, #1a1b1d 100%);
+  background: #111827; /* Same as bg-gray-900 */
   min-height: calc(100vh + 10px); /* Allow main page to be longer */
   transition: background 0.3s ease;
   padding-top: 89px; /* Updated for taller navbar (was 85px) */
@@ -9,71 +9,31 @@
   overflow-x: hidden;
 }
 
+/* Mobile background adjustment for footer visibility */
+@media (max-width: 768px) {
+  .main-page-background {
+    padding-top: 60px; /* Smaller mobile navbar */
+    min-height: calc(100vh - 60px); /* Account for mobile navbar space */
+  }
+}
+
+/* Istanbul background image removed for consistency with other pages */
 .main-page-background::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: url('/istanbul-bridge-bg.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0.25;
-  z-index: -1;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
+  display: none; /* Hide the background image */
 }
 
-/* Weather Theme Variations - Toned Down */
-[data-weather-theme="sunny"] .main-page-background {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%); /* Subtle gray instead of blue/purple */
-}
-
-[data-weather-theme="sunny"] .main-page-background::before {
-  opacity: 0.2; /* Reduced opacity */
-  filter: sepia(10%) saturate(80%) hue-rotate(350deg); /* Less saturation */
-}
-
-[data-weather-theme="rainy"] .main-page-background {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%); /* Subtle gray instead of blue */
-}
-
-[data-weather-theme="rainy"] .main-page-background::before {
-  opacity: 0.15; /* Reduced opacity */
-  filter: sepia(15%) saturate(70%) hue-rotate(200deg); /* Less saturation */
-}
-
-[data-weather-theme="cloudy"] .main-page-background {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%); /* Keep subtle gray */
-}
-
-[data-weather-theme="cloudy"] .main-page-background::before {
-  opacity: 0.1; /* Reduced opacity */
-  filter: grayscale(60%) brightness(0.95); /* More grayscale */
-}
-
+/* Weather Theme Variations - Simplified to maintain consistency */
+[data-weather-theme="sunny"] .main-page-background,
+[data-weather-theme="rainy"] .main-page-background,
+[data-weather-theme="cloudy"] .main-page-background,
 [data-weather-theme="snowy"] .main-page-background {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%); /* Subtle gray instead of slate */
-}
-
-[data-weather-theme="snowy"] .main-page-background::before {
-  opacity: 0.2; /* Reduced opacity */
-  filter: brightness(1.1) contrast(0.9) hue-rotate(180deg); /* Less dramatic effect */
+  background: #111827; /* Same as bg-gray-900 for consistency */
 }
 
 /* Add overlay for better text contrast */
+/* Overlay removed since background image is no longer used */
 .main-page-background::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.95) 100%);
-  z-index: -2;
-  pointer-events: none;
+  display: none;
 }
 
 /* Weather Indicator */
@@ -836,17 +796,17 @@ body.chatbot-page {
 @media (max-width: 768px) {
   /* Mobile chat page container - properly sized for mobile navbars */
   .chatbot-page .chatbot-main-container {
-    height: calc(100vh - 82px) !important; /* 32px top navbar + 50px bottom navbar */
+    height: calc(100vh - 110px) !important; /* 60px top navbar + 50px bottom navbar */
     width: 100vw !important;
     max-width: 100vw !important;
     margin: 0 !important;
     padding: 0 !important;
     position: fixed !important;
-    top: 32px !important; /* Below top navbar */
+    top: 60px !important; /* Below smaller top navbar */
     left: 0 !important;
     right: 0 !important;
     bottom: 50px !important; /* Above bottom navbar */
-    background: #343541 !important; /* ChatGPT background */
+    background: #111827 !important; /* Match other pages background */
   }
 
   /* Mobile chat container */
@@ -857,7 +817,7 @@ body.chatbot-page {
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #343541 !important;
+    background: #111827 !important;
     display: flex !important;
     flex-direction: column !important;
     position: relative !important;
@@ -868,7 +828,7 @@ body.chatbot-page {
     flex: 1 !important;
     overflow-y: auto !important;
     padding: 16px 12px 80px 12px !important; /* Bottom padding for input area */
-    background: #343541 !important;
+    background: #111827 !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
   }
@@ -883,16 +843,16 @@ body.chatbot-page {
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    background: #343541 !important;
+    background: #111827 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     padding: 12px !important;
     z-index: 1000 !important;
   }
 
-  /* Mobile input container - ChatGPT style */
+  /* Mobile input container - matching other pages style */
   .chatbot-page .kam-input-container {
-    background: #40414f !important;
-    border: 1px solid #565869 !important;
+    background: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 12px !important;
     padding: 12px !important;
     display: flex !important;
@@ -953,9 +913,9 @@ body.chatbot-page {
     height: 18px !important;
   }
   
-  /* Welcome screen - ChatGPT style */
+  /* Welcome screen - matching other pages style */
   .chatbot-page .chatbot-messages > div:first-child {
-    background: #343541 !important;
+    background: #111827 !important;
     padding: 40px 20px !important;
     text-align: center !important;
   }
@@ -976,11 +936,11 @@ body.chatbot-page {
     font-family: "Söhne", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   }
 
-  /* Suggestion pills - ChatGPT style */
+  /* Suggestion pills - matching other pages style */
   .chatbot-page .kam-suggestion-pill {
-    background: #40414f !important;
-    border: 1px solid #565869 !important;
-    color: #ececf1 !important;
+    background: #1f2937 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #e5e7eb !important;
     padding: 12px 16px !important;
     border-radius: 8px !important;
     font-size: 14px !important;
@@ -1052,7 +1012,7 @@ body.chatbot-page {
   .chatbot-page.keyboard-visible .chatbot-input-area {
     position: fixed !important;
     bottom: 0 !important; /* Stick to bottom when keyboard is visible */
-    background: #343541 !important;
+    background: #111827 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: none !important; /* Remove blur for performance */
   }
@@ -1143,10 +1103,311 @@ body.chatbot-page {
     border: 1px solid rgba(99, 102, 241, 0.3) !important;
     min-height: 3rem !important;
   }
+
+/* ====== MOBILE FOOTER VISIBILITY FIX ====== */
+/* Ensure footer is visible above mobile navbar on all non-chat pages */
+@media (max-width: 768px) {
+  body:not(.chatbot-page) {
+    padding-bottom: 80px !important; /* Space for mobile navbar (60px + extra padding) */
+  }
   
-  .kam-input-field {
-    color: #f3f4f6 !important;
+  .main-content-area {
+    margin-bottom: 20px !important; /* Extra spacing for better footer visibility */
+  }
+  
+  /* Footer mobile optimization */
+  footer {
+    margin-bottom: 10px !important; /* Ensure footer has space above mobile navbar */
+    position: relative !important;
+    z-index: 10 !important; /* Below mobile navbar but above content */
+  }
+}
+
+/* ====== COMPREHENSIVE MOBILE PAGE OPTIMIZATIONS ====== */
+@media (max-width: 768px) {
+  /* Global mobile container improvements */
+  .max-w-4xl,
+  .max-w-6xl,
+  .max-w-7xl {
+    max-width: 100% !important;
+    margin-left: 1rem !important;
+    margin-right: 1rem !important;
+  }
+  
+  /* Mobile padding adjustments for all pages */
+  .min-h-screen {
+    padding-top: 60px !important; /* Account for smaller mobile navbar */
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Card and container mobile optimization */
+  .bg-gray-800,
+  .bg-gray-900,
+  .bg-blue-900,
+  .bg-red-900,
+  .bg-yellow-900,
+  .bg-green-900 {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0.75rem !important;
+    padding: 1rem !important;
+  }
+  
+  /* Typography mobile scaling */
+  .text-3xl { font-size: 1.75rem !important; }
+  .text-2xl { font-size: 1.5rem !important; }
+  .text-xl { font-size: 1.25rem !important; }
+  
+  /* Grid mobile responsiveness */
+  .grid.md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  .grid.md\\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* List and content spacing */
+  .space-y-8 > * + * { margin-top: 2rem !important; }
+  .space-y-6 > * + * { margin-top: 1.5rem !important; }
+  .space-y-4 > * + * { margin-top: 1rem !important; }
+  
+  /* Mobile button optimization */
+  button,
+  .btn,
+  a[href] {
+    min-height: 44px !important;
+    padding: 0.75rem 1rem !important;
     font-size: 1rem !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Form elements mobile optimization */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+    padding: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  /* Mobile image responsiveness */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Table mobile scrolling */
+  table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Mobile-specific spacing adjustments */
+  .p-6 { padding: 1rem !important; }
+  .p-8 { padding: 1.5rem !important; }
+  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+  
+  /* Mobile border and shadow adjustments */
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  /* Mobile text alignment */
+  .text-left { text-align: left !important; }
+  .text-center { text-align: center !important; }
+}
+
+/* ====== MOBILE-SPECIFIC PAGE LAYOUTS ====== */
+@media (max-width: 640px) {
+  /* Extra small mobile devices */
+  .text-3xl { font-size: 1.5rem !important; }
+  .text-2xl { font-size: 1.25rem !important; }
+  .text-xl { font-size: 1.125rem !important; }
+  
+  /* Tighter spacing for small screens */
+  .max-w-4xl {
+    margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
+  }
+  
+  .p-6 { padding: 0.75rem !important; }
+  .space-y-8 > * + * { margin-top: 1.5rem !important; }
+}
+
+/* ====== MOBILE TOUCH OPTIMIZATIONS ====== */
+@media (max-width: 768px) {
+  /* Enhanced touch targets */
+  .mobile-touch-optimized {
+    min-height: 48px !important;
+    min-width: 48px !important;
+    padding: 12px !important;
+    margin: 4px !important;
+  }
+  
+  /* Mobile scrolling improvements */
+  .mobile-scroll-optimized {
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth !important;
+  }
+  
+  /* Mobile focus states */
+  *:focus {
+    outline: 2px solid #8b5cf6 !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* ====== MOBILE FORM AND INPUT OPTIMIZATIONS ====== */
+@media (max-width: 768px) {
+  /* Form container improvements */
+  form {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+  }
+  
+  /* Input field mobile optimization */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    width: 100% !important;
+    font-size: 16px !important; /* Prevent iOS zoom */
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    color: #ffffff !important;
+    line-height: 1.5 !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  
+  /* Input focus states for mobile */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+    background: rgba(139, 92, 246, 0.05) !important;
+  }
+  
+  /* Button mobile optimization */
+  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab),
+  input[type="submit"],
+  input[type="button"] {
+    width: 100% !important;
+    min-height: 48px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    border: none !important;
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* Button hover and active states */
+  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab):hover,
+  input[type="submit"]:hover,
+  input[type="button"]:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+    transform: translateY(-1px) !important;
+  }
+  
+  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab):active,
+  input[type="submit"]:active,
+  input[type="button"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+  }
+  
+  /* Select dropdown mobile optimization */
+  select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 12L3 7h10z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+    padding-right: 40px !important;
+  }
+  
+  /* Textarea mobile optimization */
+  textarea {
+    min-height: 120px !important;
+    resize: vertical !important;
+    font-family: inherit !important;
+  }
+  
+  /* Label mobile optimization */
+  label {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #e5e7eb !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+  }
+  
+  /* Error message styling */
+  .error-message,
+  .field-error {
+    color: #f87171 !important;
+    font-size: 14px !important;
+    margin-top: 4px !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Success message styling */
+  .success-message {
+    color: #34d399 !important;
+    font-size: 14px !important;
+    margin-top: 4px !important;
+    font-weight: 500 !important;
+  }
+}
+
+/* Mobile blog like buttons optimization */
+  .blog-list .like-button,
+  .blog-post .like-button,
+  .blog-like-button,
+  .like-button-container {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(239, 68, 68, 0.2) !important;
+  }
+
+  /* Mobile blog post footer buttons */
+  .blog-post footer button,
+  .blog-post-footer button {
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+  }
+
+  /* Mobile blog card interactions */
+  .blog-post-card:active,
+  .blog-list-card:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease !important;
   }
 
 

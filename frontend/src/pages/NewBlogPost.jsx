@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createBlogPost, uploadBlogImage } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import SEOHead from '../components/SEOHead';
+import AIContentAssistant from '../components/AIContentAssistant';
+import { generateAutoTags } from '../utils/contentAI';
 import '../App.css';
 
 const NewBlogPost = () => {
@@ -19,6 +22,7 @@ const NewBlogPost = () => {
   });
   
   const [images, setImages] = useState([]);
+  const [tags, setTags] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -46,6 +50,31 @@ const NewBlogPost = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Tag handling functions
+  const handleTagSuggestion = (tag) => {
+    if (!tags.includes(tag)) {
+      setTags(prev => [...prev, tag]);
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
+  const addCustomTag = (newTag) => {
+    const cleanTag = newTag.trim().toLowerCase();
+    if (cleanTag && !tags.includes(cleanTag)) {
+      setTags(prev => [...prev, cleanTag]);
+    }
+  };
+
+  // Auto-generate tags when content changes
+  const handleAutoGenerateTags = () => {
+    const autoTags = generateAutoTags(formData.title, formData.content, formData.district);
+    const newTags = autoTags.filter(tag => !tags.includes(tag));
+    setTags(prev => [...prev, ...newTags]);
   };
 
   const handleImageSelect = (e) => {
@@ -144,7 +173,8 @@ const NewBlogPost = () => {
         images: images.map(img => ({
           url: img.url,
           alt_text: img.alt_text || formData.title
-        }))
+        })),
+        tags // Include tags in the post data
       };
 
       const newPost = await createBlogPost(postData);
@@ -206,6 +236,13 @@ const NewBlogPost = () => {
       }`}
       style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '3rem' }}
     >
+      <SEOHead
+        title="Create New Blog Post"
+        description="Share your Istanbul travel experience and insights with fellow travelers. Create engaging travel stories about Turkey's cultural capital."
+        keywords={['create blog post', 'Istanbul travel', 'travel writing', 'share experience', 'travel blog']}
+        url="/blog/new"
+        type="website"
+      />
       <div className="max-w-6xl mx-auto">
 
       <div className="pt-4 pb-24">
@@ -491,7 +528,66 @@ Share your experiences, discoveries, and recommendations!"
               required
               style={{ minHeight: '250px' }}
             />
+
+            {/* Tags Management */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-200">Tags</label>
+                <button
+                  type="button"
+                  onClick={handleAutoGenerateTags}
+                  className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                >
+                  ✨ Auto-generate
+                </button>
+              </div>
+              
+              {/* Current Tags */}
+              <div className="flex flex-wrap gap-2 mb-2 min-h-[32px]">
+                {tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded-full"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 hover:bg-blue-700 rounded-full p-0.5"
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Add Custom Tag */}
+              <input
+                type="text"
+                placeholder="Add custom tag and press Enter..."
+                className="w-full px-2 py-1 text-xs bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:border-blue-400"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomTag(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </div>
           </div>
+
+          {/* AI Content Assistant */}
+          <AIContentAssistant
+            title={formData.title}
+            content={formData.content}
+            district={formData.district}
+            currentTags={tags}
+            onTagSuggestion={handleTagSuggestion}
+            className="mb-6"
+          />
 
           {/* Compact Action Buttons */}
           <div className={`p-5 rounded-xl border-2 text-center transition-all duration-200 ${

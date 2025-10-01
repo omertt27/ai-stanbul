@@ -7,10 +7,14 @@ import {
   fetchRelatedPosts 
 } from '../api/blogApi';
 import { useTheme } from '../contexts/ThemeContext';
+import { useBlog } from '../contexts/BlogContext';
 import { trackBlogEvent } from '../utils/analytics';
 import { formatLikesCount, getNumberTextSize } from '../utils/formatNumbers';
 import Comments from '../components/Comments';
+import SEOHead from '../components/SEOHead';
+import SocialShareButtons from '../components/SocialShareButtons';
 import '../App.css';
+import '../styles/blog-responsive.css';
 
 // Mock blog data to match BlogList - expanded with full content
 const mockBlogPosts = [
@@ -228,6 +232,7 @@ Effective text formatting makes your blog posts more professional and easier to 
 
 const BlogPost = () => {
   const { darkMode } = useTheme();
+  const { updatePostLikes, getPostLikes } = useBlog();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -281,8 +286,15 @@ const BlogPost = () => {
       
       if (postData) {
         setPost(postData);
-        setLikesCount(postData.likes || postData.likes_count || 0); // Set initial likes count
+        
+        // Check if we have cached likes for this post
+        const cachedLikes = getPostLikes(postData.id);
+        const initialLikesCount = cachedLikes ? cachedLikes.likesCount : (postData.likes_count || postData.likes || 0);
+        setLikesCount(initialLikesCount);
+        
         console.log('✅ BlogPost: Post loaded successfully from API:', postData?.title);
+        console.log('🔄 BlogPost: Using likes count:', initialLikesCount, cachedLikes ? '(from cache)' : '(from API)');
+        
         trackBlogEvent('view_post', postData.title);
         setLoading(false); // Set loading to false when API succeeds
         return;
@@ -298,7 +310,7 @@ const BlogPost = () => {
       
       if (mockPost) {
         setPost(mockPost);
-        setLikesCount(mockPost.likes || mockPost.likes_count || 0); // Set initial likes count
+        setLikesCount(mockPost.likes_count || mockPost.likes || 0); // Prefer likes_count from database
         console.log('✅ BlogPost: Post loaded successfully from mock data:', mockPost.title);
         trackBlogEvent('view_post', mockPost.title);
       } else {
@@ -348,7 +360,7 @@ const BlogPost = () => {
   const handleLike = async () => {
     if (!post?.id || likeLoading) return;
     
-    console.log('⭐ BlogPost: Liking post:', post.title);
+    console.log(`⭐ BlogPost: ${alreadyLiked ? 'Unliking' : 'Liking'} post:`, post.title, 'Current status:', alreadyLiked);
     setLikeLoading(true);
     setLikeError(null);
     
@@ -359,6 +371,9 @@ const BlogPost = () => {
       // Update the likes count and liked status from the response
       setLikesCount(likeResult.likes_count || likesCount);
       setAlreadyLiked(likeResult.isLiked || false);
+      
+      // Update global context so BlogList stays in sync
+      updatePostLikes(post.id, likeResult.likes_count, likeResult.isLiked);
       
       trackBlogEvent('like_post', post?.title || 'Unknown Post');
       console.log('✅ BlogPost: Post like updated - count:', likeResult.likes_count, 'isLiked:', likeResult.isLiked);
@@ -624,6 +639,39 @@ const BlogPost = () => {
 
   return (
     <div className="blog-page">
+      <SEOHead
+        title={post.title}
+        description={post.content.substring(0, 160).replace(/<[^>]*>/g, '')}
+        keywords={['Istanbul', 'travel', 'guide', post.district, ...(post.tags || [])].filter(Boolean)}
+        image={post.images?.[0]?.url}
+        url={`/blog/${post.id}`}
+        type="article"
+        author={post.author_name}
+        publishedDate={post.created_at}
+        modifiedDate={post.updated_at}
+        category="Istanbul Travel Guide"
+        tags={post.tags || []}
+        structuredData={{
+          "@type": "Article",
+          "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": `${window.location.origin}/blog/${post.id}`
+          },
+          "articleBody": post.content.replace(/<[^>]*>/g, ''),
+          "wordCount": post.content.replace(/<[^>]*>/g, '').split(' ').length,
+          "isAccessibleForFree": true,
+          "genre": "Travel Guide",
+          "locationCreated": {
+            "@type": "Place",
+            "name": post.district || "Istanbul",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Istanbul",
+              "addressCountry": "Turkey"
+            }
+          }
+        }}
+      />
       <main className="pt-20 px-4 pb-8">
         <div className="max-w-4xl mx-auto">
           {/* Navigation Breadcrumb */}
@@ -689,6 +737,17 @@ const BlogPost = () => {
               {formatContent(post.content)}
             </div>
 
+            {/* Social Share Buttons */}
+            <div className="my-8 py-6 border-t border-b border-gray-700 blog-post-actions">
+              <SocialShareButtons
+                url={`${window.location.origin}/blog/${post.id}`}
+                title={post.title}
+                description={post.content.substring(0, 200).replace(/<[^>]*>/g, '')}
+                hashtags={['Istanbul', 'Travel', 'AIIstanbul', ...(post.tags || [])]}
+                className="justify-center mobile-social-share"
+              />
+            </div>
+
             {/* Photo Gallery */}
             {post.images && post.images.length > 1 && (
               <div className="blog-photo-gallery mt-8">
@@ -714,22 +773,49 @@ const BlogPost = () => {
             )}
 
             {/* Blog Post Footer */}
-            <footer className="blog-post-footer">
-              <div className="blog-post-actions">
+            <footer className="mt-8 pt-6 border-t border-gray-700">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* Like Button */}
                 <button
                   onClick={handleLike}
-                  disabled={likeLoading || alreadyLiked}
-                  className="blog-like-button"
+                  disabled={likeLoading}
+                  className={`mobile-blog-like-btn inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-200 ${
+                    alreadyLiked
+                      ? 'bg-red-500 text-white hover:bg-red-600 hover:scale-105 active:scale-95'
+                      : likeLoading
+                      ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                      : 'bg-red-100 text-red-600 hover:bg-red-200 hover:scale-105 active:scale-95 border border-red-200'
+                  }`}
                 >
-                  <svg className="w-5 h-5" fill={alreadyLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  {likeLoading ? 'Liking...' : alreadyLiked ? 'Liked!' : `${formatLikesCount(likesCount)} likes`}
+                  {likeLoading ? (
+                    <div className="w-5 h-5 animate-spin">
+                      <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <svg className="w-5 h-5" fill={alreadyLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  )}
+                  <span className="whitespace-nowrap">
+                    {likeLoading 
+                      ? (alreadyLiked ? 'Unliking...' : 'Liking...') 
+                      : (alreadyLiked 
+                          ? `Liked (${formatLikesCount(likesCount)})` 
+                          : `Like (${formatLikesCount(likesCount)})`
+                        )
+                    }
+                  </span>
                 </button>
+
+                {/* Share button or other actions can be added here if needed */}
               </div>
               
               {likeError && (
-                <p className="mt-2 text-sm text-red-400">{likeError}</p>
+                <p className="mt-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
+                  {likeError}
+                </p>
               )}
             </footer>
           </article>

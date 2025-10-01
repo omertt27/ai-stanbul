@@ -10,6 +10,7 @@
 .language-button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: white;
@@ -27,7 +28,10 @@
 }
 
 .current-flag {
-  font-size: 1.2em;
+  font-size: 1.3em; /* Slightly increased base size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .current-language {
@@ -71,6 +75,7 @@
 .language-option {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.75rem;
   width: 100%;
   padding: 0.75rem 1rem;
@@ -93,7 +98,12 @@
 }
 
 .language-option .flag {
-  font-size: 1.2em;
+  font-size: 1.3em; /* Increased base dropdown flag size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  text-align: center;
 }
 
 .language-option .name {
@@ -113,6 +123,50 @@
   
   .language-options {
     min-width: 150px;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .language-button {
+    min-width: 90px !important;
+    padding: 0.5rem 0.8rem !important;
+    font-size: 0.8rem !important;
+    border-radius: 0.5rem !important;
+    justify-content: center !important;
+  }
+  
+  .current-flag {
+    font-size: 1.5em !important; /* Increased from 1em to 1.5em */
+    justify-content: center !important;
+    min-width: 20px !important;
+  }
+  
+  .current-language {
+    font-size: 0.8rem !important;
+    text-align: center !important;
+  }
+  
+  .dropdown-arrow {
+    font-size: 0.7em !important;
+  }
+  
+  .language-options {
+    min-width: 160px !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  .language-option {
+    padding: 0.6rem 0.8rem !important; /* Increased padding */
+    font-size: 0.8rem !important;
+    justify-content: flex-start !important;
+  }
+  
+  .language-option .flag {
+    font-size: 1.4em !important; /* Increased from 1em to 1.4em */
+    min-width: 28px !important;
+    justify-content: center !important;
   }
 }
 

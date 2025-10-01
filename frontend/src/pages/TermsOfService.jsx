@@ -2,8 +2,8 @@ import React from 'react';
 
 const TermsOfService = () => {
   return (
-    <div className="chatbot-background min-h-screen" style={{ paddingTop: '6rem', paddingBottom: '2rem' }}>
-      <div className="max-w-4xl mx-auto p-6 bg-gray-800" style={{ marginTop: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
+    <div className="chatbot-background min-h-screen mobile-scroll-optimized" style={{ paddingTop: '6rem', paddingBottom: '2rem' }}>
+      <div className="max-w-4xl mx-auto p-6 bg-gray-800 mobile-touch-optimized" style={{ marginTop: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-red-400 mb-2">
           🔒 Terms of Service - AI Istanbul

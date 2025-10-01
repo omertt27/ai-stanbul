@@ -1,12 +1,14 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
+import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import './styles/arabic.css' // Arabic language support
 // import './styles/anti-copy.css' // Anti-copy protection styles - DISABLED
 import './i18n' // Initialize i18n
 import AppRouter from './AppRouter.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
+import { BlogProvider } from './contexts/BlogContext.jsx'
 // import './utils/websiteProtection.js' // Initialize website protection - DISABLED
 
 console.log('Starting React app...')
@@ -25,10 +27,14 @@ try {
   const root = createRoot(container)
   root.render(
     <React.StrictMode>
-      <ThemeProvider>
-        <AppRouter />
-        <Analytics />
-      </ThemeProvider>
+      <HelmetProvider>
+        <ThemeProvider>
+          <BlogProvider>
+            <AppRouter />
+            <Analytics />
+          </BlogProvider>
+        </ThemeProvider>
+      </HelmetProvider>
     </React.StrictMode>,
   )
   

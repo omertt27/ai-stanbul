@@ -254,17 +254,22 @@ class RealTimeDataPipeline:
             
             if data_type == 'restaurants':
                 # Query restaurants from database
-                restaurants = db.query(Restaurant).filter(
-                    Restaurant.district.ilike(f"%{location}%") if location else True
-                ).limit(10).all()
+                query_filter = True
+                if location:
+                    # Use location column (not district)
+                    query_filter = Restaurant.location.ilike(f"%{location}%")
+                
+                restaurants = db.query(Restaurant).filter(query_filter).limit(10).all()
                 
                 restaurant_data = [
                     {
-                        'name': r.name,
-                        'rating': r.rating,
-                        'address': r.address,
-                        'cuisine_type': r.cuisine_type,
-                        'price_range': r.price_range
+                        'name': r.name or 'Unknown Restaurant',
+                        'rating': r.rating or 0.0,
+                        'location': r.location or 'Istanbul',
+                        'cuisine': r.cuisine or 'Turkish',
+                        'description': r.description or 'No description available',
+                        'place_id': r.place_id,
+                        'source': r.source or 'database'
                     }
                     for r in restaurants
                 ]
@@ -276,18 +281,22 @@ class RealTimeDataPipeline:
                     'confidence': 0.7
                 }
             
-            elif data_type == 'museums':
-                museums = db.query(Museum).filter(
-                    Museum.district.ilike(f"%{location}%") if location else True
-                ).limit(10).all()
+            elif data_type == 'museums' or data_type == 'attractions':
+                query_filter = True
+                if location:
+                    # Use location column (not district)
+                    query_filter = Museum.location.ilike(f"%{location}%")
+                
+                museums = db.query(Museum).filter(query_filter).limit(10).all()
                 
                 museum_data = [
                     {
-                        'name': m.name,
-                        'description': m.description,
-                        'address': m.address,
-                        'opening_hours': m.opening_hours,
-                        'entry_fee': m.entry_fee
+                        'name': m.name or 'Unknown Museum',
+                        'location': m.location or 'Istanbul',
+                        'hours': m.hours or 'Contact for hours',
+                        'ticket_price': m.ticket_price or 0.0,
+                        'highlights': m.highlights or 'Historical significance',
+                        'type': 'museum'
                     }
                     for m in museums
                 ]

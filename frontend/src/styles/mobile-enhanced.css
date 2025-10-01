@@ -1,0 +1,811 @@
+/* Enhanced Mobile Navigation and SearchBar Styles */
+/* This file provides modern, aesthetic mobile optimizations for the AI Istanbul app */
+
+/* ====== MOBILE NAVIGATION ENHANCEMENTS ====== */
+@media (max-width: 768px) {
+  /* Base mobile optimization */
+  * {
+    -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2);
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection for inputs */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+  }
+  
+  /* Enhanced mobile touch targets */
+  .mobile-touch-target {
+    min-height: 36px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+  
+  /* Mobile navbar glass morphism effect */
+  .mobile-navbar-glass {
+    height: 60px !important;
+    min-height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    backdrop-filter: blur(24px) saturate(200%) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.1) !important;
+    background: linear-gradient(135deg, 
+      rgba(15, 16, 17, 0.98) 0%, 
+      rgba(24, 25, 31, 0.98) 50%, 
+      rgba(15, 16, 17, 0.95) 100%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 2px 8px rgba(139, 92, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* Mobile bottom navbar specific adjustments */
+  .mobile-navbar-glass[style*="bottom"] {
+    padding: 12px 16px 20px !important; /* Adjusted padding for 60px height */
+  }
+  
+  /* Mobile tab button enhancements */
+  .mobile-nav-tab {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px !important;
+    transition: none !important;
+    min-height: 40px !important; /* Consistent height for 60px navbar */
+    min-width: 58px !important; /* Maximum separation between tabs */
+    flex: 1 !important; /* Equal distribution across navbar */
+    max-width: 80px !important; /* Prevent tabs from getting too wide */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .mobile-nav-tab::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .mobile-nav-tab:active::before {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .mobile-nav-tab > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Active tab - consistent styling */
+  .mobile-nav-tab-active {
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+    transform: translateY(-2px) scale(1.05) !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  }
+  
+  /* Ensure all mobile nav tabs have consistent dimensions */
+  .mobile-nav-tab svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .mobile-nav-tab span {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* ====== MOBILE SEARCHBAR ENHANCEMENTS ====== */
+@media (max-width: 768px) {
+  /* Enhanced SearchBar container */
+  .mobile-searchbar-container {
+    position: relative !important;
+    overflow: hidden !important;
+    border-radius: 24px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* Modern SearchBar glass effect */
+  .mobile-searchbar-glass {
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  
+  /* Modern SearchBar shimmer effect */
+  .mobile-searchbar-glass::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 2s infinite;
+    pointer-events: none;
+  }
+  
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  /* Modern SearchBar focus state */
+  .mobile-searchbar-focused {
+    box-shadow: 
+      0 8px 32px rgba(139, 92, 246, 0.25),
+      0 0 0 1px rgba(139, 92, 246, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    transform: translateY(-2px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* Enhanced search icon styling */
+  .mobile-search-icon {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  .mobile-searchbar-focused .mobile-search-icon {
+    transform: scale(1.1) !important;
+  }
+  
+  /* SearchBar input styling */
+  .mobile-search-input {
+    font-size: 16px !important; /* Prevents iOS zoom */
+    color: #f8fafc !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1.6 !important;
+    caret-color: #8b5cf6 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+  }
+  
+  /* Modern placeholder styling */
+  .mobile-search-input::placeholder {
+    color: rgba(248, 250, 252, 0.6) !important;
+    font-weight: 400 !important;
+    animation: placeholderPulse 2s ease-in-out infinite !important;
+  }
+  
+  @keyframes placeholderPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.4; }
+  }
+  
+  /* Enhanced focus ring */
+  .mobile-search-input:focus::placeholder {
+    color: rgba(139, 92, 246, 0.7) !important;
+    animation: none !important;
+  }
+  
+  /* Enhanced touch feedback */
+  .mobile-searchbar-container:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease !important;
+  }
+  
+  /* Modern gradient border effect */
+  .mobile-searchbar-focused::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #8b5cf6, #6366f1, #7c3aed, #8b5cf6);
+    background-size: 400% 400%;
+    border-radius: 26px;
+    z-index: -1;
+    animation: gradientBorder 3s ease infinite;
+    opacity: 0.6;
+  }
+  
+  @keyframes gradientBorder {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  /* Modern loading state enhancement */
+  .mobile-search-send.loading {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.25) 100%) !important;
+    animation: loadingPulse 1.5s ease-in-out infinite !important;
+  }
+  
+  @keyframes loadingPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  
+  /* SearchBar icon enhancement */
+  .mobile-search-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    transition: none;
+  }
+  
+  .mobile-searchbar-focused .mobile-search-icon {
+    background: transparent;
+    border: none;
+  }
+  
+  /* Modern SearchBar send button enhancement */
+  .mobile-search-send:not(:disabled) {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #7c3aed 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 
+      0 4px 16px rgba(139, 92, 246, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 8px 14px !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+  
+  /* Button hover effect */
+  .mobile-search-send:not(:disabled):hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #6d28d9 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 
+      0 6px 20px rgba(139, 92, 246, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  }
+  
+  .mobile-search-send:not(:disabled):active {
+    transform: translateY(0) !important;
+    box-shadow: 
+      0 2px 8px rgba(139, 92, 246, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  /* Button shimmer effect */
+  .mobile-search-send:not(:disabled)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: buttonShimmer 1.5s infinite;
+    pointer-events: none;
+  }
+  
+  @keyframes buttonShimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  .mobile-search-send:disabled {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%) !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 8px 14px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  /* Breathing animation for empty SearchBar */
+  .mobile-searchbar-container:not(.mobile-searchbar-focused):not(.has-content) {
+    animation: breathe 4s ease-in-out infinite;
+  }
+  
+  @keyframes breathe {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    50% { 
+      transform: scale(1.01);
+      box-shadow: 
+        0 6px 25px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+  }
+  
+  /* Enhanced search icon glow effect */
+  .mobile-search-icon svg {
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .mobile-searchbar-focused .mobile-search-icon svg {
+    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
+    transform: rotate(15deg);
+  }
+  
+  /* Send button icon animation */
+  .mobile-search-send:not(:disabled):hover svg,
+  .mobile-search-send:not(:disabled):focus svg {
+    transform: translateX(2px) rotate(15deg) scale(1.1);
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
+  }
+  
+  /* Modern glass reflection effect */
+  .mobile-searchbar-glass::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+    border-radius: 24px 24px 0 0;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+}
+
+/* ====== HAPTIC FEEDBACK EFFECTS ====== */
+@media (max-width: 768px) {
+  /* Removed scaling animations for smoother UX - haptic feedback only */
+  .haptic-feedback:active,
+  .haptic-light:active,
+  .haptic-medium:active,
+  .haptic-heavy:active {
+    /* No visual animations, only haptic feedback */
+    opacity: 0.9;
+  }
+}
+
+/* ====== MOBILE SAFE AREA HANDLING ====== */
+@media (max-width: 768px) {
+  .mobile-safe-top {
+    padding-top: max(16px, env(safe-area-inset-top)) !important;
+  }
+  
+  .mobile-safe-bottom {
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+  
+  .mobile-safe-left {
+    padding-left: max(8px, env(safe-area-inset-left)) !important;
+  }
+  
+  .mobile-safe-right {
+    padding-right: max(8px, env(safe-area-inset-right)) !important;
+  }
+}
+
+/* ====== MOBILE FOCUS IMPROVEMENTS ====== */
+@media (max-width: 768px) {
+  .mobile-focus-ring:focus-visible {
+    outline: 2px solid rgba(139, 92, 246, 0.8) !important;
+    outline-offset: 2px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2) !important;
+  }
+  
+  /* Remove default focus styles */
+  *:focus {
+    outline: none;
+  }
+  
+  /* Custom focus styles for interactive elements */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    outline: 2px solid rgba(139, 92, 246, 0.6);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+/* ====== MOBILE PERFORMANCE OPTIMIZATIONS ====== */
+@media (max-width: 768px) {
+  /* Hardware acceleration disabled */
+  .mobile-gpu-accelerated {
+    transform: none;
+    -webkit-transform: none;
+    will-change: auto;
+  }
+  
+  /* Smooth scrolling */
+  .mobile-smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent overscroll */
+  .mobile-no-overscroll {
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+  }
+}
+
+/* ====== MOBILE DARK MODE ENHANCEMENTS ====== */
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .mobile-navbar-glass {
+    background: linear-gradient(135deg, 
+      rgba(10, 11, 12, 0.98) 0%, 
+      rgba(18, 19, 24, 0.98) 50%, 
+      rgba(10, 11, 12, 0.95) 100%) !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+  }
+  
+  .mobile-searchbar-glass {
+    background: linear-gradient(135deg, 
+      rgba(18, 19, 24, 0.98) 0%, 
+      rgba(10, 11, 12, 0.95) 100%) !important;
+    border-color: rgba(139, 92, 246, 0.25) !important;
+  }
+}
+
+/* ====== ACCESSIBILITY IMPROVEMENTS ====== */
+@media (max-width: 768px) {
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .mobile-navbar-glass,
+    .mobile-searchbar-glass {
+      border-width: 2px !important;
+      border-color: rgba(139, 92, 246, 0.8) !important;
+    }
+  }
+  
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-nav-tab,
+    .mobile-searchbar-container,
+    .haptic-feedback {
+      transition: none !important;
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+  
+  /* Large text support */
+  @media (min-resolution: 2dppx) {
+    .mobile-search-input {
+      font-size: 17px !important;
+    }
+  }
+}
+
+/* ====== MOBILE LIKE BUTTON ENHANCEMENTS ====== */
+@media (max-width: 768px) {
+  /* Base like button mobile optimization */
+  .like-button, 
+  .blog-like-button,
+  .like-button-container {
+    min-height: 44px !important; /* iOS/Android recommended touch target */
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(239, 68, 68, 0.2) !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 1rem !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+  }
+
+  /* Mobile like button heart icon sizing */
+  .like-button svg,
+  .blog-like-button svg,
+  .like-button-container svg,
+  .like-button-heart {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    flex-shrink: 0 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* Mobile like button text styling */
+  .like-button span,
+  .blog-like-button span,
+  .like-button-container span,
+  .likes-count {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: fit-content !important;
+  }
+
+  /* Enhanced mobile touch feedback */
+  .like-button:active,
+  .blog-like-button:active,
+  .like-button-container:active {
+    transform: scale(0.95) !important;
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    transition: all 0.1s ease !important;
+  }
+
+  /* Mobile hover states (for devices that support hover) */
+  @media (hover: hover) {
+    .like-button:hover,
+    .blog-like-button:hover,
+    .like-button-container:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+      background-color: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    .like-button:hover svg,
+    .blog-like-button:hover svg,
+    .like-button-container:hover svg,
+    .like-button:hover .like-button-heart {
+      transform: scale(1.1) !important;
+      filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3)) !important;
+    }
+  }
+
+  /* Mobile loading state optimization */
+  .like-button:disabled,
+  .blog-like-button:disabled,
+  .like-button-container:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+  }
+
+  /* Mobile loading spinner sizing */
+  .like-button .animate-spin,
+  .blog-like-button .animate-spin,
+  .like-button-container .animate-spin {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+
+  /* Blog list specific mobile optimizations */
+  .blog-post-card .like-button-container,
+  .blog-list-card .like-button-container {
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
+    min-width: fit-content !important;
+  }
+
+  /* Blog post page like button mobile optimization */
+  .blog-post footer .like-button,
+  .blog-post-footer .like-button {
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+    border-radius: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .blog-post footer .like-button svg,
+  .blog-post-footer .like-button svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+  }
+
+  /* Enhanced mobile animations */
+  @keyframes mobileLikeHeartbeat {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.15); }
+    50% { transform: scale(1.1); }
+    75% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .like-button:active svg,
+  .blog-like-button:active svg,
+  .like-button-container:active svg,
+  .like-button:active .like-button-heart {
+    animation: mobileLikeHeartbeat 0.3s ease-in-out !important;
+  }
+
+  /* Accessibility improvements for mobile */
+  .like-button:focus-visible,
+  .blog-like-button:focus-visible,
+  .like-button-container:focus-visible {
+    outline: 2px solid rgba(239, 68, 68, 0.8) !important;
+    outline-offset: 2px !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
+  }
+
+  /* Mobile specific color schemes */
+  .like-button-container.bg-red-50 {
+    background-color: rgba(254, 242, 242, 0.8) !important;
+    border-color: rgba(248, 113, 113, 0.3) !important;
+  }
+
+  .dark .like-button-container.bg-red-50 {
+    background-color: rgba(127, 29, 29, 0.3) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+  }
+
+  /* Responsive typography for like counts */
+  @media (max-width: 480px) {
+    .like-button span,
+    .blog-like-button span,
+    .like-button-container span,
+    .likes-count {
+      font-size: 0.8125rem !important; /* 13px */
+    }
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    .like-button span,
+    .blog-like-button span,
+    .like-button-container span,
+    .likes-count {
+      font-size: 0.875rem !important; /* 14px */
+    }
+  }
+}
+
+/* ====== MOBILE SAFE AREA LIKE BUTTON HANDLING ====== */
+@media (max-width: 768px) {
+  .blog-post-footer {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Prevent like buttons from being covered by home indicator */
+  .blog-list-container {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* ====== MOBILE SOCIAL SHARE BUTTONS ====== */
+@media (max-width: 768px) {
+  .social-share-buttons {
+    width: 100% !important;
+  }
+  
+  .social-share-buttons .flex {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+  
+  .social-share-buttons button {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: 12px !important;
+    touch-action: manipulation !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+  
+  .social-share-buttons button:active {
+    transform: scale(0.95) !important;
+  }
+  
+  .social-share-buttons button svg {
+    width: 18px !important;
+    height: 18px !important;
+    margin-right: 8px !important;
+  }
+  
+  /* Hide text on very small screens, show only icons */
+  @media (max-width: 480px) {
+    .social-share-buttons button {
+      padding: 12px !important;
+      min-width: 44px !important;
+    }
+    
+    .social-share-buttons button svg {
+      margin-right: 0 !important;
+      width: 20px !important;
+      height: 20px !important;
+    }
+    
+    /* Hide button text on small screens */
+    .social-share-buttons button > span,
+    .social-share-buttons button:not(#copy-link-btn) {
+      font-size: 0 !important;
+    }
+    
+    .social-share-buttons button:not(#copy-link-btn):after {
+      content: attr(title) !important;
+      font-size: 0 !important;
+      position: absolute !important;
+      opacity: 0 !important;
+    }
+  }
+  
+  /* Share label styling */
+  .social-share-buttons span:first-child {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
+
+/* ====== MOBILE BLOG POST ENHANCEMENTS ====== */
+@media (max-width: 768px) {
+  /* Blog post action bar (like + share section) */
+  .blog-post-actions {
+    background: rgba(17, 24, 39, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+    margin: 16px 0 !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  }
+  
+  /* Mobile blog like button specific styles */
+  .mobile-blog-like-btn {
+    min-height: 48px !important;
+    padding: 12px 20px !important;
+    border-radius: 24px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    gap: 10px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    touch-action: manipulation !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .mobile-blog-like-btn:active {
+    transform: scale(0.95) !important;
+  }
+  
+  .mobile-blog-like-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Blog content mobile spacing */
+  .blog-post-content {
+    padding: 0 16px !important;
+    line-height: 1.7 !important;
+  }
+  
+  .blog-post-content p {
+    margin-bottom: 16px !important;
+  }
+  
+  .blog-post-content h1,
+  .blog-post-content h2,
+  .blog-post-content h3 {
+    margin: 24px 0 16px 0 !important;
+  }
+}

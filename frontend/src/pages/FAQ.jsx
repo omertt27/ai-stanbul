@@ -40,7 +40,7 @@ function FAQ() {
   ];
 
   return (
-    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '3rem' }}>
+    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900 mobile-scroll-optimized" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '3rem' }}>
       <div className="max-w-6xl mx-auto">
 
       {/* Scrollable Content */}
@@ -64,10 +64,10 @@ function FAQ() {
         {/* FAQ Items */}
         <div className="space-y-6 mb-16">
           {faqs.map((faq, index) => (
-            <div key={index} className="rounded-xl transition-all duration-300 bg-gray-800 border border-gray-700 hover:border-gray-600">
+            <div key={index} className="rounded-xl transition-all duration-300 bg-gray-800 border border-gray-700 hover:border-gray-600 mobile-touch-optimized">
               <button
                 onClick={() => toggleFAQ(index)}
-                className="w-full p-8 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 rounded-xl"
+                className="w-full p-8 text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 rounded-xl mobile-touch-optimized"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-start flex-1">

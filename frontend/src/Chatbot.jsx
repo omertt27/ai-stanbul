@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchStreamingResults } from './api/api';
 import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
 import NavBar from './components/NavBar';
+import SearchBar from './components/SearchBar';
 import MobileOptimizer from './components/MobileOptimizer';
 import { 
   TypingSimulator, 
@@ -799,10 +800,14 @@ function Chatbot() {
       });
       
       if (!response.ok) {
-        console.error('Failed to save chat session');
+        if (response.status === 404) {
+          console.log('Chat sessions endpoint not available');
+        } else {
+          console.error('Failed to save chat session');
+        }
       }
     } catch (error) {
-      console.error('Error saving chat session:', error);
+      console.log('Chat sessions feature not available:', error.message);
     }
   };
 
@@ -840,9 +845,11 @@ function Chatbot() {
       if (response.ok) {
         const data = await response.json();
         setSavedSessions(data.sessions || []);
+      } else if (response.status === 404) {
+        console.log('Chat sessions endpoint not available');
       }
     } catch (error) {
-      console.error('Error loading saved sessions:', error);
+      console.log('Chat sessions feature not available:', error.message);
     }
   };
 
@@ -856,9 +863,11 @@ function Chatbot() {
         setMessages(data.session.messages);
         setCurrentSessionId(sessionId);
         setSidebarOpen(false); // Close sidebar on mobile
+      } else if (response.status === 404) {
+        console.log('Chat session not found or endpoint not available');
       }
     } catch (error) {
-      console.error('Error loading saved session:', error);
+      console.log('Chat sessions feature not available:', error.message);
     }
   };
 
@@ -872,9 +881,11 @@ function Chatbot() {
       if (response.ok) {
         // Refresh saved sessions list
         loadSavedSessions();
+      } else if (response.status === 404) {
+        console.log('Chat session deletion endpoint not available');
       }
     } catch (error) {
-      console.error('Error deleting saved session:', error);
+      console.log('Chat sessions feature not available:', error.message);
     }
   };
 
@@ -1257,8 +1268,8 @@ function Chatbot() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '44px',
-          height: '44px',
+          width: '36px',
+          height: '36px',
           cursor: 'pointer'
         }}
         onMouseEnter={(e) => {
@@ -1276,8 +1287,8 @@ function Chatbot() {
         title="Chat History"
       >
         <svg 
-          width="20" 
-          height="20" 
+          width="16" 
+          height="16" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24" 
@@ -1544,104 +1555,65 @@ function Chatbot() {
             </div>
           )}
           
-          {/* Completely Redesigned Input Container - No surrounding border */}
+          {/* Enhanced SearchBar Component */}
           <div className="kam-input-wrapper">
-            <div className="kam-input-container">
-              
-              {/* Input Field */}
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  if (inputError) setInputError(''); // Clear error when typing
-                }}
-                onFocus={(e) => {
-                  setInputFocused(true);
+            <SearchBar
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (inputError) setInputError(''); // Clear error when typing
+              }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!loading && input.trim()) {
+                  handleSend();
+                  // On mobile, blur input after sending to hide keyboard
+                  if (isMobile) {
+                    const inputElement = document.querySelector('.mobile-search-input, .chat-input');
+                    if (inputElement) inputElement.blur();
+                  }
+                }
+              }}
+              onFocus={(e) => {
+                setInputFocused(true);
+                
+                // Mobile-specific focus handling
+                if (isMobile) {
+                  // Scroll to bottom when input is focused on mobile
+                  setTimeout(() => {
+                    if (messagesEndRef.current) {
+                      messagesEndRef.current.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'end' 
+                      });
+                    }
+                  }, 300); // Delay to account for keyboard animation
                   
-                  // Mobile-specific focus handling
-                  if (isMobile) {
-                    // Scroll to bottom when input is focused on mobile
-                    setTimeout(() => {
-                      if (messagesEndRef.current) {
-                        messagesEndRef.current.scrollIntoView({ 
-                          behavior: 'smooth', 
-                          block: 'end' 
-                        });
-                      }
-                    }, 300); // Delay to account for keyboard animation
-                    
-                    // Track keyboard state
-                    setTimeout(() => setKeyboardVisible(true), 300);
-                  } else {
-                    // Desktop focus behavior (prevent scroll)
-                    e.preventDefault();
-                    const currentScrollY = window.scrollY;
-                    const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
-                    setTimeout(() => {
-                      window.scrollTo(0, currentScrollY);
-                      const chatContainer = e.target.closest('.chatbot-messages');
-                      if (chatContainer) {
-                        chatContainer.scrollTop = currentScrollTop;
-                      }
-                    }, 0);
-                  }
-                }}
-                onBlur={() => {
-                  setInputFocused(false);
-                  if (isMobile) {
-                    setTimeout(() => setKeyboardVisible(false), 300);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !loading) {
-                    e.preventDefault();
-                    if (input.trim()) {
-                      handleSend();
-                      // On mobile, blur input after sending to hide keyboard
-                      if (isMobile) {
-                        e.target.blur();
-                      }
+                  // Track keyboard state
+                  setTimeout(() => setKeyboardVisible(true), 300);
+                } else {
+                  // Desktop focus behavior (prevent scroll)
+                  e.preventDefault();
+                  const currentScrollY = window.scrollY;
+                  const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
+                  setTimeout(() => {
+                    window.scrollTo(0, currentScrollY);
+                    const chatContainer = e.target.closest('.chatbot-messages');
+                    if (chatContainer) {
+                      chatContainer.scrollTop = currentScrollTop;
                     }
-                  }
-                }}
-                placeholder={isMobile ? "Ask about Istanbul..." : "What would you like to know about Istanbul?"}
-                className="kam-input-field"
-                disabled={loading}
-                autoComplete="off"
-                autoFocus={false}
-                inputMode="text"
-                autoCapitalize="sentences"
-                autoCorrect="on"
-                spellCheck="true"
-              />
-              
-              {/* Enhanced Send Button */}
-              <button 
-                onClick={() => {
-                  if (!loading && input.trim()) {
-                    handleSend();
-                    // On mobile, blur input after sending to hide keyboard
-                    if (isMobile) {
-                      const inputElement = document.querySelector('.kam-input-field');
-                      if (inputElement) inputElement.blur();
-                    }
-                  }
-                }} 
-                disabled={loading || !input.trim()}
-                className={`kam-send-button ${loading ? 'send-button-loading' : ''} ${isMobile ? 'mobile-optimized' : ''}`}
-                aria-label="Send message"
-                type="button"
-              >
-                {loading ? (
-                  <LoadingSpinner variant="spinner" size="medium" />
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                )}
-              </button>
-            </div>
+                  }, 0);
+                }
+              }}
+              onBlur={() => {
+                setInputFocused(false);
+                if (isMobile) {
+                  setTimeout(() => setKeyboardVisible(false), 300);
+                }
+              }}
+              placeholder={isMobile ? "Ask about Istanbul..." : "What would you like to know about Istanbul?"}
+              isLoading={loading}
+            />
           </div>
           
           {/* Quick suggestions (optional) - removed from here as moved to welcome screen */}

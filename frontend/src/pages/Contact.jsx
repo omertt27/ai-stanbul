@@ -10,7 +10,7 @@ function Contact() {
   const { darkMode } = useTheme();
   
   return (
-    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300">
+    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized">
       <div className="max-w-6xl mx-auto">
 
       {/* Main Content */}
@@ -24,7 +24,7 @@ function Contact() {
           {/* Contact Information */}
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             {/* Contact Methods */}
-            <div className="bg-gray-800 rounded-lg p-8 shadow-lg">
+            <div className="bg-gray-800 rounded-lg p-8 shadow-lg mobile-touch-optimized">
               <h2 className="text-2xl font-bold mb-6 text-blue-400">{t('contact.getInTouch')}</h2>
               
               <div className="space-y-6">

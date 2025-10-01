@@ -9,7 +9,7 @@ const Sources = () => {
   const { darkMode } = useTheme();
 
   const dataSource = (icon, title, items, color) => (
-    <div className={`rounded-xl p-6 transition-all duration-300 hover:scale-105 ${
+    <div className={`rounded-xl p-6 transition-all duration-300 hover:scale-105 mobile-touch-optimized ${
       darkMode 
         ? 'bg-gray-800 border border-gray-700 hover:border-gray-600' 
         : 'bg-white shadow-lg border border-gray-100 hover:shadow-xl'
@@ -40,7 +40,7 @@ const Sources = () => {
   );
 
   return (
-    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300">
+    <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized">
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="pb-12">

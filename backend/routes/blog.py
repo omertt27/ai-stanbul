@@ -828,9 +828,38 @@ async def get_like_status(post_id: str, request: Request, db: Session = Depends(
         raise HTTPException(status_code=500, detail="Failed to check like status")
 
 @router.get("/{post_id}")
-async def get_post(post_id: str):
-    """Get a specific blog post by ID"""
+async def get_post(post_id: str, db: Session = Depends(get_db)):
+    """Get a specific blog post by ID from database"""
     try:
+        # First try to get from database
+        blog_post = db.query(BlogPostModel).filter(BlogPostModel.id == int(post_id)).first()
+        
+        if blog_post:
+            # Increment view count in database (if we add view tracking later)
+            # For now, return the database post with consistent format
+            return {
+                "id": str(blog_post.id),
+                "title": blog_post.title,
+                "content": blog_post.content,
+                "author": blog_post.author or "Anonymous",
+                "author_name": blog_post.author or "Anonymous",
+                "category": "Istanbul Guide",
+                "district": "Istanbul (general)",
+                "tags": ["istanbul", "travel", "guide"],
+                "featured_image": None,
+                "images": [],
+                "published": True,
+                "created_at": blog_post.created_at.isoformat() if blog_post.created_at else datetime.utcnow().isoformat(),
+                "updated_at": blog_post.created_at.isoformat() if blog_post.created_at else datetime.utcnow().isoformat(),
+                "views": 0,
+                "likes": blog_post.likes_count,  # For backward compatibility
+                "likes_count": blog_post.likes_count,  # Primary field
+                "view_count": 0,
+                "comments": 0,
+                "comment_count": 0
+            }
+        
+        # Fallback to file-based system if not in database
         posts = load_blog_posts()
         
         for i, post in enumerate(posts):
@@ -854,6 +883,8 @@ async def get_post(post_id: str):
         
         raise HTTPException(status_code=404, detail="Blog post not found")
     
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid post ID")
     except HTTPException:
         raise
     except Exception as e:
