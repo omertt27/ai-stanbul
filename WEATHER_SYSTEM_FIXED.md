@@ -27,9 +27,9 @@ Successfully configured the AI Istanbul project to use Google Weather integratio
 ### Environment Variables (.env):
 ```bash
 # Google APIs - All using same key for efficiency
-GOOGLE_WEATHER_API_KEY=AIzaSyB2Xp8qGYy8R2VJEGy6Ri6IDz4co7DJzLk
-GOOGLE_MAPS_API_KEY=AIzaSyB2Xp8qGYy8R2VJEGy6Ri6IDz4co7DJzLk
-GOOGLE_PLACES_API_KEY=AIzaSyB2Xp8qGYy8R2VJEGy6Ri6IDz4co7DJzLk
+GOOGLE_WEATHER_API_KEY=YOUR_NEW_GOOGLE_API_KEY_HERE
+GOOGLE_MAPS_API_KEY=YOUR_NEW_GOOGLE_API_KEY_HERE
+GOOGLE_PLACES_API_KEY=YOUR_NEW_GOOGLE_API_KEY_HERE
 
 # Weather Settings
 WEATHER_PROVIDER=google
