@@ -6,6 +6,26 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import logging
 
+# Import smart caching system
+try:
+    from smart_cache import (
+        cache_google_places_response, 
+        get_cached_google_places,
+        cache_location_context,
+        get_cached_location_context
+    )
+    SMART_CACHE_AVAILABLE = True
+except ImportError:
+    SMART_CACHE_AVAILABLE = False
+    logging.warning("⚠️ Smart cache not available in Google Places client")
+
+# Import cost monitoring
+try:
+    from cost_monitor import log_google_places_cost
+    COST_MONITORING_AVAILABLE = True
+except ImportError:
+    COST_MONITORING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class EnhancedGooglePlacesClient:
@@ -86,11 +106,22 @@ class EnhancedGooglePlacesClient:
         Search for restaurants with real Google Places API data when available.
         Falls back to enhanced mock data when API is unavailable.
         """
+        # 🚀 SMART CACHING: Check cache first for significant cost savings
+        if SMART_CACHE_AVAILABLE:
+            query_id = f"restaurants:{keyword or 'general'}:{location or 'istanbul'}"
+            cached_result = get_cached_google_places(query_id, location or "Istanbul")
+            if cached_result:
+                # 💰 COST MONITORING: Track cost savings
+                if COST_MONITORING_AVAILABLE:
+                    log_google_places_cost(cached=True)
+                logger.info(f"🎯 Using cached restaurant data (Cost saved: $0.017)")
+                return cached_result
+        
         cache_key = self._get_cache_key("search_restaurants", 
                                       location=location, lat_lng=lat_lng, 
                                       radius=radius, keyword=keyword, min_rating=min_rating)
         
-        # Try cache first
+        # Try legacy cache
         cached_result = self._get_cached_response(cache_key)
         if cached_result:
             return cached_result
@@ -101,6 +132,17 @@ class EnhancedGooglePlacesClient:
                 result = self._search_restaurants_real_api(location, lat_lng, radius, keyword, min_rating)
                 self._request_count += 1
                 self._cache_response(cache_key, result)
+                
+                # � COST MONITORING: Track actual API cost
+                if COST_MONITORING_AVAILABLE:
+                    log_google_places_cost(cached=False)
+                
+                # �🚀 SMART CACHING: Store in smart cache for cost optimization
+                if SMART_CACHE_AVAILABLE:
+                    query_id = f"restaurants:{keyword or 'general'}:{location or 'istanbul'}"
+                    cache_google_places_response(query_id, location or "Istanbul", result)
+                    logger.debug(f"💾 Stored restaurant data in smart cache")
+                
                 logger.info(f"✅ REAL DATA: Restaurant search successful ({len(result.get('results', []))} results)")
                 return result
             except Exception as e:
@@ -109,6 +151,12 @@ class EnhancedGooglePlacesClient:
         # Fallback to enhanced mock data
         result = self._get_enhanced_mock_restaurant_data(location, keyword)
         logger.info(f"📝 MOCK DATA: Using enhanced fallback data ({len(result.get('results', []))} results)")
+        
+        # 🚀 SMART CACHING: Cache mock data too to avoid regeneration
+        if SMART_CACHE_AVAILABLE:
+            query_id = f"restaurants:{keyword or 'general'}:{location or 'istanbul'}"
+            cache_google_places_response(query_id, location or "Istanbul", result)
+        
         return result
     
     def _search_restaurants_real_api(self, location: Optional[str], lat_lng: Optional[str], 
