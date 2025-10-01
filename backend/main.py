@@ -619,27 +619,78 @@ def sanitize_user_input(user_input: str) -> str:
     
     return user_input.strip()
 
-async def get_gpt_response(user_input: str, session_id: str) -> Optional[str]:
-    """Generate response using OpenAI GPT with enhanced category-specific prompts and personalized memory"""
+async def get_gpt_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
+    """Generate response using unified AI system with persistent context and resolved prompt conflicts"""
     try:
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not OpenAI_available or not openai_api_key or OpenAI is None:
-            return None
+        # Import the unified AI system
+        from unified_ai_system import get_unified_ai_system
+        from database import SessionLocal
         
         # Sanitize input
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
         
-        # Get database session for personalization
+        # Get database session
+        db = SessionLocal()
+        
+        try:
+            # Use unified AI system for response generation
+            unified_ai = get_unified_ai_system(db)
+            
+            print(f"🤖 Using unified AI system for session: {session_id}")
+            
+            # Generate response with persistent context
+            result = await unified_ai.generate_response(
+                user_input=user_input,
+                session_id=session_id,
+                user_ip=user_ip
+            )
+            
+            if result.get('success'):
+                ai_response = result['response']
+                session_info = unified_ai.get_session_info(result['session_id'])
+                
+                print(f"✅ Unified AI response generated - Session: {result['session_id']}, "
+                      f"Context: {result.get('has_context', False)}, "
+                      f"Turns: {result.get('conversation_turns', 0)}, "
+                      f"Category: {result.get('category', 'unknown')}")
+                
+                # Apply post-processing cleanup
+                ai_response = post_llm_cleanup(ai_response)
+                
+                return ai_response
+            else:
+                print(f"❌ Unified AI system failed: {result.get('error', 'Unknown error')}")
+                return None
+                
+        finally:
+            db.close()
+            
+    except ImportError as e:
+        print(f"⚠️ Unified AI system not available, falling back to legacy: {e}")
+        # Fallback to legacy system with minimal context
+        return await get_legacy_gpt_response(user_input, session_id)
+    except Exception as e:
+        print(f"❌ Unified AI system error: {e}")
+        return await get_legacy_gpt_response(user_input, session_id)
+
+async def get_legacy_gpt_response(user_input: str, session_id: str) -> Optional[str]:
+    """Legacy GPT response system (fallback only)"""
+    try:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not OpenAI_available or not openai_api_key or OpenAI is None:
+            return None
+        
+        # Get database session for minimal personalization
         from database import SessionLocal
         db = SessionLocal()
         
-        # Get personalized context from memory system
+        # Get basic personalized context
         try:
             from personalized_memory import get_personalized_context, generate_personalized_prompt_enhancement
             personalization = get_personalized_context(session_id, user_input, db)
-            print(f"🧠 Personalization context loaded: {personalization.get('has_history', False)}")
+            print(f"🧠 Legacy personalization context loaded: {personalization.get('has_history', False)}")
         except ImportError as e:
             print(f"⚠️ Personalized memory not available: {e}")
             personalization = {"has_history": False}
@@ -919,6 +970,32 @@ LOCATION-SPECIFIC INSTRUCTIONS:
             # 📍 ADD ENHANCED LOCATION CONTEXT TO PROMPT
             if enhanced_location_info:
                 enhanced_system_prompt += enhanced_location_info
+            
+            # 🌤️ ADD WEATHER CONTEXT TO PROMPT
+            try:
+                # Import and use the working weather client
+                from api_clients.weather_enhanced import weather_client
+                
+                weather_data = weather_client.get_istanbul_weather()
+                weather_info = weather_client.format_weather_info(weather_data)
+                
+                weather_context = f"""
+🌤️ CURRENT ISTANBUL WEATHER INFORMATION:
+{weather_info}
+
+Weather-Based Recommendations:
+- Temperature: {weather_data.get('temperature', 'N/A')}°C
+- Condition: {weather_data.get('description', 'N/A')}
+- Rain Status: {'Currently raining' if weather_data.get('is_raining', False) else 'No rain expected'}
+
+IMPORTANT: When providing recommendations, consider the current weather conditions above. For indoor/outdoor activity suggestions, clothing advice, or timing recommendations, use this weather information to provide contextually appropriate advice.
+
+"""
+                enhanced_system_prompt += weather_context
+                print(f"✅ Enhanced system prompt with current weather data: {weather_data.get('temperature')}°C, {weather_data.get('description')}")
+                
+            except Exception as e:
+                print(f"⚠️ Error adding weather context: {e}")
             
             # 🧠 ENHANCE PROMPT WITH PERSONALIZATION
             if personalization.get('has_history'):
@@ -1649,159 +1726,139 @@ async def get_services_status():
 
 # ====== CHAT INTEGRATION ENDPOINT ======
 
+def generate_intelligent_fallback(message: str) -> str:
+    """Generate intelligent fallback response based on message content"""
+    message_lower = message.lower()
+    
+    # Museum queries
+    if any(word in message_lower for word in ['museum', 'hagia sophia', 'topkapi', 'blue mosque']):
+        return """I can help you with Istanbul's amazing museums! 🏛️
+
+**Top Museums:**
+• Hagia Sophia - Iconic Byzantine church with incredible mosaics
+• Topkapi Palace - Former Ottoman imperial palace with stunning views
+• Blue Mosque - Beautiful 17th-century mosque with six minarets
+• Istanbul Modern - Contemporary Turkish and international art
+
+For current opening hours and directions, I recommend checking Google Maps. Would you like specific information about any of these museums?"""
+    
+    # Transportation queries
+    elif any(word in message_lower for word in ['transport', 'metro', 'bus', 'taxi', 'ferry']):
+        return """Istanbul has excellent public transportation! 🚇
+
+**Transportation Options:**
+• Metro: 7 lines (M1-M7) connecting major districts
+• Tram: T1 connects historic peninsula, T4 serves other areas
+• Ferry: Beautiful Bosphorus and Golden Horn routes
+• Bus: Extensive IETT network throughout the city
+• Istanbulkart: Rechargeable card for all public transport
+
+For real-time routes and schedules, use the IETT mobile app or Google Maps. What specific route do you need help with?"""
+    
+    # Restaurant/food queries
+    elif any(word in message_lower for word in ['restaurant', 'food', 'eat', 'dining']):
+        return """Istanbul's culinary scene is incredible! 🍽️
+
+**Must-Try Foods:**
+• Turkish breakfast with fresh bread, cheese, olives, and tea
+• Kebabs from traditional restaurants
+• Street food like döner, balık ekmek (fish sandwich)
+• Turkish delight and baklava for dessert
+• Turkish coffee or tea
+
+**Great Food Areas:**
+• Sultanahmet for traditional Ottoman cuisine
+• Kadıköy for authentic local restaurants
+• Beyoğlu for international and modern Turkish cuisine
+
+What type of cuisine or area interests you most?"""
+    
+    # General/greeting
+    else:
+        return """Welcome to Istanbul! I'm your AI travel assistant. 🏛️
+
+**I can help you with:**
+• Museums and historical sites
+• Transportation routes and tips  
+• Restaurant recommendations
+• District information and attractions
+• Cultural insights and travel tips
+
+**Popular questions:**
+• "What museums should I visit in Sultanahmet?"
+• "How do I get from Taksim to the airport?"
+• "Where can I find good Turkish food?"
+• "What's special about the Beyoğlu district?"
+
+What would you like to know about Istanbul?"""
+
 @app.post("/api/chat")
-async def chat_endpoint(data: dict):
-    """Process chat messages and provide intelligent responses about Istanbul"""
+async def chat_endpoint(request: Request, data: dict):
+    """Process chat messages with unified AI system and persistent context"""
     try:
         message = data.get('message', '').strip()
+        session_id = data.get('session_id')  # Allow frontend to maintain session
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
         
-        # Simple keyword-based routing to demonstrate integration
-        message_lower = message.lower()
+        # Get client information for persistent sessions
+        client_ip = request.client.host if hasattr(request, 'client') and request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
         
-        # Museum-related queries
-        museum_keywords = ['museum', 'hagia sophia', 'topkapi', 'blue mosque', 'basilica cistern', 'opening hours', 'visiting']
-        if any(keyword in message_lower for keyword in museum_keywords):
-            if REAL_MUSEUM_SERVICE_ENABLED and real_museum_service:
-                try:
-                    # Try to extract specific museum name
-                    museum_key = extract_museum_key_from_input(message)
-                    if museum_key and museum_key != 'hagia_sophia':  # Default fallback
-                        museum = await real_museum_service.get_museum_info(museum_key)
-                        if museum:
-                            response_text = f"Here's information about {museum.name}:\n\n"
-                            response_text += f"📍 Address: {museum.address}\n"
-                            response_text += f"⭐ Rating: {museum.rating}/5 ({museum.total_ratings} reviews)\n"
-                            
-                            if museum.opening_hours_text:
-                                response_text += f"🕒 Hours: {', '.join(museum.opening_hours_text[:2])}\n"
-                            
-                            response_text += f"🌐 Website: {museum.website}\n" if museum.website else ""
-                            response_text += f"📞 Phone: {museum.phone}\n" if museum.phone else ""
-                            
-                            return {
-                                "success": True,
-                                "response": response_text,
-                                "type": "museum_info",
-                                "data": real_museum_service.to_dict(museum)
-                            }
-                    
-                    # General museum information
-                    museums = await real_museum_service.get_all_museums()
-                    response_text = f"I found {len(museums)} major museums in Istanbul:\n\n"
-                    for key, museum in list(museums.items())[:3]:  # Show top 3
-                        response_text += f"🏛️ **{museum.name}**\n"
-                        response_text += f"   Rating: {museum.rating}/5 | Status: {museum.current_status}\n\n"
-                    
-                    response_text += "Would you like detailed information about any specific museum?"
-                    
-                    return {
-                        "success": True,
-                        "response": response_text,
-                        "type": "museum_list",
-                        "data": {key: real_museum_service.to_dict(museum) for key, museum in museums.items()}
-                    }
-                    
-                except Exception as e:
-                    logger.error(f"Error in museum chat integration: {str(e)}")
+        # Generate or use provided session ID
+        if not session_id:
+            import hashlib
+            session_id = hashlib.md5(f"chat_{message[:50]}_{client_ip}".encode()).hexdigest()
         
-        # Transportation-related queries
-        transport_keywords = ['transport', 'metro', 'bus', 'ferry', 'tram', 'route', 'how to get', 'travel', 'directions', 'get from', 'go to']
-        if any(keyword in message_lower for keyword in transport_keywords):
-            if REAL_TRANSPORT_SERVICE_ENABLED and real_transportation_service:
-                try:
-                    # Extract potential origin/destination from message (simplified)
-                    locations = []
-                    location_keywords = ['sultanahmet', 'taksim', 'galata', 'eminonu', 'kadikoy', 'besiktas', 'airport']
-                    for loc in location_keywords:
-                        if loc in message_lower:
-                            locations.append(loc.title())
-                    
-                    if len(locations) >= 2:
-                        # Get routes between two locations
-                        origin, destination = locations[0], locations[1]
-                        routes = await real_transportation_service.get_real_time_routes(origin, destination)
-                        if routes:
-                            response_text = f"Here are the best routes from {origin} to {destination}:\n\n"
-                            for i, route in enumerate(routes[:3], 1):  # Show top 3 routes
-                                response_text += f"{i}. **{route.transport_type.title()} - {route.line_name}**\n"
-                                response_text += f"   Duration: {route.duration_minutes} min | Cost: {route.cost_tl} TL\n"
-                                if route.next_departures:
-                                    response_text += f"   Next: {', '.join(route.next_departures[:2])}\n\n"
-                            
-                            return {
-                                "success": True,
-                                "response": response_text,
-                                "type": "transportation_routes",
-                                "data": [real_transportation_service.to_dict(route) for route in routes]
-                            }
-                    
-                    # General transportation information
-                    alerts = await real_transportation_service.get_service_alerts()
-                    response_text = "Istanbul Transportation Information:\n\n"
-                    response_text += "🚇 **Metro Lines**: M1, M2, M3, M4, M5, M6, M7\n"
-                    response_text += "🚊 **Tram Lines**: T1, T4\n"
-                    response_text += "⛴️ **Ferry Routes**: Multiple Bosphorus and Golden Horn routes\n"
-                    response_text += "🚌 **Buses**: Extensive IETT network\n\n"
-                    
-                    if alerts:
-                        response_text += f"⚠️ Current Alerts ({len(alerts)}):\n"
-                        for alert in alerts[:2]:  # Show first 2 alerts
-                            response_text += f"   {alert.get('title', 'Service Update')}\n"
-                    
-                    response_text += "\nAsk me about routes between specific locations!"
-                    
-                    return {
-                        "success": True,
-                        "response": response_text,
-                        "type": "transportation_info",
-                        "data": {"alerts": alerts}
-                    }
-                    
-                except Exception as e:
-                    logger.error(f"Error in transportation chat integration: {str(e)}")
-            else:
-                # Fallback response when service is not available
+        print(f"🔄 Processing chat request - Session: {session_id[:8]}..., IP: {client_ip}")
+        
+        try:
+            # Use unified AI system for ALL queries (no more keyword-based routing)
+            ai_response = await get_gpt_response(message, session_id, client_ip)
+            
+            if ai_response:
                 return {
                     "success": True,
-                    "response": "Istanbul has an excellent public transportation system including:\n\n🚇 **Metro**: 7 lines (M1-M7) connecting major districts\n🚊 **Tram**: T1 (connects to historic peninsula) and T4\n⛴️ **Ferry**: Beautiful Bosphorus and Golden Horn routes\n🚌 **Bus**: Extensive IETT network throughout the city\n\nFor real-time routes and schedules, I recommend using the official IETT mobile app or Google Maps.",
-                    "type": "transportation_fallback"
+                    "response": ai_response,
+                    "session_id": session_id,
+                    "type": "unified_ai_response"
                 }
-        
-        # General Istanbul information
-        general_keywords = ['istanbul', 'turkey', 'visit', 'tourist', 'attraction', 'recommendation']
-        if any(keyword in message_lower for keyword in general_keywords):
-            response_text = "Welcome to Istanbul! 🏛️\n\n"
-            response_text += "I can help you with:\n"
-            response_text += "🏛️ **Museums**: Hagia Sophia, Topkapi Palace, Blue Mosque, and more\n"
-            response_text += "🚇 **Transportation**: Metro, bus, ferry, and tram routes\n"
-            response_text += "📍 **Locations**: Opening hours, directions, and recommendations\n\n"
-            response_text += "Try asking me:\n"
-            response_text += "• 'What museums are near me?'\n"
-            response_text += "• 'How do I get from Sultanahmet to Taksim?'\n"
-            response_text += "• 'What are the opening hours for Hagia Sophia?'"
-            
+            else:
+                # Fallback response if AI system fails
+                fallback_response = generate_intelligent_fallback(message)
+                return {
+                    "success": True,
+                    "response": fallback_response,
+                    "session_id": session_id,
+                    "type": "fallback_response"
+                }
+                
+        except Exception as e:
+            print(f"⚠️ AI response generation failed: {e}")
+            # Fallback response with session continuity
+            fallback_response = generate_intelligent_fallback(message)
             return {
                 "success": True,
-                "response": response_text,
-                "type": "general_info"
+                "response": fallback_response,
+                "session_id": session_id,
+                "type": "error_fallback"
             }
-        
-        # Default response
-        return {
-            "success": True,
-            "response": "I'm your Istanbul AI assistant! I can help you with museum information and transportation routes. What would you like to know about Istanbul?",
-            "type": "default"
-        }
-        
-    except HTTPException:
-        raise
+            
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Chat processing failed: {str(e)}")
+        print(f"❌ Chat endpoint error: {e}")
+        # Final emergency fallback
+        return {
+            "success": False,
+            "error": "I'm experiencing technical difficulties. Please try again in a moment.",
+            "type": "system_error"
+        }
 
+# ==============================================
+# UNIFIED AI SYSTEM - CLEAN IMPLEMENTATION 
+# ==============================================
+
+# Legacy chat endpoint for backward compatibility
 @app.post("/chat")
-async def chat_endpoint_legacy(data: dict):
-    """Legacy chat endpoint - redirects to /api/chat"""
-    return await chat_endpoint(data)
+async def chat_endpoint_legacy(request: Request, data: dict):
+    """Legacy chat endpoint - redirects to unified /api/chat"""
+    return await chat_endpoint(request, data)

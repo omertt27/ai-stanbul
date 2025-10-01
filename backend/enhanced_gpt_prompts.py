@@ -1216,3 +1216,19 @@ def get_category_specific_prompt(query: str, location_context: Optional[str] = N
     expected_features = enhanced_prompts.get_expected_features(category)
     
     return category, system_prompt, max_tokens, temperature, expected_features
+
+def classify_query_type(query: str) -> str:
+    """
+    Classify query type for compatibility with older code
+    This is a compatibility function that maps to the newer category detection
+    
+    Args:
+        query: User query text
+        
+    Returns:
+        String representing the query type/category
+    """
+    category = enhanced_prompts.detect_category_from_query(query)
+    return category.value
+
+# Global instance already exists above
