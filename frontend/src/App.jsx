@@ -7,6 +7,8 @@ import InteractiveMainPage from './components/InteractiveMainPage';
 import WeatherThemeProvider from './components/WeatherThemeProvider';
 import CookieConsent from './components/CookieConsent';
 import NavBar from './components/NavBar';
+import LanguageSwitcher from './components/LanguageSwitcher';
+import MainPageMobileNavbar from './components/MainPageMobileNavbar';
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
@@ -16,7 +18,7 @@ import './components/InteractiveMainPage.css';
 const App = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -147,60 +149,80 @@ const App = () => {
     localStorage.removeItem('chat-messages');
   };
 
+  const handleLanguageChange = (languageCode) => {
+    i18n.changeLanguage(languageCode);
+    
+    // Handle RTL for Arabic
+    if (languageCode === 'ar') {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    } else {
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', languageCode);
+    }
+  };
+
   return (
     <WeatherThemeProvider>
       <div style={{ width: '100vw', minHeight: '100vh', background: 'none', display: 'flex', flexDirection: 'column' }}>
         <GoogleAnalytics />
         {/* <DebugInfo /> */}
 
+        {/* Mobile Top Navbar for main page only */}
+        <MainPageMobileNavbar />
+
         <div className="main-page-background main-to-chat-transition" style={{
           flex: 1, 
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
-          justifyContent: isMobile || window.innerWidth < 768 ? 'center' : 'flex-start',
+          justifyContent: 'flex-start',
           width: '100vw', 
           minHeight: '100vh', 
-          paddingTop: isMobile || window.innerWidth < 768 ? '2rem' : '6rem', 
+          paddingTop: isMobile || window.innerWidth <= 768 ? '80px' : '6rem', // Account for mobile navbar
           paddingBottom: '2rem',
-          padding: isMobile || window.innerWidth < 768 ? '1rem' : '6rem 2rem 2rem'
+          paddingLeft: isMobile || window.innerWidth <= 768 ? '1rem' : '2rem',
+          paddingRight: isMobile || window.innerWidth <= 768 ? '1rem' : '2rem'
         }}>
           
-          {/* Simple centered logo for mobile, full experience for desktop */}
-          <div 
-            style={{
-              textAlign: 'center', 
-              marginBottom: isMobile || window.innerWidth < 768 ? '2rem' : '1rem',
-            }} 
-            onClick={handleLogoClick}
-          >
-            <div className="chat-title logo-istanbul main-page-logo">
-              <span className="logo-text" style={{
-                fontSize: isMobile || window.innerWidth < 768 ? '2.5rem' : '4rem',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'transparent',
-                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                lineHeight: '1.2'
-              }}>
-                A/STANBUL
-              </span>
+          {/* Centered logo - Only show on desktop, mobile has navbar logo */}
+          {!(isMobile || window.innerWidth <= 768) && (
+            <div 
+              style={{
+                textAlign: 'center', 
+                marginBottom: '1rem',
+                marginTop: '15px', // Move logo 15px more down for desktop version
+              }} 
+              onClick={handleLogoClick}
+            >
+              <div className="chat-title logo-istanbul main-page-logo">
+                <span className="logo-text" style={{
+                  fontSize: '4rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'transparent',
+                  background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  lineHeight: '1.2'
+                }}>
+                  A/STANBUL
+                </span>
+              </div>
             </div>
-          </div>
+          )}
           
           {/* Simple search bar - ChatGPT style */}
           <div style={{
             width: '100%', 
-            maxWidth: isMobile || window.innerWidth < 768 ? '100%' : 1200, 
-            margin: '0 auto 2rem', 
-            padding: isMobile || window.innerWidth < 768 ? '0' : '1rem',
+            maxWidth: isMobile || window.innerWidth <= 768 ? '100%' : 1200, 
+            margin: isMobile || window.innerWidth <= 768 ? '6rem auto 2rem auto' : '0 auto 2rem auto', 
+            padding: isMobile || window.innerWidth <= 768 ? '0 0.5rem' : '1rem',
             zIndex: 10,
           }}>
             <SearchBar
@@ -213,26 +235,12 @@ const App = () => {
             />
           </div>
           
-          {/* Interactive Main Page Content - Hide on mobile for simplicity */}
-          {!(isMobile || window.innerWidth < 768) && (
-            <div>
-              <InteractiveMainPage onQuickStart={handleQuickStart} />
-            </div>
-          )}
+          {/* Interactive Main Page Content - Show on all devices including mobile */}
+          <div>
+            <InteractiveMainPage onQuickStart={handleQuickStart} />
+          </div>
           
-          {/* Simple mobile prompt */}
-          {(isMobile || window.innerWidth < 768) && (
-            <div style={{
-              textAlign: 'center',
-              color: '#9ca3af',
-              fontSize: '0.9rem',
-              marginTop: '1rem',
-              maxWidth: '280px',
-              margin: '1rem auto 0'
-            }}>
-              Ask me anything about Istanbul - restaurants, attractions, transportation, and more!
-            </div>
-          )}
+          {/* Districts and interactive content now visible on all devices */}
           
         </div>
 

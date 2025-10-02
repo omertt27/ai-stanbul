@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 import '../App.css';
 
 const Sources = () => {
@@ -41,6 +42,7 @@ const Sources = () => {
 
   return (
     <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized">
+      <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="pb-12">

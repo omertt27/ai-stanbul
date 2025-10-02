@@ -1,6 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import Logo from '../components/Logo';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 
 const Donate = () => {
   const { t } = useTranslation();
@@ -21,7 +23,7 @@ const Donate = () => {
 
   return (
     <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ paddingTop: '6rem', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
-      
+      <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
 
       {/* Scrollable Content */}
@@ -30,8 +32,10 @@ const Donate = () => {
         <div className="pb-26">
         <div className="max-w-4xl mx-auto px-12 text-center">
           <div className="mb-8">
-            <h1 className="text-5xl font-bold mb-6 pt-16 transition-colors duration-300 text-white">
-              {t('donate.title')}
+            {/* Logo using reusable component */}
+            <h1 className="text-4xl font-bold mb-6 transition-colors duration-300 text-white flex items-center justify-center gap-4 flex-wrap">
+              <span>{t('donate.title')}</span>
+              <Logo size="medium" />
             </h1>
             <p className="text-xl leading-relaxed transition-colors duration-300 text-gray-300">
               {t('donate.subtitle')}

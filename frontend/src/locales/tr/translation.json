@@ -276,8 +276,15 @@
       "updates": {
         "question": "Bilgiler ne sıklıkla güncelleniyor?",
         "answer": "Restoran verileri Google Maps API üzerinden gerçek zamanlı olarak güncellenir. Müze ve cazibe merkezi bilgilerimiz elle seçilir ve doğruluğu sağlamak için düzenli olarak güncellenir. Veritabanımızı aylık olarak gözden geçirip güncelliyoruz."
+      },
+      "free": {
+        "question": "AI İstanbul Rehberi gerçekten ücretsiz mi?",
+        "answer": "Evet, AI İstanbul Rehberi gizli maliyet, abonelik veya premium özellik olmaksızın tamamen ücretsiz kullanılabilir. İstanbul hakkında kaliteli seyahat bilgisine herkesin erişimi olması gerektiğine inanıyoruz. Hizmet, topluluk bağışları ve seyahat kaynaklarını herkese erişilebilir tutma taahhüdümüzle desteklenmektedir."
+      },
+      "whatIsAIstanbul": {
+        "question": "AI İstanbul Rehberi nedir?",
+        "answer": "AI İstanbul Rehberi, İstanbul genelindeki restoranlar, cazibe merkezleri, ulaşım ve kültürel deneyimler için kişiselleştirilmiş öneriler sunan gelişmiş AI destekli bir seyahat asistanıdır. Platformumuz gerçek zamanlı verileri yerel uzmanlıkla birleştirerek en doğru ve alakalı seyahat tavsiyeleri sunar."
       }
-
     },
     "stats": {
       "realTimeData": {
@@ -286,7 +293,7 @@
       },
       "free": {
         "title": "100% Ücretsiz",
-        "description": "Topluluk desteğiyle tamamen ücretsiz kullanım"
+        "description": "Her zaman ücretsiz - abonelik yok, gizli maliyet yok, premium özellik yok"
       },
       "mobileOptimized": {
         "title": "Mobil Optimize",
@@ -307,7 +314,7 @@
     }
   },
   "contact": {
-    "title": "A/STANBUL ile İletişime Geç",
+    "title": "İletişime Geç",
     "getInTouch": "İletişime Geç",
     "email": "E-posta",
     "location": "Konum",
@@ -324,20 +331,30 @@
     "responseInfo": "E-postalara genellikle 24-48 saat içinde yanıt veriyoruz. Acil teknik sorunlar için lütfen GitHub üzerinden ulaşın."
   },
   "donate": {
-    "title": "A/STANBUL'u Destekle",
-    "subtitle": "İstanbul'un en iyi AI seyahat rehberini herkes için ücretsiz ve harika tutmamıza yardım edin",
+    "title": "Destekle",
+    "subtitle": "İstanbul için dünyanın en gelişmiş AI seyahat platformunu inşa etmemize yardım edin",
+    "earlySupportTitle": "🚀 AIstanbul'un Büyüme Yolculuğunu Destekleyin 🚀",
+    "earlySupportIntro": "AIstanbul topluluk projesinden sürdürülebilir bir seyahat platformuna dönüşüyor! Bir sonraki aşamaya hazırlanırken, İstanbul'u keşfeden gezginlere yardım etme misyonumuzu koruyarak uzun vadeli büyümeyi sağlayacak yolları araştırıyoruz.",
+    "earlySupportHelps": "Desteğiniz şunlara yardımcı oluyor:",
+    "keepFastReliable": "Milyonlarca gezgin için sağlam, ölçeklenebilir bir platform inşa etmek",
+    "addNewFeatures": "Temel seyahat rehberliğini ücretsiz tutarken premium özellikler geliştirmek",
+    "stayIndependent": "Editöryal bağımsızlığı ve otantik yerel önerileri korumak",
+    "believeMessage": "💙 Bu geçiş döneminde bizi destekleyin. Katkınız AI destekli seyahatin geleceğini şekillendirmeye yardımcı oluyor.",
+    "whatsNextTitle": "🔮 İş Vizyonumuz",
+    "whatsNextText": "Temel seyahat bilgilerine ücretsiz erişimi gelişmiş deneyimler için premium hizmetlerle dengeleyen sürdürülebilir bir iş modeli geliştiriyoruz. Bu AIstanbul'un uzun vadeli başarısını ve sürekli gelişimini sağlayacak.",
+    "thankYouMessage": "🙏 Startup'tan yerleşik seyahat platformuna yolculuğumuzda yanımızda olduğunuz için teşekkürler. Desteğiniz büyümemizi mümkün kılıyor!",
     "buyMeCoffee": "Bana Kahve Ismarla",
     "coffeeDescription": "Takdirinizi göstermenin ve AIstanbul'u çalışır tutmanın en kolay yolu",
     "buyMeCoffeeButton": "Bana Kahve Ismarla",
-    "howSupportHelps": "Desteğiniz Nasıl Yardımcı Oluyor",
-    "keepItFree": "Sonsuza Kadar Ücretsiz Tut",
-    "keepItFreeDesc": "Bağışlarınız AIstanbul'un İstanbul'u keşfeden tüm gezginler için tamamen ücretsiz kalmasını sağlar.",
-    "serverCosts": "Sunucu ve API Maliyetleri",
-    "serverCostsDesc": "Hızlı ve doğru yanıtlar için barındırma, Google Maps API ve OpenAI maliyetlerini karşılar.",
-    "continuousUpdates": "Sürekli Güncellemeler",
-    "continuousUpdatesDesc": "En son restoran, müze ve cazibe merkezi bilgileriyle düzenli veritabanı güncellemelerini fonlar.",
-    "newFeatures": "Yeni Özellikler",
-    "newFeaturesDesc": "Etkinlik önerileri ve gerçek zamanlı ulaşım bilgisi gibi heyecan verici özelliklerin geliştirilmesini sağlar.",
+    "howSupportHelps": "Desteğiniz Büyümeyi Nasıl Hızlandırıyor",
+    "keepItFree": "Platform Geliştirme",
+    "keepItFreeDesc": "Kaliteli hizmeti korurken milyonlarca gezgine hizmet verebilecek sağlam, ölçeklenebilir bir platformun geliştirilmesini fonlayın.",
+    "serverCosts": "Altyapı ve Teknoloji",
+    "serverCostsDesc": "Üstün kullanıcı deneyimi için gelişmiş altyapı, AI teknolojisi ve gerçek zamanlı veri entegrasyonunu destekleyin.",
+    "continuousUpdates": "İş Geliştirme",
+    "continuousUpdatesDesc": "Yerel işletmelerle ortaklıkları, premium özellik geliştirmeyi ve pazar genişletme girişimlerini mümkün kılın.",
+    "newFeatures": "İnovasyon ve Araştırma",
+    "newFeaturesDesc": "AIstanbul'u öne çıkaran son teknoloji seyahat teknolojisi, AI iyileştirmeleri ve yenilikçi özelliklere yatırım yapın.",
     "multilingualSupport": "Çok Dilli Destek",
     "multilingualSupportDesc": "Dünyanın her yerinden ziyaretçilere kendi ana dillerinde hizmet vermek için genişlememize yardım eder.",
     "betterExperience": "Daha İyi Deneyim",

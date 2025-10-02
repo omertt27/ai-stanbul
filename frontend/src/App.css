@@ -139,32 +139,8 @@ html {
   text-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
 }
 
-@media (max-width: 768px) {
-  .main-page-logo .logo-text {
-    font-size: 4rem !important; /* Reduced from 10rem - more appropriate for mobile */
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-  }
-}
-
-@media (max-width: 640px) {
-  .main-page-logo .logo-text {
-    font-size: 3rem !important; /* Reduced from 6rem - more appropriate for mobile */
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-  }
-}
-
-@media (max-width: 480px) {
-  .main-page-logo .logo-text {
-    font-size: 2.5rem !important; /* Reduced from 8rem - more appropriate for mobile */
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
-  }
-}
+/* Main page logo uses same size on all devices - no mobile size reductions */
+/* This ensures consistent logo size across desktop, tablet, and mobile */
 
 /* Logo styling */
 .logo-istanbul .logo-text {
@@ -956,100 +932,13 @@ body.chatbot-page {
   }
 }
 
-/* Final mobile optimizations for ChatGPT-like experience */
+/* Main page mobile - ensure districts are visible with same styling as desktop */
 @media (max-width: 768px) {
-  /* Ensure no complex backgrounds or effects on mobile */
-  .main-page-background,
-  .chatbot-page,
-  .chatbot-purple-box,
-  .chatbot-messages {
-    background: #1a1a1a !important;
-    backdrop-filter: none !important;
-    border: none !important;
-  }
-
-  /* Simple mobile navigation */
-  .navbar {
-    display: none !important;
-  }
-
-  /* Simple input focus */
-  .searchbar:focus-within {
-    border-color: #4a4a4a !important;
-    box-shadow: 0 0 0 1px #4a4a4a !important;
-  }
-
-  /* Optimize message styling for mobile */
-  .chatbot-messages .mb-4 {
-    margin-bottom: 1rem !important;
-    padding: 0 0.5rem !important;
-  }
-
-  /* Simple message bubbles */
-  .user-message,
-  .assistant-message {
-    background: #2a2a2a !important;
-    border: 1px solid #404040 !important;
-    border-radius: 1rem !important;
-    box-shadow: none !important;
-  }
-}
-
-/* Simple mobile optimizations - ChatGPT style */
-@media (max-width: 768px) {
-  /* Simple body styling */
-  body {
-    background: #1a1a1a !important;
-  }
-
-  /* Clean main page */
-  .main-page-background {
-    background: #1a1a1a !important;
-    padding: 1rem !important;
-  }
-
-  /* Simple mobile input area */
-  .chatbot-input-area {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    padding: 1rem !important;
-    background: #1a1a1a !important;
-    border-top: 1px solid #333 !important;
-    z-index: 1000 !important;
-  }
-
-  /* Chat messages spacing */
-  .chatbot-messages {
-    padding-bottom: 100px !important;
-    background: #1a1a1a !important;
-  }
-
-  /* Simple search bar */
-  .searchbar {
-    background: #2a2a2a !important;
-    border: 1px solid #404040 !important;
-    border-radius: 1.5rem !important;
-    box-shadow: none !important;
-  }
-
-  /* Chat input */
-  .chat-input {
-    color: #f0f0f0 !important;
-    font-size: 1.1rem !important;
-    line-height: 1.4 !important;
-  }
-
-  /* Simple chat page */
-  .chatbot-page {
-    background: #1a1a1a !important;
-  }
-
-  /* Hide complex elements on mobile */
-  .interactive-main-page {
-    display: none !important;
-  }
+  /* Ensure main page keeps desktop styling on mobile */
+  /* Districts should be visible with same colors and layout as desktop */
+  
+  /* Only mobile adjustment needed is padding for navbar - no style changes */
+  /* InteractiveMainPage component should render normally on mobile */
 }
 
 /* Spin animation for loading */
@@ -1075,5 +964,46 @@ body.chatbot-page {
   .chatbot-input-area {
     padding: 1rem 1rem 1.5rem !important; /* Extra bottom padding for mobile keyboards */
   }
+
+/* Mobile navbar logo styling - ULTRA SIMPLE */
+.mobile-navbar-logo {
+  /* PLAIN WHITE TEXT - NO EFFECTS */
+  color: #ffffff !important;
+  background: none !important;
+  
+  /* Core text properties */
+  font-weight: 800 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  line-height: 1.2 !important;
+  font-family: 'Arial', sans-serif !important;
+  
+  /* Layout properties */
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 1002 !important;
+  min-width: fit-content !important;
+  white-space: nowrap !important;
+  
+  /* Force visibility - no effects */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Alternative mobile logo with background - for maximum visibility */
+.mobile-navbar-logo-alt {
+  background: linear-gradient(90deg, #8b5cf6, #6366f1) !important;
+  color: #ffffff !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+  font-size: 1.2rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  display: inline-block !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
 
 

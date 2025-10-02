@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 import '../App.css';
 
 function Tips() {
@@ -7,6 +8,7 @@ function Tips() {
 
   return (
     <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '3rem' }}>
+      <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
         <div className="pt-4 pb-24">
           {/* Hero Section */}

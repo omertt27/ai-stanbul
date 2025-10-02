@@ -297,7 +297,7 @@
       },
       "free": {
         "title": "100% Free",
-        "description": "Completely free to use, powered by community support"
+        "description": "Always free to use - no subscriptions, no hidden costs, no premium features"
       },
       "mobileOptimized": {
         "title": "Mobile Optimized",
@@ -341,11 +341,19 @@
       "dataPrivacy": {
         "question": "How do you protect user data and privacy?",
         "answer": "We take data privacy seriously and comply with GDPR and international privacy standards. User data is encrypted, securely stored, and never sold to third parties. We only collect necessary information to improve your travel experience and provide personalized recommendations."
+      },
+      "updates": {
+        "question": "How often do you update your information?",
+        "answer": "We update our database continuously with real-time information from Google Maps API and other reliable sources. Restaurant details, opening hours, ratings, and availability are refreshed regularly. We also conduct monthly reviews of our AI recommendations to ensure accuracy and relevance."
+      },
+      "free": {
+        "question": "Is AI Istanbul Guide really free to use?",
+        "answer": "Yes, AI Istanbul Guide is completely free to use with no hidden costs, subscriptions, or premium features. We believe everyone should have access to quality travel information about Istanbul. The service is supported by community donations and our commitment to keeping travel resources accessible to all."
       }
     }
   },
   "contact": {
-    "title": "Contact A/STANBUL",
+    "title": "Contact",
     "getInTouch": "Get in Touch",
     "email": "Email",
     "location": "Location",
@@ -374,20 +382,30 @@
     }
   },
   "donate": {
-    "title": "Support A/STANBUL",
-    "subtitle": "Help us keep Istanbul's best AI travel guide free and amazing for everyone",
+    "title": "Support",
+    "subtitle": "Help us build the world's most advanced AI travel platform for Istanbul",
+    "earlySupportTitle": "🚀 Support AIstanbul's Growth Journey 🚀",
+    "earlySupportIntro": "AIstanbul is evolving from a community project into a sustainable travel platform! As we prepare for our next phase, we're exploring ways to ensure long-term growth while maintaining our core mission of helping travelers discover Istanbul.",
+    "earlySupportHelps": "Your support helps us:",
+    "keepFastReliable": "Build a robust, scalable platform for millions of travelers",
+    "addNewFeatures": "Develop premium features while keeping core travel guidance free",
+    "stayIndependent": "Maintain editorial independence and authentic local recommendations",
+    "believeMessage": "💙 Support us during this transition period. Your contribution helps shape the future of AI-powered travel.",
+    "whatsNextTitle": "🔮 Our Business Vision",
+    "whatsNextText": "We're developing a sustainable business model that balances free access to essential travel information with premium services for enhanced experiences. This will ensure AIstanbul's long-term success and continuous improvement.",
+    "thankYouMessage": "🙏 Thank you for being part of our journey from startup to established travel platform. Your support makes our growth possible!",
     "buyMeCoffee": "Buy Me a Coffee",
     "coffeeDescription": "The easiest way to show your appreciation and keep AIstanbul running",
     "buyMeCoffeeButton": "Buy Me a Coffee",
-    "howSupportHelps": "How Your Support Helps",
-    "keepItFree": "Keep It Free Forever",
-    "keepItFreeDesc": "Your donations ensure AIstanbul remains completely free for all travelers exploring Istanbul.",
-    "serverCosts": "Server & API Costs",
-    "serverCostsDesc": "Cover hosting, Google Maps API, and OpenAI costs for lightning-fast, accurate responses.",
-    "continuousUpdates": "Continuous Updates",
-    "continuousUpdatesDesc": "Fund regular database updates with the latest restaurant, museum, and attraction information.",
-    "newFeatures": "New Features",
-    "newFeaturesDesc": "Enable development of exciting features like event recommendations and real-time transport info.",
+    "howSupportHelps": "How Your Support Accelerates Growth",
+    "keepItFree": "Platform Development",
+    "keepItFreeDesc": "Fund the development of a robust, scalable platform that can serve millions of travelers while maintaining quality service.",
+    "serverCosts": "Infrastructure & Technology",
+    "serverCostsDesc": "Support advanced infrastructure, AI technology, and real-time data integration for superior user experience.",
+    "continuousUpdates": "Business Development",
+    "continuousUpdatesDesc": "Enable partnerships with local businesses, premium feature development, and market expansion initiatives.",
+    "newFeatures": "Innovation & Research",
+    "newFeaturesDesc": "Invest in cutting-edge travel technology, AI improvements, and innovative features that set AIstanbul apart.",
     "multilingualSupport": "Multilingual Support",
     "multilingualSupportDesc": "Help us expand to serve visitors from around the world in their native languages.",
     "betterExperience": "Better Experience",

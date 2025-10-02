@@ -17,6 +17,16 @@
     user-select: text !important;
   }
   
+  /* Enhanced touch targets - Improved for navigation */
+  .mobile-touch-target {
+    min-height: 60px !important; /* Larger touch targets for navigation */
+    min-width: 0 !important; /* Allow full width */
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2) !important; /* Custom tap highlight */
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+  
   /* Enhanced mobile touch targets */
   .mobile-touch-target {
     min-height: 36px !important;
@@ -44,25 +54,39 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   }
   
-  /* Mobile bottom navbar specific adjustments */
+  /* Mobile bottom navbar specific adjustments - Clean line-separated design */
   .mobile-navbar-glass[style*="bottom"] {
-    padding: 12px 16px 20px !important; /* Adjusted padding for 60px height */
+    padding: 8px 0px 20px !important; /* Remove horizontal padding for clean edge-to-edge lines */
+    height: 76px !important; /* Slightly taller for better button accommodation */
+    border-radius: 20px 20px 0 0 !important; /* More pronounced rounded corners */
+    backdrop-filter: blur(32px) saturate(180%) !important; /* Enhanced blur effect */
+    justify-content: space-evenly !important; /* Even distribution across full width */
   }
   
-  /* Mobile tab button enhancements */
+  /* Mobile tab button enhancements - Clean line-separated design */
   .mobile-nav-tab {
     position: relative;
-    overflow: hidden;
-    border-radius: 12px !important;
-    transition: none !important;
-    min-height: 40px !important; /* Consistent height for 60px navbar */
-    min-width: 58px !important; /* Maximum separation between tabs */
+    overflow: visible;
+    border-radius: 0 !important; /* Remove border radius for clean look */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth transitions */
+    min-height: 60px !important; /* Larger touch target matching container */
+    min-width: 0 !important; /* Allow flexible width */
     flex: 1 !important; /* Equal distribution across navbar */
-    max-width: 80px !important; /* Prevent tabs from getting too wide */
+    max-width: none !important; /* Remove max width limit */
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+    padding: 10px 0px !important; /* Full width padding with better vertical spacing */
+    margin: 0 !important; /* No margin for clean line separation */
+    background: transparent !important; /* No background boxes */
+    border: none !important; /* Remove button borders */
+    border-right: 1px solid rgba(255, 255, 255, 0.15) !important; /* Line separator */
+  }
+  
+  /* Remove line separator from last button */
+  .mobile-nav-tab:last-child {
+    border-right: none !important;
   }
   
   .mobile-nav-tab::before {
@@ -90,26 +114,106 @@
     z-index: 1;
   }
   
-  /* Active tab - consistent styling */
+  /* Active tab - clean line-separated styling */
   .mobile-nav-tab-active {
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2) !important;
-    transform: translateY(-2px) scale(1.05) !important;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%) !important;
-    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    box-shadow: none !important; /* Remove box shadow */
+    transform: translateY(-2px) scale(1.05) !important; /* Subtle elevation */
+    background-color: rgba(139, 92, 246, 0.15) !important; /* Subtle background highlight */
+    border-right: 1px solid rgba(139, 92, 246, 0.4) !important; /* Highlighted separator line */
+    border-radius: 0 !important; /* Keep clean lines */
   }
   
-  /* Ensure all mobile nav tabs have consistent dimensions */
+  /* Active state for last button (no right border) */
+  .mobile-nav-tab-active:last-child {
+    border-right: none !important;
+    border-left: 1px solid rgba(139, 92, 246, 0.4) !important; /* Left highlight for last button */
+  }
+  
+  /* Hover effects for clean line-separated design */
+  .mobile-nav-tab:hover:not(.mobile-nav-tab-active) {
+    background-color: rgba(255, 255, 255, 0.08) !important; /* Subtle background on hover */
+    border-right: 1px solid rgba(255, 255, 255, 0.25) !important; /* Slightly brighter separator */
+    transform: translateY(-1px) scale(1.02) !important;
+  }
+  
+  /* Hover effect for last button */
+  .mobile-nav-tab:last-child:hover:not(.mobile-nav-tab-active) {
+    border-right: none !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.25) !important;
+  }
+  
+  /* Pressed state for better feedback */
+  .mobile-nav-tab:active {
+    transform: translateY(0) scale(0.98) !important;
+    transition: all 0.1s ease !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* Enhanced mobile nav tabs dimensions for better usability */
   .mobile-nav-tab svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 20px !important; /* Slightly larger icons for better visibility */
+    height: 20px !important;
     flex-shrink: 0 !important;
+    transition: all 0.3s ease !important;
   }
   
   .mobile-nav-tab span {
-    font-size: 10px !important;
-    margin-top: 2px !important;
-    line-height: 1 !important;
+    font-size: 11px !important; /* Slightly larger text for better readability */
+    margin-top: 3px !important;
+    line-height: 1.1 !important;
     white-space: nowrap !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  /* Enhanced active state for icons and text */
+  .mobile-nav-tab-active svg {
+    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6)) !important;
+    transform: scale(1.1) !important;
+  }
+  
+  .mobile-nav-tab-active span {
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.5) !important;
+  }
+
+  /* Optimizations for very small screens */
+  @media (max-width: 480px) {
+    .mobile-nav-tab {
+      min-width: 0 !important; /* Allow flexible width for small screens */
+      max-width: none !important; /* Remove max width limit */
+      padding: 8px 0px !important; /* Full width padding */
+    }
+    
+    .mobile-nav-tab span {
+      font-size: 10px !important; /* Smaller text */
+      margin-top: 2px !important;
+    }
+    
+    .mobile-nav-tab svg {
+      width: 18px !important; /* Slightly smaller icons */
+      height: 18px !important;
+    }
+  }
+
+  /* Further optimizations for extra small screens */
+  @media (max-width: 360px) {
+    .mobile-nav-tab {
+      min-width: 0 !important; /* Allow flexible width for extra small screens */
+      max-width: none !important;
+      padding: 8px 0px !important; /* Full width padding */
+    }
+    
+    .mobile-nav-tab span {
+      font-size: 9px !important; /* Even smaller text */
+      margin-top: 1px !important;
+      line-height: 1.0 !important;
+    }
+    
+    .mobile-nav-tab svg {
+      width: 16px !important; /* Smaller icons for tiny screens */
+      height: 16px !important;
+    }
   }
 }
 
@@ -258,67 +362,8 @@
     border: none;
   }
   
-  /* Modern SearchBar send button enhancement */
-  .mobile-search-send:not(:disabled) {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #7c3aed 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 16px !important;
-    box-shadow: 
-      0 4px 16px rgba(139, 92, 246, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 8px 14px !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
-  
-  /* Button hover effect */
-  .mobile-search-send:not(:disabled):hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #6d28d9 100%) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 
-      0 6px 20px rgba(139, 92, 246, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-  }
-  
-  .mobile-search-send:not(:disabled):active {
-    transform: translateY(0) !important;
-    box-shadow: 
-      0 2px 8px rgba(139, 92, 246, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-  }
-  
-  /* Button shimmer effect */
-  .mobile-search-send:not(:disabled)::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: buttonShimmer 1.5s infinite;
-    pointer-events: none;
-  }
-  
-  @keyframes buttonShimmer {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-  
-  .mobile-search-send:disabled {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.15) 100%) !important;
-    color: rgba(255, 255, 255, 0.5) !important;
-    border: none !important;
-    box-shadow: none !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 8px 14px !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
+  /* Send button uses default styles from SearchBar component - no mobile overrides */
+  /* This ensures consistent sizing and styling across all devices */
   
   /* Breathing animation for empty SearchBar */
   .mobile-searchbar-container:not(.mobile-searchbar-focused):not(.has-content) {
@@ -353,12 +398,7 @@
     transform: rotate(15deg);
   }
   
-  /* Send button icon animation */
-  .mobile-search-send:not(:disabled):hover svg,
-  .mobile-search-send:not(:disabled):focus svg {
-    transform: translateX(2px) rotate(15deg) scale(1.1);
-    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
-  }
+  /* Send button icon animation - removed mobile-specific overrides */
   
   /* Modern glass reflection effect */
   .mobile-searchbar-glass::after {
@@ -810,12 +850,8 @@
   }
 }
 
-/* Mobile logo positioning enhancement */
-.main-page-logo .logo-text {
-  font-size: 2.2rem !important;
-  line-height: 1.2 !important;
-  margin: 0 !important;
-}
+/* Logo uses consistent styling from App.css - no mobile-specific overrides */
+/* This ensures the gradient text and background color are consistent across all devices */
 
 /* Mobile search bar enhancement in chat */
 .chatbot-page .searchbar {

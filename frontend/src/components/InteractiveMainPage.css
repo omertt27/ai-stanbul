@@ -612,6 +612,17 @@
   .hero-subtitle {
     margin-bottom: 1.5rem;
   }
+  
+  /* Increase spacing between suggestion bubbles on mobile */
+  .suggestion-bubbles {
+    gap: 1.5rem; /* Increased from 1rem for better mobile spacing */
+    margin-top: 2.5rem; /* Increased top margin */
+    margin-bottom: 2rem; /* Add bottom margin */
+  }
+  
+  .suggestion-bubble {
+    margin: 0.5rem; /* Add individual margins for better spacing */
+  }
 }
 
 @media (max-width: 480px) {
@@ -621,6 +632,19 @@
   
   .hero-content {
     padding: 0 0.5rem;
+  }
+  
+  /* Even more spacing for very small screens */
+  .suggestion-bubbles {
+    gap: 2rem; /* Maximum gap for small screens */
+    margin-top: 3rem; /* More top spacing */
+    margin-bottom: 2.5rem; /* More bottom spacing */
+  }
+  
+  .suggestion-bubble {
+    margin: 0.75rem; /* Larger individual margins */
+    width: calc(100% - 1.5rem); /* Make bubbles wider on small screens for better touch targets */
+    text-align: center;
   }
 }
 
@@ -824,11 +848,12 @@
 @media (max-width: 768px) {
   .districts-gallery {
     grid-template-columns: repeat(2, 1fr); /* Keep 2 districts per row on mobile */
-    gap: 0.75rem; /* Smaller gap for mobile */
+    gap: 1.5rem; /* Increased gap for better mobile spacing */
   }
   
   .district-card {
     padding: 1rem;
+    margin-bottom: 0.5rem; /* Add extra bottom margin between rows */
   }
   
   .gallery-title h3 {
@@ -844,6 +869,10 @@
 @media (max-width: 480px) {
   .districts-gallery {
     grid-template-columns: 1fr; /* Single column on very small screens */
-    gap: 1rem;
+    gap: 2rem; /* Increased gap for single column layout */
+  }
+  
+  .district-card {
+    margin-bottom: 1rem; /* Extra spacing between cards in single column */
   }
 }

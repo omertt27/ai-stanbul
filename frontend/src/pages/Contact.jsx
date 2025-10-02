@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
-import NavBar from '../components/NavBar';
+import Logo from '../components/Logo';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 import '../App.css';
 
 function Contact() {
@@ -11,14 +12,16 @@ function Contact() {
   
   return (
     <div className="chatbot-background min-h-screen w-full pt-24 px-4 pb-8 transition-colors duration-300 mobile-scroll-optimized">
+      <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
 
       {/* Main Content */}
       <div className="pt-8 px-4 pb-20">
         <div className="max-w-4xl mx-auto">
           {/* Page Heading */}
-          <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            {t('contact.title')}
+          <h1 className="text-4xl md:text-5xl font-bold mb-8 text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent flex items-center justify-center gap-4 flex-wrap">
+            <span>{t('contact.title')}</span>
+            <Logo size="medium" />
           </h1>
 
           {/* Contact Information */}

@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import Logo from '../components/Logo';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 import '../App.css';
 
 const About = () => {
@@ -10,6 +12,7 @@ const About = () => {
 
   return (
     <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900 mobile-scroll-optimized" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
+      <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
 
       {/* Scrollable Content */}
@@ -18,8 +21,9 @@ const About = () => {
         <div className="pb-16">
         <div className="max-w-4xl mx-auto px-12 text-center mobile-touch-optimized">
           <div className="mb-8">
-            <h1 className="text-5xl md:text-5xl sm:text-4xl font-bold mb-6 pt-28 md:pt-20 sm:pt-16 transition-colors duration-300 text-white">
-              {t('about.title')} <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">A/</span><span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-normal">STANBUL</span>
+            <h1 className="text-4xl md:text-4xl sm:text-3xl font-bold mb-6 transition-colors duration-300 text-white flex items-center justify-center gap-4 flex-wrap">
+              <span>{t('about.title')}</span>
+              <Logo size="medium" />
             </h1>
             <p className="text-xl md:text-xl sm:text-lg leading-relaxed transition-colors duration-300 text-gray-300">
               {t('about.subtitle')}

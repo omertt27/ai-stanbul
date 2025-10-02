@@ -297,7 +297,7 @@
       },
       "free": {
         "title": "100% Kostenlos",
-        "description": "Völlig kostenlos zu nutzen, unterstützt von der Gemeinschaft"
+        "description": "Immer kostenlos - keine Abonnements, keine versteckten Kosten, keine Premium-Features"
       },
       "mobileOptimized": {
         "title": "Mobil optimiert",
@@ -332,12 +332,19 @@
       "updates": {
         "question": "Wie oft werden die Informationen aktualisiert?",
         "answer": "Restaurant-Daten werden in Echtzeit über die Google Maps API aktualisiert. Unsere Museum- und Attraktionsinformationen werden manuell kuratiert und regelmäßig aktualisiert, um Genauigkeit zu gewährleisten. Wir überprüfen und aktualisieren unsere Datenbank monatlich."
+      },
+      "free": {
+        "question": "Ist AI Istanbul Guide wirklich kostenlos zu nutzen?",
+        "answer": "Ja, AI Istanbul Guide ist völlig kostenlos ohne versteckte Kosten, Abonnements oder Premium-Features. Wir glauben, dass jeder Zugang zu hochwertigen Reiseinformationen über Istanbul haben sollte. Der Service wird durch Spenden der Gemeinschaft und unser Engagement unterstützt, Reiseressourcen für alle zugänglich zu halten."
+      },
+      "whatIsAIstanbul": {
+        "question": "Was ist AI Istanbul Guide?",
+        "answer": "AI Istanbul Guide ist ein fortschrittlicher KI-gestützter Reiseassistent, der personalisierte Empfehlungen für Restaurants, Attraktionen, Transport und kulturelle Erlebnisse in ganz Istanbul bietet. Unsere Plattform kombiniert Echtzeit-Daten mit lokaler Expertise, um die genauesten und relevantesten Reisetipps zu liefern."
       }
-
     }
   },
   "contact": {
-    "title": "Kontakt A/STANBUL",
+    "title": "Kontakt",
     "getInTouch": "Kontakt aufnehmen",
     "email": "E-Mail",
     "location": "Standort",
@@ -366,20 +373,30 @@
     }
   },
   "donate": {
-    "title": "A/STANBUL unterstützen",
-    "subtitle": "Helfen Sie uns, Istanbuls besten KI-Reiseführer kostenlos und großartig für alle zu halten",
+    "title": "Unterstützen",
+    "subtitle": "Helfen Sie uns, die weltweit fortschrittlichste KI-Reiseplattform für Istanbul zu entwickeln",
+    "earlySupportTitle": "🚀 Unterstützen Sie AIstanbuls Wachstumsreise 🚀",
+    "earlySupportIntro": "AIstanbul entwickelt sich von einem Community-Projekt zu einer nachhaltigen Reiseplattform! Während wir uns auf unsere nächste Phase vorbereiten, erkunden wir Wege, um langfristiges Wachstum zu gewährleisten und gleichzeitig unsere Kernmission beizubehalten, Reisenden bei der Entdeckung Istanbuls zu helfen.",
+    "earlySupportHelps": "Ihre Unterstützung hilft uns dabei:",
+    "keepFastReliable": "Eine robuste, skalierbare Plattform für Millionen von Reisenden aufzubauen",
+    "addNewFeatures": "Premium-Features zu entwickeln und gleichzeitig die Grundreiseführung kostenlos zu halten",
+    "stayIndependent": "Redaktionelle Unabhängigkeit und authentische lokale Empfehlungen zu bewahren",
+    "believeMessage": "💙 Unterstützen Sie uns während dieser Übergangszeit. Ihr Beitrag hilft, die Zukunft des KI-gestützten Reisens zu gestalten.",
+    "whatsNextTitle": "🔮 Unsere Geschäftsvision",
+    "whatsNextText": "Wir entwickeln ein nachhaltiges Geschäftsmodell, das freien Zugang zu wesentlichen Reiseinformationen mit Premium-Services für verbesserte Erfahrungen ausbalanciert. Dies wird AIstanbuls langfristigen Erfolg und kontinuierliche Verbesserung sicherstellen.",
+    "thankYouMessage": "🙏 Danke, dass Sie Teil unserer Reise vom Startup zur etablierten Reiseplattform sind. Ihre Unterstützung macht unser Wachstum möglich!",
     "buyMeCoffee": "Kaufen Sie mir einen Kaffee",
     "coffeeDescription": "Der einfachste Weg, Ihre Wertschätzung zu zeigen und AIstanbul am Laufen zu halten",
     "buyMeCoffeeButton": "Kaufen Sie mir einen Kaffee",
-    "howSupportHelps": "Wie Ihre Unterstützung hilft",
-    "keepItFree": "Für immer kostenlos halten",
-    "keepItFreeDesc": "Ihre Spenden stellen sicher, dass AIstanbul für alle Istanbul-Entdecker völlig kostenlos bleibt.",
-    "serverCosts": "Server- und API-Kosten",
-    "serverCostsDesc": "Deckung von Hosting-, Google Maps API- und OpenAI-Kosten für blitzschnelle, genaue Antworten.",
-    "continuousUpdates": "Kontinuierliche Updates",
-    "continuousUpdatesDesc": "Finanzierung regelmäßiger Datenbankupdates mit den neuesten Restaurant-, Museum- und Attraktionsinformationen.",
-    "newFeatures": "Neue Funktionen",
-    "newFeaturesDesc": "Ermöglichung der Entwicklung aufregender Funktionen wie Veranstaltungsempfehlungen und Echtzeit-Verkehrsinformationen.",
+    "howSupportHelps": "Wie Ihre Unterstützung das Wachstum beschleunigt",
+    "keepItFree": "Plattformentwicklung",
+    "keepItFreeDesc": "Finanzieren Sie die Entwicklung einer robusten, skalierbaren Plattform, die Millionen von Reisenden bedienen kann, während die Servicequalität erhalten bleibt.",
+    "serverCosts": "Infrastruktur & Technologie",
+    "serverCostsDesc": "Unterstützen Sie fortschrittliche Infrastruktur, KI-Technologie und Echtzeit-Datenintegration für überlegene Benutzererfahrung.",
+    "continuousUpdates": "Geschäftsentwicklung",
+    "continuousUpdatesDesc": "Ermöglichen Sie Partnerschaften mit lokalen Unternehmen, Premium-Feature-Entwicklung und Marktexpansionsinitiativen.",
+    "newFeatures": "Innovation & Forschung",
+    "newFeaturesDesc": "Investieren Sie in modernste Reisetechnologie, KI-Verbesserungen und innovative Features, die AIstanbul auszeichnen.",
     "multilingualSupport": "Mehrsprachige Unterstützung",
     "multilingualSupportDesc": "Helfen Sie uns dabei, unseren Service für Besucher aus aller Welt in deren Muttersprache anzubieten.",
     "betterExperience": "Bessere Erfahrung",

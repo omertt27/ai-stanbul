@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import MainPageMobileNavbar from '../components/MainPageMobileNavbar';
 
 function Privacy() {
   const { t } = useTranslation();
@@ -9,6 +10,7 @@ function Privacy() {
   
   return (
     <div className={`min-h-screen transition-colors duration-300 mobile-scroll-optimized ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`} style={{ paddingTop: '6rem', paddingBottom: '4rem', paddingLeft: '2rem', paddingRight: '2rem' }}>
+      <MainPageMobileNavbar />
       <div className="max-w-4xl mx-auto mobile-touch-optimized">
         <h1>{t('privacy.title')}</h1>
       <p><em>{t('privacy.lastUpdated')}: September 2025</em></p>

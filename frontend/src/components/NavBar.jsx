@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackNavigation } from '../utils/analytics';
 import LanguageSwitcher from './LanguageSwitcher';
+import Logo from './Logo';
 import '../styles/mobile-enhanced.css';
 
 const NavBar = ({ hideLogo = false }) => {
@@ -154,32 +155,11 @@ const NavBar = ({ hideLogo = false }) => {
           }}>
             {/* Logo in navbar or invisible spacer to maintain layout */}
             {!hideLogo ? (
-              <div 
-                style={{
-                  cursor: 'pointer',
-                  pointerEvents: 'auto',
-                  transition: 'transform 0.2s ease, opacity 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
+              <Logo 
+                size="medium"
                 onClick={handleLogoClick}
-              >
-                <span style={{
-                  fontSize: '2.6rem', // Even bigger logo size for desktop
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                }}>
-                  A/<span style={{fontWeight: 400}}>STANBUL</span>
-                </span>
-              </div>
+                isMobile={false}
+              />
             ) : (
               // Invisible spacer to maintain right alignment of navigation links
               <div style={{ flex: 1 }} />
@@ -244,38 +224,11 @@ const NavBar = ({ hideLogo = false }) => {
         }}>
           {/* Enhanced Logo in mobile navbar */}
           {!hideLogo ? (
-            <div 
-              style={{
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 12px',
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%)',
-                border: '1px solid rgba(139, 92, 246, 0.25)',
-                boxShadow: '0 4px 16px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-              }}
+            <Logo 
+              size="small"
               onClick={handleLogoClick}
-            >
-              <span style={{
-                fontSize: '1.6rem',
-                fontWeight: 800,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                background: 'linear-gradient(135deg, #f1f5f9 0%, #8b5cf6 40%, #6366f1 70%, #7c3aed 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 2px 12px rgba(139, 92, 246, 0.4)',
-                cursor: 'pointer',
-                filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.3))',
-              }}>
-                A/<span style={{fontWeight: 500, fontSize: '1.4rem'}}>STANBUL</span>
-              </span>
-            </div>
+              isMobile={true}
+            />
           ) : (
             // Empty spacer when logo is hidden to push language switcher to the right
             <div style={{ flex: 1 }} />
@@ -311,9 +264,9 @@ const NavBar = ({ hideLogo = false }) => {
           backdropFilter: 'blur(24px) saturate(200%)',
           borderTop: '1px solid rgba(139, 92, 246, 0.25)',
           borderRadius: '24px 24px 0 0',
-          padding: '16px 8px 24px',
+          padding: '16px 0px 24px',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'stretch',
           alignItems: 'center',
           boxShadow: '0 -12px 40px rgba(0, 0, 0, 0.4), 0 -4px 16px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           height: isMobile ? '60px' : '76px',
@@ -332,9 +285,6 @@ const NavBar = ({ hideLogo = false }) => {
               textDecoration: 'none',
               color: location.pathname === '/chat' ? '#f1f5f9' : 'rgb(156, 163, 175)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              minWidth: '70px',
               background: location.pathname === '/chat' 
                 ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(99, 102, 241, 0.15) 100%)'
                 : 'transparent',
@@ -381,9 +331,6 @@ const NavBar = ({ hideLogo = false }) => {
               textDecoration: 'none',
               color: location.pathname.startsWith('/blog') ? '#f1f5f9' : 'rgb(156, 163, 175)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              minWidth: '70px',
               background: location.pathname.startsWith('/blog') 
                 ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)'
                 : 'transparent',
@@ -428,9 +375,6 @@ const NavBar = ({ hideLogo = false }) => {
               textDecoration: 'none',
               color: location.pathname === '/about' ? '#f1f5f9' : 'rgb(156, 163, 175)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              minWidth: '70px',
               background: location.pathname === '/about' 
                 ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)'
                 : 'transparent',
@@ -477,9 +421,6 @@ const NavBar = ({ hideLogo = false }) => {
               textDecoration: 'none',
               color: location.pathname === '/faq' ? '#f1f5f9' : 'rgb(156, 163, 175)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              minWidth: '70px',
               background: location.pathname === '/faq' 
                 ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)'
                 : 'transparent',
@@ -526,9 +467,6 @@ const NavBar = ({ hideLogo = false }) => {
               textDecoration: 'none',
               color: location.pathname === '/donate' ? '#f1f5f9' : 'rgb(156, 163, 175)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              padding: '12px 16px',
-              borderRadius: '16px',
-              minWidth: '70px',
               background: location.pathname === '/donate' 
                 ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)'
                 : 'transparent',
