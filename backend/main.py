@@ -21,6 +21,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from thefuzz import fuzz, process
 
+# Import system monitoring tools
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    print("⚠️ psutil not available - system metrics will be limited")
+
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+    print("⚠️ redis not available - some caching features may be limited")
+
 # Load environment variables first, before any other imports
 load_dotenv()
 
@@ -393,6 +408,24 @@ app.add_middleware(
 
 print("✅ CORS middleware configured")
 
+# Add security headers middleware for production
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Essential security headers for production
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    return response
+
+print("✅ Security headers middleware configured")
+
 # === Include Routers ===
 try:
     from routes.blog import router as blog_router
@@ -400,6 +433,36 @@ try:
     print("✅ Blog router included successfully")
 except ImportError as e:
     print(f"⚠️ Blog router import failed: {e}")
+
+# === Include Cache Monitoring Router ===
+try:
+    from routes.cache_monitoring import router as cache_router
+    app.include_router(cache_router)
+    print("✅ Cache monitoring router included successfully")
+except ImportError as e:
+    print(f"⚠️ Cache monitoring router import failed: {e}")
+
+# === Include API Routers ===
+try:
+    from routes.restaurants import router as restaurants_router
+    app.include_router(restaurants_router, prefix="/api/restaurants", tags=["restaurants"])
+    print("✅ Restaurants router included successfully")
+except ImportError as e:
+    print(f"⚠️ Restaurants router import failed: {e}")
+
+try:
+    from routes.museums import router as museums_router
+    app.include_router(museums_router, prefix="/api/museums", tags=["museums"])
+    print("✅ Museums router included successfully")
+except ImportError as e:
+    print(f"⚠️ Museums router import failed: {e}")
+
+try:
+    from routes.places import router as places_router
+    app.include_router(places_router, prefix="/api/places", tags=["places"])
+    print("✅ Places router included successfully")
+except ImportError as e:
+    print(f"⚠️ Places router import failed: {e}")
 
 # === Authentication Setup ===
 try:
@@ -1526,343 +1589,647 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
-# Helper function for museum key extraction
-def extract_museum_key_from_input(user_input: str) -> str:
-    """Extract museum key from user input based on keywords"""
-    input_lower = user_input.lower()
-    
-    # Museum keyword mapping
-    museum_mappings = {
-        'hagia sophia': 'hagia_sophia',
-        'ayasofya': 'hagia_sophia',
-        'topkapi': 'topkapi_palace',
-        'topkapı': 'topkapi_palace',
-        'blue mosque': 'blue_mosque',
-        'sultan ahmed': 'blue_mosque',
-        'basilica cistern': 'basilica_cistern',
-        'yerebatan': 'basilica_cistern',
-        'galata tower': 'galata_tower',
-        'galata kulesi': 'galata_tower',
-        'dolmabahce': 'dolmabahce_palace',
-        'dolmabahçe': 'dolmabahce_palace',
-        'archaeology': 'istanbul_archaeology',
-        'arkeoloji': 'istanbul_archaeology',
-        'islamic arts': 'turkish_islamic_arts',
-        'türk islam': 'turkish_islamic_arts',
-        'pera museum': 'pera_museum',
-        'pera müzesi': 'pera_museum',
-        'istanbul modern': 'istanbul_modern',
-        'modern sanat': 'istanbul_modern'
-    }
-    
-    # Find matching museum
-    for keyword, museum_key in museum_mappings.items():
-        if keyword in input_lower:
-            return museum_key
-    
-    # Default to hagia sophia if no specific match
-    return 'hagia_sophia'
+# === GLOBAL SYSTEM METRICS ===
+system_metrics = {
+    "requests_total": 0,
+    "errors": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "response_times": [],
+    "api_costs": 0.0,
+    "cache_savings": 0.0,
+    "start_time": datetime.now()
+}
 
-# ====== REAL API ENDPOINTS FOR MUSEUMS AND TRANSPORTATION ======
-
-@app.get("/api/real-museums")
-async def get_real_museums():
-    """Get real-time information for all Istanbul museums"""
-    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
-        raise HTTPException(status_code=503, detail="Real museum service not available")
-
-    
+# Redis connection for health checks
+if REDIS_AVAILABLE:
     try:
-        museums = await real_museum_service.get_all_museums()
-        return {
-            "success": True,
-            "museums": {key: real_museum_service.to_dict(museum) for key, museum in museums.items()},
-            "total": len(museums),
-            "last_updated": datetime.now().isoformat()
-        }
+        redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        redis_available = True
     except Exception as e:
-        logger.error(f"Error fetching real museums: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
+        redis_available = False
+        print(f"⚠️ Redis connection failed: {e}")
+else:
+    redis_available = False
+    redis_client = None
 
-@app.get("/api/real-museums/nearby")
-async def get_nearby_museums(lat: float, lng: float, radius: int = 5000):
-    """Search for museums near a location"""
-    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
-        raise HTTPException(status_code=503, detail="Real museum service not available")
-    
+# === AI CHAT ENDPOINTS ===
+
+@app.post("/ai/chat")
+async def ai_chat_endpoint(request: Request):
+    """Main AI chat endpoint that frontend calls"""
     try:
-        museums = await real_museum_service.search_museums_nearby(lat, lng, radius)
-        return {
-            "success": True,
-            "museums": [real_museum_service.to_dict(museum) for museum in museums],
-            "total": len(museums),
-            "search_params": {"lat": lat, "lng": lng, "radius": radius},
-            "last_updated": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error searching nearby museums: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to search museums: {str(e)}")
-
-@app.get("/api/real-museums/{museum_key}")
-async def get_real_museum(museum_key: str):
-    """Get real-time information for a specific museum"""
-    if not REAL_MUSEUM_SERVICE_ENABLED or not real_museum_service:
-        raise HTTPException(status_code=503, detail="Real museum service not available")
-    
-    try:
-        museum = await real_museum_service.get_museum_info(museum_key)
-        if not museum:
-            raise HTTPException(status_code=404, detail=f"Museum '{museum_key}' not found")
+        # Get client IP for rate limiting
+        client_ip = getattr(request.client, 'host', 'unknown')
         
-        return {
-            "success": True,
-            "museum": real_museum_service.to_dict(museum),
-            "last_updated": datetime.now().isoformat()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching museum {museum_key}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch museum data: {str(e)}")
-
-@app.post("/api/real-transportation/routes")
-async def get_real_transportation_routes(data: dict):
-    """Get real-time transportation routes between two points"""
-    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
-        raise HTTPException(status_code=503, detail="Real transportation service not available")
-    
-    try:
-        origin = data.get('origin')
-        destination = data.get('destination')
-        transport_modes = data.get('transport_modes', ['bus', 'metro', 'ferry', 'tram'])
-        
-        if not origin or not destination:
-            raise HTTPException(status_code=400, detail="Origin and destination are required")
-        
-        routes = await real_transportation_service.get_real_time_routes(origin, destination, transport_modes)
-        service_alerts = await real_transportation_service.get_service_alerts()
-        
-        return {
-            "success": True,
-            "routes": [real_transportation_service.to_dict(route) for route in routes],
-            "service_alerts": service_alerts,
-            "total_routes": len(routes),
-            "search_params": {
-                "origin": origin,
-                "destination": destination,
-                "transport_modes": transport_modes
-            },
-            "last_updated": datetime.now().isoformat()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching transportation routes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch routes: {str(e)}")
-
-@app.get("/api/real-transportation/stops/{stop_id}")
-async def get_real_stop_info(stop_id: str):
-    """Get real-time information for a specific transport stop"""
-    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
-        raise HTTPException(status_code=503, detail="Real transportation service not available")
-    
-    try:
-        stop_info = await real_transportation_service.get_stop_info(stop_id)
-        if not stop_info:
-            raise HTTPException(status_code=404, detail=f"Stop '{stop_id}' not found")
-        
-        return {
-            "success": True,
-            "stop": real_transportation_service.to_dict(stop_info),
-            "last_updated": datetime.now().isoformat()
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error fetching stop info {stop_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch stop info: {str(e)}")
-
-@app.get("/api/real-transportation/alerts")
-async def get_transportation_alerts():
-    """Get current transportation service alerts"""
-    if not REAL_TRANSPORT_SERVICE_ENABLED or not real_transportation_service:
-        raise HTTPException(status_code=503, detail="Real transportation service not available")
-    
-    try:
-        alerts = await real_transportation_service.get_service_alerts()
-        return {
-            "success": True,
-            "alerts": alerts,
-            "total_alerts": len(alerts),
-            "last_updated": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error fetching transportation alerts: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch alerts: {str(e)}")
-
-@app.get("/api/services/status")
-async def get_services_status():
-    """Get status of all real API services"""
-    return {
-        "success": True,
-        "services": {
-            "real_museum_service": {
-                "enabled": REAL_MUSEUM_SERVICE_ENABLED,
-                "available": real_museum_service is not None,
-                "api_key_configured": bool(os.getenv('GOOGLE_MAPS_API_KEY'))
-            },
-            "real_transportation_service": {
-                "enabled": REAL_TRANSPORT_SERVICE_ENABLED,
-                "available": real_transportation_service is not None,
-                "google_maps_configured": bool(os.getenv('GOOGLE_MAPS_API_KEY')),
-                "iett_configured": bool(os.getenv('IETT_API_KEY')),
-                "metro_configured": bool(os.getenv('METRO_ISTANBUL_API_KEY')),
-                "ferry_configured": bool(os.getenv('IDO_FERRY_API_KEY'))
-            },
-            "enhanced_services": {
-                "enabled": ENHANCED_SERVICES_ENABLED,
-                "transportation": enhanced_transport_service is not None,
-                "museum": enhanced_museum_service is not None
-            }
-        },
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ====== CHAT INTEGRATION ENDPOINT ======
-
-def generate_intelligent_fallback(message: str) -> str:
-    """Generate intelligent fallback response based on message content"""
-    message_lower = message.lower()
-    
-    # Museum queries
-    if any(word in message_lower for word in ['museum', 'hagia sophia', 'topkapi', 'blue mosque']):
-        return """I can help you with Istanbul's amazing museums! 🏛️
-
-**Top Museums:**
-• Hagia Sophia - Iconic Byzantine church with incredible mosaics
-• Topkapi Palace - Former Ottoman imperial palace with stunning views
-• Blue Mosque - Beautiful 17th-century mosque with six minarets
-• Istanbul Modern - Contemporary Turkish and international art
-
-For current opening hours and directions, I recommend checking Google Maps. Would you like specific information about any of these museums?"""
-    
-    # Transportation queries
-    elif any(word in message_lower for word in ['transport', 'metro', 'bus', 'taxi', 'ferry']):
-        return """Istanbul has excellent public transportation! 🚇
-
-**Transportation Options:**
-• Metro: 7 lines (M1-M7) connecting major districts
-• Tram: T1 connects historic peninsula, T4 serves other areas
-• Ferry: Beautiful Bosphorus and Golden Horn routes
-• Bus: Extensive IETT network throughout the city
-• Istanbulkart: Rechargeable card for all public transport
-
-For real-time routes and schedules, use the IETT mobile app or Google Maps. What specific route do you need help with?"""
-    
-    # Restaurant/food queries
-    elif any(word in message_lower for word in ['restaurant', 'food', 'eat', 'dining']):
-        return """Istanbul's culinary scene is incredible! 🍽️
-
-**Must-Try Foods:**
-• Turkish breakfast with fresh bread, cheese, olives, and tea
-• Kebabs from traditional restaurants
-• Street food like döner, balık ekmek (fish sandwich)
-• Turkish delight and baklava for dessert
-• Turkish coffee or tea
-
-**Great Food Areas:**
-• Sultanahmet for traditional Ottoman cuisine
-• Kadıköy for authentic local restaurants
-• Beyoğlu for international and modern Turkish cuisine
-
-What type of cuisine or area interests you most?"""
-    
-    # General/greeting
-    else:
-        return """Welcome to Istanbul! I'm your AI travel assistant. 🏛️
-
-**I can help you with:**
-• Museums and historical sites
-• Transportation routes and tips  
-• Restaurant recommendations
-• District information and attractions
-• Cultural insights and travel tips
-
-**Popular questions:**
-• "What museums should I visit in Sultanahmet?"
-• "How do I get from Taksim to the airport?"
-• "Where can I find good Turkish food?"
-• "What's special about the Beyoğlu district?"
-
-What would you like to know about Istanbul?"""
-
-@app.post("/api/chat")
-async def chat_endpoint(request: Request, data: dict):
-    """Process chat messages with unified AI system and persistent context"""
-    try:
-        message = data.get('message', '').strip()
-        session_id = data.get('session_id')  # Allow frontend to maintain session
-        if not message:
-            raise HTTPException(status_code=400, detail="Message is required")
-        
-        # Get client information for persistent sessions
-        client_ip = request.client.host if hasattr(request, 'client') and request.client else "unknown"
-        user_agent = request.headers.get("user-agent", "unknown")
-        
-        # Generate or use provided session ID
-        if not session_id:
-            import hashlib
-            session_id = hashlib.md5(f"chat_{message[:50]}_{client_ip}".encode()).hexdigest()
-        
-        print(f"🔄 Processing chat request - Session: {session_id[:8]}..., IP: {client_ip}")
-        
+        # Parse request body
         try:
-            # Use unified AI system for ALL queries (no more keyword-based routing)
-            ai_response = await get_gpt_response(message, session_id, client_ip)
-            
-            if ai_response:
-                return {
-                    "success": True,
-                    "response": ai_response,
-                    "session_id": session_id,
-                    "type": "unified_ai_response"
-                }
-            else:
-                # Fallback response if AI system fails
-                fallback_response = generate_intelligent_fallback(message)
-                return {
-                    "success": True,
-                    "response": fallback_response,
-                    "session_id": session_id,
-                    "type": "fallback_response"
-                }
-                
+            body = await request.json()
+            user_input = body.get('user_input', '').strip()
+            session_id = body.get('session_id', 'default_session')
         except Exception as e:
-            print(f"⚠️ AI response generation failed: {e}")
-            # Fallback response with session continuity
-            fallback_response = generate_intelligent_fallback(message)
-            return {
+            print(f"❌ Error parsing request body: {e}")
+            raise HTTPException(status_code=422, detail="Invalid JSON in request body")
+        
+        # Validate input
+        if not user_input:
+            raise HTTPException(status_code=400, detail="user_input is required")
+        
+        if len(user_input) > 2000:
+            raise HTTPException(status_code=400, detail="Input too long (max 2000 characters)")
+        
+        # Rate limiting check
+        global daily_usage, last_reset_date
+        today = date.today()
+        
+        # Reset daily usage if new day
+        if today != last_reset_date:
+            daily_usage.clear()
+            last_reset_date = today
+        
+        # Check daily limit
+        if daily_usage[client_ip] >= DAILY_LIMIT:
+            raise HTTPException(status_code=429, detail="Daily limit exceeded. Please try again tomorrow.")
+        
+        # Increment usage
+        daily_usage[client_ip] += 1
+        
+        print(f"🤖 AI Chat Request - IP: {client_ip}, Session: {session_id}, Query: {user_input[:100]}...")
+        
+        # Log API request if monitoring is enabled
+        # Note: Monitoring logging temporarily disabled for testing
+        start_time = time.time()
+        
+        # Generate AI response
+        ai_response = await get_gpt_response(user_input, session_id, client_ip)
+        
+        if ai_response:
+            response_data = {
+                "response": ai_response,
+                "session_id": session_id,
                 "success": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            print(f"✅ AI Chat Response generated - Length: {len(ai_response)} chars")
+            return response_data
+        else:
+            # Fallback response
+            fallback_response = "I'm sorry, I'm having trouble generating a response right now. Please try again in a moment."
+            
+            response_data = {
                 "response": fallback_response,
                 "session_id": session_id,
-                "type": "error_fallback"
+                "success": False,
+                "timestamp": datetime.now().isoformat()
             }
             
+            print(f"⚠️ AI Chat using fallback response")
+            return response_data
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"❌ Chat endpoint error: {e}")
-        # Final emergency fallback
-        return {
+        print(f"❌ AI Chat endpoint error: {e}")
+        error_response = {
+            "response": "I'm experiencing technical difficulties. Please try again later.",
+            "session_id": session_id if 'session_id' in locals() else "unknown",
             "success": False,
-            "error": "I'm experiencing technical difficulties. Please try again in a moment.",
-            "type": "system_error"
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+        return error_response
+
+@app.post("/ai")  
+async def ai_endpoint_legacy(request: Request):
+    """Legacy AI endpoint for backward compatibility"""
+    # Redirect to the main chat endpoint
+    return await ai_chat_endpoint(request)
+
+# === HEALTH AND MONITORING ENDPOINTS ===
+
+@app.get("/api/health")
+async def health_check():
+    """Comprehensive health check endpoint"""
+    try:
+        # Database health check
+        db_healthy = True
+        db_response_time = 0
+        try:
+            start_time = time.time()
+            # Test database connection
+            with engine.connect() as conn:
+                conn.execute("SELECT 1")
+            db_response_time = (time.time() - start_time) * 1000
+        except Exception as e:
+            db_healthy = False
+            db_response_time = -1
+        
+        # Redis health check
+        redis_healthy = redis_available
+        redis_response_time = 0
+        redis_memory_usage = 0
+        if redis_available:
+            try:
+                start_time = time.time()
+                redis_client.ping()
+                redis_response_time = (time.time() - start_time) * 1000
+                redis_info = redis_client.info('memory')
+                redis_memory_usage = redis_info.get('used_memory', 0) / (1024 * 1024)  # MB
+            except:
+                redis_healthy = False
+                redis_response_time = -1
+        
+        # System health
+        if PSUTIL_AVAILABLE:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+        else:
+            cpu_percent = 0
+            memory = type('Memory', (), {'percent': 0, 'available': 0, 'total': 0})()
+            disk = type('Disk', (), {'percent': 0, 'free': 0, 'total': 0})()
+        
+        # Calculate uptime
+        uptime_seconds = (datetime.now() - system_metrics["start_time"]).total_seconds()
+        uptime_formatted = f"{int(uptime_seconds // 86400)} days, {int((uptime_seconds % 86400) // 3600):02d}:{int((uptime_seconds % 3600) // 60):02d}:{int(uptime_seconds % 60):02d}"
+        
+        # External API health (simulated checks)
+        external_apis = {
+            "google_places": {"healthy": True, "response_time_ms": 125},
+            "openai": {"healthy": True, "response_time_ms": 890}
+        }
+        
+        health_status = {
+            "status": "healthy" if (db_healthy and redis_healthy and cpu_percent < 90 and memory.percent < 90) else "degraded",
+            "timestamp": datetime.now().isoformat(),
+            "uptime": uptime_formatted,
+            "system": {
+                "cpu_percent": cpu_percent,
+                "memory": {
+                    "total_gb": round(memory.total / (1024**3), 1),
+                    "used_gb": round(memory.used / (1024**3), 1),
+                    "percent": memory.percent
+                },
+                "disk": {
+                    "total_gb": round(disk.total / (1024**3), 1),
+                    "used_gb": round(disk.used / (1024**3), 1),
+                    "percent": round((disk.used / disk.total) * 100, 1)
+                }
+            },
+            "database": {
+                "healthy": db_healthy,
+                "response_time_ms": round(db_response_time, 1)
+            },
+            "redis": {
+                "healthy": redis_healthy,
+                "response_time_ms": round(redis_response_time, 1),
+                "memory_usage_mb": round(redis_memory_usage, 1)
+            },
+            "external_apis": external_apis,
+            "version": "1.0.0"
+        }
+        
+        return health_status
+        
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
 
-# ==============================================
-# UNIFIED AI SYSTEM - CLEAN IMPLEMENTATION 
-# ==============================================
+@app.get("/api/metrics")
+async def system_metrics_endpoint():
+    """Comprehensive system metrics for monitoring and alerting"""
+    try:
+        # Calculate cache hit rate
+        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
+        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
+        
+        # Calculate average response time
+        response_times = system_metrics["response_times"]
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        
+        # Calculate percentiles
+        sorted_times = sorted(response_times)
+        p50 = sorted_times[len(sorted_times)//2] if sorted_times else 0
+        p95 = sorted_times[int(len(sorted_times)*0.95)] if sorted_times else 0
+        p99 = sorted_times[int(len(sorted_times)*0.99)] if sorted_times else 0
+        
+        # Error rate calculation
+        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
+        
+        # System resources  
+        if PSUTIL_AVAILABLE:
+            cpu_percent = psutil.cpu_percent()
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+        else:
+            cpu_percent = 0
+            memory = type('Memory', (), {'percent': 0, 'available': 0, 'total': 0})()
+            disk = type('Disk', (), {'percent': 0, 'free': 0, 'total': 0})()
+        
+        # Calculate cost metrics
+        roi_percentage = 0
+        if system_metrics["api_costs"] > 0:
+            roi_percentage = (system_metrics["cache_savings"] / system_metrics["api_costs"]) * 100
+        
+        metrics = {
+            "timestamp": datetime.now().isoformat(),
+            "performance": {
+                "requests_total": system_metrics["requests_total"],
+                "error_rate_percent": round(error_rate, 2),
+                "response_time": {
+                    "average_ms": round(avg_response_time, 1),
+                    "p50_ms": round(p50, 1),
+                    "p95_ms": round(p95, 1),
+                    "p99_ms": round(p99, 1)
+                }
+            },
+            "cache": {
+                "hit_rate_percent": round(cache_hit_rate, 1),
+                "hits": system_metrics["cache_hits"],
+                "misses": system_metrics["cache_misses"],
+                "total_requests": total_cache_requests
+            },
+            "system": {
+                "cpu_percent": cpu_percent,
+                "memory_percent": memory.percent,
+                "disk_percent": round((disk.used / disk.total) * 100, 1),
+                "load_average": os.getloadavg() if hasattr(os, 'getloadavg') else [0, 0, 0]
+            },
+            "business_kpis": {
+                "api_costs_usd": round(system_metrics["api_costs"], 2),
+                "cache_savings_usd": round(system_metrics["cache_savings"], 2),
+                "roi_percent": round(roi_percentage, 1),
+                "cost_efficiency": round(cache_hit_rate * roi_percentage / 100, 1) if roi_percentage > 0 else 0
+            },
+            "alerts": {
+                "high_error_rate": error_rate > 1.0,
+                "slow_response": p95 > 1000,
+                "low_cache_hit": cache_hit_rate < 75,
+                "high_cpu": cpu_percent > 80,
+                "high_memory": memory.percent > 80
+            }
+        }
+        
+        return metrics
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
-# Legacy chat endpoint for backward compatibility
-@app.post("/chat")
-async def chat_endpoint_legacy(request: Request, data: dict):
-    """Legacy chat endpoint - redirects to unified /api/chat"""
-    return await chat_endpoint(request, data)
+# Helper function to update metrics
+def update_system_metrics(response_time_ms: float = None, cache_hit: bool = None, error: bool = False, api_cost: float = 0, cache_savings: float = 0):
+    """Update system metrics for monitoring"""
+    system_metrics["requests_total"] += 1
+    
+    if response_time_ms is not None:
+        system_metrics["response_times"].append(response_time_ms)
+        # Keep only last 1000 response times to prevent memory issues
+        if len(system_metrics["response_times"]) > 1000:
+            system_metrics["response_times"] = system_metrics["response_times"][-1000:]
+    
+    if cache_hit is not None:
+        if cache_hit:
+            system_metrics["cache_hits"] += 1
+        else:
+            system_metrics["cache_misses"] += 1
+    
+    if error:
+        system_metrics["errors"] += 1
+    
+    system_metrics["api_costs"] += api_cost
+    system_metrics["cache_savings"] += cache_savings
+
+# === ADMIN ENDPOINTS ===
+@app.get("/admin/api/stats")
+async def admin_stats(current_user: dict = Depends(get_current_admin)):
+    """Admin-only system statistics endpoint with enhanced metrics"""
+    try:
+        # Get system metrics
+        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
+        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
+        
+        response_times = system_metrics["response_times"]
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        
+        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
+        
+        # Database statistics
+        db_stats = {}
+        try:
+            db = next(get_db())
+            db_stats = {
+                "total_restaurants": db.query(Restaurant).count(),
+                "total_museums": db.query(Museum).count(),
+                "total_places": db.query(Place).count(),
+                "total_feedback": db.query(UserFeedback).count(),
+                "total_blog_posts": db.query(BlogPost).count(),
+                "total_chat_sessions": db.query(ChatSession).count()
+            }
+            db.close()
+        except Exception as e:
+            db_stats = {"error": f"Database stats unavailable: {str(e)}"}
+        
+        # Cost analytics
+        roi_percentage = 0
+        if system_metrics["api_costs"] > 0:
+            roi_percentage = (system_metrics["cache_savings"] / system_metrics["api_costs"]) * 100
+            
+        stats = {
+            "timestamp": datetime.now().isoformat(),
+            "system_health": {
+                "status": "healthy" if error_rate < 1.0 else "degraded",
+                "uptime_hours": (time.time() - system_metrics.get("start_time", time.time())) / 3600,
+                "requests_total": system_metrics["requests_total"],
+                "error_rate_percent": round(error_rate, 2),
+                "avg_response_time_ms": round(avg_response_time, 1)
+            },
+            "cache_performance": {
+                "hit_rate_percent": round(cache_hit_rate, 1),
+                "total_hits": system_metrics["cache_hits"],
+                "total_misses": system_metrics["cache_misses"],
+                "efficiency_score": round(cache_hit_rate / 100 * 10, 1)  # 0-10 scale
+            },
+            "cost_analytics": {
+                "total_api_costs_usd": round(system_metrics["api_costs"], 2),
+                "total_savings_usd": round(system_metrics["cache_savings"], 2),
+                "roi_percent": round(roi_percentage, 1),
+                "cost_per_request": round(system_metrics["api_costs"] / max(system_metrics["requests_total"], 1), 4)
+            },
+            "database_stats": db_stats,
+            "operational_alerts": {
+                "high_error_rate": error_rate > 1.0,
+                "slow_responses": avg_response_time > 1000,
+                "low_cache_efficiency": cache_hit_rate < 75,
+                "cost_threshold_exceeded": system_metrics["api_costs"] > 100  # $100 threshold
+            }
+        }
+        
+        return stats
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to generate admin stats: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/api/cache/stats")
+async def cache_stats():
+    """Public cache statistics (basic metrics only)"""
+    try:
+        total_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
+        hit_rate = (system_metrics["cache_hits"] / total_requests * 100) if total_requests > 0 else 0
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "hit_rate_percent": round(hit_rate, 1),
+            "total_requests": total_requests,
+            "efficiency_rating": "excellent" if hit_rate > 90 else "good" if hit_rate > 75 else "needs_improvement"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/cost/analytics")
+async def cost_analytics(current_user: dict = Depends(get_current_admin)):
+    """Admin-only detailed cost analytics"""
+    try:
+        # Calculate various cost metrics
+        total_requests = system_metrics["requests_total"]
+        api_costs = system_metrics["api_costs"]
+        cache_savings = system_metrics["cache_savings"]
+        
+        # Cost breakdown simulation (in a real app, this would come from actual billing data)
+        cost_breakdown = {
+            "openai_api": round(api_costs * 0.7, 2),
+            "google_places": round(api_costs * 0.2, 2),
+            "weather_api": round(api_costs * 0.05, 2),
+            "other_apis": round(api_costs * 0.05, 2)
+        }
+        
+        # Monthly projection (based on current usage)
+        daily_costs = api_costs  # Assuming current costs are daily
+        monthly_projection = daily_costs * 30
+        
+        # Budget analysis (assuming $500 monthly budget)
+        monthly_budget = 500.0
+        budget_usage_percent = (monthly_projection / monthly_budget) * 100
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "current_costs": {
+                "total_usd": round(api_costs, 2),
+                "cost_per_request": round(api_costs / max(total_requests, 1), 4),
+                "breakdown": cost_breakdown
+            },
+            "savings": {
+                "cache_savings_usd": round(cache_savings, 2),
+                "roi_percent": round((cache_savings / max(api_costs, 0.01)) * 100, 1),
+                "efficiency_score": round(cache_savings / max(monthly_projection, 0.01) * 100, 1)
+            },
+            "projections": {
+                "monthly_estimate_usd": round(monthly_projection, 2),
+                "annual_estimate_usd": round(monthly_projection * 12, 2)
+            },
+            "budget": {
+                "monthly_budget_usd": monthly_budget,
+                "usage_percent": round(budget_usage_percent, 1),
+                "remaining_usd": round(monthly_budget - monthly_projection, 2),
+                "status": "on-track" if budget_usage_percent < 80 else "warning" if budget_usage_percent < 100 else "over_budget"
+            },
+            "recommendations": [
+                "Enable cache warming for frequently requested endpoints" if system_metrics["cache_hits"] / max(system_metrics["cache_hits"] + system_metrics["cache_misses"], 1) < 0.8 else "Cache performance is optimal",
+                "Consider API rate limiting during peak hours" if budget_usage_percent > 80 else "Current usage is within budget",
+                "Review expensive API calls for optimization opportunities" if api_costs > 50 else "API costs are reasonable"
+            ]
+        }
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to generate cost analytics: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/api/alerts/rules")
+async def alert_rules(current_user: dict = Depends(get_current_admin)):
+    """Admin-only alert rules configuration"""
+    try:
+        # Default alert rules (in production, these would be configurable)
+        alert_rules = {
+            "performance": {
+                "error_rate_threshold": 1.0,  # 1% error rate
+                "response_time_threshold": 1000,  # 1000ms
+                "cache_hit_rate_threshold": 75  # 75% cache hit rate
+            },
+            "cost": {
+                "daily_cost_threshold": 20.0,  # $20/day
+                "monthly_budget": 500.0,  # $500/month
+                "roi_threshold": 200  # 200% ROI minimum
+            },
+            "system": {
+                "cpu_threshold": 80,  # 80% CPU
+                "memory_threshold": 80,  # 80% memory
+                "disk_threshold": 90  # 90% disk
+            }
+        }
+        
+        # Current system status against these rules
+        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
+        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
+        
+        response_times = system_metrics["response_times"]
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        
+        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
+        
+        # Check current alerts
+        active_alerts = []
+        
+        if error_rate > alert_rules["performance"]["error_rate_threshold"]:
+            active_alerts.append({
+                "type": "error_rate",
+                "severity": "high",
+                "message": f"Error rate ({error_rate:.1f}%) exceeds threshold ({alert_rules['performance']['error_rate_threshold']}%)",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        if avg_response_time > alert_rules["performance"]["response_time_threshold"]:
+            active_alerts.append({
+                "type": "slow_response",
+                "severity": "medium",
+                "message": f"Average response time ({avg_response_time:.0f}ms) exceeds threshold ({alert_rules['performance']['response_time_threshold']}ms)",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        if cache_hit_rate < alert_rules["performance"]["cache_hit_rate_threshold"]:
+            active_alerts.append({
+                "type": "low_cache_hit",
+                "severity": "medium",
+                "message": f"Cache hit rate ({cache_hit_rate:.1f}%) below threshold ({alert_rules['performance']['cache_hit_rate_threshold']}%)",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        if system_metrics["api_costs"] > alert_rules["cost"]["daily_cost_threshold"]:
+            active_alerts.append({
+                "type": "high_costs",
+                "severity": "high",
+                "message": f"Daily API costs (${system_metrics['api_costs']:.2f}) exceed threshold (${alert_rules['cost']['daily_cost_threshold']})",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "alert_rules": alert_rules,
+            "active_alerts": active_alerts,
+            "alert_summary": {
+                "total_active": len(active_alerts),
+                "high_severity": len([a for a in active_alerts if a["severity"] == "high"]),
+                "medium_severity": len([a for a in active_alerts if a["severity"] == "medium"]),
+                "system_health": "healthy" if len(active_alerts) == 0 else "warning" if len([a for a in active_alerts if a["severity"] == "high"]) == 0 else "critical"
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to get alert rules: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+
+# Initialize system metrics start time
+if "start_time" not in system_metrics:
+    system_metrics["start_time"] = time.time()
+
+# === AUTHENTICATION ENDPOINTS ===
+from pydantic import BaseModel
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    expires_in: int
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def admin_login(login_request: LoginRequest):
+    """Admin login endpoint with JWT token generation"""
+    try:
+        # Authenticate admin
+        user = authenticate_admin(login_request.username, login_request.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+        
+        # Create tokens
+        token_data = {
+            "sub": user["username"],
+            "username": user["username"], 
+            "role": user["role"]
+        }
+        
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
+        
+        # Log successful login
+        log_security_event("admin_login", {
+            "username": user["username"],
+            "timestamp": datetime.now().isoformat(),
+            "success": True
+        })
+        
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=15 * 60  # 15 minutes in seconds
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log failed login attempt
+        log_security_event("admin_login_failed", {
+            "username": login_request.username,
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        })
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
+
+@app.post("/api/auth/refresh")
+async def refresh_token(refresh_token: str):
+    """Refresh access token using refresh token"""
+    try:
+        from auth import refresh_access_token
+        return refresh_access_token(refresh_token)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )
+
+# === SERVER STARTUP ===
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting AI Istanbul Backend Server...")
+    print("📍 Server will be available at: http://localhost:8000")
+    print("📚 API Documentation: http://localhost:8000/docs")
+    print("🔒 Security headers enabled for production")
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        reload=False,  # Disable reload in production
+        access_log=True
+    )

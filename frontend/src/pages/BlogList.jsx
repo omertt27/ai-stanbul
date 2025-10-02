@@ -297,11 +297,19 @@ const BlogList = () => {
                       </div>
                     </div>
 
-                    <h3 className={`text-2xl font-bold mb-3 leading-tight transition-colors duration-200 ${
+                    <h3 className={`text-2xl font-bold mb-3 leading-tight transition-colors duration-200 line-clamp-2 min-h-[4rem] ${
                       darkMode 
                         ? 'text-white hover:text-indigo-300' 
                         : 'text-gray-900 hover:text-indigo-600'
-                    }`}>
+                    }`}
+                    title={post.title}
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
                       <Link to={`/blog/${post.id}`} className="hover:underline">
                         {post.title}
                       </Link>
@@ -547,7 +555,7 @@ const BlogList = () => {
                   </div>
                 )}
                 
-                <div className="p-5 sm:p-7">
+                <div className="p-5 sm:p-7 flex flex-col h-full">
                   {/* Author Info */}
                   {(post.author || post.author_name) && (
                     <div className="flex items-center mb-4">
@@ -573,11 +581,19 @@ const BlogList = () => {
                     </div>
                   )}
 
-                  <h2 className={`text-xl sm:text-2xl font-bold mb-3 leading-tight transition-colors duration-200 ${
+                  <h2 className={`text-xl sm:text-2xl font-bold mb-3 leading-tight transition-colors duration-200 line-clamp-2 min-h-[3.5rem] ${
                     darkMode 
                       ? 'text-white hover:text-indigo-300' 
                       : 'text-gray-900 hover:text-indigo-600'
-                  }`}>
+                  }`} 
+                  title={post.title} 
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
                     <Link to={`/blog/${post.id}`} className="hover:underline">
                       {post.title}
                     </Link>
@@ -611,44 +627,44 @@ const BlogList = () => {
                     {truncateText(post.content, window.innerWidth < 640 ? 120 : 180)}
                   </p>
                   
-                  <div className={`flex items-center justify-between text-sm sm:text-base transition-colors duration-200 ${
+                  <div className={`flex items-center justify-between text-sm sm:text-base transition-colors duration-200 mt-auto ${
                     darkMode ? 'text-gray-400' : 'text-gray-500'
                   }`}>
-                    <div className="flex items-center">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center min-w-0 flex-1 pr-3">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="truncate font-medium text-base sm:text-lg">{post.district || 'Istanbul'}</span>
+                      <span className="truncate font-medium text-base sm:text-lg" title={post.district || 'Istanbul'}>
+                        {post.district || 'Istanbul'}
+                      </span>
                     </div>
                     
-                    <div className="flex items-center gap-3 sm:gap-5 flex-shrink-0">
-                      <button
-                        onClick={() => handleLike(post.id)}
-                        disabled={likingPosts.has(post.id)}
-                        className={`flex items-center gap-2 px-3 py-2 min-w-[70px] rounded-lg transition-all duration-200 hover:scale-105 bg-transparent ${
-                          likingPosts.has(post.id)
-                            ? 'opacity-50 cursor-not-allowed'
-                            : 'hover:opacity-80 active:scale-95'
-                        }`}
-                        title="Like this post"
-                      >
-                        {likingPosts.has(post.id) ? (
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 animate-spin">
-                            <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          </div>
-                        ) : (
-                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    <button
+                      onClick={() => handleLike(post.id)}
+                      disabled={likingPosts.has(post.id)}
+                      className={`flex items-center gap-2 px-3 py-2 min-w-[80px] rounded-lg transition-all duration-200 hover:scale-105 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 flex-shrink-0 ${
+                        likingPosts.has(post.id)
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:shadow-md active:scale-95'
+                      }`}
+                      title="Like this post"
+                    >
+                      {likingPosts.has(post.id) ? (
+                        <div className="w-4 h-4 animate-spin">
+                          <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                           </svg>
                         )}
-                        <span className={`font-medium text-base sm:text-lg ${getNumberTextSize(post.likes_count || 0)}`}>
-                          {formatLikesCount(post.likes_count || 0)}
-                        </span>
-                      </button>
-                    </div>
+                      <span className="font-semibold text-sm text-red-600 dark:text-red-400">
+                        {formatLikesCount(post.likes_count || 0)}
+                      </span>
+                    </button>
                   </div>
                 </div>
               </article>

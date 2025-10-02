@@ -22,6 +22,37 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_
 
+# Initialize logger first
+logger = logging.getLogger(__name__)
+
+# Use lazy import to avoid circular dependency
+INTEGRATED_CACHE_AVAILABLE = False
+search_restaurants_with_integrated_cache = None
+get_integrated_analytics = None
+warm_popular_query = None
+integrated_cache_system = None
+
+def _lazy_import_integrated_cache():
+    """Lazy import of integrated cache system to avoid circular imports"""
+    global INTEGRATED_CACHE_AVAILABLE, search_restaurants_with_integrated_cache, get_integrated_analytics, warm_popular_query, integrated_cache_system
+    if not INTEGRATED_CACHE_AVAILABLE:
+        try:
+            from integrated_cache_system import (
+                search_restaurants_with_integrated_cache as _search_restaurants_with_integrated_cache,
+                get_integrated_analytics as _get_integrated_analytics,
+                warm_popular_query as _warm_popular_query,
+                integrated_cache_system as _integrated_cache_system
+            )
+            search_restaurants_with_integrated_cache = _search_restaurants_with_integrated_cache
+            get_integrated_analytics = _get_integrated_analytics
+            warm_popular_query = _warm_popular_query
+            integrated_cache_system = _integrated_cache_system
+            INTEGRATED_CACHE_AVAILABLE = True
+            logger.info("✅ Integrated cache system loaded successfully (lazy import)")
+        except ImportError as e:
+            logger.warning(f"⚠️ Integrated cache system not available: {e}")
+    return INTEGRATED_CACHE_AVAILABLE
+
 # Import smart caching system
 try:
     from smart_cache import (
@@ -812,27 +843,201 @@ class UnifiedAISystem:
         
         return data_needs
 
-# Global instance (will be initialized by main.py)
-unified_ai_system: Optional[UnifiedAISystem] = None
-
-def get_unified_ai_system(db: Session) -> UnifiedAISystem:
-    """Get or create the global unified AI system instance"""
-    global unified_ai_system
-    if unified_ai_system is None:
-        unified_ai_system = UnifiedAISystem(db)
-    return unified_ai_system
-
-def is_followup_question(user_input: str, session_context: Dict[str, Any]) -> bool:
-    """Check if user input is a followup question"""
-    if not session_context.get('has_conversation_history'):
-        return False
+    async def search_restaurants_enhanced(self, 
+                                    query: str, 
+                                    location: str = "Istanbul, Turkey",
+                                    session_id: Optional[str] = None,
+                                    user_ip: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Enhanced restaurant search with integrated caching and AI optimization
+        
+        Args:
+            query: Restaurant search query
+            location: Location context
+            session_id: User session ID
+            user_ip: User IP for tracking
+            
+        Returns:
+            Enhanced search results with AI insights and cache optimization
+        """
+        try:
+            # Use integrated cache system if available
+            if _lazy_import_integrated_cache() and search_restaurants_with_integrated_cache:
+                result = await search_restaurants_with_integrated_cache(
+                    query=query,
+                    location=location,
+                    context=None,
+                    session_id=session_id,
+                    user_ip=user_ip
+                )
+                
+                # Enhance with AI insights if we have conversation context
+                if session_id:
+                    session_context = self.context_manager.get_session_context(session_id)
+                    
+                    # Add personalized recommendations based on conversation history
+                    conversation_history = session_context.get('conversation_history', [])
+                    if conversation_history:
+                        # Extract preferences from past conversations
+                        preferences = self._extract_food_preferences(conversation_history)
+                        if preferences:
+                            result['personalized_insights'] = {
+                                'detected_preferences': preferences,
+                                'recommendation_note': f"Based on your previous interests in {', '.join(preferences)}, here are some tailored suggestions."
+                            }
+                    
+                    # Store this search in conversation history
+                    self.context_manager.store_conversation_turn(
+                        session_id=session_id,
+                        user_message=f"Restaurant search: {query}",
+                        ai_response=f"Found {len(result.get('restaurants', []))} restaurants matching your criteria",
+                        intent='restaurant_search',
+                        entities={'location': location, 'query': query},
+                        context_data={'search_results_count': len(result.get('restaurants', []))},
+                        user_ip=user_ip
+                    )
+                
+                return result
+            
+            else:
+                # Fallback to basic search without integrated caching
+                logger.warning("🔄 Using fallback restaurant search (integrated cache not available)")
+                return {
+                    'success': False,
+                    'error': 'Integrated cache system not available',
+                    'fallback_needed': True
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Error in enhanced restaurant search: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'session_id': session_id
+            }
     
-    followup_indicators = [
-        'what about', 'how about', 'and', 'also', 'besides', 'additionally',
-        'more details', 'tell me more', 'continue', 'go on', 'next',
-        'other options', 'alternatives', 'similar', 'like that',
-        'there', 'it', 'this', 'that', 'they', 'them'  # Pronouns indicating reference
-    ]
+    def _extract_food_preferences(self, conversation_history: List[Dict]) -> List[str]:
+        """Extract food preferences from conversation history"""
+        preferences = set()
+        
+        food_keywords = {
+            'vegetarian': ['vegetarian', 'vegan', 'veggie'],
+            'seafood': ['seafood', 'fish', 'shrimp', 'lobster'],
+            'turkish': ['turkish', 'ottoman', 'traditional'],
+            'italian': ['italian', 'pizza', 'pasta'],
+            'asian': ['asian', 'chinese', 'japanese', 'sushi'],
+            'fast_food': ['fast food', 'burger', 'quick'],
+            'fine_dining': ['fine dining', 'upscale', 'luxury', 'expensive'],
+            'casual': ['casual', 'cozy', 'relaxed'],
+            'romantic': ['romantic', 'date', 'intimate']
+        }
+        
+        for turn in conversation_history[-10:]:  # Check last 10 conversations
+            user_message = turn.get('user_message', '').lower()
+            ai_response = turn.get('ai_response', '').lower()
+            
+            for preference, keywords in food_keywords.items():
+                if any(keyword in user_message or keyword in ai_response for keyword in keywords):
+                    preferences.add(preference)
+        
+        return list(preferences)
     
-    user_lower = user_input.lower()
-    return any(indicator in user_lower for indicator in followup_indicators)
+    async def get_cache_performance_analytics(self) -> Dict[str, Any]:
+        """Get comprehensive cache performance analytics"""
+        if INTEGRATED_CACHE_AVAILABLE:
+            return get_integrated_analytics()
+        else:
+            return {'error': 'Integrated cache system not available'}
+    
+    async def warm_cache_for_popular_queries(self) -> Dict[str, Any]:
+        """Warm cache for popular queries"""
+        if not INTEGRATED_CACHE_AVAILABLE:
+            return {'error': 'Integrated cache system not available'}
+        
+        try:
+            # Get popular queries from conversation history
+            popular_queries = self._get_popular_restaurant_queries()
+            
+            warming_results = []
+            for query in popular_queries:
+                try:
+                    success = await warm_popular_query(query, "Istanbul, Turkey")
+                    warming_results.append({
+                        'query': query,
+                        'success': success
+                    })
+                except Exception as e:
+                    warming_results.append({
+                        'query': query,
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            successful_warming = sum(1 for r in warming_results if r['success'])
+            
+            return {
+                'success': True,
+                'queries_warmed': successful_warming,
+                'total_queries': len(popular_queries),
+                'warming_results': warming_results
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error warming cache: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def _get_popular_restaurant_queries(self) -> List[str]:
+        """Get popular restaurant queries from conversation history"""
+        # This would typically query the database for most common restaurant searches
+        # For now, return a curated list of popular Istanbul restaurant queries
+        return [
+            "best Turkish restaurants in Sultanahmet",
+            "seafood restaurants near Bosphorus",
+            "vegetarian restaurants in Beyoğlu",
+            "traditional Turkish breakfast places",
+            "rooftop restaurants with view",
+            "budget friendly restaurants in Kadikoy",
+            "fine dining Istanbul",
+            "halal restaurants near Hagia Sophia",
+            "Turkish street food places",
+            "restaurants with live music"
+        ]
+
+    def cleanup_old_data(self) -> Dict[str, int]:
+        """Cleanup old conversation data"""
+        cleaned_contexts = self.context_manager.cleanup_old_contexts()
+        
+        return {
+            'cleaned_entries': cleaned_contexts,
+            'retention_hours': self.context_manager.memory_retention_hours
+        }
+    
+    def _analyze_data_needs(self, user_input: str) -> List[str]:
+        """Analyze what type of real-time data is needed based on user query"""
+        user_lower = user_input.lower()
+        data_needs = []
+        
+        # Restaurant/food related queries
+        if any(keyword in user_lower for keyword in ['restaurant', 'food', 'eat', 'dining', 'cuisine', 'menu']):
+            data_needs.append('restaurants')
+        
+        # Weather related queries
+        if any(keyword in user_lower for keyword in ['weather', 'temperature', 'rain', 'sunny', 'climate']):
+            data_needs.append('weather')
+        
+        # Transportation queries
+        if any(keyword in user_lower for keyword in ['transport', 'metro', 'bus', 'taxi', 'ferry', 'how to get']):
+            data_needs.append('transportation')
+        
+        # Tourist attractions/museums
+        if any(keyword in user_lower for keyword in ['museum', 'attraction', 'visit', 'see', 'monument', 'palace']):
+            data_needs.append('attractions')
+        
+        # General location queries
+        if any(keyword in user_lower for keyword in ['open', 'hours', 'closed', 'available', 'schedule']):
+            data_needs.append('operating_hours')
+        
+        return data_needs

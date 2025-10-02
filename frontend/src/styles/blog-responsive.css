@@ -124,3 +124,88 @@
     line-height: 1.6;
   }
 }
+
+/* Enhanced Blog Card Layout - Fix title and likes consistency */
+
+/* Ensure consistent card heights and content alignment */
+.blog-post-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.blog-post-card .aspect-video {
+  flex-shrink: 0;
+}
+
+.blog-post-card > div:last-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Title consistency */
+.blog-post-card h2 {
+  flex-shrink: 0;
+}
+
+/* Content area */
+.blog-post-card p {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Bottom section alignment */
+.blog-post-card > div:last-child > div:last-child {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+/* Line clamp utility for consistent text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Featured posts consistency */
+.blog-post-grid article h3 {
+  min-height: 4rem;
+}
+
+.blog-post-grid article h2 {
+  min-height: 3.5rem;
+}
+
+/* Responsive title heights */
+@media (max-width: 640px) {
+  .blog-post-grid article h2 {
+    min-height: 3rem;
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+  
+  .blog-post-grid article h3 {
+    min-height: 3.5rem;
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+}
+
+/* Likes button consistency */
+.blog-post-card button[title="Like this post"] {
+  min-width: 80px;
+  justify-content: center;
+}

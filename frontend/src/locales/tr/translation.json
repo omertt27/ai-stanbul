@@ -276,11 +276,8 @@
       "updates": {
         "question": "Bilgiler ne sıklıkla güncelleniyor?",
         "answer": "Restoran verileri Google Maps API üzerinden gerçek zamanlı olarak güncellenir. Müze ve cazibe merkezi bilgilerimiz elle seçilir ve doğruluğu sağlamak için düzenli olarak güncellenir. Veritabanımızı aylık olarak gözden geçirip güncelliyoruz."
-      },
-      "free": {
-        "question": "Bu hizmet tamamen ücretsiz mi?",
-        "answer": "Evet! AI İstanbul Rehberi kullanımı tamamen ücretsizdir. Bağışlarla finanse ediliyoruz ve ziyaretçilerin İstanbul'un en iyisini keşfetmelerine yardımcı olmak için bunu açık kaynak projesi olarak sürdürüyoruz."
       }
+
     },
     "stats": {
       "realTimeData": {

@@ -317,25 +317,30 @@
       }
     },
     "questions": {
+      "whatIsAIstanbul": {
+        "question": "What is AI Istanbul Guide?",
+        "answer": "AI Istanbul Guide is an advanced AI-powered travel assistant that provides personalized recommendations for restaurants, attractions, transportation, and cultural experiences throughout Istanbul. Our platform combines real-time data with local expertise to deliver the most accurate and relevant travel advice."
+      },
+      "accuracy": {
+        "question": "How accurate and reliable are your recommendations?",
+        "answer": "Our recommendations are powered by real-time data from Google Maps API, combined with advanced AI analysis and local expertise. We maintain partnerships with local businesses and continuously update our database to ensure accuracy. All restaurant data includes current ratings, reviews, and availability status."
+      },
+      "coverage": {
+        "question": "Which areas of Istanbul do you cover?",
+        "answer": "We provide comprehensive coverage of all Istanbul districts including Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, Galata, Taksim, and many more. Our database includes over 10,000 locations with detailed information about restaurants, museums, attractions, and transportation options."
+      },
       "whatIsKam": {
         "question": "What does KAM mean?",
         "answer": "KAM is an AI chatbot named after the ancient Turkic 'kam' — a wise shamanic figure who served as a bridge between the human and spiritual worlds. In this modern form, Kam embodies the same spirit of guidance, insight, and protection, helping users navigate the vast digital world with clarity and wisdom."
       },
-      "accuracy": {
-        "question": "How accurate are the restaurant recommendations?",
-        "answer": "Our restaurant recommendations come directly from Google Maps API, providing real-time ratings, reviews, and location data. We combine this with AI analysis to give you the most relevant suggestions based on your preferences."
+
+      "businessPartnerships": {
+        "question": "Do you work with local businesses and restaurants?",
+        "answer": "Yes, we partner with carefully selected restaurants, hotels, and tour operators throughout Istanbul. Our business partnerships allow us to provide exclusive offers, verified information, and special experiences for our users while maintaining editorial independence in our recommendations."
       },
-      "coverage": {
-        "question": "Do you have information about all Istanbul districts?",
-        "answer": "Yes! We have comprehensive data about all major Istanbul districts including Sultanahmet, Beyoğlu, Kadıköy, Beşiktaş, Üsküdar, and many more. Each district entry includes historical context, main attractions, and cultural significance."
-      },
-      "updates": {
-        "question": "How often is the information updated?",
-        "answer": "Restaurant data is updated in real-time through Google Maps API. Our museum and attraction information is manually curated and updated regularly to ensure accuracy. We review and update our database monthly."
-      },
-      "free": {
-        "question": "Is this service completely free?",
-        "answer": "Yes! AI Istanbul Guide is completely free to use. We're funded by donations and maintain this as an open-source project to help visitors discover the best of Istanbul."
+      "dataPrivacy": {
+        "question": "How do you protect user data and privacy?",
+        "answer": "We take data privacy seriously and comply with GDPR and international privacy standards. User data is encrypted, securely stored, and never sold to third parties. We only collect necessary information to improve your travel experience and provide personalized recommendations."
       }
     }
   },

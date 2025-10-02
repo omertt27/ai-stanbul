@@ -332,11 +332,8 @@
       "updates": {
         "question": "Wie oft werden die Informationen aktualisiert?",
         "answer": "Restaurant-Daten werden in Echtzeit über die Google Maps API aktualisiert. Unsere Museum- und Attraktionsinformationen werden manuell kuratiert und regelmäßig aktualisiert, um Genauigkeit zu gewährleisten. Wir überprüfen und aktualisieren unsere Datenbank monatlich."
-      },
-      "free": {
-        "question": "Ist dieser Service völlig kostenlos?",
-        "answer": "Ja! AI Istanbul Guide ist völlig kostenlos zu nutzen. Wir werden durch Spenden finanziert und führen dies als Open-Source-Projekt, um Besuchern zu helfen, das Beste von Istanbul zu entdecken."
       }
+
     }
   },
   "contact": {
