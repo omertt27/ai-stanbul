@@ -176,21 +176,21 @@ const App = () => {
           >
             <div className="chat-title logo-istanbul main-page-logo">
               <span className="logo-text" style={{
-                fontSize: isMobile || window.innerWidth < 768 ? '1.8rem' : '4rem',
-                fontWeight: isMobile || window.innerWidth < 768 ? 600 : 700,
-                letterSpacing: isMobile || window.innerWidth < 768 ? '0.05em' : '0.1em',
+                fontSize: isMobile || window.innerWidth < 768 ? '2.5rem' : '4rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                color: isMobile || window.innerWidth < 768 ? '#f3f4f6' : 'transparent',
-                background: isMobile || window.innerWidth < 768 ? 'none' : 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                WebkitBackgroundClip: isMobile || window.innerWidth < 768 ? 'initial' : 'text',
-                WebkitTextFillColor: isMobile || window.innerWidth < 768 ? '#f3f4f6' : 'transparent',
-                backgroundClip: isMobile || window.innerWidth < 768 ? 'initial' : 'text',
-                textShadow: isMobile || window.innerWidth < 768 ? 'none' : '0 2px 10px rgba(139, 92, 246, 0.3)',
+                color: 'transparent',
+                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 lineHeight: '1.2'
               }}>
-                AI-STANBUL
+                A/STANBUL
               </span>
             </div>
           </div>

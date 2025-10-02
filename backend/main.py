@@ -1589,6 +1589,34 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
+# --- Missing helper function ---
+def extract_museum_key_from_input(user_message: str) -> Optional[str]:
+    """Extract museum key from user input for museum service lookup"""
+    user_message_lower = user_message.lower()
+    
+    # Museum name mappings
+    museum_mappings = {
+        'hagia sophia': 'hagia_sophia',
+        'topkapi': 'topkapi_palace',
+        'topkapi palace': 'topkapi_palace',
+        'blue mosque': 'blue_mosque',
+        'sultan ahmed mosque': 'blue_mosque',
+        'basilica cistern': 'basilica_cistern',
+        'galata tower': 'galata_tower',
+        'dolmabahce': 'dolmabahce_palace',
+        'dolmabahce palace': 'dolmabahce_palace',
+        'istanbul archaeology': 'archaeology_museum',
+        'archaeology museum': 'archaeology_museum',
+        'pera museum': 'pera_museum',
+        'istanbul modern': 'istanbul_modern'
+    }
+    
+    for museum_name, museum_key in museum_mappings.items():
+        if museum_name in user_message_lower:
+            return museum_key
+    
+    return None
+
 # === GLOBAL SYSTEM METRICS ===
 system_metrics = {
     "requests_total": 0,
@@ -1726,6 +1754,12 @@ async def create_itinerary(request: ItineraryRequest):
         
         # Import route maker classes
         try:
+            import sys
+            import os
+            # Add parent directory to path for route maker import
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
             from route_maker_poc import HybridItineraryGenerator, InterestType, BudgetLevel
         except ImportError as e:
             print(f"❌ Route maker import failed: {e}")
@@ -1784,7 +1818,7 @@ async def create_itinerary(request: ItineraryRequest):
                     {
                         "from_place": segment.from_place,
                         "to_place": segment.to_place,
-                        "transport_type": segment.transport_type,
+                        "transport_mode": segment.transport_mode,
                         "duration_minutes": segment.duration_minutes,
                         "cost_tl": segment.cost_tl,
                         "walking_minutes": segment.walking_minutes,
@@ -1833,6 +1867,12 @@ async def create_itinerary(request: ItineraryRequest):
 async def itinerary_info():
     """Get information about the route maker service"""
     try:
+        import sys
+        import os
+        # Add parent directory to path for route maker import
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
         from route_maker_poc import ISTANBUL_PLACES, InterestType, BudgetLevel
         
         return {

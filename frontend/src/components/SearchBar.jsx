@@ -56,18 +56,16 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
       alignItems: 'center',
       justifyContent: 'space-between',
       width: '100%',
-      background: isMobile ? '#2a2a2a' : 'rgba(28,30,42,0.98)',
-      borderRadius: isMobile ? '1.5rem' : '0.8rem',
-      boxShadow: isMobile 
-        ? (isFocused ? '0 0 0 2px #666' : 'none')
-        : (isFocused ? '0 8px 32px rgba(99, 102, 241, 0.2)' : '0 4px 16px 0 #0001'),
-      padding: isMobile ? '0.75rem 1rem' : '0.6rem 1.2rem',
-      border: isMobile ? '1px solid #404040' : 'none',
-      minHeight: isMobile ? '3.2rem' : '3.2rem',
-      maxWidth: isMobile ? 'none' : 750,
+      background: 'rgba(28,30,42,0.98)',
+      borderRadius: '0.8rem',
+      boxShadow: isFocused ? '0 8px 32px rgba(99, 102, 241, 0.2)' : '0 4px 16px 0 #0001',
+      padding: '0.6rem 1.2rem',
+      border: 'none',
+      minHeight: '3.2rem',
+      maxWidth: 750,
       margin: '0 auto',
       transition: 'all 0.2s ease',
-      backdropFilter: isMobile ? 'none' : 'blur(10px)',
+      backdropFilter: 'blur(10px)',
       position: 'relative',
       overflow: 'visible',
     }}>
@@ -80,7 +78,7 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
         onChange={onChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder={displayPlaceholder || (isMobile ? "Ask about Istanbul..." : "What would you like to know about Istanbul?")}
+        placeholder={displayPlaceholder || "What would you like to know about Istanbul?"}
         disabled={isLoading}
         className="chat-input"
         style={{
@@ -88,16 +86,16 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
           background: 'transparent',
           border: 'none',
           outline: 'none',
-          color: isMobile ? '#f0f0f0' : '#fff',
-          fontSize: isMobile ? '1.1rem' : '1.2rem',
-          padding: isMobile ? '0.6rem 0.75rem' : '0.4rem 0.5rem 0.4rem 1.5rem',
-          fontWeight: isMobile ? 400 : 500,
-          letterSpacing: isMobile ? 'normal' : '0.01em',
-          minWidth: isMobile ? 'auto' : '200px',
+          color: '#fff',
+          fontSize: '1.2rem',
+          padding: '0.4rem 0.5rem 0.4rem 1.5rem',
+          fontWeight: 500,
+          letterSpacing: '0.01em',
+          minWidth: '200px',
           width: '100%',
           opacity: isLoading ? 0.7 : 1,
           lineHeight: 'normal',
-          caretColor: isMobile ? '#f0f0f0' : '#fff',
+          caretColor: '#fff',
         }}
       />
       
@@ -106,22 +104,20 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
         type="submit"
         disabled={isLoading || !value.trim()}
         style={{
-          background: isMobile 
-            ? (isLoading || !value.trim() ? '#404040' : '#f0f0f0')
-            : (isLoading || !value.trim() ? 'rgba(99, 102, 241, 0.5)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'),
+          background: isLoading || !value.trim() ? 'rgba(99, 102, 241, 0.5)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           border: 'none',
-          borderRadius: isMobile ? '50%' : '0.5rem',
-          padding: isMobile ? '0.5rem' : '0.6rem 1.2rem',
-          color: isMobile ? '#1a1a1a' : 'white',
-          fontSize: isMobile ? '0' : '0.9rem',
+          borderRadius: '0.5rem',
+          padding: '0.6rem 1.2rem',
+          color: 'white',
+          fontSize: '0.9rem',
           fontWeight: 600,
           cursor: isLoading || !value.trim() ? 'not-allowed' : 'pointer',
           transition: 'all 0.2s ease',
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? '0' : '0.5rem',
-          minWidth: isMobile ? '32px' : '80px',
-          height: isMobile ? '32px' : 'auto',
+          gap: '0.5rem',
+          minWidth: '80px',
+          height: 'auto',
           justifyContent: 'center',
         }}
       >

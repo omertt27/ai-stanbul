@@ -1058,7 +1058,7 @@ function Chatbot() {
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <span style={{ color: '#f0f0f0', fontSize: '1rem', fontWeight: '500' }}>AI-STANBUL</span>
+          <span style={{ color: '#f0f0f0', fontSize: '1rem', fontWeight: '500' }}>A/STANBUL</span>
           <div style={{ width: '2.5rem' }}></div>
         </div>
       )}
