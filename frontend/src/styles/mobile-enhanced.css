@@ -809,3 +809,31 @@
     margin: 24px 0 16px 0 !important;
   }
 }
+
+/* Mobile logo positioning enhancement */
+.main-page-logo .logo-text {
+  font-size: 2.2rem !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+}
+
+/* Mobile search bar enhancement in chat */
+.chatbot-page .searchbar {
+  background: rgba(28, 30, 42, 0.98) !important;
+  border: 2px solid rgba(139, 92, 246, 0.4) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2) !important;
+  min-height: 3.5rem !important;
+}
+
+/* Mobile chat input focus enhancement */
+.chatbot-page .chat-input:focus {
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Mobile sidebar width optimization */
+.chatbot-page div[class*="w-4/5"] {
+  width: 85% !important;
+  max-width: 320px !important;
+}

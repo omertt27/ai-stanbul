@@ -1016,21 +1016,61 @@ function Chatbot() {
   }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
 
   return (
-    <div className="chatbot-page">
+    <div className="chatbot-page" style={{
+      background: isMobile ? '#1a1a1a' : undefined,
+      minHeight: '100vh'
+    }}>
       {/* Mobile Optimization Component */}
       <MobileOptimizer />
       
-      {/* Standard Site Navigation */}
-      <NavBar />
+      {/* Navigation - Simple on mobile, full on desktop */}
+      {!isMobile && <NavBar />}
       
-      {/* Chat History Sidebar - Modern Design */}
-      <div className={`fixed left-0 top-12 h-[calc(100vh-3rem)] transition-all duration-300 z-40 ${
-        sidebarOpen ? 'w-full md:w-80' : 'w-0'
+      {/* Simple mobile header */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '3rem',
+          background: '#1a1a1a',
+          borderBottom: '1px solid #333',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 1rem',
+          zIndex: 1000
+        }}>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#f0f0f0',
+              padding: '0.5rem',
+              borderRadius: '0.5rem'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <span style={{ color: '#f0f0f0', fontSize: '1rem', fontWeight: '500' }}>AI-STANBUL</span>
+          <div style={{ width: '2.5rem' }}></div>
+        </div>
+      )}
+      
+      {/* Chat History Sidebar - Simplified for mobile */}
+      <div className={`fixed ${isMobile ? 'top-0' : 'top-12'} left-0 h-full transition-all duration-300 z-40 ${
+        sidebarOpen ? (isMobile ? 'w-4/5' : 'w-80') : 'w-0'
       } overflow-hidden`} style={{
-        background: 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(26, 27, 29, 0.98) 100%)',
-        backdropFilter: 'blur(20px)',
-        borderRight: '1px solid rgba(139, 92, 246, 0.3)',
-        boxShadow: '4px 0 20px rgba(139, 92, 246, 0.15)'
+        background: isMobile ? '#1a1a1a' : 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(26, 27, 29, 0.98) 100%)',
+        backdropFilter: isMobile ? 'none' : 'blur(20px)',
+        borderRight: isMobile ? '1px solid #333' : '1px solid rgba(139, 92, 246, 0.3)',
+        boxShadow: isMobile ? 'none' : '4px 0 20px rgba(139, 92, 246, 0.15)'
       }}>
         <div className="flex flex-col h-full">
           {/* Sidebar Header - Modern Style */}
@@ -1309,42 +1349,59 @@ function Chatbot() {
         </svg>
       </button>
 
-      {/* Main Chat Container with Purple Outline */}
+      {/* Main Chat Container - Simple on mobile */}
       <div className={`chatbot-main-container transition-all duration-300 ${
-        sidebarOpen ? 'md:ml-80 ml-0' : 'ml-0'
-      }`}>
-        <div className="chatbot-purple-box">
-          
+        sidebarOpen ? (isMobile ? 'ml-0' : 'md:ml-80') : 'ml-0'
+      }`} style={{
+        background: isMobile ? '#1a1a1a' : undefined
+      }}>
+        <div className="chatbot-purple-box" style={{
+          background: isMobile ? '#1a1a1a' : undefined,
+          border: isMobile ? 'none' : undefined
+        }}>
 
-
-          {/* Chat Messages Area - Separate from Input with Scrolling */}
-          <div className="chatbot-messages chatbot-scrollable">
+          {/* Chat Messages Area - Simple on mobile */}
+          <div className="chatbot-messages chatbot-scrollable" style={{
+            background: isMobile ? '#1a1a1a' : undefined,
+            padding: isMobile ? '0.5rem' : undefined
+          }}>
           
-          {/* Welcome Screen - Clean and modern */}
+          {/* Welcome Screen - Simple on mobile */}
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-start h-full pt-4 px-4">
+            <div className="flex flex-col items-center justify-center h-full px-4" style={{
+              paddingTop: isMobile ? '2rem' : '4rem'
+            }}>
               
-              {/* Main Title */}
-              <h1 className="text-4xl font-bold mb-4 text-center max-w-2xl text-white" style={{
-                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
+              {/* Simple Title for mobile, fancy for desktop */}
+              <h1 style={{
+                fontSize: isMobile ? '1.5rem' : '2.5rem',
+                fontWeight: isMobile ? '500' : 'bold',
+                marginBottom: isMobile ? '1rem' : '2rem',
+                textAlign: 'center',
+                maxWidth: '32rem',
+                color: isMobile ? '#f0f0f0' : 'transparent',
+                background: isMobile ? 'none' : 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
+                WebkitBackgroundClip: isMobile ? 'initial' : 'text',
+                WebkitTextFillColor: isMobile ? '#f0f0f0' : 'transparent',
+                backgroundClip: isMobile ? 'initial' : 'text'
               }}>
-                Hello! I'm KAM
+                {isMobile ? 'Hi! Ask me about Istanbul' : 'Hello! I\'m KAM'}
               </h1>
               
-              {/* Subtitle */}
-              <p className={`text-lg mb-6 text-center max-w-xl ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
-              </p>
+              {/* Simple subtitle */}
+              {!isMobile && (
+                <p className={`text-lg mb-6 text-center max-w-xl ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
+                </p>
+              )}
               
-              {/* Quick suggestions moved higher - inside welcome screen */}
-              <div className="kam-quick-suggestions">
-                <div className="text-xs text-gray-400 mb-3">Try asking about:</div>
-                <div className="flex flex-wrap gap-2 justify-center">
+              {/* Quick suggestions - simplified for mobile */}
+              {!isMobile && (
+                <div className="kam-quick-suggestions">
+                  <div className="text-xs text-gray-400 mb-3">Try asking about:</div>
+                  <div className="flex flex-wrap gap-2 justify-center">
                   {[
                     "Best restaurants in Sultanahmet",
                     "Things to do in Beyoğlu", 
@@ -1359,8 +1416,9 @@ function Chatbot() {
                       {suggestion}
                     </button>
                   ))}
+                  </div>
                 </div>
-              </div>
+              )}
               
             </div>
           )}

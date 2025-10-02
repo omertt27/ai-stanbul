@@ -1706,6 +1706,161 @@ async def ai_endpoint_legacy(request: Request):
     # Redirect to the main chat endpoint
     return await ai_chat_endpoint(request)
 
+# === ROUTE MAKER API ENDPOINT ===
+
+from pydantic import BaseModel
+
+class ItineraryRequest(BaseModel):
+    duration_days: int
+    interests: List[str]
+    budget: str  # "budget", "moderate", "luxury"
+    group_size: Optional[int] = 1
+    preferred_areas: Optional[List[str]] = []
+    session_id: Optional[str] = "default"
+
+@app.post("/api/itinerary/create")
+async def create_itinerary(request: ItineraryRequest):
+    """Create optimized multi-day itinerary using hybrid route maker approach"""
+    try:
+        print(f"🗺️ Route Maker Request - Days: {request.duration_days}, Interests: {request.interests}, Budget: {request.budget}")
+        
+        # Import route maker classes
+        try:
+            from route_maker_poc import HybridItineraryGenerator, InterestType, BudgetLevel
+        except ImportError as e:
+            print(f"❌ Route maker import failed: {e}")
+            return {
+                "success": False,
+                "error": "Route maker service unavailable",
+                "fallback_response": "I can help you plan your Istanbul trip! Please describe what you'd like to see and do, and I'll provide personalized recommendations."
+            }
+        
+        # Validate inputs
+        if request.duration_days < 1 or request.duration_days > 7:
+            raise HTTPException(status_code=400, detail="Duration must be between 1 and 7 days")
+        
+        if request.budget not in ["budget", "moderate", "luxury"]:
+            raise HTTPException(status_code=400, detail="Budget must be one of: budget, moderate, luxury")
+        
+        # Create generator
+        generator = HybridItineraryGenerator()
+        
+        # Prepare preferences
+        preferences = {
+            'duration_days': request.duration_days,
+            'interests': request.interests,
+            'budget': request.budget,
+            'group_size': request.group_size,
+            'preferred_areas': request.preferred_areas or []
+        }
+        
+        # Generate itinerary
+        start_time = time.time()
+        itinerary = await generator.generate_complete_itinerary(preferences)
+        generation_time = time.time() - start_time
+        
+        # Convert to JSON-serializable format
+        itinerary_data = {
+            "duration_days": itinerary.duration_days,
+            "total_estimated_cost": round(itinerary.total_estimated_cost, 2),
+            "optimization_score": round(itinerary.optimization_score, 3),
+            "key_recommendations": itinerary.key_recommendations,
+            "backup_plans": itinerary.backup_plans,
+            "daily_itineraries": []
+        }
+        
+        # Process daily itineraries
+        for day in itinerary.days:
+            daily_data = {
+                "day_number": day.day_number,
+                "date": day.date,
+                "total_duration_hours": round(day.total_duration_hours, 1),
+                "total_cost_tl": round(day.total_cost_tl, 2),
+                "total_walking_minutes": day.total_walking_minutes,
+                "activities": day.activities,
+                "cultural_insights": day.cultural_insights,
+                "weather_considerations": day.weather_considerations,
+                "route_segments": [
+                    {
+                        "from_place": segment.from_place,
+                        "to_place": segment.to_place,
+                        "transport_type": segment.transport_type,
+                        "duration_minutes": segment.duration_minutes,
+                        "cost_tl": segment.cost_tl,
+                        "walking_minutes": segment.walking_minutes,
+                        "instructions": segment.instructions
+                    }
+                    for segment in day.route_segments
+                ]
+            }
+            itinerary_data["daily_itineraries"].append(daily_data)
+        
+        response_data = {
+            "success": True,
+            "itinerary": itinerary_data,
+            "session_id": request.session_id,
+            "generation_time_seconds": round(generation_time, 2),
+            "timestamp": datetime.now().isoformat(),
+            "summary": {
+                "total_days": itinerary.duration_days,
+                "total_cost": f"{itinerary.total_estimated_cost:.2f} TL",
+                "efficiency_score": f"{itinerary.optimization_score:.1%}",
+                "total_activities": sum(len(day.activities) for day in itinerary.days),
+                "highlights": [
+                    f"🏛️ Visit {len([a for day in itinerary.days for a in day.activities if 'Historical' in a.get('category', '')])} historical sites",
+                    f"🚶‍♂️ Total walking: {sum(day.total_walking_minutes for day in itinerary.days)} minutes",
+                    f"⭐ Cultural experiences with {itinerary.optimization_score:.1%} optimization"
+                ]
+            }
+        }
+        
+        print(f"✅ Route Maker Response - Generated {itinerary.duration_days}-day itinerary in {generation_time:.2f}s")
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Route maker error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "session_id": request.session_id,
+            "timestamp": datetime.now().isoformat(),
+            "fallback_response": "I'm having trouble generating your itinerary right now. Let me help you plan your trip step by step - what are you most interested in seeing in Istanbul?"
+        }
+
+@app.get("/api/itinerary/info")
+async def itinerary_info():
+    """Get information about the route maker service"""
+    try:
+        from route_maker_poc import ISTANBUL_PLACES, InterestType, BudgetLevel
+        
+        return {
+            "service_status": "available",
+            "available_places": len(ISTANBUL_PLACES),
+            "supported_interests": [interest.value for interest in InterestType],
+            "budget_levels": [budget.value for budget in BudgetLevel],
+            "max_duration_days": 7,
+            "features": [
+                "🧠 AI-powered itinerary generation",
+                "🗺️ Route optimization algorithms", 
+                "🚌 Real transportation integration",
+                "💰 Budget-aware planning",
+                "🏛️ Cultural significance scoring",
+                "⏰ Time-efficient scheduling",
+                "🌟 Personalized recommendations"
+            ],
+            "sample_places": [
+                {"name": place.name, "category": place.category, "district": place.district}
+                for place in ISTANBUL_PLACES[:5]
+            ]
+        }
+    except ImportError:
+        return {
+            "service_status": "unavailable",
+            "error": "Route maker service not available"
+        }
+
 # === HEALTH AND MONITORING ENDPOINTS ===
 
 @app.get("/api/health")
@@ -2141,7 +2296,7 @@ async def alert_rules(current_user: dict = Depends(get_current_admin)):
 
 # Initialize system metrics start time
 if "start_time" not in system_metrics:
-    system_metrics["start_time"] = time.time()
+    system_metrics["start_time"] = datetime.now()
 
 # === AUTHENTICATION ENDPOINTS ===
 from pydantic import BaseModel

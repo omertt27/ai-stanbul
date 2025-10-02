@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from datetime import datetime
 from database import SessionLocal
 from models import Restaurant
 from api_clients.google_places import GooglePlacesClient, get_istanbul_restaurants_with_descriptions
@@ -680,3 +681,131 @@ def _generate_system_recommendations(savings_percent: float, system_analytics: d
     })
     
     return recommendations
+
+def _calculate_cost_breakdown(cache_hit: bool, fields_optimized: int, total_available_fields: int, response_time_ms: float, cache_type: str) -> dict:
+    """Calculate detailed cost breakdown for a restaurant search"""
+    base_api_cost = 0.002  # Base cost per Google Places API call
+    
+    if cache_hit:
+        actual_cost = 0.0  # No API call made
+        cost_savings = base_api_cost
+        efficiency_score = 1.0
+    else:
+        # Calculate cost based on fields requested vs available
+        field_optimization_factor = 1.0 - (fields_optimized / max(total_available_fields, 1)) * 0.3
+        actual_cost = base_api_cost * field_optimization_factor
+        cost_savings = base_api_cost - actual_cost
+        efficiency_score = cost_savings / base_api_cost
+    
+    return {
+        "cache_hit": cache_hit,
+        "cache_type": cache_type,
+        "actual_cost_usd": round(actual_cost, 6),
+        "potential_cost_usd": round(base_api_cost, 6),
+        "savings_usd": round(cost_savings, 6),
+        "savings_percent": round((cost_savings / base_api_cost) * 100, 1),
+        "efficiency_score": round(efficiency_score, 3),
+        "response_time_ms": response_time_ms,
+        "fields_optimized": fields_optimized,
+        "optimization_factor": round(field_optimization_factor, 3)
+    }
+
+def _calculate_fallback_cost() -> dict:
+    """Calculate cost for fallback (non-optimized) search"""
+    base_api_cost = 0.002
+    
+    return {
+        "cache_hit": False,
+        "cache_type": "none",
+        "actual_cost_usd": base_api_cost,
+        "potential_cost_usd": base_api_cost,
+        "savings_usd": 0.0,
+        "savings_percent": 0.0,
+        "efficiency_score": 0.0,
+        "response_time_ms": 0,
+        "fields_optimized": 0,
+        "optimization_factor": 1.0,
+        "note": "Integrated cache system not available - using direct API calls"
+    }
+
+def _calculate_enhanced_cost_analysis(cache_hit: bool, response_time_ms: float, cache_type: str, 
+                                    fields_requested: int, total_available_fields: int,
+                                    original_cost_score: float, optimized_cost_score: float,
+                                    query: str, intent: str) -> dict:
+    """Calculate comprehensive cost analysis with enhanced metrics"""
+    base_api_cost = 0.002
+    
+    # Calculate field optimization savings
+    field_optimization_ratio = fields_requested / max(total_available_fields, 1)
+    field_optimization_savings = (1 - field_optimization_ratio) * 0.3
+    
+    # Calculate intent-based cost multiplier
+    intent_multipliers = {
+        "restaurant_search": 1.0,
+        "detailed_info": 1.2,
+        "reviews_focus": 1.1,
+        "location_specific": 0.9,
+        "unknown": 1.0
+    }
+    intent_multiplier = intent_multipliers.get(intent, 1.0)
+    
+    if cache_hit:
+        actual_cost = 0.0
+        api_calls_made = 0
+    else:
+        actual_cost = base_api_cost * intent_multiplier * (1 - field_optimization_savings)
+        api_calls_made = 1
+    
+    potential_full_cost = base_api_cost * intent_multiplier
+    total_savings = potential_full_cost - actual_cost
+    
+    return {
+        "query_analysis": {
+            "query": query[:50] + "..." if len(query) > 50 else query,
+            "intent": intent,
+            "intent_multiplier": intent_multiplier
+        },
+        "cost_breakdown": {
+            "base_api_cost_usd": base_api_cost,
+            "actual_cost_usd": round(actual_cost, 6),
+            "potential_full_cost_usd": round(potential_full_cost, 6),
+            "total_savings_usd": round(total_savings, 6),
+            "savings_percent": round((total_savings / potential_full_cost * 100), 1) if potential_full_cost > 0 else 0
+        },
+        "optimization_metrics": {
+            "cache_hit": cache_hit,
+            "cache_type": cache_type,
+            "response_time_ms": response_time_ms,
+            "api_calls_saved": 1 if cache_hit else 0,
+            "api_calls_made": api_calls_made
+        },
+        "field_optimization": {
+            "fields_requested": fields_requested,
+            "total_available_fields": total_available_fields,
+            "optimization_ratio": round(field_optimization_ratio, 3),
+            "field_savings_percent": round(field_optimization_savings * 100, 1)
+        },
+        "efficiency_score": round((total_savings / potential_full_cost), 3) if potential_full_cost > 0 else 0,
+        "cost_grade": _get_cost_grade(total_savings, potential_full_cost)
+    }
+
+def _get_cost_grade(savings: float, potential_cost: float) -> str:
+    """Get a letter grade for cost efficiency"""
+    if potential_cost == 0:
+        return "N/A"
+    
+    efficiency = savings / potential_cost
+    if efficiency >= 0.9:
+        return "A+"
+    elif efficiency >= 0.8:
+        return "A"
+    elif efficiency >= 0.7:
+        return "B+"
+    elif efficiency >= 0.6:
+        return "B"
+    elif efficiency >= 0.5:
+        return "C+"
+    elif efficiency >= 0.4:
+        return "C"
+    else:
+        return "D"

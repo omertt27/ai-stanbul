@@ -153,45 +153,54 @@ const App = () => {
         <GoogleAnalytics />
         {/* <DebugInfo /> */}
 
-        <div className="main-page-background main-to-chat-transition" style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', width: '100vw', minHeight: '100vh', paddingTop: '6rem', paddingBottom: '2rem'}}>
-          {/* Live Activity Feed - Removed as requested */}
-          {/* <LiveActivityFeed /> */}
+        <div className="main-page-background main-to-chat-transition" style={{
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: isMobile || window.innerWidth < 768 ? 'center' : 'flex-start',
+          width: '100vw', 
+          minHeight: '100vh', 
+          paddingTop: isMobile || window.innerWidth < 768 ? '2rem' : '6rem', 
+          paddingBottom: '2rem',
+          padding: isMobile || window.innerWidth < 768 ? '1rem' : '6rem 2rem 2rem'
+        }}>
           
-          {/* Centered logo - using navbar logo style */}
+          {/* Simple centered logo for mobile, full experience for desktop */}
           <div 
             style={{
               textAlign: 'center', 
-              marginBottom: '1rem', 
-              marginTop: '10px',
+              marginBottom: isMobile || window.innerWidth < 768 ? '2rem' : '1rem',
             }} 
             onClick={handleLogoClick}
           >
             <div className="chat-title logo-istanbul main-page-logo">
               <span className="logo-text" style={{
-                fontSize: window.innerWidth < 768 ? '2.5rem' : '4rem',
-                fontWeight: 700,
-                letterSpacing: '0.1em',
+                fontSize: isMobile || window.innerWidth < 768 ? '1.8rem' : '4rem',
+                fontWeight: isMobile || window.innerWidth < 768 ? 600 : 700,
+                letterSpacing: isMobile || window.innerWidth < 768 ? '0.05em' : '0.1em',
                 textTransform: 'uppercase',
-                background: 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                color: isMobile || window.innerWidth < 768 ? '#f3f4f6' : 'transparent',
+                background: isMobile || window.innerWidth < 768 ? 'none' : 'linear-gradient(90deg, #e5e7eb 0%, #8b5cf6 50%, #6366f1 100%)',
+                WebkitBackgroundClip: isMobile || window.innerWidth < 768 ? 'initial' : 'text',
+                WebkitTextFillColor: isMobile || window.innerWidth < 768 ? '#f3f4f6' : 'transparent',
+                backgroundClip: isMobile || window.innerWidth < 768 ? 'initial' : 'text',
+                textShadow: isMobile || window.innerWidth < 768 ? 'none' : '0 2px 10px rgba(139, 92, 246, 0.3)',
                 transition: 'all 0.3s ease',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                lineHeight: '1.2'
               }}>
-                A/<span style={{fontWeight: 400}}>STANBUL</span>
+                AI-STANBUL
               </span>
             </div>
           </div>
           
-          {/* Search bar positioned directly under the logo */}
+          {/* Simple search bar - ChatGPT style */}
           <div style={{
             width: '100%', 
-            maxWidth: 1200, 
-            minWidth: 320, 
+            maxWidth: isMobile || window.innerWidth < 768 ? '100%' : 1200, 
             margin: '0 auto 2rem', 
-            padding: '1rem', 
+            padding: isMobile || window.innerWidth < 768 ? '0' : '1rem',
             zIndex: 10,
           }}>
             <SearchBar
@@ -204,10 +213,26 @@ const App = () => {
             />
           </div>
           
-          {/* Interactive Main Page Content */}
-          <div>
-            <InteractiveMainPage onQuickStart={handleQuickStart} />
-          </div>
+          {/* Interactive Main Page Content - Hide on mobile for simplicity */}
+          {!(isMobile || window.innerWidth < 768) && (
+            <div>
+              <InteractiveMainPage onQuickStart={handleQuickStart} />
+            </div>
+          )}
+          
+          {/* Simple mobile prompt */}
+          {(isMobile || window.innerWidth < 768) && (
+            <div style={{
+              textAlign: 'center',
+              color: '#9ca3af',
+              fontSize: '0.9rem',
+              marginTop: '1rem',
+              maxWidth: '280px',
+              margin: '1rem auto 0'
+            }}>
+              Ask me anything about Istanbul - restaurants, attractions, transportation, and more!
+            </div>
+          )}
           
         </div>
 

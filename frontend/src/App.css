@@ -12,6 +12,7 @@
 /* Mobile background adjustment for footer visibility */
 @media (max-width: 768px) {
   .main-page-background {
+    padding-top: 0.5rem !important; /* Minimal top padding for mobile */
     padding-top: 60px; /* Smaller mobile navbar */
     min-height: calc(100vh - 60px); /* Account for mobile navbar space */
   }
@@ -839,13 +840,13 @@ body.chatbot-page {
 
   /* Mobile input area - positioned at bottom of chat area */
   .chatbot-page .chatbot-input-area {
-    position: absolute !important;
+    position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    padding: 12px !important;
     background: #111827 !important;
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-    padding: 12px !important;
     z-index: 1000 !important;
   }
 
@@ -955,459 +956,124 @@ body.chatbot-page {
   }
 }
 
-/* Additional mobile enhancements */
+/* Final mobile optimizations for ChatGPT-like experience */
 @media (max-width: 768px) {
-  /* Ensure mobile search bar visibility */
-  .chatbot-page .chatbot-input-area,
-  .chatbot-page .chatbot-input-area * {
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-
-  /* Hardware acceleration for smooth performance */
-  .chatbot-page .chatbot-input-area {
-    transform: translateZ(0) !important;
-  }
-}
-
-/* Mobile touch enhancements */
-.chatbot-page .kam-send-button:active {
-    transform: scale(0.95) !important;
-    transition: transform 0.1s ease !important;
-  }
-  
-  .chatbot-page .kam-action-button:active {
-    transform: scale(0.95) !important;
-    transition: transform 0.1s ease !important;
-  }
-  
-  /* Improve scrolling performance on mobile */
-  .chatbot-page .chatbot-messages {
-    will-change: scroll-position !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-  
-  /* Better mobile message spacing */
-  .chatbot-page .message-row {
-    margin-bottom: 8px !important;
-  }
-  
-  /* Mobile loading states */
-  .chatbot-page .loading-skeleton {
-    background: #444654 !important;
-    padding: 16px !important;
-    border-radius: 0 !important;
-  }
-
-/* Mobile keyboard state handling */
-  .chatbot-page.keyboard-visible .chatbot-main-container {
-    height: calc(100vh - 82px - 200px) !important; /* Reduced height when keyboard is visible */
-  }
-  
-  .chatbot-page.keyboard-visible .chatbot-messages {
-    padding-bottom: 120px !important; /* More space when keyboard is visible */
-  }
-  
-  .chatbot-page.keyboard-visible .chatbot-input-area {
-    position: fixed !important;
-    bottom: 0 !important; /* Stick to bottom when keyboard is visible */
-    background: #111827 !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-    backdrop-filter: none !important; /* Remove blur for performance */
-  }
-  
-  /* Enhanced mobile message styling for better readability */
-  .chatbot-page .message-bubble.user {
-    border-left: 3px solid #6366f1 !important; /* Visual indicator for user messages */
-  }
-  
-  .chatbot-page .message-bubble.bot {
-    border-left: 3px solid #10a37f !important; /* Visual indicator for bot messages */
-  }
-  
-  /* Mobile typing indicator styling */
-  .chatbot-page .typing-indicator {
-    background: #444654 !important;
-    padding: 16px !important;
-    border-radius: 0 !important;
-    border-left: 3px solid #10a37f !important;
-  }
-  
-  /* Better mobile link styling */
-  .chatbot-page .message-bubble a {
-    color: #60a5fa !important;
-    text-decoration: underline !important;
-    word-break: break-word !important;
-    touch-action: manipulation !important;
-  }
-
-/* Mobile performance optimizations */
-  .chatbot-page * {
-    -webkit-transform: translateZ(0) !important;
-    transform: translateZ(0) !important;
-    -webkit-backface-visibility: hidden !important;
-    backface-visibility: hidden !important;
-  }
-  
-  /* Optimize animations for mobile */
-  .chatbot-page .message-bubble,
-  .chatbot-page .kam-action-button,
-  .chatbot-page .kam-send-button {
-    will-change: transform !important;
-  }
-  
-  /* Reduce animation duration on slower devices */
-  @media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
-    .chatbot-page * {
-      transition-duration: 0.15s !important;
-      animation-duration: 0.15s !important;
-    }
-  }
-
-/* Desktop chatbot page optimizations */
-@media (min-width: 769px) {
-  body.chatbot-page {
-    overflow: hidden !important;
-    height: 100vh !important;
-    position: static !important;
-  }
-  
-  .chatbot-page {
-    background: #111827 !important;
-    position: static !important;
-    height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .chatbot-page .chatbot-main-container {
-    background: transparent !important;
-    position: relative !important;
-  }
-  
-  /* Override mobile-specific fixed positioning on desktop */
-  .chatbot-page #root {
-    height: 100vh !important;
-    overflow: visible !important;
-    position: static !important;
-  }
-}  /* Desktop search bar final styling */
-  .chatbot-input-area {
-    background: rgba(17, 24, 39, 0.95) !important;
-    border-top: 1px solid rgba(99, 102, 241, 0.2) !important;
-  }
-  
-  .kam-input-container {
-    background: rgba(31, 41, 55, 0.8) !important;
-    border: 1px solid rgba(99, 102, 241, 0.3) !important;
-    min-height: 3rem !important;
-  }
-
-/* ====== MOBILE FOOTER VISIBILITY FIX ====== */
-/* Ensure footer is visible above mobile navbar on all non-chat pages */
-@media (max-width: 768px) {
-  body:not(.chatbot-page) {
-    padding-bottom: 80px !important; /* Space for mobile navbar (60px + extra padding) */
-  }
-  
-  .main-content-area {
-    margin-bottom: 20px !important; /* Extra spacing for better footer visibility */
-  }
-  
-  /* Footer mobile optimization */
-  footer {
-    margin-bottom: 10px !important; /* Ensure footer has space above mobile navbar */
-    position: relative !important;
-    z-index: 10 !important; /* Below mobile navbar but above content */
-  }
-}
-
-/* ====== COMPREHENSIVE MOBILE PAGE OPTIMIZATIONS ====== */
-@media (max-width: 768px) {
-  /* Global mobile container improvements */
-  .max-w-4xl,
-  .max-w-6xl,
-  .max-w-7xl {
-    max-width: 100% !important;
-    margin-left: 1rem !important;
-    margin-right: 1rem !important;
-  }
-  
-  /* Mobile padding adjustments for all pages */
-  .min-h-screen {
-    padding-top: 60px !important; /* Account for smaller mobile navbar */
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-  }
-  
-  /* Card and container mobile optimization */
-  .bg-gray-800,
-  .bg-gray-900,
-  .bg-blue-900,
-  .bg-red-900,
-  .bg-yellow-900,
-  .bg-green-900 {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    border-radius: 0.75rem !important;
-    padding: 1rem !important;
-  }
-  
-  /* Typography mobile scaling */
-  .text-3xl { font-size: 1.75rem !important; }
-  .text-2xl { font-size: 1.5rem !important; }
-  .text-xl { font-size: 1.25rem !important; }
-  
-  /* Grid mobile responsiveness */
-  .grid.md\\:grid-cols-2 {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-  }
-  
-  .grid.md\\:grid-cols-3 {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
-  }
-  
-  /* List and content spacing */
-  .space-y-8 > * + * { margin-top: 2rem !important; }
-  .space-y-6 > * + * { margin-top: 1.5rem !important; }
-  .space-y-4 > * + * { margin-top: 1rem !important; }
-  
-  /* Mobile button optimization */
-  button,
-  .btn,
-  a[href] {
-    min-height: 44px !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 1rem !important;
-    touch-action: manipulation !important;
-  }
-  
-  /* Form elements mobile optimization */
-  input,
-  textarea,
-  select {
-    font-size: 16px !important; /* Prevent zoom on iOS */
-    padding: 0.75rem !important;
-    width: 100% !important;
-  }
-  
-  /* Mobile image responsiveness */
-  img {
-    max-width: 100% !important;
-    height: auto !important;
-  }
-  
-  /* Table mobile scrolling */
-  table {
-    display: block !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-  }
-  
-  /* Mobile-specific spacing adjustments */
-  .p-6 { padding: 1rem !important; }
-  .p-8 { padding: 1.5rem !important; }
-  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
-  .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-  
-  /* Mobile border and shadow adjustments */
-  .shadow-lg,
-  .shadow-xl {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  }
-  
-  /* Mobile text alignment */
-  .text-left { text-align: left !important; }
-  .text-center { text-align: center !important; }
-}
-
-/* ====== MOBILE-SPECIFIC PAGE LAYOUTS ====== */
-@media (max-width: 640px) {
-  /* Extra small mobile devices */
-  .text-3xl { font-size: 1.5rem !important; }
-  .text-2xl { font-size: 1.25rem !important; }
-  .text-xl { font-size: 1.125rem !important; }
-  
-  /* Tighter spacing for small screens */
-  .max-w-4xl {
-    margin-left: 0.5rem !important;
-    margin-right: 0.5rem !important;
-  }
-  
-  .p-6 { padding: 0.75rem !important; }
-  .space-y-8 > * + * { margin-top: 1.5rem !important; }
-}
-
-/* ====== MOBILE TOUCH OPTIMIZATIONS ====== */
-@media (max-width: 768px) {
-  /* Enhanced touch targets */
-  .mobile-touch-optimized {
-    min-height: 48px !important;
-    min-width: 48px !important;
-    padding: 12px !important;
-    margin: 4px !important;
-  }
-  
-  /* Mobile scrolling improvements */
-  .mobile-scroll-optimized {
-    -webkit-overflow-scrolling: touch !important;
-    scroll-behavior: smooth !important;
-  }
-  
-  /* Mobile focus states */
-  *:focus {
-    outline: 2px solid #8b5cf6 !important;
-    outline-offset: 2px !important;
-  }
-}
-
-/* ====== MOBILE FORM AND INPUT OPTIMIZATIONS ====== */
-@media (max-width: 768px) {
-  /* Form container improvements */
-  form {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 1rem !important;
-  }
-  
-  /* Input field mobile optimization */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="tel"],
-  input[type="url"],
-  textarea,
-  select {
-    width: 100% !important;
-    font-size: 16px !important; /* Prevent iOS zoom */
-    padding: 12px 16px !important;
-    border-radius: 8px !important;
-    border: 2px solid rgba(255, 255, 255, 0.1) !important;
-    background: rgba(0, 0, 0, 0.2) !important;
-    color: #ffffff !important;
-    line-height: 1.5 !important;
-    min-height: 48px !important;
-    box-sizing: border-box !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-  }
-  
-  /* Input focus states for mobile */
-  input:focus,
-  textarea:focus,
-  select:focus {
-    outline: none !important;
-    border-color: #8b5cf6 !important;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
-    background: rgba(139, 92, 246, 0.05) !important;
-  }
-  
-  /* Button mobile optimization */
-  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab),
-  input[type="submit"],
-  input[type="button"] {
-    width: 100% !important;
-    min-height: 48px !important;
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    padding: 12px 24px !important;
-    border-radius: 12px !important;
+  /* Ensure no complex backgrounds or effects on mobile */
+  .main-page-background,
+  .chatbot-page,
+  .chatbot-purple-box,
+  .chatbot-messages {
+    background: #1a1a1a !important;
+    backdrop-filter: none !important;
     border: none !important;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%) !important;
-    color: white !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    touch-action: manipulation !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
   }
-  
-  /* Button hover and active states */
-  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab):hover,
-  input[type="submit"]:hover,
-  input[type="button"]:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
-    transform: translateY(-1px) !important;
+
+  /* Simple mobile navigation */
+  .navbar {
+    display: none !important;
   }
-  
-  button:not(.mobile-search-send):not(.language-button):not(.mobile-nav-tab):active,
-  input[type="submit"]:active,
-  input[type="button"]:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+
+  /* Simple input focus */
+  .searchbar:focus-within {
+    border-color: #4a4a4a !important;
+    box-shadow: 0 0 0 1px #4a4a4a !important;
   }
-  
-  /* Select dropdown mobile optimization */
-  select {
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff'%3E%3Cpath d='M8 12L3 7h10z'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 12px center !important;
-    background-size: 16px !important;
-    padding-right: 40px !important;
+
+  /* Optimize message styling for mobile */
+  .chatbot-messages .mb-4 {
+    margin-bottom: 1rem !important;
+    padding: 0 0.5rem !important;
   }
-  
-  /* Textarea mobile optimization */
-  textarea {
-    min-height: 120px !important;
-    resize: vertical !important;
-    font-family: inherit !important;
-  }
-  
-  /* Label mobile optimization */
-  label {
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    color: #e5e7eb !important;
-    margin-bottom: 8px !important;
-    display: block !important;
-  }
-  
-  /* Error message styling */
-  .error-message,
-  .field-error {
-    color: #f87171 !important;
-    font-size: 14px !important;
-    margin-top: 4px !important;
-    font-weight: 500 !important;
-  }
-  
-  /* Success message styling */
-  .success-message {
-    color: #34d399 !important;
-    font-size: 14px !important;
-    margin-top: 4px !important;
-    font-weight: 500 !important;
+
+  /* Simple message bubbles */
+  .user-message,
+  .assistant-message {
+    background: #2a2a2a !important;
+    border: 1px solid #404040 !important;
+    border-radius: 1rem !important;
+    box-shadow: none !important;
   }
 }
 
-/* Mobile blog like buttons optimization */
-  .blog-list .like-button,
-  .blog-post .like-button,
-  .blog-like-button,
-  .like-button-container {
-    min-height: 44px !important;
-    min-width: 44px !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: rgba(239, 68, 68, 0.2) !important;
+/* Simple mobile optimizations - ChatGPT style */
+@media (max-width: 768px) {
+  /* Simple body styling */
+  body {
+    background: #1a1a1a !important;
   }
 
-  /* Mobile blog post footer buttons */
-  .blog-post footer button,
-  .blog-post-footer button {
-    padding: 0.75rem 1rem !important;
-    font-size: 1rem !important;
-    min-height: 48px !important;
+  /* Clean main page */
+  .main-page-background {
+    background: #1a1a1a !important;
+    padding: 1rem !important;
   }
 
-  /* Mobile blog card interactions */
-  .blog-post-card:active,
-  .blog-list-card:active {
-    transform: scale(0.98) !important;
-    transition: transform 0.1s ease !important;
+  /* Simple mobile input area */
+  .chatbot-input-area {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 1rem !important;
+    background: #1a1a1a !important;
+    border-top: 1px solid #333 !important;
+    z-index: 1000 !important;
+  }
+
+  /* Chat messages spacing */
+  .chatbot-messages {
+    padding-bottom: 100px !important;
+    background: #1a1a1a !important;
+  }
+
+  /* Simple search bar */
+  .searchbar {
+    background: #2a2a2a !important;
+    border: 1px solid #404040 !important;
+    border-radius: 1.5rem !important;
+    box-shadow: none !important;
+  }
+
+  /* Chat input */
+  .chat-input {
+    color: #f0f0f0 !important;
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Simple chat page */
+  .chatbot-page {
+    background: #1a1a1a !important;
+  }
+
+  /* Hide complex elements on mobile */
+  .interactive-main-page {
+    display: none !important;
+  }
+}
+
+/* Spin animation for loading */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile search bar font optimization */
+.searchbar input.chat-input {
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+    font-weight: 400 !important;
+    -webkit-text-size-adjust: 100% !important;
+  }
+
+  /* Ensure proper input height for larger font */
+  .searchbar {
+    min-height: 3.2rem !important;
+  }
+
+  /* Mobile input area padding adjustment */
+  .chatbot-input-area {
+    padding: 1rem 1rem 1.5rem !important; /* Extra bottom padding for mobile keyboards */
   }
 
 
