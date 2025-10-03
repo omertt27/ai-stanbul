@@ -966,12 +966,29 @@ HOURS: Generally 06:00-24:00 daily
         """Enhanced category detection for better prompt selection - prioritize specific categories first"""
         query_lower = query.lower()
         
+        # PRIORITY 0: Diversified/Alternative queries (check FIRST before museum matching)
+        # These queries mention specific places but are asking for alternatives/hidden gems
+        alternative_indicators = [
+            'beyond', 'other than', 'different from', 'alternatives to', 'instead of', 'apart from',
+            'hidden gems', 'lesser known', 'off the beaten path', 'secret spots', 'locals recommend',
+            'not touristy', 'authentic', 'unique attractions', 'undiscovered', 'alternative',
+            'diversified', 'varied', 'diverse', 'different', 'lesser-known', 'off beaten path'
+        ]
+        
+        # Check if query is asking for alternatives even if it mentions specific places
+        is_alternative_query = any(indicator in query_lower for indicator in alternative_indicators)
+        
+        if is_alternative_query:
+            print(f"🎯 Detected alternative/diversified query: '{query[:50]}...'")
+            return PromptCategory.CULTURAL_SITES  # Use cultural sites for diversified content
+        
         # PRIORITY 1: Weather queries (specific check to avoid mis-categorization)
         weather_indicators = ['weather', 'rain', 'sunny', 'temperature', 'climate', 'season', 'hot', 'cold', 'forecast']
         if any(indicator in query_lower for indicator in weather_indicators):
             return PromptCategory.DAILY_TALK
         
         # PRIORITY 2: Museum/cultural patterns (check BEFORE transportation to avoid conflicts)
+        # BUT only if NOT asking for alternatives
         museum_indicators = [
             'museum', 'palace', 'mosque', 'church', 'hagia sophia', 'ayasofya', 'topkapi', 'topkapı',
             'blue mosque', 'sultanahmet mosque', 'basilica cistern', 'galata tower', 'archaeological',

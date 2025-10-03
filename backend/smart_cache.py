@@ -459,6 +459,20 @@ def _normalize_query_for_caching(query: str) -> str:
     """Normalize query for better cache hit rates"""
     import re
     
+    query_lower = query.lower().strip()
+    
+    # PRIORITY 1: Check for alternative/diversified queries - these should NOT be cached against specific monuments
+    alternative_indicators = [
+        'beyond', 'other than', 'different from', 'alternatives to', 'instead of', 'apart from',
+        'hidden gems', 'lesser known', 'off the beaten path', 'secret spots', 'locals recommend',
+        'not touristy', 'authentic', 'unique attractions', 'undiscovered', 'alternative',
+        'diversified', 'varied', 'diverse', 'different', 'lesser-known', 'off beaten path'
+    ]
+    
+    if any(indicator in query_lower for indicator in alternative_indicators):
+        # This is asking for alternatives - don't match to specific monument caches
+        return f"diversified:{query_lower[:50]}"
+    
     # Common restaurant query patterns
     restaurant_patterns = [
         (r'\b(best|good|top|recommended)\s+(restaurants?|places to eat|dining)\b', 'restaurant_recommendations'),
@@ -479,8 +493,6 @@ def _normalize_query_for_caching(query: str) -> str:
         (r'\b(metro|bus|tram|transport)\b', 'transportation_general'),
     ]
     
-    query_lower = query.lower().strip()
-    
     # Check patterns
     for patterns, category in [(restaurant_patterns, 'restaurant'), 
                                (museum_patterns, 'museum'), 
@@ -489,7 +501,7 @@ def _normalize_query_for_caching(query: str) -> str:
             if re.search(pattern, query_lower):
                 return f"{category}:{subcategory}"
     
-    # Fallback: use key words
+    # Fallback: use key words (but exclude monument names for diversified queries)
     key_words = re.findall(r'\b(restaurant|museum|hotel|transport|metro|bus|hagia|sophia|sultanahmet|galata|taksim)\b', query_lower)
     if key_words:
         return f"general:{':'.join(sorted(set(key_words[:3])))}"
