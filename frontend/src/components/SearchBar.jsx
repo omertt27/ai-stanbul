@@ -1,165 +1,219 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LoadingSkeleton } from './LoadingSkeletons';
-import { useMobileUtils } from '../hooks/useMobileUtils';
-import '../styles/mobile-enhanced.css';
 
-const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, onFocus, onBlur }) => {
+const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, onFocus, onBlur, expanded = false }) => {
   const { t } = useTranslation();
   const inputRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
-  const { isMobile, hapticFeedback, preventZoom, restoreZoom } = useMobileUtils();
+  const [isMobile, setIsMobile] = useState(false);
 
-  const displayPlaceholder = placeholder || t('chat.searchPlaceholder');
-
+  // Mobile detection
   useEffect(() => {
-    if (inputRef.current && value === '') {
-      inputRef.current.placeholder = displayPlaceholder || '';
-    }
-  }, [displayPlaceholder, value]);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  // Mobile-specific input handling
+  const displayPlaceholder = placeholder || t('chat.searchPlaceholder', 'Ask me anything about Istanbul...');
+
   const handleFocus = (e) => {
     setIsFocused(true);
-    if (isMobile) {
-      // Prevent zoom on iOS when focusing input
-      preventZoom();
-    }
-    // Call external onFocus handler if provided
-    if (onFocus) {
-      onFocus(e);
-    }
+    if (onFocus) onFocus(e);
   };
 
   const handleBlur = (e) => {
     setIsFocused(false);
-    if (isMobile) {
-      // Restore zoom capability
-      restoreZoom();
-    }
-    // Call external onBlur handler if provided
-    if (onBlur) {
-      onBlur(e);
+    if (onBlur) onBlur(e);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!isLoading && value.trim()) {
+      onSubmit(e);
     }
   };
 
-  const handleSubmitWithHaptic = (e) => {
-    if (isMobile && value.trim()) {
-      hapticFeedback('light');
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
-    onSubmit(e);
   };
 
   return (
-    <form onSubmit={handleSubmitWithHaptic} className="searchbar" style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+    <div className="ai-chat-searchbar-container" style={{
       width: '100%',
-      background: 'rgba(28,30,42,0.98)',
-      borderRadius: '0.8rem',
-      boxShadow: isFocused ? '0 8px 32px rgba(99, 102, 241, 0.2)' : '0 4px 16px 0 #0001',
-      padding: '0.6rem 1.2rem',
-      border: 'none',
-      minHeight: '3.2rem',
-      maxWidth: 750,
-      margin: '0 auto',
-      transition: 'all 0.2s ease',
-      backdropFilter: 'blur(10px)',
-      position: 'relative',
-      overflow: 'visible',
+      maxWidth: 'none',
+      position: 'relative'
     }}>
-
-      
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={onChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        placeholder={displayPlaceholder || "What would you like to know about Istanbul?"}
-        disabled={isLoading}
-        className="chat-input"
-        style={{
+      <form onSubmit={handleSubmit} className="ai-chat-searchbar searchbar" style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: '100%',
+        background: expanded 
+          ? (isFocused ? '#ffffff' : '#f7f7f8')
+          : (isFocused ? 'rgba(40, 40, 40, 0.95)' : 'rgba(30, 30, 30, 0.8)'),
+        borderRadius: isMobile ? '18px' : '24px',
+        border: expanded
+          ? (isFocused ? '1px solid #e5e7eb' : '1px solid #f3f4f6')
+          : (isFocused ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)'),
+        boxShadow: isFocused 
+          ? (expanded ? '0 0 0 1px rgba(0, 0, 0, 0.02)' : '0 0 0 1px rgba(255, 255, 255, 0.1)')
+          : 'none',
+        transition: 'all 0.2s ease',
+        minHeight: isMobile ? '49px' : '62px',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        margin: 0
+      }}>
+        
+        {/* Input Container */}
+        <div style={{
           flex: 1,
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
-          color: '#fff',
-          fontSize: '1.2rem',
-          padding: '0.4rem 0.5rem 0.4rem 1.5rem',
-          fontWeight: 500,
-          letterSpacing: '0.01em',
-          minWidth: '200px',
-          width: '100%',
-          opacity: isLoading ? 0.7 : 1,
-          lineHeight: 'normal',
-          caretColor: '#fff',
-        }}
-      />
-      
-      {/* Submit button with loading state - ChatGPT style */}
-      <button
-        type="submit"
-        disabled={isLoading || !value.trim()}
-        style={{
-          background: isLoading || !value.trim() ? 'rgba(99, 102, 241, 0.5)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: 'none',
-          borderRadius: '0.5rem',
-          padding: '0.6rem 1.2rem',
-          color: 'white',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          cursor: isLoading || !value.trim() ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s ease',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
-          minWidth: '80px',
-          height: 'auto',
-          justifyContent: 'center',
-        }}
-      >
-        {isLoading ? (
-          <div style={{
-            width: isMobile ? '16px' : '14px',
-            height: isMobile ? '16px' : '14px',
-            border: `2px solid ${isMobile ? 'rgba(26,26,26,0.3)' : 'rgba(255,255,255,0.3)'}`,
-            borderTop: `2px solid ${isMobile ? '#1a1a1a' : 'white'}`,
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-        ) : (
-          <>
-            <svg 
-              width={isMobile ? "16" : "18"} 
-              height={isMobile ? "16" : "18"} 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              style={{
-                transition: 'all 0.2s ease',
-                transform: isMobile ? 'rotate(-45deg)' : 'none'
-              }}
-            >
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
-            </svg>
-            {!isMobile && (
-              <span style={{
-                fontWeight: 600,
-                letterSpacing: '0.025em',
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)'
-              }}>Send</span>
+          position: 'relative',
+          paddingLeft: isMobile ? '12px' : '16px'
+        }}>
+          {/* Text Input */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={onChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder={displayPlaceholder}
+            disabled={isLoading}
+            className="ai-chat-input"
+            style={{
+              flex: 1,
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: expanded ? '#374151' : '#ffffff',
+              fontSize: isMobile ? '16px' : '16px', // Prevent zoom on iOS
+              fontWeight: '400',
+              lineHeight: '1.5',
+              padding: `${isMobile ? '12px' : '14px'} 0`,
+              caretColor: expanded ? '#6366f1' : '#ffffff',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              boxSizing: 'border-box',
+              minWidth: 0 // Allows flex item to shrink
+            }}
+            autoComplete="off"
+            spellCheck="false"
+          />
+
+          {/* Placeholder Enhancement */}
+          <style>{`
+            .ai-chat-input::placeholder {
+              color: ${expanded ? 'rgba(107, 114, 128, 0.6)' : 'rgba(255, 255, 255, 0.6)'};
+              font-weight: 400;
+              transition: all 0.2s ease;
+            }
+            .ai-chat-input:focus::placeholder {
+              color: ${expanded ? 'rgba(107, 114, 128, 0.4)' : 'rgba(255, 255, 255, 0.4)'};
+            }
+          `}</style>
+        </div>
+
+        {/* Send Button */}
+        <div style={{
+          padding: isMobile ? '2px' : '3px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <button
+            type="submit"
+            disabled={isLoading || !value.trim()}
+            className="ai-chat-send-button"
+            style={{
+              background: (isLoading || !value.trim()) 
+                ? '#f3f4f6' 
+                : '#10a37f',
+              border: 'none',
+              borderRadius: '50%',
+              padding: 0,
+              minWidth: isMobile ? '44px' : '48px',
+              height: isMobile ? '44px' : '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: (isLoading || !value.trim()) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: 'none',
+              transform: 'scale(1)',
+              opacity: (isLoading || !value.trim()) ? 0.4 : 1
+            }}
+            onMouseDown={(e) => {
+              if (!isLoading && value.trim()) {
+                e.target.style.transform = 'scale(0.95)';
+              }
+            }}
+            onMouseUp={(e) => {
+              e.target.style.transform = 'scale(1)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            {isLoading ? (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid #e5e7eb',
+                borderTop: '2px solid #6b7280',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            ) : (
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                style={{
+                  color: (isLoading || !value.trim()) ? '#9ca3af' : '#ffffff',
+                  transform: 'rotate(45deg)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <line x1="7" y1="17" x2="17" y2="7"/>
+                <polyline points="7,7 17,7 17,17"/>
+              </svg>
             )}
-          </>
-        )}
-      </button>
-    </form>
+          </button>
+        </div>
+      </form>
+
+      {/* Spinner Animation */}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .ai-chat-send-button:hover:not(:disabled) {
+          background: #0d8a6b;
+          transform: scale(1.05);
+        }
+        
+        .ai-chat-send-button:hover:not(:disabled) svg {
+          transform: rotate(45deg) scale(1.1);
+        }
+      `}</style>
+    </div>
   );
 };
 

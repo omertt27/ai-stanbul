@@ -176,7 +176,7 @@
     },
     "privacy": {
       "title": "Datenschutz & Datenschutz",
-      "description": "Ihr Datenschutz ist unsere Priorität. AI Istanbul ist vollständig DSGVO-konform und respektiert Ihre Datenrechte.",
+      "description": "Ihr Datenschutz ist unsere Priorität. AISTANBUL ist vollständig DSGVO-konform und respektiert Ihre Datenrechte.",
       "gdpr": {
         "title": "DSGVO-konform",
         "transparent": "Transparente Datensammlung",
@@ -289,7 +289,7 @@
   },
   "faq": {
     "title": "Häufig gestellte Fragen",
-    "subtitle": "Alles, was Sie über AI Istanbul Guide wissen müssen",
+    "subtitle": "Alles, was Sie über AISTANBUL Guide wissen müssen",
     "stats": {
       "realTimeData": {
         "title": "Echtzeit-Daten",
@@ -334,12 +334,12 @@
         "answer": "Restaurant-Daten werden in Echtzeit über die Google Maps API aktualisiert. Unsere Museum- und Attraktionsinformationen werden manuell kuratiert und regelmäßig aktualisiert, um Genauigkeit zu gewährleisten. Wir überprüfen und aktualisieren unsere Datenbank monatlich."
       },
       "free": {
-        "question": "Ist AI Istanbul Guide wirklich kostenlos zu nutzen?",
-        "answer": "Ja, AI Istanbul Guide ist völlig kostenlos ohne versteckte Kosten, Abonnements oder Premium-Features. Wir glauben, dass jeder Zugang zu hochwertigen Reiseinformationen über Istanbul haben sollte. Der Service wird durch Spenden der Gemeinschaft und unser Engagement unterstützt, Reiseressourcen für alle zugänglich zu halten."
+        "question": "Ist AISTANBUL Guide wirklich kostenlos zu nutzen?",
+        "answer": "Ja, AISTANBUL Guide ist völlig kostenlos ohne versteckte Kosten, Abonnements oder Premium-Features. Wir glauben, dass jeder Zugang zu hochwertigen Reiseinformationen über Istanbul haben sollte. Der Service wird durch Spenden der Gemeinschaft und unser Engagement unterstützt, Reiseressourcen für alle zugänglich zu halten."
       },
       "whatIsAIstanbul": {
-        "question": "Was ist AI Istanbul Guide?",
-        "answer": "AI Istanbul Guide ist ein fortschrittlicher KI-gestützter Reiseassistent, der personalisierte Empfehlungen für Restaurants, Attraktionen, Transport und kulturelle Erlebnisse in ganz Istanbul bietet. Unsere Plattform kombiniert Echtzeit-Daten mit lokaler Expertise, um die genauesten und relevantesten Reisetipps zu liefern."
+        "question": "Was ist AISTANBUL Guide?",
+        "answer": "AISTANBUL Guide ist ein fortschrittlicher KI-gestützter Reiseassistent, der personalisierte Empfehlungen für Restaurants, Attraktionen, Transport und kulturelle Erlebnisse in ganz Istanbul bietet. Unsere Plattform kombiniert Echtzeit-Daten mit lokaler Expertise, um die genauesten und relevantesten Reisetipps zu liefern."
       }
     }
   },
@@ -354,7 +354,7 @@
     "community": "Gemeinschaft & Support",
     "followUs": "Folgen Sie uns für Updates und Istanbul-Tipps",
     "contributeProject": "Zum Projekt beitragen",
-    "helpImprove": "Helfen Sie uns, AI Istanbul Guide zu verbessern",
+    "helpImprove": "Helfen Sie uns, AISTANBUL Guide zu verbessern",
     "reportIssues": "Probleme melden oder Funktionen vorschlagen",
     "joinCommunity": "Treten Sie unserer Entwicklergemeinschaft bei",
     "responseTimes": "Antwortzeiten",
@@ -433,11 +433,11 @@
     "title": "Datenschutzerklärung",
     "lastUpdated": "Zuletzt aktualisiert",
     "gdprNoticeTitle": "🇪🇺 DSGVO-Konformitätshinweis",
-    "gdprNoticeText": "AI Istanbul ist vollständig konform mit der Datenschutz-Grundverordnung (DSGVO). Als Nutzer haben Sie spezifische Rechte bezüglich Ihrer persönlichen Daten.",
+    "gdprNoticeText": "AISTANBUL ist vollständig konform mit der Datenschutz-Grundverordnung (DSGVO). Als Nutzer haben Sie spezifische Rechte bezüglich Ihrer persönlichen Daten.",
     "gdprLinkText": "Verwalten Sie hier Ihre Daten- und Datenschutzeinstellungen →",
     "dataControllerTitle": "Datenverantwortlicher-Informationen",
     "dataController": "Datenverantwortlicher",
-    "dataControllerName": "AI Istanbul Guide",
+    "dataControllerName": "AISTANBUL Guide",
     "contactEmail": "Kontakt",
     "contactEmailValue": "privacy@aiistanbul.guide",
     "legalBasis": "Rechtsgrundlage",
@@ -526,7 +526,7 @@
     "euAuthority": "EU",
     "euAuthorityValue": "Ihre örtliche Datenschutzbehörde",
     "commitmentTitle": "🌍 Unser Engagement",
-    "commitmentText": "AI Istanbul ist dem Datenschutz durch Design und Transparenz verpflichtet. Wir sammeln nur das Nötige, um Ihnen die beste Istanbul-Reiseerfahrung zu bieten, während wir Ihr grundlegendes Recht auf Privatsphäre respektieren."
+    "commitmentText": "AISTANBUL ist dem Datenschutz durch Design und Transparenz verpflichtet. Wir sammeln nur das Nötige, um Ihnen die beste Istanbul-Reiseerfahrung zu bieten, während wir Ihr grundlegendes Recht auf Privatsphäre respektieren."
   },
   "blog": {
     "title": "Istanbul Geschichten",

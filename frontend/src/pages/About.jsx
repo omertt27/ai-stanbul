@@ -11,7 +11,7 @@ const About = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900 mobile-scroll-optimized" style={{ marginTop: '0px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
+    <div className="min-h-screen w-full transition-colors duration-300 bg-gray-900 mobile-scroll-optimized" style={{ marginTop: '0px', paddingTop: '20px', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingBottom: '1rem' }}>
       <MainPageMobileNavbar />
       <div className="max-w-6xl mx-auto">
 
@@ -21,7 +21,7 @@ const About = () => {
         <div className="pb-16">
         <div className="max-w-4xl mx-auto px-12 text-center mobile-touch-optimized">
           <div className="mb-8">
-            <h1 className="text-4xl md:text-4xl sm:text-3xl font-bold mb-6 transition-colors duration-300 text-white flex items-center justify-center gap-4 flex-wrap">
+            <h1 className="text-4xl md:text-4xl sm:text-3xl font-bold mb-6 transition-colors duration-300 text-white flex items-center justify-center gap-4 flex-wrap" style={{ paddingTop: '80px' }}>
               <span>{t('about.title')}</span>
               <Logo size="medium" />
             </h1>

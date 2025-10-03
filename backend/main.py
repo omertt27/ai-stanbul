@@ -42,7 +42,7 @@ load_dotenv()
 # Daily usage tracking
 daily_usage = defaultdict(int)  # IP -> count
 last_reset_date = date.today()
-DAILY_LIMIT = 20  # 20 requests per IP per day
+DAILY_LIMIT = 200  # 200 requests per IP per day (increased for testing)
 
 # Add the current directory to Python path for imports (must be before project imports)
 # Handle different deployment scenarios

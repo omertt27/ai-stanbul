@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Discovery AI Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+        }
+        .test-section h3 {
+            color: #8b5cf6;
+            border-bottom: 2px solid #8b5cf6;
+            padding-bottom: 5px;
+        }
+        .test-input {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .test-input:hover {
+            background: #e9ecef;
+            border-color: #8b5cf6;
+        }
+        .test-input.tested {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        .test-input.failed {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #7c3aed;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .copy-btn {
+            background: #28a745;
+            font-size: 12px;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Restaurant Discovery AI Tester</h1>
+        <p style="text-align: center; color: #666;">Click on any test input to copy it to clipboard, then paste it into your AI chat interface.</p>
+        
+        <div class="stats">
+            <strong>Progress: </strong>
+            <span id="tested-count">0</span> / 50 tested
+            (<span id="success-rate">0%</span> success rate)
+        </div>
+
+        <div class="controls">
+            <button onclick="markAllTested()">Mark All as Tested</button>
+            <button onclick="resetAll()">Reset All</button>
+            <button onclick="exportResults()">Export Results</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🗺️ Basic Location Searches (1-10)</h3>
+            <div class="test-input" onclick="copyAndMark(this, 'Best restaurants in Sultanahmet')">1. "Best restaurants in Sultanahmet" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Best restaurants in Sultanahmet')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Where to eat in Beyoğlu?')">2. "Where to eat in Beyoğlu?" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Where to eat in Beyoğlu?')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Good restaurants near Kadıköy')">3. "Good restaurants near Kadıköy" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Good restaurants near Kadıköy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Dining options in Beşiktaş')">4. "Dining options in Beşiktaş" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Dining options in Beşiktaş')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Restaurants in Üsküdar')">5. "Restaurants in Üsküdar" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Restaurants in Üsküdar')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Places to eat in Galata')">6. "Places to eat in Galata" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Places to eat in Galata')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Food in Taksim area')">7. "Food in Taksim area" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Food in Taksim area')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Restaurants around Eminönü')">8. "Restaurants around Eminönü" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Restaurants around Eminönü')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Where can I eat in Ortaköy?')">9. "Where can I eat in Ortaköy?" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Where can I eat in Ortaköy?')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Best dining in Karaköy')">10. "Best dining in Karaköy" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Best dining in Karaköy')">Copy</button></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🍛 Cuisine-Specific Searches (11-20)</h3>
+            <div class="test-input" onclick="copyAndMark(this, 'Turkish restaurants in Sultanahmet')">11. "Turkish restaurants in Sultanahmet" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Turkish restaurants in Sultanahmet')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Best seafood in Beyoğlu')">12. "Best seafood in Beyoğlu" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Best seafood in Beyoğlu')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Traditional Ottoman cuisine')">13. "Traditional Ottoman cuisine" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Traditional Ottoman cuisine')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Modern Turkish restaurants')">14. "Modern Turkish restaurants" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Modern Turkish restaurants')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Street food in Kadıköy')">15. "Street food in Kadıköy" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Street food in Kadıköy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Italian restaurants in Istanbul')">16. "Italian restaurants in Istanbul" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Italian restaurants in Istanbul')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Asian food in Taksim')">17. "Asian food in Taksim" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Asian food in Taksim')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Mediterranean cuisine near me')">18. "Mediterranean cuisine near me" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Mediterranean cuisine near me')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Turkish breakfast places')">19. "Turkish breakfast places" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Turkish breakfast places')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Meze restaurants in Galata')">20. "Meze restaurants in Galata" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Meze restaurants in Galata')">Copy</button></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🥗 Dietary Restrictions (21-30)</h3>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegetarian restaurants in Istanbul')">21. "Vegetarian restaurants in Istanbul" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegetarian restaurants in Istanbul')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegan food in Beyoğlu')">22. "Vegan food in Beyoğlu" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegan food in Beyoğlu')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Halal restaurants near Sultanahmet')">23. "Halal restaurants near Sultanahmet" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Halal restaurants near Sultanahmet')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Kosher dining options')">24. "Kosher dining options" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Kosher dining options')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Gluten-free restaurants')">25. "Gluten-free restaurants" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Gluten-free restaurants')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegetarian Turkish food')">26. "Vegetarian Turkish food" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegetarian Turkish food')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegan street food options')">27. "Vegan street food options" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegan street food options')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Halal certified restaurants in Kadıköy')">28. "Halal certified restaurants in Kadıköy" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Halal certified restaurants in Kadıköy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Restaurants with vegan options')">29. "Restaurants with vegan options" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Restaurants with vegan options')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Gluten-free Turkish cuisine')">30. "Gluten-free Turkish cuisine" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Gluten-free Turkish cuisine')">Copy</button></div>
+        </div>
+
+        <div class="test-section">
+            <h3>💰 Price & Time Specific (31-40)</h3>
+            <div class="test-input" onclick="copyAndMark(this, 'Cheap eats in Sultanahmet')">31. "Cheap eats in Sultanahmet" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Cheap eats in Sultanahmet')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Fine dining restaurants in Beyoğlu')">32. "Fine dining restaurants in Beyoğlu" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Fine dining restaurants in Beyoğlu')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Budget restaurants under 100 lira')">33. "Budget restaurants under 100 lira" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Budget restaurants under 100 lira')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Expensive restaurants with Bosphorus view')">34. "Expensive restaurants with Bosphorus view" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Expensive restaurants with Bosphorus view')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Restaurants open now')">35. "Restaurants open now" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Restaurants open now')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, '24 hour restaurants in Istanbul')">36. "24 hour restaurants in Istanbul" <button class="copy-btn" onclick="event.stopPropagation(); copyText('24 hour restaurants in Istanbul')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Late night food in Taksim')">37. "Late night food in Taksim" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Late night food in Taksim')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Breakfast places open early')">38. "Breakfast places open early" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Breakfast places open early')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Lunch deals in Kadıköy')">39. "Lunch deals in Kadıköy" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Lunch deals in Kadıköy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Dinner reservations tonight')">40. "Dinner reservations tonight" <button class="copy-btn" onclick="event.stopPropagation(); copyText('Dinner reservations tonight')">Copy</button></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔤 Typo Correction & Context Tests (41-50)</h3>
+            <div class="test-input" onclick="copyAndMark(this, 'Resturants in Sultanahemt')">41. "Resturants in Sultanahemt" <small>(typos: restaurants, Sultanahmet)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Resturants in Sultanahemt')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegiterian food in Beyolu')">42. "Vegiterian food in Beyolu" <small>(typos: vegetarian, Beyoğlu)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegiterian food in Beyolu')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Turksh food in Kadikoy')">43. "Turksh food in Kadikoy" <small>(typos: Turkish, Kadıköy)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Turksh food in Kadikoy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Sefood resturants')">44. "Sefood resturants" <small>(typos: seafood, restaurants)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Sefood resturants')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Halal restrants near Galata Bridge')">45. "Halal restrants near Galata Bridge" <small>(typo: restaurants)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Halal restrants near Galata Bridge')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Gluten fre options in Taksim')">46. "Gluten fre options in Taksim" <small>(typo: gluten-free)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Gluten fre options in Taksim')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Vegn restaurants in Karakoy')">47. "Vegn restaurants in Karakoy" <small>(typos: vegan, Karaköy)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Vegn restaurants in Karakoy')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Chesap eats in Uskudar')">48. "Chesap eats in Uskudar" <small>(typos: cheap, Üsküdar)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Chesap eats in Uskudar')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, 'Fine dinning with Bosphrous view')">49. "Fine dinning with Bosphrous view" <small>(typos: dining, Bosphorus)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('Fine dinning with Bosphrous view')">Copy</button></div>
+            <div class="test-input" onclick="copyAndMark(this, '24 hour restrants open toniht')">50. "24 hour restrants open toniht" <small>(typos: restaurants, tonight)</small> <button class="copy-btn" onclick="event.stopPropagation(); copyText('24 hour restrants open toniht')">Copy</button></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Testing Notes</h3>
+            <textarea id="testing-notes" style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;" placeholder="Add your testing notes here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        let testedCount = 0;
+        let successfulTests = 0;
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Visual feedback could be added here
+            });
+        }
+
+        function copyAndMark(element, text) {
+            copyText(text);
+            if (!element.classList.contains('tested')) {
+                element.classList.add('tested');
+                testedCount++;
+                successfulTests++; // Assume success unless marked otherwise
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('tested-count').textContent = testedCount;
+            const successRate = testedCount > 0 ? Math.round((successfulTests / testedCount) * 100) : 0;
+            document.getElementById('success-rate').textContent = successRate;
+        }
+
+        function markAllTested() {
+            const inputs = document.querySelectorAll('.test-input');
+            inputs.forEach(input => {
+                if (!input.classList.contains('tested')) {
+                    input.classList.add('tested');
+                    testedCount++;
+                    successfulTests++;
+                }
+            });
+            updateStats();
+        }
+
+        function resetAll() {
+            const inputs = document.querySelectorAll('.test-input');
+            inputs.forEach(input => {
+                input.classList.remove('tested', 'failed');
+            });
+            testedCount = 0;
+            successfulTests = 0;
+            updateStats();
+            document.getElementById('testing-notes').value = '';
+        }
+
+        function exportResults() {
+            const notes = document.getElementById('testing-notes').value;
+            const results = {
+                totalTests: 50,
+                testedCount: testedCount,
+                successfulTests: successfulTests,
+                successRate: testedCount > 0 ? Math.round((successfulTests / testedCount) * 100) : 0,
+                testDate: new Date().toISOString(),
+                notes: notes
+            };
+            
+            const dataStr = JSON.stringify(results, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'restaurant_ai_test_results.json';
+            link.click();
+        }
+
+        // Allow right-click to mark as failed
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.classList.contains('test-input') || e.target.parentElement.classList.contains('test-input')) {
+                e.preventDefault();
+                const element = e.target.classList.contains('test-input') ? e.target : e.target.parentElement;
+                
+                if (element.classList.contains('tested')) {
+                    element.classList.remove('tested');
+                    element.classList.add('failed');
+                    successfulTests--;
+                } else if (element.classList.contains('failed')) {
+                    element.classList.remove('failed');
+                    testedCount--;
+                } else {
+                    element.classList.add('failed');
+                    testedCount++;
+                }
+                updateStats();
+            }
+        });
+    </script>
+</body>
+</html>

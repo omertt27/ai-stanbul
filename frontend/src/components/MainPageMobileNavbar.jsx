@@ -39,14 +39,14 @@ const MainPageMobileNavbar = () => {
       right: 0,
       width: '100vw',
       height: '60px',
-      background: 'rgba(17, 24, 39, 0.95)',
+      background: '#111827',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start', // Changed from space-between to flex-start
       padding: '0 1rem',
       zIndex: 9999,
-      borderBottom: '2px solid rgba(139, 92, 246, 0.6)',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)'
+      borderBottom: 'none', // Remove the border that was causing the black line
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
     }}>
       {/* Logo on the left - Same style as main page */}
       <div onClick={handleLogoClick} style={{ 
@@ -74,10 +74,11 @@ const MainPageMobileNavbar = () => {
         </span>
       </div>
       
-      {/* Language options on the right - All 6 languages */}
+      {/* Language options positioned more to the left */}
       <div style={{
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginLeft: '2rem', // Position it with some space from the logo but not at the far right
       }}>
         <LanguageSwitcher />
       </div>

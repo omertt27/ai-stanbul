@@ -370,17 +370,19 @@ function Chatbot() {
         if (isAIResponding && !userScrolling) {
           // During AI response, always scroll to bottom regardless of position
           setTimeout(() => {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatContainer.scrollTo({
+              top: chatContainer.scrollHeight,
+              behavior: 'smooth'
+            });
           }, 50); // Faster scroll during AI responses
         } else if (!userScrolling && !inputFocused && !sendingMessage) {
-          // For regular messages, check if user is near the bottom
-          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-          
-          if (isNearBottom) {
-            setTimeout(() => {
-              chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 100);
-          }
+          // For regular messages, always scroll to bottom for new messages
+          setTimeout(() => {
+            chatContainer.scrollTo({
+              top: chatContainer.scrollHeight,
+              behavior: 'smooth'
+            });
+          }, 100);
         }
       }
     }
@@ -629,6 +631,19 @@ function Chatbot() {
             ...prev.slice(0, -1),
             { role: 'assistant', content: lastMessage.content }
           ];
+          
+          // Force scroll to bottom when message is finalized
+          setTimeout(() => {
+            if (messagesEndRef.current) {
+              const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
+              if (chatContainer) {
+                chatContainer.scrollTo({
+                  top: chatContainer.scrollHeight,
+                  behavior: 'smooth'
+                });
+              }
+            }
+          }, 150);
           
           // Save session with final messages
           if (currentSessionId && finalMessages.length > 0) {
@@ -1035,12 +1050,12 @@ function Chatbot() {
           right: 0,
           height: '3rem',
           background: '#1a1a1a',
-          borderBottom: '1px solid #333',
+          borderBottom: 'none', // Remove black border line
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 1rem',
-          zIndex: 1000
+          zIndex: 10002 // Higher than other navbars to ensure proper layering
         }}>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1064,12 +1079,13 @@ function Chatbot() {
       )}
       
       {/* Chat History Sidebar - Simplified for mobile */}
-      <div className={`fixed ${isMobile ? 'top-0' : 'top-12'} left-0 h-full transition-all duration-300 z-40 ${
+      <div className={`fixed top-0 left-0 transition-all duration-300 z-50 ${
         sidebarOpen ? (isMobile ? 'w-4/5' : 'w-80') : 'w-0'
       } overflow-hidden`} style={{
+        height: '100vh',
         background: isMobile ? '#1a1a1a' : 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(26, 27, 29, 0.98) 100%)',
         backdropFilter: isMobile ? 'none' : 'blur(20px)',
-        borderRight: isMobile ? '1px solid #333' : '1px solid rgba(139, 92, 246, 0.3)',
+        borderRight: isMobile ? 'none' : '1px solid rgba(139, 92, 246, 0.3)', // Remove black border on mobile
         boxShadow: isMobile ? 'none' : '4px 0 20px rgba(139, 92, 246, 0.15)'
       }}>
         <div className="flex flex-col h-full">
@@ -1078,31 +1094,13 @@ function Chatbot() {
             borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
             background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)'
           }}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-center">
               <h2 className="text-xl font-bold text-white" style={{
                 background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>Chat History</h2>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-xl transition-all duration-200"
-                style={{
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  color: '#e5e7eb'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'scale(1)';
-                }}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
             <button
               onClick={createNewChat}
@@ -1353,11 +1351,14 @@ function Chatbot() {
       <div className={`chatbot-main-container transition-all duration-300 ${
         sidebarOpen ? (isMobile ? 'ml-0' : 'md:ml-80') : 'ml-0'
       }`} style={{
-        background: isMobile ? '#1a1a1a' : undefined
+        background: isMobile ? '#1a1a1a' : undefined,
+        position: 'relative',
+        zIndex: 1
       }}>
         <div className="chatbot-purple-box" style={{
           background: isMobile ? '#1a1a1a' : undefined,
-          border: isMobile ? 'none' : undefined
+          border: isMobile ? 'none' : undefined,
+          paddingTop: isMobile ? '3rem' : '0'
         }}>
 
           {/* Chat Messages Area - Simple on mobile */}

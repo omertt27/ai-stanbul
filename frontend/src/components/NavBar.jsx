@@ -10,6 +10,7 @@ const NavBar = ({ hideLogo = false }) => {
   const location = useLocation();
   const { t } = useTranslation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isBurgerMenuOpen, setIsBurgerMenuOpen] = useState(false);
   
   // Update window width on resize
   useEffect(() => {
@@ -109,6 +110,56 @@ const NavBar = ({ hideLogo = false }) => {
     trackNavigation('chatbot');
   };
 
+  // Footer page handlers
+  const handleSourcesClick = (e) => {
+    trackNavigation('sources');
+    setIsBurgerMenuOpen(false);
+    if (location.pathname === '/sources') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  };
+
+  const handlePrivacyClick = (e) => {
+    trackNavigation('privacy');
+    setIsBurgerMenuOpen(false);
+    if (location.pathname === '/privacy') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  };
+
+  const handleGdprClick = (e) => {
+    trackNavigation('gdpr');
+    setIsBurgerMenuOpen(false);
+    if (location.pathname === '/gdpr') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  };
+
+  const handleTermsClick = (e) => {
+    trackNavigation('terms');
+    setIsBurgerMenuOpen(false);
+    if (location.pathname === '/terms') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  };
+
+  const handleContactClick = (e) => {
+    trackNavigation('contact');
+    setIsBurgerMenuOpen(false);
+    if (location.pathname === '/contact') {
+      e.preventDefault();
+      window.location.reload();
+    }
+  };
+
+  const toggleBurgerMenu = () => {
+    setIsBurgerMenuOpen(!isBurgerMenuOpen);
+  };
+
   // Track navigation for analytics
   useEffect(() => {
     const handleClick = (e) => {
@@ -122,6 +173,20 @@ const NavBar = ({ hideLogo = false }) => {
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   }, []);
+
+  // Close burger menu when clicking outside or on navigation
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (isBurgerMenuOpen && !e.target.closest('.mobile-navbar-glass') && !e.target.closest('[data-burger-menu]')) {
+        setIsBurgerMenuOpen(false);
+      }
+    };
+
+    if (isBurgerMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isBurgerMenuOpen]);
 
   return (
     <>
@@ -176,9 +241,9 @@ const NavBar = ({ hideLogo = false }) => {
               <Link to="/about" onClick={handleAboutClick} className="navbar-link" style={linkStyle(location.pathname === '/about')}>{t('navigation.about')}</Link>
               <Link to="/faq" onClick={handleFAQClick} className="navbar-link" style={linkStyle(location.pathname === '/faq')}>{t('navigation.faq')}</Link>
               <Link to="/donate" onClick={handleDonateClick} className="navbar-link" style={linkStyle(location.pathname === '/donate')}>{t('navigation.donate')}</Link>
-              {/* Language Switcher positioned at the far right */}
+              {/* Language Switcher positioned more to the left */}
               <div style={{ 
-                marginLeft: '1.5rem',
+                marginLeft: '0.5rem',
                 padding: '4px 8px',
                 borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(139, 92, 246, 0.03) 100%)',
@@ -206,50 +271,282 @@ const NavBar = ({ hideLogo = false }) => {
 
       {/* Mobile Top Navigation Bar - Enhanced Modern Aesthetic */}
       {isMobile && (
-        <div className="mobile-navbar-glass mobile-gpu-accelerated mobile-safe-top" style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          left: 0,
-          zIndex: 1005,
-          background: 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(24, 25, 31, 0.98) 50%, rgba(15, 16, 17, 0.95) 100%)',
-          backdropFilter: 'blur(24px) saturate(200%)',
-          padding: '16px 16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          height: isMobile ? '60px' : '70px',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(139, 92, 246, 0.1)',
-        }}>
-          {/* Enhanced Logo in mobile navbar */}
-          {!hideLogo ? (
-            <Logo 
-              size="small"
-              onClick={handleLogoClick}
-              isMobile={true}
-            />
-          ) : (
-            // Empty spacer when logo is hidden to push language switcher to the right
-            <div style={{ flex: 1 }} />
+        <>
+          <div className="mobile-navbar-glass mobile-gpu-accelerated mobile-safe-top" style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            left: 0,
+            zIndex: 10000, // Higher than MainPageMobileNavbar to ensure proper layering
+            background: '#111827 !important', // Match page background color exactly
+            backgroundColor: '#111827 !important', // Additional specificity
+            backdropFilter: 'none !important', // Remove blur to make logo more visible
+            WebkitBackdropFilter: 'none !important', // Webkit version
+            padding: '16px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            height: isMobile ? '60px' : '70px',
+            borderBottom: 'none', // Remove border that could appear as black line
+            border: 'none !important', // Remove all borders
+            boxShadow: 'none !important', // Remove shadow for cleaner look
+          }}>
+            {/* Left side - Hamburger Menu Button */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                onClick={toggleBurgerMenu}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease',
+                  minWidth: '52px',
+                  minHeight: '52px',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = 'transparent';
+                }}
+              >
+                <svg 
+                  width="28" 
+                  height="28" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Center - Logo */}
+            <div style={{ flex: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div 
+                onClick={handleLogoClick}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0',
+                  background: 'transparent',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                <span style={{
+                  fontSize: '2.5rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  background: 'linear-gradient(135deg, #f1f5f9 0%, #8b5cf6 40%, #6366f1 70%, #7c3aed 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: '0 2px 12px rgba(139, 92, 246, 0.4)',
+                  filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.3))',
+                  lineHeight: '1.2',
+                }}>
+                  A/<span style={{
+                    fontWeight: 500,
+                    fontSize: '2.2rem'
+                  }}>STANBUL</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Right side - Language Switcher */}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '6px 10px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.3s ease',
+              }}>
+                <LanguageSwitcher />
+              </div>
+            </div>
+          </div>
+
+          {/* Burger Menu Dropdown */}
+          {isBurgerMenuOpen && (
+            <div 
+              data-burger-menu="true"
+              style={{
+                position: 'fixed',
+                top: '60px',
+                left: 0,
+                right: 0,
+                background: '#111827',
+                zIndex: 9999,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                padding: '16px 0',
+                animation: 'slideDown 0.3s ease-out',
+              }}>
+              <div style={{ padding: '0 20px' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}>
+                  {/* Footer Pages Section */}
+                  <div style={{
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    paddingBottom: '12px',
+                    marginBottom: '8px'
+                  }}>
+                    <p style={{
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      margin: '0 0 12px 0'
+                    }}>
+                      More Pages
+                    </p>
+                    
+                    <Link 
+                      to="/sources" 
+                      onClick={handleSourcesClick}
+                      style={{
+                        display: 'block',
+                        color: location.pathname === '/sources' ? '#8b5cf6' : '#ffffff',
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: location.pathname === '/sources' 
+                          ? 'rgba(139, 92, 246, 0.1)' 
+                          : 'transparent',
+                        transition: 'all 0.3s ease',
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      {t('footer.sources', 'Sources')}
+                    </Link>
+                    
+                    <Link 
+                      to="/privacy" 
+                      onClick={handlePrivacyClick}
+                      style={{
+                        display: 'block',
+                        color: location.pathname === '/privacy' ? '#8b5cf6' : '#ffffff',
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: location.pathname === '/privacy' 
+                          ? 'rgba(139, 92, 246, 0.1)' 
+                          : 'transparent',
+                        transition: 'all 0.3s ease',
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      {t('footer.privacy', 'Privacy')}
+                    </Link>
+                    
+                    <Link 
+                      to="/gdpr" 
+                      onClick={handleGdprClick}
+                      style={{
+                        display: 'block',
+                        color: location.pathname === '/gdpr' ? '#8b5cf6' : '#ffffff',
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: location.pathname === '/gdpr' 
+                          ? 'rgba(139, 92, 246, 0.1)' 
+                          : 'transparent',
+                        transition: 'all 0.3s ease',
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      {t('footer.gdpr', 'GDPR')}
+                    </Link>
+                    
+                    <Link 
+                      to="/terms" 
+                      onClick={handleTermsClick}
+                      style={{
+                        display: 'block',
+                        color: location.pathname === '/terms' ? '#8b5cf6' : '#ffffff',
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: location.pathname === '/terms' 
+                          ? 'rgba(139, 92, 246, 0.1)' 
+                          : 'transparent',
+                        transition: 'all 0.3s ease',
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        marginBottom: '4px'
+                      }}
+                    >
+                      Terms
+                    </Link>
+                    
+                    <Link 
+                      to="/contact" 
+                      onClick={handleContactClick}
+                      style={{
+                        display: 'block',
+                        color: location.pathname === '/contact' ? '#8b5cf6' : '#ffffff',
+                        textDecoration: 'none',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        background: location.pathname === '/contact' 
+                          ? 'rgba(139, 92, 246, 0.1)' 
+                          : 'transparent',
+                        transition: 'all 0.3s ease',
+                        fontSize: '16px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {t('footer.contact', 'Contact')}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Enhanced Language Switcher for Mobile - Right aligned */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '6px 10px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.3s ease',
-            marginLeft: 'auto', // Ensures it stays on the right
-          }}>
-            <LanguageSwitcher />
-          </div>
-        </div>
+          {/* Burger Menu Animation Styles */}
+          <style>{`
+            @keyframes slideDown {
+              0% {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
+        </>
       )}
 
       {/* Enhanced Mobile Bottom Tab Bar Navigation */}
@@ -259,16 +556,16 @@ const NavBar = ({ hideLogo = false }) => {
           bottom: '0px',
           left: '0px',
           right: '0px',
-          zIndex: 1006,
-          background: 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(24, 25, 31, 0.98) 50%, rgba(15, 16, 17, 0.96) 100%)',
-          backdropFilter: 'blur(24px) saturate(200%)',
-          borderTop: '1px solid rgba(139, 92, 246, 0.25)',
+          zIndex: 10001, // Higher than MainPageMobileNavbar to ensure proper layering
+          background: '#111827', // Match page background color exactly
+          backdropFilter: 'none', // Remove blur for consistency
+          borderTop: 'none', // Remove border that could appear as black line
           borderRadius: '24px 24px 0 0',
           padding: '16px 0px 24px',
           display: 'flex',
           justifyContent: 'stretch',
           alignItems: 'center',
-          boxShadow: '0 -12px 40px rgba(0, 0, 0, 0.4), 0 -4px 16px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          boxShadow: '0 -4px 16px rgba(139, 92, 246, 0.15)', // Simplified shadow
           height: isMobile ? '60px' : '76px',
           marginBottom: '0px',
         }}>

@@ -41,17 +41,22 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    backdrop-filter: blur(24px) saturate(200%) brightness(1.1) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(1.1) !important;
-    background: linear-gradient(135deg, 
-      rgba(15, 16, 17, 0.98) 0%, 
-      rgba(24, 25, 31, 0.98) 50%, 
-      rgba(15, 16, 17, 0.95) 100%) !important;
-    border: 1px solid rgba(139, 92, 246, 0.25) !important;
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.2),
-      0 2px 8px rgba(139, 92, 246, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #111827 !important; /* Match page background color exactly */
+    background-color: #111827 !important; /* Additional specificity */
+    border: none !important; /* Remove border for cleaner look */
+    box-shadow: none !important; /* Remove shadow for cleaner look */
+  }
+  
+  /* More specific selector for top navbar */
+  .mobile-navbar-glass.mobile-safe-top {
+    background: #111827 !important;
+    background-color: #111827 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   
   /* Mobile bottom navbar specific adjustments - Clean line-separated design */
@@ -495,11 +500,8 @@
 /* ====== MOBILE DARK MODE ENHANCEMENTS ====== */
 @media (max-width: 768px) and (prefers-color-scheme: dark) {
   .mobile-navbar-glass {
-    background: linear-gradient(135deg, 
-      rgba(10, 11, 12, 0.98) 0%, 
-      rgba(18, 19, 24, 0.98) 50%, 
-      rgba(10, 11, 12, 0.95) 100%) !important;
-    border-color: rgba(139, 92, 246, 0.3) !important;
+    background: #111827 !important; /* Match page background color exactly */
+    border: none !important; /* Remove border for cleaner look */
   }
   
   .mobile-searchbar-glass {

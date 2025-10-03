@@ -146,7 +146,7 @@
     },
     "privacy": {
       "title": "Gizlilik ve Veri Koruması",
-      "description": "Gizliliğiniz önceliğimizdir. AI İstanbul tamamen GDPR uyumludur ve veri haklarınıza saygı duyar.",
+      "description": "Gizliliğiniz önceliğimizdir. AISTANBUL tamamen GDPR uyumludur ve veri haklarınıza saygı duyar.",
       "gdpr": {
         "title": "GDPR Uyumlu",
         "transparent": "Şeffaf veri toplama",
@@ -259,7 +259,7 @@
   },
   "faq": {
     "title": "Sık Sorulan Sorular",
-    "subtitle": "AI İstanbul Rehberi hakkında bilmeniz gerekenler",
+    "subtitle": "AISTANBUL Rehberi hakkında bilmeniz gerekenler",
     "questions": {
       "whatIsKam": {
         "question": "KAM ne anlama geliyor?",
@@ -278,12 +278,12 @@
         "answer": "Restoran verileri Google Maps API üzerinden gerçek zamanlı olarak güncellenir. Müze ve cazibe merkezi bilgilerimiz elle seçilir ve doğruluğu sağlamak için düzenli olarak güncellenir. Veritabanımızı aylık olarak gözden geçirip güncelliyoruz."
       },
       "free": {
-        "question": "AI İstanbul Rehberi gerçekten ücretsiz mi?",
-        "answer": "Evet, AI İstanbul Rehberi gizli maliyet, abonelik veya premium özellik olmaksızın tamamen ücretsiz kullanılabilir. İstanbul hakkında kaliteli seyahat bilgisine herkesin erişimi olması gerektiğine inanıyoruz. Hizmet, topluluk bağışları ve seyahat kaynaklarını herkese erişilebilir tutma taahhüdümüzle desteklenmektedir."
+        "question": "AISTANBUL Rehberi gerçekten ücretsiz mi?",
+        "answer": "Evet, AISTANBUL Rehberi gizli maliyet, abonelik veya premium özellik olmaksızın tamamen ücretsiz kullanılabilir. İstanbul hakkında kaliteli seyahat bilgisine herkesin erişimi olması gerektiğine inanıyoruz. Hizmet, topluluk bağışları ve seyahat kaynaklarını herkese erişilebilir tutma taahhüdümüzle desteklenmektedir."
       },
       "whatIsAIstanbul": {
-        "question": "AI İstanbul Rehberi nedir?",
-        "answer": "AI İstanbul Rehberi, İstanbul genelindeki restoranlar, cazibe merkezleri, ulaşım ve kültürel deneyimler için kişiselleştirilmiş öneriler sunan gelişmiş AI destekli bir seyahat asistanıdır. Platformumuz gerçek zamanlı verileri yerel uzmanlıkla birleştirerek en doğru ve alakalı seyahat tavsiyeleri sunar."
+        "question": "AISTANBUL Rehberi nedir?",
+        "answer": "AISTANBUL Rehberi, İstanbul genelindeki restoranlar, cazibe merkezleri, ulaşım ve kültürel deneyimler için kişiselleştirilmiş öneriler sunan gelişmiş AI destekli bir seyahat asistanıdır. Platformumuz gerçek zamanlı verileri yerel uzmanlıkla birleştirerek en doğru ve alakalı seyahat tavsiyeleri sunar."
       }
     },
     "stats": {
@@ -324,7 +324,7 @@
     "community": "Topluluk ve Destek",
     "followUs": "Güncellemeler ve İstanbul ipuçları için bizi takip edin",
     "contributeProject": "Projeye Katkıda Bulun",
-    "helpImprove": "AI İstanbul Rehberini geliştirmemize yardımcı olun",
+    "helpImprove": "AISTANBUL Rehberini geliştirmemize yardımcı olun",
     "reportIssues": "Sorun Bildirin veya Özellik Önerin",
     "joinCommunity": "Geliştirici topluluğumuza katılın",
     "responseTimes": "Yanıt Süreleri",
@@ -391,11 +391,11 @@
     "title": "Gizlilik Politikası",
     "lastUpdated": "Son güncelleme",
     "gdprNoticeTitle": "🇪🇺 GDPR Uyumluluk Bildirimi",
-    "gdprNoticeText": "AI İstanbul, Genel Veri Koruma Yönetmeliği (GDPR) ile tamamen uyumludur. Kullanıcı olarak kişisel verilerinizle ilgili belirli haklarınız vardır.",
+    "gdprNoticeText": "AISTANBUL, Genel Veri Koruma Yönetmeliği (GDPR) ile tamamen uyumludur. Kullanıcı olarak kişisel verilerinizle ilgili belirli haklarınız vardır.",
     "gdprLinkText": "Veri ve gizlilik ayarlarınızı buradan yönetin →",
     "dataControllerTitle": "Veri Sorumlusu Bilgileri",
     "dataController": "Veri Sorumlusu",
-    "dataControllerName": "AI İstanbul Rehberi",
+    "dataControllerName": "AISTANBUL Rehberi",
     "contactEmail": "İletişim",
     "contactEmailValue": "privacy@aiistanbul.guide",
     "legalBasis": "Hukuki Dayanak",
@@ -484,7 +484,7 @@
     "euAuthority": "AB",
     "euAuthorityValue": "Yerel Veri Koruma Otoriteniz",
     "commitmentTitle": "🌍 Taahhüdümüz",
-    "commitmentText": "AI İstanbul, tasarım gereği gizlilik ve şeffaflığa kararlıdır. Temel gizlilik hakkınıza saygı gösterirken size en iyi İstanbul seyahat deneyimini sağlamak için yalnızca gerekli olanı topluyoruz."
+    "commitmentText": "AISTANBUL, tasarım gereği gizlilik ve şeffaflığa kararlıdır. Temel gizlilik hakkınıza saygı gösterirken size en iyi İstanbul seyahat deneyimini sağlamak için yalnızca gerekli olanı topluyoruz."
   },
   "blog": {
     "title": "İstanbul Hikayeleri",

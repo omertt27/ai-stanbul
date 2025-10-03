@@ -169,7 +169,7 @@ const App = () => {
         {/* <DebugInfo /> */}
 
         {/* Mobile Top Navbar for main page only */}
-        <MainPageMobileNavbar />
+        {location.pathname === '/' && <MainPageMobileNavbar />}
 
         <div className="main-page-background main-to-chat-transition" style={{
           flex: 1, 
