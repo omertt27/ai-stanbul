@@ -54,6 +54,11 @@ class IstanbulKnowledgeDatabase:
         self.turkish_phrases = self._load_turkish_phrases()
         self.cultural_context = self._load_cultural_context()
         self.practical_info = self._load_practical_info()
+        # NEW: Critical additions for identified gaps
+        self.free_attractions = self._load_free_attractions()
+        self.alternative_culture_venues = self._load_alternative_culture_venues()
+        self.enhanced_transportation = self._load_enhanced_transportation()
+        self.detailed_practical_info = self._load_detailed_practical_info()
     
     def _load_attractions(self) -> Dict[str, AttractionInfo]:
         """Load comprehensive attraction database"""
@@ -644,6 +649,410 @@ class IstanbulKnowledgeDatabase:
                 'budget': "Street food, public transport, local markets",
                 'moderate': "Mid-range restaurants, attractions, taxis",
                 'upscale': "Fine dining, luxury hotels, private tours"
+            }
+        }
+    
+    def _load_free_attractions(self) -> Dict[str, Dict[str, Any]]:
+        """Comprehensive free attractions database - addresses 21.1/100 score issue"""
+        return {
+            'completely_free': {
+                'description': 'Attractions with absolutely no cost',
+                'attractions': [
+                    {
+                        'name': 'Blue Mosque (Sultan Ahmed Mosque)',
+                        'turkish_name': 'Sultan Ahmet Camii',
+                        'location': 'Sultanahmet',
+                        'hours': 'Daily except during prayer times (5 times daily)',
+                        'description': 'Stunning 17th-century mosque with blue Iznik tiles',
+                        'transportation': ['Sultanahmet Tram T1', 'Eminönü Ferry + 8min walk'],
+                        'tips': ['Dress modestly', 'Free shoe bags provided', 'Tourist entrance separate']
+                    },
+                    {
+                        'name': 'Galata Bridge Walk',
+                        'turkish_name': 'Galata Köprüsü Yürüyüşü',
+                        'location': 'Eminönü-Karaköy',
+                        'hours': '24/7 open access',
+                        'description': 'Historic bridge with Golden Horn views and fishermen',
+                        'transportation': ['Eminönü Tram T1', 'Karaköy Metro M2'],
+                        'tips': ['Best at sunset', 'Watch fishermen', 'Fish restaurants below bridge']
+                    },
+                    {
+                        'name': 'İstiklal Avenue Stroll',
+                        'turkish_name': 'İstiklal Caddesi Gezisi',
+                        'location': 'Beyoğlu',
+                        'hours': '24/7 pedestrian access',
+                        'description': '1.4km pedestrian street with historic architecture',
+                        'transportation': ['Taksim Metro M2', 'Tünel Historic Funicular'],
+                        'tips': ['Historic red tram still runs', 'Street performers', 'Free window shopping']
+                    },
+                    {
+                        'name': 'Gülhane Park',
+                        'turkish_name': 'Gülhane Parkı',
+                        'location': 'Sultanahmet',
+                        'hours': '24/7 open',
+                        'description': 'Historic Ottoman palace gardens with tulips',
+                        'transportation': ['Gülhane Metro M2 direct', 'Sultanahmet Tram T1'],
+                        'tips': ['Spring tulip festival', 'Great for picnics', 'Bosphorus views']
+                    },
+                    {
+                        'name': 'Süleymaniye Mosque',
+                        'turkish_name': 'Süleymaniye Camii',
+                        'location': 'Eminönü',
+                        'hours': 'Outside prayer times',
+                        'description': 'Sinan\'s masterpiece with panoramic city views',
+                        'transportation': ['Eminönü Ferry + 10min walk', 'Beyazıt Tram T1'],
+                        'tips': ['Less crowded than Blue Mosque', 'Cemetery has Bosphorus views', 'Architectural masterpiece']
+                    },
+                    {
+                        'name': 'Golden Horn Waterfront Walk',
+                        'turkish_name': 'Haliç Sahil Yürüyüşü',
+                        'location': 'Eminönü to Eyüp',
+                        'hours': '24/7 access',
+                        'description': 'Scenic waterfront promenade along historic inlet',
+                        'transportation': ['Multiple ferry stops', 'Coastal bus routes'],
+                        'tips': ['Great for jogging', 'Multiple coffee stops', 'Historic landmarks en route']
+                    }
+                ]
+            },
+            'minimal_cost_experiences': {
+                'description': 'Very low-cost activities under 20 TL',
+                'attractions': [
+                    {
+                        'name': 'Bosphorus Public Ferry',
+                        'turkish_name': 'Boğaz Vapur',
+                        'cost': '15-25 TL with İstanbulkart',
+                        'duration': '90 minutes full route',
+                        'description': 'Public ferry tour between Europe and Asia',
+                        'tips': ['Cheaper than tourist cruises', 'Same Bosphorus views', 'Local experience']
+                    },
+                    {
+                        'name': 'Grand Bazaar Browse',
+                        'turkish_name': 'Kapalıçarşı Gezinti',
+                        'cost': 'Free entry, tea 10-15 TL',
+                        'duration': '2-3 hours',
+                        'description': 'Historic covered market exploration',
+                        'tips': ['Free to walk around', 'Accept tea offers', 'No obligation to buy']
+                    },
+                    {
+                        'name': 'Balat Colorful Houses Walk',
+                        'turkish_name': 'Balat Renkli Evler Turu',
+                        'cost': 'Free walking, coffee 20-30 TL',
+                        'duration': '2-3 hours',
+                        'description': 'Instagram-famous colorful neighborhood',
+                        'tips': ['Early morning best light', 'Respect residents', 'Combine with Fener']
+                    }
+                ]
+            },
+            'free_viewpoints': {
+                'description': 'Free panoramic viewpoints across Istanbul',
+                'locations': [
+                    {
+                        'name': 'Galata Bridge Upper Level',
+                        'views': 'Golden Horn, Historic Peninsula',
+                        'cost': 'Free',
+                        'best_time': 'Sunset'
+                    },
+                    {
+                        'name': 'Eminönü Waterfront',
+                        'views': 'Galata Tower, Golden Horn',
+                        'cost': 'Free',
+                        'best_time': 'Any time'
+                    },
+                    {
+                        'name': 'Süleymaniye Mosque Courtyard',
+                        'views': 'Golden Horn, Bosphorus',
+                        'cost': 'Free',
+                        'best_time': 'Late afternoon'
+                    }
+                ]
+            }
+        }
+
+    def _load_alternative_culture_venues(self) -> Dict[str, Dict[str, Any]]:
+        """Alternative culture venues database - addresses 21.8/100 score issue"""
+        return {
+            'kadikoy_alternative': {
+                'description': 'Asian-side bohemian culture hub',
+                'venues': [
+                    {
+                        'name': 'Karga Bar',
+                        'type': 'Underground music venue',
+                        'address': 'Kadıköy, near Moda',
+                        'specialty': 'Live indie rock, alternative music',
+                        'hours': '20:00-02:00 (closed Mon-Tue)',
+                        'vibe': 'Grungy, authentic, local crowd',
+                        'price_range': 'Budget-friendly drinks'
+                    },
+                    {
+                        'name': 'Arkaoda',
+                        'type': 'Independent theater and performance space',
+                        'address': 'Moda Caddesi, Kadıköy',
+                        'specialty': 'Experimental theater, poetry nights',
+                        'hours': 'Event-based schedule',
+                        'vibe': 'Intellectual, artistic community',
+                        'price_range': 'Affordable ticket prices'
+                    },
+                    {
+                        'name': 'Yeldeğirmeni Street Art District',
+                        'type': 'Open-air street art gallery',
+                        'address': 'Yeldeğirmeni neighborhood, Kadıköy',
+                        'specialty': 'Murals, graffiti, local artists',
+                        'hours': '24/7 street access',
+                        'vibe': 'Creative, evolving, Instagram-worthy',
+                        'price_range': 'Free exploration'
+                    },
+                    {
+                        'name': 'Kriton Curi',
+                        'type': 'Vintage market and cultural space',
+                        'address': 'Moda, Kadıköy',
+                        'specialty': 'Vintage items, local designers, events',
+                        'hours': 'Tue-Sun 11:00-19:00',
+                        'vibe': 'Hipster, curated, trendy',
+                        'price_range': 'Mid-range vintage prices'
+                    }
+                ]
+            },
+            'galata_arts_scene': {
+                'description': 'Historic district with contemporary art',
+                'venues': [
+                    {
+                        'name': 'SALT Galata',
+                        'type': 'Contemporary art and research center',
+                        'address': 'Bankalar Caddesi, Galata',
+                        'specialty': 'Cutting-edge exhibitions, research library',
+                        'hours': 'Tue-Sun 10:00-20:00',
+                        'vibe': 'Intellectual, modern, international',
+                        'price_range': 'Free exhibitions'
+                    },
+                    {
+                        'name': 'Galata Mevlevi Lodge',
+                        'type': 'Whirling Dervish museum and performance',
+                        'address': 'Galip Dede Caddesi, Galata',
+                        'specialty': 'Sufi culture, traditional ceremonies',
+                        'hours': 'Wed-Mon 09:00-17:00',
+                        'vibe': 'Spiritual, traditional, peaceful',
+                        'price_range': 'Museum entry fee'
+                    },
+                    {
+                        'name': 'Kamondo Steps',
+                        'type': 'Historic Art Nouveau staircase',
+                        'address': 'Bankalar Caddesi, Galata',
+                        'specialty': 'Architecture photography, city views',
+                        'hours': '24/7 access',
+                        'vibe': 'Romantic, historic, photogenic',
+                        'price_range': 'Free access'
+                    }
+                ]
+            },
+            'cihangir_bohemian': {
+                'description': 'Bohemian neighborhood with cafes and culture',
+                'venues': [
+                    {
+                        'name': 'Smyrna Café',
+                        'type': 'Bohemian coffee house',
+                        'address': 'Cihangir neighborhood',
+                        'specialty': 'Literary atmosphere, local intellectuals',
+                        'hours': '08:00-24:00',
+                        'vibe': 'Intellectual, cozy, book-lined',
+                        'price_range': 'Reasonable coffee prices'
+                    },
+                    {
+                        'name': '5. Kat',
+                        'type': 'Rooftop bar with city views',
+                        'address': 'Cihangir, near Taksim',
+                        'specialty': 'Panoramic Istanbul views, cocktails',
+                        'hours': '18:00-02:00',
+                        'vibe': 'Trendy, romantic, city views',
+                        'price_range': 'Mid-range cocktail prices'
+                    }
+                ]
+            },
+            'beyoglu_underground': {
+                'description': 'Underground culture in historic Pera',
+                'venues': [
+                    {
+                        'name': 'Nevizade Street',
+                        'type': 'Traditional meyhane (tavern) alley',
+                        'address': 'Off İstiklal Avenue, Beyoğlu',
+                        'specialty': 'Traditional Turkish tavern culture',
+                        'hours': '18:00-02:00',
+                        'vibe': 'Authentic, musical, social',
+                        'price_range': 'Traditional meyhane prices'
+                    },
+                    {
+                        'name': 'Atlas Pasajı',
+                        'type': 'Historic passage with vintage cinema',
+                        'address': 'İstiklal Avenue, Beyoğlu',
+                        'specialty': 'Art house cinema, vintage bars',
+                        'hours': 'Various venue hours',
+                        'vibe': 'Nostalgic, cinematic, cultural',
+                        'price_range': 'Cinema tickets + bar prices'
+                    }
+                ]
+            }
+        }
+
+    def _load_enhanced_transportation(self) -> Dict[str, Dict[str, Any]]:
+        """Enhanced transportation system with detailed practical information"""
+        return {
+            'metro_lines': {
+                'M1A': {
+                    'route': 'Yenikapı - Atatürk Airport',
+                    'key_stops': ['Zeytinburnu (T1 connection)', 'Bakırköy', 'Atatürk Airport'],
+                    'operation': '06:00-24:00',
+                    'frequency': '3-8 minutes',
+                    'journey_time': '45 minutes end-to-end'
+                },
+                'M1B': {
+                    'route': 'Yenikapı - Kirazlı',
+                    'key_stops': ['Zeytinburnu (T1 connection)', 'Esenler'],
+                    'operation': '06:00-24:00',
+                    'frequency': '3-8 minutes',
+                    'journey_time': '30 minutes end-to-end'
+                },
+                'M2': {
+                    'route': 'Yenikapı - Hacıosman',
+                    'key_stops': ['Vezneciler (Sultanahmet area)', 'Şişhane (Galata)', 'Taksim', 'Levent'],
+                    'operation': '06:00-24:00',
+                    'frequency': '2-5 minutes',
+                    'journey_time': '35 minutes end-to-end'
+                },
+                'M3': {
+                    'route': 'Kirazlı - Başakşehir',
+                    'key_stops': ['Metrokent', 'İkitelli'],
+                    'operation': '06:00-24:00',
+                    'frequency': '5-10 minutes',
+                    'journey_time': '25 minutes end-to-end'
+                }
+            },
+            'tram_lines': {
+                'T1': {
+                    'route': 'Bağcılar - Kabataş',
+                    'key_stops': ['Sultanahmet', 'Eminönü', 'Karaköy', 'Kabataş'],
+                    'operation': '06:00-24:00',
+                    'frequency': '5-10 minutes',
+                    'journey_time': '55 minutes end-to-end',
+                    'tourist_relevance': 'Main tourist route - all major attractions'
+                },
+                'T4': {
+                    'route': 'Topkapı - Mescid-i Selam',
+                    'key_stops': ['Edirnekapı', 'Sultançiftliği'],
+                    'operation': '06:00-24:00',
+                    'frequency': '8-12 minutes',
+                    'journey_time': '22 minutes end-to-end'
+                }
+            },
+            'ferry_routes': {
+                'bosphorus_tours': {
+                    'short_tour': {
+                        'route': 'Eminönü - Anadolu Kavağı',
+                        'duration': '90 minutes each way',
+                        'frequency': 'Every 2 hours',
+                        'price': '25-40 TL with İstanbulkart',
+                        'highlights': 'Bosphorus palaces, fortresses, European and Asian shores'
+                    },
+                    'full_tour': {
+                        'route': 'Eminönü - Anadolu Kavağı (with stops)',
+                        'duration': '6 hours total',
+                        'frequency': '2-3 times daily',
+                        'price': '35-50 TL',
+                        'highlights': 'All Bosphorus attractions, lunch break in fishing village'
+                    }
+                },
+                'city_ferries': {
+                    'golden_horn': {
+                        'routes': ['Eminönü - Eyüp', 'Karaköy - Sütlüce'],
+                        'frequency': '20-30 minutes',
+                        'price': '7-15 TL',
+                        'scenic_value': 'Historic Golden Horn views'
+                    },
+                    'cross_bosphorus': {
+                        'routes': ['Eminönü - Üsküdar', 'Karaköy - Üsküdar', 'Beşiktaş - Üsküdar'],
+                        'frequency': '15-20 minutes',
+                        'price': '7-15 TL',
+                        'practical_use': 'Europe to Asia crossing'
+                    }
+                }
+            },
+            'istanbulkart_info': {
+                'purchase_locations': ['Metro stations', 'Ferry terminals', 'Bus stops', 'Some kiosks'],
+                'card_cost': '13 TL (6 TL refundable)',
+                'load_amounts': 'Minimum 5 TL, maximum 300 TL',
+                'discounts': '50% student discount with valid ID',
+                'validity': 'All public transport (metro, tram, bus, ferry)',
+                'tips': ['Always validate when boarding', 'Can be shared for multiple people', 'Check balance at machines']
+            }
+        }
+
+    def _load_detailed_practical_info(self) -> Dict[str, Dict[str, Any]]:
+        """Detailed practical information for all major attractions"""
+        return {
+            'opening_hours_comprehensive': {
+                'major_museums': {
+                    'standard_hours': 'Tuesday-Sunday 09:00-17:00 (winter), 09:00-19:00 (summer)',
+                    'closed_days': 'Most museums closed Mondays',
+                    'exceptions': {
+                        'Topkapi Palace': 'Closed Tuesdays',
+                        'Dolmabahçe Palace': 'Closed Monday-Tuesday',
+                        'Hagia Sophia': 'Open daily (mosque schedule)'
+                    },
+                    'ramadan_changes': 'Reduced hours during Ramadan month',
+                    'last_entry': 'Usually 1 hour before closing'
+                },
+                'mosques': {
+                    'general_access': 'Open daily except during prayer times',
+                    'prayer_times': 'Five daily prayers - check local schedule',
+                    'friday_restrictions': 'Limited access Friday 11:30-14:30',
+                    'tourist_hours': 'Best access: 09:00-11:30, 14:30-16:30, 17:30-sunset',
+                    'closed_periods': '30 minutes before and during each prayer'
+                },
+                'markets_bazaars': {
+                    'grand_bazaar': 'Monday-Saturday 09:00-19:00, Closed Sundays',
+                    'spice_bazaar': 'Daily 08:00-19:30',
+                    'local_markets': 'Vary by district, usually Tuesday and Friday',
+                    'saturday_markets': 'Weekend markets in Kadıköy, Beşiktaş'
+                }
+            },
+            'entrance_fees_detailed': {
+                'museums': {
+                    'topkapi_palace': '₺100 (main palace), ₺70 (Harem separate)',
+                    'dolmabahce_palace': '₺90 (Selamlık), ₺60 (Harem)',
+                    'basilica_cistern': '₺30',
+                    'galata_tower': '₺100',
+                    'chora_church': '₺45'
+                },
+                'discounts': {
+                    'students': '50% discount with valid international student ID',
+                    'seniors': '50% discount for 65+ with ID',
+                    'children': 'Under 12 free at most attractions',
+                    'museum_pass': '5-day pass ₺325, covers 12+ major sites'
+                },
+                'free_attractions': {
+                    'mosques': 'All mosques free (Blue Mosque, Süleymaniye, etc.)',
+                    'parks': 'Gülhane Park, Emirgan Park, all public parks',
+                    'bridges_streets': 'Galata Bridge, İstiklal Avenue, waterfront walks',
+                    'markets': 'Grand Bazaar and Spice Bazaar browsing free'
+                }
+            },
+            'transportation_to_attractions': {
+                'sultanahmet_area': {
+                    'tram': 'T1 Sultanahmet Station (Blue Mosque, Hagia Sophia)',
+                    'metro': 'M2 Vezneciler Station + 10min walk',
+                    'ferry': 'Eminönü Terminal + 15min walk',
+                    'taxi': '₺25-40 from Taksim, ₺40-60 from airports'
+                },
+                'galata_beyoglu': {
+                    'metro': 'M2 Şişhane or Taksim stations',
+                    'tram': 'T1 Karaköy Station + uphill walk to Galata Tower',
+                    'funicular': 'Historic Tünel from Karaköy to Galata',
+                    'taxi': '₺20-35 from Sultanahmet'
+                },
+                'kadikoy_asian_side': {
+                    'ferry': 'From Eminönü or Karaköy (20-30min, scenic)',
+                    'metro': 'M4 Kadıköy-Kartal line',
+                    'marmaray': 'Undersea rail tunnel from European side',
+                    'bus': 'Various routes from Taksim, Beşiktaş'
+                }
             }
         }
     
