@@ -9,6 +9,17 @@ to enhance the AI Istanbul system with detailed local insights.
 
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+import sys
+import os
+
+# Import enhanced transportation system
+sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+try:
+    from enhanced_transportation_service import EnhancedTransportationService
+    ENHANCED_TRANSPORT_AVAILABLE = True
+except ImportError:
+    print("⚠️ Enhanced Transportation Service not available, using fallback")
+    ENHANCED_TRANSPORT_AVAILABLE = False
 
 @dataclass
 class AttractionInfo:
@@ -59,6 +70,13 @@ class IstanbulKnowledgeDatabase:
         self.alternative_culture_venues = self._load_alternative_culture_venues()
         self.enhanced_transportation = self._load_enhanced_transportation()
         self.detailed_practical_info = self._load_detailed_practical_info()
+        
+        # Initialize enhanced transportation service
+        if ENHANCED_TRANSPORT_AVAILABLE:
+            self.enhanced_transport_service = EnhancedTransportationService()
+            print("✅ Enhanced Transportation Service integrated with knowledge database")
+        else:
+            self.enhanced_transport_service = None
     
     def _load_attractions(self) -> Dict[str, AttractionInfo]:
         """Load comprehensive attraction database"""
@@ -2584,3 +2602,284 @@ class IstanbulKnowledgeDatabase:
             return f"Use GPT with database context - {decision['reason']}"
         else:
             return "Handle with database - high confidence in accuracy"
+    # First try to get live/enhanced data if service is available
+        if hasattr(self, 'enhanced_transport_service') and self.enhanced_transport_service:
+            try:
+                # Get comprehensive transport summary from enhanced service
+                live_summary = self.enhanced_transport_service.get_transport_summary("istanbul")
+                
+                # Merge with static data for comprehensive response
+                static_data = self.enhanced_transportation if transport_type == 'all' else self.enhanced_transportation.get(transport_type, {})
+                
+                return {
+                    **static_data,
+                    'live_transport_data': live_summary,
+                    'real_time_enabled': True,
+                    'last_updated': 'Live data available'
+                }
+            except Exception as e:
+                print(f"⚠️ Enhanced transport service error: {e}")
+        
+        # Fallback to static enhanced transportation data
+        if transport_type == 'all':
+            return self.enhanced_transportation
+        return self.enhanced_transportation.get(transport_type, {})
+
+    def get_smart_route_recommendation(self, origin: str, destination: str, preferences: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Get smart route recommendations using enhanced transportation service"""
+        if not hasattr(self, 'enhanced_transport_service') or not self.enhanced_transport_service:
+            return self._get_fallback_route_recommendation(origin, destination)
+        
+        try:
+            # Use enhanced service for comprehensive routing
+            route_info = self.enhanced_transport_service.get_transportation_info(
+                f"route from {origin} to {destination}", 
+                location=origin
+            )
+            
+            if route_info.get('success'):
+                return {
+                    'smart_routes': route_info.get('routes', []),
+                    'live_data': route_info.get('live_data', {}),
+                    'transport_summary': route_info.get('transport_summary', {}),
+                    'contextual_tips': route_info.get('tips', []),
+                    'origin': origin,
+                    'destination': destination,
+                    'real_time_enabled': True,
+                    'query_analysis': route_info.get('query_analysis', {}),
+                    'practical_advice': self._get_route_practical_advice(origin, destination)
+                }
+            
+        except Exception as e:
+            print(f"⚠️ Smart routing error: {e}")
+        
+        return self._get_fallback_route_recommendation(origin, destination)
+    
+    def get_live_transportation_status(self, transport_mode: str = 'all') -> Dict[str, Any]:
+        """Get live transportation status and alerts"""
+        if not hasattr(self, 'enhanced_transport_service') or not self.enhanced_transport_service:
+            return self._get_static_transport_status()
+        
+        try:
+            import asyncio
+            
+            # Get live status for different transport modes
+            async def get_live_status():
+                status_data = {}
+                
+                if transport_mode in ['all', 'metro']:
+                    # Get status for major metro lines
+                    for line_id in ['M1A', 'M1B', 'M2', 'M4']:
+                        line_status = await self.enhanced_transport_service.get_real_time_metro_status(line_id)
+                        if not line_status.get('error'):
+                            status_data[f'metro_{line_id}'] = line_status
+                
+                if transport_mode in ['all', 'ferry']:
+                    # Get ferry status
+                    ferry_info = await self.enhanced_transport_service._get_real_time_ferry_info("Cross-Bosphorus")
+                    if not ferry_info.get('error'):
+                        status_data['ferry_services'] = ferry_info
+                
+                return status_data
+            
+            # Run async status check
+            def run_async_status():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(get_live_status())
+                finally:
+                    loop.close()
+            
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_async_status)
+                live_status = future.result(timeout=5)
+            
+            return {
+                'live_status': live_status,
+                'status_summary': self._summarize_transport_status(live_status),
+                'last_updated': 'Real-time',
+                'alerts': self._get_current_transport_alerts(live_status)
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Live status error: {e}")
+            return self._get_static_transport_status()
+    
+    def get_attraction_transport_guide(self, attraction_key: str, origin: str = None) -> Dict[str, Any]:
+        """Get comprehensive transportation guide to specific attraction"""
+        attraction = self.get_attraction_info(attraction_key)
+        if not attraction:
+            return {'error': f'Attraction {attraction_key} not found'}
+        
+        # Use enhanced service if available
+        if hasattr(self, 'enhanced_transport_service') and self.enhanced_transport_service:
+            try:
+                # Get transportation info to attraction
+                destination = attraction.district if hasattr(attraction, 'district') else attraction_key
+                transport_query = f"how to get to {attraction.name}" if hasattr(attraction, 'name') else f"transport to {destination}"
+                
+                transport_info = self.enhanced_transport_service.get_transportation_info(
+                    transport_query, 
+                    location=origin or "Taksim"
+                )
+                
+                if transport_info.get('success'):
+                    return {
+                        'attraction': attraction,
+                        'smart_routes': transport_info.get('routes', []),
+                        'live_transport_data': transport_info.get('live_data', {}),
+                        'practical_tips': transport_info.get('tips', []),
+                        'walking_directions': self._get_walking_directions_to_attraction(attraction),
+                        'nearby_transport_hubs': self._get_nearby_transport_hubs(attraction),
+                        'accessibility_info': self._get_transport_accessibility_info(attraction),
+                        'cost_estimates': self._get_transport_cost_estimates(attraction)
+                    }
+                    
+            except Exception as e:
+                print(f"⚠️ Attraction transport guide error: {e}")
+        
+        # Fallback to static information
+        return self._get_static_attraction_transport(attraction, origin)
+    
+    def get_transport_mode_comparison(self, origin: str, destination: str) -> Dict[str, Any]:
+        """Compare different transport modes for a route"""
+        if not hasattr(self, 'enhanced_transport_service') or not self.enhanced_transport_service:
+            return self._get_static_mode_comparison(origin, destination)
+        
+        try:
+            import asyncio
+            
+            async def get_mode_comparison():
+                # Get routes for different transport modes
+                metro_routes = await self.enhanced_transport_service._find_metro_routes_with_platforms(origin, destination)
+                bus_routes = await self.enhanced_transport_service._find_bus_routes_with_stops(origin, destination)
+                ferry_routes = await self.enhanced_transport_service._find_ferry_routes_detailed(origin, destination)
+                
+                return {
+                    'metro': metro_routes,
+                    'bus': bus_routes,
+                    'ferry': ferry_routes
+                }
+            
+            def run_comparison():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(get_mode_comparison())
+                finally:
+                    loop.close()
+            
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_comparison)
+                mode_data = future.result(timeout=10)
+            
+            return {
+                'route_comparison': mode_data,
+                'recommendations': self._analyze_best_transport_mode(mode_data),
+                'cost_comparison': self._compare_transport_costs(mode_data),
+                'time_comparison': self._compare_transport_times(mode_data),
+                'comfort_analysis': self._analyze_transport_comfort(mode_data)
+            }
+            
+        except Exception as e:
+            print(f"⚠️ Mode comparison error: {e}")
+            return self._get_static_mode_comparison(origin, destination)
+    
+    def get_accessibility_transport_info(self, needs: List[str] = None) -> Dict[str, Any]:
+        """Get accessibility information for public transport"""
+        accessibility_info = {
+            'metro_accessibility': {
+                'wheelchair_access': 'All metro stations have elevator access',
+                'visual_impairment': 'Tactile guidance strips and audio announcements',
+                'hearing_impairment': 'Visual displays and announcements',
+                'mobility_assistance': 'Platform assistance available upon request'
+            },
+            'tram_accessibility': {
+                'wheelchair_access': 'Modern trams are wheelchair accessible',
+                'boarding_assistance': 'Level boarding at most stations',
+                'priority_seating': 'Designated areas for disabled passengers'
+            },
+            'ferry_accessibility': {
+                'wheelchair_access': 'Most ferries have wheelchair ramps',
+                'boarding_assistance': 'Staff assistance available',
+                'accessible_facilities': 'Accessible restrooms on larger ferries'
+            },
+            'bus_accessibility': {
+                'wheelchair_access': 'Modern buses have wheelchair lifts',
+                'priority_seating': 'Front seats reserved for disabled passengers',
+                'audio_announcements': 'Stop announcements in Turkish and English'
+            },
+            'general_tips': [
+                'İstanbulkart offers same pricing for accessibility users',
+                'Peak hours may be more challenging for mobility assistance',
+                'Staff at major stations speak basic English',
+                'Companion assistance is welcome on all transport'
+            ]
+        }
+        
+        if needs:
+            filtered_info = {}
+            for need in needs:
+                if need == 'wheelchair':
+                    filtered_info['wheelchair_specific'] = {
+                        'metro': accessibility_info['metro_accessibility']['wheelchair_access'],
+                        'tram': accessibility_info['tram_accessibility']['wheelchair_access'],
+                        'ferry': accessibility_info['ferry_accessibility']['wheelchair_access'],
+                        'bus': accessibility_info['bus_accessibility']['wheelchair_access']
+                    }
+                elif need == 'visual':
+                    filtered_info['visual_impairment'] = {
+                        'metro': accessibility_info['metro_accessibility']['visual_impairment'],
+                        'general_tips': ['Audio announcements available', 'Tactile guidance available']
+                    }
+            return filtered_info
+        
+        return accessibility_info
+    
+    def get_transport_cost_calculator(self, journey_details: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate transportation costs for different scenarios"""
+        # Base Istanbul transport costs (2024)
+        base_costs = {
+            'metro': 15.0,
+            'tram': 15.0,
+            'bus': 15.0,
+            'ferry': 15.0,
+            'transfer_discount': 0.7  # 30% discount for transfers within 2 hours
+        }
+        
+        journey_type = journey_details.get('type', 'single')
+        transport_modes = journey_details.get('modes', ['metro'])
+        transfers = journey_details.get('transfers', 0)
+        days = journey_details.get('days', 1)
+        journeys_per_day = journey_details.get('journeys_per_day', 2)
+        
+        # Calculate costs
+        single_journey_cost = base_costs[transport_modes[0]]
+        
+        # Apply transfer discounts
+        if transfers > 0:
+            transfer_cost = sum(base_costs[mode] * base_costs['transfer_discount'] for mode in transport_modes[1:transfers+1])
+            single_journey_cost += transfer_cost
+        
+        total_cost = single_journey_cost * journeys_per_day * days
+        
+        # Calculate İstanbulkart savings
+        istanbulkart_savings = total_cost * 0.1 if days > 3 else 0  # Assume 10% savings for frequent use
+        
+        return {
+            'cost_breakdown': {
+                'single_journey': single_journey_cost,
+                'daily_cost': single_journey_cost * journeys_per_day,
+                'total_cost': total_cost,
+                'istanbulkart_savings': istanbulkart_savings,
+                'final_cost': total_cost - istanbulkart_savings
+            },
+            'recommendations': self._get_cost_saving_recommendations(journey_details),
+            'alternative_options': self._suggest_cost_alternatives(journey_details)
+        }
+
+    # ...existing code...
+
