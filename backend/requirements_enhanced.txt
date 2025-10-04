@@ -1,0 +1,125 @@
+# Enhanced AI Istanbul GPT-Free System Requirements
+# Complete dependencies for production-grade personalized AI tourism system
+
+# Core ML and NLP Libraries
+sentence-transformers>=2.2.0    # Semantic embeddings for cache and personalization
+scikit-learn>=1.3.0            # ML models for intent classification and clustering
+numpy>=1.21.0                  # Numerical computing foundation
+pandas>=1.3.0                  # Data manipulation and analysis
+
+# Vector Search and Similarity
+faiss-cpu>=1.7.0               # Fast similarity search for semantic cache
+# faiss-gpu>=1.7.0             # Use this instead for GPU acceleration
+
+# Text Processing and NLP
+nltk>=3.8.0                    # Natural language processing toolkit
+spacy>=3.4.0                   # Advanced NLP and entity extraction
+# python -m spacy download en_core_web_sm  # Run after installation
+
+# Web Framework (Optional for API server)
+flask>=2.3.0                   # Lightweight web framework
+flask-cors>=4.0.0              # Cross-origin resource sharing
+gunicorn>=20.1.0               # WSGI HTTP Server for production
+
+# Database and Storage
+sqlite3                        # Built-in Python database (usually included)
+
+# Configuration and Environment
+python-dotenv>=1.0.0           # Environment variable management
+PyYAML>=6.0                    # YAML configuration support
+
+# Monitoring and Logging
+structlog>=23.1.0              # Structured logging
+prometheus-client>=0.16.0      # Metrics collection (optional)
+
+# Performance and Optimization
+joblib>=1.3.0                  # Parallel processing and model persistence
+psutil>=5.9.0                  # System and process utilities
+
+# Date and Time Handling
+python-dateutil>=2.8.0         # Extended date/time functionality
+
+# Development and Testing (Optional)
+pytest>=7.4.0                 # Testing framework
+pytest-asyncio>=0.21.0        # Async testing support
+black>=23.0.0                 # Code formatting
+flake8>=6.0.0                 # Code linting
+
+# Data Validation and Serialization
+pydantic>=2.0.0               # Data validation using Python type annotations
+marshmallow>=3.20.0           # Object serialization/deserialization
+
+# Async Support (Optional for high-performance scenarios)
+asyncio                       # Built-in async support
+aiofiles>=23.1.0              # Async file operations
+aiohttp>=3.8.0                # Async HTTP client/server
+
+# Caching and Performance
+redis>=4.6.0                  # Redis client (optional for distributed caching)
+diskcache>=5.6.0              # Disk-based caching (alternative to Redis)
+
+# Security
+bcrypt>=4.0.0                 # Password hashing (if user authentication needed)
+cryptography>=41.0.0          # Cryptographic operations
+
+# Utilities
+tqdm>=4.65.0                  # Progress bars for long operations
+click>=8.1.0                  # Command-line interface creation
+colorama>=0.4.6               # Cross-platform colored terminal text
+
+# Geographic and Location (Optional for location-based features)
+geopy>=2.3.0                  # Geocoding and distance calculations
+shapely>=2.0.0                # Geometric objects and operations
+
+# Image Processing (Optional for photo recommendations)
+Pillow>=10.0.0                # Image processing library
+
+# Data Export and Reporting (Optional)
+openpyxl>=3.1.0               # Excel file operations
+matplotlib>=3.7.0             # Plotting and visualization
+seaborn>=0.12.0               # Statistical data visualization
+
+# Turkish Language Support (Optional)
+zemberek-python>=0.17.0       # Turkish language processing (if available)
+
+# Model Serving and API (Advanced deployments)
+transformers>=4.30.0          # Hugging Face transformers (if needed)
+torch>=2.0.0                  # PyTorch (if using transformer models)
+# tensorflow>=2.13.0          # TensorFlow (alternative to PyTorch)
+
+# Production Monitoring and Observability
+opencensus>=0.11.0            # Application performance monitoring
+opencensus-ext-flask>=0.8.0   # Flask integration for monitoring
+
+# Memory Optimization
+memory-profiler>=0.61.0       # Memory usage profiling
+pympler>=0.9                  # Advanced memory profiling
+
+# Configuration Management
+configparser                  # Built-in configuration parser
+hydra-core>=1.3.0             # Advanced configuration management (optional)
+
+# Task Queue (For background processing)
+celery>=5.3.0                 # Distributed task queue (optional)
+redis>=4.6.0                  # Redis broker for Celery (optional)
+
+# API Documentation (Optional)
+flask-restx>=1.1.0            # Flask REST API with Swagger documentation
+flasgger>=0.9.0               # Swagger UI for Flask
+
+# Rate Limiting and Security
+flask-limiter>=3.3.0          # Rate limiting for Flask
+flask-talisman>=1.1.0         # Security headers for Flask
+
+# Health Checks and Status
+flask-healthz>=1.0.0          # Health check endpoints
+
+# Environment-specific requirements
+# Development
+pytest-cov>=4.1.0            # Test coverage
+pytest-mock>=3.11.0          # Mocking in tests
+factory-boy>=3.3.0           # Test data generation
+
+# Production optimizations
+uwsgi>=2.0.21                # Alternative WSGI server
+supervisor>=4.2.0            # Process control system

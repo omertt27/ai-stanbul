@@ -72,6 +72,10 @@ class IndustrySecuritySystem:
     """
     
     def __init__(self):
+        # Sanitization settings (must be defined first)
+        self.max_input_length = 10000
+        self.allowed_html_tags = set()  # No HTML allowed by default
+        
         # Security patterns
         self.security_patterns = self._load_security_patterns()
         self.validation_rules = self._load_validation_rules()
@@ -84,10 +88,6 @@ class IndustrySecuritySystem:
         # Security events storage
         self.security_events = []
         self.threat_intelligence = {}
-        
-        # Sanitization settings
-        self.max_input_length = 10000
-        self.allowed_html_tags = set()  # No HTML allowed by default
         self.allowed_protocols = {'http', 'https'}
         
         # Initialize monitoring
