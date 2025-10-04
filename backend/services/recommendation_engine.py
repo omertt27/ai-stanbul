@@ -4,6 +4,7 @@ Recommendation Engine for AI Istanbul System
 This service handles personalized recommendations, itinerary planning,
 and suggestion generation without using GPT. Uses rule-based algorithms,
 user preferences, and structured data for intelligent recommendations.
+Enhanced with advanced collaborative filtering and personalization.
 """
 
 import json
@@ -12,6 +13,20 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
+
+# Import advanced recommendation components
+try:
+    from .advanced_recommendation_engine import (
+        AdvancedRecommendationEngine, AdvancedRecommendation, 
+        UserBehavior, ContentFeatures, LocationContext
+    )
+    from .rule_based_personalization import (
+        RuleBasedPersonalizationEngine, UserContext, PersonalizationResult
+    )
+    ADVANCED_COMPONENTS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Advanced recommendation components not available: {e}")
+    ADVANCED_COMPONENTS_AVAILABLE = False
 
 class RecommendationType(Enum):
     """Types of recommendations"""
@@ -54,6 +69,20 @@ class RecommendationEngine:
         self.itinerary_templates = self._load_itinerary_templates()
         self.recommendation_rules = self._load_recommendation_rules()
         self.scoring_weights = self._load_scoring_weights()
+        
+        # Initialize advanced recommendation components
+        if ADVANCED_COMPONENTS_AVAILABLE:
+            try:
+                self.advanced_engine = AdvancedRecommendationEngine()
+                self.personalization_engine = RuleBasedPersonalizationEngine()
+                print("✅ Advanced recommendation and personalization engines initialized")
+            except Exception as e:
+                print(f"⚠️ Advanced engines initialization failed: {e}")
+                self.advanced_engine = None
+                self.personalization_engine = None
+        else:
+            self.advanced_engine = None
+            self.personalization_engine = None
         
     def _load_attractions_database(self) -> Dict[str, Any]:
         """Load attractions database with metadata for recommendations"""
@@ -697,3 +726,220 @@ class RecommendationEngine:
             preferred_districts=preferences.get("districts", []),
             travel_style=preferences.get("travel_style", "cultural")
         )
+    
+    def get_advanced_recommendations(self, user_profile: UserProfile, 
+                                   context: Optional[Dict[str, Any]] = None,
+                                   recommendation_type: str = "attraction",
+                                   n_recommendations: int = 5) -> List[Recommendation]:
+        """
+        Get advanced recommendations using collaborative filtering and personalization
+        """
+        if not self.advanced_engine or not self.personalization_engine:
+            # Fallback to basic recommendations
+            return self.get_recommendations(user_profile, context, recommendation_type, n_recommendations)
+        
+        try:
+            # Create user context for personalization
+            user_context = self._create_user_context(context or {})
+            
+            # Use collaborative filtering for base recommendations
+            user_id = context.get('user_id', 'anonymous_user') if context else 'anonymous_user'
+            
+            # Get candidates from different sources
+            candidates = []
+            
+            if recommendation_type == "attraction":
+                # Get collaborative filtering recommendations
+                collab_recs = self.advanced_engine.collaborative_filtering_recommend(
+                    user_id, n_recommendations=15
+                )
+                candidates.extend(self._convert_advanced_to_candidates(collab_recs))
+                
+                # Get content-based recommendations
+                content_recs = self.advanced_engine.content_based_recommend(
+                    user_id, n_recommendations=15
+                )
+                candidates.extend(self._convert_advanced_to_candidates(content_recs))
+                
+                # Get location-based recommendations if location available
+                if context and 'location' in context:
+                    location = context['location']
+                    location_recs = self.advanced_engine.location_based_recommend(
+                        user_id, current_location=location, n_recommendations=10
+                    )
+                    candidates.extend(self._convert_advanced_to_candidates(location_recs))
+            
+            # If no advanced candidates, use basic database
+            if not candidates:
+                candidates = self._get_basic_candidates(recommendation_type, user_profile)
+            
+            # Apply personalization rules
+            personalization_result = self.personalization_engine.personalize_recommendations(
+                user_id, candidates, user_context
+            )
+            
+            # Convert to standard Recommendation format
+            recommendations = []
+            for rec_data in personalization_result.recommendations[:n_recommendations]:
+                recommendation = Recommendation(
+                    item_id=rec_data.get('id', rec_data.get('item_id', 'unknown')),
+                    name=rec_data.get('name', 'Unknown'),
+                    type=RecommendationType.ATTRACTION if recommendation_type == "attraction" else RecommendationType.RESTAURANT,
+                    score=rec_data.get('personalization_score', rec_data.get('overall_score', 0.5)),
+                    reasons=rec_data.get('preference_reasons', rec_data.get('reasons', [])),
+                    metadata={
+                        'advanced_recommendation': True,
+                        'collaborative_score': rec_data.get('collaborative_score', 0),
+                        'content_score': rec_data.get('content_score', 0),
+                        'location_score': rec_data.get('location_score', 0),
+                        'confidence': personalization_result.confidence_score,
+                        'applied_rules': personalization_result.applied_rules,
+                        'explanations': personalization_result.explanation
+                    }
+                )
+                recommendations.append(recommendation)
+            
+            print(f"✅ Generated {len(recommendations)} advanced recommendations with {personalization_result.confidence_score:.2f} confidence")
+            return recommendations
+            
+        except Exception as e:
+            print(f"⚠️ Advanced recommendations failed, falling back to basic: {e}")
+            return self.get_recommendations(user_profile, context, recommendation_type, n_recommendations)
+    
+    def _create_user_context(self, context_data: Dict[str, Any]) -> 'UserContext':
+        """Create UserContext object from context data"""
+        current_time = datetime.now()
+        
+        # Determine time of day
+        hour = current_time.hour
+        if 5 <= hour < 12:
+            time_of_day = "morning"
+        elif 12 <= hour < 17:
+            time_of_day = "afternoon"
+        elif 17 <= hour < 21:
+            time_of_day = "evening"
+        else:
+            time_of_day = "night"
+        
+        # Determine season
+        month = current_time.month
+        if month in [12, 1, 2]:
+            season = "winter"
+        elif month in [3, 4, 5]:
+            season = "spring"
+        elif month in [6, 7, 8]:
+            season = "summer"
+        else:
+            season = "autumn"
+        
+        return UserContext(
+            time_of_day=context_data.get('time_of_day', time_of_day),
+            day_of_week=current_time.strftime('%A').lower(),
+            season=context_data.get('season', season),
+            weather=context_data.get('weather', 'sunny'),
+            temperature_c=context_data.get('temperature', 20),
+            location=context_data.get('location'),
+            group_size=context_data.get('group_size', 2),
+            budget_range=context_data.get('budget_range', 'moderate'),
+            available_time_hours=context_data.get('available_time_hours', 4.0),
+            mobility_level=context_data.get('mobility_level', 'moderate'),
+            special_occasions=context_data.get('special_occasions', []),
+            energy_level=context_data.get('energy_level', 'moderate')
+        )
+    
+    def _convert_advanced_to_candidates(self, advanced_recs: List['AdvancedRecommendation']) -> List[Dict[str, Any]]:
+        """Convert AdvancedRecommendation objects to candidate dictionaries"""
+        candidates = []
+        
+        for rec in advanced_recs:
+            candidate = {
+                'id': rec.item_id,
+                'item_id': rec.item_id,
+                'name': rec.name,
+                'type': rec.type,
+                'base_score': rec.overall_score,
+                'overall_score': rec.overall_score,
+                'collaborative_score': rec.collaborative_score,
+                'content_score': rec.content_score,
+                'location_score': rec.location_score,
+                'confidence': rec.confidence,
+                'reasons': rec.reasons,
+                'features': rec.metadata.get('features', []) if hasattr(rec.metadata, 'get') else [],
+                'duration_minutes': rec.metadata.get('duration_minutes', 60) if hasattr(rec.metadata, 'get') else 60,
+                'cost': rec.metadata.get('cost', 15) if hasattr(rec.metadata, 'get') else 15
+            }
+            candidates.append(candidate)
+        
+        return candidates
+    
+    def _get_basic_candidates(self, recommendation_type: str, user_profile: UserProfile) -> List[Dict[str, Any]]:
+        """Get basic candidates from database when advanced recommendations are not available"""
+        candidates = []
+        
+        if recommendation_type == "attraction":
+            for item_id, item_data in self.attractions_db.items():
+                candidate = {
+                    'id': item_id,
+                    'item_id': item_id,
+                    'name': item_data.get('name', item_id),
+                    'type': item_data.get('type', 'attraction'),
+                    'base_score': item_data.get('score_base', 0.5),
+                    'features': item_data.get('features', []),
+                    'duration_minutes': item_data.get('duration_minutes', 60),
+                    'cost': item_data.get('cost', 15),
+                    'district': item_data.get('district', 'unknown')
+                }
+                candidates.append(candidate)
+        
+        elif recommendation_type == "restaurant":
+            for item_id, item_data in self.restaurants_db.items():
+                candidate = {
+                    'id': item_id,
+                    'item_id': item_id,
+                    'name': item_data.get('name', item_id),
+                    'type': 'restaurant',
+                    'cuisine': item_data.get('cuisine_type', 'turkish'),
+                    'base_score': item_data.get('score_base', 0.5),
+                    'features': item_data.get('features', []),
+                    'duration_minutes': 90,  # Default restaurant visit time
+                    'cost': item_data.get('price_range_numeric', 25),
+                    'district': item_data.get('district', 'unknown')
+                }
+                candidates.append(candidate)
+        
+        return candidates
+    
+    def add_user_feedback(self, user_id: str, item_id: str, feedback: Dict[str, Any]):
+        """Add user feedback to improve future recommendations"""
+        if self.personalization_engine:
+            try:
+                # Convert feedback to behavior data
+                behavior_data = {
+                    'place_id': item_id,
+                    'place_type': feedback.get('type', 'attraction'),
+                    'rating': feedback.get('rating', 3.0),
+                    'duration_minutes': feedback.get('duration_minutes', 60),
+                    'time_of_day': feedback.get('time_of_day', 'afternoon'),
+                    'liked': feedback.get('liked', feedback.get('rating', 3.0) >= 4.0),
+                    'context': feedback.get('context', {})
+                }
+                
+                self.personalization_engine.add_user_behavior(user_id, behavior_data)
+                print(f"✅ Added user feedback for {item_id} from user {user_id}")
+                
+            except Exception as e:
+                print(f"⚠️ Failed to add user feedback: {e}")
+    
+    def get_user_profile_insights(self, user_id: str) -> Dict[str, Any]:
+        """Get insights about user preferences and behavior"""
+        if self.personalization_engine:
+            try:
+                return self.personalization_engine.get_user_profile_summary(user_id)
+            except Exception as e:
+                print(f"⚠️ Failed to get user profile insights: {e}")
+        
+        return {
+            'user_id': user_id,
+            'message': 'Advanced profiling not available',
+            'basic_profile': True
+        }

@@ -13,6 +13,8 @@ import logging
 
 # Import GTFS service for real-time transit data
 from .gtfs_service import get_gtfs_service, GTFSDataService
+# Import advanced route planner
+from .advanced_route_planner import AdvancedRoutePlanner, OptimalRoute
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,14 @@ class TransportService:
         except Exception as e:
             logger.warning(f"⚠️ GTFS service initialization failed: {e}")
             self.gtfs_service = None
+        
+        # Initialize advanced route planner
+        try:
+            self.advanced_planner = AdvancedRoutePlanner()
+            logger.info("✅ Advanced route planner initialized with Dijkstra and A* algorithms")
+        except Exception as e:
+            logger.warning(f"⚠️ Advanced route planner initialization failed: {e}")
+            self.advanced_planner = None
         
     def _load_metro_data(self) -> Dict:
         """Load Istanbul Metro system data"""
@@ -192,7 +202,27 @@ class TransportService:
         # Calculate routes using different transport modes
         routes = []
         
-        # Priority 1: Try GTFS-enhanced routing for optimal real-time routes
+        # Priority 1: Try Advanced Route Planner (Dijkstra/A* algorithms)
+        if self.advanced_planner:
+            try:
+                current_time = None
+                if departure_time:
+                    from datetime import datetime
+                    current_time = datetime.strptime(departure_time, "%H:%M")
+                
+                optimal_route = self.advanced_planner.find_optimal_route(
+                    origin, destination, algorithm="a_star", current_time=current_time
+                )
+                
+                if optimal_route:
+                    # Convert OptimalRoute to TransportRoute format
+                    advanced_transport_route = self._convert_optimal_to_transport_route(optimal_route)
+                    routes.append(advanced_transport_route)
+                    logger.info(f"✅ Advanced algorithm route found: {origin} → {destination} (Score: {optimal_route.route_score})")
+            except Exception as e:
+                logger.warning(f"Advanced route planning failed: {e}")
+        
+        # Priority 2: Try GTFS-enhanced routing for optimal real-time routes
         if self.gtfs_service:
             try:
                 gtfs_route = self.get_gtfs_route_with_schedule(origin, destination, departure_time)
@@ -1053,3 +1083,49 @@ class TransportService:
 ⏰ Operating hours: 06:00-23:00 (most routes)
 🔄 Frequency: 30 seconds - 15 minutes
 💰 Cost: ₺15 with Istanbul Card"""
+
+    def _convert_optimal_to_transport_route(self, optimal_route: OptimalRoute) -> TransportRoute:
+        """Convert OptimalRoute from advanced planner to TransportRoute format"""
+        
+        # Combine all segment instructions
+        all_instructions = []
+        primary_transport_type = "Multi-modal"
+        
+        if optimal_route.segments:
+            # Get primary transport type (most used)
+            transport_types = [seg.transport_type for seg in optimal_route.segments 
+                             if seg.transport_type != "walking"]
+            if transport_types:
+                from collections import Counter
+                primary_transport_type = Counter(transport_types).most_common(1)[0][0].title()
+            
+            # Combine instructions from all segments
+            for i, segment in enumerate(optimal_route.segments):
+                all_instructions.extend(segment.instructions)
+                
+                if i < len(optimal_route.segments) - 1:  # Not the last segment
+                    all_instructions.append("")  # Add empty line between segments
+        
+        # Add summary information
+        summary_instructions = [
+            f"🎯 **Optimal Route Summary:**",
+            f"   📊 Route Score: {optimal_route.route_score} (lower is better)",
+            f"   ⏱️ Total Duration: {optimal_route.total_duration} minutes",
+            f"   💰 Total Cost: ₺{optimal_route.total_cost}",
+            f"   🚶 Walking Distance: {optimal_route.total_walking_distance} km",
+            f"   🔄 Number of Segments: {len(optimal_route.segments)}",
+            "",
+            "📋 **Step-by-Step Directions:**"
+        ]
+        
+        final_instructions = summary_instructions + all_instructions
+        
+        return TransportRoute(
+            origin=optimal_route.origin,
+            destination=optimal_route.destination,
+            transport_type=f"{primary_transport_type} (Optimized)",
+            duration_minutes=optimal_route.total_duration,
+            cost=f"₺{optimal_route.total_cost}",
+            instructions=final_instructions,
+            distance_km=optimal_route.total_distance
+        )
