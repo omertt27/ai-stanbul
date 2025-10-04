@@ -202,7 +202,7 @@ except ImportError:
 
 # Import cost monitoring system
 try:
-    from cost_monitor import log_openai_cost, log_google_places_cost, log_google_weather_cost
+    from cost_monitor import log_openai_cost, log_google_places_cost
     COST_MONITORING_AVAILABLE = True
 except ImportError:
     COST_MONITORING_AVAILABLE = False
@@ -907,7 +907,7 @@ CRITICAL ENHANCEMENT RULES:
 2. DISTRICT-SPECIFIC EXPERTISE: Provide neighborhood-specific insights, hidden gems, and local character details
 3. TURKISH CULTURAL INTEGRATION: Use Turkish place names with proper characters (ğ, ü, ş, ç, ı, ö) and cultural context
 4. LOCATION INTELLIGENCE: Understand Turkish place name variations and provide authentic local insights
-5. NO SPECIFIC PRICING: Use "budget-friendly", "moderate", "upscale" instead of actual prices or currency
+5. NO SPECIFIC PRICING: Use "budget-friendly", "moderate", "upscale" instead of actual prices or amounts
 
 ENHANCED PRACTICAL INFORMATION REQUIREMENTS:
 - Opening Hours: Specific times and closure days for attractions
@@ -1463,9 +1463,9 @@ class UnifiedAISystem:
         if any(keyword in user_lower for keyword in ['restaurant', 'food', 'eat', 'dining', 'cuisine', 'menu']):
             data_needs.append('restaurants')
         
-        # Weather related queries
-        if any(keyword in user_lower for keyword in ['weather', 'temperature', 'rain', 'sunny', 'climate']):
-            data_needs.append('weather')
+        # Seasonal related queries
+        if any(keyword in user_lower for keyword in ['season', 'seasonal', 'timing', 'best time', 'when to visit']):
+            data_needs.append('seasonal')
         
         # Transportation queries
         if any(keyword in user_lower for keyword in ['transport', 'metro', 'bus', 'taxi', 'ferry', 'how to get']):

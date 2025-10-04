@@ -7,7 +7,7 @@ IMPROVEMENTS IMPLEMENTED:
 1. Advanced TSP algorithms (Simulated Annealing, 2-opt)
 2. Multi-objective optimization (time, cost, culture, accessibility)
 3. Time-window constraints (opening hours, prayer times)
-4. Weather-based recommendations
+4. Seasonal-based recommendations
 5. Real-time crowd prediction
 6. Advanced cultural scoring
 7. Better user preference matching
@@ -27,7 +27,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 # Import enhanced transportation advisor
-from enhanced_transportation_advisor import EnhancedTransportationAdvisor, TransportMode, WeatherCondition
+from enhanced_transportation_advisor import EnhancedTransportationAdvisor, TransportMode
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class Place:
     cultural_significance: float
     cost_level: int
     interests: List[str]
-    weather_dependent: bool = False
+    seasonal_dependent: bool = False
     crowd_factor: float = 1.0
     photography_allowed: bool = True
     dress_code_required: bool = False
@@ -69,7 +69,7 @@ class RouteSegment:
     carbon_footprint_kg: float
     accessibility_rating: float
     # Enhanced transportation intelligence fields
-    weather_suitability: Dict[str, float]
+    seasonal_suitability: Dict[str, float]
     crowding_level: str
     cultural_notes: List[str]
     real_time_tips: List[str]
@@ -80,7 +80,7 @@ class RouteSegment:
     instructions: List[str] = None
     scenic_value: float = 0.5
     accessibility_score: float = 0.8
-    weather_impact: float = 0.0
+    seasonal_impact: float = 0.0
 
 @dataclass
 class DailyItinerary:
@@ -93,7 +93,7 @@ class DailyItinerary:
     total_cost_tl: float
     total_walking_minutes: int
     cultural_insights: List[str]
-    weather_considerations: List[str]
+    seasonal_considerations: List[str]
     accessibility_score: float
     cultural_score: float
     efficiency_score: float
@@ -130,7 +130,7 @@ class BudgetLevel(Enum):
     MODERATE = "moderate"
     LUXURY = "luxury"
 
-class WeatherCondition(Enum):
+class SeasonCondition(Enum):
     SUNNY = "sunny"
     RAINY = "rainy"
     CLOUDY = "cloudy"
@@ -151,7 +151,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=1.0,
         cost_level=2,
         interests=[InterestType.HISTORY.value, InterestType.ARCHITECTURE.value, InterestType.RELIGIOUS.value],
-        weather_dependent=False,
+        seasonal_dependent=False,
         crowd_factor=1.3,
         photography_allowed=True,
         dress_code_required=True,
@@ -170,7 +170,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=1.0,
         cost_level=0,
         interests=[InterestType.RELIGIOUS.value, InterestType.ARCHITECTURE.value, InterestType.HISTORY.value],
-        weather_dependent=False,
+        seasonal_dependent=False,
         crowd_factor=1.4,
         photography_allowed=False,  # Inside prayer area
         dress_code_required=True,
@@ -189,7 +189,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=0.9,
         cost_level=2,
         interests=[InterestType.HISTORY.value, InterestType.ARCHITECTURE.value, InterestType.PHOTOGRAPHY.value],
-        weather_dependent=True,  # Views affected by weather
+        seasonal_dependent=True,  # Views affected by season
         crowd_factor=1.2,
         photography_allowed=True,
         dress_code_required=False,
@@ -208,7 +208,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=0.8,
         cost_level=1,
         interests=[InterestType.SHOPPING.value, InterestType.CULTURE.value, InterestType.HISTORY.value],
-        weather_dependent=False,  # Indoor
+        seasonal_dependent=False,  # Indoor
         crowd_factor=1.5,
         photography_allowed=True,
         dress_code_required=False,
@@ -227,7 +227,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=0.9,
         cost_level=2,
         interests=[InterestType.NATURE.value, InterestType.CULTURE.value, InterestType.PHOTOGRAPHY.value],
-        weather_dependent=True,  # Heavily affected by weather
+        seasonal_dependent=True,  # Heavily affected by season
         crowd_factor=1.1,
         photography_allowed=True,
         dress_code_required=False,
@@ -246,7 +246,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=0.7,
         cost_level=1,
         interests=[InterestType.FOOD.value, InterestType.CULTURE.value, InterestType.SHOPPING.value],
-        weather_dependent=False,  # Mostly covered
+        seasonal_dependent=False,  # Mostly covered
         crowd_factor=1.0,
         photography_allowed=True,
         dress_code_required=False,
@@ -265,7 +265,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=0.9,
         cost_level=2,
         interests=[InterestType.HISTORY.value, InterestType.ARCHITECTURE.value, InterestType.PHOTOGRAPHY.value],
-        weather_dependent=False,  # Underground
+        seasonal_dependent=False,  # Underground
         crowd_factor=1.2,
         photography_allowed=True,
         dress_code_required=False,
@@ -284,7 +284,7 @@ ENHANCED_ISTANBUL_PLACES = [
         cultural_significance=1.0,
         cost_level=3,
         interests=[InterestType.HISTORY.value, InterestType.CULTURE.value, InterestType.ART.value],
-        weather_dependent=True,  # Outdoor areas
+        seasonal_dependent=True,  # Outdoor areas
         crowd_factor=1.3,
         photography_allowed=True,
         dress_code_required=False,
@@ -330,15 +330,15 @@ class AdvancedGPTPlanner:
             "snacks": ["Turkish delight", "Simit (Turkish bagel)", "Fresh pomegranate juice"]
         }
     
-    async def generate_enhanced_itinerary_structure(self, preferences: Dict, current_weather: str = "sunny") -> Dict:
-        """Generate sophisticated itinerary structure with weather and cultural intelligence"""
+    async def generate_enhanced_itinerary_structure(self, preferences: Dict, current_season: str = "spring") -> Dict:
+        """Generate sophisticated itinerary structure with seasonal and cultural intelligence"""
         duration = preferences.get('duration_days', 3)
         interests = preferences.get('interests', [InterestType.HISTORY.value])
         budget = preferences.get('budget', BudgetLevel.MODERATE.value)
         accessibility_needs = preferences.get('accessibility_needs', [])
         
-        # Weather-based adjustments
-        weather_strategy = self._create_weather_strategy(current_weather)
+        # Seasonal-based adjustments
+        seasonal_strategy = self._create_seasonal_strategy(current_season)
         
         # Cultural timing considerations
         cultural_timing = self._get_cultural_timing_constraints()
@@ -347,8 +347,8 @@ class AdvancedGPTPlanner:
             'theme': self._determine_advanced_theme(interests, duration),
             'pacing': self._determine_intelligent_pacing(duration, budget, accessibility_needs),
             'cultural_considerations': self._get_enhanced_cultural_considerations(interests),
-            'daily_structure': self._plan_intelligent_daily_structure(duration, interests, budget, weather_strategy),
-            'weather_strategy': weather_strategy,
+            'daily_structure': self._plan_intelligent_daily_structure(duration, interests, budget, seasonal_strategy),
+            'seasonal_strategy': seasonal_strategy,
             'cultural_timing': cultural_timing,
             'personalization_score': self._calculate_personalization_score(preferences)
         }
@@ -356,29 +356,35 @@ class AdvancedGPTPlanner:
         logger.info(f"🧠 Enhanced GPT: {itinerary_structure['theme']} (Score: {itinerary_structure['personalization_score']:.2f})")
         return itinerary_structure
     
-    def _create_weather_strategy(self, weather: str) -> Dict:
-        """Create weather-adapted strategy"""
+    def _create_seasonal_strategy(self, season: str) -> Dict:
+        """Create season-adapted strategy"""
         strategies = {
-            "sunny": {
-                "priority": ["outdoor_activities", "photography", "walking"],
+            "spring": {
+                "priority": ["outdoor_activities", "photography", "walking", "gardens"],
                 "avoid": [],
                 "timing": "any",
-                "recommendations": ["Bring sunscreen", "Stay hydrated", "Visit Bosphorus areas"]
+                "recommendations": ["Perfect season for sightseeing", "Tulip season", "Comfortable walking"]
             },
-            "rainy": {
-                "priority": ["indoor_museums", "covered_markets", "underground_sites"],
-                "avoid": ["outdoor_photography", "ferry_rides", "walking_tours"],
+            "summer": {
+                "priority": ["early_morning", "evening_activities", "indoor_attractions"],
+                "avoid": ["midday_outdoor"],
+                "timing": "early_late",
+                "recommendations": ["Early morning visits", "Evening Bosphorus tours", "Indoor attractions during heat"]
+            },
+            "autumn": {
+                "priority": ["photography", "walking", "outdoor_activities"],
+                "avoid": [],
+                "timing": "any",
+                "recommendations": ["Beautiful lighting", "Comfortable temperatures", "Perfect for long walks"]
+            },
+            "winter": {
+                "priority": ["indoor_museums", "covered_markets", "warm_venues"],
+                "avoid": ["extended_outdoor"],
                 "timing": "flexible",
-                "recommendations": ["Bring umbrella", "Use covered transport", "Visit Grand Bazaar"]
-            },
-            "cloudy": {
-                "priority": ["photography", "walking", "mixed_activities"],
-                "avoid": [],
-                "timing": "any",
-                "recommendations": ["Great for photography", "Comfortable walking weather"]
+                "recommendations": ["Indoor attractions preferred", "Cozy cafes", "Shorter outdoor visits"]
             }
         }
-        return strategies.get(weather, strategies["sunny"])
+        return strategies.get(season, strategies["spring"])
     
     def _get_cultural_timing_constraints(self) -> Dict:
         """Get Islamic prayer timing and cultural constraints"""
@@ -475,21 +481,21 @@ class AdvancedGPTPlanner:
         
         return list(set(considerations))  # Remove duplicates
     
-    def _plan_intelligent_daily_structure(self, duration: int, interests: List[str], budget: str, weather_strategy: Dict) -> List[Dict]:
-        """Plan intelligent daily structure with weather and cultural considerations"""
+    def _plan_intelligent_daily_structure(self, duration: int, interests: List[str], budget: str, seasonal_strategy: Dict) -> List[Dict]:
+        """Plan intelligent daily structure with seasonal and cultural considerations"""
         daily_plans = []
         
         for day in range(1, duration + 1):
             if day == 1:
                 focus = "Historic Peninsula - Byzantine and Ottoman Heritage"
                 recommended_places = ["hagia_sophia", "blue_mosque", "grand_bazaar"]
-                if WeatherCondition.RAINY.value in weather_strategy.get("avoid", []):
+                if "outdoor_activities" in seasonal_strategy.get("avoid", []):
                     recommended_places = ["hagia_sophia", "grand_bazaar"]  # More indoor options
             elif day == 2:
                 focus = "Modern Istanbul - Beyoğlu and Bosphorus Views" 
                 recommended_places = ["galata_tower", "bosphorus_cruise"]
-                if weather_strategy.get("priority") and "indoor_activities" in weather_strategy["priority"]:
-                    recommended_places = ["galata_tower"]  # Skip cruise if bad weather
+                if seasonal_strategy.get("priority") and "indoor_activities" in seasonal_strategy["priority"]:
+                    recommended_places = ["galata_tower"]  # Prioritize indoor attractions
             else:
                 focus = "Local Experience - Asian Side and Hidden Gems"
                 recommended_places = ["kadikoy_market"]

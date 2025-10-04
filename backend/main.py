@@ -44,6 +44,35 @@ daily_usage = defaultdict(int)  # IP -> count
 last_reset_date = date.today()
 DAILY_LIMIT = 200  # 200 requests per IP per day (increased for testing)
 
+# System metrics for monitoring
+system_metrics = {
+    "requests_total": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "errors": 0,
+    "response_times": [],
+    "api_costs": 0.0,
+    "cache_savings": 0.0,
+    "start_time": datetime.now()
+}
+
+# OpenAI API configuration
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+# Redis availability flag and client initialization
+redis_available = REDIS_AVAILABLE
+redis_client = None
+if REDIS_AVAILABLE:
+    try:
+        redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        # Test connection
+        redis_client.ping()
+        print("✅ Redis client initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Redis connection failed: {e}")
+        redis_available = False
+        redis_client = None
+
 # Add the current directory to Python path for imports (must be before project imports)
 # Handle different deployment scenarios
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -158,7 +187,7 @@ except ImportError as e:
     raise
 try:
     from api_clients.google_places import GooglePlacesClient  # type: ignore
-    from api_clients.weather_enhanced import WeatherClient  # type: ignore
+    # Weather functionality removed - using seasonal guidance instead
     from api_clients.enhanced_api_service import EnhancedAPIService  # type: ignore
     print("✅ API clients import successful")
 except ImportError as e:
@@ -170,16 +199,12 @@ except ImportError as e:
         def search_restaurants(self, *args, **kwargs): 
             return {"results": [], "status": "OK"}
     
-    class WeatherClient:  # type: ignore
-        def __init__(self, *args, **kwargs): pass
-        async def get_weather(self, *args, **kwargs): return {}
-        def get_istanbul_weather(self, *args, **kwargs): return {}
-        def format_weather_info(self, *args, **kwargs): return "Weather data not available"
+    # Weather functionality removed - seasonal guidance provided through database
     
     class EnhancedAPIService:  # type: ignore
         def __init__(self, *args, **kwargs): pass
         def search_restaurants_enhanced(self, *args, **kwargs): 
-            return {"results": [], "weather_context": {}}
+            return {"results": [], "seasonal_context": {}}
 
 try:
     from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor  # type: ignore
@@ -371,6 +396,23 @@ except ImportError:
     OpenAI_available = False
     print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
 
+# --- Custom AI System Import ---
+try:
+    from services.custom_ai_orchestrator import CustomAISystemOrchestrator
+    CUSTOM_AI_AVAILABLE = True
+    print("✅ Custom AI Orchestrator loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Custom AI Orchestrator not available: {e}")
+    CUSTOM_AI_AVAILABLE = False
+
+# Initialize Custom AI System
+if CUSTOM_AI_AVAILABLE:
+    custom_ai_system = CustomAISystemOrchestrator()
+else:
+    custom_ai_system = None
+
+# --- Legacy imports and system setup ---
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -543,6 +585,7 @@ async def add_security_headers(request: Request, call_next):
 print("✅ Security headers middleware configured")
 
 # Rate limiter initialization
+limiter = None
 if RATE_LIMITING_ENABLED:
     try:
         limiter = Limiter(key_func=get_remote_address)
@@ -552,8 +595,8 @@ if RATE_LIMITING_ENABLED:
     except Exception as e:
         print(f"⚠️ Rate limiting initialization failed: {e}")
         RATE_LIMITING_ENABLED = False
+        limiter = None
 else:
-    limiter = None
     print("⚠️ Rate limiting disabled")
 
 # (Removed duplicate project imports and load_dotenv)
@@ -584,7 +627,7 @@ def clean_text_formatting(text):
     if emoji_count > 3:
         text = emoji_pattern.sub(r'', text)
     
-    # PHASE 1: Remove explicit currency amounts (all formats) - ENHANCED
+    # PHASE 1: Remove explicit pricing amounts (all formats) - ENHANCED
     text = re.sub(r'\$\d+[\d.,]*', '', text)      # $20, $15.50
     text = re.sub(r'€\d+[\d.,]*', '', text)       # €20, €15.50
     text = re.sub(r'₺\d+[\d.,]*', '', text)       # ₺20, ₺15.50
@@ -592,13 +635,13 @@ def clean_text_formatting(text):
     text = re.sub(r'\d+\s*(?:\$|€|₺)', '', text)  # 20$, 50 €
     text = re.sub(r'(?:\$|€|₺)\s*\d+[\d.,]*', '', text)  # $ 20, € 15.50
     
-    # Additional currency patterns
+    # Additional pricing patterns
     text = re.sub(r'£\d+[\d.,]*', '', text)       # £20, £15.50
     text = re.sub(r'\d+£', '', text)              # 50£
     text = re.sub(r'(?:USD|EUR|GBP|TRY|TL)\s*\d+[\d.,]*', '', text, flags=re.IGNORECASE)
     text = re.sub(r'\d+\s*(?:USD|EUR|GBP|TRY|TL)', '', text, flags=re.IGNORECASE)
     
-    # PHASE 2: Remove currency words and phrases - ENHANCED
+    # PHASE 2: Remove pricing words and phrases - ENHANCED
     text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur|gbp|try)s?', '', text, flags=re.IGNORECASE)
     text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)
     text = re.sub(r'(?:around|about|approximately|roughly)\s+\d+\s*(?:lira|euro|euros|dollar|dollars)', '', text, flags=re.IGNORECASE)
@@ -619,11 +662,11 @@ def clean_text_formatting(text):
     for pattern in cost_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
     
-    # PHASE 4: Remove money emojis and currency symbols - ENHANCED
+    # PHASE 4: Remove money emojis and pricing symbols - ENHANCED
     text = re.sub(r'💰|💵|💴|💶|💷|💸', '', text)
     text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨₡₵₼₢₨₹₿]', '', text)
     
-    # Remove currency codes
+    # Remove pricing codes
     text = re.sub(r'\b(?:USD|EUR|GBP|TRY|TL|JPY|CHF|CAD|AUD)\b', '', text, flags=re.IGNORECASE)
     
     # PHASE 5: Remove ALL markdown formatting for clean responses
@@ -1092,31 +1135,43 @@ LOCATION-SPECIFIC INSTRUCTIONS:
             if enhanced_location_info:
                 enhanced_system_prompt += enhanced_location_info
             
-            # 🌤️ ADD WEATHER CONTEXT TO PROMPT
+            # 🌤️ ADD SEASONAL CONTEXT TO PROMPT
             try:
-                # Import and use the working weather client
-                from api_clients.weather_enhanced import weather_client
+                from datetime import datetime
+                import calendar
                 
-                weather_data = weather_client.get_istanbul_weather()
-                weather_info = weather_client.format_weather_info(weather_data)
+                current_month = datetime.now().month
+                season_info = {
+                    (12, 1, 2): "Winter season - indoor attractions preferred, cozy atmosphere",
+                    (3, 4, 5): "Spring season - tulip season, moderate crowds, pleasant visiting conditions", 
+                    (6, 7, 8): "Summer season - peak tourist time, early morning/evening visits recommended",
+                    (9, 10, 11): "Autumn season - beautiful lighting, fewer crowds, ideal visiting time"
+                }
                 
-                weather_context = f"""
-🌤️ CURRENT ISTANBUL WEATHER INFORMATION:
-{weather_info}
+                seasonal_context = None
+                for months, description in season_info.items():
+                    if current_month in months:
+                        seasonal_context = description
+                        break
+                
+                if seasonal_context:
+                    season_context = f"""
+� CURRENT SEASONAL INFORMATION:
+{seasonal_context}
 
-Weather-Based Recommendations:
-- Temperature: {weather_data.get('temperature', 'N/A')}°C
-- Condition: {weather_data.get('description', 'N/A')}
-- Rain Status: {'Currently raining' if weather_data.get('is_raining', False) else 'No rain expected'}
+Seasonal Recommendations:
+- Consider seasonal timing for outdoor activities
+- Account for crowd patterns and tourist seasons
+- Suggest appropriate clothing and preparation
 
-IMPORTANT: When providing recommendations, consider the current weather conditions above. For indoor/outdoor activity suggestions, clothing advice, or timing recommendations, use this weather information to provide contextually appropriate advice.
+IMPORTANT: When providing recommendations, consider the current season. For activity suggestions, timing advice, or preparation recommendations, use this seasonal information to provide contextually appropriate advice.
 
 """
-                enhanced_system_prompt += weather_context
-                print(f"✅ Enhanced system prompt with current weather data: {weather_data.get('temperature')}°C, {weather_data.get('description')}")
+                    enhanced_system_prompt += season_context
+                    print(f"✅ Enhanced system prompt with seasonal context: {seasonal_context}")
                 
             except Exception as e:
-                print(f"⚠️ Error adding weather context: {e}")
+                print(f"⚠️ Error adding seasonal context: {e}")
             
             # 🧠 ENHANCE PROMPT WITH PERSONALIZATION
             if personalization.get('has_history'):
@@ -1191,7 +1246,7 @@ IMPORTANT: When providing recommendations, consider the current weather conditio
 CRITICAL RULES:
 1. LOCATION FOCUS: Only provide information about ISTANBUL, Turkey. If asked about other cities (Ankara, Izmir, etc.), politely redirect to Istanbul or clarify that you specialize in Istanbul only.
 2. NO PRICING: Never include specific prices, costs, fees, or monetary amounts. Instead use terms like "affordable", "moderate", "upscale", "budget-friendly", "varies".
-3. NO CURRENCY: Avoid all currency symbols, numbers with currency words, or specific cost amounts.
+3. NO SPECIFIC PRICING: Avoid all pricing symbols, numbers with cost terms, or specific amounts. Use "budget-friendly", "moderate", "upscale" instead.
 4. DIRECT RELEVANCE: Answer exactly what the user asks. Don't provide generic information - be specific to their query.
 
 Guidelines:
@@ -1671,29 +1726,408 @@ def extract_museum_key_from_input(user_message: str) -> Optional[str]:
     
     return None
 
-# === GLOBAL SYSTEM METRICS ===
-system_metrics = {
-    "requests_total": 0,
-    "errors": 0,
-    "cache_hits": 0,
-    "cache_misses": 0,
-    "response_times": [],
-    "api_costs": 0.0,
-    "cache_savings": 0.0,
-    "start_time": datetime.now()
-}
+# === AI RESPONSE HANDLERS ===
 
-# Redis connection for health checks
-if REDIS_AVAILABLE:
+async def get_custom_ai_response(user_input: str, session_id: str, client_ip: str) -> Dict[str, Any]:
+    """
+    Get response from custom AI system (non-GPT) including restaurant database service
+    """
     try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-        redis_available = True
+        if not CUSTOM_AI_AVAILABLE or not custom_ai_system:
+            return None
+            
+        # Process query through custom AI system
+        result = custom_ai_system.process_query(
+            query=user_input,
+            user_id=session_id,
+            context={
+                "original_query": user_input,
+                "client_ip": client_ip,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+        
+        if result and result.get("response"):
+            return {
+                "response": result.get("response"),
+                "session_id": session_id,
+                "success": True,
+                "quality_assessment": {
+                    "confidence": result.get("confidence", 0.8),
+                    "source": result.get("source", "custom_ai"),
+                    "query_type": result.get("query_type", "unknown"),
+                    "processing_time": result.get("processing_time", 0)
+                },
+                "has_context": True,
+                "category": result.get("query_type", "general"),
+                "data_source": result.get("source", "custom_services")
+            }
+        else:
+            return None
+            
     except Exception as e:
-        redis_available = False
-        print(f"⚠️ Redis connection failed: {e}")
+        print(f"❌ Error in custom AI response: {e}")
+        return None
+
+# --- Project Imports ---
+try:
+    from database import engine, SessionLocal, get_db
+    print("✅ Database import successful")
+except ImportError as e:
+    print(f"❌ Database import failed: {e}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Python path: {sys.path[:5]}")  # First 5 paths
+    print(f"Files in current directory: {os.listdir('.')}")
+    raise
+
+try:
+    from models import Base, Restaurant, Museum, Place, UserFeedback, ChatSession, BlogPost, BlogComment, ChatHistory
+    from sqlalchemy.orm import Session
+    print("✅ Models import successful")
+except ImportError as e:
+    print(f"❌ Models import failed: {e}")
+    raise
+
+try:
+    from routes import museums, restaurants, places, blog
+    print("✅ Routes import successful")
+except ImportError as e:
+    print(f"❌ Routes import failed: {e}")
+    raise
+try:
+    from api_clients.google_places import GooglePlacesClient  # type: ignore
+    # Weather functionality removed - using seasonal guidance instead
+    from api_clients.enhanced_api_service import EnhancedAPIService  # type: ignore
+    print("✅ API clients import successful")
+except ImportError as e:
+    print(f"⚠️ API clients import failed (non-critical): {e}")
+    # Create dummy classes for missing API clients
+    class GooglePlacesClient:  # type: ignore
+        def __init__(self, *args, **kwargs): pass
+        async def search_places(self, *args, **kwargs): return []
+        def search_restaurants(self, *args, **kwargs): 
+            return {"results": [], "status": "OK"}
+    
+    # Weather functionality removed - seasonal guidance provided through database
+    
+    class EnhancedAPIService:  # type: ignore
+        def __init__(self, *args, **kwargs): pass
+        def search_restaurants_enhanced(self, *args, **kwargs): 
+            return {"results": [], "seasonal_context": {}}
+
+try:
+    from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor  # type: ignore
+    print("✅ Enhanced input processor import successful")
+except ImportError as e:
+    print(f"⚠️ Enhanced input processor import failed: {e}")
+    # Create dummy functions
+    def enhance_query_understanding(user_input: str) -> str:  # type: ignore
+        return user_input
+    def get_response_guidance(user_input: str) -> dict:  # type: ignore
+        return {"guidance": "basic"}
+    class InputProcessor:  # type: ignore
+        def enhance_query_context(self, text: str) -> dict:
+            return {"query_type": "general"}
+    input_processor = InputProcessor()
+
+# --- Import Enhanced Services ---
+try:
+    from enhanced_transportation_service import EnhancedTransportationService
+    from enhanced_museum_service import EnhancedMuseumService  
+    from enhanced_actionability_service import EnhancedActionabilityService
+    
+    # Initialize enhanced services
+    enhanced_transport_service = EnhancedTransportationService()
+    enhanced_museum_service = EnhancedMuseumService()
+    enhanced_actionability_service = EnhancedActionabilityService()
+    
+    ENHANCED_SERVICES_ENABLED = True
+    print("✅ Enhanced services (transportation, museum, actionability) imported successfully")
+except ImportError as e:
+    print(f"⚠️ Enhanced services not available: {e}")
+    ENHANCED_SERVICES_ENABLED = False
+    
+    # Create dummy services to prevent errors
+    class DummyEnhancedService:
+        def get_transportation_info(self, *args, **kwargs): return {}
+        def get_route_info(self, *args, **kwargs): return {}
+        def get_museum_info(self, *args, **kwargs): return {}
+        def search_museums(self, *args, **kwargs): return []
+        def enhance_response_actionability(self, *args, **kwargs): return {"success": False}
+        def format_structured_response(self, *args, **kwargs): return ""
+        def add_cultural_context(self, *args, **kwargs): return ""
+        def translate_key_phrases(self, *args, **kwargs): return ""
+    
+    enhanced_transport_service = DummyEnhancedService()
+    enhanced_museum_service = DummyEnhancedService()
+    enhanced_actionability_service = DummyEnhancedService()
+
+# Import live data services for museums and transport
+try:
+    from real_museum_service import real_museum_service
+    print("✅ Real museum service import successful")
+    REAL_MUSEUM_SERVICE_ENABLED = True
+except ImportError as e:
+    print(f"⚠️ Real museum service import failed: {e}")
+    real_museum_service = None
+    REAL_MUSEUM_SERVICE_ENABLED = False
+
+try:
+    from real_transportation_service import real_transportation_service
+    print("✅ Real transportation service import successful")
+    REAL_TRANSPORT_SERVICE_ENABLED = True
+except ImportError as e:
+    print(f"⚠️ Real transportation service import failed: {e}")
+    real_transportation_service = None
+    REAL_TRANSPORT_SERVICE_ENABLED = False
+
+from sqlalchemy.orm import Session
+
+try:
+    from i18n_service import i18n_service
+    print("✅ i18n service import successful")
+except ImportError as e:
+    print(f"⚠️ i18n service import failed: {e}")
+    # Create dummy i18n service
+    class I18nService:
+        def translate(self, key, lang="en"): return key
+        def get_language_from_headers(self, headers): return "en"
+        def should_use_ai_response(self, user_input, language): return True
+        supported_languages = ["en", "tr", "ar", "ru"]
+    i18n_service = I18nService()
+
+# --- Import enhanced AI services ---
+try:
+    from ai_cache_service import get_ai_cache_service, init_ai_cache_service
+    AI_CACHE_ENABLED = True
+except ImportError:
+    print("⚠️ AI Cache service not available")
+    AI_CACHE_ENABLED = False
+    # Create dummy functions to prevent errors
+    get_ai_cache_service = lambda: None  # type: ignore
+    init_ai_cache_service = lambda *args, **kwargs: None  # type: ignore
+
+# Create dummy objects to prevent errors
+class DummyManager:
+    def get_or_create_session(self, *args, **kwargs): return "dummy_session"
+    def get_context(self, *args, **kwargs): return {}
+    def update_context(self, *args, **kwargs): pass
+    def get_preferences(self, *args, **kwargs): return {}
+    def update_preferences(self, *args, **kwargs): pass
+    def learn_from_query(self, *args, **kwargs): pass
+    def get_personalized_filter(self, *args, **kwargs): return {}
+    def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
+    def extract_entities(self, *args, **kwargs): return {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
+    def enhance_recommendations(self, *args, **kwargs): return args[1] if len(args) > 1 else []
+    def analyze_query_context(self, *args, **kwargs): return {"locations": [], "cuisine_types": [], "price_indicators": [], "time_context": [], "group_context": None, "urgency_level": "normal", "query_complexity": "simple"}
+
+class DummyAdvancedAI:
+    async def get_comprehensive_real_time_data(self, *args, **kwargs): return {}
+    async def analyze_image_comprehensive(self, *args, **kwargs): return None
+    async def analyze_menu_image(self, *args, **kwargs): return None
+    async def get_comprehensive_predictions(self, *args, **kwargs): return {}
+
+try:
+    from ai_intelligence import (
+        session_manager, preference_manager, intent_recognizer, 
+        recommendation_engine, saved_session_manager
+    )
+    AI_INTELLIGENCE_ENABLED = True
+    print("✅ AI Intelligence services imported successfully")
+except ImportError as e:
+    print(f"❌ AI Intelligence import failed: {e}")
+    AI_INTELLIGENCE_ENABLED = False
+    
+    # Create dummy objects to prevent errors
+    class DummyAI:
+        def get_or_create_session(self, *args, **kwargs): return "dummy"
+        def get_preferences(self, *args, **kwargs): return {}
+        def update_preferences(self, *args, **kwargs): pass
+        def learn_from_query(self, *args, **kwargs): pass
+        def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
+        def enhance_recommendations(self, *args, **kwargs): return []
+        def save_session(self, *args, **kwargs): return True
+        def get_saved_sessions(self, *args, **kwargs): return []
+        def get_session_details(self, *args, **kwargs): return None
+        def delete_session(self, *args, **kwargs): return True
+        def get_context(self, *args, **kwargs): return {}
+        def update_context(self, *args, **kwargs): pass
+        def analyze_query_context(self, *args, **kwargs): return {}
+        def extract_entities(self, *args, **kwargs): return {}
+        def get_personalized_filter(self, *args, **kwargs): return {}
+    
+    session_manager = preference_manager = intent_recognizer = recommendation_engine = saved_session_manager = DummyAI()
+
+# --- Import Advanced AI Features ---
+try:
+    from api_clients.realtime_data import realtime_data_aggregator
+    from api_clients.multimodal_ai import get_multimodal_ai_service
+    from api_clients.predictive_analytics import predictive_analytics_service
+    ADVANCED_AI_ENABLED = True
+    print("✅ Advanced AI features loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Advanced AI features not available: {e}")
+    ADVANCED_AI_ENABLED = False
+    # Use dummy objects
+    realtime_data_aggregator = DummyAdvancedAI()
+    get_multimodal_ai_service = lambda: DummyAdvancedAI()
+    predictive_analytics_service = DummyAdvancedAI()
+
+# --- Import Language Processing ---
+try:
+    from api_clients.language_processing import (
+        AdvancedLanguageProcessor, 
+        process_user_query,
+        extract_intent_and_entities,
+        is_followup
+    )
+    LANGUAGE_PROCESSING_ENABLED = True
+    language_processor = AdvancedLanguageProcessor()
+    print("✅ Advanced Language Processing loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Language Processing not available: {e}")
+    LANGUAGE_PROCESSING_ENABLED = False
+    # Create dummy functions
+    def process_user_query(text: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+        return {"intent": "general_info", "confidence": 0.1, "entities": {}}
+    def extract_intent_and_entities(text: str) -> Tuple[str, Dict]: 
+        return "general_info", {}
+    def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
+        return False
+
+# --- OpenAI Import ---
+from typing import Optional, Type
+try:
+    from openai import OpenAI
+    OpenAI_available = True
+except ImportError:
+    OpenAI = None  # type: ignore
+    OpenAI_available = False
+    print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
+
+# --- Custom AI System Import ---
+try:
+    from services.custom_ai_orchestrator import CustomAISystemOrchestrator
+    CUSTOM_AI_AVAILABLE = True
+    print("✅ Custom AI Orchestrator loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Custom AI Orchestrator not available: {e}")
+    CUSTOM_AI_AVAILABLE = False
+
+# Initialize Custom AI System
+if CUSTOM_AI_AVAILABLE:
+    custom_ai_system = CustomAISystemOrchestrator()
 else:
-    redis_available = False
-    redis_client = None
+    custom_ai_system = None
+
+# --- Legacy imports and system setup ---
+
+# Initialize logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="AI Istanbul Backend",
+    description="Intelligent Istanbul travel assistant with live data integration",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+print("✅ FastAPI app initialized successfully")
+
+# Add CORS middleware to allow frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001",
+        "http://localhost:3002", 
+        "http://127.0.0.1:3002",
+        "http://localhost:3003", 
+        "http://127.0.0.1:3003",
+        "http://localhost:5173",  # Vite default port
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+print("✅ CORS middleware configured")
+
+# Add security headers middleware for production
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Essential security headers for production
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    return response
+
+print("✅ Security headers middleware configured")
+
+# === Include Routers ===
+try:
+    from routes.blog import router as blog_router
+    app.include_router(blog_router)
+    print("✅ Blog router included successfully")
+except ImportError as e:
+    print(f"⚠️ Blog router import failed: {e}")
+
+# === Include Cache Monitoring Router ===
+try:
+    from routes.cache_monitoring import router as cache_router
+    app.include_router(cache_router)
+    print("✅ Cache monitoring router included successfully")
+except ImportError as e:
+    print(f"⚠️ Cache monitoring router import failed: {e}")
+
+# === Include API Routers ===
+try:
+    from routes.restaurants import router as restaurants_router
+    app.include_router(restaurants_router, prefix="/api/restaurants", tags=["restaurants"])
+    print("✅ Restaurants router included successfully")
+except ImportError as e:
+    print(f"⚠️ Restaurants router import failed: {e}")
+
+try:
+    from routes.museums import router as museums_router
+    app.include_router(museums_router, prefix="/api/museums", tags=["museums"])
+    print("✅ Museums router included successfully")
+except ImportError as e:
+    print(f"⚠️ Museums router import failed: {e}")
+
+try:
+    from routes.places import router as places_router
+    app.include_router(places_router, prefix="/api/places", tags=["places"])
+    print("✅ Places router included successfully")
+except ImportError as e:
+    print(f"⚠️ Places router import failed: {e}")
+
+# === Authentication Setup ===
+try:
+    from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
+    print("✅ Authentication module imported successfully")
+except ImportError as e:
+    print(f"❌ Authentication import failed: {e}")
+    # Create dummy functions to prevent errors
+    async def get_current_admin():
+        return {"username": "admin", "role": "admin"}
+    def authenticate_admin(username, password):
+        return {"username": username, "role": "admin"} if username == "admin" else None
+    def create_access_token(data):
+        return "dummy-token"
 
 # === AI CHAT ENDPOINTS ===
 
@@ -1738,12 +2172,20 @@ async def ai_chat_endpoint(request: Request):
         
         print(f"🤖 AI Chat Request - IP: {client_ip}, Session: {session_id}, Query: {user_input[:100]}...")
         
-        # Log API request if monitoring is enabled
-        # Note: Monitoring logging temporarily disabled for testing
-        start_time = time.time()
-        
-        # Generate AI response with quality assessment
-        result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
+        # Try custom AI system first (non-GPT), fallback to GPT if needed
+        if CUSTOM_AI_AVAILABLE:
+            result = await get_custom_ai_response(user_input, session_id, client_ip)
+            
+            # If custom AI fails or gives low confidence, fallback to GPT
+            if not result or result.get('quality_assessment', {}).get('confidence', 0) < 0.3:
+                print("🔄 Custom AI low confidence or failed, trying GPT fallback...")
+                gpt_result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
+                if gpt_result:
+                    result = gpt_result
+                    result['used_fallback'] = 'gpt'
+        else:
+            # Use GPT if custom AI not available
+            result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
         
         if result and result.get('success'):
             response_data = {
@@ -1870,7 +2312,7 @@ async def create_itinerary(request: ItineraryRequest):
                 "total_walking_minutes": day.total_walking_minutes,
                 "activities": day.activities,
                 "cultural_insights": day.cultural_insights,
-                "weather_considerations": day.weather_considerations,
+                "seasonal_considerations": day.seasonal_considerations,
                 "route_segments": [
                     {
                         "from_place": segment.from_place,
@@ -2259,7 +2701,7 @@ async def cost_analytics(current_user: dict = Depends(get_current_admin)):
         cost_breakdown = {
             "openai_api": round(api_costs * 0.7, 2),
             "google_places": round(api_costs * 0.2, 2),
-            "weather_api": round(api_costs * 0.05, 2),
+            "database_queries": round(api_costs * 0.05, 2),
             "other_apis": round(api_costs * 0.05, 2)
         }
         

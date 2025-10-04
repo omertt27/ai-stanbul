@@ -64,7 +64,7 @@ class SmartCache:
         # Cache configuration
         self.cache_ttl = {
             'google_places': 24 * 3600,     # 24 hours for places
-            'google_weather': 1 * 3600,     # 1 hour for weather
+            'seasonal_info': 24 * 3600,     # 24 hours for seasonal information
             'openai_response': 2 * 3600,    # 2 hours for similar queries
             'location_context': 6 * 3600,   # 6 hours for location data
             'user_preferences': 7 * 24 * 3600  # 7 days for user preferences

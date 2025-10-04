@@ -85,7 +85,7 @@ class SemiAutomatedAnalyzer:
             "What are the main characteristics of Ortaköy district?",
             
             # General Tips & Practical (65-80)
-            "What's the weather like in Istanbul in March and what should I pack?",
+            "What's the best season to visit Istanbul and what should I pack?",
             "What are the most important cultural etiquette rules I should follow?",
             "How do I navigate bureaucracy if I need to extend my visa or handle official matters?",
             "Is it safe for solo female travelers in Istanbul?",

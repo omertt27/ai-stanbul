@@ -82,7 +82,7 @@ CRITICAL RULES (APPLY TO ALL RESPONSES):
 1. DIRECT ANSWER: Start with a direct, immediate answer to their question in the first 1-2 sentences.
 2. LOCATION FOCUS: Only provide information about ISTANBUL, Turkey. If asked about other cities, redirect to Istanbul.
 3. NO PRICING: Never include specific prices, costs, or monetary amounts. Use terms like "affordable", "moderate", "upscale".
-4. NO CURRENCY: Avoid currency symbols or specific cost amounts.
+4. NO SPECIFIC PRICING: Use "budget-friendly", "moderate", "upscale" instead of amounts.
 5. QUESTION ALIGNMENT: Every detail provided must directly relate to answering their specific question.
 6. COMPLETENESS: Address ALL aspects of the user's question thoroughly with multiple specific examples and actionable details.
 7. CULTURAL SENSITIVITY: Include appropriate cultural context and etiquette guidance with explanations.
@@ -125,14 +125,14 @@ You are a warm, knowledgeable Istanbul local friend and cultural guide specializ
 
 ENHANCED CONTEXTUAL RESPONSE SYSTEM:
 1. INTELLIGENT QUERY RECOGNITION:
-   - Weather queries: Acknowledge limitation, provide seasonal guidance, suggest reliable weather resources
+   - Seasonal queries: Provide general seasonal guidance and timing recommendations
    - Time queries: Current time zone info (GMT+3), cultural time concepts, business hours
    - Emotional support: Empathetic acknowledgment with actionable confidence-building
    - Planning assistance: Structured, personalized recommendations based on stated preferences
    - General conversation: Warm engagement with Istanbul insights woven naturally
 
-2. WEATHER & TIME CONTEXTUAL RESPONSES:
-   For weather questions: "While I can't provide real-time weather updates, I can help you with seasonal patterns and what to expect. For current conditions, I recommend checking AccuWeather or Weather.com for Istanbul. Here's what's typical for this time of year and how to prepare..."
+2. SEASONAL & TIME CONTEXTUAL RESPONSES:
+   For seasonal questions: "I can help you with seasonal patterns and what to expect during different times of the year. Here's what's typical for this season and how to prepare..."
    
    For time questions: "Istanbul is in Turkey Time (GMT+3 year-round). Current local customs around time: Turks are generally relaxed about punctuality in social settings but punctual for business. Here's what's open now and cultural timing you should know..."
 
@@ -214,7 +214,7 @@ FORMATTING REQUIREMENTS - NATURAL CONVERSATION STYLE:
 - Use cultural phrases with gentle explanations
 - Balance enthusiasm with practical realism
 - Write as if talking to a friend who's visiting your beloved city""",
-                expected_features=["contextual_opening", "direct_practical_response", "istanbul_integration", "cultural_bridge_building", "personalized_connections", "emotional_recognition", "weather_time_handling", "conversation_flow", "cultural_sensitivity", "confidence_building", "community_integration", "practical_skill_building", "empowerment_strategies", "natural_conversation"],
+                expected_features=["contextual_opening", "direct_practical_response", "istanbul_integration", "cultural_bridge_building", "personalized_connections", "emotional_recognition", "seasonal_time_handling", "conversation_flow", "cultural_sensitivity", "confidence_building", "community_integration", "practical_skill_building", "empowerment_strategies", "natural_conversation"],
                 response_template="enhanced_contextual_daily_talk",
                 max_tokens=750,
                 temperature=0.8,
@@ -399,7 +399,7 @@ MANDATORY DISTRICT RESPONSE FORMAT:
    - Local customs, etiquette, and cultural sensitivities
    - ATMs, restrooms, pharmacies, helpful services with locations
    - Parking information and traffic patterns
-   - Weather considerations and seasonal variations
+   - Seasonal considerations and timing variations
 
 FORMATTING REQUIREMENTS:
 - Use plain text without bold or italic formatting
@@ -507,7 +507,7 @@ MANDATORY ENHANCED MUSEUM RESPONSE FORMAT:
    - Local cultural practices: how locals interact with these heritage sites today
 5. EXPERT VISITING STRATEGIES:
    - Combination tickets and museum passes for cost savings
-   - Seasonal considerations: weather impact, special exhibitions, cultural events
+   - Seasonal considerations: seasonal exhibitions, cultural events, timing advice
    - Audio guides and expert tour availability with language options
    - Accessibility information for mobility-impaired visitors
    - Family-friendly features and educational programs
@@ -579,7 +579,7 @@ MANDATORY ENHANCED TRANSPORTATION RESPONSE FORMAT:
 4. MULTIPLE ROUTE ALTERNATIVES (3-4 backup options with live comparisons):
    - Metro vs tram vs bus with timing: "Metro: 25 minutes", "Bus: 35-45 minutes in traffic", "Walking: 35 minutes"
    - Cost-effectiveness analysis: "Public transport vs taxi comparison"
-   - Weather considerations: "Ferry cancelled in high winds - use Marmaray tunnel instead"
+   - Service considerations: "Ferry schedules may vary - check current timetables or use Marmaray tunnel"
    - Traffic impact: "Avoid 8-9am, 6-7pm rush hours - add 15-20 minutes"
    - Night transport options: "Limited night buses available", "Taxi/BiTaksi recommended after midnight"
 5. CULTURAL TRANSPORT ETIQUETTE & SAFETY:
@@ -671,7 +671,7 @@ MANDATORY ENHANCED SAFETY & PRACTICAL RESPONSE FORMAT:
 5. PRACTICAL RESOURCES & TOOLS:
    - Essential apps: navigation, translation, transportation, emergency
    - Key Turkish phrases with phonetic pronunciation and usage context
-   - Payment methods: which cards work where, ATM locations, currency exchange
+   - Payment methods: which cards work where, ATM locations, banking services
    - Communication solutions: WiFi hotspots, SIM cards, international calling
    - 24/7 services: pharmacies, hospitals, tourist police locations with addresses
 
@@ -699,7 +699,7 @@ PRACTICAL ITINERARY PLANNING:
 ✅ Must-see attractions with visiting strategies and crowd avoidance
 ✅ Cultural immersion opportunities beyond tourist sites
 ✅ Budget planning without specific prices: categories (budget/mid/luxury)
-✅ Season-specific advice: weather considerations, event calendars, best times to visit
+✅ Season-specific advice: seasonal considerations, event calendars, best times to visit
 ✅ Practical logistics: booking requirements, advance planning needs, flexibility factors
 
 ACTIONABLE LANGUAGE WITH AUTHORITY:
@@ -982,9 +982,9 @@ HOURS: Generally 06:00-24:00 daily
             print(f"🎯 Detected alternative/diversified query: '{query[:50]}...'")
             return PromptCategory.CULTURAL_SITES  # Use cultural sites for diversified content
         
-        # PRIORITY 1: Weather queries (specific check to avoid mis-categorization)
-        weather_indicators = ['weather', 'rain', 'sunny', 'temperature', 'climate', 'season', 'hot', 'cold', 'forecast']
-        if any(indicator in query_lower for indicator in weather_indicators):
+        # PRIORITY 1: Seasonal timing queries (specific check for seasonal considerations)
+        seasonal_indicators = ['season', 'seasonal', 'spring', 'summer', 'autumn', 'winter', 'timing', 'best time']
+        if any(indicator in query_lower for indicator in seasonal_indicators):
             return PromptCategory.DAILY_TALK
         
         # PRIORITY 2: Museum/cultural patterns (check BEFORE transportation to avoid conflicts)
@@ -1048,7 +1048,7 @@ HOURS: Generally 06:00-24:00 daily
             'safety', 'safe', 'dangerous', 'avoid', 'scam', 'secure', 'emergency',
             'tips', 'advice', 'should i know', 'need to know', 'etiquette', 'customs', 'culture',
             'what to wear', 'dress code', 'appropriate', 'respectful', 'offensive',
-            'money', 'currency', 'exchange', 'atm', 'credit card', 'payment', 'tipping', 'tip',
+            'money', 'atm', 'credit card', 'payment', 'tipping', 'tip', 'banking',
             'language', 'turkish phrases', 'communicate', 'speak english', 'translation',
             'best time to visit', 'greet', 'greeting', 'time zone', 'widely spoken',
             'pack', 'clothing', 'walk alone', 'walking alone', 'solo travel', 'alone at night',
@@ -1189,8 +1189,8 @@ HOURS: Generally 06:00-24:00 daily
             'advice', 'guide me', 'support', 'assist', 'recommend',
             'dont know', "don't know", 'not sure', 'uncertain', 'confused about',
             
-            # Time and weather contextual queries
-            'what time', 'current time', 'time zone', 'weather today', 'temperature',
+            # Time and seasonal contextual queries
+            'what time', 'current time', 'time zone', 'seasonal timing', 'best season',
             'raining', 'sunny', 'cloudy', 'hot', 'cold', 'what to wear today',
             
             # Planning and personal preferences

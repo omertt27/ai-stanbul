@@ -1642,9 +1642,9 @@ class IstanbulKnowledgeDatabase:
                     'night_after_8pm': 'İstiklal Avenue, rooftop bars, dinner'
                 },
                 'seasonal_timing_advice': {
-                    'spring_march_may': 'Perfect weather, tulip season April, moderate crowds',
-                    'summer_june_august': 'Hot and crowded, early morning/evening visits best',
-                    'autumn_september_november': 'Ideal weather, beautiful light, fewer crowds',
+                    'spring_march_may': 'Tulip season April, moderate crowds',
+                    'summer_june_august': 'Early morning/evening visits best due to crowds',
+                    'autumn_september_november': 'Beautiful light, fewer crowds',
                     'winter_december_february': 'Indoor attractions preferred, cozy atmosphere'
                 },
                 'crowd_avoidance_strategies': {
@@ -1660,7 +1660,7 @@ class IstanbulKnowledgeDatabase:
                     'essential_items': 'Passport/ID, comfortable walking shoes, water bottle, phone charger',
                     'mosque_visits': 'Scarf for women, long pants, socks (shoe removal), small bag for shoes',
                     'photography_gear': 'Camera, extra batteries, lens cleaning cloth, phone stabilizer',
-                    'weather_dependent': 'Umbrella (sudden rain), sunscreen, light jacket (evening)',
+                    'seasonal_items': 'Umbrella (rain protection), sunscreen, light jacket (evening)',
                     'money_matters': 'Mix of cash and cards, small bills for tips, backup payment method'
                 },
                 'cultural_etiquette_specifics': {
@@ -1682,7 +1682,7 @@ class IstanbulKnowledgeDatabase:
                     'bathroom_locations': 'All mosques have free clean bathrooms, shopping malls, metro stations',
                     'water_refill_spots': 'Mosques have fountains, parks have water fountains, ask restaurants politely',
                     'local_transport_apps': 'Moovit (best for routing), İETT (official bus app), BiTaksi (taxi app)',
-                    'currency_exchange': 'Avoid airport exchanges, use local exchange offices, banks best rates'
+                    'payment_options': 'Cards widely accepted, local banks for cash needs'
                 }
             }
         }
@@ -1833,7 +1833,7 @@ class IstanbulKnowledgeDatabase:
                 'tips': [
                     "Wear comfortable walking shoes",
                     "Bring water and snacks",
-                    "Check weather conditions",
+                    "Check seasonal conditions",
                     "Plan extra time for exploration"
                 ]
             }
@@ -2234,10 +2234,10 @@ class IstanbulKnowledgeDatabase:
             """,
             
             'seasonal_considerations': """
-            Spring (Mar-May): Best weather, tulip festival in parks
-            Summer (Jun-Aug): Hot and crowded, early morning visits recommended
-            Fall (Sep-Nov): Ideal weather, fewer crowds
-            Winter (Dec-Feb): Mild but rainy, shorter museum hours
+            Spring (Mar-May): Tulip festival in parks, moderate crowds
+            Summer (Jun-Aug): Peak season, early morning visits recommended
+            Fall (Sep-Nov): Fewer crowds, beautiful lighting
+            Winter (Dec-Feb): Quieter season, shorter museum hours
             Ramadan (dates vary): Different schedules, special evening atmosphere
             Religious holidays: Many attractions closed
             """,
@@ -2269,10 +2269,10 @@ class IstanbulKnowledgeDatabase:
             Avoid: Far suburbs unless specific purpose
             """,
             
-            'weather_clothing': """
-            Layers recommended year-round
-            Summer: Light, breathable, sun protection
-            Winter: Warm jacket, umbrella for rain
+            'clothing_recommendations': """
+            Layers recommended year-round for comfort
+            Summer: Light, breathable fabrics, sun protection
+            Winter: Warm jacket, umbrella for rain showers
             Mosque visits: Long pants, covered shoulders always
             Walking shoes essential (lots of hills and cobblestones)
             Formal dress for upscale restaurants and rooftop bars
@@ -2365,7 +2365,7 @@ class IstanbulKnowledgeDatabase:
             'rooftop_bars': 30.0,        # Should handoff to restaurant system
             'private_dining': 25.0,       # Should handoff to restaurant system  
             'practical_timing': 60.0,     # Our enhanced practical info should score 60+
-            'weather_specific': 45.0,     # Our weather data should score 45+
+            'seasonal_specific': 45.0,     # Our seasonal data should score 45+
             'romantic_venues': 40.0,      # Should handoff if below 40
             'local_insider': 35.0,        # GPT better for real local knowledge
             'current_events': 0.0,        # Always handoff real-time queries
@@ -2461,7 +2461,7 @@ class IstanbulKnowledgeDatabase:
         elif any(term in query_lower for term in ['best time', 'when to visit', 'timing', 'avoid crowds']):
             return 'practical_timing'
         elif any(term in query_lower for term in ['air conditioning', 'cool places', 'hot summer', 'ac']):
-            return 'weather_specific'
+            return 'seasonal_specific'
         elif any(term in query_lower for term in ['romantic', 'intimate', 'couple', 'proposal']):
             return 'romantic_venues'
         elif any(term in query_lower for term in ['local', 'insider', 'authentic', 'hidden']):
@@ -2503,7 +2503,7 @@ class IstanbulKnowledgeDatabase:
             'specialized_dining': 'Acknowledge limitation, redirect to restaurant/dining experts, provide district context',
             'alternative_culture': 'Use database context for established venues, suggest verification for underground scene',
             'practical_timing': 'Combine database info with general timing principles, suggest verification',
-            'weather_specific': 'Use database info, enhance with climate considerations and seasonal advice',
+            'seasonal_specific': 'Use database info, enhance with seasonal considerations and timing advice',
             'romantic_venues': 'Combine database romantic spots with general romantic principles',
             'local_insider': 'Use database as foundation, acknowledge limitations, suggest local verification',
             'current_events': 'Acknowledge real-time limitation, provide framework, suggest current sources',
@@ -2545,7 +2545,7 @@ class IstanbulKnowledgeDatabase:
             },
             'system_integration_recommendations': {
                 'restaurant_system_integration': 'Required for rooftop bars and private dining queries',
-                'gpt_enhancement_required': 'For alternative culture, timing, and weather-specific queries',
+                'gpt_enhancement_required': 'For alternative culture, timing, and seasonal-specific queries',
                 'database_improvements_made': 'Enhanced alternative venues and practical information',
                 'expected_overall_improvement': 'Target average score increase from 40.8 to 55+'
             }

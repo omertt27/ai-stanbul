@@ -782,7 +782,7 @@ class EnhancedTransportationService:
         
         if any(term in query for term in ['ferry', 'ferries', 'boat']):
             tips.extend([
-                "Ferry schedules may change due to weather conditions",
+                "Ferry schedules may change due to seasonal conditions",
                 "Prince Islands ferries are seasonal - check İDO website",
                 "Marmara Islands ferries operate April-October from Tekirdağ/Erdek",
                 "Bosphorus island ferries may require club membership or reservations",
@@ -1609,11 +1609,11 @@ class EnhancedTransportationService:
             # Simulate real-time ferry data (in production, would call İDO API)
             base_frequency = 15  # Ferry every 15 minutes during peak hours
             
-            # Account for weather and operational factors
-            weather_factor = 1.0  # Could integrate weather API
+            # Account for seasonal and operational factors
+            seasonal_factor = 1.0  # Seasonal schedule adjustments
             operational_factor = 1.0
             
-            adjusted_frequency = int(base_frequency * weather_factor * operational_factor)
+            adjusted_frequency = int(base_frequency * seasonal_factor * operational_factor)
             
             # Calculate next departures
             next_departures = []
@@ -1626,7 +1626,7 @@ class EnhancedTransportationService:
                 "status": "on_schedule",
                 "next_departures": next_departures,
                 "frequency_minutes": adjusted_frequency,
-                "weather_conditions": "Good for sailing",
+                "service_conditions": "Regular service operating",
                 "last_updated": current_time.isoformat(),
                 "pier_info": "Check departure board at ferry terminal"
             }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-API Cost Calculator for AI Istanbul
+A            "database": 0.0001            # per requestI Cost Calculator for AI Istanbul
 Calculates real-time costs based on actual usage patterns
 """
 
@@ -82,11 +82,11 @@ class AIIstanbulCostCalculator:
         
         # Google API costs
         places_requests = adjusted_messages * 0.25  # 25% need location data
-        weather_requests = adjusted_messages * 0.15  # 15% need weather
+        database_requests = adjusted_messages * 0.85  # 85% use database
         
         places_cost = places_requests * self.google_prices['places_text_search']
-        weather_cost = weather_requests * self.google_prices['weather']
-        total_google = places_cost + weather_cost
+        database_cost = database_requests * self.google_prices['database']
+        total_google = places_cost + database_cost
         
         # Infrastructure costs (scales with usage)
         base_infra = 950
@@ -110,7 +110,7 @@ class AIIstanbulCostCalculator:
                 },
                 'google_apis': {
                     'places': round(places_cost, 2),
-                    'weather': round(weather_cost, 2),
+                    'database': round(database_cost, 2),
                     'total': round(total_google, 2)
                 },
                 'infrastructure': round(infrastructure_cost, 2),
