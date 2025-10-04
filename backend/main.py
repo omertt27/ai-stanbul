@@ -686,6 +686,60 @@ def sanitize_user_input(user_input: str) -> str:
     
     return user_input.strip()
 
+async def get_gpt_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Generate response using unified AI system with quality assessment"""
+    try:
+        # Import the unified AI system
+        from unified_ai_system import get_unified_ai_system
+        from database import SessionLocal
+        
+        # Sanitize input
+        user_input = sanitize_user_input(user_input)
+        if not user_input:
+            return None
+        
+        # Get database session
+        db = SessionLocal()
+        
+        try:
+            # Use unified AI system for response generation
+            unified_ai = get_unified_ai_system(db)
+            
+            print(f"🤖 Using unified AI system with quality assessment for session: {session_id}")
+            
+            # Generate response with persistent context and quality assessment
+            result = await unified_ai.generate_response(
+                user_input=user_input,
+                session_id=session_id,
+                user_ip=user_ip
+            )
+            
+            if result.get('success'):
+                ai_response = result['response']
+                
+                print(f"✅ Unified AI response generated - Session: {result['session_id']}, "
+                      f"Context: {result.get('has_context', False)}, "
+                      f"Quality: {result.get('quality_assessment', {}).get('overall_score', 0):.1f}%, "
+                      f"Fallback: {result.get('quality_assessment', {}).get('used_fallback', False)}")
+                
+                # Apply post-processing cleanup
+                ai_response = post_llm_cleanup(ai_response)
+                result['response'] = ai_response
+                
+                return result
+            else:
+                print(f"❌ Unified AI system failed: {result.get('error', 'Unknown error')}")
+                return None
+                
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"❌ Error in unified AI system: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 async def get_gpt_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
     """Generate response using unified AI system with persistent context and resolved prompt conflicts"""
     try:
@@ -1688,18 +1742,21 @@ async def ai_chat_endpoint(request: Request):
         # Note: Monitoring logging temporarily disabled for testing
         start_time = time.time()
         
-        # Generate AI response
-        ai_response = await get_gpt_response(user_input, session_id, client_ip)
+        # Generate AI response with quality assessment
+        result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
         
-        if ai_response:
+        if result and result.get('success'):
             response_data = {
-                "response": ai_response,
-                "session_id": session_id,
+                "response": result['response'],
+                "session_id": result['session_id'],
                 "success": True,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "quality_assessment": result.get('quality_assessment', {}),
+                "has_context": result.get('has_context', False),
+                "category": result.get('category', 'general')
             }
             
-            print(f"✅ AI Chat Response generated - Length: {len(ai_response)} chars")
+            print(f"✅ AI Chat Response generated - Length: {len(result['response'])} chars")
             return response_data
         else:
             # Fallback response

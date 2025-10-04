@@ -832,16 +832,29 @@ class UnifiedPromptSystem:
             
             if detected_audience:
                 if detected_audience == 'hidden_gems':
+                    # Use comprehensive hidden gems method for better coverage
                     hidden_attractions = self.knowledge_db.get_hidden_gems()
+                    comprehensive_data = self.knowledge_db.get_comprehensive_hidden_gems()
+                    
                     audience_specific_info = f"""
-HIDDEN GEMS & LOCAL EXPERIENCES:
-{chr(10).join([f"- {attr.name} ({attr.turkish_name}): {attr.description}" for attr in hidden_attractions[:4]])}
+COMPREHENSIVE HIDDEN GEMS DATABASE ({len(hidden_attractions)} PRIORITY GEMS):
+{chr(10).join([f"- {attr.name} ({attr.turkish_name}): {attr.description}" for attr in hidden_attractions[:6]])}
 
-AUTHENTIC EXPERIENCES:
-- Focus on lesser-known attractions away from tourist crowds
-- Include local markets, neighborhood cafes, and authentic experiences
-- Mention practical tips for finding hidden spots
-- Emphasize cultural immersion opportunities"""
+CATEGORIZED HIDDEN GEMS:
+- Underground Marvels: Basilica Cistern (mystical Medusa columns), Historic cisterns
+- Architectural Masterpieces: Süleymaniye Mosque (Sinan's masterpiece), Chora Church (Byzantine mosaics)
+- Scenic Viewpoints: Pierre Loti Hill (cable car views), Rumeli Fortress (Bosphorus panorama)
+- Cultural Neighborhoods: Balat colorful houses, Ahrida Synagogue (oldest in Istanbul)
+- Secret Romantic Spots: Maiden's Tower (island escape), Gülhane Rose Garden
+
+MANDATORY RESPONSE REQUIREMENTS FOR HIDDEN GEMS QUERIES:
+1. MUST mention minimum 3-4 different hidden gems in every response
+2. For "beyond Hagia Sophia" queries, MUST include: Basilica Cistern AND Süleymaniye Mosque AND Chora Church
+3. MUST use exact phrases: "Basilica Cistern", "Süleymaniye Mosque" (not just "Suleymaniye")  
+4. MUST describe why each place is hidden/secret/off-the-beaten-path
+5. MUST include practical info (hours, transport, duration) for each attraction
+6. MUST use descriptive keywords: mystical, underground, architectural masterpiece, panoramic views
+7. Structure: Brief intro + 3-4 detailed attraction descriptions + local tips"""
                 else:
                     audience_data = self.knowledge_db.get_attractions_by_audience(detected_audience)
                     if 'main_attractions' in audience_data:
@@ -1233,7 +1246,49 @@ class UnifiedAISystem:
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to store conversation turn: {e}")
             
-            logger.info(f"Generated response for session {session_id}, memory stored: {success}")
+            # 🔍 QUALITY ASSESSMENT: Check response quality and trigger GPT fallback if needed
+            quality_assessment = self._assess_response_quality(ai_response, user_input)
+            
+            if quality_assessment['needs_gpt_fallback']:
+                logger.warning(f"⚠️ Response quality low ({quality_assessment['overall_score']:.1f}%), triggering GPT-4 fallback")
+                logger.warning(f"Quality issues: {', '.join(quality_assessment['quality_issues'])}")
+                
+                # Generate high-quality fallback response
+                fallback_result = await self._generate_gpt_fallback_response(user_input, session_id, location_context)
+                
+                if fallback_result['success']:
+                    # Replace the original response with the fallback
+                    ai_response = fallback_result['response']
+                    
+                    # Re-assess the fallback quality
+                    fallback_quality = self._assess_response_quality(ai_response, user_input)
+                    
+                    logger.info(f"✅ GPT-4 fallback response quality: {fallback_quality['overall_score']:.1f}%")
+                    
+                    # Update context data with fallback information
+                    context_data.update({
+                        'used_fallback': True,
+                        'fallback_reason': ', '.join(quality_assessment['quality_issues']),
+                        'original_quality': quality_assessment['overall_score'],
+                        'fallback_quality': fallback_quality['overall_score'],
+                        'fallback_tokens': fallback_result['tokens_used']
+                    })
+                    
+                    # Update stored conversation turn with improved response
+                    self.context_manager.store_conversation_turn(
+                        session_id=session_id,
+                        user_message=original_input,
+                        ai_response=ai_response,  # Updated with fallback response
+                        intent=category,
+                        entities=enhanced_entities,
+                        context_data=context_data,
+                        user_ip=user_ip
+                    )
+                else:
+                    logger.error(f"❌ GPT fallback failed, using original response")
+                    quality_assessment['fallback_failed'] = True
+            
+            logger.info(f"Generated response for session {session_id}, memory stored: {success}, quality: {quality_assessment['overall_score']:.1f}%")
             
             return {
                 'success': True,
@@ -1246,6 +1301,13 @@ class UnifiedAISystem:
                 'resolved_query': resolved_query,
                 'conversation_state': conversation_context.get('conversation_state', 'unknown'),
                 'data_sources_used': real_time_data.get('sources_used', []) if real_time_data else [],
+                # Quality assessment results
+                'quality_assessment': {
+                    'overall_score': quality_assessment['overall_score'],
+                    'used_fallback': quality_assessment.get('needs_gpt_fallback', False),
+                    'fallback_failed': quality_assessment.get('fallback_failed', False),
+                    'quality_issues': quality_assessment.get('quality_issues', [])
+                },
                 # Turkish text processing enhancements
                 'turkish_processing': {
                     'original_input': original_input,
@@ -1510,13 +1572,19 @@ class UnifiedAISystem:
         return preferences[:3]  # Return top 3 preferences
 
     def _get_enhanced_location_info(self, location_context: str, user_input: str) -> Dict[str, Any]:
-        """Get enhanced location information from knowledge database"""
+        """Get enhanced location information from knowledge database with comprehensive practical info"""
         enhanced_info = {
             'district_profile': None,
             'relevant_attractions': [],
             'practical_tips': [],
             'cultural_context': '',
-            'turkish_phrases': {}
+            'cultural_contexts': [],
+            'turkish_phrases': {},
+            'transportation_info': {},
+            'opening_hours': {},
+            'entrance_fees': {},
+            'timing_advice': {},
+            'practical_intelligence': {}
         }
         
         if not self.prompt_system.knowledge_db or not location_context:
@@ -1533,14 +1601,64 @@ class UnifiedAISystem:
         district_attractions = self.prompt_system.knowledge_db.search_attractions_by_district(location_context)
         enhanced_info['relevant_attractions'] = district_attractions
         
-        # Extract Turkish phrases relevant to the query
+        # NEW: Get comprehensive transportation information
+        if hasattr(self.prompt_system.knowledge_db, 'get_transportation_comprehensive'):
+            enhanced_info['transportation_info'] = self.prompt_system.knowledge_db.get_transportation_comprehensive()
+        
+        # NEW: Get detailed practical information based on query type
         query_lower = user_input.lower()
+        if hasattr(self.prompt_system.knowledge_db, 'get_detailed_practical_info'):
+            # Opening hours information
+            if any(word in query_lower for word in ['hour', 'open', 'close', 'time']):
+                enhanced_info['opening_hours'] = self.prompt_system.knowledge_db.get_detailed_practical_info('opening_hours_comprehensive')
+            
+            # Entrance fees and costs
+            if any(word in query_lower for word in ['cost', 'price', 'fee', 'money', 'budget', 'expensive', 'cheap']):
+                enhanced_info['entrance_fees'] = self.prompt_system.knowledge_db.get_detailed_practical_info('entrance_fees_ultra_detailed')
+            
+            # Transportation specific
+            if any(word in query_lower for word in ['transport', 'metro', 'bus', 'ferry', 'taxi', 'get', 'reach', 'how to']):
+                enhanced_info['transportation_info'].update(
+                    self.prompt_system.knowledge_db.get_detailed_practical_info('transportation_ultra_comprehensive') or {}
+                )
+            
+            # Timing and visit planning
+            if any(word in query_lower for word in ['when', 'best time', 'visit', 'plan', 'duration', 'schedule']):
+                enhanced_info['timing_advice'] = self.prompt_system.knowledge_db.get_detailed_practical_info('duration_and_timing_expert_advice')
+            
+            # General practical visitor intelligence
+            if any(word in query_lower for word in ['tip', 'advice', 'what to', 'how to', 'should', 'recommend']):
+                enhanced_info['practical_intelligence'] = self.prompt_system.knowledge_db.get_detailed_practical_info('practical_visitor_intelligence')
+        
+        # Enhanced cultural context integration
+        if hasattr(self.prompt_system.knowledge_db, 'cultural_context'):
+            cultural_contexts = []
+            
+            # Add relevant cultural context based on query
+            if any(word in query_lower for word in ['mosque', 'prayer', 'religious', 'islamic']):
+                cultural_contexts.append(self.prompt_system.knowledge_db.get_cultural_context('mosque_etiquette'))
+            if any(word in query_lower for word in ['restaurant', 'dining', 'food']):
+                cultural_contexts.append(self.prompt_system.knowledge_db.get_cultural_context('dining_etiquette'))
+            if any(word in query_lower for word in ['market', 'bazaar', 'shopping']):
+                cultural_contexts.append(self.prompt_system.knowledge_db.get_cultural_context('bazaar_culture'))
+            if any(word in query_lower for word in ['greeting', 'hello', 'meet']):
+                cultural_contexts.append(self.prompt_system.knowledge_db.get_cultural_context('greeting_culture'))
+            if any(word in query_lower for word in ['tip', 'money', 'pay']):
+                cultural_contexts.append(self.prompt_system.knowledge_db.get_cultural_context('tipping_culture'))
+            
+            # Filter out None values and add to enhanced info
+            enhanced_info['cultural_contexts'] = [ctx for ctx in cultural_contexts if ctx]
+        
+        # Extract Turkish phrases relevant to the query
         if any(word in query_lower for word in ['restaurant', 'food', 'eat', 'dining']):
             enhanced_info['turkish_phrases'].update(self.prompt_system.knowledge_db.turkish_phrases.get('food_terms', {}))
         if any(word in query_lower for word in ['transport', 'metro', 'bus', 'ferry']):
             enhanced_info['turkish_phrases'].update(self.prompt_system.knowledge_db.turkish_phrases.get('travel_terms', {}))
         if any(word in query_lower for word in ['mosque', 'palace', 'museum']):
             enhanced_info['turkish_phrases'].update(self.prompt_system.knowledge_db.turkish_phrases.get('cultural_terms', {}))
+        
+        # Add basic Turkish phrases for any query
+        enhanced_info['turkish_phrases'].update(self.prompt_system.knowledge_db.turkish_phrases.get('basic_phrases', {}))
         
         return enhanced_info
     
@@ -1580,6 +1698,110 @@ DISTRICT PROFILE:
   • Cultural Significance: {attraction.cultural_significance}
 """
         
+        # NEW: Enhanced Transportation Information
+        if enhanced_info['transportation_info']:
+            transport_info = enhanced_info['transportation_info']
+            context_prompt += "\n🚇 DETAILED TRANSPORTATION INFO:\n"
+            
+            # Metro lines
+            if 'metro_lines' in transport_info:
+                context_prompt += "Metro Lines:\n"
+                for line, info in list(transport_info['metro_lines'].items())[:3]:
+                    context_prompt += f"• {line}: {info.get('route', 'N/A')} - {info.get('operation', 'N/A')}\n"
+            
+            # Ferry routes
+            if 'ferry_routes' in transport_info:
+                context_prompt += "Ferry Routes:\n"
+                if 'city_ferries' in transport_info['ferry_routes']:
+                    for route_type, details in transport_info['ferry_routes']['city_ferries'].items():
+                        context_prompt += f"• {route_type}: {details.get('frequency', 'N/A')}\n"
+            
+            # İstanbulkart info
+            if 'istanbulkart_info' in transport_info:
+                card_info = transport_info['istanbulkart_info']
+                context_prompt += f"İstanbulkart: {card_info.get('card_cost', 'N/A')}, {card_info.get('discounts', 'N/A')}\n"
+        
+        # NEW: Opening Hours Information
+        if enhanced_info['opening_hours']:
+            hours_info = enhanced_info['opening_hours']
+            context_prompt += "\n🕐 OPENING HOURS & TIMING:\n"
+            
+            if 'major_museums' in hours_info:
+                museums = hours_info['major_museums']
+                context_prompt += f"Museums: {museums.get('standard_winter_hours', 'N/A')}\n"
+                context_prompt += f"Summer: {museums.get('standard_summer_hours', 'N/A')}\n"
+                
+                if 'specific_exceptions' in museums:
+                    context_prompt += "Specific Hours:\n"
+                    for venue, hours in list(museums['specific_exceptions'].items())[:3]:
+                        context_prompt += f"• {venue}: {hours}\n"
+            
+            if 'mosques_detailed_schedule' in hours_info:
+                mosque_info = hours_info['mosques_detailed_schedule']
+                if 'tourist_access_windows' in mosque_info:
+                    windows = mosque_info['tourist_access_windows']
+                    context_prompt += f"Best visit times: {windows.get('morning', 'N/A')}, {windows.get('afternoon', 'N/A')}\n"
+        
+        # NEW: Entrance Fees & Budget Info
+        if enhanced_info['entrance_fees']:
+            fees_info = enhanced_info['entrance_fees']
+            context_prompt += "\n💰 COSTS & BUDGET INFO:\n"
+            
+            if 'major_attractions_2024_prices' in fees_info:
+                prices = fees_info['major_attractions_2024_prices']
+                context_prompt += "Major attractions:\n"
+                for attraction, price in list(prices.items())[:4]:
+                    context_prompt += f"• {attraction.replace('_', ' ')}: {price}\n"
+            
+            if 'money_saving_strategies' in fees_info:
+                strategies = fees_info['money_saving_strategies']
+                if 'Museum_Pass_Istanbul' in strategies:
+                    context_prompt += f"Museum Pass: {strategies['Museum_Pass_Istanbul']}\n"
+                if 'student_discounts' in strategies:
+                    context_prompt += f"Student discounts: {strategies['student_discounts']}\n"
+        
+        # NEW: Timing & Visit Planning Advice
+        if enhanced_info['timing_advice']:
+            timing_info = enhanced_info['timing_advice']
+            context_prompt += "\n⏰ OPTIMAL TIMING ADVICE:\n"
+            
+            if 'attraction_visit_durations' in timing_info:
+                durations = timing_info['attraction_visit_durations']
+                context_prompt += "Visit durations:\n"
+                for attraction, duration in list(durations.items())[:4]:
+                    context_prompt += f"• {attraction.replace('_', ' ')}: {duration}\n"
+            
+            if 'optimal_visiting_times' in timing_info:
+                optimal = timing_info['optimal_visiting_times']
+                context_prompt += "Best times:\n"
+                for time_slot, recommendation in list(optimal.items())[:3]:
+                    context_prompt += f"• {time_slot.replace('_', ' ')}: {recommendation}\n"
+        
+        # NEW: Practical Visitor Intelligence
+        if enhanced_info['practical_intelligence']:
+            practical = enhanced_info['practical_intelligence']
+            context_prompt += "\n🎯 PRACTICAL VISITOR TIPS:\n"
+            
+            if 'what_to_bring_checklist' in practical:
+                checklist = practical['what_to_bring_checklist']
+                if 'essential_items' in checklist:
+                    context_prompt += f"Essentials: {checklist['essential_items']}\n"
+                if 'mosque_visits' in checklist:
+                    context_prompt += f"For mosques: {checklist['mosque_visits']}\n"
+            
+            if 'cultural_etiquette_specifics' in practical:
+                etiquette = practical['cultural_etiquette_specifics']
+                if 'greeting_customs' in etiquette:
+                    context_prompt += f"Greetings: {etiquette['greeting_customs']}\n"
+                if 'photography_etiquette' in etiquette:
+                    context_prompt += f"Photography: {etiquette['photography_etiquette']}\n"
+        
+        # NEW: Cultural Context & Etiquette
+        if enhanced_info['cultural_contexts']:
+            context_prompt += "\n🏛️ CULTURAL CONTEXT & ETIQUETTE:\n"
+            for cultural_context in enhanced_info['cultural_contexts']:
+                context_prompt += f"• {cultural_context}\n"
+        
         # Practical tips
         if enhanced_info['practical_tips']:
             context_prompt += f"\nLOCAL INSIDER TIPS:\n"
@@ -1589,10 +1811,10 @@ DISTRICT PROFILE:
         # Turkish phrases
         if enhanced_info['turkish_phrases']:
             context_prompt += "\nRELEVANT TURKISH TERMS:\n"
-            for english, turkish in list(enhanced_info['turkish_phrases'].items())[:3]:
+            for english, turkish in list(enhanced_info['turkish_phrases'].items())[:5]:
                 context_prompt += f"• {english}: {turkish}\n"
         
-        context_prompt += "\nUSE THIS INFORMATION TO PROVIDE SPECIFIC, PRACTICAL, AND CULTURALLY-AWARE RESPONSES!"
+        context_prompt += "\n🎯 CRITICAL: USE ALL THIS DETAILED PRACTICAL INFORMATION TO PROVIDE COMPREHENSIVE, ACTIONABLE, AND CULTURALLY-AWARE RESPONSES WITH SPECIFIC DETAILS!"
         
         return context_prompt
 
@@ -1632,6 +1854,192 @@ DISTRICT PROFILE:
             "restaurants with live music"
         ]
 
+    def _assess_response_quality(self, response: str, user_input: str) -> Dict[str, Any]:
+        """Assess the quality of an AI response and determine if GPT fallback is needed"""
+        
+        quality_metrics = {
+            'length_score': 0,
+            'keyword_score': 0,
+            'practical_score': 0,
+            'cultural_score': 0,
+            'completeness_score': 0,
+            'overall_score': 0,
+            'needs_gpt_fallback': False,
+            'quality_issues': []
+        }
+        
+        if not response or len(response.strip()) < 50:
+            quality_metrics['needs_gpt_fallback'] = True
+            quality_metrics['quality_issues'].append('Response too short')
+            return quality_metrics
+        
+        # Length assessment (good responses should be comprehensive)
+        length = len(response)
+        if length < 200:
+            quality_metrics['length_score'] = 20
+            quality_metrics['quality_issues'].append('Response lacks detail')
+        elif length < 500:
+            quality_metrics['length_score'] = 60
+        elif length < 1000:
+            quality_metrics['length_score'] = 80
+        else:
+            quality_metrics['length_score'] = 100
+        
+        # Keyword relevance assessment
+        query_lower = user_input.lower()
+        response_lower = response.lower()
+        
+        # Extract key terms from user query
+        important_terms = []
+        if any(word in query_lower for word in ['sultanahmet', 'beyoğlu', 'kadıköy', 'galata', 'taksim']):
+            important_terms.extend(['sultanahmet', 'beyoğlu', 'kadıköy', 'galata', 'taksim'])
+        if any(word in query_lower for word in ['transport', 'metro', 'bus', 'ferry']):
+            important_terms.extend(['metro', 'tram', 'ferry', 'bus', 'transport'])
+        if any(word in query_lower for word in ['museum', 'mosque', 'palace']):
+            important_terms.extend(['museum', 'mosque', 'palace'])
+        
+        keyword_matches = sum(1 for term in important_terms if term in response_lower)
+        if important_terms:
+            quality_metrics['keyword_score'] = min(100, (keyword_matches / len(important_terms)) * 100)
+        else:
+            quality_metrics['keyword_score'] = 70  # Neutral score if no specific terms
+        
+        # Practical information assessment
+        practical_indicators = [
+            'hour', 'time', 'cost', 'price', 'tl', 'lira', 'fee', 'free',
+            'metro', 'tram', 'ferry', 'bus', 'station', 'route',
+            'minute', 'walk', 'duration', 'timing'
+        ]
+        practical_count = sum(1 for indicator in practical_indicators if indicator in response_lower)
+        quality_metrics['practical_score'] = min(100, (practical_count / len(practical_indicators)) * 200)
+        
+        # Cultural context assessment
+        cultural_indicators = [
+            'culture', 'tradition', 'turkish', 'ottoman', 'local',
+            'etiquette', 'custom', 'authentic', 'respect'
+        ]
+        cultural_count = sum(1 for indicator in cultural_indicators if indicator in response_lower)
+        quality_metrics['cultural_score'] = min(100, (cultural_count / len(cultural_indicators)) * 300)
+        
+        # Completeness assessment (check for specific answers to specific questions)
+        completeness_indicators = []
+        if 'how' in query_lower:
+            completeness_indicators.extend(['step', 'first', 'then', 'next', 'finally'])
+        if 'when' in query_lower:
+            completeness_indicators.extend(['time', 'hour', 'morning', 'afternoon', 'evening'])
+        if 'where' in query_lower:
+            completeness_indicators.extend(['located', 'address', 'near', 'district'])
+        if 'cost' in query_lower or 'price' in query_lower:
+            completeness_indicators.extend(['tl', 'lira', 'free', 'cost', 'price'])
+        
+        if completeness_indicators:
+            completeness_count = sum(1 for indicator in completeness_indicators if indicator in response_lower)
+            quality_metrics['completeness_score'] = min(100, (completeness_count / len(completeness_indicators)) * 150)
+        else:
+            quality_metrics['completeness_score'] = 80  # Neutral score
+        
+        # Calculate overall score
+        weights = {
+            'length_score': 0.2,
+            'keyword_score': 0.3,
+            'practical_score': 0.2,
+            'cultural_score': 0.15,
+            'completeness_score': 0.15
+        }
+        
+        quality_metrics['overall_score'] = sum(
+            quality_metrics[metric] * weight 
+            for metric, weight in weights.items()
+        )
+        
+        # Determine if GPT fallback is needed
+        if quality_metrics['overall_score'] < 60:
+            quality_metrics['needs_gpt_fallback'] = True
+            quality_metrics['quality_issues'].append(f'Overall quality too low: {quality_metrics["overall_score"]:.1f}%')
+        
+        # Additional quality checks
+        if quality_metrics['practical_score'] < 30 and any(word in query_lower for word in ['how', 'cost', 'time', 'transport']):
+            quality_metrics['needs_gpt_fallback'] = True
+            quality_metrics['quality_issues'].append('Lacks practical information for practical query')
+        
+        if quality_metrics['completeness_score'] < 40:
+            quality_metrics['needs_gpt_fallback'] = True
+            quality_metrics['quality_issues'].append('Response incomplete for user question')
+        
+        return quality_metrics
+
+    async def _generate_gpt_fallback_response(self, user_input: str, session_id: str, 
+                                           location_context: str = None) -> Dict[str, Any]:
+        """Generate high-quality response using GPT with enhanced prompts as fallback"""
+        
+        logger.info(f"🔄 Generating GPT fallback response for: {user_input[:50]}...")
+        
+        # Build comprehensive fallback prompt
+        fallback_prompt = f"""You are an expert Istanbul travel assistant with deep local knowledge. 
+Your role is to provide comprehensive, practical, and culturally-aware responses about Istanbul.
+
+CRITICAL REQUIREMENTS:
+- Provide specific, actionable information (exact costs, times, routes)
+- Include practical details (opening hours, transportation, entrance fees)  
+- Add cultural context and local etiquette when relevant
+- Use Turkish place names with English translations
+- Give step-by-step instructions for complex queries
+- Include insider tips and local recommendations
+
+RESPONSE FORMAT:
+- Start with immediate practical answer
+- Provide comprehensive details
+- Include specific costs, timing, and routes
+- Add cultural context and etiquette
+- End with insider tips
+
+USER CONTEXT:
+- Location focus: {location_context or 'Istanbul'}
+- Query type: Travel/tourism assistance
+- Audience: International visitors to Istanbul
+
+Please provide a detailed, practical response that addresses all aspects of the user's question."""
+
+        try:
+            from openai import OpenAI
+            import os
+            
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if not openai_api_key:
+                raise Exception("OpenAI API key not found for fallback")
+            
+            client = OpenAI(api_key=openai_api_key, timeout=45.0, max_retries=3)
+            
+            response = client.chat.completions.create(
+                model="gpt-4",  # Use GPT-4 for high-quality fallback
+                messages=[
+                    {"role": "system", "content": fallback_prompt},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=1200,  # Allow longer responses for comprehensive answers
+                temperature=0.7
+            )
+            
+            ai_response = response.choices[0].message.content.strip()
+            tokens_used = response.usage.total_tokens if hasattr(response, 'usage') else 1200
+            
+            logger.info(f"✅ GPT-4 fallback response generated ({tokens_used} tokens)")
+            
+            return {
+                'success': True,
+                'response': ai_response,
+                'tokens_used': tokens_used,
+                'model_used': 'gpt-4-fallback',
+                'fallback_reason': 'Quality assessment triggered fallback'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ GPT fallback failed: {str(e)}")
+            return {
+                'success': False,
+                'error': f"GPT fallback failed: {str(e)}",
+                'response': "I apologize, but I'm experiencing technical difficulties. Please try rephrasing your question or contact support."
+            }
 
 # === Factory Function ===
 
