@@ -22,9 +22,15 @@ try:
     if str(current_dir) not in sys.path:
         sys.path.insert(0, str(current_dir))
     
-    from enhanced_gpt_free_system import create_gpt_free_system, EnhancedGPTFreeSystem
-    from user_profiling_system import UserProfilingSystem, UserProfile
-    from enhanced_intent_classifier import EnhancedIntentClassifier, IntentResult
+    try:
+        from enhanced_gpt_free_system import create_gpt_free_system, EnhancedGPTFreeSystem
+        from user_profiling_system import UserProfilingSystem, UserProfile
+        from enhanced_intent_classifier import EnhancedIntentClassifier, IntentResult, IntentPrediction
+    except ImportError as e:
+        # Try relative imports
+        from .enhanced_gpt_free_system import create_gpt_free_system, EnhancedGPTFreeSystem
+        from .user_profiling_system import UserProfilingSystem, UserProfile
+        from .enhanced_intent_classifier import EnhancedIntentClassifier, IntentResult, IntentPrediction
     
     # Try to import existing components (optional)
     try:
@@ -370,7 +376,9 @@ class EnhancedProductionOrchestrator:
                 'satisfaction_score': result.get('confidence', 0.5)  # Use confidence as proxy
             }
             
-            self.user_profiling.update_user_profile(user_id, interaction_data)
+            # Update user profile with correct parameters
+            response_text = result.get('response', '')
+            self.user_profiling.update_user_profile(user_id, query, response_text)
             self.performance_metrics['user_profile_updates'] += 1
             
         except Exception as e:

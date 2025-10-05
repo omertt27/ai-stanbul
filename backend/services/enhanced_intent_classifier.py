@@ -26,6 +26,14 @@ try:
 except ImportError:
     SKLEARN_AVAILABLE = False
 
+# Smart fallback system for robust responses
+try:
+    from smart_fallback_system import SmartFallbackSystem, FallbackContext, FallbackLevel
+    FALLBACK_AVAILABLE = True
+except ImportError:
+    FALLBACK_AVAILABLE = False
+    logger.warning("Smart fallback system not available")
+
 logger = logging.getLogger(__name__)
 
 class IntentType(Enum):
@@ -139,6 +147,12 @@ class EnhancedIntentClassifier:
         # Initialize ML components
         if SKLEARN_AVAILABLE:
             self._train_ml_classifier()
+        
+        # Initialize smart fallback system
+        self.fallback_system = None
+        if FALLBACK_AVAILABLE:
+            self.fallback_system = SmartFallbackSystem()
+            logger.info("✅ Smart fallback system initialized")
     
     def _initialize_intent_patterns(self) -> Dict[IntentType, Dict[str, List[Tuple[str, float]]]]:
         """Initialize intent detection patterns with confidence weights"""
@@ -406,6 +420,18 @@ class EnhancedIntentClassifier:
         
         return final_prediction
     
+    def classify_with_context(self, query: str, context: Dict = None, 
+                            user_context: Dict = None) -> IntentResult:
+        """Alias for classify_intent with context support for backward compatibility"""
+        # Convert context dict to SessionContext if provided
+        session_context = None
+        if context and isinstance(context, dict):
+            if 'user_id' in context:
+                session_context = self.create_session_context(context['user_id'])
+        
+        prediction = self.classify_intent(query, session_context, user_context)
+        return IntentResult.from_prediction(prediction)
+    
     def _normalize_query(self, query: str) -> str:
         """Normalize query for better pattern matching"""
         normalized = query.lower().strip()
@@ -614,7 +640,6 @@ class EnhancedIntentClassifier:
     def _extract_entities(self, query: str) -> Dict[str, List[str]]:
         """Extract entities from query"""
         entities = defaultdict(list)
-        
         for entity_type, patterns in self.entity_patterns.items():
             for pattern, confidence in patterns:
                 matches = re.findall(pattern, query, re.IGNORECASE)
@@ -736,7 +761,7 @@ class EnhancedIntentClassifier:
         return stats
     
     def should_use_fallback(self, prediction: IntentPrediction) -> Tuple[bool, str]:
-        """Determine if fallback should be used"""
+        """Determine if intelligent fallback should be used"""
         if prediction.confidence < self.low_confidence_threshold:
             return True, "low_confidence"
         
@@ -745,6 +770,10 @@ class EnhancedIntentClassifier:
         
         if prediction.intent == IntentType.GENERAL and prediction.confidence < 0.6:
             return True, "general_intent_low_confidence"
+        
+        # Medium confidence range - could benefit from fallback enhancement
+        if self.low_confidence_threshold <= prediction.confidence < self.confidence_threshold:
+            return True, "medium_confidence_enhancement"
         
         return False, ""
     
@@ -787,3 +816,138 @@ class EnhancedIntentClassifier:
         }
         
         return handler_mapping.get(prediction.intent, "general_assistant")
+    
+    def get_intelligent_fallback(self, query: str, intent_prediction: IntentPrediction, 
+                               session_context: SessionContext = None) -> Dict[str, Any]:
+        """
+        Get intelligent fallback response when confidence is low
+        Uses 4-tier fallback architecture for robust responses
+        """
+        if not self.fallback_system or not FALLBACK_AVAILABLE:
+            return self._get_basic_fallback(query, intent_prediction)
+        
+        # Create fallback context
+        fallback_context = FallbackContext(
+            original_query=query,
+            intent_type=intent_prediction.intent.value,
+            confidence_score=intent_prediction.confidence,
+            extracted_entities=intent_prediction.extracted_entities,
+            failure_reason=intent_prediction.fallback_reason or "low_confidence"
+        )
+        
+        # Add session context if available
+        if session_context:
+            fallback_context.session_context = {
+                'user_id': session_context.user_id,
+                'interaction_count': session_context.interaction_count,
+                'current_topic': session_context.current_topic,
+                'context_entities': list(session_context.context_entities)
+            }
+        
+        # Get smart fallback response
+        fallback_response = self.fallback_system.get_fallback_response(fallback_context)
+        
+        return {
+            'content': fallback_response.content,
+            'confidence': fallback_response.confidence,
+            'source': fallback_response.source.value,
+            'suggestions': fallback_response.suggestions,
+            'related_info': fallback_response.related_info,
+            'metadata': fallback_response.metadata,
+            'processing_time_ms': fallback_response.processing_time_ms,
+            'fallback_applied': True
+        }
+    
+    def _get_basic_fallback(self, query: str, intent_prediction: IntentPrediction) -> Dict[str, Any]:
+        """Basic fallback when smart fallback system is not available"""
+        
+        basic_responses = {
+            IntentType.ATTRACTIONS: """I'd be happy to help you learn about Istanbul attractions! 
+            
+Popular sites include Hagia Sophia, Blue Mosque, Topkapi Palace, and Galata Tower. 
+Could you be more specific about which attraction interests you, or what you'd like to know?""",
+            
+            IntentType.TRANSPORTATION: """I can help you with Istanbul transportation! 
+            
+The city has metro, tram, bus, and ferry systems. 
+Could you specify your starting point and destination, or what transport information you need?""",
+            
+            IntentType.FOOD_DINING: """Istanbul has amazing food options! 
+            
+From traditional Turkish cuisine to modern restaurants, there's something for everyone.
+What type of food or which area are you interested in?""",
+            
+            IntentType.SHOPPING: """Istanbul offers great shopping experiences! 
+            
+The Grand Bazaar, Spice Bazaar, and modern malls are popular choices.
+What are you looking to buy, or which area would you like to explore?""",
+            
+            IntentType.GENERAL: """I'm here to help you explore Istanbul! 
+            
+I can provide information about attractions, transportation, restaurants, shopping, and more.
+What specific aspect of Istanbul would you like to know about?"""
+        }
+        
+        response = basic_responses.get(
+            intent_prediction.intent, 
+            basic_responses[IntentType.GENERAL]
+        )
+        
+        return {
+            'content': response,
+            'confidence': 0.4,
+            'source': 'basic_fallback',
+            'suggestions': [
+                "Ask about specific attractions",
+                "Get transportation help",
+                "Find restaurant recommendations"
+            ],
+            'related_info': [],
+            'metadata': {'fallback_type': 'basic'},
+            'processing_time_ms': 5,
+            'fallback_applied': True
+        }
+    
+    def get_comprehensive_response(self, query: str, session_context: SessionContext = None,
+                                 user_context: Dict = None, use_fallback: bool = True) -> Dict[str, Any]:
+        """
+        Get comprehensive response including fallback when needed
+        Returns both intent classification and fallback response if applicable
+        """
+        # Get intent classification
+        intent_prediction = self.classify_intent(query, session_context, user_context)
+        
+        # Base response structure
+        response = {
+            'intent': IntentResult.from_prediction(intent_prediction),
+            'routing_decision': self.get_intent_routing_decision(intent_prediction),
+            'fallback_response': None,
+            'should_use_fallback': False,
+            'comprehensive': True
+        }
+        
+        # Check if fallback should be used
+        if use_fallback:
+            should_fallback, fallback_reason = self.should_use_fallback(intent_prediction)
+            response['should_use_fallback'] = should_fallback
+            
+            if should_fallback:
+                # Get intelligent fallback response
+                fallback_response = self.get_intelligent_fallback(
+                    query, intent_prediction, session_context
+                )
+                response['fallback_response'] = fallback_response
+                
+                # Update routing decision to indicate fallback usage
+                response['routing_decision']['use_fallback'] = True
+                response['routing_decision']['fallback_confidence'] = fallback_response['confidence']
+                response['routing_decision']['fallback_source'] = fallback_response['source']
+        
+        return response
+    
+    def set_fallback_dependencies(self, knowledge_graph=None, semantic_cache=None):
+        """Set dependencies for the fallback system"""
+        if self.fallback_system and FALLBACK_AVAILABLE:
+            self.fallback_system.knowledge_graph = knowledge_graph
+            self.fallback_system.semantic_cache = semantic_cache
+            logger.info("✅ Fallback system dependencies updated")

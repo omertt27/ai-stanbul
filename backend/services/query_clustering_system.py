@@ -756,6 +756,22 @@ class QueryClusteringSystem:
             logger.error(f"❌ Error generating template response: {e}")
             return None
     
+    def get_template_for_query(self, query: str, context: Dict = None) -> Optional[str]:
+        """Get template response for a query by finding best cluster match"""
+        try:
+            # Find best matching cluster
+            cluster_id, confidence = self.find_best_cluster(query, context)
+            
+            if cluster_id and cluster_id in self.clusters:
+                cluster = self.clusters[cluster_id]
+                return self.get_template_response(cluster, query, context)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting template for query: {e}")
+            return None
+    
     def _get_variable_value(self, variable: str, query: str, context: Dict, 
                           cluster: QueryCluster) -> str:
         """Get value for template variable"""

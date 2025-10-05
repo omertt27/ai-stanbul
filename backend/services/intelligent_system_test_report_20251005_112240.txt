@@ -1,0 +1,55 @@
+
+=== INTELLIGENT TOURISM SYSTEM TEST REPORT ===
+Generated: 2025-10-05T11:22:40.547946
+
+SUMMARY:
+--------
+Total Tests: 78
+Passed: 68
+Failed: 10
+Success Rate: 87.18%
+Execution Time: 2.75s
+
+PERFORMANCE METRICS:
+-------------------
+Average Query Time: 27.03ms
+Memory Usage: 416.0MB
+Cache Hit Rate: 0.00%
+
+TEST DETAILS:
+-------------
+
+PASSED TESTS (68):
+✅ System Creation: Intelligent tourism system should initialize successfully
+✅ Component route_planner: route_planner component should be initialized
+✅ Component behavior_predictor: behavior_predictor component should be initialized
+✅ Component knowledge_graph: knowledge_graph component should be initialized
+✅ Component user_profiler: user_profiler component should be initialized
+✅ Component semantic_cache: semantic_cache component should be initialized
+✅ Component intent_classifier: intent_classifier component should be initialized
+✅ System Stats: System statistics should be initialized
+✅ Behavior Analysis cultural_enthusiast_001: Behavior profile should be created for cultural_enthusiast_001
+✅ Behavior Patterns cultural_enthusiast_001: Behavior patterns should be extracted for cultural_enthusiast_001
+... and 58 more passed tests
+
+FAILED TESTS (10):
+❌ Component journey_tracker: journey_tracker component should be initialized
+   Error: Test condition returned False
+❌ Route Planning Case 1: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+❌ Route Planning Case 2: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+❌ Route Planning Case 3: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_user_behavior_insights'
+❌ Knowledge Graph get_location_insights: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_location_insights'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_location_insights'
+❌ Knowledge Graph get_attraction_details: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_attraction_details'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_attraction_details'
+❌ Knowledge Graph get_restaurant_recommendations: Test failed with error: 'IstanbulKnowledgeGraph' object has no attribute 'get_restaurant_recommendations'
+   Error: 'IstanbulKnowledgeGraph' object has no attribute 'get_restaurant_recommendations'
+❌ Second Query Cached: Second query should be from cache
+   Error: Test condition returned False
+❌ Cache Performance Improvement: Cached query should be significantly faster
+   Error: Test condition returned False
+❌ Cache Performance: Test failed with error: 'MLSemanticCache' object has no attribute 'get_cache_stats'
+   Error: 'MLSemanticCache' object has no attribute 'get_cache_stats'

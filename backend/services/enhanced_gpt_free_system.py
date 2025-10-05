@@ -12,8 +12,12 @@ from dataclasses import dataclass
 import json
 
 # Import our components
-from .ml_semantic_cache import MLSemanticCache, CachedResponse
-from .query_clustering_system import QueryClusteringSystem, GPTFreeQueryProcessor
+try:
+    from ml_semantic_cache import MLSemanticCache, CachedResponse
+    from query_clustering_system import QueryClusteringSystem, GPTFreeQueryProcessor
+except ImportError:
+    from .ml_semantic_cache import MLSemanticCache, CachedResponse
+    from .query_clustering_system import QueryClusteringSystem, GPTFreeQueryProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +57,13 @@ class EnhancedGPTFreeSystem:
         
         # Enhanced fallback system
         self.knowledge_base = self._initialize_knowledge_base()
+        
+        # Location data for quick access - ensure it's a dict
+        if isinstance(self.knowledge_base, dict):
+            self.location_data = self.knowledge_base.get('attractions', {})
+        else:
+            logger.error(f"Knowledge base is not a dict: {type(self.knowledge_base)}")
+            self.location_data = {}
         
         # Performance tracking
         self.performance_stats = {
@@ -416,6 +427,29 @@ class EnhancedGPTFreeSystem:
         
         return None
     
+    def _generate_info_response(self, location_key: str) -> str:
+        """Generate information response for a location"""
+        location_data = self.location_data.get(location_key, {})
+        
+        if not location_data:
+            return f"I don't have specific information about {location_key}, but I can help you with general tourism information about Istanbul."
+        
+        return f"""ℹ️ **{location_data.get('name', location_key.title())} Information:**
+
+**About:** {location_data.get('description', 'A popular tourist destination in Istanbul.')}
+
+**Opening Hours:** {location_data.get('opening_hours', 'Please check current hours')}
+**Ticket Price:** {location_data.get('ticket_price', 'Please check current pricing')}
+**Visit Duration:** {location_data.get('visit_duration', '1-2 hours')}
+
+**Location:** {location_data.get('district', 'Istanbul')}
+
+💡 **Tips:**
+{chr(10).join(f"• {tip}" for tip in location_data.get('tips', ['Check the weather before visiting', 'Arrive early to avoid crowds']))}
+
+📍 **How to Get There:**
+{location_data.get('transport', 'Accessible by public transportation')}"""
+    
     def _generate_hours_response(self, location_data: Dict) -> str:
         return f"""🕒 **{location_data['name']} Opening Hours:**
 
@@ -470,15 +504,25 @@ class EnhancedGPTFreeSystem:
 {chr(10).join(f"• {tip}" for tip in location_data.get('tips', []))}"""
     
     def _generate_food_response(self, area: str) -> str:
-        area_data = self.knowledge_base['food']['dining_areas'].get(area, {})
-        dishes = list(self.knowledge_base['food']['traditional_dishes'].items())[:5]
+        # Safely get area data, ensuring it's a dictionary
+        try:
+            food_section = self.knowledge_base.get('food', {}) if isinstance(self.knowledge_base, dict) else {}
+            dining_areas = food_section.get('dining_areas', {}) if isinstance(food_section, dict) else {}
+            area_data = dining_areas.get(area, {}) if isinstance(dining_areas, dict) else {}
+            
+            # Safely get dishes
+            traditional_dishes = food_section.get('traditional_dishes', {}) if isinstance(food_section, dict) else {}
+            dishes = list(traditional_dishes.items())[:5] if isinstance(traditional_dishes, dict) else []
+        except:
+            area_data = {}
+            dishes = []
         
         return f"""🍽️ **Food in {area.title()}:**
 
-**Area Character:** {area_data.get('description', 'Great dining options available')}
+**Area Character:** {area_data.get('description', 'Great dining options available') if isinstance(area_data, dict) else 'Great dining options available'}
 
 **Must-Try Dishes:**
-{chr(10).join(f"• **{dish}:** {desc}" for dish, desc in dishes)}
+{chr(10).join(f"• **{dish}:** {desc}" for dish, desc in dishes) if dishes else "• Turkish cuisine offers many delicious options"}
 
 **Dining Tips:**
 • Try traditional Turkish breakfast
