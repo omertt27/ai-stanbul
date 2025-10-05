@@ -16,6 +16,16 @@ from .transport_service import TransportService
 from .recommendation_engine import RecommendationEngine, RecommendationType, UserProfile
 from .restaurant_database_service import RestaurantDatabaseService
 
+# Import Ultra-Specialized Istanbul AI system
+try:
+    from ..ultra_specialized_istanbul_ai import UltraSpecializedIstanbulIntelligence
+    ULTRA_SPECIALIZED_AI_AVAILABLE = True
+    print("✅ Ultra-Specialized Istanbul AI system imported successfully")
+except ImportError as e:
+    print(f"⚠️ Ultra-Specialized Istanbul AI system not available: {e}")
+    UltraSpecializedIstanbulIntelligence = None
+    ULTRA_SPECIALIZED_AI_AVAILABLE = False
+
 class CustomAISystemOrchestrator:
     """
     Main orchestrator that coordinates all custom services to provide
@@ -31,6 +41,17 @@ class CustomAISystemOrchestrator:
         self.transport_service = TransportService()
         self.recommendation_engine = RecommendationEngine()
         self.restaurant_service = RestaurantDatabaseService()
+        
+        # Initialize Ultra-Specialized Istanbul AI system
+        if ULTRA_SPECIALIZED_AI_AVAILABLE:
+            try:
+                self.ultra_specialized_ai = UltraSpecializedIstanbulIntelligence()
+                print("✅ Ultra-Specialized Istanbul AI system initialized")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Ultra-Specialized Istanbul AI: {e}")
+                self.ultra_specialized_ai = None
+        else:
+            self.ultra_specialized_ai = None
         
         # Session management
         self.user_sessions = {}
@@ -56,22 +77,32 @@ class CustomAISystemOrchestrator:
         context = context or {}
         
         try:
-            # Step 1: Classify the query
+            # Step 1: Check Ultra-Specialized Istanbul AI first for unique local insights
+            if self.ultra_specialized_ai:
+                ultra_response = self._try_ultra_specialized_ai(query, user_id, context)
+                if ultra_response and ultra_response.get('confidence', 0) > 0.7:
+                    # Ultra-specialized AI has high confidence, use its response
+                    processing_time = (datetime.now() - start_time).total_seconds()
+                    ultra_response['processing_time'] = processing_time
+                    self._track_performance(processing_time, True)
+                    return ultra_response
+            
+            # Step 2: Classify the query
             classification = self.query_router.classify_query(query)
             
-            # Step 2: Get or create user profile
+            # Step 3: Get or create user profile
             user_profile = self._get_user_profile(user_id)
             
-            # Step 3: Route to appropriate service and generate response
+            # Step 4: Route to appropriate service and generate response
             response = self._route_and_process(classification, user_profile, context)
             
-            # Step 4: Post-process and enhance response
+            # Step 5: Post-process and enhance response
             enhanced_response = self._enhance_response(response, classification, context)
             
-            # Step 5: Update user profile based on interaction
+            # Step 6: Update user profile based on interaction
             self._update_user_profile(user_id, classification, response)
             
-            # Step 6: Track performance
+            # Step 7: Track performance
             processing_time = (datetime.now() - start_time).total_seconds()
             self._track_performance(processing_time, True)
             
@@ -549,3 +580,82 @@ class CustomAISystemOrchestrator:
             "active_users": len(self.user_sessions),
             "system_status": "operational"
         }
+
+    def _try_ultra_specialized_ai(self, query: str, user_id: str, context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Try the Ultra-Specialized Istanbul AI system for unique local insights
+        
+        Args:
+            query: User's input query
+            user_id: User identifier
+            context: Additional context information
+            
+        Returns:
+            Response dictionary if the ultra-specialized AI can handle the query, None otherwise
+        """
+        if not self.ultra_specialized_ai:
+            return None
+            
+        try:
+            # Check if this is a query that benefits from ultra-specialized knowledge
+            specialized_keywords = [
+                # Cultural context
+                'local', 'hidden', 'secret', 'authentic', 'traditional', 'turkish culture',
+                'cultural etiquette', 'social customs', 'respect', 'polite', 'appropriate',
+                
+                # Navigation & districts
+                'neighborhood', 'district', 'area', 'walking', 'shortcut', 'avoid crowds',
+                'best route', 'metro', 'dolmuş', 'ferry', 'bridge', 'traffic',
+                
+                # Pricing & local knowledge
+                'bargain', 'negotiate', 'price', 'cost', 'expensive', 'cheap', 'budget',
+                'tourist trap', 'local price', 'fair price', 'scam',
+                
+                # Religious & cultural sensitivity
+                'mosque', 'prayer', 'ramadan', 'halal', 'religious', 'conservative',
+                'dress code', 'cover', 'respect', 'friday prayer',
+                
+                # Artisan & local networks
+                'artisan', 'craftsman', 'handmade', 'workshop', 'master',
+                'family business', 'generations', 'traditional craft',
+                
+                # Turkish language & communication
+                'turkish', 'language', 'how to say', 'phrase', 'communication',
+                'greeting', 'thank you', 'please', 'excuse me'
+            ]
+            
+            query_lower = query.lower()
+            has_specialized_keyword = any(keyword in query_lower for keyword in specialized_keywords)
+            
+            if not has_specialized_keyword:
+                # This query might not benefit from ultra-specialized knowledge
+                return None
+            
+            # Create context for the ultra-specialized AI
+            ultra_context = {
+                'user_query': query,
+                'user_id': user_id,
+                'timestamp': datetime.now().isoformat(),
+                'session_context': context
+            }
+            
+            # Try to get response from ultra-specialized AI
+            result = self.ultra_specialized_ai.get_specialized_guidance(query, ultra_context)
+            
+            if result and result.get('response'):
+                return {
+                    "response": result['response'],
+                    "confidence": result.get('confidence', 0.9),
+                    "query_type": result.get('query_type', 'ultra_specialized'),
+                    "source": "ultra_specialized_istanbul_ai",
+                    "language": result.get('language', 'english'),
+                    "specialization": result.get('specialization', 'local_knowledge'),
+                    "unique_insights": True,
+                    "suggestions": result.get('suggestions', [])
+                }
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"⚠️ Error in Ultra-Specialized Istanbul AI: {e}")
+            return None

@@ -56,8 +56,8 @@ system_metrics = {
     "start_time": datetime.now()
 }
 
-# OpenAI API configuration
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# No OpenAI API needed - using Ultra-Specialized Istanbul AI only
+openai_api_key = None
 
 # Redis availability flag and client initialization
 redis_available = REDIS_AVAILABLE
@@ -386,30 +386,29 @@ except ImportError as e:
     def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
         return False
 
-# --- OpenAI Import ---
-from typing import Optional, Type
-try:
-    from openai import OpenAI
-    OpenAI_available = True
-except ImportError:
-    OpenAI = None  # type: ignore
-    OpenAI_available = False
-    print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
+# --- No OpenAI/GPT Dependencies ---
+# We use only our Ultra-Specialized Istanbul AI System
+OpenAI_available = False
+OpenAI = None
+print("ℹ️ OpenAI/GPT not used - using Ultra-Specialized Istanbul AI System only")
 
-# --- Custom AI System Import ---
+# --- Ultra-Specialized Istanbul AI System (NO GPT) ---
+# Import our Ultra-Specialized Istanbul AI System
 try:
-    from services.custom_ai_orchestrator import CustomAISystemOrchestrator
-    CUSTOM_AI_AVAILABLE = True
-    print("✅ Custom AI Orchestrator loaded successfully")
+    from enhanced_ultra_specialized_istanbul_ai import enhanced_istanbul_ai_system as istanbul_ai_system
+    ULTRA_ISTANBUL_AI_AVAILABLE = True
+    print("✅ Ultra-Specialized Istanbul AI System loaded successfully!")
 except ImportError as e:
-    print(f"⚠️ Custom AI Orchestrator not available: {e}")
-    CUSTOM_AI_AVAILABLE = False
+    print(f"⚠️ Ultra-Specialized Istanbul AI import failed: {e}")
+    istanbul_ai_system = None
+    ULTRA_ISTANBUL_AI_AVAILABLE = False
 
-# Initialize Custom AI System
-if CUSTOM_AI_AVAILABLE:
-    custom_ai_system = CustomAISystemOrchestrator()
-else:
-    custom_ai_system = None
+# Use only our specialized system (NO GPT, NO CustomAISystemOrchestrator)
+CUSTOM_AI_AVAILABLE = ULTRA_ISTANBUL_AI_AVAILABLE
+print(f"🎯 AI System Status: {'✅ ULTRA-SPECIALIZED ISTANBUL AI ACTIVE' if CUSTOM_AI_AVAILABLE else '❌ DISABLED'}")
+
+# No need for custom_ai_system - we use istanbul_ai_system directly
+custom_ai_system = None
 
 # --- Legacy imports and system setup ---
 
@@ -1591,6 +1590,7 @@ Would you like me to help you with specific museum information or directions?"""
     for district, district_museums in sorted(museums_by_district.items()):
         if len(district_museums) > 1:
             response += f"**{district}:** "
+
             museum_names = [m['name'] for m in district_museums]
             response += ", ".join(museum_names) + "\n"
     
@@ -1730,22 +1730,41 @@ def extract_museum_key_from_input(user_message: str) -> Optional[str]:
 
 async def get_custom_ai_response(user_input: str, session_id: str, client_ip: str) -> Dict[str, Any]:
     """
-    Get response from custom AI system (non-GPT) including restaurant database service
+    Get response from Ultra-Specialized Istanbul AI system (NO GPT)
     """
     try:
-        if not CUSTOM_AI_AVAILABLE or not custom_ai_system:
+        # Use our Ultra-Specialized Istanbul AI System only
+        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
             return None
             
-        # Process query through custom AI system
-        result = custom_ai_system.process_query(
+        istanbul_result = istanbul_ai_system.process_istanbul_query(
             query=user_input,
-            user_id=session_id,
-            context={
-                "original_query": user_input,
+            user_context={
+                "session_id": session_id,
                 "client_ip": client_ip,
                 "timestamp": datetime.now().isoformat()
             }
         )
+        
+        # Return result from our specialized system
+        if istanbul_result and istanbul_result.get('success'):
+            return {
+                "response": istanbul_result.get("response"),
+                "session_id": session_id,
+                "success": True,
+                "quality_assessment": {
+                    "confidence": istanbul_result.get("confidence", 0.8),
+                    "source": "ultra_specialized_istanbul_ai",
+                    "query_type": "istanbul_specialized",
+                    "processing_time": istanbul_result.get("processing_time", 0),
+                    "specialized_features": istanbul_result.get("specialized_features", [])
+                },
+                "has_context": True,
+                "category": "istanbul_specialized",
+                "data_source": "ultra_specialized_istanbul_intelligence"
+            }
+        else:
+            return None
         
         if result and result.get("response"):
             return {
@@ -1769,371 +1788,11 @@ async def get_custom_ai_response(user_input: str, session_id: str, client_ip: st
         print(f"❌ Error in custom AI response: {e}")
         return None
 
-# --- Project Imports ---
-try:
-    from database import engine, SessionLocal, get_db
-    print("✅ Database import successful")
-except ImportError as e:
-    print(f"❌ Database import failed: {e}")
-    print(f"Current working directory: {os.getcwd()}")
-    print(f"Python path: {sys.path[:5]}")  # First 5 paths
-    print(f"Files in current directory: {os.listdir('.')}")
-    raise
-
-try:
-    from models import Base, Restaurant, Museum, Place, UserFeedback, ChatSession, BlogPost, BlogComment, ChatHistory
-    from sqlalchemy.orm import Session
-    print("✅ Models import successful")
-except ImportError as e:
-    print(f"❌ Models import failed: {e}")
-    raise
-
-try:
-    from routes import museums, restaurants, places, blog
-    print("✅ Routes import successful")
-except ImportError as e:
-    print(f"❌ Routes import failed: {e}")
-    raise
-try:
-    from api_clients.google_places import GooglePlacesClient  # type: ignore
-    # Weather functionality removed - using seasonal guidance instead
-    from api_clients.enhanced_api_service import EnhancedAPIService  # type: ignore
-    print("✅ API clients import successful")
-except ImportError as e:
-    print(f"⚠️ API clients import failed (non-critical): {e}")
-    # Create dummy classes for missing API clients
-    class GooglePlacesClient:  # type: ignore
-        def __init__(self, *args, **kwargs): pass
-        async def search_places(self, *args, **kwargs): return []
-        def search_restaurants(self, *args, **kwargs): 
-            return {"results": [], "status": "OK"}
-    
-    # Weather functionality removed - seasonal guidance provided through database
-    
-    class EnhancedAPIService:  # type: ignore
-        def __init__(self, *args, **kwargs): pass
-        def search_restaurants_enhanced(self, *args, **kwargs): 
-            return {"results": [], "seasonal_context": {}}
-
-try:
-    from enhanced_input_processor import enhance_query_understanding, get_response_guidance, input_processor  # type: ignore
-    print("✅ Enhanced input processor import successful")
-except ImportError as e:
-    print(f"⚠️ Enhanced input processor import failed: {e}")
-    # Create dummy functions
-    def enhance_query_understanding(user_input: str) -> str:  # type: ignore
-        return user_input
-    def get_response_guidance(user_input: str) -> dict:  # type: ignore
-        return {"guidance": "basic"}
-    class InputProcessor:  # type: ignore
-        def enhance_query_context(self, text: str) -> dict:
-            return {"query_type": "general"}
-    input_processor = InputProcessor()
-
-# --- Import Enhanced Services ---
-try:
-    from enhanced_transportation_service import EnhancedTransportationService
-    from enhanced_museum_service import EnhancedMuseumService  
-    from enhanced_actionability_service import EnhancedActionabilityService
-    
-    # Initialize enhanced services
-    enhanced_transport_service = EnhancedTransportationService()
-    enhanced_museum_service = EnhancedMuseumService()
-    enhanced_actionability_service = EnhancedActionabilityService()
-    
-    ENHANCED_SERVICES_ENABLED = True
-    print("✅ Enhanced services (transportation, museum, actionability) imported successfully")
-except ImportError as e:
-    print(f"⚠️ Enhanced services not available: {e}")
-    ENHANCED_SERVICES_ENABLED = False
-    
-    # Create dummy services to prevent errors
-    class DummyEnhancedService:
-        def get_transportation_info(self, *args, **kwargs): return {}
-        def get_route_info(self, *args, **kwargs): return {}
-        def get_museum_info(self, *args, **kwargs): return {}
-        def search_museums(self, *args, **kwargs): return []
-        def enhance_response_actionability(self, *args, **kwargs): return {"success": False}
-        def format_structured_response(self, *args, **kwargs): return ""
-        def add_cultural_context(self, *args, **kwargs): return ""
-        def translate_key_phrases(self, *args, **kwargs): return ""
-    
-    enhanced_transport_service = DummyEnhancedService()
-    enhanced_museum_service = DummyEnhancedService()
-    enhanced_actionability_service = DummyEnhancedService()
-
-# Import live data services for museums and transport
-try:
-    from real_museum_service import real_museum_service
-    print("✅ Real museum service import successful")
-    REAL_MUSEUM_SERVICE_ENABLED = True
-except ImportError as e:
-    print(f"⚠️ Real museum service import failed: {e}")
-    real_museum_service = None
-    REAL_MUSEUM_SERVICE_ENABLED = False
-
-try:
-    from real_transportation_service import real_transportation_service
-    print("✅ Real transportation service import successful")
-    REAL_TRANSPORT_SERVICE_ENABLED = True
-except ImportError as e:
-    print(f"⚠️ Real transportation service import failed: {e}")
-    real_transportation_service = None
-    REAL_TRANSPORT_SERVICE_ENABLED = False
-
-from sqlalchemy.orm import Session
-
-try:
-    from i18n_service import i18n_service
-    print("✅ i18n service import successful")
-except ImportError as e:
-    print(f"⚠️ i18n service import failed: {e}")
-    # Create dummy i18n service
-    class I18nService:
-        def translate(self, key, lang="en"): return key
-        def get_language_from_headers(self, headers): return "en"
-        def should_use_ai_response(self, user_input, language): return True
-        supported_languages = ["en", "tr", "ar", "ru"]
-    i18n_service = I18nService()
-
-# --- Import enhanced AI services ---
-try:
-    from ai_cache_service import get_ai_cache_service, init_ai_cache_service
-    AI_CACHE_ENABLED = True
-except ImportError:
-    print("⚠️ AI Cache service not available")
-    AI_CACHE_ENABLED = False
-    # Create dummy functions to prevent errors
-    get_ai_cache_service = lambda: None  # type: ignore
-    init_ai_cache_service = lambda *args, **kwargs: None  # type: ignore
-
-# Create dummy objects to prevent errors
-class DummyManager:
-    def get_or_create_session(self, *args, **kwargs): return "dummy_session"
-    def get_context(self, *args, **kwargs): return {}
-    def update_context(self, *args, **kwargs): pass
-    def get_preferences(self, *args, **kwargs): return {}
-    def update_preferences(self, *args, **kwargs): pass
-    def learn_from_query(self, *args, **kwargs): pass
-    def get_personalized_filter(self, *args, **kwargs): return {}
-    def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
-    def extract_entities(self, *args, **kwargs): return {"locations": [], "time_references": [], "cuisine_types": [], "budget_indicators": []}
-    def enhance_recommendations(self, *args, **kwargs): return args[1] if len(args) > 1 else []
-    def analyze_query_context(self, *args, **kwargs): return {"locations": [], "cuisine_types": [], "price_indicators": [], "time_context": [], "group_context": None, "urgency_level": "normal", "query_complexity": "simple"}
-
-class DummyAdvancedAI:
-    async def get_comprehensive_real_time_data(self, *args, **kwargs): return {}
-    async def analyze_image_comprehensive(self, *args, **kwargs): return None
-    async def analyze_menu_image(self, *args, **kwargs): return None
-    async def get_comprehensive_predictions(self, *args, **kwargs): return {}
-
-try:
-    from ai_intelligence import (
-        session_manager, preference_manager, intent_recognizer, 
-        recommendation_engine, saved_session_manager
-    )
-    AI_INTELLIGENCE_ENABLED = True
-    print("✅ AI Intelligence services imported successfully")
-except ImportError as e:
-    print(f"❌ AI Intelligence import failed: {e}")
-    AI_INTELLIGENCE_ENABLED = False
-    
-    # Create dummy objects to prevent errors
-    class DummyAI:
-        def get_or_create_session(self, *args, **kwargs): return "dummy"
-        def get_preferences(self, *args, **kwargs): return {}
-        def update_preferences(self, *args, **kwargs): pass
-        def learn_from_query(self, *args, **kwargs): pass
-        def recognize_intent(self, *args, **kwargs): return ("general_query", 0.1)
-        def enhance_recommendations(self, *args, **kwargs): return []
-        def save_session(self, *args, **kwargs): return True
-        def get_saved_sessions(self, *args, **kwargs): return []
-        def get_session_details(self, *args, **kwargs): return None
-        def delete_session(self, *args, **kwargs): return True
-        def get_context(self, *args, **kwargs): return {}
-        def update_context(self, *args, **kwargs): pass
-        def analyze_query_context(self, *args, **kwargs): return {}
-        def extract_entities(self, *args, **kwargs): return {}
-        def get_personalized_filter(self, *args, **kwargs): return {}
-    
-    session_manager = preference_manager = intent_recognizer = recommendation_engine = saved_session_manager = DummyAI()
-
-# --- Import Advanced AI Features ---
-try:
-    from api_clients.realtime_data import realtime_data_aggregator
-    from api_clients.multimodal_ai import get_multimodal_ai_service
-    from api_clients.predictive_analytics import predictive_analytics_service
-    ADVANCED_AI_ENABLED = True
-    print("✅ Advanced AI features loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Advanced AI features not available: {e}")
-    ADVANCED_AI_ENABLED = False
-    # Use dummy objects
-    realtime_data_aggregator = DummyAdvancedAI()
-    get_multimodal_ai_service = lambda: DummyAdvancedAI()
-    predictive_analytics_service = DummyAdvancedAI()
-
-# --- Import Language Processing ---
-try:
-    from api_clients.language_processing import (
-        AdvancedLanguageProcessor, 
-        process_user_query,
-        extract_intent_and_entities,
-        is_followup
-    )
-    LANGUAGE_PROCESSING_ENABLED = True
-    language_processor = AdvancedLanguageProcessor()
-    print("✅ Advanced Language Processing loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Language Processing not available: {e}")
-    LANGUAGE_PROCESSING_ENABLED = False
-    # Create dummy functions
-    def process_user_query(text: str, context: Optional[Dict] = None) -> Dict[str, Any]:
-        return {"intent": "general_info", "confidence": 0.1, "entities": {}}
-    def extract_intent_and_entities(text: str) -> Tuple[str, Dict]: 
-        return "general_info", {}
-    def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
-        return False
-
-# --- OpenAI Import ---
-from typing import Optional, Type
-try:
-    from openai import OpenAI
-    OpenAI_available = True
-except ImportError:
-    OpenAI = None  # type: ignore
-    OpenAI_available = False
-    print("[ERROR] openai package not installed. Please install it with 'pip install openai'.")
-
-# --- Custom AI System Import ---
-try:
-    from services.custom_ai_orchestrator import CustomAISystemOrchestrator
-    CUSTOM_AI_AVAILABLE = True
-    print("✅ Custom AI Orchestrator loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Custom AI Orchestrator not available: {e}")
-    CUSTOM_AI_AVAILABLE = False
-
-# Initialize Custom AI System
-if CUSTOM_AI_AVAILABLE:
-    custom_ai_system = CustomAISystemOrchestrator()
-else:
-    custom_ai_system = None
-
-# --- Legacy imports and system setup ---
-
-# Initialize logger
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-# Initialize FastAPI app
-app = FastAPI(
-    title="AI Istanbul Backend",
-    description="Intelligent Istanbul travel assistant with live data integration",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc"
-)
-
-print("✅ FastAPI app initialized successfully")
-
-# Add CORS middleware to allow frontend access
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
-        "http://localhost:3001", 
-        "http://127.0.0.1:3001",
-        "http://localhost:3002", 
-        "http://127.0.0.1:3002",
-        "http://localhost:3003", 
-        "http://127.0.0.1:3003",
-        "http://localhost:5173",  # Vite default port
-        "http://127.0.0.1:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-print("✅ CORS middleware configured")
-
-# Add security headers middleware for production
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    
-    # Essential security headers for production
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
-    return response
-
-print("✅ Security headers middleware configured")
-
-# === Include Routers ===
-try:
-    from routes.blog import router as blog_router
-    app.include_router(blog_router)
-    print("✅ Blog router included successfully")
-except ImportError as e:
-    print(f"⚠️ Blog router import failed: {e}")
-
-# === Include Cache Monitoring Router ===
-try:
-    from routes.cache_monitoring import router as cache_router
-    app.include_router(cache_router)
-    print("✅ Cache monitoring router included successfully")
-except ImportError as e:
-    print(f"⚠️ Cache monitoring router import failed: {e}")
-
-# === Include API Routers ===
-try:
-    from routes.restaurants import router as restaurants_router
-    app.include_router(restaurants_router, prefix="/api/restaurants", tags=["restaurants"])
-    print("✅ Restaurants router included successfully")
-except ImportError as e:
-    print(f"⚠️ Restaurants router import failed: {e}")
-
-try:
-    from routes.museums import router as museums_router
-    app.include_router(museums_router, prefix="/api/museums", tags=["museums"])
-    print("✅ Museums router included successfully")
-except ImportError as e:
-    print(f"⚠️ Museums router import failed: {e}")
-
-try:
-    from routes.places import router as places_router
-    app.include_router(places_router, prefix="/api/places", tags=["places"])
-    print("✅ Places router included successfully")
-except ImportError as e:
-    print(f"⚠️ Places router import failed: {e}")
-
-# === Authentication Setup ===
-try:
-    from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
-    print("✅ Authentication module imported successfully")
-except ImportError as e:
-    print(f"❌ Authentication import failed: {e}")
-    # Create dummy functions to prevent errors
-    async def get_current_admin():
-        return {"username": "admin", "role": "admin"}
-    def authenticate_admin(username, password):
-        return {"username": username, "role": "admin"} if username == "admin" else None
-    def create_access_token(data):
-        return "dummy-token"
-
-# === AI CHAT ENDPOINTS ===
+# === AI CHAT ENDPOINTS (Ultra-Specialized Istanbul AI Only) ===
 
 @app.post("/ai/chat")
 async def ai_chat_endpoint(request: Request):
-    """Main AI chat endpoint that frontend calls"""
+    """Main AI chat endpoint using Ultra-Specialized Istanbul AI (NO GPT)"""
     try:
         # Get client IP for rate limiting
         client_ip = getattr(request.client, 'host', 'unknown')
@@ -2170,50 +1829,51 @@ async def ai_chat_endpoint(request: Request):
         # Increment usage
         daily_usage[client_ip] += 1
         
-        print(f"🤖 AI Chat Request - IP: {client_ip}, Session: {session_id}, Query: {user_input[:100]}...")
+        print(f"🤖 Istanbul AI Chat Request - IP: {client_ip}, Session: {session_id}, Query: {user_input[:100]}...")
         
-        # Try custom AI system first (non-GPT), fallback to GPT if needed
+        # Use our Ultra-Specialized Istanbul AI System only (NO GPT)
         if CUSTOM_AI_AVAILABLE:
             result = await get_custom_ai_response(user_input, session_id, client_ip)
             
-            # If custom AI fails or gives low confidence, fallback to GPT
-            if not result or result.get('quality_assessment', {}).get('confidence', 0) < 0.3:
-                print("🔄 Custom AI low confidence or failed, trying GPT fallback...")
-                gpt_result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
-                if gpt_result:
-                    result = gpt_result
-                    result['used_fallback'] = 'gpt'
-        else:
-            # Use GPT if custom AI not available
-            result = await get_gpt_response_with_quality(user_input, session_id, client_ip)
+            if result and result.get('success'):
+                response_data = {
+                    "response": result['response'],
+                    "session_id": result['session_id'],
+                    "success": True,
+                    "timestamp": datetime.now().isoformat(),
+                    "quality_assessment": result.get('quality_assessment', {}),
+                    "has_context": result.get('has_context', False),
+                    "category": result.get('category', 'istanbul_specialized'),
+                    "ai_type": "ultra_specialized_istanbul_ai"
+                }
+                
+                print(f"✅ Istanbul AI Response generated - Length: {len(result['response'])} chars")
+                return response_data
         
-        if result and result.get('success'):
-            response_data = {
-                "response": result['response'],
-                "session_id": result['session_id'],
-                "success": True,
-                "timestamp": datetime.now().isoformat(),
-                "quality_assessment": result.get('quality_assessment', {}),
-                "has_context": result.get('has_context', False),
-                "category": result.get('category', 'general')
-            }
-            
-            print(f"✅ AI Chat Response generated - Length: {len(result['response'])} chars")
-            return response_data
-        else:
-            # Fallback response
-            fallback_response = "I'm sorry, I'm having trouble generating a response right now. Please try again in a moment."
-            
-            response_data = {
-                "response": fallback_response,
-                "session_id": session_id,
-                "success": False,
-                "timestamp": datetime.now().isoformat()
-            }
-            
-            print(f"⚠️ AI Chat using fallback response")
-            return response_data
-            
+        # Fallback response if our system is not available
+        fallback_response = """I'm your Ultra-Specialized Istanbul AI assistant. I provide unique, hyper-local 
+guidance that generic AIs cannot match, including:
+
+🏛️ Micro-district navigation intelligence
+💰 Dynamic pricing optimization  
+🕌 Cultural sensitivity adaptation
+🌐 Hidden Istanbul network access
+👥 Multi-user group dynamics
+📅 Islamic cultural calendar integration
+
+However, I'm currently not available. Please try again in a moment."""
+        
+        response_data = {
+            "response": fallback_response,
+            "session_id": session_id,
+            "success": False,
+            "timestamp": datetime.now().isoformat(),
+            "ai_type": "ultra_specialized_istanbul_ai_fallback"
+        }
+        
+        print(f"⚠️ Using fallback response - Istanbul AI not available")
+        return response_data
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -2223,7 +1883,8 @@ async def ai_chat_endpoint(request: Request):
             "session_id": session_id if 'session_id' in locals() else "unknown",
             "success": False,
             "error": str(e),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "ai_type": "ultra_specialized_istanbul_ai_error"
         }
         return error_response
 
@@ -2233,697 +1894,6 @@ async def ai_endpoint_legacy(request: Request):
     # Redirect to the main chat endpoint
     return await ai_chat_endpoint(request)
 
-# === ROUTE MAKER API ENDPOINT ===
+print("✅ Ultra-Specialized Istanbul AI endpoints configured (NO GPT)")
 
-from pydantic import BaseModel
-
-class ItineraryRequest(BaseModel):
-    duration_days: int
-    interests: List[str]
-    budget: str  # "budget", "moderate", "luxury"
-    group_size: Optional[int] = 1
-    preferred_areas: Optional[List[str]] = []
-    session_id: Optional[str] = "default"
-
-@app.post("/api/itinerary/create")
-async def create_itinerary(request: ItineraryRequest):
-    """Create optimized multi-day itinerary using hybrid route maker approach"""
-    try:
-        print(f"🗺️ Route Maker Request - Days: {request.duration_days}, Interests: {request.interests}, Budget: {request.budget}")
-        
-        # Import route maker classes
-        try:
-            import sys
-            import os
-            # Add parent directory to path for route maker import
-            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if parent_dir not in sys.path:
-                sys.path.insert(0, parent_dir)
-            from route_maker_poc import HybridItineraryGenerator, InterestType, BudgetLevel
-        except ImportError as e:
-            print(f"❌ Route maker import failed: {e}")
-            return {
-                "success": False,
-                "error": "Route maker service unavailable",
-                "fallback_response": "I can help you plan your Istanbul trip! Please describe what you'd like to see and do, and I'll provide personalized recommendations."
-            }
-        
-        # Validate inputs
-        if request.duration_days < 1 or request.duration_days > 7:
-            raise HTTPException(status_code=400, detail="Duration must be between 1 and 7 days")
-        
-        if request.budget not in ["budget", "moderate", "luxury"]:
-            raise HTTPException(status_code=400, detail="Budget must be one of: budget, moderate, luxury")
-        
-        # Create generator
-        generator = HybridItineraryGenerator()
-        
-        # Prepare preferences
-        preferences = {
-            'duration_days': request.duration_days,
-            'interests': request.interests,
-            'budget': request.budget,
-            'group_size': request.group_size,
-            'preferred_areas': request.preferred_areas or []
-        }
-        
-        # Generate itinerary
-        start_time = time.time()
-        itinerary = await generator.generate_complete_itinerary(preferences)
-        generation_time = time.time() - start_time
-        
-        # Convert to JSON-serializable format
-        itinerary_data = {
-            "duration_days": itinerary.duration_days,
-            "total_estimated_cost": round(itinerary.total_estimated_cost, 2),
-            "optimization_score": round(itinerary.optimization_score, 3),
-            "key_recommendations": itinerary.key_recommendations,
-            "backup_plans": itinerary.backup_plans,
-            "daily_itineraries": []
-        }
-        
-        # Process daily itineraries
-        for day in itinerary.days:
-            daily_data = {
-                "day_number": day.day_number,
-                "date": day.date,
-                "total_duration_hours": round(day.total_duration_hours, 1),
-                "total_cost_tl": round(day.total_cost_tl, 2),
-                "total_walking_minutes": day.total_walking_minutes,
-                "activities": day.activities,
-                "cultural_insights": day.cultural_insights,
-                "seasonal_considerations": day.seasonal_considerations,
-                "route_segments": [
-                    {
-                        "from_place": segment.from_place,
-                        "to_place": segment.to_place,
-                        "transport_mode": segment.transport_mode,
-                        "duration_minutes": segment.duration_minutes,
-                        "cost_tl": segment.cost_tl,
-                        "walking_minutes": segment.walking_minutes,
-                        "instructions": segment.instructions
-                    }
-                    for segment in day.route_segments
-                ]
-            }
-            itinerary_data["daily_itineraries"].append(daily_data)
-        
-        response_data = {
-            "success": True,
-            "itinerary": itinerary_data,
-            "session_id": request.session_id,
-            "generation_time_seconds": round(generation_time, 2),
-            "timestamp": datetime.now().isoformat(),
-            "summary": {
-                "total_days": itinerary.duration_days,
-                "total_cost": f"{itinerary.total_estimated_cost:.2f} TL",
-                "efficiency_score": f"{itinerary.optimization_score:.1%}",
-                "total_activities": sum(len(day.activities) for day in itinerary.days),
-                "highlights": [
-                    f"🏛️ Visit {len([a for day in itinerary.days for a in day.activities if 'Historical' in a.get('category', '')])} historical sites",
-                    f"🚶‍♂️ Total walking: {sum(day.total_walking_minutes for day in itinerary.days)} minutes",
-                    f"⭐ Cultural experiences with {itinerary.optimization_score:.1%} optimization"
-                ]
-            }
-        }
-        
-        print(f"✅ Route Maker Response - Generated {itinerary.duration_days}-day itinerary in {generation_time:.2f}s")
-        return response_data
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Route maker error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": request.session_id,
-            "timestamp": datetime.now().isoformat(),
-            "fallback_response": "I'm having trouble generating your itinerary right now. Let me help you plan your trip step by step - what are you most interested in seeing in Istanbul?"
-        }
-
-@app.get("/api/itinerary/info")
-async def itinerary_info():
-    """Get information about the route maker service"""
-    try:
-        import sys
-        import os
-        # Add parent directory to path for route maker import
-        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if parent_dir not in sys.path:
-            sys.path.insert(0, parent_dir)
-        from route_maker_poc import ISTANBUL_PLACES, InterestType, BudgetLevel
-        
-        return {
-            "service_status": "available",
-            "available_places": len(ISTANBUL_PLACES),
-            "supported_interests": [interest.value for interest in InterestType],
-            "budget_levels": [budget.value for budget in BudgetLevel],
-            "max_duration_days": 7,
-            "features": [
-                "🧠 AI-powered itinerary generation",
-                "🗺️ Route optimization algorithms", 
-                "🚌 Real transportation integration",
-                "💰 Budget-aware planning",
-                "🏛️ Cultural significance scoring",
-                "⏰ Time-efficient scheduling",
-                "🌟 Personalized recommendations"
-            ],
-            "sample_places": [
-                {"name": place.name, "category": place.category, "district": place.district}
-                for place in ISTANBUL_PLACES[:5]
-            ]
-        }
-    except ImportError:
-        return {
-            "service_status": "unavailable",
-            "error": "Route maker service not available"
-        }
-
-# === HEALTH AND MONITORING ENDPOINTS ===
-
-@app.get("/api/health")
-async def health_check():
-    """Comprehensive health check endpoint"""
-    try:
-        # Database health check
-        db_healthy = True
-        db_response_time = 0
-        try:
-            start_time = time.time()
-            # Test database connection
-            with engine.connect() as conn:
-                conn.execute("SELECT 1")
-            db_response_time = (time.time() - start_time) * 1000
-        except Exception as e:
-            db_healthy = False
-            db_response_time = -1
-        
-        # Redis health check
-        redis_healthy = redis_available
-        redis_response_time = 0
-        redis_memory_usage = 0
-        if redis_available:
-            try:
-                start_time = time.time()
-                redis_client.ping()
-                redis_response_time = (time.time() - start_time) * 1000
-                redis_info = redis_client.info('memory')
-                redis_memory_usage = redis_info.get('used_memory', 0) / (1024 * 1024)  # MB
-            except:
-                redis_healthy = False
-                redis_response_time = -1
-        
-        # System health
-        if PSUTIL_AVAILABLE:
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-        else:
-            cpu_percent = 0
-            memory = type('Memory', (), {'percent': 0, 'available': 0, 'total': 0})()
-            disk = type('Disk', (), {'percent': 0, 'free': 0, 'total': 0})()
-        
-        # Calculate uptime
-        uptime_seconds = (datetime.now() - system_metrics["start_time"]).total_seconds()
-        uptime_formatted = f"{int(uptime_seconds // 86400)} days, {int((uptime_seconds % 86400) // 3600):02d}:{int((uptime_seconds % 3600) // 60):02d}:{int(uptime_seconds % 60):02d}"
-        
-        # External API health (simulated checks)
-        external_apis = {
-            "google_places": {"healthy": True, "response_time_ms": 125},
-            "openai": {"healthy": True, "response_time_ms": 890}
-        }
-        
-        health_status = {
-            "status": "healthy" if (db_healthy and redis_healthy and cpu_percent < 90 and memory.percent < 90) else "degraded",
-            "timestamp": datetime.now().isoformat(),
-            "uptime": uptime_formatted,
-            "system": {
-                "cpu_percent": cpu_percent,
-                "memory": {
-                    "total_gb": round(memory.total / (1024**3), 1),
-                    "used_gb": round(memory.used / (1024**3), 1),
-                    "percent": memory.percent
-                },
-                "disk": {
-                    "total_gb": round(disk.total / (1024**3), 1),
-                    "used_gb": round(disk.used / (1024**3), 1),
-                    "percent": round((disk.used / disk.total) * 100, 1)
-                }
-            },
-            "database": {
-                "healthy": db_healthy,
-                "response_time_ms": round(db_response_time, 1)
-            },
-            "redis": {
-                "healthy": redis_healthy,
-                "response_time_ms": round(redis_response_time, 1),
-                "memory_usage_mb": round(redis_memory_usage, 1)
-            },
-            "external_apis": external_apis,
-            "version": "1.0.0"
-        }
-        
-        return health_status
-        
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/api/metrics")
-async def system_metrics_endpoint():
-    """Comprehensive system metrics for monitoring and alerting"""
-    try:
-        # Calculate cache hit rate
-        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
-        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
-        
-        # Calculate average response time
-        response_times = system_metrics["response_times"]
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        
-        # Calculate percentiles
-        sorted_times = sorted(response_times)
-        p50 = sorted_times[len(sorted_times)//2] if sorted_times else 0
-        p95 = sorted_times[int(len(sorted_times)*0.95)] if sorted_times else 0
-        p99 = sorted_times[int(len(sorted_times)*0.99)] if sorted_times else 0
-        
-        # Error rate calculation
-        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
-        
-        # System resources  
-        if PSUTIL_AVAILABLE:
-            cpu_percent = psutil.cpu_percent()
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-        else:
-            cpu_percent = 0
-            memory = type('Memory', (), {'percent': 0, 'available': 0, 'total': 0})()
-            disk = type('Disk', (), {'percent': 0, 'free': 0, 'total': 0})()
-        
-        # Calculate cost metrics
-        roi_percentage = 0
-        if system_metrics["api_costs"] > 0:
-            roi_percentage = (system_metrics["cache_savings"] / system_metrics["api_costs"]) * 100
-        
-        metrics = {
-            "timestamp": datetime.now().isoformat(),
-            "performance": {
-                "requests_total": system_metrics["requests_total"],
-                "error_rate_percent": round(error_rate, 2),
-                "response_time": {
-                    "average_ms": round(avg_response_time, 1),
-                    "p50_ms": round(p50, 1),
-                    "p95_ms": round(p95, 1),
-                    "p99_ms": round(p99, 1)
-                }
-            },
-            "cache": {
-                "hit_rate_percent": round(cache_hit_rate, 1),
-                "hits": system_metrics["cache_hits"],
-                "misses": system_metrics["cache_misses"],
-                "total_requests": total_cache_requests
-            },
-            "system": {
-                "cpu_percent": cpu_percent,
-                "memory_percent": memory.percent,
-                "disk_percent": round((disk.used / disk.total) * 100, 1),
-                "load_average": os.getloadavg() if hasattr(os, 'getloadavg') else [0, 0, 0]
-            },
-            "business_kpis": {
-                "api_costs_usd": round(system_metrics["api_costs"], 2),
-                "cache_savings_usd": round(system_metrics["cache_savings"], 2),
-                "roi_percent": round(roi_percentage, 1),
-                "cost_efficiency": round(cache_hit_rate * roi_percentage / 100, 1) if roi_percentage > 0 else 0
-            },
-            "alerts": {
-                "high_error_rate": error_rate > 1.0,
-                "slow_response": p95 > 1000,
-                "low_cache_hit": cache_hit_rate < 75,
-                "high_cpu": cpu_percent > 80,
-                "high_memory": memory.percent > 80
-            }
-        }
-        
-        return metrics
-        
-    except Exception as e:
-        return {
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-# Helper function to update metrics
-def update_system_metrics(response_time_ms: float = None, cache_hit: bool = None, error: bool = False, api_cost: float = 0, cache_savings: float = 0):
-    """Update system metrics for monitoring"""
-    system_metrics["requests_total"] += 1
-    
-    if response_time_ms is not None:
-        system_metrics["response_times"].append(response_time_ms)
-        # Keep only last 1000 response times to prevent memory issues
-        if len(system_metrics["response_times"]) > 1000:
-            system_metrics["response_times"] = system_metrics["response_times"][-1000:]
-    
-    if cache_hit is not None:
-        if cache_hit:
-            system_metrics["cache_hits"] += 1
-        else:
-            system_metrics["cache_misses"] += 1
-    
-    if error:
-        system_metrics["errors"] += 1
-    
-    system_metrics["api_costs"] += api_cost
-    system_metrics["cache_savings"] += cache_savings
-
-# === ADMIN ENDPOINTS ===
-@app.get("/admin/api/stats")
-async def admin_stats(current_user: dict = Depends(get_current_admin)):
-    """Admin-only system statistics endpoint with enhanced metrics"""
-    try:
-        # Get system metrics
-        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
-        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
-        
-        response_times = system_metrics["response_times"]
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        
-        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
-        
-        # Database statistics
-        db_stats = {}
-        try:
-            db = next(get_db())
-            db_stats = {
-                "total_restaurants": db.query(Restaurant).count(),
-                "total_museums": db.query(Museum).count(),
-                "total_places": db.query(Place).count(),
-                "total_feedback": db.query(UserFeedback).count(),
-                "total_blog_posts": db.query(BlogPost).count(),
-                "total_chat_sessions": db.query(ChatSession).count()
-            }
-            db.close()
-        except Exception as e:
-            db_stats = {"error": f"Database stats unavailable: {str(e)}"}
-        
-        # Cost analytics
-        roi_percentage = 0
-        if system_metrics["api_costs"] > 0:
-            roi_percentage = (system_metrics["cache_savings"] / system_metrics["api_costs"]) * 100
-            
-        stats = {
-            "timestamp": datetime.now().isoformat(),
-            "system_health": {
-                "status": "healthy" if error_rate < 1.0 else "degraded",
-                "uptime_hours": (time.time() - system_metrics.get("start_time", time.time())) / 3600,
-                "requests_total": system_metrics["requests_total"],
-                "error_rate_percent": round(error_rate, 2),
-                "avg_response_time_ms": round(avg_response_time, 1)
-            },
-            "cache_performance": {
-                "hit_rate_percent": round(cache_hit_rate, 1),
-                "total_hits": system_metrics["cache_hits"],
-                "total_misses": system_metrics["cache_misses"],
-                "efficiency_score": round(cache_hit_rate / 100 * 10, 1)  # 0-10 scale
-            },
-            "cost_analytics": {
-                "total_api_costs_usd": round(system_metrics["api_costs"], 2),
-                "total_savings_usd": round(system_metrics["cache_savings"], 2),
-                "roi_percent": round(roi_percentage, 1),
-                "cost_per_request": round(system_metrics["api_costs"] / max(system_metrics["requests_total"], 1), 4)
-            },
-            "database_stats": db_stats,
-            "operational_alerts": {
-                "high_error_rate": error_rate > 1.0,
-                "slow_responses": avg_response_time > 1000,
-                "low_cache_efficiency": cache_hit_rate < 75,
-                "cost_threshold_exceeded": system_metrics["api_costs"] > 100  # $100 threshold
-            }
-        }
-        
-        return stats
-        
-    except Exception as e:
-        return {
-            "error": f"Failed to generate admin stats: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/api/cache/stats")
-async def cache_stats():
-    """Public cache statistics (basic metrics only)"""
-    try:
-        total_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
-        hit_rate = (system_metrics["cache_hits"] / total_requests * 100) if total_requests > 0 else 0
-        
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "hit_rate_percent": round(hit_rate, 1),
-            "total_requests": total_requests,
-            "efficiency_rating": "excellent" if hit_rate > 90 else "good" if hit_rate > 75 else "needs_improvement"
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/api/cost/analytics")
-async def cost_analytics(current_user: dict = Depends(get_current_admin)):
-    """Admin-only detailed cost analytics"""
-    try:
-        # Calculate various cost metrics
-        total_requests = system_metrics["requests_total"]
-        api_costs = system_metrics["api_costs"]
-        cache_savings = system_metrics["cache_savings"]
-        
-        # Cost breakdown simulation (in a real app, this would come from actual billing data)
-        cost_breakdown = {
-            "openai_api": round(api_costs * 0.7, 2),
-            "google_places": round(api_costs * 0.2, 2),
-            "database_queries": round(api_costs * 0.05, 2),
-            "other_apis": round(api_costs * 0.05, 2)
-        }
-        
-        # Monthly projection (based on current usage)
-        daily_costs = api_costs  # Assuming current costs are daily
-        monthly_projection = daily_costs * 30
-        
-        # Budget analysis (assuming $500 monthly budget)
-        monthly_budget = 500.0
-        budget_usage_percent = (monthly_projection / monthly_budget) * 100
-        
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "current_costs": {
-                "total_usd": round(api_costs, 2),
-                "cost_per_request": round(api_costs / max(total_requests, 1), 4),
-                "breakdown": cost_breakdown
-            },
-            "savings": {
-                "cache_savings_usd": round(cache_savings, 2),
-                "roi_percent": round((cache_savings / max(api_costs, 0.01)) * 100, 1),
-                "efficiency_score": round(cache_savings / max(monthly_projection, 0.01) * 100, 1)
-            },
-            "projections": {
-                "monthly_estimate_usd": round(monthly_projection, 2),
-                "annual_estimate_usd": round(monthly_projection * 12, 2)
-            },
-            "budget": {
-                "monthly_budget_usd": monthly_budget,
-                "usage_percent": round(budget_usage_percent, 1),
-                "remaining_usd": round(monthly_budget - monthly_projection, 2),
-                "status": "on-track" if budget_usage_percent < 80 else "warning" if budget_usage_percent < 100 else "over_budget"
-            },
-            "recommendations": [
-                "Enable cache warming for frequently requested endpoints" if system_metrics["cache_hits"] / max(system_metrics["cache_hits"] + system_metrics["cache_misses"], 1) < 0.8 else "Cache performance is optimal",
-                "Consider API rate limiting during peak hours" if budget_usage_percent > 80 else "Current usage is within budget",
-                "Review expensive API calls for optimization opportunities" if api_costs > 50 else "API costs are reasonable"
-            ]
-        }
-        
-    except Exception as e:
-        return {
-            "error": f"Failed to generate cost analytics: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/api/alerts/rules")
-async def alert_rules(current_user: dict = Depends(get_current_admin)):
-    """Admin-only alert rules configuration"""
-    try:
-        # Default alert rules (in production, these would be configurable)
-        alert_rules = {
-            "performance": {
-                "error_rate_threshold": 1.0,  # 1% error rate
-                "response_time_threshold": 1000,  # 1000ms
-                "cache_hit_rate_threshold": 75  # 75% cache hit rate
-            },
-            "cost": {
-                "daily_cost_threshold": 20.0,  # $20/day
-                "monthly_budget": 500.0,  # $500/month
-                "roi_threshold": 200  # 200% ROI minimum
-            },
-            "system": {
-                "cpu_threshold": 80,  # 80% CPU
-                "memory_threshold": 80,  # 80% memory
-                "disk_threshold": 90  # 90% disk
-            }
-        }
-        
-        # Current system status against these rules
-        total_cache_requests = system_metrics["cache_hits"] + system_metrics["cache_misses"]
-        cache_hit_rate = (system_metrics["cache_hits"] / total_cache_requests * 100) if total_cache_requests > 0 else 0
-        
-        response_times = system_metrics["response_times"]
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        
-        error_rate = (system_metrics["errors"] / system_metrics["requests_total"] * 100) if system_metrics["requests_total"] > 0 else 0
-        
-        # Check current alerts
-        active_alerts = []
-        
-        if error_rate > alert_rules["performance"]["error_rate_threshold"]:
-            active_alerts.append({
-                "type": "error_rate",
-                "severity": "high",
-                "message": f"Error rate ({error_rate:.1f}%) exceeds threshold ({alert_rules['performance']['error_rate_threshold']}%)",
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        if avg_response_time > alert_rules["performance"]["response_time_threshold"]:
-            active_alerts.append({
-                "type": "slow_response",
-                "severity": "medium",
-                "message": f"Average response time ({avg_response_time:.0f}ms) exceeds threshold ({alert_rules['performance']['response_time_threshold']}ms)",
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        if cache_hit_rate < alert_rules["performance"]["cache_hit_rate_threshold"]:
-            active_alerts.append({
-                "type": "low_cache_hit",
-                "severity": "medium",
-                "message": f"Cache hit rate ({cache_hit_rate:.1f}%) below threshold ({alert_rules['performance']['cache_hit_rate_threshold']}%)",
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        if system_metrics["api_costs"] > alert_rules["cost"]["daily_cost_threshold"]:
-            active_alerts.append({
-                "type": "high_costs",
-                "severity": "high",
-                "message": f"Daily API costs (${system_metrics['api_costs']:.2f}) exceed threshold (${alert_rules['cost']['daily_cost_threshold']})",
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        return {
-            "timestamp": datetime.now().isoformat(),
-            "alert_rules": alert_rules,
-            "active_alerts": active_alerts,
-            "alert_summary": {
-                "total_active": len(active_alerts),
-                "high_severity": len([a for a in active_alerts if a["severity"] == "high"]),
-                "medium_severity": len([a for a in active_alerts if a["severity"] == "medium"]),
-                "system_health": "healthy" if len(active_alerts) == 0 else "warning" if len([a for a in active_alerts if a["severity"] == "high"]) == 0 else "critical"
-            }
-        }
-        
-    except Exception as e:
-        return {
-            "error": f"Failed to get alert rules: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }
-
-# Initialize system metrics start time
-if "start_time" not in system_metrics:
-    system_metrics["start_time"] = datetime.now()
-
-# === AUTHENTICATION ENDPOINTS ===
-from pydantic import BaseModel
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str
-    expires_in: int
-
-@app.post("/api/auth/login", response_model=TokenResponse)
-async def admin_login(login_request: LoginRequest):
-    """Admin login endpoint with JWT token generation"""
-    try:
-        # Authenticate admin
-        user = authenticate_admin(login_request.username, login_request.password)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
-            )
-        
-        # Create tokens
-        token_data = {
-            "sub": user["username"],
-            "username": user["username"], 
-            "role": user["role"]
-        }
-        
-        access_token = create_access_token(token_data)
-        refresh_token = create_refresh_token(token_data)
-        
-        # Log successful login
-        log_security_event("admin_login", {
-            "username": user["username"],
-            "timestamp": datetime.now().isoformat(),
-            "success": True
-        })
-        
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=15 * 60  # 15 minutes in seconds
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        # Log failed login attempt
-        log_security_event("admin_login_failed", {
-            "username": login_request.username,
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e)
-        })
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
-        )
-
-@app.post("/api/auth/refresh")
-async def refresh_token(refresh_token: str):
-    """Refresh access token using refresh token"""
-    try:
-        from auth import refresh_access_token
-        return refresh_access_token(refresh_token)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
-        )
-
-# === SERVER STARTUP ===
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting AI Istanbul Backend Server...")
-    print("📍 Server will be available at: http://localhost:8000")
-    print("📚 API Documentation: http://localhost:8000/docs")
-    print("🔒 Security headers enabled for production")
-    
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        reload=False,  # Disable reload in production
-        access_log=True
-    )
+# === END OF AI ENDPOINTS ===
