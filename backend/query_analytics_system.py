@@ -184,7 +184,8 @@ class QueryAnalyticsSystem:
         """Log a query with complete analytics"""
         with self.lock:
             try:
-                with sqlite3.connect(self.db_path, timeout=10.0) as conn:
+                with sqlite3.connect(self.db_path, timeout=30.0) as conn:
+                    conn.execute("PRAGMA journal_mode=WAL")  # Enable WAL mode for better concurrency
                     # Convert to dict and handle datetime
                     data = asdict(query_analytics)
                     data['timestamp'] = query_analytics.timestamp.isoformat()

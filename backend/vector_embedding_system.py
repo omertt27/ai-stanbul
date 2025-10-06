@@ -140,13 +140,37 @@ class VectorEmbeddingSystem:
                 print("📊 Initialized empty FAISS index")
     
     def _build_faiss_index(self, vectors: np.ndarray):
-        """Build FAISS index from vectors"""
+        """Build FAISS index from vectors with optimization for large datasets"""
         # Normalize vectors for cosine similarity
         faiss.normalize_L2(vectors)
         
-        # Create FAISS index
-        self.faiss_index = faiss.IndexFlatIP(self.embedding_dim)
-        self.faiss_index.add(vectors)
+        # Choose index type based on dataset size
+        n_vectors = vectors.shape[0]
+        
+        if n_vectors > 1000:
+            # Use IVF+PQ for large datasets (>1000 documents)
+            print(f"🔧 Using IVF+PQ optimization for {n_vectors} vectors")
+            
+            # Parameters for IVF+PQ
+            nlist = min(int(np.sqrt(n_vectors)), 100)  # Number of clusters
+            m = 8  # Number of sub-quantizers
+            nbits = 8  # Bits per sub-quantizer
+            
+            # Create IVF+PQ index
+            quantizer = faiss.IndexFlatIP(self.embedding_dim)
+            self.faiss_index = faiss.IndexIVFPQ(quantizer, self.embedding_dim, nlist, m, nbits)
+            
+            # Train the index
+            self.faiss_index.train(vectors)
+            self.faiss_index.add(vectors)
+            
+            # Set search parameters
+            self.faiss_index.nprobe = min(nlist // 4, 10)  # Number of clusters to search
+            
+        else:
+            # Use simple flat index for small datasets
+            self.faiss_index = faiss.IndexFlatIP(self.embedding_dim)
+            self.faiss_index.add(vectors)
         
         print(f"🔍 Built FAISS index with {self.faiss_index.ntotal} vectors")
     

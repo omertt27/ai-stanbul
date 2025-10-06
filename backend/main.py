@@ -6,6 +6,7 @@ import asyncio
 import json
 import time
 import html
+import uuid
 from datetime import datetime, date, timedelta
 import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
@@ -597,6 +598,49 @@ if RATE_LIMITING_ENABLED:
         limiter = None
 else:
     print("⚠️ Rate limiting disabled")
+
+# === Optional Enhancement Systems Initialization ===
+# Initialize Optional Enhancement Systems
+hybrid_search = None
+personalization_engine = None
+mini_nlp = None
+OPTIONAL_ENHANCEMENTS_ENABLED = False
+
+try:
+    from hybrid_search_system import HybridSearchSystem
+    from lightweight_personalization_engine import LightweightPersonalizationEngine
+    from mini_nlp_modules import MiniNLPProcessor
+    OPTIONAL_ENHANCEMENTS_ENABLED = True
+    print("✅ Optional enhancement systems loaded successfully")
+    
+    # Initialize Hybrid Search System
+    hybrid_search = HybridSearchSystem()
+    print("✅ Hybrid Search System initialized")
+    
+    # Initialize Personalization Engine  
+    personalization_engine = LightweightPersonalizationEngine()
+    print("✅ Personalization Engine initialized")
+    
+    # Initialize Mini NLP Modules
+    mini_nlp = MiniNLPProcessor()
+    print("✅ Mini NLP Modules initialized")
+    
+    print("🚀 All optional enhancement systems ready!")
+    
+except ImportError as e:
+    print(f"⚠️ Optional enhancement systems not available: {e}")
+    OPTIONAL_ENHANCEMENTS_ENABLED = False
+    hybrid_search = None
+    personalization_engine = None  
+    mini_nlp = None
+except Exception as e:
+    print(f"⚠️ Optional enhancement systems initialization failed: {e}")
+    OPTIONAL_ENHANCEMENTS_ENABLED = False
+    hybrid_search = None
+    personalization_engine = None
+    mini_nlp = None
+
+print(f"Optional Enhancement Systems Status: {'✅ ENABLED' if OPTIONAL_ENHANCEMENTS_ENABLED else '❌ DISABLED'}")
 
 # (Removed duplicate project imports and load_dotenv)
 
@@ -1738,671 +1782,889 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
-# --- Missing helper function ---
-def extract_museum_key_from_input(user_message: str) -> Optional[str]:
-    """Extract museum key from user input for museum service lookup"""
-    user_message_lower = user_message.lower()
+# === Redis Session Manager Integration ===
+try:
+    from redis_session_manager import RedisSessionManager, get_redis_session_manager
+    from multi_turn_query_handler import MultiTurnQueryHandler, ConversationStack, ConversationTurn
+    from context_aware_filtering import ContextAwareFilteringSystem
+    from database import SessionLocal
     
-    # Museum name mappings
-    museum_mappings = {
-        'hagia sophia': 'hagia_sophia',
-        'topkapi': 'topkapi_palace',
-        'topkapi palace': 'topkapi_palace',
-        'blue mosque': 'blue_mosque',
-        'sultan ahmed mosque': 'blue_mosque',
-        'basilica cistern': 'basilica_cistern',
-        'galata tower': 'galata_tower',
-        'dolmabahce': 'dolmabahce_palace',
-        'dolmabahce palace': 'dolmabahce_palace',
-        'istanbul archaeology': 'archaeology_museum',
-        'archaeology museum': 'archaeology_museum',
-        'pera museum': 'pera_museum',
-        'istanbul modern': 'istanbul_modern'
-    }
-    
-    for museum_name, museum_key in museum_mappings.items():
-        if museum_name in user_message_lower:
-            return museum_key
-    
-    return None
-
-# === AI RESPONSE HANDLERS ===
-
-async def get_custom_ai_response(user_input: str, session_id: str, client_ip: str) -> Dict[str, Any]:
-    """
-    Get response from Ultra-Specialized Istanbul AI system (NO GPT)
-    """
-    try:
-        # Use our Ultra-Specialized Istanbul AI System only
-        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
-            return None
-            
-        istanbul_result = istanbul_ai_system.process_istanbul_query(
-            query=user_input,
-            user_context={
-                "session_id": session_id,
-                "client_ip": client_ip,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
-        
-        # Return result from our specialized system
-        if istanbul_result and istanbul_result.get('success'):
-            return {
-                "response": istanbul_result.get("response"),
-                "session_id": session_id,
-                "success": True,
-                "quality_assessment": {
-                    "confidence": istanbul_result.get("confidence", 0.8),
-                    "source": "ultra_specialized_istanbul_ai",
-                    "query_type": "istanbul_specialized",
-                    "processing_time": istanbul_result.get("processing_time", 0),
-                    "specialized_features": istanbul_result.get("specialized_features", [])
-                },
-                "has_context": True,
-                "category": "istanbul_specialized",
-                "data_source": "ultra_specialized_istanbul_intelligence"
-            }
-        else:
-            return None
-        
-        if result and result.get("response"):
-            return {
-                "response": result.get("response"),
-                "session_id": session_id,
-                "success": True,
-                "quality_assessment": {
-                    "confidence": result.get("confidence", 0.8),
-                    "source": result.get("source", "custom_ai"),
-                    "query_type": result.get("query_type", "unknown"),
-                    "processing_time": result.get("processing_time", 0)
-                },
-                "has_context": True,
-                "category": result.get("query_type", "general"),
-                "data_source": result.get("source", "custom_services")
-            }
-        else:
-            return None
-            
-    except Exception as e:
-        print(f"❌ Error in custom AI response: {e}")
-        return None
-
-# === AI CHAT ENDPOINTS (Ultra-Specialized Istanbul AI Only) ===
-
-@app.post("/ai/chat")
-async def ai_chat_endpoint(request: Request):
-    """Main AI chat endpoint using Ultra-Specialized Istanbul AI (NO GPT)"""
-    try:
-        # Get client IP for rate limiting
-        client_ip = getattr(request.client, 'host', 'unknown')
-        
-        # Parse request body
+    # Initialize Redis session manager
+    redis_session_manager = None
+    def init_redis_session_manager():
+        global redis_session_manager
         try:
-            body = await request.json()
-            user_input = body.get('user_input', '').strip()
-            session_id = body.get('session_id', 'default_session')
+            db = SessionLocal()
+            redis_session_manager = RedisSessionManager(
+                redis_url="redis://localhost:6379/0",
+                db_session=db
+            )
+            print("✅ Redis Session Manager initialized successfully")
+            return redis_session_manager
         except Exception as e:
-            print(f"❌ Error parsing request body: {e}")
-            raise HTTPException(status_code=422, detail="Invalid JSON in request body")
+            print(f"⚠️ Redis Session Manager initialization failed: {e}")
+            return None
+    
+    # Try to initialize
+    redis_session_manager = init_redis_session_manager()
+    REDIS_SESSION_ENABLED = redis_session_manager is not None
+    
+    # Initialize Multi-Turn Query Handler
+    multi_turn_handler = MultiTurnQueryHandler(max_history_turns=10)
+    print("✅ Multi-Turn Query Handler initialized successfully")
+    
+    # Initialize Context-Aware Filtering System
+    context_filtering = ContextAwareFilteringSystem()
+    print("✅ Context-Aware Filtering System initialized successfully")
+    
+except ImportError as e:
+    print(f"⚠️ Redis session manager not available: {e}")
+    REDIS_SESSION_ENABLED = False
+    redis_session_manager = None
+    multi_turn_handler = None
+    context_filtering = None
+
+print(f"Redis Session Management Status: {'✅ ENABLED' if REDIS_SESSION_ENABLED else '❌ DISABLED'}")
+
+# === SESSION & CONTEXT MANAGEMENT ENDPOINTS ===
+
+@app.post("/api/session/create")
+async def create_session_endpoint(request: Request):
+    """Create or get session with context management"""
+    try:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        user_agent = request.headers.get('user-agent', '')
         
-        # Validate input
-        if not user_input:
-            raise HTTPException(status_code=400, detail="user_input is required")
+        body = await request.json()
+        session_id = body.get('session_id')
         
-        if len(user_input) > 2000:
-            raise HTTPException(status_code=400, detail="Input too long (max 2000 characters)")
-        
-        # Rate limiting check
-        global daily_usage, last_reset_date
-        today = date.today()
-        
-        # Reset daily usage if new day
-        if today != last_reset_date:
-            daily_usage.clear()
-            last_reset_date = today
-        
-        # Check daily limit
-        if daily_usage[client_ip] >= DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Daily limit exceeded. Please try again tomorrow.")
-        
-        # Increment usage
-        daily_usage[client_ip] += 1
-        
-        print(f"🤖 Istanbul AI Chat Request - IP: {client_ip}, Session: {session_id}, Query: {user_input[:100]}...")
-        
-        # Use our Ultra-Specialized Istanbul AI System only (NO GPT)
-        if CUSTOM_AI_AVAILABLE:
-            result = await get_custom_ai_response(user_input, session_id, client_ip)
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            # Use Redis-based session management
+            session_id, context = redis_session_manager.get_or_create_session(
+                session_id=session_id,
+                user_ip=client_ip,
+                user_agent=user_agent
+            )
             
-            if result and result.get('success'):
-                response_data = {
-                    "response": result['response'],
-                    "session_id": result['session_id'],
-                    "success": True,
-                    "timestamp": datetime.now().isoformat(),
-                    "quality_assessment": result.get('quality_assessment', {}),
-                    "has_context": result.get('has_context', False),
-                    "category": result.get('category', 'istanbul_specialized'),
-                    "ai_type": "ultra_specialized_istanbul_ai"
-                }
-                
-                print(f"✅ Istanbul AI Response generated - Length: {len(result['response'])} chars")
-                return response_data
-        
-        # Fallback response if our system is not available
-        fallback_response = """I'm your Ultra-Specialized Istanbul AI assistant. I provide unique, hyper-local 
-guidance that generic AIs cannot match, including:
-
-🏛️ Micro-district navigation intelligence
-💰 Dynamic pricing optimization  
-🕌 Cultural sensitivity adaptation
-🌐 Hidden Istanbul network access
-👥 Multi-user group dynamics
-📅 Islamic cultural calendar integration
-
-However, I'm currently not available. Please try again in a moment."""
-        
-        response_data = {
-            "response": fallback_response,
-            "session_id": session_id,
-            "success": False,
-            "timestamp": datetime.now().isoformat(),
-            "ai_type": "ultra_specialized_istanbul_ai_fallback"
-        }
-        
-        print(f"⚠️ Using fallback response - Istanbul AI not available")
-        return response_data
-        
-    except HTTPException:
-        raise
+            return {
+                "success": True,
+                "session_id": session_id,
+                "context": {
+                    "conversation_stage": context.conversation_stage,
+                    "entities_count": {k: len(v) for k, v in context.entities.items()},
+                    "places_mentioned": context.places_mentioned[-5:],  # Last 5
+                    "last_queries_count": len(context.last_queries),
+                    "user_preferences": context.user_preferences
+                },
+                "session_type": "redis_managed",
+                "created_at": context.created_at
+            }
+        else:
+            # Fallback to basic session creation
+            if not session_id:
+                session_id = str(uuid.uuid4())
+            
+            return {
+                "success": True,
+                "session_id": session_id,
+                "context": {
+                    "conversation_stage": "initial",
+                    "entities_count": {},
+                    "places_mentioned": [],
+                    "last_queries_count": 0,
+                    "user_preferences": {"budget": "medium", "distance_limit_km": 2}
+                },
+                "session_type": "basic",
+                "created_at": datetime.now().isoformat()
+            }
+            
     except Exception as e:
-        print(f"❌ AI Chat endpoint error: {e}")
-        error_response = {
-            "response": "I'm experiencing technical difficulties. Please try again later.",
-            "session_id": session_id if 'session_id' in locals() else "unknown",
+        print(f"❌ Session creation error: {e}")
+        return {
             "success": False,
             "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-            "ai_type": "ultra_specialized_istanbul_ai_error"
+            "session_id": str(uuid.uuid4()),  # Fallback session
+            "session_type": "fallback"
         }
-        return error_response
 
-@app.post("/ai")  
-async def ai_endpoint_legacy(request: Request):
-    """Legacy AI endpoint for backward compatibility"""
-    # Redirect to the main chat endpoint
-    return await ai_chat_endpoint(request)
-
-print("✅ Ultra-Specialized Istanbul AI endpoints configured (NO GPT)")
-
-# === ENHANCED AI FEATURES ENDPOINTS ===
-
-@app.post("/ai/enhanced-recommendations")
-async def enhanced_recommendations_endpoint(request: Request):
-    """Get enhanced recommendations with all new AI features"""
+@app.get("/api/session/{session_id}/context")
+async def get_session_context_endpoint(session_id: str):
+    """Get session context and conversation history"""
     try:
-        client_ip = getattr(request.client, 'host', 'unknown')
-        
-        # Parse request
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            context = redis_session_manager.get_session_context(session_id)
+            
+            if context:
+                # Get cross-query reference resolution
+                resolution = redis_session_manager.resolve_cross_query_references(
+                    session_id, ""  # Empty query for general context
+                )
+                
+                return {
+                    "success": True,
+                    "session_id": session_id,
+                    "context": {
+                        "last_queries": context.last_queries[-5:],  # Last 5 queries
+                        "entities": context.entities,
+                        "user_preferences": context.user_preferences,
+                        "current_intent": context.current_intent,
+                        "conversation_stage": context.conversation_stage,
+                        "places_mentioned": context.places_mentioned,
+                        "topics_discussed": context.topics_discussed,
+                        "last_activity": context.last_activity
+                    },
+                    "reference_resolution": resolution,
+                    "session_summary": redis_session_manager.get_session_summary(session_id)
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Session context not found",
+                    "session_id": session_id
+                }
+        else:
+            return {
+                "success": False,
+                "error": "Redis session management not available",
+                "fallback_context": {
+                    "conversation_stage": "initial",
+                    "entities": {},
+                    "user_preferences": {"budget": "medium", "distance_limit_km": 2}
+                }
+            }
+            
+    except Exception as e:
+        print(f"❌ Get context error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "session_id": session_id
+        }
+
+@app.post("/api/session/{session_id}/update-context")
+async def update_session_context_endpoint(session_id: str, request: Request):
+    """Update session context with new query and extracted entities"""
+    try:
         body = await request.json()
         query = body.get('query', '').strip()
-        user_context = body.get('user_context', {})
+        intent = body.get('intent', 'general')
+        entities = body.get('entities', {})
+        ai_response = body.get('ai_response', '')
         
         if not query:
             raise HTTPException(status_code=400, detail="query is required")
         
-        # Check rate limiting
-        if daily_usage[client_ip] >= DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
-        
-        daily_usage[client_ip] += 1
-        
-        print(f"🚀 Enhanced Recommendations Request - Query: {query[:100]}...")
-        
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
-            try:
-                # Get enhanced recommendations
-                result = istanbul_ai_system.process_istanbul_query(query, user_context)
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            success = redis_session_manager.update_session_context(
+                session_id=session_id,
+                query=query,
+                intent=intent,
+                entities=entities,
+                ai_response=ai_response
+            )
+            
+            if success:
+                # Get updated context
+                updated_context = redis_session_manager.get_session_context(session_id)
                 
                 return {
                     "success": True,
-                    "recommendations": result.get('response', ''),
-                    "confidence": result.get('confidence', 0.8),
-                    "enhancement_features": result.get('enhancement_features', []),
-                    "user_feedback_applied": result.get('user_feedback_applied', False),
-                    "seasonal_events": result.get('seasonal_events', []),
-                    "authenticity_boosted": result.get('authenticity_boosted', False),
-                    "processing_time": result.get('processing_time', 0),
-                    "timestamp": datetime.now().isoformat()
+                    "session_id": session_id,
+                    "message": "Context updated successfully",
+                    "updated_context": {
+                        "current_intent": updated_context.current_intent,
+                        "conversation_stage": updated_context.conversation_stage,
+                        "entities_count": {k: len(v) for k, v in updated_context.entities.items()},
+                        "places_mentioned_count": len(updated_context.places_mentioned),
+                        "queries_count": len(updated_context.last_queries)
+                    }
                 }
-                
-            except Exception as e:
-                print(f"❌ Enhanced recommendations error: {e}")
+            else:
                 return {
                     "success": False,
-                    "error": f"Enhancement service error: {str(e)}",
-                    "fallback_message": "Enhanced features temporarily unavailable. Please try the basic chat endpoint."
+                    "error": "Failed to update context",
+                    "session_id": session_id
                 }
         else:
-            raise HTTPException(status_code=503, detail="Enhanced AI services not available")
+            return {
+                "success": False,
+                "error": "Redis session management not available",
+                "session_id": session_id
+            }
             
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Enhanced recommendations endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        print(f"❌ Update context error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "session_id": session_id
+        }
 
-@app.post("/ai/add-feedback")
-async def add_user_feedback_endpoint(request: Request):
-    """Add user feedback to improve recommendations"""
+@app.post("/api/session/{session_id}/resolve-references")
+async def resolve_references_endpoint(session_id: str, request: Request):
+    """Resolve cross-query references like 'which is closest?', 'that restaurant'"""
     try:
-        client_ip = getattr(request.client, 'host', 'unknown')
-        
-        # Parse request
         body = await request.json()
-        user_id = body.get('user_id', f'user_{client_ip}_{int(time.time())}')
-        attraction_name = body.get('attraction_name', '').strip()
-        ratings = body.get('ratings', {})
-        comment = body.get('comment', '').strip()
-        user_type = body.get('user_type', 'tourist')
+        current_query = body.get('query', '').strip()
         
-        if not attraction_name:
-            raise HTTPException(status_code=400, detail="attraction_name is required")
+        if not current_query:
+            raise HTTPException(status_code=400, detail="query is required")
         
-        if not ratings or not isinstance(ratings, dict):
-            raise HTTPException(status_code=400, detail="ratings dictionary is required")
-        
-        # Validate ratings
-        for key, value in ratings.items():
-            if not isinstance(value, (int, float)) or not (1 <= value <= 10):
-                raise HTTPException(status_code=400, detail=f"Rating '{key}' must be between 1 and 10")
-        
-        print(f"📝 User Feedback - Attraction: {attraction_name}, Ratings: {ratings}")
-        
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
-            try:
-                result = istanbul_ai_system.add_user_feedback(
-                    user_id, attraction_name, ratings, comment, user_type
-                )
-                
-                return {
-                    "success": result.get('success', False),
-                    "message": result.get('message', ''),
-                    "feedback_id": result.get('feedback_id'),
-                    "impact": result.get('impact', ''),
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-            except Exception as e:
-                print(f"❌ Add feedback error: {e}")
-                return {
-                    "success": False,
-                    "message": f"Error processing feedback: {str(e)}"
-                }
-        else:
-            raise HTTPException(status_code=503, detail="Feedback service not available")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Add feedback endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
-@app.get("/ai/daily-schedule")
-async def daily_schedule_endpoint(request: Request, user_type: str = "tourist", 
-                                 group_size: int = 1, budget_level: str = "medium"):
-    """Get a complete daily schedule with enhanced recommendations"""
-    try:
-        client_ip = getattr(request.client, 'host', 'unknown')
-        
-        # Check rate limiting
-        if daily_usage[client_ip] >= DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
-        
-        daily_usage[client_ip] += 1
-        
-        print(f"📅 Daily Schedule Request - Type: {user_type}, Group: {group_size}")
-        
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
-            try:
-                user_context = {
-                    'user_type': user_type,
-                    'group_size': group_size,
-                    'budget_level': budget_level
-                }
-                
-                result = istanbul_ai_system.get_daily_schedule(user_context)
-                
-                return {
-                    "success": True,
-                    "schedule": result.get('response', ''),
-                    "schedule_data": result.get('schedule_data', {}),
-                    "confidence": result.get('confidence', 0.9),
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-            except Exception as e:
-                print(f"❌ Daily schedule error: {e}")
-                return {
-                    "success": False,
-                    "error": f"Schedule service error: {str(e)}"
-                }
-        else:
-            raise HTTPException(status_code=503, detail="Daily schedule service not available")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Daily schedule endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
-@app.get("/ai/system-status")
-async def system_status_endpoint():
-    """Get comprehensive system status including all enhancement services"""
-    try:
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
-            status = istanbul_ai_system.get_system_status()
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            resolution = redis_session_manager.resolve_cross_query_references(
+                session_id, current_query
+            )
             
             return {
                 "success": True,
-                "system_status": status,
-                "timestamp": datetime.now().isoformat(),
-                "version": "enhanced_v2.0"
+                "session_id": session_id,
+                "query": current_query,
+                "resolution": resolution,
+                "resolved": resolution["resolved"],
+                "suggested_context": resolution.get("context", {}),
+                "suggested_entities": resolution.get("suggested_entities", [])
             }
         else:
             return {
                 "success": False,
-                "system_status": {
-                    "core_system": "disabled",
-                    "enhancement_services": "not_available"
-                },
-                "message": "Enhanced AI system not available",
-                "timestamp": datetime.now().isoformat()
+                "error": "Redis session management not available",
+                "session_id": session_id,
+                "query": current_query
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Resolve references error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "session_id": session_id
+        }
+
+@app.get("/api/session/stats")
+async def session_stats_endpoint():
+    """Get session management statistics"""
+    try:
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            # Clean up expired sessions and get stats
+            cleaned = redis_session_manager.cleanup_expired_sessions()
+            
+            return {
+                "success": True,
+                "redis_enabled": True,
+                "cleaned_sessions": cleaned,
+                "session_ttl_hours": redis_session_manager.session_ttl / 3600,
+                "context_ttl_hours": redis_session_manager.context_ttl / 3600,
+                "redis_connected": True
+            }
+        else:
+            return {
+                "success": True,
+                "redis_enabled": False,
+                "message": "Using fallback session management"
             }
             
     except Exception as e:
-        print(f"❌ System status error: {e}")
+        print(f"❌ Session stats error: {e}")
         return {
             "success": False,
-            "error": f"Status check error: {str(e)}",
-            "timestamp": datetime.now().isoformat()
+            "error": str(e),
+            "redis_enabled": REDIS_SESSION_ENABLED
         }
 
-@app.post("/ai/enhanced-search")
-async def enhanced_search_endpoint(request: Request):
-    """Enhanced search with all features integrated"""
+print("✅ Session & Context Management endpoints configured")
+
+# === MAIN AI ENDPOINTS ===
+
+@app.post("/ai")
+async def ai_istanbul_router(request: Request):
+    """Main AI endpoint for chatbot queries with Redis session management"""
+    session_id = "unknown"
     try:
-        client_ip = getattr(request.client, 'host', 'unknown')
+        data = await request.json()
+        user_input = data.get("user_input", "")
+        session_id = data.get("session_id", f"session_{int(time.time())}")
         
-        # Parse request
-        body = await request.json()
-        query = body.get('query', '').strip()
-        user_context = body.get('user_context', {})
+        # Enhanced input validation
+        if not user_input or len(user_input.strip()) < 1:
+            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
         
-        if not query:
-            raise HTTPException(status_code=400, detail="query is required")
+        if len(user_input.strip()) < 2:
+            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
         
-        # Check rate limiting
-        if daily_usage[client_ip] >= DAILY_LIMIT:
-            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
+        # Check for spam-like input
+        if re.search(r'(.)\1{4,}', user_input):
+            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
         
-        daily_usage[client_ip] += 1
+        # Check for only special characters or numbers
+        if not re.search(r'[a-zA-Z\u0600-\u06FF\u00C0-\u017F\u0400-\u04FF]', user_input):
+            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
         
-        print(f"🔍 Enhanced Search Request - Query: {query[:100]}...")
+        # Sanitize input - basic cleanup
+        user_input = clean_text_formatting(user_input)
         
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
+        # === REDIS SESSION MANAGEMENT INTEGRATION ===
+        # Get or create session with context
+        context = {}
+        if REDIS_SESSION_ENABLED and redis_session_manager:
             try:
-                # Create user context
-                from services.integrated_ai_enhancement_service import UserContext
+                session_context = redis_session_manager.get_session_context(session_id)
+                if session_context:
+                    if hasattr(session_context, 'to_dict'):
+                        context = session_context.to_dict()
+                    else:
+                        context = session_context
+                    print(f"✅ Retrieved session context for {session_id}: {len(context.get('last_queries', []))} previous queries")
+                else:
+                    # Create new session
+                    new_session_id, new_context = redis_session_manager.get_or_create_session(
+                        session_id=session_id,
+                        user_ip=client_ip
+                    )
+                    session_id = new_session_id
+                    context = new_context.to_dict()
+                    print(f"✅ Created new session: {session_id}")
+            except Exception as e:
+                print(f"⚠️ Redis session error: {e}")
+                # Continue without Redis session management
+        
+        # Get database session
+        db = SessionLocal()
+        try:
+            client_ip = request.client.host if request.client else "unknown"
+            
+            # === MULTI-TURN QUERY PROCESSING ===
+            # Process query for follow-up references and context
+            processed_query = user_input
+            conversation_context = {}
+            
+            if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
+                try:
+                    # Get or load conversation stack from Redis
+                    conversation_stack = None
+                    redis_key = f"conversation_stack:{session_id}"
+                    
+                    try:
+                        stack_data = redis_session_manager.redis_client.get(redis_key)
+                        if stack_data:
+                            stack_dict = json.loads(stack_data)
+                            conversation_stack = ConversationStack.from_dict(stack_dict)
+                            print(f"✅ Loaded conversation stack with {len(conversation_stack.turns)} turns")
+                        else:
+                            # Create new conversation stack
+                            conversation_stack = ConversationStack(
+                                session_id=session_id,
+                                turns=[],
+                                current_context={},
+                                conversation_topic="",
+                                last_results={},
+                                reference_cache={}
+                            )
+                            print(f"✅ Created new conversation stack for session {session_id}")
+                    except Exception as e:
+                        print(f"⚠️ Error loading conversation stack: {e}")
+                        conversation_stack = ConversationStack(
+                            session_id=session_id,
+                            turns=[],
+                            current_context={},
+                            conversation_topic="",
+                            last_results={},
+                            reference_cache={}
+                        )
+                    
+                    # Check if this is a follow-up query
+                    if conversation_stack.turns:
+                        is_followup, followup_type = multi_turn_handler.is_follow_up_query(user_input)
+                        
+                        if is_followup:
+                            print(f"🔄 Detected follow-up query: '{user_input}' (type: {followup_type})")
+                            
+                            # Resolve follow-up query using conversation context
+                            followup_result = multi_turn_handler.resolve_follow_up_query(
+                                user_input, conversation_stack
+                            )
+                            
+                            if followup_result.get('enhanced_query') and followup_result['enhanced_query'] != user_input:
+                                processed_query = followup_result['enhanced_query']
+                                print(f"✅ Enhanced query: '{processed_query}'")
+                            
+                            # Store conversation context for potential use
+                            conversation_context = {
+                                'followup_type': followup_type,
+                                'context_provided': followup_result.get('context_provided', False),
+                                'last_results': conversation_stack.last_results,
+                                'current_topic': conversation_stack.conversation_topic
+                            }
+                            print(f"✅ Retrieved conversation context: topic='{conversation_stack.conversation_topic}'")
+                    
+                except Exception as e:
+                    print(f"⚠️ Multi-turn processing error: {e}")
+                    # Continue with original query
+                    processed_query = user_input
+            
+            # Generate AI response using the unified system (with processed query and context-aware filtering)
+            if context_filtering and 'conversation_stack' in locals() and conversation_stack:
+                ai_response = await get_context_aware_gpt_response(processed_query, session_id, client_ip, conversation_stack)
+            else:
+                ai_response = await get_gpt_response(processed_query, session_id, client_ip)
+            
+            if not ai_response:
+                # Fallback response
+                ai_response = "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation."
+            
+            # Clean the response
+            clean_response = clean_text_formatting(ai_response)
+            
+            # === UPDATE REDIS SESSION CONTEXT & CONVERSATION STACK ===
+            if REDIS_SESSION_ENABLED and redis_session_manager:
+                try:
+                    # Extract basic entities and intent (simple implementation)
+                    entities = {}
+                    intent = 'general_travel_info'
+                    
+                    # Simple entity extraction
+                    istanbul_districts = ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'taksim', 'eminonu', 'fatih']
+                    for district in istanbul_districts:
+                        if district in user_input.lower():
+                            if 'locations' not in entities:
+                                entities['locations'] = []
+                            entities['locations'].append(district.title())
+                    
+                    # Simple intent detection
+                    if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat', 'dining']):
+                        intent = 'restaurant_search'
+                    elif any(word in user_input.lower() for word in ['museum', 'gallery', 'history']):
+                        intent = 'museum_inquiry'
+                    elif any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi']):
+                        intent = 'transportation_info'
+                    elif any(word in user_input.lower() for word in ['place', 'attraction', 'visit', 'see']):
+                        intent = 'place_recommendation'
+                    
+                    # Update session context (original method)
+                    redis_session_manager.update_session_context(
+                        session_id=session_id,
+                        query=user_input,
+                        intent=intent,
+                        entities=entities,
+                        ai_response=clean_response
+                    )
+                    
+                    # === UPDATE CONVERSATION STACK FOR MULTI-TURN ===
+                    if multi_turn_handler and 'conversation_stack' in locals():
+                        try:
+                            # Create conversation turn
+                            conversation_turn = multi_turn_handler.create_conversation_turn(
+                                user_query=user_input,
+                                ai_response=clean_response,
+                                intent=intent,
+                                entities=entities
+                            )
+                            
+                            # Add turn to conversation stack
+                            conversation_stack = multi_turn_handler.update_conversation_stack(conversation_stack, conversation_turn)
+                            
+                            # Save updated conversation stack to Redis
+                            redis_key = f"conversation_stack:{session_id}"
+                            stack_json = json.dumps(conversation_stack.to_dict())
+                            redis_session_manager.redis_client.setex(
+                                redis_key, 
+                                3600,  # 1 hour expiry
+                                stack_json
+                            )
+                            
+                            print(f"✅ Updated conversation stack for {session_id}: {len(conversation_stack.turns)} turns, topic='{conversation_stack.conversation_topic}'")
+                            
+                        except Exception as e:
+                            print(f"⚠️ Failed to update conversation stack: {e}")
+                    
+                    print(f"✅ Updated session context for {session_id}: intent={intent}, entities={entities}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Failed to update Redis session context: {e}")
+            
+            # Store in database for legacy support
+            try:
+                chat_record = ChatHistory(
+                    user_message=user_input,
+                    ai_response=clean_response,
+                    session_id=session_id,
+                    user_ip=client_ip
+                )
+                db.add(chat_record)
+                db.commit()
+                print(f"✅ Stored chat in database for session {session_id}")
+            except Exception as e:
+                print(f"⚠️ Database storage failed: {e}")
+            
+            return {"response": clean_response, "session_id": session_id}
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"❌ Critical error in AI endpoint: {e}")
+        return {"response": "Sorry, I encountered an error. Please try again.", "session_id": session_id}
+
+@app.post("/ai/stream")
+async def ai_istanbul_streaming(request: Request):
+    """Streaming AI endpoint for real-time responses with session management"""
+    try:
+        data = await request.json()
+        user_input = data.get("user_input", "")
+        session_id = data.get("session_id", f"session_{int(time.time())}")
+        
+        if not user_input:
+            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
+        
+        # Get or update session context
+        context = {}
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            try:
+                session_context = redis_session_manager.get_session_context(session_id)
+                if session_context:
+                    if hasattr(session_context, 'to_dict'):
+                        context = session_context.to_dict()
+                    else:
+                        context = session_context
+                else:
+                    # Create new session for streaming
+                    session_id, context = redis_session_manager.get_or_create_session(
+                        session_id=session_id,
+                        user_ip=client_ip
+                    )
+                    context = context.to_dict()
+            except Exception as e:
+                print(f"⚠️ Redis session error in streaming: {e}")
+        
+        client_ip = request.client.host if request.client else "unknown"
+        
+        # === MULTI-TURN QUERY PROCESSING FOR STREAMING ===
+        processed_query = user_input
+        if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
+            try:
+                # Load conversation stack for streaming
+                redis_key = f"conversation_stack:{session_id}"
+                stack_data = redis_session_manager.redis_client.get(redis_key)
+                if stack_data:
+                    stack_dict = json.loads(stack_data)
+                    conversation_stack = ConversationStack.from_dict(stack_dict)
+                    
+                    # Check for follow-up query
+                    if conversation_stack.turns:
+                        is_followup, followup_type = multi_turn_handler.is_follow_up_query(user_input)
+                        if is_followup:
+                            followup_result = multi_turn_handler.resolve_follow_up_query(user_input, conversation_stack)
+                            if followup_result.get('enhanced_query'):
+                                processed_query = followup_result['enhanced_query']
+                                print(f"🔄 Streaming follow-up enhanced: '{processed_query}'")
+            except Exception as e:
+                print(f"⚠️ Streaming multi-turn error: {e}")
+        
+        # Generate streaming response with context-aware filtering if available
+        conversation_stack_for_streaming = None
+        if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
+            try:
+                redis_key = f"conversation_stack:{session_id}"
+                stack_data = redis_session_manager.redis_client.get(redis_key)
+                if stack_data:
+                    stack_dict = json.loads(stack_data)
+                    conversation_stack_for_streaming = ConversationStack.from_dict(stack_dict)
+            except Exception as e:
+                print(f"⚠️ Error loading conversation stack for streaming context filtering: {e}")
+        
+        if context_filtering and conversation_stack_for_streaming:
+            ai_response = await get_context_aware_gpt_response(processed_query, session_id, client_ip, conversation_stack_for_streaming)
+        else:
+            ai_response = await get_gpt_response(processed_query, session_id, client_ip)
+        
+        if not ai_response:
+            ai_response = "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation."
+        
+        # Update session context after streaming response
+        if REDIS_SESSION_ENABLED and redis_session_manager:
+            try:
+                # Simple intent and entity extraction
+                intent = 'general_travel_info'
+                entities = {}
                 
-                context = UserContext(
-                    user_type=user_context.get('user_type', 'tourist'),
-                    visit_history=user_context.get('visit_history', []),
-                    preferences=user_context.get('preferences', {}),
-                    group_size=user_context.get('group_size', 1),
-                    budget_level=user_context.get('budget_level', 'medium'),
-                    interests=user_context.get('interests', [])
+                if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat']):
+                    intent = 'restaurant_search'
+                elif any(word in user_input.lower() for word in ['museum', 'gallery']):
+                    intent = 'museum_inquiry'
+                
+                redis_session_manager.update_session_context(
+                    session_id=session_id,
+                    query=user_input,
+                    intent=intent,
+                    entities=entities,
+                    ai_response=ai_response
                 )
                 
-                # Get enhanced search results
-                results = istanbul_ai_system.db_manager.enhancement_service.search_with_enhancements(query, context)
-                
-                return {
-                    "success": True,
-                    "search_results": results,
-                    "query": query,
-                    "user_context": user_context,
-                    "timestamp": datetime.now().isoformat()
-                }
-                
+                # Update conversation stack for streaming too
+                if multi_turn_handler:
+                    try:
+                        redis_key = f"conversation_stack:{session_id}"
+                        stack_data = redis_session_manager.redis_client.get(redis_key)
+                        if stack_data:
+                            stack_dict = json.loads(stack_data)
+                            conversation_stack = ConversationStack.from_dict(stack_dict)
+                        else:
+                            conversation_stack = ConversationStack(
+                                session_id=session_id, turns=[], current_context={},
+                                conversation_topic="", last_results={}, reference_cache={}
+                            )
+                        
+                        # Create and add turn
+                        conversation_turn = multi_turn_handler.create_conversation_turn(
+                            user_query=user_input, ai_response=ai_response, intent=intent, entities=entities
+                        )
+                        conversation_stack = multi_turn_handler.update_conversation_stack(conversation_stack, conversation_turn)
+                        
+                        # Save back to Redis
+                        stack_json = json.dumps(conversation_stack.to_dict())
+                        redis_session_manager.redis_client.setex(redis_key, 3600, stack_json)
+                        
+                    except Exception as e:
+                        print(f"⚠️ Failed to update streaming conversation stack: {e}")
+                        
             except Exception as e:
-                print(f"❌ Enhanced search error: {e}")
-                return {
-                    "success": False,
-                    "error": f"Search service error: {str(e)}",
-                    "fallback_message": "Enhanced search temporarily unavailable."
-                }
-        else:
-            raise HTTPException(status_code=503, detail="Enhanced search service not available")
-            
-    except HTTPException:
-        raise
+                print(f"⚠️ Failed to update streaming session context: {e}")
+        
+        return {"response": ai_response, "session_id": session_id}
+        
     except Exception as e:
-        print(f"❌ Enhanced search endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        print(f"❌ Error in streaming endpoint: {e}")
+        return {"response": "Sorry, I encountered an error. Please try again.", "session_id": session_id}
 
-@app.get("/admin/dashboard-data")
-async def admin_dashboard_data_endpoint():
-    """Get data for admin curation dashboard (protected endpoint)"""
+async def get_context_aware_gpt_response(user_input: str, session_id: str, user_ip: Optional[str] = None, 
+                                       conversation_stack=None) -> Optional[str]:
+    """Generate AI response with context-aware filtering for better personalization"""
+    
+    # Get the base AI response
+    base_response = await get_gpt_response(user_input, session_id, user_ip)
+    
+    if not base_response or not context_filtering or not conversation_stack:
+        return base_response
+    
     try:
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
+        # Determine if this is a query that would benefit from context filtering
+        intent = 'general_travel_info'
+        if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat', 'dining', 'cafe']):
+            intent = 'restaurant_search'
+        elif any(word in user_input.lower() for word in ['museum', 'gallery', 'history']):
+            intent = 'museum_inquiry'
+        elif any(word in user_input.lower() for word in ['place', 'attraction', 'visit', 'see']):
+            intent = 'place_recommendation'
+        
+        # Only apply context filtering for relevant queries
+        if intent in ['restaurant_search', 'place_recommendation', 'museum_inquiry']:
+            
+            # Get relevant data from database
+            from database import SessionLocal
+            db = SessionLocal()
+            
             try:
-                dashboard_data = istanbul_ai_system.db_manager.enhancement_service.get_curation_dashboard_data()
+                if intent == 'restaurant_search':
+                    # Get restaurants from database
+                    restaurants = db.query(Restaurant).limit(50).all()
+                    restaurant_data = []
+                    for r in restaurants:
+                        restaurant_data.append({
+                            'name': r.name,
+                            'description': r.description or '',
+                            'district': r.district or '',
+                            'cuisine': r.cuisine or '',
+                            'rating': getattr(r, 'rating', 4.0),
+                            'address': getattr(r, 'address', ''),
+                        })
+                    
+                    # Apply context-aware filtering
+                    filtered_restaurants = context_filtering.apply_context_filtering(
+                        restaurant_data, conversation_stack, user_input, intent
+                    )
+                    
+                    # If we have filtered results, enhance the response
+                    if filtered_restaurants and len(filtered_restaurants) < len(restaurant_data):
+                        print(f"✅ Context filtering applied: {len(restaurant_data)} → {len(filtered_restaurants)} restaurants")
+                        
+                        # Create enhanced response with top filtered results
+                        enhanced_response = create_enhanced_restaurant_response(
+                            base_response, filtered_restaurants[:10], conversation_stack, user_input
+                        )
+                        
+                        if enhanced_response:
+                            return enhanced_response
                 
-                return {
-                    "success": True,
-                    "dashboard_data": dashboard_data,
-                    "timestamp": datetime.now().isoformat()
-                }
+                elif intent == 'place_recommendation':
+                    # Get places from database
+                    places = db.query(Place).limit(50).all()
+                    place_data = []
+                    for p in places:
+                        place_data.append({
+                            'name': p.name,
+                            'description': p.description or '',
+                            'district': p.district or '',
+                            'category': p.category or '',
+                            'rating': getattr(p, 'rating', 4.0),
+                        })
+                    
+                    # Apply context-aware filtering (reuse restaurant logic for now)
+                    filtered_places = context_filtering.apply_context_filtering(
+                        place_data, conversation_stack, user_input, intent
+                    )
+                    
+                    if filtered_places and len(filtered_places) < len(place_data):
+                        print(f"✅ Context filtering applied: {len(place_data)} → {len(filtered_places)} places")
+                        
+                        enhanced_response = create_enhanced_place_response(
+                            base_response, filtered_places[:10], conversation_stack, user_input
+                        )
+                        
+                        if enhanced_response:
+                            return enhanced_response
+                            
+            finally:
+                db.close()
                 
-            except Exception as e:
-                print(f"❌ Dashboard data error: {e}")
-                return {
-                    "success": False,
-                    "error": f"Dashboard service error: {str(e)}"
-                }
-        else:
-            raise HTTPException(status_code=503, detail="Dashboard service not available")
-            
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"❌ Dashboard endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+        print(f"⚠️ Context-aware filtering error: {e}")
+        # Return base response if filtering fails
+    
+    return base_response
 
-@app.post("/admin/run-discovery")
-async def run_discovery_pipeline_endpoint(request: Request):
-    """Run the discovery and curation pipeline (admin endpoint)"""
-    try:
-        # Parse optional categories
-        body = await request.json() if hasattr(request, 'json') else {}
-        categories = body.get('categories', None) if body else None
+def create_enhanced_restaurant_response(base_response: str, filtered_restaurants: List[Dict[str, Any]], 
+                                      conversation_stack, user_input: str) -> Optional[str]:
+    """Create enhanced response with context-aware restaurant recommendations"""
+    
+    if not filtered_restaurants:
+        return None
+    
+    # Check if this looks like a restaurant recommendation response
+    if not any(word in base_response.lower() for word in ['restaurant', 'cafe', 'food', 'dining', 'eat']):
+        return None
+    
+    # Extract location context for personalized intro
+    location_intro = ""
+    if conversation_stack and conversation_stack.turns:
+        # Look for location mentions in recent conversation
+        for turn in conversation_stack.turns[-3:]:
+            query_lower = turn.user_query.lower()
+            for district in ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'taksim']:
+                if district in query_lower:
+                    location_intro = f"Based on your interest in {district.title()}, "
+                    break
+            if location_intro:
+                break
+    
+    # Create enhanced response
+    enhanced_lines = []
+    
+    # Add personalized intro if we have context
+    if location_intro:
+        enhanced_lines.append(f"{location_intro}here are the most suitable restaurants for you:")
+    else:
+        enhanced_lines.append("Here are restaurants that match your preferences:")
+    
+    enhanced_lines.append("")
+    
+    # Add top filtered restaurants with context-aware descriptions
+    for i, restaurant in enumerate(filtered_restaurants[:8], 1):
+        name = restaurant.get('name', 'Unknown Restaurant')
+        district = restaurant.get('district', '')
+        cuisine = restaurant.get('cuisine', '')
+        rating = restaurant.get('rating', 0)
         
-        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
-            try:
-                pipeline_results = istanbul_ai_system.db_manager.enhancement_service.run_discovery_pipeline(categories)
-                
-                return {
-                    "success": True,
-                    "pipeline_results": pipeline_results,
-                    "timestamp": datetime.now().isoformat()
-                }
-                
-            except Exception as e:
-                print(f"❌ Discovery pipeline error: {e}")
-                return {
-                    "success": False,
-                    "error": f"Pipeline error: {str(e)}"
-                }
-        else:
-            raise HTTPException(status_code=503, detail="Discovery pipeline not available")
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Discovery pipeline endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
-print("✅ Enhanced AI Feature endpoints configured:")
-print("   🚀 /ai/enhanced-recommendations - Get comprehensive enhanced recommendations")
-print("   📝 /ai/add-feedback - Add user feedback for crowd-sourced improvements")
-print("   📅 /ai/daily-schedule - Get personalized daily schedule")
-print("   🔍 /ai/enhanced-search - Enhanced search with all features")
-print("   📊 /ai/system-status - Get comprehensive system status")
-print("   🛠️ /admin/dashboard-data - Admin curation dashboard data")
-print("   🔄 /admin/run-discovery - Run discovery and curation pipeline")
-
-# === Analytics & Pipeline Endpoints ===
-
-@app.get("/api/analytics/dashboard", 
-         summary="Get Query Analytics Dashboard",
-         description="Comprehensive analytics dashboard showing query performance, failed queries, and improvement recommendations")
-async def get_analytics_dashboard():
-    """Get comprehensive analytics dashboard data"""
-    try:
-        from query_analytics_system import get_analytics_dashboard
-        return get_analytics_dashboard()
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Analytics system not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analytics error: {str(e)}")
-
-@app.post("/api/analytics/feedback", 
-          summary="Submit User Feedback",
-          description="Submit user satisfaction feedback for a query")
-async def submit_user_feedback(
-    query_id: str = Body(..., description="Query ID to provide feedback for"),
-    satisfaction: int = Body(..., ge=1, le=5, description="Satisfaction rating (1-5)"),
-    feedback: Optional[str] = Body(None, description="Optional written feedback")
-):
-    """Submit user satisfaction feedback"""
-    try:
-        from query_analytics_system import track_user_satisfaction
-        track_user_satisfaction(query_id, satisfaction, feedback)
-        return {"success": True, "message": "Feedback recorded successfully"}
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Analytics system not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Feedback error: {str(e)}")
-
-@app.get("/api/analytics/failed-queries",
-         summary="Get Failed Queries Analysis",
-         description="Get detailed analysis of failed queries for improvement")
-async def get_failed_queries_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
-    """Get failed queries analysis"""
-    try:
-        from query_analytics_system import query_analytics_system
-        return query_analytics_system.get_failed_queries_analysis(days)
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Analytics system not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
-
-@app.get("/api/analytics/performance",
-         summary="Get Performance Analytics",
-         description="Get detailed performance metrics and trends")
-async def get_performance_analytics(days: int = Query(30, ge=1, le=365, description="Number of days to analyze")):
-    """Get performance analytics"""
-    try:
-        from query_analytics_system import query_analytics_system
-        return query_analytics_system.get_performance_analytics(days)
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Analytics system not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Performance error: {str(e)}")
-
-@app.get("/api/analytics/recommendations",
-         summary="Get Improvement Recommendations",
-         description="Get AI-generated recommendations for system improvements")
-async def get_improvement_recommendations():
-    """Get improvement recommendations based on analytics"""
-    try:
-        from query_analytics_system import query_analytics_system
-        return query_analytics_system.get_improvement_recommendations()
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Analytics system not available") 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Recommendations error: {str(e)}")
-
-@app.get("/api/pipeline/status",
-         summary="Get Automated Pipeline Status",
-         description="Get current status of the automated data pipeline")
-async def get_pipeline_status():
-    """Get automated pipeline status"""
-    try:
-        from automated_data_pipeline import get_pipeline_dashboard
-        return get_pipeline_dashboard()
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Automated pipeline not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
-
-@app.post("/api/pipeline/start",
-          summary="Start Automated Pipeline",
-          description="Start the automated data collection and curation pipeline")
-async def start_automated_pipeline(
-    scraping_interval_hours: int = Body(24, ge=1, le=168, description="Hours between scraping runs"),
-    quality_threshold: float = Body(0.8, ge=0.1, le=1.0, description="Minimum quality score for approval"),
-    auto_approve_threshold: float = Body(0.9, ge=0.1, le=1.0, description="Quality threshold for auto-approval"),
-    max_daily_additions: int = Body(50, ge=1, le=500, description="Maximum items to add per day")
-):
-    """Start the automated pipeline with custom configuration"""
-    try:
-        from automated_data_pipeline import start_pipeline, PipelineConfig
+        # Format rating
+        rating_str = f"{rating:.1f}/5.0" if isinstance(rating, (int, float)) and rating > 0 else "Great reviews"
         
-        config = PipelineConfig(
-            enabled=True,
-            scraping_interval_hours=scraping_interval_hours,
-            quality_threshold=quality_threshold,
-            auto_approve_threshold=auto_approve_threshold,
-            max_daily_additions=max_daily_additions
-        )
+        # Create description with context
+        description_parts = []
+        if district:
+            description_parts.append(f"in {district}")
+        if cuisine:
+            description_parts.append(f"serving {cuisine} cuisine")
         
-        start_pipeline(config)
-        return {"success": True, "message": "Automated pipeline started successfully", "config": config.__dict__}
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Automated pipeline not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline start error: {str(e)}")
+        description = f"({', '.join(description_parts)})" if description_parts else ""
+        
+        enhanced_lines.append(f"{i}. **{name}** - {rating_str} {description}")
+        
+        # Add brief context if available
+        if restaurant.get('description'):
+            brief_desc = restaurant['description'][:100]
+            if len(restaurant['description']) > 100:
+                brief_desc += "..."
+            enhanced_lines.append(f"   {brief_desc}")
+        
+        enhanced_lines.append("")
+    
+    # Add context-aware tips
+    enhanced_lines.append("💡 **Personalized Tips:**")
+    
+    # Add location-specific tip
+    if location_intro:
+        location_name = location_intro.split("in ")[-1].split(",")[0].strip()
+        enhanced_lines.append(f"• These restaurants are selected based on your interest in {location_name}")
+    
+    # Add preference-based tips
+    user_query_lower = user_input.lower()
+    if 'cheap' in user_query_lower or 'budget' in user_query_lower:
+        enhanced_lines.append("• Filtered for budget-friendly options")
+    elif 'expensive' in user_query_lower or 'fine dining' in user_query_lower:
+        enhanced_lines.append("• Selected upscale dining experiences")
+    
+    if 'authentic' in user_query_lower or 'traditional' in user_query_lower:
+        enhanced_lines.append("• Prioritized authentic and traditional restaurants")
+    
+    enhanced_lines.append("")
+    enhanced_lines.append("Would you like more details about any of these restaurants or help with directions?")
+    
+    return "\n".join(enhanced_lines)
 
-@app.post("/api/pipeline/stop",
-          summary="Stop Automated Pipeline", 
-          description="Stop the automated data collection pipeline")
-async def stop_automated_pipeline():
-    """Stop the automated pipeline"""
-    try:
-        from automated_data_pipeline import stop_pipeline
-        stop_pipeline()
-        return {"success": True, "message": "Automated pipeline stopped successfully"}
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Automated pipeline not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pipeline stop error: {str(e)}")
-
-@app.get("/api/pipeline/quality-dashboard",
-         summary="Get Content Quality Dashboard",
-         description="Get detailed dashboard of content quality metrics and approval rates")
-async def get_content_quality_dashboard():
-    """Get content quality dashboard"""
-    try:
-        from automated_data_pipeline import automated_pipeline
-        return automated_pipeline.get_content_quality_dashboard()
-    except ImportError:
-        raise HTTPException(status_code=503, detail="Automated pipeline not available")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Quality dashboard error: {str(e)}")
-
-print("✅ Analytics and Automated Pipeline endpoints configured")
-
-# === Include API Routers ===
+def create_enhanced_place_response(base_response: str, filtered_places: List[Dict[str, Any]], 
+                                 conversation_stack, user_input: str) -> Optional[str]:
+    """Create enhanced response with context-aware place recommendations"""
+    
+    if not filtered_places:
+        return None
+    
+    # Check if this looks like a place recommendation response
+    if not any(word in base_response.lower() for word in ['place', 'attraction', 'visit', 'see', 'museum']):
+        return None
+    
+    # Create enhanced response similar to restaurant response
+    enhanced_lines = []
+    enhanced_lines.append("Here are places that match your interests:")
+    enhanced_lines.append("")
+    
+    for i, place in enumerate(filtered_places[:8], 1):
+        name = place.get('name', 'Unknown Place')
+        district = place.get('district', '')
+        category = place.get('category', '')
+        rating = place.get('rating', 0)
+        
+        rating_str = f"{rating:.1f}/5.0" if isinstance(rating, (int, float)) and rating > 0 else "Highly rated"
+        
+        description_parts = []
+        if district:
+            description_parts.append(f"in {district}")
+        if category:
+            description_parts.append(category.lower())
+        
+        description = f"({', '.join(description_parts)})" if description_parts else ""
+        
+        enhanced_lines.append(f"{i}. **{name}** - {rating_str} {description}")
+        
+        if place.get('description'):
+            brief_desc = place['description'][:100]
+            if len(place['description']) > 100:
+                brief_desc += "..."
+            enhanced_lines.append(f"   {brief_desc}")
+        
+        enhanced_lines.append("")
+    
+    enhanced_lines.append("Would you like more information about any of these places?")
+    
+    return "\n".join(enhanced_lines)
