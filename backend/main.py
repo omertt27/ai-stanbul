@@ -1896,4 +1896,329 @@ async def ai_endpoint_legacy(request: Request):
 
 print("✅ Ultra-Specialized Istanbul AI endpoints configured (NO GPT)")
 
-# === END OF AI ENDPOINTS ===
+# === ENHANCED AI FEATURES ENDPOINTS ===
+
+@app.post("/ai/enhanced-recommendations")
+async def enhanced_recommendations_endpoint(request: Request):
+    """Get enhanced recommendations with all new AI features"""
+    try:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Parse request
+        body = await request.json()
+        query = body.get('query', '').strip()
+        user_context = body.get('user_context', {})
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="query is required")
+        
+        # Check rate limiting
+        if daily_usage[client_ip] >= DAILY_LIMIT:
+            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
+        
+        daily_usage[client_ip] += 1
+        
+        print(f"🚀 Enhanced Recommendations Request - Query: {query[:100]}...")
+        
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
+            try:
+                # Get enhanced recommendations
+                result = istanbul_ai_system.process_istanbul_query(query, user_context)
+                
+                return {
+                    "success": True,
+                    "recommendations": result.get('response', ''),
+                    "confidence": result.get('confidence', 0.8),
+                    "enhancement_features": result.get('enhancement_features', []),
+                    "user_feedback_applied": result.get('user_feedback_applied', False),
+                    "seasonal_events": result.get('seasonal_events', []),
+                    "authenticity_boosted": result.get('authenticity_boosted', False),
+                    "processing_time": result.get('processing_time', 0),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Enhanced recommendations error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Enhancement service error: {str(e)}",
+                    "fallback_message": "Enhanced features temporarily unavailable. Please try the basic chat endpoint."
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced AI services not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Enhanced recommendations endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.post("/ai/add-feedback")
+async def add_user_feedback_endpoint(request: Request):
+    """Add user feedback to improve recommendations"""
+    try:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Parse request
+        body = await request.json()
+        user_id = body.get('user_id', f'user_{client_ip}_{int(time.time())}')
+        attraction_name = body.get('attraction_name', '').strip()
+        ratings = body.get('ratings', {})
+        comment = body.get('comment', '').strip()
+        user_type = body.get('user_type', 'tourist')
+        
+        if not attraction_name:
+            raise HTTPException(status_code=400, detail="attraction_name is required")
+        
+        if not ratings or not isinstance(ratings, dict):
+            raise HTTPException(status_code=400, detail="ratings dictionary is required")
+        
+        # Validate ratings
+        for key, value in ratings.items():
+            if not isinstance(value, (int, float)) or not (1 <= value <= 10):
+                raise HTTPException(status_code=400, detail=f"Rating '{key}' must be between 1 and 10")
+        
+        print(f"📝 User Feedback - Attraction: {attraction_name}, Ratings: {ratings}")
+        
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
+            try:
+                result = istanbul_ai_system.add_user_feedback(
+                    user_id, attraction_name, ratings, comment, user_type
+                )
+                
+                return {
+                    "success": result.get('success', False),
+                    "message": result.get('message', ''),
+                    "feedback_id": result.get('feedback_id'),
+                    "impact": result.get('impact', ''),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Add feedback error: {e}")
+                return {
+                    "success": False,
+                    "message": f"Error processing feedback: {str(e)}"
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Feedback service not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Add feedback endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/ai/daily-schedule")
+async def daily_schedule_endpoint(request: Request, user_type: str = "tourist", 
+                                 group_size: int = 1, budget_level: str = "medium"):
+    """Get a complete daily schedule with enhanced recommendations"""
+    try:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Check rate limiting
+        if daily_usage[client_ip] >= DAILY_LIMIT:
+            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
+        
+        daily_usage[client_ip] += 1
+        
+        print(f"📅 Daily Schedule Request - Type: {user_type}, Group: {group_size}")
+        
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
+            try:
+                user_context = {
+                    'user_type': user_type,
+                    'group_size': group_size,
+                    'budget_level': budget_level
+                }
+                
+                result = istanbul_ai_system.get_daily_schedule(user_context)
+                
+                return {
+                    "success": True,
+                    "schedule": result.get('response', ''),
+                    "schedule_data": result.get('schedule_data', {}),
+                    "confidence": result.get('confidence', 0.9),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Daily schedule error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Schedule service error: {str(e)}"
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Daily schedule service not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Daily schedule endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/ai/system-status")
+async def system_status_endpoint():
+    """Get comprehensive system status including all enhancement services"""
+    try:
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system:
+            status = istanbul_ai_system.get_system_status()
+            
+            return {
+                "success": True,
+                "system_status": status,
+                "timestamp": datetime.now().isoformat(),
+                "version": "enhanced_v2.0"
+            }
+        else:
+            return {
+                "success": False,
+                "system_status": {
+                    "core_system": "disabled",
+                    "enhancement_services": "not_available"
+                },
+                "message": "Enhanced AI system not available",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        print(f"❌ System status error: {e}")
+        return {
+            "success": False,
+            "error": f"Status check error: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/ai/enhanced-search")
+async def enhanced_search_endpoint(request: Request):
+    """Enhanced search with all features integrated"""
+    try:
+        client_ip = getattr(request.client, 'host', 'unknown')
+        
+        # Parse request
+        body = await request.json()
+        query = body.get('query', '').strip()
+        user_context = body.get('user_context', {})
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="query is required")
+        
+        # Check rate limiting
+        if daily_usage[client_ip] >= DAILY_LIMIT:
+            raise HTTPException(status_code=429, detail="Daily limit exceeded.")
+        
+        daily_usage[client_ip] += 1
+        
+        print(f"🔍 Enhanced Search Request - Query: {query[:100]}...")
+        
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
+            try:
+                # Create user context
+                from services.integrated_ai_enhancement_service import UserContext
+                
+                context = UserContext(
+                    user_type=user_context.get('user_type', 'tourist'),
+                    visit_history=user_context.get('visit_history', []),
+                    preferences=user_context.get('preferences', {}),
+                    group_size=user_context.get('group_size', 1),
+                    budget_level=user_context.get('budget_level', 'medium'),
+                    interests=user_context.get('interests', [])
+                )
+                
+                # Get enhanced search results
+                results = istanbul_ai_system.db_manager.enhancement_service.search_with_enhancements(query, context)
+                
+                return {
+                    "success": True,
+                    "search_results": results,
+                    "query": query,
+                    "user_context": user_context,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Enhanced search error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Search service error: {str(e)}",
+                    "fallback_message": "Enhanced search temporarily unavailable."
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Enhanced search service not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Enhanced search endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/admin/dashboard-data")
+async def admin_dashboard_data_endpoint():
+    """Get data for admin curation dashboard (protected endpoint)"""
+    try:
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
+            try:
+                dashboard_data = istanbul_ai_system.db_manager.enhancement_service.get_curation_dashboard_data()
+                
+                return {
+                    "success": True,
+                    "dashboard_data": dashboard_data,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Dashboard data error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Dashboard service error: {str(e)}"
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Dashboard service not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Dashboard endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.post("/admin/run-discovery")
+async def run_discovery_pipeline_endpoint(request: Request):
+    """Run the discovery and curation pipeline (admin endpoint)"""
+    try:
+        # Parse optional categories
+        body = await request.json() if hasattr(request, 'json') else {}
+        categories = body.get('categories', None) if body else None
+        
+        if CUSTOM_AI_AVAILABLE and istanbul_ai_system and hasattr(istanbul_ai_system.db_manager, 'enhancement_service'):
+            try:
+                pipeline_results = istanbul_ai_system.db_manager.enhancement_service.run_discovery_pipeline(categories)
+                
+                return {
+                    "success": True,
+                    "pipeline_results": pipeline_results,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except Exception as e:
+                print(f"❌ Discovery pipeline error: {e}")
+                return {
+                    "success": False,
+                    "error": f"Pipeline error: {str(e)}"
+                }
+        else:
+            raise HTTPException(status_code=503, detail="Discovery pipeline not available")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Discovery pipeline endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+print("✅ Enhanced AI Feature endpoints configured:")
+print("   🚀 /ai/enhanced-recommendations - Get comprehensive enhanced recommendations")
+print("   📝 /ai/add-feedback - Add user feedback for crowd-sourced improvements")
+print("   📅 /ai/daily-schedule - Get personalized daily schedule")
+print("   🔍 /ai/enhanced-search - Enhanced search with all features")
+print("   📊 /ai/system-status - Get comprehensive system status")
+print("   🛠️ /admin/dashboard-data - Admin curation dashboard data")
+print("   🔄 /admin/run-discovery - Run discovery and curation pipeline")
