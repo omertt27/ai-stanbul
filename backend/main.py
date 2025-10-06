@@ -14,7 +14,7 @@ import traceback
 from collections import defaultdict
 
 # --- Third-Party Imports ---
-from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status
+from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status, Body, Query
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -1479,58 +1479,98 @@ Key Istanbul topics to reference when relevant:
         return None
 
 def get_museums_from_database() -> List[Dict[str, Any]]:
-    """Fetch museums from the database and return formatted data"""
+    """Fetch museums from the expanded accurate museum database (40 museums)"""
     try:
-        from database import SessionLocal
-        from models import Place
+        # Use our expanded museum database instead of SQL database
+        from accurate_museum_database import istanbul_museums
         
-        # Create database session
-        db = SessionLocal()
-        
-        # Query museums from the places table
-        museums = db.query(Place).filter(Place.category == 'Museum').all()
-        
-        # Also query historical sites and palaces that are museum-like
-        historical_sites = db.query(Place).filter(Place.category == 'Historical Site').all()
-        palaces = db.query(Place).filter(Place.category == 'Palace').all()
-        
-        db.close()
-        
-        # Format the data
+        # Format the data from our comprehensive museum database
         museum_data = []
         
-        # Add actual museums
-        for museum in museums:
+        for museum_key, museum_info in istanbul_museums.museums.items():
+            # Extract district from location (assuming format "District, Area" or just "District")
+            location_parts = museum_info.location.split(',')
+            district = location_parts[-1].strip() if location_parts else "Istanbul"
+            
+            # Categorize museums based on their type and name
+            if 'palace' in museum_info.name.lower():
+                category = 'Palace Museum'
+                museum_type = 'palace'
+            elif 'mosque' in museum_info.name.lower():
+                category = 'Historic Mosque'
+                museum_type = 'mosque'
+            elif 'church' in museum_info.name.lower():
+                category = 'Historic Church'
+                museum_type = 'church'
+            elif 'fortress' in museum_info.name.lower() or 'tower' in museum_info.name.lower():
+                category = 'Historical Site'
+                museum_type = 'historical'
+            elif 'bazaar' in museum_info.name.lower():
+                category = 'Cultural Site'
+                museum_type = 'cultural'
+            else:
+                category = 'Museum'
+                museum_type = 'museum'
+            
             museum_data.append({
-                'name': museum.name,
-                'category': 'Museum',
-                'district': museum.district,
-                'type': 'museum'
+                'name': museum_info.name,
+                'category': category,
+                'district': district,
+                'type': museum_type,
+                'location': museum_info.location,
+                'historical_period': museum_info.historical_period,
+                'opening_hours': museum_info.opening_hours,
+                'entrance_fee': museum_info.entrance_fee,
+                'visiting_duration': museum_info.visiting_duration,
+                'key_features': museum_info.key_features[:3],  # Top 3 features
+                'must_see_highlights': museum_info.must_see_highlights[:3]  # Top 3 highlights
             })
         
-        # Add historical sites (many are museum-like)
-        for site in historical_sites:
-            museum_data.append({
-                'name': site.name,
-                'category': 'Historical Site',
-                'district': site.district,
-                'type': 'historical'
-            })
-        
-        # Add palaces (which are museums)
-        for palace in palaces:
-            museum_data.append({
-                'name': palace.name,
-                'category': 'Palace Museum',
-                'district': palace.district,
-                'type': 'palace'
-            })
-        
+        print(f"✅ Loaded {len(museum_data)} museums from expanded database")
         return museum_data
         
     except Exception as e:
-        print(f"Error fetching museums from database: {e}")
-        return []
+        print(f"Error fetching museums from expanded database: {e}")
+        # Fallback to SQL database if expanded database fails
+        try:
+            from database import SessionLocal
+            from models import Place
+            
+            db = SessionLocal()
+            museums = db.query(Place).filter(Place.category == 'Museum').all()
+            historical_sites = db.query(Place).filter(Place.category == 'Historical Site').all()
+            palaces = db.query(Place).filter(Place.category == 'Palace').all()
+            db.close()
+            
+            museum_data = []
+            for museum in museums:
+                museum_data.append({
+                    'name': museum.name,
+                    'category': 'Museum',
+                    'district': museum.district,
+                    'type': 'museum'
+                })
+            for site in historical_sites:
+                museum_data.append({
+                    'name': site.name,
+                    'category': 'Historical Site',
+                    'district': site.district,
+                    'type': 'historical'
+                })
+            for palace in palaces:
+                museum_data.append({
+                    'name': palace.name,
+                    'category': 'Palace Museum',
+                    'district': palace.district,
+                    'type': 'palace'
+                })
+            
+            print(f"⚠️ Using fallback SQL database: {len(museum_data)} museums")
+            return museum_data
+            
+        except Exception as fallback_error:
+            print(f"Error with fallback database: {fallback_error}")
+            return []
 
 def format_museums_response(museums_data: List[Dict[str, Any]]) -> str:
     """Format museums data into a comprehensive response"""
@@ -2222,3 +2262,147 @@ print("   🔍 /ai/enhanced-search - Enhanced search with all features")
 print("   📊 /ai/system-status - Get comprehensive system status")
 print("   🛠️ /admin/dashboard-data - Admin curation dashboard data")
 print("   🔄 /admin/run-discovery - Run discovery and curation pipeline")
+
+# === Analytics & Pipeline Endpoints ===
+
+@app.get("/api/analytics/dashboard", 
+         summary="Get Query Analytics Dashboard",
+         description="Comprehensive analytics dashboard showing query performance, failed queries, and improvement recommendations")
+async def get_analytics_dashboard():
+    """Get comprehensive analytics dashboard data"""
+    try:
+        from query_analytics_system import get_analytics_dashboard
+        return get_analytics_dashboard()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Analytics system not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analytics error: {str(e)}")
+
+@app.post("/api/analytics/feedback", 
+          summary="Submit User Feedback",
+          description="Submit user satisfaction feedback for a query")
+async def submit_user_feedback(
+    query_id: str = Body(..., description="Query ID to provide feedback for"),
+    satisfaction: int = Body(..., ge=1, le=5, description="Satisfaction rating (1-5)"),
+    feedback: Optional[str] = Body(None, description="Optional written feedback")
+):
+    """Submit user satisfaction feedback"""
+    try:
+        from query_analytics_system import track_user_satisfaction
+        track_user_satisfaction(query_id, satisfaction, feedback)
+        return {"success": True, "message": "Feedback recorded successfully"}
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Analytics system not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Feedback error: {str(e)}")
+
+@app.get("/api/analytics/failed-queries",
+         summary="Get Failed Queries Analysis",
+         description="Get detailed analysis of failed queries for improvement")
+async def get_failed_queries_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
+    """Get failed queries analysis"""
+    try:
+        from query_analytics_system import query_analytics_system
+        return query_analytics_system.get_failed_queries_analysis(days)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Analytics system not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis error: {str(e)}")
+
+@app.get("/api/analytics/performance",
+         summary="Get Performance Analytics",
+         description="Get detailed performance metrics and trends")
+async def get_performance_analytics(days: int = Query(30, ge=1, le=365, description="Number of days to analyze")):
+    """Get performance analytics"""
+    try:
+        from query_analytics_system import query_analytics_system
+        return query_analytics_system.get_performance_analytics(days)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Analytics system not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Performance error: {str(e)}")
+
+@app.get("/api/analytics/recommendations",
+         summary="Get Improvement Recommendations",
+         description="Get AI-generated recommendations for system improvements")
+async def get_improvement_recommendations():
+    """Get improvement recommendations based on analytics"""
+    try:
+        from query_analytics_system import query_analytics_system
+        return query_analytics_system.get_improvement_recommendations()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Analytics system not available") 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Recommendations error: {str(e)}")
+
+@app.get("/api/pipeline/status",
+         summary="Get Automated Pipeline Status",
+         description="Get current status of the automated data pipeline")
+async def get_pipeline_status():
+    """Get automated pipeline status"""
+    try:
+        from automated_data_pipeline import get_pipeline_dashboard
+        return get_pipeline_dashboard()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Automated pipeline not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
+
+@app.post("/api/pipeline/start",
+          summary="Start Automated Pipeline",
+          description="Start the automated data collection and curation pipeline")
+async def start_automated_pipeline(
+    scraping_interval_hours: int = Body(24, ge=1, le=168, description="Hours between scraping runs"),
+    quality_threshold: float = Body(0.8, ge=0.1, le=1.0, description="Minimum quality score for approval"),
+    auto_approve_threshold: float = Body(0.9, ge=0.1, le=1.0, description="Quality threshold for auto-approval"),
+    max_daily_additions: int = Body(50, ge=1, le=500, description="Maximum items to add per day")
+):
+    """Start the automated pipeline with custom configuration"""
+    try:
+        from automated_data_pipeline import start_pipeline, PipelineConfig
+        
+        config = PipelineConfig(
+            enabled=True,
+            scraping_interval_hours=scraping_interval_hours,
+            quality_threshold=quality_threshold,
+            auto_approve_threshold=auto_approve_threshold,
+            max_daily_additions=max_daily_additions
+        )
+        
+        start_pipeline(config)
+        return {"success": True, "message": "Automated pipeline started successfully", "config": config.__dict__}
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Automated pipeline not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline start error: {str(e)}")
+
+@app.post("/api/pipeline/stop",
+          summary="Stop Automated Pipeline", 
+          description="Stop the automated data collection pipeline")
+async def stop_automated_pipeline():
+    """Stop the automated pipeline"""
+    try:
+        from automated_data_pipeline import stop_pipeline
+        stop_pipeline()
+        return {"success": True, "message": "Automated pipeline stopped successfully"}
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Automated pipeline not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline stop error: {str(e)}")
+
+@app.get("/api/pipeline/quality-dashboard",
+         summary="Get Content Quality Dashboard",
+         description="Get detailed dashboard of content quality metrics and approval rates")
+async def get_content_quality_dashboard():
+    """Get content quality dashboard"""
+    try:
+        from automated_data_pipeline import automated_pipeline
+        return automated_pipeline.get_content_quality_dashboard()
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Automated pipeline not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quality dashboard error: {str(e)}")
+
+print("✅ Analytics and Automated Pipeline endpoints configured")
+
+# === Include API Routers ===
