@@ -2440,7 +2440,7 @@ async def delete_chat_session(session_id: str):
             db = SessionLocal()
             from models import SavedChatSession
             
-            session = db.query(SavedChatSession).filter(SavedChatSession.id == post_id).first()
+            session = db.query(SavedChatSession).filter(SavedChatSession.id == session_id).first()
             
             if session:
                 db.delete(session)

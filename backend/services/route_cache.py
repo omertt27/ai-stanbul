@@ -28,6 +28,9 @@ class RouteCacheManager:
     """
     
     def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+        # Initialize stats and popular routes tracking
+        self.initialize_cache_stats()
+        
         try:
             self.redis_client = redis.from_url(redis_url, decode_responses=False)
             self.redis_client.ping()
@@ -63,8 +66,12 @@ class RouteCacheManager:
     
     def get_cached_route(self, request: RouteRequest) -> Optional[GeneratedRoute]:
         """Retrieve a cached route if available"""
-        if not self.cache_enabled:
-            return None
+        # Initialize stats if not present
+        self.initialize_cache_stats()
+        self.stats["total_requests"] += 1
+        
+        if not self.cache_enabled and not hasattr(self, 'memory_cache'):
+            self.memory_cache = {}
         
         try:
             cache_key = self._generate_cache_key("route", self._route_request_to_dict(request))
@@ -74,16 +81,21 @@ class RouteCacheManager:
                 if cached_data:
                     route_data = pickle.loads(cached_data)
                     print(f"🚀 Cache HIT for route: {cache_key[:16]}...")
+                    self.stats["cache_hits"] += 1
                     return self._dict_to_generated_route(route_data)
             else:
                 # Memory cache fallback
                 if cache_key in self.memory_cache:
                     print(f"🚀 Memory cache HIT for route: {cache_key[:16]}...")
+                    self.stats["cache_hits"] += 1
                     return self._dict_to_generated_route(self.memory_cache[cache_key])
             
+            # Cache miss
+            self.stats["cache_misses"] += 1
             return None
         except Exception as e:
             print(f"⚠️ Cache retrieval error: {e}")
+            self.stats["cache_misses"] += 1
             return None
     
     def cache_route(self, request: RouteRequest, generated_route: GeneratedRoute, ttl_hours: int = 24):
@@ -436,6 +448,203 @@ class RouteCacheManager:
             optimizations["error"] = str(e)
         
         return optimizations
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get comprehensive cache statistics"""
+        try:
+            # Initialize stats if not present
+            self.initialize_cache_stats()
+            
+            # Basic stats
+            hit_rate = self.stats["cache_hits"] / max(self.stats["total_requests"], 1) * 100
+            
+            stats = {
+                "cache_enabled": self.cache_enabled,
+                "cache_type": "Redis" if self.cache_enabled else "Memory",
+                "total_requests": self.stats["total_requests"],
+                "cache_hits": self.stats["cache_hits"],
+                "cache_misses": self.stats["cache_misses"],
+                "hit_rate_percent": round(hit_rate, 2),
+                "popular_routes_tracked": len(self.popular_routes),
+                "current_time": datetime.utcnow().isoformat()
+            }
+            
+            # Redis-specific stats
+            if self.cache_enabled:
+                try:
+                    redis_info = self.redis_client.info("memory")
+                    stats["redis_memory_usage_mb"] = round(redis_info.get("used_memory", 0) / 1024 / 1024, 2)
+                    stats["redis_keys"] = self.redis_client.dbsize()
+                except Exception as e:
+                    stats["redis_error"] = str(e)
+            else:
+                stats["memory_cache_entries"] = len(self.memory_cache)
+            
+            # Popular routes info
+            if self.popular_routes:
+                top_routes = sorted(
+                    self.popular_routes.items(),
+                    key=lambda x: x[1]["count"],
+                    reverse=True
+                )[:5]
+                
+                stats["top_popular_routes"] = [
+                    {
+                        "route_key": route_key[:50] + "..." if len(route_key) > 50 else route_key,
+                        "request_count": data["count"],
+                        "last_requested": data["last_requested"]
+                    }
+                    for route_key, data in top_routes
+                ]
+            
+            return stats
+            
+        except Exception as e:
+            return {
+                "error": f"Failed to get cache stats: {str(e)}",
+                "cache_enabled": getattr(self, 'cache_enabled', False),
+                "current_time": datetime.utcnow().isoformat()
+            }
+    
+    def _generated_route_to_dict(self, generated_route: GeneratedRoute) -> Dict[str, Any]:
+        """Convert GeneratedRoute to cacheable dictionary"""
+        return {
+            "id": generated_route.id,
+            "name": generated_route.name,
+            "description": generated_route.description,
+            "points": [
+                {
+                    "lat": point.lat,
+                    "lng": point.lng,
+                    "attraction_id": point.attraction_id,
+                    "name": point.name,
+                    "category": point.category,
+                    "estimated_duration_minutes": point.estimated_duration_minutes,
+                    "arrival_time": point.arrival_time,
+                    "score": point.score,
+                    "notes": point.notes
+                }
+                for point in (generated_route.points or [])
+            ],
+            "total_distance_km": generated_route.total_distance_km,
+            "estimated_duration_hours": generated_route.estimated_duration_hours,
+            "overall_score": generated_route.overall_score,
+            "diversity_score": generated_route.diversity_score,
+            "efficiency_score": generated_route.efficiency_score,
+            "created_at": generated_route.created_at.isoformat() if generated_route.created_at else None
+        }
+    
+    def _dict_to_generated_route(self, route_data: Dict[str, Any]) -> GeneratedRoute:
+        """Convert dictionary back to GeneratedRoute"""
+        from services.route_maker_service import RoutePoint
+        
+        # Convert points
+        points = []
+        for point_data in route_data.get("points", []):
+            points.append(RoutePoint(
+                lat=point_data["lat"],
+                lng=point_data["lng"],
+                attraction_id=point_data.get("attraction_id"),
+                name=point_data.get("name", ""),
+                category=point_data.get("category", ""),
+                estimated_duration_minutes=point_data.get("estimated_duration_minutes", 60),
+                arrival_time=point_data.get("arrival_time"),
+                score=point_data.get("score", 0.0),
+                notes=point_data.get("notes", "")
+            ))
+        
+        return GeneratedRoute(
+            id=route_data.get("id"),
+            name=route_data.get("name", ""),
+            description=route_data.get("description", ""),
+            points=points,
+            total_distance_km=route_data.get("total_distance_km", 0.0),
+            estimated_duration_hours=route_data.get("estimated_duration_hours", 0.0),
+            overall_score=route_data.get("overall_score", 0.0),
+            diversity_score=route_data.get("diversity_score", 0.0),
+            efficiency_score=route_data.get("efficiency_score", 0.0),
+            created_at=datetime.fromisoformat(route_data["created_at"]) if route_data.get("created_at") else None
+        )
+    
+    def initialize_cache_stats(self):
+        """Initialize cache statistics tracking"""
+        if not hasattr(self, 'stats'):
+            self.stats = {
+                "cache_hits": 0,
+                "cache_misses": 0,
+                "total_requests": 0
+            }
+        
+        if not hasattr(self, 'popular_routes'):
+            self.popular_routes = defaultdict(lambda: {"count": 0, "last_requested": datetime.utcnow().isoformat()})
+
+    def clear(self) -> Dict[str, Any]:
+        """Clear all cached data"""
+        try:
+            cleared = 0
+            if self.cache_enabled:
+                # Get all route cache keys
+                pattern = "route:*"
+                keys = self.redis_client.keys(pattern)
+                if keys:
+                    cleared = self.redis_client.delete(*keys)
+                    
+                # Also clear attraction cache keys
+                pattern = "attractions:*"
+                attraction_keys = self.redis_client.keys(pattern)
+                if attraction_keys:
+                    cleared += self.redis_client.delete(*attraction_keys)
+            else:
+                cleared = len(self.memory_cache)
+                self.memory_cache.clear()
+            
+            # Reset stats
+            self.initialize_cache_stats()
+            
+            return {
+                "success": True,
+                "cleared_entries": cleared,
+                "message": f"Cleared {cleared} cached entries"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_cache_size(self) -> Dict[str, Any]:
+        """Get cache size information"""
+        try:
+            if self.cache_enabled:
+                # Count Redis keys
+                route_keys = len(self.redis_client.keys("route:*"))
+                attraction_keys = len(self.redis_client.keys("attractions:*"))
+                total_keys = route_keys + attraction_keys
+                
+                # Get memory usage
+                memory_info = self.redis_client.info("memory")
+                memory_usage_mb = round(memory_info.get("used_memory", 0) / 1024 / 1024, 2)
+                
+                return {
+                    "total_keys": total_keys,
+                    "route_keys": route_keys,
+                    "attraction_keys": attraction_keys,
+                    "memory_usage_mb": memory_usage_mb,
+                    "cache_type": "Redis"
+                }
+            else:
+                return {
+                    "total_keys": len(self.memory_cache),
+                    "route_keys": len([k for k in self.memory_cache.keys() if k.startswith("route:")]),
+                    "attraction_keys": len([k for k in self.memory_cache.keys() if k.startswith("attractions:")]),
+                    "memory_usage_mb": 0,  # Rough estimate would be complex
+                    "cache_type": "Memory"
+                }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "cache_type": "Redis" if self.cache_enabled else "Memory"
+            }
 
 # Global cache instance
 route_cache = RouteCacheManager()

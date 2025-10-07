@@ -407,19 +407,9 @@ async def get_route_map(route_id: int, db: Session = Depends(get_db)):
 async def get_cache_stats():
     """Get route cache performance statistics"""
     try:
-        from backend.services.route_cache import route_cache
+        from services.route_cache import route_cache
         stats = route_cache.get_stats()
-        return {
-            "cache_enabled": True,
-            "cache_type": stats.get("backend", "memory"),
-            "total_requests": stats.get("total_requests", 0),
-            "cache_hits": stats.get("cache_hits", 0),
-            "cache_misses": stats.get("cache_misses", 0),
-            "hit_rate": stats.get("hit_rate", 0.0),
-            "cached_routes": stats.get("cached_routes", 0),
-            "memory_usage_mb": stats.get("memory_usage_mb", 0),
-            "last_reset": stats.get("last_reset", "Never")
-        }
+        return stats
     except ImportError:
         return {
             "cache_enabled": False,
@@ -460,8 +450,8 @@ async def find_nearby_attractions(
         
         # Base query
         query = db.query(EnhancedAttraction).filter(
-            EnhancedAttraction.lat.isnot(None),
-            EnhancedAttraction.lng.isnot(None),
+            EnhancedAttraction.coordinates_lat.isnot(None),
+            EnhancedAttraction.coordinates_lng.isnot(None),
             EnhancedAttraction.popularity_score >= min_score
         )
         
@@ -477,16 +467,16 @@ async def find_nearby_attractions(
         nearby_attractions = []
         
         for attraction in all_attractions:
-            if attraction.lat is not None and attraction.lng is not None:
-                distance = geodesic((lat, lng), (attraction.lat, attraction.lng)).kilometers
+            if attraction.coordinates_lat is not None and attraction.coordinates_lng is not None:
+                distance = geodesic((lat, lng), (attraction.coordinates_lat, attraction.coordinates_lng)).kilometers
                 if distance <= radius_km:
                     nearby_attractions.append({
                         "id": attraction.id,
                         "name": attraction.name,
                         "category": attraction.category,
                         "district": attraction.district,
-                        "lat": attraction.lat,
-                        "lng": attraction.lng,
+                        "lat": attraction.coordinates_lat,
+                        "lng": attraction.coordinates_lng,
                         "popularity_score": attraction.popularity_score,
                         "description": attraction.description,
                         "distance_km": round(distance, 2)

@@ -715,5 +715,101 @@ class IstanbulRoutemaker:
         
         return self.primary_district
 
+    def _select_optimal_attractions(self, attractions: List, request: RouteRequest) -> List:
+        """Select optimal attractions based on scoring and constraints"""
+        if not attractions:
+            return []
+        
+        # Score all attractions
+        visited_categories = []
+        scored_attractions = []
+        
+        for attraction in attractions:
+            score = self.score_attraction(attraction, request, visited_categories=visited_categories)
+            attraction.route_score = score
+            scored_attractions.append(attraction)
+        
+        # Sort by score (highest first)
+        scored_attractions.sort(key=lambda x: x.route_score, reverse=True)
+        
+        # Select attractions considering constraints
+        selected = []
+        total_time = 0
+        visited_categories = []
+        
+        for attraction in scored_attractions:
+            if len(selected) >= request.max_attractions:
+                break
+            
+            # Check time constraint
+            visit_time = getattr(attraction, 'estimated_visit_time_minutes', 60)
+            if total_time + visit_time > request.available_time_hours * 60:
+                continue
+            
+            # Check distance constraint (already filtered in get_attractions_near_point)
+            
+            # Add to selection
+            selected.append(attraction)
+            total_time += visit_time
+            visited_categories.append(attraction.category)
+            
+            # Add travel time between attractions (estimate)
+            if len(selected) > 1:
+                total_time += 15  # 15 minutes average travel time between attractions
+        
+        print(f"🎯 Selected {len(selected)} attractions from {len(attractions)} candidates")
+        return selected
+    
+    def _create_empty_route(self, request: RouteRequest) -> GeneratedRoute:
+        """Create an empty route when no attractions are found"""
+        route_points = [
+            RoutePoint(
+                lat=request.start_lat,
+                lng=request.start_lng,
+                name="Starting Point",
+                category="start",
+                estimated_duration_minutes=0,
+                arrival_time="09:00",
+                notes="No attractions found in the specified area"
+            )
+        ]
+        
+        # Add end point if specified
+        if request.end_lat and request.end_lng:
+            distance = geodesic((request.start_lat, request.start_lng), (request.end_lat, request.end_lng)).kilometers
+            route_points.append(RoutePoint(
+                lat=request.end_lat,
+                lng=request.end_lng,
+                name="End Point",
+                category="end",
+                estimated_duration_minutes=0,
+                arrival_time="09:00",
+                notes=f"Direct route: {distance:.1f}km"
+            ))
+        
+        return GeneratedRoute(
+            name="Empty Route",
+            description="No attractions found in the specified area",
+            points=route_points,
+            total_distance_km=geodesic((request.start_lat, request.start_lng), (request.end_lat or request.start_lat, request.end_lng or request.start_lng)).kilometers if request.end_lat and request.end_lng else 0.0,
+            estimated_duration_hours=0.0,
+            overall_score=0.0,
+            diversity_score=0.0,
+            efficiency_score=0.0,
+            created_at=datetime.utcnow()
+        )
+
+    def get_district_status(self) -> Dict[str, Any]:
+        """Get status of loaded districts"""
+        return {
+            "primary_district": getattr(self, 'primary_district', 'Unknown'),
+            "covered_districts": getattr(self, 'covered_districts', []),
+            "available_districts": list(getattr(self, 'available_districts', {}).keys()),
+            "graph_stats": {
+                "nodes": len(self.graph.nodes) if self.graph else 0,
+                "edges": len(self.graph.edges) if self.graph else 0
+            }
+        }
+
 # Global instance
 route_maker = IstanbulRoutemaker()
