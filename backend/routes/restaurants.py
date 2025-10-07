@@ -26,7 +26,7 @@ def _lazy_import_integrated_cache():
 import logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
+router = APIRouter(tags=["Restaurants"])
 
 def get_db():
     db = SessionLocal()
@@ -100,13 +100,15 @@ def search_restaurants_with_descriptions(
             )
             
         else:
-            logger.warning("Integrated cache not available. Falling back to direct API search.")
-            restaurants = client.get_restaurants_with_descriptions(
+            logger.warning("Integrated cache not available. Using mock data search.")
+            # Use our mock data search directly
+            search_result = client.search_restaurants(
                 location=search_location,
-                radius=radius,
-                limit=limit,
                 keyword=keyword
             )
+            
+            # Extract restaurants from mock data format
+            restaurants = search_result.get('results', [])[:limit]
             
             # Calculate cost for non-optimized search
             cost_breakdown = _calculate_fallback_cost()
@@ -809,3 +811,26 @@ def _get_cost_grade(savings: float, potential_cost: float) -> str:
         return "C"
     else:
         return "D"
+
+@router.get("/all")
+def get_all_mock_restaurants():
+    """
+    Get all mock restaurants from the dataset without any limit.
+    This is primarily for testing and validation purposes.
+    """
+    try:
+        client = GooglePlacesClient()
+        
+        # Get all mock restaurants without any filters or limits
+        search_result = client._get_mock_restaurant_data()
+        restaurants = search_result.get('results', [])
+        
+        return {
+            "status": "success",
+            "total_restaurants": len(restaurants),
+            "restaurants": restaurants,
+            "note": "This endpoint returns all mock restaurants for testing purposes"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching all restaurants: {str(e)}")

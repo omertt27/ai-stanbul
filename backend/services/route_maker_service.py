@@ -41,14 +41,154 @@ from typing import List, Dict, Tuple, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import math
 import random
 from dataclasses import dataclass
 from enum import Enum
+import requests
+import pytz
+
+# Istanbul timezone
+ISTANBUL_TIMEZONE = pytz.timezone('Europe/Istanbul')
+import pytz
 
 from database import get_db
 from services.performance_monitor import monitor_performance, profile_route_generation, performance_monitor
+
+
+class IstanbulOptimizations:
+    """Istanbul-specific optimizations for routing and attraction selection"""
+    
+    @staticmethod
+    def is_prayer_time(current_time: time) -> bool:
+        """Check if current time falls within typical prayer times in Istanbul"""
+        # Approximate prayer times for Istanbul (these vary by season but this gives a general idea)
+        prayer_times = [
+            (time(5, 30), time(6, 30)),  # Fajr
+            (time(12, 0), time(13, 0)),  # Dhuhr  
+            (time(15, 30), time(16, 30)), # Asr
+            (time(18, 0), time(19, 0)),  # Maghrib
+            (time(19, 30), time(20, 30)) # Isha
+        ]
+        
+        for start_time, end_time in prayer_times:
+            if start_time <= current_time <= end_time:
+                return True
+        return False
+    
+    @staticmethod
+    def is_rush_hour(current_time: time) -> bool:
+        """Check if current time is during Istanbul rush hours"""
+        # Morning rush: 7:30-9:30, Evening rush: 17:00-19:30
+        morning_rush = time(7, 30) <= current_time <= time(9, 30)
+        evening_rush = time(17, 0) <= current_time <= time(19, 30)
+        return morning_rush or evening_rush
+    
+    @staticmethod
+    def get_district_clusters() -> Dict[str, Any]:
+        """Get Istanbul district clusters for efficient routing"""
+        return {
+            "historic_core": {
+                "districts": ["Fatih", "Sultanahmet", "Eminönü"],
+                "center": [41.0082, 28.9784],
+                "characteristics": ["historic", "walking_friendly", "tourist_dense"],
+                "recommended_time": 3.0  # hours
+            },
+            "modern_center": {
+                "districts": ["Beyoğlu", "Taksim", "Galata"],
+                "center": [41.0369, 28.9853],
+                "characteristics": ["modern", "nightlife", "shopping"],
+                "recommended_time": 2.5
+            },
+            "bosphorus_european": {
+                "districts": ["Beşiktaş", "Ortaköy", "Arnavutköy"],
+                "center": [41.0473, 29.0061],
+                "characteristics": ["scenic", "waterfront", "upscale"],
+                "recommended_time": 2.0
+            },
+            "bosphorus_asian": {
+                "districts": ["Üsküdar", "Kadıköy", "Çengelköy"],
+                "center": [41.0214, 29.0069],
+                "characteristics": ["local", "authentic", "ferry_access"],
+                "recommended_time": 2.5
+            },
+            "golden_horn": {
+                "districts": ["Eyüp", "Balat", "Fener"],
+                "center": [41.0539, 28.9468],
+                "characteristics": ["authentic", "religious", "colorful"],
+                "recommended_time": 2.0
+            }
+        }
+    
+    @staticmethod
+    def get_ferry_routes() -> Dict[str, Any]:
+        """Get major ferry routes in Istanbul"""
+        return {
+            "bosphorus_tour": {
+                "route": "Eminönü - Üsküdar - Beşiktaş - Ortaköy - Arnavutköy - Sarıyer",
+                "duration_minutes": 90,
+                "frequency_minutes": 30,
+                "scenic_value": 1.0,
+                "price_tl": 15.0
+            },
+            "kadikoy_eminonu": {
+                "route": "Kadıköy - Eminönü",
+                "duration_minutes": 20,
+                "frequency_minutes": 15,
+                "scenic_value": 0.7,
+                "price_tl": 4.0
+            },
+            "uskudar_eminonu": {
+                "route": "Üsküdar - Eminönü",
+                "duration_minutes": 15,
+                "frequency_minutes": 10,
+                "scenic_value": 0.8,
+                "price_tl": 4.0
+            },
+            "golden_horn": {
+                "route": "Eminönü - Eyüp",
+                "duration_minutes": 25,
+                "frequency_minutes": 20,
+                "scenic_value": 0.9,
+                "price_tl": 4.0
+            }
+        }
+    
+    @staticmethod
+    def get_weather_alternatives() -> Dict[str, List[str]]:
+        """Get indoor alternatives for different weather conditions"""
+        return {
+            "rain": [
+                "museum", "gallery", "covered_bazaar", "shopping_center", 
+                "restaurant", "cafe", "hammam", "cistern"
+            ],
+            "extreme_heat": [
+                "museum", "gallery", "underground", "air_conditioned_venue",
+                "shaded_park", "waterfront_cafe"
+            ],
+            "cold": [
+                "museum", "gallery", "heated_venue", "hammam", 
+                "covered_market", "indoor_attraction"
+            ],
+            "snow": [
+                "museum", "gallery", "covered_venue", "cafe", 
+                "heated_indoor_space", "scenic_winter_view"
+            ]
+        }
+    
+    @staticmethod
+    def get_prayer_times(current_date: datetime) -> Dict[str, time]:
+        """Get prayer times for given date (simplified approximation)"""
+        # This is a simplified version - in production you'd use an Islamic calendar API
+        return {
+            "fajr": time(5, 45),
+            "dhuhr": time(12, 15),
+            "asr": time(15, 45),
+            "maghrib": time(18, 15),
+            "isha": time(19, 45)
+        }
+
 
 class RouteStyle(Enum):
     EFFICIENT = "efficient"      # Minimize total distance
@@ -509,10 +649,13 @@ class IstanbulRoutemaker:
             print("⚠️ No attractions found in the specified area")
             return self._create_empty_route(request)
         
-        # Enhanced attraction selection with iterative scoring
-        selected_attractions = self._select_optimal_attractions(attractions, request)
+        # Apply Istanbul-specific optimizations
+        istanbul_optimized_attractions = self.optimize_for_istanbul_context(attractions, request)
         
-        print(f"⭐ Selected {len(selected_attractions)} attractions")
+        # Enhanced attraction selection with iterative scoring
+        selected_attractions = self._select_optimal_attractions(istanbul_optimized_attractions, request)
+        
+        print(f"⭐ Selected {len(selected_attractions)} attractions with Istanbul optimizations")
         
         # Multi-stop TSP optimization
         optimization_method = "tsp" if len(selected_attractions) <= 8 else "tsp_heuristic"
@@ -809,6 +952,333 @@ class IstanbulRoutemaker:
                 "nodes": len(self.graph.nodes) if self.graph else 0,
                 "edges": len(self.graph.edges) if self.graph else 0
             }
+        }
+    
+    def optimize_for_istanbul_context(self, attractions: List, request: RouteRequest, current_time: datetime = None) -> List:
+        """Apply Istanbul-specific optimizations to attraction selection and routing"""
+        if not current_time:
+            current_time = datetime.now(ISTANBUL_TIMEZONE)
+        
+        optimized_attractions = attractions.copy()
+        
+        # 1. Time-of-day optimization
+        optimized_attractions = self._apply_time_optimization(optimized_attractions, current_time)
+        
+        # 2. District-based clustering
+        optimized_attractions = self._apply_district_clustering(optimized_attractions, request)
+        
+        # 3. Ferry route integration
+        optimized_attractions = self._consider_ferry_routes(optimized_attractions, request)
+        
+        # 4. Weather-aware filtering (if weather data available)
+        optimized_attractions = self._apply_weather_filtering(optimized_attractions, request)
+        
+        return optimized_attractions
+    
+    def _apply_time_optimization(self, attractions: List, current_time: datetime) -> List:
+        """Optimize attractions based on prayer times and rush hours"""
+        optimized = []
+        
+        for attraction in attractions:
+            time_score = 1.0
+            
+            # Check for mosque visits during prayer times
+            if attraction.category == 'mosque':
+                if IstanbulOptimizations.is_prayer_time(current_time.time()):
+                    # Reduce score for mosque visits during prayer times (tourists should be respectful)
+                    time_score = 0.3
+                    attraction.time_warning = "Prayer time - limited tourist access"
+                else:
+                    # Bonus for visiting mosques outside prayer times
+                    time_score = 1.2
+            
+            # Check for transport hubs during rush hour
+            if attraction.category in ['transportation', 'ferry_terminal']:
+                if IstanbulOptimizations.is_rush_hour(current_time.time()):
+                    time_score = 0.7
+                    attraction.time_warning = "Rush hour - expect crowds"
+                else:
+                    time_score = 1.1
+            
+            # Apply time optimization to existing score
+            if hasattr(attraction, 'route_score'):
+                attraction.route_score *= time_score
+            
+            attraction.time_optimization_score = time_score
+            optimized.append(attraction)
+        
+        return optimized
+    
+    def _apply_district_clustering(self, attractions: List, request: RouteRequest) -> List:
+        """Group attractions by district clusters for efficient routing"""
+        clusters = IstanbulOptimizations.get_district_clusters()
+        clustered_attractions = {}
+        
+        # Group attractions by cluster
+        for attraction in attractions:
+            district = getattr(attraction, 'district', 'unknown')
+            cluster_found = False
+            
+            for cluster_name, cluster_info in clusters.items():
+                if district in cluster_info['districts']:
+                    if cluster_name not in clustered_attractions:
+                        clustered_attractions[cluster_name] = []
+                    clustered_attractions[cluster_name].append(attraction)
+                    attraction.cluster = cluster_name
+                    cluster_found = True
+                    break
+            
+            if not cluster_found:
+                if 'other' not in clustered_attractions:
+                    clustered_attractions['other'] = []
+                clustered_attractions['other'].append(attraction)
+                attraction.cluster = 'other'
+        
+        # Prioritize clusters based on route style and available time
+        cluster_priorities = self._calculate_cluster_priorities(clustered_attractions, request)
+        
+        # Reorder attractions based on cluster priorities
+        optimized = []
+        for cluster_name in sorted(cluster_priorities.keys(), key=lambda x: cluster_priorities[x], reverse=True):
+            if cluster_name in clustered_attractions:
+                cluster_attractions = clustered_attractions[cluster_name]
+                
+                # Add cluster bonus to attractions
+                cluster_bonus = cluster_priorities[cluster_name] * 0.1
+                for attraction in cluster_attractions:
+                    if hasattr(attraction, 'route_score'):
+                        attraction.route_score += cluster_bonus
+                
+                optimized.extend(cluster_attractions)
+        
+        return optimized
+    
+    def _calculate_cluster_priorities(self, clustered_attractions: Dict, request: RouteRequest) -> Dict[str, float]:
+        """Calculate priority scores for district clusters"""
+        clusters = IstanbulOptimizations.get_district_clusters()
+        priorities = {}
+        
+        for cluster_name, attractions in clustered_attractions.items():
+            if cluster_name == 'other':
+                priorities[cluster_name] = 1.0
+                continue
+            
+            cluster_info = clusters.get(cluster_name, {})
+            priority = 3.0  # Base priority
+            
+            # Route style bonuses
+            if request.route_style == RouteStyle.CULTURAL:
+                if cluster_name == 'historical_peninsula':
+                    priority += 2.0
+                elif cluster_name == 'galata_beyoglu':
+                    priority += 1.0
+            elif request.route_style == RouteStyle.SCENIC:
+                if cluster_name == 'bosphorus_north':
+                    priority += 2.0
+                elif cluster_name == 'asian_side':
+                    priority += 1.5
+            
+            # Time availability consideration
+            recommended_time = cluster_info.get('recommended_time', 'half_day')
+            if request.available_time_hours >= 6 and recommended_time == 'full_day':
+                priority += 1.0
+            elif request.available_time_hours < 4 and recommended_time == 'full_day':
+                priority -= 1.0
+            
+            # Walking preference
+            if cluster_info.get('walking_friendly', False):
+                priority += 0.5
+            
+            # Number of attractions in cluster
+            priority += len(attractions) * 0.1
+            
+            priorities[cluster_name] = priority
+        
+        return priorities
+    
+    def _consider_ferry_routes(self, attractions: List, request: RouteRequest) -> List:
+        """Integrate ferry routes for cross-Bosphorus travel"""
+        ferry_routes = IstanbulOptimizations.get_ferry_routes()
+        
+        # Check if route crosses Bosphorus (European to Asian side or vice versa)
+        european_attractions = []
+        asian_attractions = []
+        
+        for attraction in attractions:
+            # Simple longitude check (Bosphorus is roughly at 29.0)
+            if attraction.coordinates_lng < 29.0:
+                european_attractions.append(attraction)
+            else:
+                asian_attractions.append(attraction)
+        
+        # If attractions on both sides, add ferry route bonuses
+        if european_attractions and asian_attractions:
+            # Add ferry integration bonus to all attractions
+            for attraction in attractions:
+                ferry_bonus = 0.2  # Small bonus for cross-Bosphorus routes
+                if hasattr(attraction, 'route_score'):
+                    attraction.route_score += ferry_bonus
+                
+                attraction.ferry_accessible = True
+                attraction.cross_bosphorus_route = True
+                
+                # Add ferry route suggestions
+                best_ferry_route = max(ferry_routes.items(), key=lambda x: x[1]['scenic_value'])
+                attraction.recommended_ferry = {
+                    "name": best_ferry_route[0],
+                    "info": best_ferry_route[1]
+                }
+        
+        return attractions
+    
+    def _find_optimal_ferry_route(self, european_attractions: List, asian_attractions: List, ferry_routes: Dict) -> Optional[Dict]:
+        """Find the best ferry route for cross-Bosphorus travel (simplified)"""
+        # Return the most scenic ferry route for cross-Bosphorus travel
+        if not ferry_routes:
+            return None
+        
+        best_route = max(ferry_routes.items(), key=lambda x: x[1]['scenic_value'])
+        return {
+            "name": best_route[0],
+            "info": best_route[1]
+        }
+    
+    def _apply_weather_filtering(self, attractions: List, request: RouteRequest, weather_condition: str = "good") -> List:
+        """Apply weather-aware filtering to attractions"""
+        # In production, this would integrate with a weather API
+        # For now, using a parameter to simulate weather conditions
+        
+        if weather_condition in ["rain", "snow", "storm"]:
+            weather_alternatives = IstanbulOptimizations.get_weather_alternatives()
+            
+            for attraction in attractions:
+                # Boost indoor attractions during bad weather
+                is_indoor = any(
+                    attraction.name in alternatives 
+                    for alternatives in weather_alternatives.values()
+                )
+                
+                if is_indoor:
+                    weather_bonus = 0.5
+                    if hasattr(attraction, 'route_score'):
+                        attraction.route_score += weather_bonus
+                    attraction.weather_suitable = True
+                else:
+                    # Reduce score for outdoor attractions
+                    weather_penalty = -0.3
+                    if hasattr(attraction, 'route_score'):
+                        attraction.route_score += weather_penalty
+                    attraction.weather_suitable = False
+                    attraction.weather_warning = f"Outdoor attraction - not ideal in {weather_condition}"
+        
+        return attractions
+    
+    def get_istanbul_route_recommendations(self, request: RouteRequest) -> Dict[str, Any]:
+        """Get Istanbul-specific route recommendations"""
+        current_time = datetime.now(ISTANBUL_TIMEZONE)
+        clusters = IstanbulOptimizations.get_district_clusters()
+        
+        recommendations = {
+            "time_considerations": {
+                "current_time": current_time.strftime("%H:%M"),
+                "prayer_time_active": IstanbulOptimizations.is_prayer_time(current_time.time()),
+                "rush_hour_active": IstanbulOptimizations.is_rush_hour(current_time.time()),
+                "next_prayer_time": self._get_next_prayer_time(current_time)
+            },
+            "recommended_clusters": {},
+            "ferry_opportunities": [],
+            "cultural_tips": []
+        }
+        
+        # Cluster recommendations
+        for cluster_name, cluster_info in clusters.items():
+            distance_from_start = geodesic(
+                (request.start_lat, request.start_lng), 
+                cluster_info['center']
+            ).kilometers
+            
+            if distance_from_start <= request.max_distance_km:
+                recommendations["recommended_clusters"][cluster_name] = {
+                    "distance_km": round(distance_from_start, 1),
+                    "recommended_time": cluster_info['recommended_time'],
+                    "walking_friendly": cluster_info['walking_friendly'],
+                    "main_attractions": cluster_info['main_attractions']
+                }
+        
+        # Ferry recommendations
+        ferry_routes = IstanbulOptimizations.get_ferry_routes()
+        for route_name, route_info in ferry_routes.items():
+            start_distance = geodesic(
+                (request.start_lat, request.start_lng),
+                (route_info['start']['lat'], route_info['start']['lng'])
+            ).kilometers
+            
+            if start_distance <= request.max_distance_km:
+                recommendations["ferry_opportunities"].append({
+                    "route": route_name,
+                    "start": route_info['start']['name'],
+                    "end": route_info['end']['name'],
+                    "duration_minutes": route_info['duration_minutes'],
+                    "scenic_score": route_info['scenic_score'],
+                    "distance_from_start": round(start_distance, 1)
+                })
+        
+        # Cultural tips
+        recommendations["cultural_tips"] = [
+            "Remove shoes when entering mosques",
+            "Dress modestly when visiting religious sites",
+            "Try Turkish tea or coffee at local cafes",
+            "Bargain is expected at bazaars and markets",
+            "Ferries offer spectacular Bosphorus views",
+            "Avoid visiting mosques during prayer times",
+            "Tipping 10-15% is customary at restaurants"
+        ]
+        
+        return recommendations
+    
+    def _get_next_prayer_time(self, current_time: datetime) -> str:
+        """Get the next prayer time"""
+        prayer_times = IstanbulOptimizations.get_prayer_times(current_time)
+        current_time_only = current_time.time()
+        
+        for prayer_name, prayer_time in prayer_times.items():
+            if prayer_time > current_time_only:
+                return f"{prayer_name}: {prayer_time.strftime('%H:%M')}"
+        
+        # If no prayer time remaining today, return first prayer of next day
+        return f"fajr (tomorrow): {prayer_times['fajr'].strftime('%H:%M')}"
+    
+    def get_istanbul_optimization_status(self, current_time: datetime = None) -> Dict[str, Any]:
+        """Get comprehensive status of Istanbul-specific optimizations"""
+        if not current_time:
+            current_time = datetime.now(ISTANBUL_TIMEZONE)
+        
+        clusters = IstanbulOptimizations.get_district_clusters()
+        ferry_routes = IstanbulOptimizations.get_ferry_routes()
+        prayer_times = IstanbulOptimizations.get_prayer_times(current_time)
+        
+        return {
+            "time_context": {
+                "istanbul_time": current_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                "prayer_time_active": IstanbulOptimizations.is_prayer_time(current_time.time()),
+                "rush_hour_active": IstanbulOptimizations.is_rush_hour(current_time.time()),
+                "prayer_times_today": {k: v.strftime("%H:%M") for k, v in prayer_times.items()}
+            },
+            "district_clusters": {
+                "total_clusters": len(clusters),
+                "cluster_names": list(clusters.keys()),
+                "districts_covered": sum(len(cluster['districts']) for cluster in clusters.values())
+            },
+            "ferry_integration": {
+                "total_routes": len(ferry_routes),
+                "route_names": list(ferry_routes.keys()),
+                "average_duration": sum(route['duration_minutes'] for route in ferry_routes.values()) / len(ferry_routes)
+            },
+            "weather_optimization": {
+                "supported_conditions": list(IstanbulOptimizations.get_weather_alternatives().keys()),
+                "total_alternative_categories": sum(len(alts) for alts in IstanbulOptimizations.get_weather_alternatives().values())
+            },
+            "graph_status": self.get_district_status()
         }
 
 # Global instance

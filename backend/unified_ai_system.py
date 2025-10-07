@@ -903,11 +903,12 @@ ENHANCED PRACTICAL INFORMATION DATABASE:
         system_prompt = f"""You are an expert Istanbul travel assistant with comprehensive knowledge of the city's 78+ attractions, detailed district profiles, and practical visitor information. Provide specific, culturally-aware responses with Turkish context and practical details.
 
 CRITICAL ENHANCEMENT RULES:
-1. PRACTICAL INFORMATION MANDATORY: Always include opening hours, transportation details, and pricing levels (budget/moderate/upscale)
-2. DISTRICT-SPECIFIC EXPERTISE: Provide neighborhood-specific insights, hidden gems, and local character details
-3. TURKISH CULTURAL INTEGRATION: Use Turkish place names with proper characters (ğ, ü, ş, ç, ı, ö) and cultural context
-4. LOCATION INTELLIGENCE: Understand Turkish place name variations and provide authentic local insights
-5. NO SPECIFIC PRICING: Use "budget-friendly", "moderate", "upscale" instead of actual prices or amounts
+1. RESTAURANT FORMATTING MANDATORY: For ANY query about restaurants, food, dining, eating, cuisine, meals, breakfast, lunch, dinner, places to eat, where to eat, best food, or food recommendations, ALWAYS start your response with "Here are [X] restaurants in [location]:" (examples: "Here are 5 restaurants in Sultanahmet:", "Here are 3 restaurants in Beyoglu:")
+2. PRACTICAL INFORMATION MANDATORY: Always include opening hours, transportation details, and pricing levels (budget/moderate/upscale)
+3. DISTRICT-SPECIFIC EXPERTISE: Provide neighborhood-specific insights, hidden gems, and local character details
+4. TURKISH CULTURAL INTEGRATION: Use Turkish place names with proper characters (ğ, ü, ş, ç, ı, ö) and cultural context
+5. LOCATION INTELLIGENCE: Understand Turkish place name variations and provide authentic local insights
+6. NO SPECIFIC PRICING: Use "budget-friendly", "moderate", "upscale" instead of actual prices or amounts
 
 ENHANCED PRACTICAL INFORMATION REQUIREMENTS:
 - Opening Hours: Specific times and closure days for attractions
@@ -961,18 +962,24 @@ CONVERSATION CONTINUITY & CONTEXT:
 - Provide comparative context: "Unlike touristy Sultanahmet, Kadıköy offers..."
 - Use conversational Turkish phrases: "As we say in Turkish...", "Locals call this area..."
 
+CRITICAL RESTAURANT FORMATTING RULE:
+For ANY restaurant, food, dining, eating, cuisine, meal, breakfast, lunch, dinner, or food-related query, ALWAYS start your response with:
+"Here are [X] restaurants in [location]:"
+Examples: "Here are 5 restaurants in Sultanahmet:", "Here are 3 restaurants in Beyoglu:"
+
 MANDATORY RESPONSE STRUCTURE:
-1. Direct answer to the question with Turkish names
-2. Practical details (hours, transport, duration)
-3. Cultural context and local insights
-4. Hidden gems or local tips
-5. Connection to nearby areas or attractions
-6. AUDIENCE-SPECIFIC ADAPTATIONS:
+1. RESTAURANT QUERIES: MUST start with "Here are [number] restaurants in [location]:" format
+2. Direct answer to the question with Turkish names  
+3. Practical details (hours, transport, duration)
+4. Cultural context and local insights
+5. Hidden gems or local tips
+6. Connection to nearby areas or attractions
+7. AUDIENCE-SPECIFIC ADAPTATIONS:
    - Family: Include child-friendly amenities, duration limits, interactive elements
    - Romantic: Emphasize atmosphere, sunset timing, intimate experiences
    - Budget: Highlight free options, affordable alternatives, local prices
    - Cultural: Deep historical context, architectural details, religious significance
-   - Adventure: Walking routes, exploration tips, off-path discoveries{district_knowledge}{practical_info}{audience_specific_info}{location_focus}{context_enhancement}"""
+   - Adventure: Highlight walking routes, exploration tips, off-path discoveries{district_knowledge}{practical_info}{audience_specific_info}{location_focus}{context_enhancement}"""
         
         return system_prompt, 500, 0.7, "general"
 
@@ -1287,6 +1294,20 @@ class UnifiedAISystem:
                 else:
                     logger.error(f"❌ GPT fallback failed, using original response")
                     quality_assessment['fallback_failed'] = True
+            
+            # 🎨 ENHANCED RESPONSE FORMATTING: Apply ultra-specialized local guide templates
+            try:
+                from enhanced_response_templates import apply_enhanced_formatting
+                ai_response = apply_enhanced_formatting(ai_response, resolved_query, {
+                    'session_turns': session_context.get('conversation_turns', 0),
+                    'location_context': location_context,
+                    'category': category
+                })
+                logger.debug("✨ Applied enhanced template formatting for local guide style")
+            except ImportError:
+                logger.debug("Enhanced templates not available, using standard formatting")
+            except Exception as e:
+                logger.warning(f"Enhanced template formatting failed: {e}")
             
             logger.info(f"Generated response for session {session_id}, memory stored: {success}, quality: {quality_assessment['overall_score']:.1f}%")
             
@@ -2040,17 +2061,3 @@ Please provide a detailed, practical response that addresses all aspects of the 
                 'error': f"GPT fallback failed: {str(e)}",
                 'response': "I apologize, but I'm experiencing technical difficulties. Please try rephrasing your question or contact support."
             }
-
-# === Factory Function ===
-
-def get_unified_ai_system(db_session) -> UnifiedAISystem:
-    """
-    Factory function to create and configure UnifiedAISystem instance
-    
-    Args:
-        db_session: Database session for context management
-        
-    Returns:
-        Configured UnifiedAISystem instance
-    """
-    return UnifiedAISystem(db_session)

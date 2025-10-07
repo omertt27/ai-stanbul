@@ -760,114 +760,131 @@ def sanitize_user_input(user_input: str) -> str:
     return user_input.strip()
 
 async def get_gpt_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """Generate response using unified AI system with quality assessment"""
+    """Generate response using Ultra-Specialized Istanbul AI (NO GPT/LLM)"""
     try:
-        # Import the unified AI system
-        from unified_ai_system import get_unified_ai_system
-        from database import SessionLocal
+        # Use our Ultra-Specialized Istanbul AI System (completely rule-based, no GPT)
+        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
+            print("❌ Ultra-Specialized Istanbul AI not available")
+            return None
         
         # Sanitize input
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
         
-        # Get database session
-        db = SessionLocal()
+        print(f"🏛️ Using Ultra-Specialized Istanbul AI (NO GPT) for session: {session_id}")
         
-        try:
-            # Use unified AI system for response generation
-            unified_ai = get_unified_ai_system(db)
+        # Prepare user context
+        user_context = {
+            'session_id': session_id,
+            'user_ip': user_ip,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Generate response using rule-based Ultra-Specialized Istanbul AI
+        result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        
+        if result.get('success'):
+            ai_response = result['response']
             
-            print(f"🤖 Using unified AI system with quality assessment for session: {session_id}")
+            # Calculate quality score based on confidence and system features
+            confidence = result.get('confidence', 0.7)
+            quality_score = min(confidence * 100, 95)  # Cap at 95% for rule-based systems
             
-            # Generate response with persistent context and quality assessment
-            result = await unified_ai.generate_response(
-                user_input=user_input,
-                session_id=session_id,
-                user_ip=user_ip
-            )
+            print(f"✅ Ultra-Specialized AI response generated - Session: {session_id}, "
+                  f"Confidence: {confidence:.2f}, "
+                  f"Quality: {quality_score:.1f}%, "
+                  f"System: {result.get('system_version', 'ultra_specialized')}, "
+                  f"Time: {result.get('processing_time', 0):.3f}s")
             
-            if result.get('success'):
-                ai_response = result['response']
-                
-                print(f"✅ Unified AI response generated - Session: {result['session_id']}, "
-                      f"Context: {result.get('has_context', False)}, "
-                      f"Quality: {result.get('quality_assessment', {}).get('overall_score', 0):.1f}%, "
-                      f"Fallback: {result.get('quality_assessment', {}).get('used_fallback', False)}")
-                
-                # Apply post-processing cleanup
-                ai_response = post_llm_cleanup(ai_response)
-                result['response'] = ai_response
-                
-                return result
-            else:
-                print(f"❌ Unified AI system failed: {result.get('error', 'Unknown error')}")
-                return None
-                
-        finally:
-            db.close()
+            # Apply post-processing cleanup (remove any LLM artifacts)
+            ai_response = post_llm_cleanup(ai_response)
+            
+            # Apply restaurant response formatting
+            try:
+                from restaurant_response_formatter import format_restaurant_response
+                ai_response = format_restaurant_response(ai_response, user_input)
+            except ImportError:
+                pass  # Formatter not available, continue without it
+            
+            # Return properly formatted result
+            return {
+                'success': True,
+                'response': ai_response,
+                'session_id': session_id,
+                'has_context': True,
+                'uses_llm': False,  # Explicitly mark as non-LLM
+                'system_type': 'ultra_specialized_istanbul_ai',
+                'quality_assessment': {
+                    'overall_score': quality_score,
+                    'confidence': confidence,
+                    'used_fallback': result.get('fallback_mode', False),
+                    'processing_time': result.get('processing_time', 0),
+                    'system_version': result.get('system_version', 'ultra_specialized')
+                }
+            }
+        else:
+            print(f"❌ Ultra-Specialized Istanbul AI failed: {result.get('error', 'Unknown error')}")
+            return None
             
     except Exception as e:
-        print(f"❌ Error in unified AI system: {str(e)}")
+        print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
 
 async def get_gpt_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
-    """Generate response using unified AI system with persistent context and resolved prompt conflicts"""
+    """Generate response using Ultra-Specialized Istanbul AI (NO GPT/LLM) - Simple version"""
     try:
-        # Import the unified AI system
-        from unified_ai_system import get_unified_ai_system
-        from database import SessionLocal
+        # Use our Ultra-Specialized Istanbul AI System (completely rule-based, no GPT)
+        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
+            print("❌ Ultra-Specialized Istanbul AI not available")
+            return None
         
         # Sanitize input
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
         
-        # Get database session
-        db = SessionLocal()
+        print(f"🏛️ Using Ultra-Specialized Istanbul AI (NO GPT) for session: {session_id}")
         
-        try:
-            # Use unified AI system for response generation
-            unified_ai = get_unified_ai_system(db)
+        # Prepare user context
+        user_context = {
+            'session_id': session_id,
+            'user_ip': user_ip,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Generate response using rule-based Ultra-Specialized Istanbul AI
+        result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        
+        if result.get('success'):
+            ai_response = result['response']
             
-            print(f"🤖 Using unified AI system for session: {session_id}")
+            print(f"✅ Ultra-Specialized AI response (simple) - Session: {session_id}, "
+                  f"Confidence: {result.get('confidence', 0.7):.2f}, "
+                  f"System: {result.get('system_version', 'ultra_specialized')}")
             
-            # Generate response with persistent context
-            result = await unified_ai.generate_response(
-                user_input=user_input,
-                session_id=session_id,
-                user_ip=user_ip
-            )
+            # Apply post-processing cleanup
+            ai_response = post_llm_cleanup(ai_response)
             
-            if result.get('success'):
-                ai_response = result['response']
-                session_info = unified_ai.get_session_info(result['session_id'])
+            # Apply restaurant response formatting
+            try:
+                from restaurant_response_formatter import format_restaurant_response
+                ai_response = format_restaurant_response(ai_response, user_input)
+            except ImportError:
+                pass  # Formatter not available, continue without it
                 
-                print(f"✅ Unified AI response generated - Session: {result['session_id']}, "
-                      f"Context: {result.get('has_context', False)}, "
-                      f"Turns: {result.get('conversation_turns', 0)}, "
-                      f"Category: {result.get('category', 'unknown')}")
-                
-                # Apply post-processing cleanup
-                ai_response = post_llm_cleanup(ai_response)
-                
-                return ai_response
-            else:
-                print(f"❌ Unified AI system failed: {result.get('error', 'Unknown error')}")
-                return None
-                
-        finally:
-            db.close()
+            return ai_response
+        else:
+            print(f"❌ Ultra-Specialized Istanbul AI failed: {result.get('error', 'Unknown error')}")
+            return None
             
-    except ImportError as e:
-        print(f"⚠️ Unified AI system not available, falling back to legacy: {e}")
-        # Fallback to legacy system with minimal context
-        return await get_legacy_gpt_response(user_input, session_id)
     except Exception as e:
-        print(f"❌ Unified AI system error: {e}")
-        return await get_legacy_gpt_response(user_input, session_id)
+        print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 async def get_legacy_gpt_response(user_input: str, session_id: str) -> Optional[str]:
     """Legacy GPT response system (fallback only)"""

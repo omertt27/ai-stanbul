@@ -1113,3 +1113,188 @@ async def precompute_popular_routes():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Route precomputation failed: {str(e)}")
+
+# Istanbul-Specific Optimization Endpoints
+
+@router.get("/istanbul/status")
+async def get_istanbul_optimization_status():
+    """Get current status of Istanbul-specific optimizations"""
+    try:
+        from datetime import datetime
+        from services.route_maker_service import ISTANBUL_TIMEZONE
+        
+        current_time = datetime.now(ISTANBUL_TIMEZONE)
+        status = route_maker.get_istanbul_optimization_status(current_time)
+        
+        return {
+            "success": True,
+            "istanbul_time": current_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            "optimizations": status
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get Istanbul status: {str(e)}")
+
+@router.get("/istanbul/district-clusters")
+async def get_district_clusters():
+    """Get Istanbul district clusters for route optimization"""
+    try:
+        from services.route_maker_service import IstanbulOptimizations
+        
+        clusters = IstanbulOptimizations.get_district_clusters()
+        
+        return {
+            "success": True,
+            "clusters": clusters,
+            "total_clusters": len(clusters)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get district clusters: {str(e)}")
+
+@router.get("/istanbul/ferry-routes")
+async def get_ferry_routes():
+    """Get available ferry routes in Istanbul"""
+    try:
+        from services.route_maker_service import IstanbulOptimizations
+        
+        ferry_routes = IstanbulOptimizations.get_ferry_routes()
+        
+        return {
+            "success": True,
+            "ferry_routes": ferry_routes,
+            "total_routes": len(ferry_routes)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get ferry routes: {str(e)}")
+
+@router.get("/istanbul/prayer-times")
+async def get_prayer_times():
+    """Get current prayer times for Istanbul"""
+    try:
+        from datetime import datetime
+        from services.route_maker_service import IstanbulOptimizations, ISTANBUL_TIMEZONE
+        
+        current_time = datetime.now(ISTANBUL_TIMEZONE)
+        prayer_times = IstanbulOptimizations.get_prayer_times(current_time)
+        
+        return {
+            "success": True,
+            "date": current_time.strftime("%Y-%m-%d"),
+            "prayer_times": {k: v.strftime("%H:%M") for k, v in prayer_times.items()},
+            "current_time": current_time.strftime("%H:%M"),
+            "is_prayer_time": IstanbulOptimizations.is_prayer_time(current_time.time()),
+            "is_rush_hour": IstanbulOptimizations.is_rush_hour(current_time.time())
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get prayer times: {str(e)}")
+
+@router.get("/istanbul/weather-alternatives")
+async def get_weather_alternatives(
+    weather_condition: str = Query("rain", description="Weather condition: rain, extreme_heat, cold, snow")
+):
+    """Get indoor alternatives for different weather conditions"""
+    try:
+        from services.route_maker_service import IstanbulOptimizations
+        
+        weather_alternatives = IstanbulOptimizations.get_weather_alternatives()
+        
+        if weather_condition not in weather_alternatives:
+            raise HTTPException(status_code=400, detail=f"Unknown weather condition: {weather_condition}")
+        
+        return {
+            "success": True,
+            "weather_condition": weather_condition,
+            "recommended_categories": weather_alternatives[weather_condition],
+            "all_conditions": list(weather_alternatives.keys())
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get weather alternatives: {str(e)}")
+
+class IstanbulOptimizedRouteRequest(BaseModel):
+    start_lat: float = Field(..., ge=-90, le=90, description="Starting latitude")
+    start_lng: float = Field(..., ge=-180, le=180, description="Starting longitude")
+    end_lat: Optional[float] = Field(None, ge=-90, le=90, description="Ending latitude (optional)")
+    end_lng: Optional[float] = Field(None, ge=-180, le=180, description="Ending longitude (optional)")
+    max_distance_km: float = Field(5.0, ge=0.1, le=50, description="Maximum route distance in km")
+    available_time_hours: float = Field(4.0, ge=0.5, le=24, description="Available time in hours")
+    preferred_categories: Optional[List[str]] = Field(None, description="Preferred attraction categories")
+    route_style: str = Field("balanced", description="Route style: efficient, scenic, cultural, balanced")
+    transport_mode: str = Field("walking", description="Transport: walking, driving, public_transport")
+    include_food: bool = Field(True, description="Include food establishments")
+    max_attractions: int = Field(6, ge=1, le=15, description="Maximum attractions")
+    enable_ferry_integration: bool = Field(True, description="Consider ferry routes")
+    enable_time_optimization: bool = Field(True, description="Apply prayer time and rush hour optimization")
+    enable_district_clustering: bool = Field(True, description="Apply district-based clustering")
+    weather_condition: Optional[str] = Field(None, description="Current weather: rain, extreme_heat, cold, snow")
+
+@router.post("/istanbul/optimized-route")
+async def generate_istanbul_optimized_route(
+    request: IstanbulOptimizedRouteRequest,
+    db: Session = Depends(get_db)
+):
+    """Generate a route with full Istanbul-specific optimizations"""
+    try:
+        # Convert to internal RouteRequest
+        route_request = RouteRequest(
+            start_lat=request.start_lat,
+            start_lng=request.start_lng,
+            end_lat=request.end_lat,
+            end_lng=request.end_lng,
+            max_distance_km=request.max_distance_km,
+            available_time_hours=request.available_time_hours,
+            preferred_categories=request.preferred_categories,
+            route_style=RouteStyle(request.route_style),
+            transport_mode=TransportMode(request.transport_mode),
+            include_food=request.include_food,
+            max_attractions=request.max_attractions
+        )
+        
+        # Generate route with Istanbul optimizations enabled
+        generated_route = route_maker.generate_route(route_request, db)
+        
+        # Add Istanbul-specific metadata
+        from datetime import datetime
+        from services.route_maker_service import IstanbulOptimizations, ISTANBUL_TIMEZONE
+        
+        current_time = datetime.now(ISTANBUL_TIMEZONE)
+        istanbul_context = {
+            "prayer_time_considered": request.enable_time_optimization,
+            "district_clustering_applied": request.enable_district_clustering,
+            "ferry_integration_enabled": request.enable_ferry_integration,
+            "weather_alternatives_applied": bool(request.weather_condition),
+            "current_prayer_time": IstanbulOptimizations.is_prayer_time(current_time.time()),
+            "current_rush_hour": IstanbulOptimizations.is_rush_hour(current_time.time()),
+            "optimization_timestamp": current_time.isoformat()
+        }
+        
+        return {
+            "success": True,
+            "route": {
+                "id": generated_route.id,
+                "name": generated_route.name,
+                "description": generated_route.description,
+                "points": generated_route.points,
+                "total_distance_km": generated_route.total_distance_km,
+                "estimated_duration_hours": generated_route.estimated_duration_hours,
+                "overall_score": generated_route.overall_score,
+                "diversity_score": generated_route.diversity_score,
+                "efficiency_score": generated_route.efficiency_score,
+                "created_at": generated_route.created_at
+            },
+            "istanbul_context": istanbul_context,
+            "optimization_features": {
+                "time_optimization": request.enable_time_optimization,
+                "district_clustering": request.enable_district_clustering, 
+                "ferry_integration": request.enable_ferry_integration,
+                "weather_aware": bool(request.weather_condition)
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Route generation failed: {str(e)}")
