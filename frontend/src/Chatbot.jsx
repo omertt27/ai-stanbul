@@ -12,6 +12,7 @@ import {
 } from './components/TypingAnimation';
 import { LoadingSkeleton, ChatMessageSkeleton } from './components/LoadingSkeletons';
 import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
+import ChatRouteIntegration from './components/ChatRouteIntegration';
 import './App.css';
 
 
@@ -1462,6 +1463,18 @@ function Chatbot() {
                         renderMessageContent(msg.content, darkMode)
                       )}
                     </div>
+                    
+                    {/* Route Integration - Show for user messages that might be route requests */}
+                    {msg.role === 'user' && (
+                      <ChatRouteIntegration 
+                        message={msg}
+                        onRouteGenerated={(route, intent) => {
+                          console.log('Route generated from chat:', route, intent);
+                          // Could add the route as a new assistant message
+                        }}
+                        className="mt-3"
+                      />
+                    )}
                   </div>
                 </div>
                 

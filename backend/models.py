@@ -4,14 +4,19 @@ from sqlalchemy.ext.declarative import declarative_base
 from database import Base
 from datetime import datetime
 
+# User model exists in the database already, using extend_existing to avoid conflicts
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
 
 class Place(Base):
     __tablename__ = "places"
+    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
     category = Column(String(50))
@@ -19,6 +24,8 @@ class Place(Base):
     
 class Museum(Base):
     __tablename__ = "museums"
+    __table_args__ = {'extend_existing': True}
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     location = Column(String)
@@ -28,6 +35,7 @@ class Museum(Base):
 
 class Restaurant(Base):
     __tablename__ = "restaurants"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     cuisine = Column(String)
@@ -42,6 +50,7 @@ class Restaurant(Base):
 
 class Event(Base):
     __tablename__ = "events"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     venue = Column(String)
@@ -51,6 +60,7 @@ class Event(Base):
 
 class ChatHistory(Base):
     __tablename__ = "chat_history"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), nullable=False, index=True)
     user_message = Column(Text, nullable=False)
@@ -59,6 +69,7 @@ class ChatHistory(Base):
 
 class BlogPost(Base):
     __tablename__ = "blog_posts"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
@@ -98,6 +109,7 @@ class BlogPost(Base):
 
 class BlogImage(Base):
     __tablename__ = "blog_images"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     blog_post_id = Column(Integer, ForeignKey("blog_posts.id"), nullable=False)
     url = Column(String(500), nullable=False)  # URL path to the image
@@ -109,6 +121,7 @@ class BlogImage(Base):
 
 class BlogLike(Base):
     __tablename__ = "blog_likes"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     blog_post_id = Column(Integer, ForeignKey("blog_posts.id"), nullable=False)
     user_identifier = Column(String(255), nullable=False)  # Can be IP address or user ID
@@ -124,6 +137,7 @@ class BlogLike(Base):
 
 class BlogComment(Base):
     __tablename__ = "blog_comments"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     blog_post_id = Column(Integer, ForeignKey("blog_posts.id"), nullable=False)
     
@@ -151,6 +165,7 @@ class BlogComment(Base):
 
 class UserMemory(Base):
     __tablename__ = "user_memory"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), ForeignKey("user_sessions.session_id", ondelete="CASCADE"), nullable=False, index=True)
     
@@ -179,6 +194,7 @@ class UserMemory(Base):
 
 class UserPreference(Base):
     __tablename__ = "user_preferences"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), ForeignKey("user_sessions.session_id", ondelete="CASCADE"), nullable=False, index=True)
     
@@ -209,6 +225,7 @@ class UserPreference(Base):
 
 class ConversationContext(Base):
     __tablename__ = "conversation_context"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), ForeignKey("user_sessions.session_id"), nullable=False, index=True)
     
@@ -237,6 +254,7 @@ class ConversationContext(Base):
 # Enhanced AI Models for Intelligent Conversation
 class UserSession(Base):
     __tablename__ = "user_sessions"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), unique=True, nullable=False, index=True)
     user_ip = Column(String(50))
@@ -253,6 +271,7 @@ class UserSession(Base):
 
 class UserInteraction(Base):
     __tablename__ = "user_interactions"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), ForeignKey("user_sessions.session_id"), nullable=False)
     
@@ -279,6 +298,7 @@ class UserInteraction(Base):
 
 class IntelligentRecommendation(Base):
     __tablename__ = "intelligent_recommendations"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Recommendation metadata
@@ -309,6 +329,7 @@ class IntelligentRecommendation(Base):
 # Enhanced Chat History with AI context
 class EnhancedChatHistory(Base):
     __tablename__ = "enhanced_chat_history"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(100), nullable=False, index=True)
     
@@ -333,9 +354,145 @@ class EnhancedChatHistory(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     user_ip = Column(String(50))
 
+# Route Maker Models for OSM-based pathfinding
+class EnhancedAttraction(Base):
+    """Enhanced attraction model with coordinates and route-making metadata"""
+    __tablename__ = "enhanced_attractions"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False, index=True)
+    category = Column(String(50), nullable=False, index=True)  # 'mosque', 'museum', 'restaurant', etc.
+    subcategory = Column(String(50))
+    
+    # Location data
+    address = Column(String(500))
+    district = Column(String(50), index=True)
+    coordinates_lat = Column(Float, nullable=False, index=True)
+    coordinates_lng = Column(Float, nullable=False, index=True)
+    
+    # Route-making metadata
+    popularity_score = Column(Float, default=3.0)  # 1.0-5.0 scale
+    estimated_visit_time_minutes = Column(Integer, default=60)  # Average visit duration
+    best_time_of_day = Column(String(20))  # 'morning', 'afternoon', 'evening', 'any'
+    crowd_level = Column(String(20), default='medium')  # 'low', 'medium', 'high'
+    
+    # Additional metadata
+    description = Column(Text)
+    opening_hours = Column(String(200))
+    price_range = Column(String(20))  # 'free', 'budget', 'mid-range', 'expensive'
+    authenticity_score = Column(Float, default=3.0)  # How "local" vs "touristy"
+    
+    # Administrative
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Route(Base):
+    """Generated route with multiple stops"""
+    __tablename__ = "routes"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200))
+    description = Column(Text)
+    
+    # Route parameters
+    start_lat = Column(Float, nullable=False)
+    start_lng = Column(Float, nullable=False)
+    end_lat = Column(Float)  # Optional - can be circular route
+    end_lng = Column(Float)
+    
+    # Route characteristics
+    total_distance_km = Column(Float)
+    estimated_duration_hours = Column(Float)
+    difficulty_level = Column(String(20), default='easy')  # 'easy', 'moderate', 'challenging'
+    transportation_mode = Column(String(20), default='walking')  # 'walking', 'driving', 'public_transport'
+    
+    # Route scoring
+    overall_score = Column(Float)
+    diversity_score = Column(Float)  # How varied the attractions are
+    efficiency_score = Column(Float)  # Distance optimization score
+    
+    # User preferences used
+    preferences_snapshot = Column(JSON)  # Store the preferences that generated this route
+    
+    # Administrative
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_saved = Column(Boolean, default=False)
+    
+    # Relationships
+    waypoints = relationship("RouteWaypoint", back_populates="route", cascade="all, delete-orphan")
+
+class RouteWaypoint(Base):
+    """Individual stops in a route"""
+    __tablename__ = "route_waypoints"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    route_id = Column(Integer, ForeignKey("routes.id"), nullable=False)
+    attraction_id = Column(Integer, ForeignKey("enhanced_attractions.id"), nullable=False)
+    
+    # Order and timing
+    waypoint_order = Column(Integer, nullable=False)  # 1, 2, 3, etc.
+    estimated_arrival_time = Column(String(20))  # "10:30", "14:00", etc.
+    suggested_duration_minutes = Column(Integer)
+    
+    # Navigation data
+    distance_from_previous_km = Column(Float)
+    travel_time_from_previous_minutes = Column(Float)
+    
+    # Optimization scores
+    attraction_score = Column(Float)  # Why this attraction was chosen
+    position_score = Column(Float)  # How well it fits in the route flow
+    
+    # User notes
+    notes = Column(Text)
+    
+    # Relationships
+    route = relationship("Route", back_populates="waypoints")
+    attraction = relationship("EnhancedAttraction")
+
+class UserRoutePreferences(Base):
+    """User preferences for route generation"""
+    __tablename__ = "user_route_preferences"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(100), nullable=False, index=True)
+    
+    # Basic preferences
+    max_walking_distance_km = Column(Float, default=5.0)
+    preferred_pace = Column(String(20), default='moderate')  # 'slow', 'moderate', 'fast'
+    available_time_hours = Column(Float, default=4.0)
+    
+    # Attraction preferences
+    preferred_categories = Column(JSON)  # ['mosque', 'museum', 'restaurant']
+    avoided_categories = Column(JSON)
+    min_popularity_score = Column(Float, default=2.0)
+    max_crowd_level = Column(String(20), default='high')
+    
+    # Time preferences
+    preferred_start_time = Column(String(10))  # "09:00"
+    preferred_end_time = Column(String(10))   # "17:00"
+    
+    # Budget and accessibility
+    max_total_cost = Column(Float)
+    requires_wheelchair_access = Column(Boolean, default=False)
+    
+    # Route style
+    route_style = Column(String(30), default='balanced')  # 'efficient', 'scenic', 'cultural', 'balanced'
+    include_food_stops = Column(Boolean, default=True)
+    include_rest_stops = Column(Boolean, default=True)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # User Feedback for Like/Dislike tracking
 class UserFeedback(Base):
     __tablename__ = "user_feedback"
+    __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Feedback metadata
@@ -357,6 +514,7 @@ class UserFeedback(Base):
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
+    __table_args__ = {'extend_existing': True}
     id = Column(String(100), primary_key=True)  # session_id as primary key
     
     # Session metadata

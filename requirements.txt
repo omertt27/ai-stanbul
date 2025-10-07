@@ -17,3 +17,9 @@ aiofiles
 httpx
 passlib[bcrypt]
 python-jose[cryptography]
+osmnx
+networkx
+geopandas
+folium
+geopy
+scikit-learn

@@ -496,6 +496,14 @@ try:
 except ImportError as e:
     print(f"⚠️ Places router import failed: {e}")
 
+# === Include Route Maker Router ===
+try:
+    from routes.route_maker import router as route_maker_router
+    app.include_router(route_maker_router, tags=["Route Maker"])
+    print("✅ Route Maker router included successfully")
+except ImportError as e:
+    print(f"⚠️ Route Maker router import failed: {e}")
+
 # === Authentication Setup ===
 try:
     from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
@@ -1083,9 +1091,15 @@ LOCATION-SPECIFIC INSTRUCTIONS:
                                 # Extract museum name or search for all museums
                                 if any(museum_name in user_message.lower() for museum_name in ['hagia sophia', 'topkapi', 'blue mosque', 'basilica cistern', 'galata tower', 'dolmabahce']):
                                     # Get specific museum
-                                    museum_key = extract_museum_key_from_input(user_message)
-                                    if museum_key:
-                                        museum_info = await real_museum_service.get_museum_info(museum_key)
+                                    # Extract museum name for specific queries
+                                    museum_name = None
+                                    for name in ['hagia sophia', 'topkapi', 'blue mosque', 'basilica cistern']:
+                                        if name in user_message.lower():
+                                            museum_name = name
+                                            break
+                                    
+                                    if museum_name:
+                                        museum_info = await real_museum_service.get_museum_info(museum_name)
                                         if museum_info:
                                             museum_data = {
                                                 'success': True,
@@ -1653,7 +1667,6 @@ Would you like me to help you with specific museum information or directions?"""
     for district, district_museums in sorted(museums_by_district.items()):
         if len(district_museums) > 1:
             response += f"**{district}:** "
-
             museum_names = [m['name'] for m in district_museums]
             response += ", ".join(museum_names) + "\n"
     
@@ -1761,6 +1774,26 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
+# --- Import Content Quality Enhancement ---
+try:
+    from content_quality_enhancer import enhance_user_content_quality, content_quality_enhancer
+    from realtime_content_adapter import adapt_content_realtime, realtime_content_adapter
+    CONTENT_QUALITY_ENHANCEMENT_ENABLED = True
+    print("✅ Content Quality Enhancement and Real-time Adaptation loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Content Quality Enhancement not available: {e}")
+    CONTENT_QUALITY_ENHANCEMENT_ENABLED = False
+    # Create dummy functions
+    def enhance_user_content_quality(response, user_id, query, category, context=None):
+        return {"enhanced_response": response, "enhancements_applied": 0}
+    async def adapt_content_realtime(response, user_id, session_id, query, interaction_data=None, context=None):
+        return {"adapted_response": response, "adaptations_applied": 0}
+    
+    # Create dummy objects
+    class DummyContentEnhancer:
+        def update_user_profile(self, *args, **kwargs): pass
+    content_quality_enhancer = DummyContentEnhancer()
+
 # ===== MAIN AI CHAT ENDPOINTS =====
 # These endpoints were missing due to accidental deletion
 
@@ -1808,14 +1841,100 @@ async def ai_chat_endpoint(request: Request):
             if len(system_metrics["response_times"]) > 100:
                 system_metrics["response_times"] = system_metrics["response_times"][-100:]
             
+            # 🎯 CONTENT QUALITY ENHANCEMENT
+            enhanced_response = response_data['response']
+            content_enhancements = {}
+            adaptation_results = {}
+            
+            if CONTENT_QUALITY_ENHANCEMENT_ENABLED:
+                try:
+                    # Determine content category from query
+                    content_category = "general"
+                    if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat', 'dining']):
+                        content_category = "restaurant"
+                    elif any(word in user_input.lower() for word in ['museum', 'gallery', 'art', 'history']):
+                        content_category = "museum"
+                    elif any(word in user_input.lower() for word in ['district', 'neighborhood', 'area']):
+                        content_category = "district"
+                    elif any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi']):
+                        content_category = "transportation"
+                    
+                    # 1. Apply content quality enhancement
+                    quality_context = {
+                        "location": "Istanbul",
+                        "session_id": session_id,
+                        "response_time_ms": response_time,
+                        "turn_number": 1  # Could be tracked more accurately
+                    }
+                    
+                    content_enhancements = enhance_user_content_quality(
+                        enhanced_response, 
+                        user_ip,  # Using IP as user ID for now
+                        user_input, 
+                        content_category, 
+                        quality_context
+                    )
+                    
+                    if content_enhancements.get("enhanced_response"):
+                        enhanced_response = content_enhancements["enhanced_response"]
+                        print(f"✅ Content quality enhanced - Level: {content_enhancements.get('quality_level', 'unknown')}, "
+                              f"Enhancements: {content_enhancements.get('enhancements_applied', 0)}")
+                    
+                    # 2. Apply real-time content adaptation
+                    interaction_data = {
+                        "query": user_input,
+                        "category": content_category,
+                        "response_time": 30.0,  # Default assumption
+                        "query_complexity": len(user_input.split()) / 20.0,  # Simple complexity estimate
+                        "satisfaction_signals": [],  # Would be populated by frontend feedback
+                        "user_rating": response_data.get('quality_assessment', {}).get('overall_score', 0.7),
+                        "content_type": content_category,
+                        "turn_number": 1
+                    }
+                    
+                    adaptation_results = await adapt_content_realtime(
+                        enhanced_response,
+                        user_ip,  # Using IP as user ID
+                        session_id,
+                        user_input,
+                        interaction_data,
+                        quality_context
+                    )
+                    
+                    if adaptation_results.get("adapted_response") and adaptation_results.get("adaptations_applied", 0) > 0:
+                        enhanced_response = adaptation_results["adapted_response"]
+                        print(f"✅ Real-time adaptation applied - Adaptations: {adaptation_results.get('adaptations_applied', 0)}, "
+                              f"Engagement: {adaptation_results.get('engagement_level', 'unknown')}")
+                    
+                    # Update user profile for future enhancements
+                    content_quality_enhancer.update_user_profile(user_ip, {
+                        "query": user_input,
+                        "category": content_category,
+                        "response_quality": response_data.get('quality_assessment', {}),
+                        "session_id": session_id
+                    })
+                    
+                except Exception as enhancement_error:
+                    print(f"⚠️ Content enhancement error: {enhancement_error}")
+                    # Continue with original response if enhancement fails
+                    enhanced_response = response_data['response']
+            
             return {
-                "response": response_data['response'],
+                "response": enhanced_response,
                 "session_id": response_data.get('session_id', session_id),
                 "timestamp": datetime.now().isoformat(),
                 "response_time_ms": response_time,
-                "source": "ai_system",
+                "source": "ai_system_enhanced",
                 "quality_score": response_data.get('quality_assessment', {}).get('overall_score', 0),
-                "has_context": response_data.get('has_context', False)
+                "has_context": response_data.get('has_context', False),
+                "content_enhancements": {
+                    "quality_level": content_enhancements.get('quality_level', 'enhanced'),
+                    "enhancements_applied": content_enhancements.get('enhancements_applied', 0),
+                    "personalization_score": content_enhancements.get('personalization_score', 0.0),
+                    "adaptations_applied": adaptation_results.get('adaptations_applied', 0),
+                    "engagement_level": adaptation_results.get('engagement_level', 'medium_engagement'),
+                    "recommended_followups": content_enhancements.get('recommended_followups', [])
+                }
             }
         else:
             # Fallback response
@@ -1958,7 +2077,7 @@ async def get_redis_status():
             "redis_available": redis_available,
             "redis_client_exists": redis_client is not None,
             "session_management": {
-                "enabled": REDIS_SESSION_ENABLED if 'REDIS_SESSION_ENABLED' in globals() else False,
+                "enabled": redis_available,
                 "type": "redis" if redis_available else "memory"
             },
             "environment": {
@@ -2054,5 +2173,550 @@ async def admin_login(request: Request):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 print("✅ Essential endpoints configured successfully")
+
+# === ADMIN DASHBOARD ENDPOINTS ===
+# Chat Sessions Management with Feedback Tracking
+
+@app.get("/api/chat-sessions")
+async def get_all_chat_sessions():
+    """Get all saved chat sessions with feedback data for admin dashboard"""
+    try:
+        from database import SessionLocal
+        
+        # Try to get sessions from saved_session_manager if available
+        if AI_INTELLIGENCE_ENABLED and saved_session_manager:
+            try:
+                sessions = saved_session_manager.get_all_sessions()
+                
+                # Transform sessions for admin dashboard
+                session_data = []
+                for session in sessions:
+                    # Calculate feedback statistics
+                    feedback_stats = {"likes": 0, "dislikes": 0, "mixed": 0}
+                    conversation_history = session.get('conversation_history', [])
+                    
+                    for entry in conversation_history:
+                        if entry.get('feedback') == 'like':
+                            feedback_stats["likes"] += 1
+                        elif entry.get('feedback') == 'dislike':
+                            feedback_stats["dislikes"] += 1
+                    
+                    if feedback_stats["likes"] > 0 and feedback_stats["dislikes"] > 0:
+                        feedback_stats["mixed"] = 1
+                    
+                    session_data.append({
+                        "id": session.get('id', session.get('session_id', 'unknown')),
+                        "title": session.get('title', session.get('conversation_title', 'Untitled Session')),
+                        "user_ip": session.get('user_ip', 'unknown'),
+                        "saved_at": session.get('saved_at', session.get('created_at', datetime.now().isoformat())),
+                        "message_count": len(conversation_history),
+                        "conversation_history": conversation_history,
+                        "feedback_stats": feedback_stats,
+                        "has_feedback": feedback_stats["likes"] > 0 or feedback_stats["dislikes"] > 0
+                    })
+                
+                # Filter to only include sessions with feedback for admin observation
+                sessions_with_feedback = [s for s in session_data if s["has_feedback"]]
+                
+                return {
+                    "success": True,
+                    "sessions": sessions_with_feedback,
+                    "total_count": len(sessions_with_feedback),
+                    "feedback_summary": {
+                        "total_likes": sum(s["feedback_stats"]["likes"] for s in sessions_with_feedback),
+                        "total_dislikes": sum(s["feedback_stats"]["dislikes"] for s in sessions_with_feedback),
+                        "mixed_feedback_sessions": sum(s["feedback_stats"]["mixed"] for s in sessions_with_feedback)
+                    }
+                }
+                
+            except Exception as e:
+                print(f"⚠️ Error getting sessions from saved_session_manager: {e}")
+        
+        # Fallback: Try to get sessions from database
+        try:
+            db = SessionLocal()
+            
+            # Try to get sessions from SavedChatSession model if available
+            try:
+                from models import SavedChatSession
+                saved_sessions = db.query(SavedChatSession).all()
+                
+                session_data = []
+                for session in saved_sessions:
+                    # Parse conversation history to extract feedback
+                    conversation_history = []
+                    feedback_stats = {"likes": 0, "dislikes": 0, "mixed": 0}
+                    
+                    try:
+                        if hasattr(session, 'conversation_history') and session.conversation_history:
+                            if isinstance(session.conversation_history, str):
+                                import json
+                                conversation_history = json.loads(session.conversation_history)
+                            else:
+                                conversation_history = session.conversation_history
+                            
+                            # Count feedback
+                            for entry in conversation_history:
+                                if entry.get('feedback') == 'like':
+                                    feedback_stats["likes"] += 1
+                                elif entry.get('feedback') == 'dislike':
+                                    feedback_stats["dislikes"] += 1
+                            
+                            if feedback_stats["likes"] > 0 and feedback_stats["dislikes"] > 0:
+                                feedback_stats["mixed"] = 1
+                    
+                    except Exception as parse_error:
+                        print(f"⚠️ Error parsing conversation history: {parse_error}")
+                    
+                    session_data.append({
+                        "id": str(session.id),
+                        "title": session.title or "Untitled Session",
+                        "user_ip": getattr(session, 'user_ip', 'unknown'),
+                        "saved_at": session.created_at.isoformat() if hasattr(session, 'created_at') else datetime.now().isoformat(),
+                        "message_count": len(conversation_history),
+                        "conversation_history": conversation_history,
+                        "feedback_stats": feedback_stats,
+                        "has_feedback": feedback_stats["likes"] > 0 or feedback_stats["dislikes"] > 0
+                    })
+                
+                db.close()
+                
+                # Filter to sessions with feedback only
+                sessions_with_feedback = [s for s in session_data if s["has_feedback"]]
+                
+                return {
+                    "success": True,
+                    "sessions": sessions_with_feedback,
+                    "total_count": len(sessions_with_feedback),
+                    "feedback_summary": {
+                        "total_likes": sum(s["feedback_stats"]["likes"] for s in sessions_with_feedback),
+                        "total_dislikes": sum(s["feedback_stats"]["dislikes"] for s in sessions_with_feedback),
+                        "mixed_feedback_sessions": sum(s["feedback_stats"]["mixed"] for s in sessions_with_feedback)
+                    }
+                }
+                
+            except ImportError:
+                print("⚠️ SavedChatSession model not available")
+                db.close()
+        
+        except Exception as db_error:
+            print(f"⚠️ Database error: {db_error}")
+        
+        # Return empty result if no sessions found
+        return {
+            "success": True,
+            "sessions": [],
+            "total_count": 0,
+            "message": "No chat sessions with feedback found",
+            "feedback_summary": {
+                "total_likes": 0,
+                "total_dislikes": 0,
+                "mixed_feedback_sessions": 0
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting chat sessions: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "sessions": [],
+            "total_count": 0
+        }
+
+@app.get("/api/chat-sessions/{session_id}")
+async def get_chat_session_details(session_id: str):
+    """Get detailed information about a specific chat session"""
+    try:
+        from database import SessionLocal
+        
+        # Try saved_session_manager first
+        if AI_INTELLIGENCE_ENABLED and saved_session_manager:
+            try:
+                session = saved_session_manager.get_session(session_id)
+                if session:
+                    # Calculate detailed feedback statistics
+                    conversation_history = session.get('conversation_history', [])
+                    feedback_details = []
+                    
+                    for i, entry in enumerate(conversation_history):
+                        feedback_info = {
+                            "message_index": i,
+                            "query": entry.get('query', ''),
+                            "response": entry.get('response', ''),
+                            "feedback": entry.get('feedback'),
+                            "timestamp": entry.get('timestamp', ''),
+                            "response_time_ms": entry.get('response_time_ms', 0)
+                        }
+                        feedback_details.append(feedback_info)
+                    
+                    return {
+                        "success": True,
+                        "session": {
+                            "id": session_id,
+                            "title": session.get('title', 'Untitled Session'),
+                            "user_ip": session.get('user_ip', 'unknown'),
+                            "saved_at": session.get('saved_at', session.get('created_at', datetime.now().isoformat())),
+                            "message_count": len(conversation_history),
+                            "conversation_history": conversation_history,
+                            "feedback_details": feedback_details
+                        }
+                    }
+            except Exception as e:
+                print(f"⚠️ Error getting session from saved_session_manager: {e}")
+        
+        # Fallback to database
+        try:
+            db = SessionLocal()
+            from models import SavedChatSession
+            
+            session = db.query(SavedChatSession).filter(SavedChatSession.id == session_id).first()
+            db.close()
+            
+            if session:
+                # Parse conversation history
+                conversation_history = []
+                try:
+                    if hasattr(session, 'conversation_history') and session.conversation_history:
+                        if isinstance(session.conversation_history, str):
+                            import json
+                            conversation_history = json.loads(session.conversation_history)
+                        else:
+                            conversation_history = session.conversation_history
+                except Exception as parse_error:
+                    print(f"⚠️ Error parsing conversation history: {parse_error}")
+                
+                return {
+                    "success": True,
+                    "session": {
+                        "id": str(session.id),
+                        "title": session.title or "Untitled Session",
+                        "user_ip": getattr(session, 'user_ip', 'unknown'),
+                        "saved_at": session.created_at.isoformat() if hasattr(session, 'created_at') else datetime.now().isoformat(),
+                        "message_count": len(conversation_history),
+                        "conversation_history": conversation_history
+                    }
+                }
+        
+        except ImportError:
+            print("⚠️ SavedChatSession model not available")
+        except Exception as db_error:
+            print(f"⚠️ Database error: {db_error}")
+        
+        return {
+            "success": False,
+            "error": "Session not found",
+            "session": None
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting session details: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "session": None
+        }
+
+@app.delete("/api/chat-sessions/{session_id}")
+async def delete_chat_session(session_id: str):
+    """Delete a specific chat session"""
+    try:
+        from database import SessionLocal
+        
+        # Try saved_session_manager first
+        if AI_INTELLIGENCE_ENABLED and saved_session_manager:
+            try:
+                result = saved_session_manager.delete_session(session_id)
+                if result:
+                    return {
+                        "success": True,
+                        "message": "Session deleted successfully"
+                    }
+            except Exception as e:
+                print(f"⚠️ Error deleting session from saved_session_manager: {e}")
+        
+        # Fallback to database
+        try:
+            db = SessionLocal()
+            from models import SavedChatSession
+            
+            session = db.query(SavedChatSession).filter(SavedChatSession.id == post_id).first()
+            
+            if session:
+                db.delete(session)
+                db.commit()
+                db.close()
+                
+                return {
+                    "success": True,
+                    "message": "Session deleted successfully"
+                }
+            else:
+                db.close()
+                return {
+                    "success": False,
+                    "error": "Session not found"
+                }
+        
+        except ImportError:
+            print("⚠️ SavedChatSession model not available")
+        except Exception as db_error:
+            print(f"⚠️ Database error: {db_error}")
+        
+        return {
+            "success": False,
+            "error": "Session not found or could not be deleted"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error deleting session: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.get("/api/admin/feedback-analytics")
+async def get_feedback_analytics():
+    """Get analytics about user feedback (likes/dislikes) for admin dashboard"""
+    try:
+        from database import SessionLocal
+        
+        analytics = {
+            "total_feedback_sessions": 0,
+            "total_likes": 0,
+            "total_dislikes": 0,
+            "like_rate": 0.0,
+            "dislike_rate": 0.0,
+            "mixed_feedback_sessions": 0,
+            "feedback_by_category": {},
+            "recent_feedback": []
+        }
+        
+        # Try to get feedback data from saved sessions
+        if AI_INTELLIGENCE_ENABLED and saved_session_manager:
+            try:
+                sessions = saved_session_manager.get_all_sessions()
+                
+                for session in sessions:
+                    conversation_history = session.get('conversation_history', [])
+                    session_has_feedback = False
+                    
+                    for entry in conversation_history:
+                        feedback = entry.get('feedback')
+                        if feedback:
+                            session_has_feedback = True
+                            
+                            if feedback == 'like':
+                                analytics["total_likes"] += 1
+                            elif feedback == 'dislike':
+                                analytics["total_dislikes"] += 1
+                            
+                            # Add to recent feedback (last 10)
+                            if len(analytics["recent_feedback"]) < 10:
+                                analytics["recent_feedback"].append({
+                                    "session_id": session.get('id', 'unknown'),
+                                    "feedback": feedback,
+                                    "query": entry.get('query', '')[:100] + "..." if len(entry.get('query', '')) > 100 else entry.get('query', ''),
+                                    "timestamp": entry.get('timestamp', ''),
+                                    "user_ip": session.get('user_ip', 'unknown')
+                                })
+                    
+                    if session_has_feedback:
+                        analytics["total_feedback_sessions"] += 1
+                
+            except Exception as e:
+                print(f"⚠️ Error getting analytics from saved_session_manager: {e}")
+        
+        # Calculate rates
+        total_feedback = analytics["total_likes"] + analytics["total_dislikes"]
+        if total_feedback > 0:
+            analytics["like_rate"] = round((analytics["total_likes"] / total_feedback) * 100, 1)
+            analytics["dislike_rate"] = round((analytics["total_dislikes"] / total_feedback) * 100, 1)
+        
+        # Sort recent feedback by timestamp (most recent first)
+        analytics["recent_feedback"].sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return {
+            "success": True,
+            "analytics": analytics,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting feedback analytics: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "analytics": None
+        }
+
+# Blog Management Endpoints
+@app.get("/api/admin/blog-posts")
+async def get_all_blog_posts():
+    """Get all blog posts for admin management"""
+    try:
+        from database import SessionLocal
+        from models import BlogPost as BlogPostModel
+        
+        db = SessionLocal()
+        blog_posts = db.query(BlogPostModel).order_by(BlogPostModel.created_at.desc()).all()
+        
+        posts_data = []
+        for post in blog_posts:
+            posts_data.append({
+                "id": post.id,
+                "title": post.title,
+                "slug": post.slug,
+                "content": post.content[:200] + "..." if len(post.content) > 200 else post.content,
+                "full_content": post.content,
+                "author": post.author,
+                "created_at": post.created_at.isoformat(),
+                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
+                "is_published": getattr(post, 'is_published', True),
+                "view_count": getattr(post, 'view_count', 0),
+                "like_count": getattr(post, 'like_count', 0),
+                "category": getattr(post, 'category', 'general'),
+                "tags": getattr(post, 'tags', [])
+            })
+        
+        db.close()
+        
+        return {
+            "success": True,
+            "posts": posts_data,
+            "total_count": len(posts_data)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error getting blog posts: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "posts": []
+        }
+
+@app.get("/api/admin/blog-comments")
+async def get_all_blog_comments():
+    """Get all blog comments for admin management"""
+    try:
+        from database import SessionLocal
+        
+        # Try to get comments from database
+        try:
+            from models import BlogComment
+            
+            db = SessionLocal()
+            comments = db.query(BlogComment).order_by(BlogComment.created_at.desc()).all()
+            
+            comments_data = []
+            for comment in comments:
+                comments_data.append({
+                    "id": comment.id,
+                    "blog_post_id": comment.blog_post_id,
+                    "author_name": comment.author_name,
+                    "author_email": getattr(comment, 'author_email', ''),
+                    "content": comment.content,
+                    "created_at": comment.created_at.isoformat(),
+                    "is_approved": getattr(comment, 'is_approved', True),
+                    "is_spam": getattr(comment, 'is_spam', False)
+                })
+            
+            db.close()
+            
+            return {
+                "success": True,
+                "comments": comments_data,
+                "total_count": len(comments_data)
+            }
+            
+        except ImportError:
+            print("⚠️ BlogComment model not available")
+            return {
+                "success": True,
+                "comments": [],
+                "total_count": 0,
+                "message": "Blog comments feature not available"
+            }
+        
+    except Exception as e:
+        print(f"❌ Error getting blog comments: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "comments": []
+        }
+
+@app.delete("/api/admin/blog-posts/{post_id}")
+async def delete_blog_post(post_id: int):
+    """Delete a blog post"""
+    try:
+        from database import SessionLocal
+        from models import BlogPost as BlogPostModel
+        
+        db = SessionLocal()
+        post = db.query(BlogPostModel).filter(BlogPostModel.id == post_id).first()
+        
+        if post:
+            db.delete(post)
+            db.commit()
+            db.close()
+            
+            return {
+                "success": True,
+                "message": "Blog post deleted successfully"
+            }
+        else:
+            db.close()
+            return {
+                "success": False,
+                "error": "Blog post not found"
+            }
+        
+    except Exception as e:
+        print(f"❌ Error deleting blog post: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.delete("/api/admin/blog-comments/{comment_id}")
+async def delete_blog_comment(comment_id: int):
+    """Delete a blog comment"""
+    try:
+        from database import SessionLocal
+        from models import BlogComment
+        
+        db = SessionLocal()
+        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
+        
+        if comment:
+            db.delete(comment)
+            db.commit()
+            db.close()
+            
+            return {
+                "success": True,
+                "message": "Comment deleted successfully"
+            }
+        else:
+            db.close()
+            return {
+                "success": False,
+                "error": "Comment not found"
+            }
+        
+    except ImportError:
+        return {
+            "success": False,
+            "error": "Blog comments feature not available"
+        }
+    except Exception as e:
+        print(f"❌ Error deleting comment: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+print("✅ Admin dashboard endpoints configured successfully")
 
 # === END ESSENTIAL ENDPOINTS ===
