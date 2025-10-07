@@ -12,7 +12,7 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 import traceback
-from collections import defaultdict
+# defaultdict import removed - no longer needed after removing daily usage tracking
 
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status, Body, Query
@@ -40,10 +40,7 @@ except ImportError:
 # Load environment variables first, before any other imports
 load_dotenv()
 
-# Daily usage tracking
-daily_usage = defaultdict(int)  # IP -> count
-last_reset_date = date.today()
-DAILY_LIMIT = 200  # 200 requests per IP per day (increased for testing)
+# Daily usage tracking completely removed for unrestricted testing
 
 # System metrics for monitoring
 system_metrics = {
@@ -89,16 +86,9 @@ if os.path.exists(backend_in_parent) and backend_in_parent not in sys.path:
 print(f"Python path configured. Current dir: {current_dir}")
 print(f"Python paths: {[p for p in sys.path[:3]]}")  # Show first 3 paths
 
-# --- Rate Limiting and Security ---
-try:
-    from slowapi import Limiter, _rate_limit_exceeded_handler
-    from slowapi.util import get_remote_address
-    from slowapi.errors import RateLimitExceeded
-    RATE_LIMITING_ENABLED = True
-    print("✅ Rate limiting (slowapi) loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Rate limiting not available - install slowapi: {e}")
-    RATE_LIMITING_ENABLED = False
+# --- Rate Limiting Removed ---
+# Rate limiting has been completely removed for unrestricted testing
+RATE_LIMITING_ENABLED = False
 
 # --- Structured Logging ---
 try:
@@ -584,20 +574,9 @@ async def add_security_headers(request: Request, call_next):
 
 print("✅ Security headers middleware configured")
 
-# Rate limiter initialization
+# Rate limiter completely removed
 limiter = None
-if RATE_LIMITING_ENABLED:
-    try:
-        limiter = Limiter(key_func=get_remote_address)
-        app.state.limiter = limiter
-        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-        print("✅ Rate limiting enabled successfully")
-    except Exception as e:
-        print(f"⚠️ Rate limiting initialization failed: {e}")
-        RATE_LIMITING_ENABLED = False
-        limiter = None
-else:
-    print("⚠️ Rate limiting disabled")
+print("✅ Rate limiting completely removed for unrestricted testing")
 
 # === Optional Enhancement Systems Initialization ===
 # Initialize Optional Enhancement Systems
@@ -1782,889 +1761,298 @@ def post_llm_cleanup(text):
     
     return text.strip()
 
-# === Redis Session Manager Integration ===
-try:
-    from redis_session_manager import RedisSessionManager, get_redis_session_manager
-    from multi_turn_query_handler import MultiTurnQueryHandler, ConversationStack, ConversationTurn
-    from context_aware_filtering import ContextAwareFilteringSystem
-    from database import SessionLocal
+# ===== MAIN AI CHAT ENDPOINTS =====
+# These endpoints were missing due to accidental deletion
+
+@app.post("/ai/chat")
+async def ai_chat_endpoint(request: Request):
+    """Main AI chat endpoint for handling user queries"""
+    start_time = time.time()
+    session_id = None
+    user_ip = None
     
-    # Initialize Redis session manager
-    redis_session_manager = None
-    def init_redis_session_manager():
-        global redis_session_manager
-        try:
-            db = SessionLocal()
-            redis_session_manager = RedisSessionManager(
-                redis_url="redis://localhost:6379/0",
-                db_session=db
-            )
-            print("✅ Redis Session Manager initialized successfully")
-            return redis_session_manager
-        except Exception as e:
-            print(f"⚠️ Redis Session Manager initialization failed: {e}")
-            return None
-    
-    # Try to initialize
-    redis_session_manager = init_redis_session_manager()
-    REDIS_SESSION_ENABLED = redis_session_manager is not None
-    
-    # Initialize Multi-Turn Query Handler
-    multi_turn_handler = MultiTurnQueryHandler(max_history_turns=10)
-    print("✅ Multi-Turn Query Handler initialized successfully")
-    
-    # Initialize Context-Aware Filtering System
-    context_filtering = ContextAwareFilteringSystem()
-    print("✅ Context-Aware Filtering System initialized successfully")
-    
-except ImportError as e:
-    print(f"⚠️ Redis session manager not available: {e}")
-    REDIS_SESSION_ENABLED = False
-    redis_session_manager = None
-    multi_turn_handler = None
-    context_filtering = None
-
-print(f"Redis Session Management Status: {'✅ ENABLED' if REDIS_SESSION_ENABLED else '❌ DISABLED'}")
-
-# === SESSION & CONTEXT MANAGEMENT ENDPOINTS ===
-
-@app.post("/api/session/create")
-async def create_session_endpoint(request: Request):
-    """Create or get session with context management"""
     try:
-        client_ip = getattr(request.client, 'host', 'unknown')
-        user_agent = request.headers.get('user-agent', '')
+        # Get user IP
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
         
-        body = await request.json()
-        session_id = body.get('session_id')
-        
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            # Use Redis-based session management
-            session_id, context = redis_session_manager.get_or_create_session(
-                session_id=session_id,
-                user_ip=client_ip,
-                user_agent=user_agent
-            )
-            
-            return {
-                "success": True,
-                "session_id": session_id,
-                "context": {
-                    "conversation_stage": context.conversation_stage,
-                    "entities_count": {k: len(v) for k, v in context.entities.items()},
-                    "places_mentioned": context.places_mentioned[-5:],  # Last 5
-                    "last_queries_count": len(context.last_queries),
-                    "user_preferences": context.user_preferences
-                },
-                "session_type": "redis_managed",
-                "created_at": context.created_at
-            }
-        else:
-            # Fallback to basic session creation
-            if not session_id:
-                session_id = str(uuid.uuid4())
-            
-            return {
-                "success": True,
-                "session_id": session_id,
-                "context": {
-                    "conversation_stage": "initial",
-                    "entities_count": {},
-                    "places_mentioned": [],
-                    "last_queries_count": 0,
-                    "user_preferences": {"budget": "medium", "distance_limit_km": 2}
-                },
-                "session_type": "basic",
-                "created_at": datetime.now().isoformat()
-            }
-            
-    except Exception as e:
-        print(f"❌ Session creation error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": str(uuid.uuid4()),  # Fallback session
-            "session_type": "fallback"
-        }
-
-@app.get("/api/session/{session_id}/context")
-async def get_session_context_endpoint(session_id: str):
-    """Get session context and conversation history"""
-    try:
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            context = redis_session_manager.get_session_context(session_id)
-            
-            if context:
-                # Get cross-query reference resolution
-                resolution = redis_session_manager.resolve_cross_query_references(
-                    session_id, ""  # Empty query for general context
-                )
-                
-                return {
-                    "success": True,
-                    "session_id": session_id,
-                    "context": {
-                        "last_queries": context.last_queries[-5:],  # Last 5 queries
-                        "entities": context.entities,
-                        "user_preferences": context.user_preferences,
-                        "current_intent": context.current_intent,
-                        "conversation_stage": context.conversation_stage,
-                        "places_mentioned": context.places_mentioned,
-                        "topics_discussed": context.topics_discussed,
-                        "last_activity": context.last_activity
-                    },
-                    "reference_resolution": resolution,
-                    "session_summary": redis_session_manager.get_session_summary(session_id)
-                }
-            else:
-                return {
-                    "success": False,
-                    "error": "Session context not found",
-                    "session_id": session_id
-                }
-        else:
-            return {
-                "success": False,
-                "error": "Redis session management not available",
-                "fallback_context": {
-                    "conversation_stage": "initial",
-                    "entities": {},
-                    "user_preferences": {"budget": "medium", "distance_limit_km": 2}
-                }
-            }
-            
-    except Exception as e:
-        print(f"❌ Get context error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": session_id
-        }
-
-@app.post("/api/session/{session_id}/update-context")
-async def update_session_context_endpoint(session_id: str, request: Request):
-    """Update session context with new query and extracted entities"""
-    try:
-        body = await request.json()
-        query = body.get('query', '').strip()
-        intent = body.get('intent', 'general')
-        entities = body.get('entities', {})
-        ai_response = body.get('ai_response', '')
-        
-        if not query:
-            raise HTTPException(status_code=400, detail="query is required")
-        
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            success = redis_session_manager.update_session_context(
-                session_id=session_id,
-                query=query,
-                intent=intent,
-                entities=entities,
-                ai_response=ai_response
-            )
-            
-            if success:
-                # Get updated context
-                updated_context = redis_session_manager.get_session_context(session_id)
-                
-                return {
-                    "success": True,
-                    "session_id": session_id,
-                    "message": "Context updated successfully",
-                    "updated_context": {
-                        "current_intent": updated_context.current_intent,
-                        "conversation_stage": updated_context.conversation_stage,
-                        "entities_count": {k: len(v) for k, v in updated_context.entities.items()},
-                        "places_mentioned_count": len(updated_context.places_mentioned),
-                        "queries_count": len(updated_context.last_queries)
-                    }
-                }
-            else:
-                return {
-                    "success": False,
-                    "error": "Failed to update context",
-                    "session_id": session_id
-                }
-        else:
-            return {
-                "success": False,
-                "error": "Redis session management not available",
-                "session_id": session_id
-            }
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Update context error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": session_id
-        }
-
-@app.post("/api/session/{session_id}/resolve-references")
-async def resolve_references_endpoint(session_id: str, request: Request):
-    """Resolve cross-query references like 'which is closest?', 'that restaurant'"""
-    try:
-        body = await request.json()
-        current_query = body.get('query', '').strip()
-        
-        if not current_query:
-            raise HTTPException(status_code=400, detail="query is required")
-        
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            resolution = redis_session_manager.resolve_cross_query_references(
-                session_id, current_query
-            )
-            
-            return {
-                "success": True,
-                "session_id": session_id,
-                "query": current_query,
-                "resolution": resolution,
-                "resolved": resolution["resolved"],
-                "suggested_context": resolution.get("context", {}),
-                "suggested_entities": resolution.get("suggested_entities", [])
-            }
-        else:
-            return {
-                "success": False,
-                "error": "Redis session management not available",
-                "session_id": session_id,
-                "query": current_query
-            }
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Resolve references error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": session_id
-        }
-
-@app.get("/api/session/stats")
-async def session_stats_endpoint():
-    """Get session management statistics"""
-    try:
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            # Clean up expired sessions and get stats
-            cleaned = redis_session_manager.cleanup_expired_sessions()
-            
-            return {
-                "success": True,
-                "redis_enabled": True,
-                "cleaned_sessions": cleaned,
-                "session_ttl_hours": redis_session_manager.session_ttl / 3600,
-                "context_ttl_hours": redis_session_manager.context_ttl / 3600,
-                "redis_connected": True
-            }
-        else:
-            return {
-                "success": True,
-                "redis_enabled": False,
-                "message": "Using fallback session management"
-            }
-            
-    except Exception as e:
-        print(f"❌ Session stats error: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "redis_enabled": REDIS_SESSION_ENABLED
-        }
-
-print("✅ Session & Context Management endpoints configured")
-
-# === MAIN AI ENDPOINTS ===
-
-@app.post("/ai")
-async def ai_istanbul_router(request: Request):
-    """Main AI endpoint for chatbot queries with Redis session management"""
-    session_id = "unknown"
-    try:
+        # Parse request
         data = await request.json()
-        user_input = data.get("user_input", "")
+        user_input = data.get("user_input", "").strip()
         session_id = data.get("session_id", f"session_{int(time.time())}")
         
-        # Enhanced input validation
-        if not user_input or len(user_input.strip()) < 1:
-            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
+        # Input validation
+        if not user_input:
+            raise HTTPException(status_code=400, detail="Empty input provided")
         
-        if len(user_input.strip()) < 2:
-            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
+        if len(user_input) > 2000:
+            raise HTTPException(status_code=400, detail="Input too long")
         
-        # Check for spam-like input
-        if re.search(r'(.)\1{4,}', user_input):
-            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
+        # Rate limiting and daily usage tracking completely removed for unrestricted testing
         
-        # Check for only special characters or numbers
-        if not re.search(r'[a-zA-Z\u0600-\u06FF\u00C0-\u017F\u0400-\u04FF]', user_input):
-            return {"response": "Sorry, I couldn't understand that. Please ask me about Istanbul attractions, restaurants, or travel information.", "session_id": session_id}
+        # Daily usage limits completely removed
         
-        # Sanitize input - basic cleanup
-        user_input = clean_text_formatting(user_input)
+        print(f"🤖 Chat request from {user_ip} (session: {session_id}): {user_input[:50]}...")
         
-        # === REDIS SESSION MANAGEMENT INTEGRATION ===
-        # Get or create session with context
-        context = {}
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            try:
-                session_context = redis_session_manager.get_session_context(session_id)
-                if session_context:
-                    if hasattr(session_context, 'to_dict'):
-                        context = session_context.to_dict()
-                    else:
-                        context = session_context
-                    print(f"✅ Retrieved session context for {session_id}: {len(context.get('last_queries', []))} previous queries")
-                else:
-                    # Create new session
-                    new_session_id, new_context = redis_session_manager.get_or_create_session(
-                        session_id=session_id,
-                        user_ip=client_ip
-                    )
-                    session_id = new_session_id
-                    context = new_context.to_dict()
-                    print(f"✅ Created new session: {session_id}")
-            except Exception as e:
-                print(f"⚠️ Redis session error: {e}")
-                # Continue without Redis session management
+        # Track request metrics
+        system_metrics["requests_total"] += 1
         
-        # Get database session
-        db = SessionLocal()
-        try:
-            client_ip = request.client.host if request.client else "unknown"
+        # Generate AI response using the high-quality function
+        response_data = await get_gpt_response_with_quality(user_input, session_id, user_ip)
+        
+        if response_data and response_data.get('success'):
+            # Calculate response time
+            response_time = (time.time() - start_time) * 1000
+            system_metrics["response_times"].append(response_time)
             
-            # === MULTI-TURN QUERY PROCESSING ===
-            # Process query for follow-up references and context
-            processed_query = user_input
-            conversation_context = {}
+            # Keep only last 100 response times
+            if len(system_metrics["response_times"]) > 100:
+                system_metrics["response_times"] = system_metrics["response_times"][-100:]
             
-            if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
-                try:
-                    # Get or load conversation stack from Redis
-                    conversation_stack = None
-                    redis_key = f"conversation_stack:{session_id}"
-                    
-                    try:
-                        stack_data = redis_session_manager.redis_client.get(redis_key)
-                        if stack_data:
-                            stack_dict = json.loads(stack_data)
-                            conversation_stack = ConversationStack.from_dict(stack_dict)
-                            print(f"✅ Loaded conversation stack with {len(conversation_stack.turns)} turns")
-                        else:
-                            # Create new conversation stack
-                            conversation_stack = ConversationStack(
-                                session_id=session_id,
-                                turns=[],
-                                current_context={},
-                                conversation_topic="",
-                                last_results={},
-                                reference_cache={}
-                            )
-                            print(f"✅ Created new conversation stack for session {session_id}")
-                    except Exception as e:
-                        print(f"⚠️ Error loading conversation stack: {e}")
-                        conversation_stack = ConversationStack(
-                            session_id=session_id,
-                            turns=[],
-                            current_context={},
-                            conversation_topic="",
-                            last_results={},
-                            reference_cache={}
-                        )
-                    
-                    # Check if this is a follow-up query
-                    if conversation_stack.turns:
-                        is_followup, followup_type = multi_turn_handler.is_follow_up_query(user_input)
-                        
-                        if is_followup:
-                            print(f"🔄 Detected follow-up query: '{user_input}' (type: {followup_type})")
-                            
-                            # Resolve follow-up query using conversation context
-                            followup_result = multi_turn_handler.resolve_follow_up_query(
-                                user_input, conversation_stack
-                            )
-                            
-                            if followup_result.get('enhanced_query') and followup_result['enhanced_query'] != user_input:
-                                processed_query = followup_result['enhanced_query']
-                                print(f"✅ Enhanced query: '{processed_query}'")
-                            
-                            # Store conversation context for potential use
-                            conversation_context = {
-                                'followup_type': followup_type,
-                                'context_provided': followup_result.get('context_provided', False),
-                                'last_results': conversation_stack.last_results,
-                                'current_topic': conversation_stack.conversation_topic
-                            }
-                            print(f"✅ Retrieved conversation context: topic='{conversation_stack.conversation_topic}'")
-                    
-                except Exception as e:
-                    print(f"⚠️ Multi-turn processing error: {e}")
-                    # Continue with original query
-                    processed_query = user_input
-            
-            # Generate AI response using the unified system (with processed query and context-aware filtering)
-            if context_filtering and 'conversation_stack' in locals() and conversation_stack:
-                ai_response = await get_context_aware_gpt_response(processed_query, session_id, client_ip, conversation_stack)
-            else:
-                ai_response = await get_gpt_response(processed_query, session_id, client_ip)
-            
-            if not ai_response:
-                # Fallback response
-                ai_response = "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation."
-            
-            # Clean the response
-            clean_response = clean_text_formatting(ai_response)
-            
-            # === UPDATE REDIS SESSION CONTEXT & CONVERSATION STACK ===
-            if REDIS_SESSION_ENABLED and redis_session_manager:
-                try:
-                    # Extract basic entities and intent (simple implementation)
-                    entities = {}
-                    intent = 'general_travel_info'
-                    
-                    # Simple entity extraction
-                    istanbul_districts = ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'taksim', 'eminonu', 'fatih']
-                    for district in istanbul_districts:
-                        if district in user_input.lower():
-                            if 'locations' not in entities:
-                                entities['locations'] = []
-                            entities['locations'].append(district.title())
-                    
-                    # Simple intent detection
-                    if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat', 'dining']):
-                        intent = 'restaurant_search'
-                    elif any(word in user_input.lower() for word in ['museum', 'gallery', 'history']):
-                        intent = 'museum_inquiry'
-                    elif any(word in user_input.lower() for word in ['transport', 'metro', 'bus', 'taxi']):
-                        intent = 'transportation_info'
-                    elif any(word in user_input.lower() for word in ['place', 'attraction', 'visit', 'see']):
-                        intent = 'place_recommendation'
-                    
-                    # Update session context (original method)
-                    redis_session_manager.update_session_context(
-                        session_id=session_id,
-                        query=user_input,
-                        intent=intent,
-                        entities=entities,
-                        ai_response=clean_response
-                    )
-                    
-                    # === UPDATE CONVERSATION STACK FOR MULTI-TURN ===
-                    if multi_turn_handler and 'conversation_stack' in locals():
-                        try:
-                            # Create conversation turn
-                            conversation_turn = multi_turn_handler.create_conversation_turn(
-                                user_query=user_input,
-                                ai_response=clean_response,
-                                intent=intent,
-                                entities=entities
-                            )
-                            
-                            # Add turn to conversation stack
-                            conversation_stack = multi_turn_handler.update_conversation_stack(conversation_stack, conversation_turn)
-                            
-                            # Save updated conversation stack to Redis
-                            redis_key = f"conversation_stack:{session_id}"
-                            stack_json = json.dumps(conversation_stack.to_dict())
-                            redis_session_manager.redis_client.setex(
-                                redis_key, 
-                                3600,  # 1 hour expiry
-                                stack_json
-                            )
-                            
-                            print(f"✅ Updated conversation stack for {session_id}: {len(conversation_stack.turns)} turns, topic='{conversation_stack.conversation_topic}'")
-                            
-                        except Exception as e:
-                            print(f"⚠️ Failed to update conversation stack: {e}")
-                    
-                    print(f"✅ Updated session context for {session_id}: intent={intent}, entities={entities}")
-                    
-                except Exception as e:
-                    print(f"⚠️ Failed to update Redis session context: {e}")
-            
-            # Store in database for legacy support
-            try:
-                chat_record = ChatHistory(
-                    user_message=user_input,
-                    ai_response=clean_response,
-                    session_id=session_id,
-                    user_ip=client_ip
-                )
-                db.add(chat_record)
-                db.commit()
-                print(f"✅ Stored chat in database for session {session_id}")
-            except Exception as e:
-                print(f"⚠️ Database storage failed: {e}")
-            
-            return {"response": clean_response, "session_id": session_id}
-            
-        finally:
-            db.close()
-            
+            return {
+                "response": response_data['response'],
+                "session_id": response_data.get('session_id', session_id),
+                "timestamp": datetime.now().isoformat(),
+                "response_time_ms": response_time,
+                "source": "ai_system",
+                "quality_score": response_data.get('quality_assessment', {}).get('overall_score', 0),
+                "has_context": response_data.get('has_context', False)
+            }
+        else:
+            # Fallback response
+            fallback_response = {
+                "response": "I'm here to help you explore Istanbul! Ask me about restaurants, museums, attractions, or anything else about the city.",
+                "session_id": session_id,
+                "timestamp": datetime.now().isoformat(),
+                "response_time_ms": (time.time() - start_time) * 1000,
+                "source": "fallback"
+            }
+            return fallback_response
+    
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"❌ Critical error in AI endpoint: {e}")
-        return {"response": "Sorry, I encountered an error. Please try again.", "session_id": session_id}
+        print(f"❌ Error in chat endpoint: {e}")
+        system_metrics["errors"] += 1
+        
+        # Return error response
+        return {
+            "response": "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+            "session_id": session_id or f"session_{int(time.time())}",
+            "timestamp": datetime.now().isoformat(),
+            "response_time_ms": (time.time() - start_time) * 1000,
+            "source": "error",
+            "error": "Internal processing error"
+        }
 
 @app.post("/ai/stream")
-async def ai_istanbul_streaming(request: Request):
-    """Streaming AI endpoint for real-time responses with session management"""
+async def ai_stream_endpoint(request: Request):
+    """Streaming AI endpoint for real-time chat responses"""
     try:
+        # Get user IP
+        user_ip = getattr(request.client, 'host', 'unknown') if request.client else 'unknown'
+        
+        # Parse request
         data = await request.json()
-        user_input = data.get("user_input", "")
+        user_input = data.get("user_input", "").strip()
         session_id = data.get("session_id", f"session_{int(time.time())}")
         
+        # Input validation
         if not user_input:
-            return {"response": "I'm here to help you explore Istanbul! What would you like to know?", "session_id": session_id}
+            raise HTTPException(status_code=400, detail="Empty input provided")
         
-        # Get or update session context
-        context = {}
-        if REDIS_SESSION_ENABLED and redis_session_manager:
+        if len(user_input) > 2000:
+            raise HTTPException(status_code=400, detail="Input too long")
+        
+        print(f"🌊 Streaming request from {user_ip} (session: {session_id}): {user_input[:50]}...")
+        
+        async def generate_streaming_response():
+            """Generate streaming response chunks"""
             try:
-                session_context = redis_session_manager.get_session_context(session_id)
-                if session_context:
-                    if hasattr(session_context, 'to_dict'):
-                        context = session_context.to_dict()
-                    else:
-                        context = session_context
-                else:
-                    # Create new session for streaming
-                    session_id, context = redis_session_manager.get_or_create_session(
-                        session_id=session_id,
-                        user_ip=client_ip
-                    )
-                    context = context.to_dict()
-            except Exception as e:
-                print(f"⚠️ Redis session error in streaming: {e}")
-        
-        client_ip = request.client.host if request.client else "unknown"
-        
-        # === MULTI-TURN QUERY PROCESSING FOR STREAMING ===
-        processed_query = user_input
-        if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
-            try:
-                # Load conversation stack for streaming
-                redis_key = f"conversation_stack:{session_id}"
-                stack_data = redis_session_manager.redis_client.get(redis_key)
-                if stack_data:
-                    stack_dict = json.loads(stack_data)
-                    conversation_stack = ConversationStack.from_dict(stack_dict)
+                # Get AI response
+                response_data = await get_gpt_response_with_quality(user_input, session_id, user_ip)
+                
+                if response_data and response_data.get('success'):
+                    response_text = response_data['response']
                     
-                    # Check for follow-up query
-                    if conversation_stack.turns:
-                        is_followup, followup_type = multi_turn_handler.is_follow_up_query(user_input)
-                        if is_followup:
-                            followup_result = multi_turn_handler.resolve_follow_up_query(user_input, conversation_stack)
-                            if followup_result.get('enhanced_query'):
-                                processed_query = followup_result['enhanced_query']
-                                print(f"🔄 Streaming follow-up enhanced: '{processed_query}'")
-            except Exception as e:
-                print(f"⚠️ Streaming multi-turn error: {e}")
-        
-        # Generate streaming response with context-aware filtering if available
-        conversation_stack_for_streaming = None
-        if REDIS_SESSION_ENABLED and redis_session_manager and multi_turn_handler:
-            try:
-                redis_key = f"conversation_stack:{session_id}"
-                stack_data = redis_session_manager.redis_client.get(redis_key)
-                if stack_data:
-                    stack_dict = json.loads(stack_data)
-                    conversation_stack_for_streaming = ConversationStack.from_dict(stack_dict)
-            except Exception as e:
-                print(f"⚠️ Error loading conversation stack for streaming context filtering: {e}")
-        
-        if context_filtering and conversation_stack_for_streaming:
-            ai_response = await get_context_aware_gpt_response(processed_query, session_id, client_ip, conversation_stack_for_streaming)
-        else:
-            ai_response = await get_gpt_response(processed_query, session_id, client_ip)
-        
-        if not ai_response:
-            ai_response = "I can help you explore Istanbul! Ask me about restaurants, museums, districts, or transportation."
-        
-        # Update session context after streaming response
-        if REDIS_SESSION_ENABLED and redis_session_manager:
-            try:
-                # Simple intent and entity extraction
-                intent = 'general_travel_info'
-                entities = {}
+                    # Stream the response word by word with realistic timing
+                    words = response_text.split()
+                    current_text = ""
+                    
+                    for i, word in enumerate(words):
+                        current_text += word + " "
+                        
+                        # Create streaming chunk
+                        chunk = {
+                            "content": current_text.strip(),
+                            "is_complete": i == len(words) - 1,
+                            "session_id": session_id,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        
+                        # Send chunk
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                        
+                        # Add small delay between words for realistic streaming
+                        await asyncio.sleep(0.05)  # 50ms delay
+                    
+                    # Send final completion chunk
+                    final_chunk = {
+                        "content": current_text.strip(),
+                        "is_complete": True,
+                        "session_id": session_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "quality_score": response_data.get('quality_assessment', {}).get('overall_score', 0)
+                    }
+                    yield f"data: {json.dumps(final_chunk)}\n\n"
                 
-                if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat']):
-                    intent = 'restaurant_search'
-                elif any(word in user_input.lower() for word in ['museum', 'gallery']):
-                    intent = 'museum_inquiry'
+                else:
+                    # Fallback streaming response
+                    fallback_text = "I'm here to help you explore Istanbul! Ask me about restaurants, museums, attractions, or anything else about the city."
+                    
+                    chunk = {
+                        "content": fallback_text,
+                        "is_complete": True,
+                        "session_id": session_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "source": "fallback"
+                    }
+                    yield f"data: {json.dumps(chunk)}\n\n"
                 
-                redis_session_manager.update_session_context(
-                    session_id=session_id,
-                    query=user_input,
-                    intent=intent,
-                    entities=entities,
-                    ai_response=ai_response
-                )
-                
-                # Update conversation stack for streaming too
-                if multi_turn_handler:
-                    try:
-                        redis_key = f"conversation_stack:{session_id}"
-                        stack_data = redis_session_manager.redis_client.get(redis_key)
-                        if stack_data:
-                            stack_dict = json.loads(stack_data)
-                            conversation_stack = ConversationStack.from_dict(stack_dict)
-                        else:
-                            conversation_stack = ConversationStack(
-                                session_id=session_id, turns=[], current_context={},
-                                conversation_topic="", last_results={}, reference_cache={}
-                            )
-                        
-                        # Create and add turn
-                        conversation_turn = multi_turn_handler.create_conversation_turn(
-                            user_query=user_input, ai_response=ai_response, intent=intent, entities=entities
-                        )
-                        conversation_stack = multi_turn_handler.update_conversation_stack(conversation_stack, conversation_turn)
-                        
-                        # Save back to Redis
-                        stack_json = json.dumps(conversation_stack.to_dict())
-                        redis_session_manager.redis_client.setex(redis_key, 3600, stack_json)
-                        
-                    except Exception as e:
-                        print(f"⚠️ Failed to update streaming conversation stack: {e}")
-                        
             except Exception as e:
-                print(f"⚠️ Failed to update streaming session context: {e}")
+                print(f"❌ Error in streaming response: {e}")
+                
+                # Send error chunk
+                error_chunk = {
+                    "content": "I apologize, but I'm having trouble processing your request right now. Please try again.",
+                    "is_complete": True,
+                    "session_id": session_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "error": "Processing error"
+                }
+                yield f"data: {json.dumps(error_chunk)}\n\n"
         
-        return {"response": ai_response, "session_id": session_id}
-        
+        # Return streaming response
+        return StreamingResponse(
+            generate_streaming_response(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type"
+            }
+        )
+    
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error in streaming endpoint: {e}")
-        return {"response": "Sorry, I encountered an error. Please try again.", "session_id": session_id}
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-async def get_context_aware_gpt_response(user_input: str, session_id: str, user_ip: Optional[str] = None, 
-                                       conversation_stack=None) -> Optional[str]:
-    """Generate AI response with context-aware filtering for better personalization"""
-    
-    # Get the base AI response
-    base_response = await get_gpt_response(user_input, session_id, user_ip)
-    
-    if not base_response or not context_filtering or not conversation_stack:
-        return base_response
-    
+@app.get("/api/debug/redis-status")
+async def get_redis_status():
+    """Enhanced Redis status endpoint for debugging and monitoring"""
     try:
-        # Determine if this is a query that would benefit from context filtering
-        intent = 'general_travel_info'
-        if any(word in user_input.lower() for word in ['restaurant', 'food', 'eat', 'dining', 'cafe']):
-            intent = 'restaurant_search'
-        elif any(word in user_input.lower() for word in ['museum', 'gallery', 'history']):
-            intent = 'museum_inquiry'
-        elif any(word in user_input.lower() for word in ['place', 'attraction', 'visit', 'see']):
-            intent = 'place_recommendation'
+        status = {
+            "timestamp": datetime.now().isoformat(),
+            "redis_available": redis_available,
+            "redis_client_exists": redis_client is not None,
+            "session_management": {
+                "enabled": REDIS_SESSION_ENABLED if 'REDIS_SESSION_ENABLED' in globals() else False,
+                "type": "redis" if redis_available else "memory"
+            },
+            "environment": {
+                "redis_host": os.getenv("REDIS_HOST", "localhost"),
+                "redis_port": os.getenv("REDIS_PORT", "6379"),
+                "redis_db": os.getenv("REDIS_DB", "0")
+            }
+        }
         
-        # Only apply context filtering for relevant queries
-        if intent in ['restaurant_search', 'place_recommendation', 'museum_inquiry']:
-            
-            # Get relevant data from database
-            from database import SessionLocal
-            db = SessionLocal()
-            
+        # Test Redis connection if available
+        if redis_client:
             try:
-                if intent == 'restaurant_search':
-                    # Get restaurants from database
-                    restaurants = db.query(Restaurant).limit(50).all()
-                    restaurant_data = []
-                    for r in restaurants:
-                        restaurant_data.append({
-                            'name': r.name,
-                            'description': r.description or '',
-                            'district': r.district or '',
-                            'cuisine': r.cuisine or '',
-                            'rating': getattr(r, 'rating', 4.0),
-                            'address': getattr(r, 'address', ''),
-                        })
-                    
-                    # Apply context-aware filtering
-                    filtered_restaurants = context_filtering.apply_context_filtering(
-                        restaurant_data, conversation_stack, user_input, intent
-                    )
-                    
-                    # If we have filtered results, enhance the response
-                    if filtered_restaurants and len(filtered_restaurants) < len(restaurant_data):
-                        print(f"✅ Context filtering applied: {len(restaurant_data)} → {len(filtered_restaurants)} restaurants")
-                        
-                        # Create enhanced response with top filtered results
-                        enhanced_response = create_enhanced_restaurant_response(
-                            base_response, filtered_restaurants[:10], conversation_stack, user_input
-                        )
-                        
-                        if enhanced_response:
-                            return enhanced_response
+                # Test basic operations
+                test_key = f"health_check_{int(time.time())}"
+                redis_client.set(test_key, "test_value", ex=10)  # Expire in 10 seconds
+                retrieved_value = redis_client.get(test_key)
+                redis_client.delete(test_key)
                 
-                elif intent == 'place_recommendation':
-                    # Get places from database
-                    places = db.query(Place).limit(50).all()
-                    place_data = []
-                    for p in places:
-                        place_data.append({
-                            'name': p.name,
-                            'description': p.description or '',
-                            'district': p.district or '',
-                            'category': p.category or '',
-                            'rating': getattr(p, 'rating', 4.0),
-                        })
-                    
-                    # Apply context-aware filtering (reuse restaurant logic for now)
-                    filtered_places = context_filtering.apply_context_filtering(
-                        place_data, conversation_stack, user_input, intent
-                    )
-                    
-                    if filtered_places and len(filtered_places) < len(place_data):
-                        print(f"✅ Context filtering applied: {len(place_data)} → {len(filtered_places)} places")
-                        
-                        enhanced_response = create_enhanced_place_response(
-                            base_response, filtered_places[:10], conversation_stack, user_input
-                        )
-                        
-                        if enhanced_response:
-                            return enhanced_response
-                            
-            finally:
-                db.close()
+                status["redis_test"] = {
+                    "connection": "success",
+                    "write_read": "success" if retrieved_value == "test_value" else "failed",
+                    "ping": redis_client.ping()
+                }
                 
+                # Get Redis info
+                redis_info = redis_client.info()
+                status["redis_info"] = {
+                    "version": redis_info.get("redis_version", "unknown"),
+                    "connected_clients": redis_info.get("connected_clients", 0),
+                    "used_memory_human": redis_info.get("used_memory_human", "unknown"),
+                    "total_commands_processed": redis_info.get("total_commands_processed", 0)
+                }
+                
+            except Exception as e:
+                status["redis_test"] = {
+                    "connection": "failed",
+                    "error": str(e)
+                }
+        else:
+            status["redis_test"] = {
+                "connection": "not_available",
+                "reason": "Redis client not initialized"
+            }
+        
+        # System status
+        if PSUTIL_AVAILABLE:
+            import psutil
+            status["system"] = {
+                "memory_percent": psutil.virtual_memory().percent,
+                "cpu_percent": psutil.cpu_percent(),
+                "disk_percent": psutil.disk_usage('/').percent
+            }
+        
+        return status
+        
     except Exception as e:
-        print(f"⚠️ Context-aware filtering error: {e}")
-        # Return base response if filtering fails
-    
-    return base_response
+        return {
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "redis_available": False
+        }
 
-def create_enhanced_restaurant_response(base_response: str, filtered_restaurants: List[Dict[str, Any]], 
-                                      conversation_stack, user_input: str) -> Optional[str]:
-    """Create enhanced response with context-aware restaurant recommendations"""
-    
-    if not filtered_restaurants:
-        return None
-    
-    # Check if this looks like a restaurant recommendation response
-    if not any(word in base_response.lower() for word in ['restaurant', 'cafe', 'food', 'dining', 'eat']):
-        return None
-    
-    # Extract location context for personalized intro
-    location_intro = ""
-    if conversation_stack and conversation_stack.turns:
-        # Look for location mentions in recent conversation
-        for turn in conversation_stack.turns[-3:]:
-            query_lower = turn.user_query.lower()
-            for district in ['sultanahmet', 'beyoglu', 'galata', 'kadikoy', 'besiktas', 'taksim']:
-                if district in query_lower:
-                    location_intro = f"Based on your interest in {district.title()}, "
-                    break
-            if location_intro:
-                break
-    
-    # Create enhanced response
-    enhanced_lines = []
-    
-    # Add personalized intro if we have context
-    if location_intro:
-        enhanced_lines.append(f"{location_intro}here are the most suitable restaurants for you:")
-    else:
-        enhanced_lines.append("Here are restaurants that match your preferences:")
-    
-    enhanced_lines.append("")
-    
-    # Add top filtered restaurants with context-aware descriptions
-    for i, restaurant in enumerate(filtered_restaurants[:8], 1):
-        name = restaurant.get('name', 'Unknown Restaurant')
-        district = restaurant.get('district', '')
-        cuisine = restaurant.get('cuisine', '')
-        rating = restaurant.get('rating', 0)
+@app.post("/api/admin/login")
+async def admin_login(request: Request):
+    """Admin authentication endpoint"""
+    try:
+        data = await request.json()
+        username = data.get("username")
+        password = data.get("password")
         
-        # Format rating
-        rating_str = f"{rating:.1f}/5.0" if isinstance(rating, (int, float)) and rating > 0 else "Great reviews"
+        if not username or not password:
+            raise HTTPException(status_code=400, detail="Username and password required")
         
-        # Create description with context
-        description_parts = []
-        if district:
-            description_parts.append(f"in {district}")
-        if cuisine:
-            description_parts.append(f"serving {cuisine} cuisine")
+        # Authenticate admin
+        user = authenticate_admin(username, password)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        description = f"({', '.join(description_parts)})" if description_parts else ""
+        # Create access token
+        access_token = create_access_token(data={"sub": username, "role": "admin"})
         
-        enhanced_lines.append(f"{i}. **{name}** - {rating_str} {description}")
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user,
+            "timestamp": datetime.now().isoformat()
+        }
         
-        # Add brief context if available
-        if restaurant.get('description'):
-            brief_desc = restaurant['description'][:100]
-            if len(restaurant['description']) > 100:
-                brief_desc += "..."
-            enhanced_lines.append(f"   {brief_desc}")
-        
-        enhanced_lines.append("")
-    
-    # Add context-aware tips
-    enhanced_lines.append("💡 **Personalized Tips:**")
-    
-    # Add location-specific tip
-    if location_intro:
-        location_name = location_intro.split("in ")[-1].split(",")[0].strip()
-        enhanced_lines.append(f"• These restaurants are selected based on your interest in {location_name}")
-    
-    # Add preference-based tips
-    user_query_lower = user_input.lower()
-    if 'cheap' in user_query_lower or 'budget' in user_query_lower:
-        enhanced_lines.append("• Filtered for budget-friendly options")
-    elif 'expensive' in user_query_lower or 'fine dining' in user_query_lower:
-        enhanced_lines.append("• Selected upscale dining experiences")
-    
-    if 'authentic' in user_query_lower or 'traditional' in user_query_lower:
-        enhanced_lines.append("• Prioritized authentic and traditional restaurants")
-    
-    enhanced_lines.append("")
-    enhanced_lines.append("Would you like more details about any of these restaurants or help with directions?")
-    
-    return "\n".join(enhanced_lines)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Admin login error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-def create_enhanced_place_response(base_response: str, filtered_places: List[Dict[str, Any]], 
-                                 conversation_stack, user_input: str) -> Optional[str]:
-    """Create enhanced response with context-aware place recommendations"""
-    
-    if not filtered_places:
-        return None
-    
-    # Check if this looks like a place recommendation response
-    if not any(word in base_response.lower() for word in ['place', 'attraction', 'visit', 'see', 'museum']):
-        return None
-    
-    # Create enhanced response similar to restaurant response
-    enhanced_lines = []
-    enhanced_lines.append("Here are places that match your interests:")
-    enhanced_lines.append("")
-    
-    for i, place in enumerate(filtered_places[:8], 1):
-        name = place.get('name', 'Unknown Place')
-        district = place.get('district', '')
-        category = place.get('category', '')
-        rating = place.get('rating', 0)
-        
-        rating_str = f"{rating:.1f}/5.0" if isinstance(rating, (int, float)) and rating > 0 else "Highly rated"
-        
-        description_parts = []
-        if district:
-            description_parts.append(f"in {district}")
-        if category:
-            description_parts.append(category.lower())
-        
-        description = f"({', '.join(description_parts)})" if description_parts else ""
-        
-        enhanced_lines.append(f"{i}. **{name}** - {rating_str} {description}")
-        
-        if place.get('description'):
-            brief_desc = place['description'][:100]
-            if len(place['description']) > 100:
-                brief_desc += "..."
-            enhanced_lines.append(f"   {brief_desc}")
-        
-        enhanced_lines.append("")
-    
-    enhanced_lines.append("Would you like more information about any of these places?")
-    
-    return "\n".join(enhanced_lines)
+print("✅ Essential endpoints configured successfully")
+
+# === END ESSENTIAL ENDPOINTS ===

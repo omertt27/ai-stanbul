@@ -340,7 +340,7 @@ class QueryRanker:
         """Calculate popularity score based on ratings and known attractions"""
         # Base score from ratings
         rating = item.get('rating', 0)
-        if rating > 0:
+        if rating is not None and rating > 0:
             popularity = rating / 5.0
         else:
             popularity = 0.5  # Default score
@@ -623,18 +623,39 @@ class CompleteQueryPipeline:
                 )
                 
                 for result in keyword_results:
+                    # Handle both SearchResult objects and dictionaries
+                    if isinstance(result, SearchResult):
+                        result_id = result.id
+                        result_name = result.title
+                        result_desc = result.content
+                        result_category = result.category
+                        result_district = result.metadata.get('district', 'Istanbul')
+                        result_rating = result.metadata.get('rating')
+                        result_score = result.final_score
+                        result_type = result.metadata.get('type', result.category)
+                    else:
+                        # Dictionary format
+                        result_id = result.get('id', '')
+                        result_name = result.get('name', result.get('title', 'Unknown'))
+                        result_desc = result.get('description', result.get('content', ''))
+                        result_category = result.get('category', result.get('type', 'general'))
+                        result_district = result.get('district', 'Istanbul')
+                        result_rating = result.get('rating')
+                        result_score = result.get('score', 0.5)
+                        result_type = result.get('type', result.get('category'))
+                    
                     # Avoid duplicates
-                    if not any(r['id'] == result.get('id', '') for r in all_results):
+                    if not any(r['id'] == result_id for r in all_results):
                         all_results.append({
-                            'id': result.get('id', ''),
-                            'name': result.get('name', result.get('title', 'Unknown')),
-                            'description': result.get('description', result.get('content', '')),
-                            'category': result.get('category', result.get('type', 'general')),
-                            'district': result.get('district', 'Istanbul'),
-                            'rating': result.get('rating'),
-                            'score': result.get('score', 0.5),
+                            'id': result_id,
+                            'name': result_name,
+                            'description': result_desc,
+                            'category': result_category,
+                            'district': result_district,
+                            'rating': result_rating,
+                            'score': result_score,
                             'search_type': 'keyword',
-                            'type': result.get('type', result.get('category'))
+                            'type': result_type
                         })
             except Exception as e:
                 print(f"⚠️ Keyword search error: {e}")
