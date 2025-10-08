@@ -192,22 +192,32 @@ class RestaurantIntegrationService:
         }
         
         budget_text = {
-            'budget': 'Budget-friendly',
-            'mid-range': 'Mid-range',
-            'premium': 'Premium dining',
-            'luxury': 'Luxury dining'
+            'budget': 'Budget-friendly (your wallet will thank you!)',
+            'mid-range': 'Mid-range (great value)',
+            'premium': 'Premium dining (worth the splurge)',
+            'luxury': 'Luxury dining (special occasion territory)'
         }
         
-        return f"""I found an excellent restaurant for you: **{restaurant.name}** in {restaurant.district}.
+        excitement_phrases = [
+            "I'm so excited to recommend",
+            "You're going to love",
+            "I found the perfect spot for you:",
+            "Here's an amazing place I think you'll adore:"
+        ]
+        
+        import random
+        excitement = random.choice(excitement_phrases)
+        
+        return f"""{excitement} **{restaurant.name}** in {restaurant.district}! 
 
 {restaurant.description}
 
-📍 **Location:** {restaurant.address}
-⭐ **Rating:** {restaurant.rating}/5
-{budget_emoji.get(restaurant.budget, '💰')} **Price:** {budget_text.get(restaurant.budget, 'Mid-range')}
+📍 **Where to find it:** {restaurant.address}
+⭐ **Rating:** {restaurant.rating}/5 (that's really solid!)
+{budget_emoji.get(restaurant.budget, '💰')} **Price level:** {budget_text.get(restaurant.budget, 'Mid-range (great value)')}
 🍴 **Cuisine:** {restaurant.cuisine}
 
-This restaurant offers a great dining experience with authentic flavors and quality service."""
+This place really delivers on authentic flavors and the service is genuinely welcoming. I think you're going to have a fantastic time here!"""
     
     def _format_multiple_restaurants(self, 
                                    restaurants: List[RestaurantRecommendation],
@@ -222,7 +232,15 @@ This restaurant offers a great dining experience with authentic flavors and qual
                 by_district[district] = []
             by_district[district].append(restaurant)
         
-        response = f"Here are {len(restaurants)} restaurants in the area:\n\n"
+        intro_phrases = [
+            f"Perfect! I've found {len(restaurants)} fantastic restaurants that match what you're looking for:",
+            f"Great news! Here are {len(restaurants)} amazing spots I'd recommend:",
+            f"You're in luck! I've got {len(restaurants)} excellent restaurant suggestions for you:",
+            f"Here are {len(restaurants)} wonderful restaurants that I think you'll really enjoy:"
+        ]
+        
+        import random
+        response = random.choice(intro_phrases) + "\n\n"
         
         for i, restaurant in enumerate(restaurants, 1):
             budget_emoji = {
@@ -232,9 +250,11 @@ This restaurant offers a great dining experience with authentic flavors and qual
                 'luxury': '💰💰💰💰'
             }
             
-            response += f"**{i}. {restaurant.name}** ({restaurant.district})\n"
+            response += f"**{i}. {restaurant.name}** in {restaurant.district}\n"
             response += f"⭐ {restaurant.rating}/5 • {budget_emoji.get(restaurant.budget, '💰')} {restaurant.budget.title()} • 🍴 {restaurant.cuisine}\n"
             response += f"{restaurant.description}\n\n"
+        
+        response += "Each of these places has its own character and charm. Would you like more details about any of them?"
         
         return response.strip()
     
@@ -243,18 +263,18 @@ This restaurant offers a great dining experience with authentic flavors and qual
         fallback_restaurants = self.search_restaurants(limit=3)  # Get top 3 popular restaurants
         
         if fallback_restaurants:
-            response = "I couldn't find restaurants matching your specific criteria, but here are some popular options in Istanbul:\n\n"
+            response = "Hmm, I couldn't find restaurants that exactly match your specific criteria, but don't worry! Here are some absolutely fantastic options that I think you'll love:\n\n"
             response += self._format_multiple_restaurants(fallback_restaurants)
             return response
         
-        return """I'm sorry, I couldn't find specific restaurant recommendations at the moment. However, Istanbul has amazing dining options including:
+        return """You know what? Even though I couldn't find specific matches for your request right now, Istanbul is an absolute food paradise! Let me tell you what makes this city's dining scene so incredible:
 
-• Traditional Turkish cuisine (kebabs, meze, Turkish breakfast)
-• Fresh seafood along the Bosphorus
-• International cuisines in Beyoğlu and Nişantaşı
-• Street food in Kadıköy and Eminönü
+🥘 **Traditional Turkish cuisine** - The kebabs, meze, and Turkish breakfasts are mind-blowing
+🐟 **Fresh seafood** along the Bosphorus - caught daily and prepared with centuries-old techniques  
+🌍 **International cuisines** in Beyoğlu and Nişantaşı - world-class dining from every corner of the globe
+🥙 **Street food** in Kadıköy and Eminönü - some of the best meals you'll have will cost less than $5!
 
-Would you like me to help you with a specific area or cuisine type?"""
+Tell me a bit more about what you're craving or which neighborhood you're in, and I'll find you something amazing. I'm really good at matching people with their perfect Istanbul food experience!"""
     
     def get_restaurant_stats(self) -> Dict[str, Any]:
         """Get statistics about the restaurant database"""

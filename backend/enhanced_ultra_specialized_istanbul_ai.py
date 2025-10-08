@@ -657,17 +657,227 @@ class UltraSpecializedIstanbulIntelligence:
         """Get system status through the database manager"""
         return self.db_manager.get_system_status()
 
+    def _extract_basic_entities(self, query: str) -> Dict[str, Any]:
+        """Extract basic entities from query when enhanced entity extraction is not available"""
+        query_lower = query.lower()
+        entities = {
+            'districts': [],
+            'cuisines': [],
+            'attraction_types': [],
+            'transport_modes': [],
+            'budget': [],
+            'meal_type': [],
+            'cultural_aspect': [],
+            'time_of_day': []
+        }
+        
+        # District detection
+        districts = [
+            'sultanahmet', 'beyoğlu', 'beyoglu', 'taksim', 'galata', 'karaköy', 'karakoy',
+            'kadıköy', 'kadikoy', 'üsküdar', 'uskudar', 'fatih', 'beşiktaş', 'besiktas',
+            'eminönü', 'eminonu', 'balat', 'fener', 'ortaköy', 'ortakoy', 'nişantaşı', 'nisantasi'
+        ]
+        
+        for district in districts:
+            if district in query_lower:
+                entities['districts'].append(district)
+        
+        # Cuisine detection
+        cuisines = [
+            'turkish', 'ottoman', 'seafood', 'italian', 'japanese', 'chinese', 'indian',
+            'vegetarian', 'vegan', 'kebab', 'meze', 'mediterranean', 'french', 'american'
+        ]
+        
+        for cuisine in cuisines:
+            if cuisine in query_lower:
+                entities['cuisines'].append(cuisine)
+        
+        # Attraction type detection
+        attraction_types = [
+            'mosque', 'museum', 'palace', 'tower', 'bridge', 'park', 'market', 'bazaar',
+            'gallery', 'monument', 'square', 'waterfront', 'viewpoint', 'historic site'
+        ]
+        
+        for attraction_type in attraction_types:
+            if attraction_type in query_lower:
+                entities['attraction_types'].append(attraction_type)
+        
+        # Transport mode detection
+        transport_modes = [
+            'metro', 'bus', 'ferry', 'taxi', 'dolmuş', 'dolmus', 'tram', 'walking', 'uber'
+        ]
+        
+        for transport_mode in transport_modes:
+            if transport_mode in query_lower:
+                entities['transport_modes'].append(transport_mode)
+        
+        # Budget detection
+        budget_terms = ['cheap', 'budget', 'expensive', 'luxury', 'mid-range', 'affordable']
+        for budget_term in budget_terms:
+            if budget_term in query_lower:
+                entities['budget'].append(budget_term)
+        
+        # Meal type detection
+        meal_types = ['breakfast', 'lunch', 'dinner', 'brunch', 'kahvaltı', 'öğle', 'akşam']
+        for meal_type in meal_types:
+            if meal_type in query_lower:
+                entities['meal_type'].append(meal_type)
+        
+        # Cultural aspect detection
+        cultural_aspects = ['culture', 'traditional', 'local', 'authentic', 'historical', 'modern']
+        for cultural_aspect in cultural_aspects:
+            if cultural_aspect in query_lower:
+                entities['cultural_aspect'].append(cultural_aspect)
+        
+        # Time of day detection
+        time_terms = ['morning', 'afternoon', 'evening', 'night', 'sabah', 'öğle', 'akşam', 'gece']
+        for time_term in time_terms:
+            if time_term in query_lower:
+                entities['time_of_day'].append(time_term)
+        
+        return entities
+    
+    def _merge_domain_with_enhancements(self, domain_response: Dict[str, Any], enhanced_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge domain system response with AI enhancement services data"""
+        # Start with domain response as base
+        merged_result = domain_response.copy()
+        
+        # Get the original response from domain system
+        original_response = domain_response.get('response', '')
+        
+        # Add enhancement features information if available
+        enhancement_info = ""
+        
+        # Seasonal highlights
+        seasonal = enhanced_result.get('seasonal_highlights', {})
+        if seasonal.get('active_events'):
+            enhancement_info += "\n\n**🎉 Current Seasonal Events:**\n"
+            for event in seasonal['active_events'][:2]:
+                enhancement_info += f"• **{event.get('name', 'Event')}**: {event.get('description', '')}\n"
+        
+        # User feedback boost
+        primary = enhanced_result.get('primary_suggestions', [])
+        boosted_attractions = [p for p in primary if p.get('boosted_authenticity_score', 0) > p.get('authenticity_score', 0)]
+        if boosted_attractions:
+            enhancement_info += f"\n**⭐ {len(boosted_attractions)} attractions boosted by community feedback**\n"
+        
+        # Daily life experiences
+        daily_experiences = enhanced_result.get('daily_life_experiences', [])
+        if daily_experiences:
+            enhancement_info += "\n**🌟 Authentic Daily Life Experiences Available:**\n"
+            for exp in daily_experiences[:2]:
+                enhancement_info += f"• **{exp.get('title', 'Experience')}** in {exp.get('location', 'Istanbul')}\n"
+        
+        # Combine responses
+        if enhancement_info:
+            merged_result['response'] = original_response + enhancement_info
+        
+        # Add metadata
+        existing_features = merged_result.get('domain_features', [])
+        merged_result['enhancement_features'] = [
+            "user_feedback_integration",
+            "seasonal_calendar", 
+            "daily_life_suggestions",
+            "curated_attractions",
+            "authenticity_boost"
+        ]
+        merged_result['all_features'] = existing_features + merged_result['enhancement_features']
+        merged_result['user_feedback_applied'] = len(boosted_attractions) > 0
+        merged_result['seasonal_events'] = seasonal.get('active_events', [])
+        merged_result['authenticity_boosted'] = len(boosted_attractions)
+        merged_result['system_version'] = 'v4.0_comprehensive_domains_enhanced'
+        
+        return merged_result
+    
+    def get_domain_statistics(self) -> Dict[str, Any]:
+        """Get statistics about domain system usage"""
+        if not self.use_domain_system or not self.domain_system:
+            return {"error": "Domain system not available"}
+        
+        return {
+            "available_domains": [domain.value for domain in IstanbulDomain],
+            "domain_count": len(IstanbulDomain),
+            "system_status": "active",
+            "features": [
+                "restaurant_discovery",
+                "attraction_recommendations", 
+                "neighborhood_guides",
+                "transportation_assistance",
+                "cultural_experiences",
+                "route_planning",
+                "seasonal_activities",
+                "budget_optimization"
+            ]
+        }
+    
+    def process_domain_query(self, query: str, domain: str, user_context: Dict = None) -> Dict[str, Any]:
+        """Process query for specific domain"""
+        if not self.use_domain_system or not self.domain_system:
+            return {"error": "Domain system not available"}
+        
+        try:
+            # Convert string domain to enum
+            domain_enum = IstanbulDomain(domain.lower())
+            
+            # Extract entities
+            entities = user_context.get('extracted_entities', {}) if user_context else {}
+            if not entities:
+                entities = self._extract_basic_entities(query)
+            
+            # Generate domain-specific response
+            domain_response = self.domain_system.generate_domain_response(
+                domain_enum, query, entities, user_context or {}
+            )
+            
+            # Enhance with AI services if available
+            if ENHANCEMENT_SERVICES_AVAILABLE and self.db_manager.enhancement_service:
+                enhanced_result = self.db_manager.get_enhanced_recommendations(query, user_context)
+                domain_response = self._merge_domain_with_enhancements(domain_response, enhanced_result)
+            
+            domain_response['forced_domain'] = domain
+            return domain_response
+            
+        except ValueError:
+            return {"error": f"Invalid domain: {domain}. Available domains: {[d.value for d in IstanbulDomain]}"}
+        except Exception as e:
+            return {"error": f"Error processing domain query: {str(e)}"}
+    
+    def get_followup_suggestions(self, last_query: str, last_domain: str) -> List[str]:
+        """Get contextual follow-up suggestions based on last query and domain"""
+        if not self.use_domain_system or not self.domain_system:
+            return ["Tell me about Istanbul attractions", "Find restaurants in Sultanahmet", "Plan a walking route"]
+        
+        try:
+            domain_enum = IstanbulDomain(last_domain.lower())
+            template = self.domain_system.domains[domain_enum]
+            return template.followup_suggestions
+        except (ValueError, KeyError):
+            return [
+                "Find restaurants with Turkish cuisine",
+                "Show me historical attractions", 
+                "Plan transportation route",
+                "Suggest neighborhood to explore",
+                "Recommend cultural experiences"
+            ]
 
 # Create the main enhanced system instance
 enhanced_istanbul_ai_system = UltraSpecializedIstanbulIntelligence()
 
-print("✅ Enhanced Ultra-Specialized Istanbul AI System v3.0 Ready!")
-print("   🧠 Lightweight NLP System (No LLMs Required)")
+print("✅ Enhanced Ultra-Specialized Istanbul AI System v4.0 Ready!")
+print("   🎯 Comprehensive Domain System (12+ specialized domains)")
+print("   🍽️ Restaurant Discovery (location, cuisine, dietary, budget)")
+print("   🏛️ Places & Attractions (78+ curated attractions)")
+print("   🏘️ Neighborhood Guides (detailed area information)")
+print("   🚇 Transportation Assistance (metro, bus, ferry, routes)")
+print("   🇹🇷 Daily Culture & Local Life (authentic experiences)")
+print("   🗺️ Route Planning & Itinerary Maker")
+print("   🧠 Smart Query Understanding (typo correction, context-aware)")
 print("   🚀 AI Enhancement Services integrated") 
 print("   📊 User feedback and rating system active")
 print("   📅 Seasonal calendar integration enabled")
 print("   🌟 Daily life suggestions available")
 print("   🎯 Authenticity boost system operational")
 print("   🔍 Semi-automated discovery pipeline ready")
-print("   ⚡ Fast, rule-based query processing")
+print("   ⚡ Fast, rule-based query processing (No LLMs Required)")
 print("   🌍 40+ authentic Istanbul museums")
+print("   💎 Ultra-specialized, multi-domain, context-aware responses")
