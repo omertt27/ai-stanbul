@@ -8,6 +8,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from thefuzz import fuzz, process
 
 class LocationIntentType(Enum):
     RESTAURANTS = "restaurants"
@@ -35,18 +36,43 @@ class LocationIntentDetector:
         # Restaurant-related patterns
         self.restaurant_patterns = {
             'direct': [
-                r'\b(restaurant|restoran|lokanta|café|cafe|bistro|diner)\b',
-                r'\b(eat|eating|food|yemek|meal|lunch|dinner|breakfast)\b',
-                r'\b(hungry|starving|famished)\b'
+                r'\b(restaurant|restaurants|restoran|lokanta|café|cafe|bistro|diner|eatery|eateries)\b',
+                r'\b(eat|eating|food|yemek|meal|lunch|dinner|breakfast|dining|dine)\b',
+                r'\b(hungry|starving|famished)\b',
+                r'\b(where to eat|places to eat|good food|best food|food places)\b',
+                r'\b(dining recommendations|dining options|food recommendations)\b',
+                r'\b(local eateries|local restaurants|food scene)\b'
             ],
             'cuisine': [
-                r'\b(turkish|ottoman|kebab|döner|baklava|turkish food)\b',
-                r'\b(seafood|fish|balık|italian|chinese|pizza|burger)\b',
-                r'\b(vegetarian|vegan|halal|kosher)\b'
+                r'\b(turkish|ottoman|kebab|döner|baklava|turkish food|traditional turkish)\b',
+                r'\b(seafood|fish|balık|italian|chinese|pizza|burger|meze|pide)\b',
+                r'\b(vegetarian|vegan|halal|kosher|gluten.free|gluten free)\b',
+                r'\b(street food|börek|balık ekmek|döner kebab)\b',
+                r'\b(authentic turkish|turkish cuisine|ottoman food|turkish breakfast)\b',
+                r'\b(fresh seafood|fish restaurants|black sea fish|maritime cuisine)\b',
+                r'\b(turkish street food|street food vendors|pastry shops)\b'
             ],
             'dining_context': [
-                r'\b(romantic|family|casual|fine dining|cheap|expensive)\b',
-                r'\b(rooftop|view|terrace|garden|outdoor)\b'
+                r'\b(romantic|family|casual|fine dining|cheap|expensive|budget|luxury)\b',
+                r'\b(rooftop|view|terrace|garden|outdoor|bosphorus view)\b',
+                r'\b(traditional|authentic|local|hip|trendy|popular)\b'
+            ],
+            'dietary_religious': [
+                r'\b(religious|religiously|compliant|muslim|islamic|christian|jewish)\b',
+                r'\b(dietary|diet|dietary restrictions|food restrictions)\b',
+                r'\b(halal certified|kosher certified|religious dining)\b',
+                r'\b(halal|kosher|muslim-friendly|jewish-friendly)\b',
+                r'\b(religiously compliant|religious compliance)\b',
+                r'\b(celiac|coeliac|celiac-friendly|coeliac-friendly)\b',
+                r'\b(gluten.free|gluten-free|gluten free|wheat.free|wheat-free|wheat free)\b',
+                r'\b(allergy|allergies|food allergy|food allergies|allergy-friendly)\b',
+                r'\b(special diet|special dietary|dietary needs|dietary requirements)\b',
+                r'\b(friendly|accommodating|suitable|compliant|specialized)\b'
+            ],
+            'budget_terms': [
+                r'\b(cheap|budget|affordable|inexpensive|low.cost|economical)\b',
+                r'\b(cheap eats|budget.friendly|value|good value|bargain)\b',
+                r'\b(student.friendly|backpacker|budget dining)\b'
             ]
         }
         
@@ -54,13 +80,18 @@ class LocationIntentDetector:
         self.museum_patterns = {
             'direct': [
                 r'\b(museum|museums|müze|gallery|galeri|exhibition|sergi)\b',
-                r'\b(art|history|culture|kültür|sanat|tarih)\b',
-                r'\b(palace|saray|mosque|cami|church|historical)\b'
+                r'\b(palace|saray|mosque|cami|church)\b',
+                r'\b(historical sites|cultural sites|archaeological sites)\b'
             ],
             'specific': [
-                r'\b(topkapi|hagia sophia|ayasofya|dolmabahçe|sultanahmet)\b',
+                r'\b(topkapi|hagia sophia|ayasofya|dolmabahçe|basilica cistern)\b',
                 r'\b(byzantine|ottoman|archaeology|arkeoloji)\b',
-                r'\b(turkish museums|historical sites|cultural sites)\b'
+                r'\b(turkish museums|museum pass|museumpass)\b',
+                r'\b(galata tower|chora church|istanbul modern)\b'
+            ],
+            'context': [
+                r'\b(art museum|history museum|archaeological museum)\b',
+                r'\b(visit museum|see museum|museum tour|museum ticket)\b'
             ]
         }
         
@@ -77,7 +108,23 @@ class LocationIntentDetector:
             ],
             'districts': [
                 r'\b(sultanahmet|taksim|galata|karaköy|beşiktaş|kadıköy)\b',
-                r'\b(fatih|beyoğlu|üsküdar|sarıyer|şişli)\b'
+                r'\b(fatih|beyoğlu|üsküdar|sarıyer|şişli)\b',
+                r'\b(asian side|anatolian side|europe|european side)\b',
+                r'\b(moda|cihangir|nişantaşı|ortaköy|bebek)\b',
+                r'\b(istiklal|istiklal avenue|istiklal caddesi)\b',
+                r'\b(old city|historic peninsula|new city)\b',
+                r'\b(fenerbahçe|kumkapı|eminönü|topkapı)\b'
+            ],
+            'specific_places': [
+                r'\b(taksim square|istiklal avenue|galata tower)\b',
+                r'\b(blue mosque|hagia sophia|topkapi palace)\b',
+                r'\b(galata bridge|bosphorus|golden horn)\b',
+                r'\b(grand bazaar|spice bazaar|egyptian bazaar)\b',
+                r'\b(basilica cistern|chora church|dolmabahçe palace)\b'
+            ],
+            'neighborhoods': [
+                r'\b(neighborhood|neighbourhood|area|district|quarter)\b',
+                r'\b(mahalle|semt|bölge|çevre)\b'
             ]
         }
         
@@ -88,6 +135,99 @@ class LocationIntentDetector:
             r'\b(metro|bus|ferry|taxi|walk|drive)\b',
             r'\b(get to|go to|travel to)\b'
         ]
+
+        # Common Turkish and English typos and corrections
+        self.typo_corrections = {
+            # Restaurant typos
+            'resturant': 'restaurant',
+            'resturants': 'restaurants',
+            'restraunt': 'restaurant',
+            'restaurnt': 'restaurant',
+            'restaraunt': 'restaurant',
+            'restoran': 'restaurant',
+            'restorant': 'restaurant',
+            'restuaran': 'restaurant',
+            
+            # District typos  
+            'beyoglu': 'beyoğlu',
+            'beyolu': 'beyoğlu',
+            'beyolu': 'beyoğlu',
+            'taksim': 'taksim',
+            'taksi': 'taksim',
+            'sultanhamet': 'sultanahmet',
+            'sultanamet': 'sultanahmet',
+            'sultanahme': 'sultanahmet',
+            'kadikoy': 'kadıköy',
+            'kadikoy': 'kadıköy',
+            'kadikoy': 'kadıköy',
+            'besiktas': 'beşiktaş',
+            'besikta': 'beşiktaş',
+            
+            # Food type typos
+            'turkis': 'turkish',
+            'turiksh': 'turkish',
+            'turksh': 'turkish',
+            'seafod': 'seafood',
+            'seefood': 'seafood',
+            'vegitarian': 'vegetarian',
+            'vegeterian': 'vegetarian',
+            'vegetrarian': 'vegetarian',
+            'halall': 'halal',
+            'hala': 'halal',
+            
+            # Common words
+            'recomendations': 'recommendations',
+            'recomendation': 'recommendation',
+            'recomend': 'recommend',
+            'rcommend': 'recommend',
+            'rcommendation': 'recommendation',
+            'options': 'options',
+            'optins': 'options',
+            'good': 'good',
+            'goo': 'good',
+            'near': 'near',
+            'nea': 'near',
+            'beste': 'best',
+            'bst': 'best'
+        }
+
+    def correct_typos(self, text: str) -> str:
+        """
+        Correct common typos in user input
+        
+        Args:
+            text: Input text with potential typos
+            
+        Returns:
+            Corrected text
+        """
+        corrected_text = text.lower()
+        
+        # Apply direct corrections
+        for typo, correction in self.typo_corrections.items():
+            corrected_text = re.sub(r'\b' + re.escape(typo) + r'\b', correction, corrected_text)
+        
+        # For words not in direct corrections, use fuzzy matching for key terms
+        words = corrected_text.split()
+        corrected_words = []
+        
+        key_terms = [
+            'restaurant', 'restaurants', 'beyoğlu', 'sultanahmet', 'kadıköy', 'beşiktaş',
+            'turkish', 'seafood', 'vegetarian', 'halal', 'recommendations', 'options',
+            'museum', 'museums', 'galata', 'taksim'
+        ]
+        
+        for word in words:
+            if len(word) > 3:  # Only correct longer words
+                best_match = process.extractOne(word, key_terms, scorer=fuzz.ratio)
+                if best_match and best_match[1] >= 80:  # 80% similarity threshold
+                    corrected_words.append(best_match[0])
+                else:
+                    corrected_words.append(word)
+            else:
+                corrected_words.append(word)
+        
+        return ' '.join(corrected_words)
 
     def detect_intent(self, user_message: str, user_location: Optional[Dict] = None) -> List[LocationIntent]:
         """
@@ -100,7 +240,9 @@ class LocationIntentDetector:
         Returns:
             List of detected intents with confidence scores
         """
-        user_message = user_message.lower()
+        # Apply typo correction first
+        corrected_message = self.correct_typos(user_message)
+        user_message = corrected_message.lower()
         detected_intents = []
         
         # Check for restaurant intent
@@ -132,17 +274,17 @@ class LocationIntentDetector:
         matched_keywords = []
         requirements = {}
         
-        # Check direct restaurant mentions
+        # Check direct restaurant mentions (higher weight)
         for pattern in self.restaurant_patterns['direct']:
             if re.search(pattern, message):
-                score += 0.4
+                score += 0.6  # Increased from 0.4
                 matched_keywords.extend(re.findall(pattern, message))
         
         # Check cuisine preferences
         for pattern in self.restaurant_patterns['cuisine']:
             matches = re.findall(pattern, message)
             if matches:
-                score += 0.3
+                score += 0.4  # Increased from 0.3
                 matched_keywords.extend(matches)
                 requirements['cuisine'] = matches
         
@@ -150,9 +292,29 @@ class LocationIntentDetector:
         for pattern in self.restaurant_patterns['dining_context']:
             matches = re.findall(pattern, message)
             if matches:
-                score += 0.2
+                score += 0.3  # Increased from 0.2
                 matched_keywords.extend(matches)
                 requirements['dining_style'] = matches
+        
+        # Check budget terms (high weight for budget queries)
+        for pattern in self.restaurant_patterns['budget_terms']:
+            matches = re.findall(pattern, message)
+            if matches:
+                score += 0.5  # High score for budget-related queries
+                matched_keywords.extend(matches)
+                if 'dining_style' not in requirements:
+                    requirements['dining_style'] = []
+                requirements['dining_style'].extend(matches)
+        
+        # Check dietary/religious terms (high weight for dietary queries)
+        for pattern in self.restaurant_patterns['dietary_religious']:
+            matches = re.findall(pattern, message)
+            if matches:
+                score += 0.6  # Very high score for dietary/religious queries
+                matched_keywords.extend(matches)
+                if 'dietary_requirements' not in requirements:
+                    requirements['dietary_requirements'] = []
+                requirements['dietary_requirements'].extend(matches)
         
         # Check for location context
         location_score, distance_pref = self._detect_location_context(message)
@@ -189,6 +351,12 @@ class LocationIntentDetector:
                 score += 0.4
                 matched_keywords.extend(matches)
                 requirements['specific_sites'] = matches
+        
+        # Check museum context patterns
+        for pattern in self.museum_patterns['context']:
+            if re.search(pattern, message):
+                score += 0.3
+                matched_keywords.extend(re.findall(pattern, message))
         
         # Check for location context
         location_score, distance_pref = self._detect_location_context(message)
@@ -277,10 +445,20 @@ class LocationIntentDetector:
             if re.search(pattern, message):
                 score += 0.3
         
-        # Check district mentions
+        # Check district mentions (high weight for clear location references)
         for pattern in self.location_patterns['districts']:
             if re.search(pattern, message):
-                score += 0.1
+                score += 0.3  # Increased from 0.1
+        
+        # Check specific places (high weight for landmark mentions)
+        for pattern in self.location_patterns['specific_places']:
+            if re.search(pattern, message):
+                score += 0.4  # High score for specific landmarks
+        
+        # Check neighborhood indicators
+        for pattern in self.location_patterns['neighborhoods']:
+            if re.search(pattern, message):
+                score += 0.2  # Medium score for area indicators
         
         return score, distance_pref
 

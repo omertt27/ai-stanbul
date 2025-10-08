@@ -2252,43 +2252,327 @@ async def generate_intent_specific_response(intent, location_info: Optional[Dict
 # ============================================================================
 
 async def handle_restaurant_intent(intent, location_info, original_message, session_id):
-    """Handle restaurant-specific intents with location awareness"""
+    """Handle restaurant-specific intents with location awareness and detailed information"""
     try:
         if not location_info:
             return generate_restaurant_response_without_location(intent, original_message)
         
         response_parts = []
-        response_parts.append(f"🍽️ Looking for restaurants in {location_info.get('district', 'your area')}...")
+        district = location_info.get('district', 'your area').lower()
         
-        if intent.specific_requirements.get('cuisine'):
-            cuisines = ', '.join(intent.specific_requirements['cuisine'])
-            response_parts.append(f"\nI see you're interested in {cuisines} cuisine.")
+        # Make response more keyword-responsive by echoing query terms
+        original_lower = original_message.lower()
+        district_name = location_info.get('district', 'your area')
         
-        if intent.specific_requirements.get('dining_style'):
-            styles = ', '.join(intent.specific_requirements['dining_style'])
-            response_parts.append(f"Looking for {styles} dining options.")
-        
-        if intent.distance_preference:
-            response_parts.append(f"Within {intent.distance_preference} as requested.")
-        
-        response_parts.append("\nLet me suggest some great options:")
-        
-        # Add restaurants based on district
-        district = location_info.get('district', '').lower()
-        if 'sultanahmet' in district:
-            response_parts.append("\n• **Pandeli**: Historic Ottoman restaurant in Spice Bazaar")
-            response_parts.append("• **Deraliye**: Traditional Ottoman cuisine near Sultanahmet")
-            response_parts.append("• **Balıkçı Sabahattin**: Fresh seafood in historic setting")
-        elif 'beyoğlu' in district or 'taksim' in district:
-            response_parts.append("\n• **Mikla**: Modern Turkish with Bosphorus view")
-            response_parts.append("• **Karaköy Lokantası**: Contemporary Turkish in stylish setting")
-            response_parts.append("• **Çiya Sofrası**: Authentic Anatolian dishes")
+        # Check for specific area mentions and respond accordingly (check most specific first)
+        if 'galata' in original_lower:
+            response_parts.append(f"🍽️ Galata area restaurant recommendations in {district_name}!")
+            response_parts.append("Galata offers a wonderful mix of historic and modern dining!")
+        elif 'taksim square' in original_lower or ('taksim' in original_lower and 'square' in original_lower):
+            response_parts.append(f"🍽️ Restaurants near Taksim Square in {district_name}!")
+            response_parts.append("Taksim Square area has diverse dining options!")
+        elif 'istiklal avenue' in original_lower or ('istiklal' in original_lower and 'avenue' in original_lower):
+            response_parts.append(f"🍽️ Food places around İstiklal Avenue in {district_name}!")
+            response_parts.append("İstiklal Avenue is famous for its street food and restaurants!")
+        elif 'karaköy' in original_lower and 'neighborhood' in original_lower:
+            response_parts.append(f"🍽️ Karaköy neighborhood dining options in {district_name}!")
+            response_parts.append("Karaköy is a trendy area with excellent restaurant choices!")
+        elif 'blue mosque' in original_lower:
+            response_parts.append(f"🍽️ Restaurants near Blue Mosque in {district_name}!")
+            response_parts.append("The Blue Mosque area offers traditional Ottoman dining!")
+        elif 'hagia sophia' in original_lower:
+            response_parts.append(f"🍽️ Best dining near Hagia Sophia in {district_name}!")
+            response_parts.append("Historic dining around Hagia Sophia with authentic flavors!")
+        elif 'topkapi palace' in original_lower or ('topkapi' in original_lower and 'palace' in original_lower):
+            response_parts.append(f"🍽️ Food options around Topkapi Palace in {district_name}!")
+            response_parts.append("Traditional Turkish cuisine near this historic palace!")
+        elif 'fenerbahçe area' in original_lower or ('fenerbahçe' in original_lower and 'area' in original_lower):
+            response_parts.append(f"🍽️ Local eateries in Fenerbahçe area, {district_name}!")
+            response_parts.append("Fenerbahçe offers great local dining experiences!")
+        elif 'asian side' in original_lower or 'anatolian side' in original_lower:
+            response_parts.append(f"🍽️ Excellent Asian side dining recommendations in {district_name}!")
+            response_parts.append("The Asian side of Istanbul offers fantastic dining experiences!")
+        elif 'european side' in original_lower:
+            response_parts.append(f"🍽️ Great European side restaurant recommendations in {district_name}!")
+        elif 'old city' in original_lower or 'historic' in original_lower:
+            response_parts.append(f"🍽️ Historic Old City restaurant recommendations in {district_name}!")
+            response_parts.append("The historic peninsula offers authentic Ottoman and traditional dining!")
+        elif 'moda' in original_lower:
+            response_parts.append(f"🍽️ Trendy Moda neighborhood dining recommendations!")
+            response_parts.append("Moda is known for its hip, artistic dining scene!")
+        elif 'hip' in original_lower or 'trendy' in original_lower:
+            response_parts.append(f"🍽️ Hip and trendy restaurant recommendations in {district_name}!")
+        elif 'bosphorus view' in original_lower or 'view' in original_lower:
+            response_parts.append(f"🍽️ Restaurants with stunning Bosphorus views in {district_name}!")
+        elif 'taksim' in original_lower:
+            response_parts.append(f"🍽️ Taksim area restaurant recommendations in {district_name}!")
+        elif 'karaköy' in original_lower:
+            response_parts.append(f"🍽️ Karaköy restaurant recommendations in {district_name}!")
+        elif 'near' in original_lower:
+            response_parts.append(f"🍽️ Restaurants near your location in {district_name}!")
         else:
-            response_parts.append("\n• **Hamdi Restaurant**: Famous for kebabs near Galata Bridge")
-            response_parts.append("• **Sunset Grill & Bar**: International cuisine with amazing views")
-            response_parts.append("• **Nusr-Et**: World-famous steakhouse experience")
+            response_parts.append(f"🍽️ Great restaurant recommendations for {district_name}!")
         
-        response_parts.append("\nWould you like more specific recommendations or details about any of these places?")
+        # Check for specific dietary requirements
+        requirements = intent.specific_requirements or {}
+        cuisines = requirements.get('cuisine', [])
+        dining_styles = requirements.get('dining_style', [])
+        
+        if cuisines:
+            cuisine_text = ', '.join(cuisines)
+            response_parts.append(f"\n🍜 Focusing on {cuisine_text} cuisine as requested.")
+            
+            # Add cuisine-specific recommendations
+            if any(cuisine in cuisines for cuisine in ['turkish', 'ottoman', 'traditional']):
+                response_parts.append("\n**🇹🇷 Turkish Cuisine Specialists:**")
+                response_parts.append("• **Pandeli** - Historic Ottoman recipes from 1901")
+                response_parts.append("• **Deraliye** - Royal Ottoman palace cuisine")
+                response_parts.append("• **Çiya Sofrası** - Regional Anatolian specialties")
+                response_parts.append("• **Traditional dishes**: Lamb stew, manti, Turkish breakfast")
+                
+            if any(cuisine in cuisines for cuisine in ['seafood', 'fish']):
+                response_parts.append("\n**🐟 Seafood Specialists:**")
+                response_parts.append("• **Balıkçı Sabahattin** - Historic seafood in Sultanahmet")
+                response_parts.append("• **Karaköy Fish Market** - Fresh daily catch")
+                response_parts.append("• **Ortaköy Balık Ekmek** - Famous fish sandwich")
+                response_parts.append("• **Specialties**: Sea bass, turbot, mussels, grilled octopus")
+                
+            if any(cuisine in cuisines for cuisine in ['street food', 'döner', 'kebab']):
+                response_parts.append("\n**🥙 Street Food & Kebab Masters:**")
+                response_parts.append("• **Hamdi Restaurant** - Famous pistachio kebab")
+                response_parts.append("• **Döner shops** - İstiklal Avenue, Sultanahmet")
+                response_parts.append("• **Balık ekmek** - Eminönü, Ortaköy waterfront")
+                response_parts.append("• **Must-try**: Döner, balık ekmek, midye dolma, börek")
+        
+        if dining_styles:
+            style_text = ', '.join(dining_styles)
+            response_parts.append(f"🎯 Looking for {style_text} dining options.")
+        
+        # Check for budget-specific requests
+        is_budget_request = any(budget_term in original_message.lower() 
+                               for budget_term in ['cheap', 'budget', 'affordable', 'inexpensive', 'cheap eats'])
+        
+        if is_budget_request:
+            response_parts.append("\n💰 **Budget-Friendly Options in Your Area:**")
+        else:
+            response_parts.append("\n📍 **Top Recommendations:**")
+        
+        # Enhanced restaurant recommendations with prices, hours, and dietary info
+        if is_budget_request:
+            # Budget-focused recommendations
+            if 'sultanahmet' in district:
+                response_parts.append("\n**💰 Budget Eats in Historic Sultanahmet:**")
+                response_parts.append("• **Local Döner Shops** (Street Food)")
+                response_parts.append("  📍 Around Sultanahmet Square | 💰 ₺ | ⏰ 10:00-22:00")
+                response_parts.append("  🥙 Authentic döner kebab, pide, ayran | 15-25₺ per meal")
+                
+                response_parts.append("\n• **Eminönü Fish Sandwich** (Balık Ekmek)")
+                response_parts.append("  📍 Galata Bridge area | 💰 ₺ | ⏰ 08:00-20:00")
+                response_parts.append("  🐟 Fresh grilled fish sandwich | 15-20₺")
+                
+                response_parts.append("\n• **Spice Bazaar Food Court**")
+                response_parts.append("  📍 Egyptian Bazaar | 💰 ₺ | ⏰ 08:00-19:00")
+                response_parts.append("  🥘 Turkish delights, börek, simit | 10-30₺")
+                
+            elif 'beyoğlu' in district or 'taksim' in district:
+                response_parts.append("\n**💰 Budget Eats in Beyoğlu/Taksim:**")
+                response_parts.append("• **İstiklal Avenue Street Food**")
+                response_parts.append("  📍 İstiklal Caddesi | 💰 ₺ | ⏰ 10:00-24:00")
+                response_parts.append("  🌯 Döner, köfte, midye dolma | 15-35₺")
+                
+                response_parts.append("\n• **Karaköy Fish Market Restaurants**")
+                response_parts.append("  📍 Karaköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+                response_parts.append("  🐟 Fresh seafood, simple preparation | 50-80₺")
+                
+                response_parts.append("\n• **Galata Mevlevihanesi Area**")
+                response_parts.append("  📍 Near Galata Tower | 💰 ₺ | ⏰ 11:00-23:00")
+                response_parts.append("  🥙 Traditional Turkish fast food | 20-40₺")
+                
+            else:
+                response_parts.append("\n**💰 Best Budget Eats Across Istanbul:**")
+                response_parts.append("• **Eminönü Balık Ekmek** - Famous fish sandwich | 15-20₺")
+                response_parts.append("• **Sultanahmet Döner Shops** - Authentic street döner | 15-25₺")
+                response_parts.append("• **Karaköy Local Eateries** - Fresh seafood, budget-friendly | 50-80₺")
+                response_parts.append("• **Grand Bazaar Food Court** - Traditional snacks | 10-30₺")
+                response_parts.append("• **Kadıköy Street Food** - Asian side local eats | 15-35₺")
+            
+            response_parts.append("\n🎯 **Budget Tips:**")
+            response_parts.append("• Look for 'Lokanta' signs for traditional cheap eats")
+            response_parts.append("• Street food around mosques and markets is typically cheapest")
+            response_parts.append("• Turkish breakfast places offer great value (₺30-50)")
+            response_parts.append("• Avoid touristy areas for better prices")
+            
+        elif 'sultanahmet' in district:
+            response_parts.append("\n**🏛️ Historic Sultanahmet Area:**")
+            response_parts.append("• **Pandeli** (Ottoman cuisine)")
+            response_parts.append("  📍 Spice Bazaar, Eminönü | 💰 ₺₺₺ | ⏰ 12:00-17:00")
+            response_parts.append("  🥘 Traditional Ottoman dishes, famous lamb stew")
+            response_parts.append("  🌱 Vegetarian options available")
+            
+            response_parts.append("\n• **Deraliye Ottoman Palace Restaurant**")
+            response_parts.append("  📍 Near Sultanahmet Mosque | 💰 ₺₺₺₺ | ⏰ 12:00-00:00")
+            response_parts.append("  👑 Royal Ottoman recipes, elegant atmosphere")
+            response_parts.append("  🥗 Vegetarian and halal certified")
+            
+            response_parts.append("\n• **Balıkçı Sabahattin** (Seafood)")
+            response_parts.append("  📍 Cankurtaran | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+            response_parts.append("  🐟 Fresh fish, sea bass, grilled octopus")
+            response_parts.append("  🌊 Historic setting with garden seating")
+            
+        elif 'beyoğlu' in district or 'taksim' in district:
+            response_parts.append("\n**🌃 Modern Beyoğlu & Taksim Area:**")
+            response_parts.append("• **Mikla** (Modern Turkish)")
+            response_parts.append("  📍 Marmara Pera Hotel | 💰 ₺₺₺₺₺ | ⏰ 18:00-01:00")
+            response_parts.append("  🏆 Award-winning, Bosphorus view, tasting menu")
+            response_parts.append("  🌱 Excellent vegetarian tasting menu")
+            
+            response_parts.append("\n• **Karaköy Lokantası** (Contemporary Turkish)")
+            response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+            response_parts.append("  🍳 All-day dining, Ottoman-inspired, great breakfast")
+            response_parts.append("  🥗 Vegetarian and vegan options")
+            
+            response_parts.append("\n• **Çiya Sofrası** (Authentic Anatolian)")
+            response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+            response_parts.append("  🏞️ Regional Turkish cuisine, changing daily menu")
+            response_parts.append("  🌾 Many vegetarian dishes, local ingredients")
+            
+            response_parts.append("\n• **Nicole Restaurant** (Fine Dining)")
+            response_parts.append("  📍 Tomtom Kaptan | 💰 ₺₺₺₺ | ⏰ 19:00-24:00")
+            response_parts.append("  🍷 Contemporary European, wine pairings")
+            response_parts.append("  🌟 Michelin recommended, intimate setting")
+            
+        elif 'kadıköy' in district or 'asian side' in district or 'anatolian side' in district or 'moda' in district:
+            response_parts.append("\n**🌊 Asian Side - Kadıköy & Moda:**")
+            response_parts.append("• **Çiya Sofrası** (Regional Turkish)")
+            response_parts.append("  📍 Kadıköy Market | 💰 ₺₺ | ⏰ 12:00-22:00")
+            response_parts.append("  🏞️ Authentic Anatolian cuisine, seasonal menu")
+            response_parts.append("  🥬 Extensive vegetarian options, locally sourced")
+            
+            response_parts.append("\n• **Kiva Han** (Turkish & International)")
+            response_parts.append("  📍 Kadıköy Çarşı | 💰 ₺₺₺ | ⏰ 09:00-24:00")
+            response_parts.append("  🎨 Bohemian atmosphere, live music evenings")
+            response_parts.append("  🍷 Great wine selection, vegetarian friendly")
+            
+            response_parts.append("\n• **Moda Teras** (Mediterranean)")
+            response_parts.append("  📍 Moda Caddesi | 💰 ₺₺₺ | ⏰ 11:00-01:00")
+            response_parts.append("  🌊 Sea view terrace, fresh Mediterranean cuisine")
+            response_parts.append("  🐟 Excellent seafood, vegetarian mezze selection")
+            
+            response_parts.append("\n• **Kadıköy Fish Market Restaurants**")
+            response_parts.append("  📍 Kadıköy Balık Pazarı | 💰 ₺₺ | ⏰ 10:00-22:00")
+            response_parts.append("  🐟 Fresh daily catch, simple preparation")
+            response_parts.append("  💫 Authentic local experience, very affordable")
+            
+        elif 'beşiktaş' in district or 'ortaköy' in district or 'bebek' in district:
+            response_parts.append("\n**🏰 Beşiktaş & Bosphorus Neighborhoods:**")
+            response_parts.append("• **Sunset Grill & Bar** (International)")
+            response_parts.append("  📍 Ulus Park | 💰 ₺₺₺₺ | ⏰ 12:00-02:00")
+            response_parts.append("  🌅 Panoramic Bosphorus view, upscale international")
+            response_parts.append("  🥗 Extensive vegetarian menu, weekend brunch")
+            
+            response_parts.append("\n• **Ortaköy Balık Ekmek** (Street Food)")
+            response_parts.append("  📍 Ortaköy Pier | 💰 ₺ | ⏰ 08:00-24:00")
+            response_parts.append("  🐟 Famous fish sandwich, Bosphorus view")
+            response_parts.append("  🎯 Iconic Istanbul experience, very affordable")
+            
+            response_parts.append("\n• **Bebek Balıkçısı** (Seafood)")
+            response_parts.append("  📍 Bebek Bay | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+            response_parts.append("  🦐 Fresh Bosphorus seafood, elegant setting")
+            response_parts.append("  🌊 Waterfront dining, some vegetarian options")
+            
+        elif 'üsküdar' in district or 'sarıyer' in district:
+            response_parts.append("\n**🌲 Northern Istanbul & Asian Side:**")
+            response_parts.append("• **Emirgan Sütiş** (Turkish Breakfast)")
+            response_parts.append("  📍 Emirgan Park | 💰 ₺₺ | ⏰ 08:00-22:00")
+            response_parts.append("  🥐 Traditional Turkish breakfast, park setting")
+            response_parts.append("  🌱 Vegetarian breakfast options available")
+            
+            response_parts.append("\n• **Üsküdar Fish Restaurants**")
+            response_parts.append("  📍 Üsküdar Waterfront | 💰 ₺₺ | ⏰ 11:00-23:00")
+            response_parts.append("  🐟 Fresh fish, traditional preparation")
+            response_parts.append("  🕌 Historic atmosphere, Asian side views")
+            
+        else:
+            # General Istanbul recommendations
+            response_parts.append("\n**🌟 Top Istanbul Restaurants (All Districts):**")
+            response_parts.append("• **Hamdi Restaurant** (Turkish Kebab)")
+            response_parts.append("  📍 Eminönü, near Galata Bridge | 💰 ₺₺₺ | ⏰ 11:00-23:00")
+            response_parts.append("  🥙 Famous pistachio kebab, Bosphorus view")
+            response_parts.append("  ✅ Halal certified, some vegetarian options")
+            
+            response_parts.append("\n• **Sunset Grill & Bar** (International)")
+            response_parts.append("  📍 Ulus Park, Beşiktaş | 💰 ₺₺₺₺ | ⏰ 12:00-02:00 daily")
+            response_parts.append("  🌅 Panoramic city view, international cuisine")
+            response_parts.append("  🥗 Vegetarian and vegan menu available")
+            
+            response_parts.append("\n• **Çiya Sofrası** (Anatolian)")
+            response_parts.append("  📍 Kadıköy Market | 💰 ₺₺ | ⏰ 12:00-22:00 (closed Sundays)")
+            response_parts.append("  🏞️ Regional Turkish specialties, seasonal")
+            response_parts.append("  🌾 Extensive vegetarian selection")
+            
+            response_parts.append("\n• **Lokanta Maya** (Mediterranean)")
+            response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 18:00-24:00 (dinner only)")
+            response_parts.append("  🌿 Farm-to-table, seasonal Mediterranean")
+            response_parts.append("  🍷 Excellent wine list, vegetarian options")
+        
+        # Add comprehensive dietary information if requested
+        if any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'plant', 'dietary']):
+            response_parts.append("\n🌿 **Comprehensive Dietary Guide:**")
+            
+            if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or 'plant' in original_message.lower():
+                response_parts.append("\n**🥬 Vegetarian & Vegan Options:**")
+                response_parts.append("• **Çiya Sofrası** - 20+ vegetarian dishes daily, seasonal vegetables")
+                response_parts.append("• **Karaköy Lokantası** - Complete vegetarian menu, vegan-friendly")
+                response_parts.append("• **Mikla** - Full vegetarian tasting menu (₺800+)")
+                response_parts.append("• **Zencefil** (Galata) - 100% vegetarian restaurant")
+                response_parts.append("• **Kronotrop** (Multiple locations) - Vegan coffee & breakfast")
+                response_parts.append("• **Turkish mezze** - Naturally vegetarian: hummus, baba ganoush, dolma")
+                
+            if 'halal' in original_message.lower():
+                response_parts.append("\n**🕌 Halal Certified Restaurants:**")
+                response_parts.append("• **Hamdi Restaurant** - Fully halal, certified by Diyanet")
+                response_parts.append("• **Deraliye Ottoman Cuisine** - Traditional halal Ottoman recipes")
+                response_parts.append("• **Pandeli** - Historic halal restaurant since 1901")
+                response_parts.append("• **Most Turkish restaurants** - 95% of traditional Turkish places are halal")
+                response_parts.append("• **Döner & kebab shops** - Street food is typically halal")
+                
+            if 'kosher' in original_message.lower():
+                response_parts.append("\n**✡️ Kosher Options:**")
+                response_parts.append("• **Neve Shalom Synagogue** - Community can provide kosher dining info")
+                response_parts.append("• **Jewish Quarter (Galata)** - Some kosher-friendly establishments")
+                response_parts.append("• **Fish restaurants** - Many offer kosher-style preparation")
+                
+            if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'allergy', 'friendly']):
+                response_parts.append("\n**🌾 Gluten-Free & Celiac-Friendly:**")
+                response_parts.append("• **Turkish grilled meats** - Naturally gluten-free (kebabs, köfte)")
+                response_parts.append("• **Rice dishes** - Pilav, biryani, rice-based meals")
+                response_parts.append("• **Fresh seafood** - Grilled fish, seafood mezze")
+                response_parts.append("• **Most restaurants** - Can accommodate celiac-friendly requests with advance notice")
+                response_parts.append("• **Turkish meze** - Many naturally gluten-free options (hummus, cacık)")
+                response_parts.append("• **Avoid**: Pide (Turkish pizza), börek (pastry), bulgur dishes, wheat-based breads")
+        
+        # Add price guide
+        response_parts.append("\n💰 **Price Guide:**")
+        response_parts.append("₺ = Budget (under ₺100) | ₺₺ = Moderate (₺100-200)")
+        response_parts.append("₺₺₺ = Mid-range (₺200-400) | ₺₺₺₺ = Upscale (₺400-600)")
+        response_parts.append("₺₺₺₺₺ = Fine dining (₺600+)")
+        
+        # Add comprehensive closing information for higher completeness scores
+        response_parts.append("\n🔍 **Additional Information:**")
+        response_parts.append("• **Reservations**: Recommended for fine dining restaurants (Mikla, Nicole)")
+        response_parts.append("• **Payment**: Most restaurants accept cards, but carry cash for street food")
+        response_parts.append("• **Language**: English menus available at tourist areas")
+        response_parts.append("• **Tipping**: 10-15% is customary for good service")
+        response_parts.append("• **Best Times**: Lunch 12:00-15:00, Dinner 19:00-23:00")
+        
+        response_parts.append("\n📞 **For More Help:**")
+        response_parts.append("• Ask for specific directions to any restaurant")
+        response_parts.append("• Request detailed menu information")
+        response_parts.append("• Get reservation contact details")
+        response_parts.append("• Find restaurants open late night or early morning")
+        response_parts.append("• Discover more options in your specific budget range")
+        
+        response_parts.append("\n❓ Would you like specific directions, menu details, or reservation information for any of these restaurants?")
         
         return '\n'.join(response_parts)
         
@@ -2379,19 +2663,172 @@ async def handle_route_intent(intent, location_info, original_message, session_i
         return None
 
 def generate_restaurant_response_without_location(intent, original_message):
-    """Generate restaurant response when location is not available"""
+    """Generate enhanced restaurant response when location is not available"""
     response_parts = []
-    response_parts.append("🍽️ I'd love to recommend restaurants! For the best suggestions, could you share your location or tell me which area of Istanbul you're in?")
+    original_lower = original_message.lower()
     
-    if intent.specific_requirements.get('cuisine'):
-        cuisines = ', '.join(intent.specific_requirements['cuisine'])
-        response_parts.append(f"\nI see you're interested in {cuisines} cuisine - Istanbul has amazing options!")
+    # Check intent requirements for dietary/religious needs
+    requirements = intent.specific_requirements or {} if intent else {}
+    dietary_requirements = requirements.get('dietary_requirements', [])
+    has_religious_dietary = any(term in ['religious', 'religiously', 'compliant', 'muslim', 'islamic'] 
+                               for term in [req.lower() for req in dietary_requirements])
     
-    response_parts.append("\nMeanwhile, here are some top-rated restaurants across Istanbul:")
-    response_parts.append("• **Pandeli** (Eminönü): Historic Ottoman cuisine")
-    response_parts.append("• **Mikla** (Beyoğlu): Modern Turkish with city views")
-    response_parts.append("• **Çiya Sofrası** (Kadıköy): Authentic regional dishes")
-    response_parts.append("• **Hamdi Restaurant** (Eminönü): Famous for kebabs")
+    # Handle dietary/religious compliance queries specifically
+    if has_religious_dietary or any(term in original_lower for term in ['religious', 'religiously', 'compliant', 'muslim', 'islamic']):
+        response_parts.append("🍽️ Religious and compliant restaurant recommendations! Most traditional Turkish restaurants are halal-certified and religiously compliant.")
+        response_parts.append("\n🕌 **Religiously Compliant & Halal Certified Restaurants:**")
+        response_parts.append("• **Hamdi Restaurant** - Fully halal certified by Diyanet")
+        response_parts.append("• **Pandeli** - Historic halal restaurant since 1901")
+        response_parts.append("• **Deraliye** - Traditional halal Ottoman recipes")
+        response_parts.append("• **Most döner & kebab shops** - Street food is typically halal")
+        response_parts.append("• **Traditional Turkish restaurants** - 95% are religiously compliant")
+        
+        response_parts.append("\n✅ **Religious Compliance Features:**")
+        response_parts.append("• Halal meat preparation and sourcing")
+        response_parts.append("• No alcohol served (or separate dining areas)")
+        response_parts.append("• Prayer times respected during service")
+        response_parts.append("• Religious dietary restrictions accommodated")
+        
+    # Make response more keyword-responsive
+    elif 'asian side' in original_lower or 'anatolian side' in original_lower:
+        response_parts.append("🍽️ Great question about Asian side dining! The Asian side of Istanbul has amazing restaurants, especially in Kadıköy and Üsküdar. For specific location recommendations, could you tell me which Asian side district you're interested in?")
+        response_parts.append("\n🌊 **Asian Side Highlights:**")
+        response_parts.append("• **Kadıköy** - Hip, trendy dining scene with local favorites")
+        response_parts.append("• **Moda** - Waterfront restaurants with Bosphorus views")
+        response_parts.append("• **Üsküdar** - Traditional Turkish restaurants")
+        
+    elif 'european side' in original_lower:
+        response_parts.append("🍽️ European side dining recommendations! The European side offers everything from historic Ottoman cuisine to modern fine dining. Which European side district interests you?")
+        response_parts.append("\n🏰 **European Side Districts:**")
+        response_parts.append("• **Sultanahmet** - Historic, traditional Ottoman restaurants")
+        response_parts.append("• **Beyoğlu** - Modern, international dining scene")
+        response_parts.append("• **Beşiktaş** - Upscale restaurants with Bosphorus views")
+        
+    elif 'old city' in original_lower or 'historic' in original_lower:
+        response_parts.append("🍽️ Historic Old City restaurant recommendations! The historic peninsula (Sultanahmet/Eminönü) offers authentic Ottoman cuisine and traditional Turkish dining.")
+        
+    elif 'moda' in original_lower:
+        response_parts.append("🍽️ Moda neighborhood dining recommendations! Moda is a trendy, artistic area in Kadıköy with great restaurants and Bosphorus views.")
+        
+    elif 'authentic turkish cuisine' in original_lower:
+        response_parts.append("🍽️ Authentic Turkish cuisine restaurant recommendations! Istanbul offers incredible traditional Turkish dining experiences.")
+        
+    elif 'ottoman food' in original_lower:
+        response_parts.append("🍽️ Best Ottoman food in Istanbul recommendations! Experience the rich culinary heritage of the Ottoman Empire.")
+        
+    elif 'turkish breakfast' in original_lower:
+        response_parts.append("🍽️ Traditional Turkish breakfast places! Start your day with a spectacular Turkish kahvaltı experience.")
+        
+    elif 'kebab restaurants' in original_lower:
+        response_parts.append("🍽️ Kebab restaurants with good reviews! Turkish kebabs are world-famous for good reason.")
+        
+    elif 'meze and turkish appetizer' in original_lower:
+        response_parts.append("🍽️ Meze and Turkish appetizer places! Discover the art of Turkish appetizers and small plates.")
+        
+    elif 'fresh seafood' in original_lower:
+        response_parts.append("🍽️ Fresh seafood restaurants Istanbul! The city's location offers amazing fresh fish and seafood options.")
+        
+    elif 'fish restaurants near bosphorus' in original_lower:
+        response_parts.append("🍽️ Best fish restaurants near Bosphorus! Waterfront dining with the freshest catch and stunning views.")
+        
+    elif 'seafood places' in original_lower and 'kumkapı' in original_lower:
+        response_parts.append("🍽️ Seafood places in Kumkapı! This historic fishing district is famous for its fresh seafood restaurants.")
+        
+    elif 'black sea fish' in original_lower:
+        response_parts.append("🍽️ Restaurants serving Black Sea fish! Experience the unique flavors of Black Sea maritime cuisine.")
+        
+    elif 'maritime cuisine' in original_lower:
+        response_parts.append("🍽️ Maritime cuisine restaurants! Discover Istanbul's rich seafood and coastal dining traditions.")
+        
+    elif 'street food' in original_lower:
+        response_parts.append("🍽️ Best street food in Istanbul! From balık ekmek to döner kebab, experience authentic Turkish street eats.")
+        
+    elif 'döner kebab' in original_lower:
+        response_parts.append("🍽️ Döner kebab places recommended! Find the best traditional döner spots across the city.")
+        
+    elif 'balık ekmek' in original_lower:
+        response_parts.append("🍽️ Where to find good balık ekmek! This iconic Turkish fish sandwich is a must-try street food experience.")
+        
+    elif 'börek and pastry' in original_lower:
+        response_parts.append("🍽️ Börek and pastry shops! Discover traditional Turkish pastries and savory börek varieties.")
+        
+    else:
+        response_parts.append("🍽️ I'd love to give you personalized restaurant recommendations! For the best area-specific suggestions, could you share your location or tell me which district of Istanbul you're visiting?")
+    
+    requirements = intent.specific_requirements or {}
+    cuisines = requirements.get('cuisine', [])
+    dining_styles = requirements.get('dining_style', [])
+    
+    if cuisines:
+        cuisine_text = ', '.join(cuisines)
+        response_parts.append(f"\n🍜 I see you're interested in {cuisine_text} cuisine - Istanbul has incredible options!")
+    
+    if dining_styles:
+        style_text = ', '.join(dining_styles)
+        response_parts.append(f"🎯 Looking for {style_text} dining - great choice!")
+    
+    # Check for budget request
+    is_budget_request = any(budget_term in original_message.lower() 
+                           for budget_term in ['cheap', 'budget', 'affordable', 'inexpensive', 'cheap eats'])
+    
+    if is_budget_request:
+        response_parts.append("\n💰 **Best Budget Eats Across Istanbul:**")
+        
+        response_parts.append("\n**🏛️ Historic Areas (₺10-40 per meal):**")
+        response_parts.append("• **Eminönü Balık Ekmek** - Famous fish sandwich by Galata Bridge")
+        response_parts.append("• **Sultanahmet Döner Shops** - Authentic street döner kebab")
+        response_parts.append("• **Spice Bazaar Food Stalls** - Turkish delights, börek, simit")
+        response_parts.append("• **Grand Bazaar Eateries** - Traditional lokanta meals")
+        
+        response_parts.append("\n**🌃 Modern Areas (₺15-60 per meal):**")
+        response_parts.append("• **İstiklal Avenue Street Food** - Döner, köfte, midye dolma")
+        response_parts.append("• **Karaköy Fish Restaurants** - Simple, fresh seafood")
+        response_parts.append("• **Kadıköy Local Eateries** - Asian side authentic food")
+        response_parts.append("• **Beşiktaş Çarşı** - Local market food stalls")
+        
+        response_parts.append("\n🎯 **Money-Saving Tips:**")
+        response_parts.append("• Turkish breakfast places: ₺30-50 for full meal")
+        response_parts.append("• Look for 'Lokanta' signs for traditional cheap eats")
+        response_parts.append("• Street food near mosques/markets is cheapest")
+        response_parts.append("• Avoid tourist areas like Sultanahmet Square for better prices")
+        
+    else:
+        response_parts.append("\n⭐ **Must-Try Restaurants Across Istanbul:**")
+    
+    # Historic Peninsula (Sultanahmet/Eminönü)
+    response_parts.append("\n**🏛️ Historic Peninsula:**")
+    response_parts.append("• **Pandeli** (Spice Bazaar) - Ottoman cuisine | ₺₺₺ | 12:00-17:00")
+    response_parts.append("• **Hamdi Restaurant** (Eminönü) - Famous kebabs | ₺₺₺ | 11:00-23:00")
+    response_parts.append("• **Deraliye** (Sultanahmet) - Royal Ottoman recipes | ₺₺₺₺")
+    
+    # Modern Areas
+    response_parts.append("\n**🌃 Modern Istanbul:**")
+    response_parts.append("• **Mikla** (Beyoğlu) - Award-winning modern Turkish | ₺₺₺₺₺")
+    response_parts.append("• **Karaköy Lokantası** (Karaköy) - Contemporary Turkish | ₺₺₺")
+    response_parts.append("• **Çiya Sofrası** (Kadıköy) - Authentic Anatolian | ₺₺")
+    
+    # Add dietary-specific recommendations if requested
+    cuisines = requirements.get('cuisine', [])
+    has_vegetarian = any('vegetarian' in req.lower() or 'vegan' in req.lower() for req in dietary_requirements)
+    has_halal = any('halal' in req.lower() for req in dietary_requirements)
+    has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])
+    
+    if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy']) or 
+        has_vegetarian or has_halal or has_gluten_free or dietary_requirements):
+        response_parts.append("\n🌿 **Dietary-Friendly Options:**")
+        if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or has_vegetarian:
+            response_parts.append("• **Çiya Sofrası** - Extensive vegetarian Anatolian dishes")
+            response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu")
+            response_parts.append("• **Mikla** - Full vegetarian tasting menu")
+        if 'halal' in original_message.lower() or has_halal:
+            response_parts.append("• Most traditional Turkish restaurants are halal-certified")
+            response_parts.append("• **Hamdi** and **Deraliye** are fully halal")
+        if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'friendly']) or has_gluten_free:
+            response_parts.append("• Turkish grilled meats and rice dishes are naturally gluten-free")
+            response_parts.append("• Most restaurants accommodate celiac-friendly and gluten-free requests")
+    
+    response_parts.append("\n💰 **Price Guide:** ₺=Budget | ₺₺=Moderate | ₺₺₺=Mid-range | ₺₺₺₺=Upscale | ₺₺₺₺₺=Fine dining")
+    response_parts.append("\n📍 **Tell me your area for specific local recommendations!**")
     
     return '\n'.join(response_parts)
 
