@@ -154,6 +154,64 @@ def analyze_restaurant_files():
                 "features": ["Mock Google Maps integration"],
                 "non_gpt_status": "✅ No GPT - Mock service"
             }
+        },
+        
+        "Enhanced Query Understanding": {
+            "enhanced_query_understanding.py": {
+                "purpose": "Advanced query preprocessing and intent understanding",
+                "key_functions": [
+                    "TurkishSpellCorrector - Turkish-aware spell correction",
+                    "EntityExtractor - Extract districts, cuisines, vibes without ML",
+                    "IntentClassifier - Rule-based intent classification",
+                    "SemanticExpander - Expand queries with semantic understanding"
+                ],
+                "features": [
+                    "Turkish character normalization",
+                    "Istanbul-specific spell correction (districts, landmarks, food terms)",
+                    "Entity extraction (10 districts, 12 cuisines, temporal, vibes)",
+                    "Intent classification (6 main intents)",
+                    "Semantic expansion for vibes and atmosphere",
+                    "Typo correction (kadıköyy → Kadıköy, restaraunts → restaurant)"
+                ],
+                "non_gpt_status": "✅ No GPT - Pure rule-based NLP processing"
+            },
+            
+            "conversational_memory.py": {
+                "purpose": "Multi-turn conversation and context management",
+                "key_functions": [
+                    "ConversationalMemory - Session-based memory management",
+                    "resolve_references() - Handle 'there', 'that place', 'similar'",
+                    "UserPreferences - Learn user preferences over time",
+                    "context tracking - Maintain conversation state"
+                ],
+                "features": [
+                    "Multi-turn conversation understanding",
+                    "Reference resolution ('near there', 'something similar')",
+                    "User preference learning",
+                    "Session context with 24-hour memory",
+                    "Context-aware entity resolution"
+                ],
+                "non_gpt_status": "✅ No GPT - Pattern-based context management"
+            },
+            
+            "continuous_learning.py": {
+                "purpose": "Learn from user feedback and improve over time",
+                "key_functions": [
+                    "FeedbackCollector - Collect explicit and implicit feedback",
+                    "PatternLearner - Learn new patterns from corrections",
+                    "ContinuousLearningSystem - Coordinate learning pipeline",
+                    "Performance analytics and improvement suggestions"
+                ],
+                "features": [
+                    "User feedback collection (1-5 satisfaction scale)",
+                    "Implicit feedback from user actions",
+                    "Pattern learning from corrections",
+                    "Performance analytics and reporting",
+                    "Automatic system improvement suggestions",
+                    "Query understanding enhancement over time"
+                ],
+                "non_gpt_status": "✅ No GPT - Statistical learning and pattern recognition"
+            }
         }
     }
     
@@ -186,6 +244,9 @@ def analyze_restaurant_files():
     print("✅ Context-sensitive response generation")
     print("✅ Natural language processing without LLMs")
     print("✅ Complete Istanbul restaurant coverage")
+    print("✅ Enhanced query understanding with spell correction")
+    print("✅ Multi-turn conversation capabilities")
+    print("✅ Continuous learning from user feedback")
     
     print(f"\n📊 RESTAURANT DATASET COVERAGE")
     print("=" * 35)
@@ -205,6 +266,33 @@ def analyze_restaurant_files():
     print("• Template engine integration")
     print("• Caching system integration")
     print("• Ultra-specialized Istanbul AI integration")
+    
+    print(f"\n🧠 ENHANCED QUERY UNDERSTANDING")
+    print("=" * 35)
+    print("✅ Turkish spell correction and normalization")
+    print("✅ Multi-turn conversation context")
+    print("✅ Reference resolution ('there', 'that place')")
+    print("✅ User preference learning")
+    print("✅ Continuous improvement from feedback")
+    print("✅ Semantic expansion (vibes, atmosphere)")
+    print("✅ Intent classification (6 main types)")
+    print("✅ Entity extraction (districts, cuisines, temporal)")
+    
+    print(f"\n💭 CONVERSATION CAPABILITIES")
+    print("=" * 30)
+    print("• Multi-turn context understanding")
+    print("• Reference resolution")
+    print("• User preference tracking")
+    print("• Session memory (24-hour retention)")
+    print("• Context-aware response generation")
+    
+    print(f"\n🎓 CONTINUOUS LEARNING FEATURES")
+    print("=" * 35)
+    print("• User feedback collection")
+    print("• Pattern learning from corrections")
+    print("• Performance analytics")
+    print("• Automatic improvement suggestions")
+    print("• Query understanding enhancement")
 
 if __name__ == "__main__":
     analyze_restaurant_files()

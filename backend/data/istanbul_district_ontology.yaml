@@ -1,0 +1,391 @@
+# Istanbul District Ontology
+# Formal structure mapping Istanbul districts to their characteristics
+
+districts:
+  sultanahmet:
+    name: "Sultanahmet"
+    name_tr: "Sultanahmet"
+    type: "historic_core"
+    characteristics:
+      - "ancient"
+      - "historic"
+      - "touristy"
+      - "cultural"
+      - "traditional"
+    categories:
+      culture: 10  # 1-10 scale
+      nightlife: 3
+      sea_access: 2
+      quiet: 4
+      authentic: 7
+      luxury: 6
+    landmarks:
+      - "Hagia Sophia"
+      - "Blue Mosque"
+      - "Topkapi Palace"
+      - "Grand Bazaar"
+      - "Basilica Cistern"
+    transport:
+      metro: ["M1 Vezneciler"]
+      tram: ["T1 Sultanahmet"]
+      bus: ["Multiple lines"]
+      ferry: ["Eminönü (walking distance)"]
+    restaurant_density: "high"
+    price_level: "moderate_to_premium"
+    best_time: "early_morning"
+    tourist_level: "very_high"
+    
+  beyoglu:
+    name: "Beyoğlu"
+    name_tr: "Beyoğlu"
+    type: "cultural_hub"
+    characteristics:
+      - "vibrant"
+      - "artistic"
+      - "nightlife"
+      - "international"
+      - "trendy"
+    categories:
+      culture: 9
+      nightlife: 10
+      sea_access: 3
+      quiet: 2
+      authentic: 6
+      luxury: 8
+    landmarks:
+      - "Galata Tower"
+      - "Istiklal Street"
+      - "Taksim Square"
+      - "Pera Museum"
+      - "Galata Bridge"
+    transport:
+      metro: ["M2 Şişhane", "M2 Taksim"]
+      funicular: ["Tünel"]
+      bus: ["Multiple lines"]
+      ferry: ["Karaköy"]
+    restaurant_density: "very_high"
+    price_level: "premium_to_luxury"
+    best_time: "evening"
+    tourist_level: "high"
+    
+  kadikoy:
+    name: "Kadıköy"
+    name_tr: "Kadıköy"
+    type: "bohemian_asian"
+    characteristics:
+      - "authentic"
+      - "bohemian"
+      - "creative"
+      - "local"
+      - "young"
+    categories:
+      culture: 8
+      nightlife: 8
+      sea_access: 9
+      quiet: 6
+      authentic: 10
+      luxury: 4
+    landmarks:
+      - "Moda Beach"
+      - "Kadıköy Market"
+      - "Street Art District"
+      - "Bahariye Street"
+      - "Fenerbahçe Park"
+    transport:
+      metro: ["M4 Kadıköy"]
+      bus: ["Multiple lines"]
+      ferry: ["Kadıköy"]
+      minibus: ["Dolmuş network"]
+    restaurant_density: "very_high"
+    price_level: "budget_to_moderate"
+    best_time: "weekend_morning"
+    tourist_level: "low"
+    
+  besiktas:
+    name: "Beşiktaş"
+    name_tr: "Beşiktaş"
+    type: "bosphorus_elegant"
+    characteristics:
+      - "elegant"
+      - "bosphorus"
+      - "palace"
+      - "football"
+      - "waterfront"
+    categories:
+      culture: 8
+      nightlife: 7
+      sea_access: 10
+      quiet: 5
+      authentic: 7
+      luxury: 9
+    landmarks:
+      - "Dolmabahçe Palace"
+      - "Naval Museum"
+      - "Beşiktaş Square"
+      - "Vodafone Park"
+      - "Bosphorus waterfront"
+    transport:
+      metro: ["M7 Beşiktaş"]
+      bus: ["Multiple lines"]
+      ferry: ["Beşiktaş"]
+      metrobus: ["Beşiktaş"]
+    restaurant_density: "high"
+    price_level: "moderate_to_luxury"
+    best_time: "sunset"
+    tourist_level: "moderate"
+    
+  uskudar:
+    name: "Üsküdar"
+    name_tr: "Üsküdar"
+    type: "traditional_asian"
+    characteristics:
+      - "traditional"
+      - "conservative"
+      - "mosque"
+      - "spiritual"
+      - "family"
+    categories:
+      culture: 8
+      nightlife: 4
+      sea_access: 8
+      quiet: 8
+      authentic: 9
+      luxury: 5
+    landmarks:
+      - "Maiden's Tower"
+      - "Mihrimah Sultan Mosque"
+      - "Çamlıca Hill"
+      - "Üsküdar Square"
+      - "Salacak waterfront"
+    transport:
+      metro: ["M5 Üsküdar"]
+      bus: ["Multiple lines"]
+      ferry: ["Üsküdar"]
+      marmaray: ["Üsküdar"]
+    restaurant_density: "moderate"
+    price_level: "budget_to_moderate"
+    best_time: "afternoon"
+    tourist_level: "low"
+    
+  fatih:
+    name: "Fatih"
+    name_tr: "Fatih"
+    type: "traditional_core"
+    characteristics:
+      - "traditional"
+      - "conservative"
+      - "residential"
+      - "mosque"
+      - "local"
+    categories:
+      culture: 9
+      nightlife: 3
+      sea_access: 4
+      quiet: 7
+      authentic: 10
+      luxury: 4
+    landmarks:
+      - "Süleymaniye Mosque"
+      - "Grand Bazaar"
+      - "Eminönü"
+      - "Spice Bazaar"
+      - "Fener & Balat"
+    transport:
+      metro: ["M1 multiple stations"]
+      tram: ["T1 multiple stations"]
+      bus: ["Multiple lines"]
+      ferry: ["Eminönü"]
+    restaurant_density: "high"
+    price_level: "budget_to_moderate"
+    best_time: "morning"
+    tourist_level: "moderate"
+    
+  sariyer:
+    name: "Sarıyer"
+    name_tr: "Sarıyer"
+    type: "upscale_bosphorus"
+    characteristics:
+      - "upscale"
+      - "nature"
+      - "bosphorus"
+      - "quiet"
+      - "villa"
+    categories:
+      culture: 6
+      nightlife: 5
+      sea_access: 10
+      quiet: 9
+      authentic: 6
+      luxury: 10
+    landmarks:
+      - "Emirgan Park"
+      - "Rumeli Fortress"
+      - "Belgrade Forest"
+      - "Bosphorus mansions"
+      - "Büyükdere"
+    transport:
+      bus: ["Multiple lines"]
+      ferry: ["Sarıyer", "Emirgan"]
+      minibus: ["Dolmuş network"]
+    restaurant_density: "moderate"
+    price_level: "premium_to_luxury"
+    best_time: "weekend"
+    tourist_level: "low"
+    
+  sisli:
+    name: "Şişli"
+    name_tr: "Şişli"
+    type: "business_modern"
+    characteristics:
+      - "modern"
+      - "business"
+      - "shopping"
+      - "residential"
+      - "central"
+    categories:
+      culture: 6
+      nightlife: 7
+      sea_access: 2
+      quiet: 4
+      authentic: 5
+      luxury: 8
+    landmarks:
+      - "Cevahir Mall"
+      - "Military Museum"
+      - "Nişantaşı"
+      - "Business districts"
+      - "Shopping centers"
+    transport:
+      metro: ["M2 multiple stations"]
+      metrobus: ["Multiple stations"]
+      bus: ["Multiple lines"]
+    restaurant_density: "high"
+    price_level: "moderate_to_premium"
+    best_time: "daytime"
+    tourist_level: "low"
+    
+  bakirkoy:
+    name: "Bakırköy"
+    name_tr: "Bakırköy"
+    type: "residential_seaside"
+    characteristics:
+      - "residential"
+      - "family"
+      - "seaside"
+      - "relaxed"
+      - "middle_class"
+    categories:
+      culture: 4
+      nightlife: 5
+      sea_access: 7
+      quiet: 7
+      authentic: 7
+      luxury: 5
+    landmarks:
+      - "Bakırköy Beach"
+      - "Ataköy Marina"
+      - "Capacity Mall"
+      - "Seaside promenade"
+      - "Residential areas"
+    transport:
+      marmaray: ["Bakırköy"]
+      metrobus: ["Multiple stations"]
+      bus: ["Multiple lines"]
+    restaurant_density: "moderate"
+    price_level: "budget_to_moderate"
+    best_time: "weekend"
+    tourist_level: "very_low"
+    
+  eminonu:
+    name: "Eminönü"
+    name_tr: "Eminönü"
+    type: "commercial_historic" 
+    characteristics:
+      - "commercial"
+      - "historic"
+      - "bazaar"
+      - "busy"
+      - "traditional"
+    categories:
+      culture: 8
+      nightlife: 4
+      sea_access: 8
+      quiet: 2
+      authentic: 9
+      luxury: 5
+    landmarks:
+      - "Spice Bazaar"
+      - "Galata Bridge"
+      - "New Mosque"
+      - "Ferry terminals"
+      - "Fish sandwiches"
+    transport:
+      tram: ["T1 Eminönü"]
+      ferry: ["Eminönü hub"]
+      bus: ["Multiple lines"]
+      metro: ["M1 nearby"]
+    restaurant_density: "very_high"
+    price_level: "budget_to_moderate"
+    best_time: "morning"
+    tourist_level: "very_high"
+
+# Relationship mappings
+relationships:
+  adjacent:
+    sultanahmet: ["fatih", "eminonu"]
+    beyoglu: ["sisli", "besiktas"]
+    kadikoy: ["uskudar"]
+    besiktas: ["beyoglu", "sariyer"]
+    uskudar: ["kadikoy"]
+    fatih: ["sultanahmet", "eminonu"]
+    sariyer: ["besiktas", "sisli"]
+    sisli: ["beyoglu", "sariyer"]
+    bakirkoy: []
+    eminonu: ["sultanahmet", "fatih"]
+    
+  similar_vibe:
+    historic: ["sultanahmet", "fatih", "eminonu"]
+    nightlife: ["beyoglu", "kadikoy", "sisli"]
+    authentic: ["kadikoy", "fatih", "uskudar"]
+    luxury: ["besiktas", "sariyer", "sisli"]
+    bosphorus: ["besiktas", "sariyer", "uskudar"]
+    quiet: ["sariyer", "bakirkoy", "uskudar"]
+    
+  transport_connected:
+    ferry_accessible: ["eminonu", "besiktas", "kadikoy", "uskudar", "sariyer"]
+    metro_accessible: ["beyoglu", "sisli", "kadikoy", "uskudar", "besiktas"]
+    central: ["sultanahmet", "beyoglu", "fatih", "eminonu"]
+
+# Query mapping patterns
+query_patterns:
+  romantic:
+    preferred_districts: ["besiktas", "sariyer", "beyoglu"]
+    characteristics: ["bosphorus", "elegant", "upscale"]
+    
+  authentic:
+    preferred_districts: ["kadikoy", "fatih", "uskudar"]
+    characteristics: ["local", "traditional", "authentic"]
+    
+  nightlife:
+    preferred_districts: ["beyoglu", "kadikoy", "sisli"]
+    characteristics: ["vibrant", "nightlife", "young"]
+    
+  quiet:
+    preferred_districts: ["sariyer", "bakirkoy", "uskudar"]
+    characteristics: ["quiet", "peaceful", "family"]
+    
+  historic:
+    preferred_districts: ["sultanahmet", "fatih", "eminonu"]
+    characteristics: ["historic", "cultural", "traditional"]
+    
+  modern:
+    preferred_districts: ["sisli", "beyoglu", "besiktas"]
+    characteristics: ["modern", "business", "international"]
+    
+  budget:
+    preferred_districts: ["kadikoy", "fatih", "bakirkoy"]
+    characteristics: ["budget_to_moderate", "local", "authentic"]
+    
+  luxury:
+    preferred_districts: ["sariyer", "besiktas", "beyoglu"]
+    characteristics: ["luxury", "upscale", "premium"]
