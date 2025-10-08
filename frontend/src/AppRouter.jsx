@@ -24,6 +24,7 @@ import Footer from './components/Footer';
 import CopyrightNotice from './components/CopyrightNotice';
 import GoogleAnalytics, { trackNavigation } from './utils/analytics';
 import RoutePlanning from './pages/RoutePlanning';
+import LocationPage from './pages/LocationPage';
 
 const AppRouter = () => {
   const [chatExpanded, setChatExpanded] = useState(false);
@@ -168,6 +169,7 @@ const AppContent = ({ chatExpanded }) => {
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/routes" element={<RoutePlanning />} />
+          <Route path="/location" element={<LocationPage />} />
           <Route path="/gdpr" element={<GDPRPage />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<TermsOfService />} />

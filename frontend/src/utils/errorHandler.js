@@ -411,6 +411,30 @@ class CircuitBreaker {
 
 export const createCircuitBreaker = (options) => new CircuitBreaker(options);
 
+// API Error Handler - provides consistent error handling for API calls
+export const handleApiError = (error, response = null) => {
+  const errorType = classifyError(error, response);
+  const userMessage = getUserFriendlyMessage(error, response);
+  const recoveryStrategies = getRecoveryStrategies(error, response);
+  
+  // Log the error for debugging
+  console.error('API Error:', {
+    error: error.message || error,
+    type: errorType,
+    response: response?.status,
+    url: response?.url || 'unknown'
+  });
+  
+  return {
+    type: errorType,
+    message: userMessage,
+    originalError: error,
+    response: response,
+    recoveryStrategies,
+    isRetryable: isRetryable(error, response)
+  };
+};
+
 export default {
   ErrorTypes,
   networkStatus,
@@ -418,6 +442,7 @@ export default {
   isRetryable,
   getUserFriendlyMessage,
   fetchWithRetry,
+  handleApiError,
   getRecoveryStrategies,
   createErrorBoundary,
   debounce,

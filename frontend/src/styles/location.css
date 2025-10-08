@@ -1,0 +1,331 @@
+/**
+ * Location System Styles
+ * Custom CSS for location components and map integration
+ */
+
+/* Location tracker pulse animation */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.user-location-icon {
+  animation: pulse 2s infinite;
+}
+
+/* Map styles */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px;
+  line-height: 1.4;
+  font-size: 13px;
+  font-size: 1.08333em;
+  min-height: 1px;
+}
+
+.leaflet-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* POI recommendation cards */
+.poi-recommendations .poi-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.poi-recommendations .poi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.poi-recommendations .poi-card.selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Route display animations */
+.route-segment {
+  transition: all 0.2s ease-in-out;
+}
+
+.route-segment:hover {
+  background-color: #f9fafb;
+}
+
+.route-segment.expanded {
+  background-color: #f3f4f6;
+}
+
+/* Loading animations */
+.loading-spinner {
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Filter buttons */
+.filter-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.filter-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-button.active {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Status indicators */
+.status-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.status-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.offline::before {
+  background-color: #ef4444;
+}
+
+.status-indicator.loading::before {
+  background-color: #f59e0b;
+}
+
+/* Tab navigation */
+.tab-nav {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-nav button {
+  position: relative;
+  padding: 12px 16px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.tab-nav button:hover {
+  color: #374151;
+  border-bottom-color: #d1d5db;
+}
+
+.tab-nav button.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.tab-nav button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+}
+
+/* Distance and time badges */
+.distance-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.time-badge {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Map legend */
+.map-legend {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.map-legend-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .location-dashboard {
+    padding: 16px;
+  }
+  
+  .grid-responsive {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-nav {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .tab-nav button {
+    flex-shrink: 0;
+  }
+  
+  .poi-recommendations .filter-section {
+    padding: 16px;
+  }
+  
+  .route-display .route-options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .location-dashboard {
+    background-color: #111827;
+    color: #f9fafb;
+  }
+  
+  .bg-white {
+    background-color: #1f2937 !important;
+    color: #f9fafb;
+  }
+  
+  .text-gray-800 {
+    color: #f9fafb !important;
+  }
+  
+  .text-gray-600 {
+    color: #d1d5db !important;
+  }
+  
+  .text-gray-500 {
+    color: #9ca3af !important;
+  }
+  
+  .border-gray-200 {
+    border-color: #374151 !important;
+  }
+  
+  .bg-gray-50 {
+    background-color: #374151 !important;
+  }
+  
+  .bg-gray-100 {
+    background-color: #4b5563 !important;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .user-location-icon,
+  .loading-spinner,
+  .status-indicator::before {
+    animation: none;
+  }
+  
+  .poi-card,
+  .route-segment,
+  .filter-button {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .border-gray-200 {
+    border-color: #000 !important;
+  }
+  
+  .text-gray-600 {
+    color: #000 !important;
+  }
+  
+  .bg-blue-600 {
+    background-color: #000080 !important;
+  }
+  
+  .bg-green-600 {
+    background-color: #006400 !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .location-dashboard {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .interactive-map {
+    break-inside: avoid;
+  }
+  
+  .poi-recommendations,
+  .route-display {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  
+  button {
+    display: none;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}

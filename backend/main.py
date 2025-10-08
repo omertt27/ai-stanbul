@@ -532,6 +532,15 @@ try:
 except ImportError as e:
     print(f"⚠️ Route Maker router import failed: {e}")
 
+# === Include Live Location Router ===
+try:
+    from routes.location_routes import router as location_router
+    app.include_router(location_router, tags=["Live Location & Routing"])
+    print("✅ Live Location & Routing router included successfully")
+    print("🌍 Location features: Real-time tracking, Multi-stop TSP optimization, Smart POI filtering, Dynamic route updates")
+except ImportError as e:
+    print(f"⚠️ Live Location router import failed: {e}")
+
 # === Authentication Setup ===
 try:
     from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
@@ -787,7 +796,7 @@ def sanitize_user_input(user_input: str) -> str:
     
     return user_input.strip()
 
-async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[Dict[str, Any]]:
+async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None, location_context: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
     """Generate response using Ultra-Specialized Istanbul AI (Rule-Based) with Enhanced Query Understanding and Redis conversational memory"""
     try:
         # Use our Ultra-Specialized Istanbul AI System (completely rule-based)
@@ -844,11 +853,12 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
                     'success': True
                 }
         
-        # Prepare user context with Redis conversation context and query analysis
+        # Prepare user context with Redis conversation context, query analysis, and location context
         user_context = {
             'session_id': session_id,
             'user_ip': user_ip,
             'timestamp': datetime.now().isoformat(),
+            'location_context': location_context,
             'conversation_context': conversation_context,
             'recent_intents': conversation_context.get('recent_intents', []),
             'recent_entities': conversation_context.get('recent_entities', {}),
@@ -875,13 +885,18 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
                 try:
                     print("🍽️ Detected restaurant query - integrating restaurant database...")
                     
-                    # Extract search parameters from entities
+                    # Extract search parameters from entities and location context
                     entities = query_analysis.get('entities', {})
                     district = entities.get('districts', [None])[0] if entities.get('districts') else None
                     cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
                     budget = entities.get('budget', [None])[0] if entities.get('budget') else None
                     
-                    # Search restaurants in database
+                    # Use location context district if available and no explicit district mentioned
+                    if not district and location_context and location_context.get('district'):
+                        district = location_context['district']
+                        print(f"🌍 Using location context district: {district}")
+                    
+                    # Search restaurants in database with location awareness
                     restaurants = restaurant_service.search_restaurants(
                         district=district,
                         cuisine=cuisine,
@@ -1652,9 +1667,20 @@ async def test_enhanced_query_understanding(
         }
 
 # === Main AI Chat Endpoint ===
+class LocationContext(BaseModel):
+    has_location: bool = False
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    district: Optional[str] = None
+    nearby_pois: Optional[List[str]] = None
+    session_id: Optional[str] = None
+    accuracy: Optional[float] = None
+
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
+    location_context: Optional[LocationContext] = None
+    context_type: Optional[str] = "general"
 
 class ChatResponse(BaseModel):
     response: str
@@ -1683,6 +1709,7 @@ async def chat_with_ai(
         user_ip = user_request.client.host if user_request.client else None
         
         # Sanitize and validate input
+       
         user_message = sanitize_user_input(request.message)
         if not user_message:
             return ChatResponse(
@@ -1692,10 +1719,22 @@ async def chat_with_ai(
                 system_type="ultra_specialized_istanbul_ai"
             )
         
-        print(f"🏛️ AI Chat Request - Session: {session_id[:8]}..., Message: '{user_message[:50]}...'")
+        # Process location context if available
+        location_info = None
+        if request.location_context and request.location_context.has_location:
+            location_info = {
+                'latitude': request.location_context.latitude,
+                'longitude': request.location_context.longitude,
+                'district': request.location_context.district,
+                'nearby_pois': request.location_context.nearby_pois or [],
+                'accuracy': request.location_context.accuracy
+            }
+            print(f"🌍 Location-aware request - District: {location_info.get('district')}, POIs: {len(location_info.get('nearby_pois', []))}")
         
-        # Use the full-featured AI response system with quality assessment
-        ai_result = await get_istanbul_ai_response_with_quality(user_message, session_id, user_ip)
+        print(f"🏛️ AI Chat Request - Session: {session_id[:8]}..., Message: '{user_message[:50]}...', Location: {bool(location_info)}")
+        
+        # Use the full-featured AI response system with quality assessment and location context
+        ai_result = await get_istanbul_ai_response_with_quality(user_message, session_id, user_ip, location_context=location_info)
         
         if ai_result and ai_result.get('success'):
             return ChatResponse(
@@ -1736,6 +1775,113 @@ async def chat_with_ai(
             success=False,
             system_type="error_fallback"
         )
+
+# === Streaming Chat Endpoint ===
+@app.post("/ai/stream")
+async def chat_with_ai_streaming(
+    request: ChatRequest,
+    user_request: Request
+):
+    """
+    Streaming AI chat endpoint using Ultra-Specialized Istanbul AI
+    
+    This endpoint processes user queries about Istanbul using our specialized,
+    rule-based AI system with real-time streaming responses and location context support.
+    """
+    
+    async def generate_streaming_response():
+        try:
+            # Generate session ID if not provided
+            session_id = request.session_id or str(uuid.uuid4())
+            
+            # Get user IP for context
+            user_ip = user_request.client.host if user_request.client else None
+            
+            # Sanitize and validate input
+            user_message = sanitize_user_input(request.message)
+            if not user_message:
+                yield f"data: {json.dumps({'error': 'I need a valid message to help you with Istanbul information.'})}\n\n"
+                return
+            
+            # Process location context if available
+            location_info = None
+            if request.location_context and request.location_context.has_location:
+                location_info = {
+                    'latitude': request.location_context.latitude,
+                    'longitude': request.location_context.longitude,
+                    'district': request.location_context.district,
+                    'nearby_pois': request.location_context.nearby_pois or [],
+                    'accuracy': request.location_context.accuracy
+                }
+                print(f"🌍 Streaming location-aware request - District: {location_info.get('district')}, POIs: {len(location_info.get('nearby_pois', []))}")
+            
+            print(f"🌊 AI Streaming Request - Session: {session_id[:8]}..., Message: '{user_message[:50]}...', Location: {bool(location_info)}")
+            
+            # Use the full-featured AI response system
+            ai_result = await get_istanbul_ai_response_with_quality(user_message, session_id, user_ip, location_context=location_info)
+            
+            if ai_result and ai_result.get('success'):
+                response_text = ai_result['response']
+                
+                # Stream the response in chunks to simulate real-time typing
+                chunk_size = 15  # Characters per chunk
+                words = response_text.split(' ')
+                current_chunk = ""
+                
+                for word in words:
+                    current_chunk += word + " "
+                    
+                    # Send chunk when it reaches the desired size or is the last word
+                    if len(current_chunk) >= chunk_size or word == words[-1]:
+                        yield f"data: {json.dumps({'chunk': current_chunk.strip()})}\n\n"
+                        current_chunk = ""
+                        await asyncio.sleep(0.02)  # Small delay for streaming effect
+                
+                # Send completion signal
+                yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+                
+            else:
+                # Fallback response
+                fallback_response = (
+                    "I'm here to help you explore Istanbul! You can ask me about restaurants, "
+                    "museums, neighborhoods, transportation, shopping, and local tips. "
+                    "What would you like to know about Istanbul?"
+                )
+                
+                # Stream fallback response
+                words = fallback_response.split(' ')
+                current_chunk = ""
+                chunk_size = 12
+                
+                for word in words:
+                    current_chunk += word + " "
+                    if len(current_chunk) >= chunk_size or word == words[-1]:
+                        yield f"data: {json.dumps({'chunk': current_chunk.strip()})}\n\n"
+                        current_chunk = ""
+                        await asyncio.sleep(0.03)
+                
+                yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+                
+        except Exception as e:
+            print(f"❌ AI Streaming endpoint error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            error_message = "I'm sorry, I encountered an issue processing your request. Please try again."
+            yield f"data: {json.dumps({'chunk': error_message})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'error': True})}\n\n"
+    
+    return StreamingResponse(
+        generate_streaming_response(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
 
 # === Health Check ===
 @app.get("/health")

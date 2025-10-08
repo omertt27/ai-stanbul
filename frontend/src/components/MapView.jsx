@@ -1,32 +1,41 @@
 import React from 'react';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
 
-const containerStyle = {
-  width: '100%',
-  height: '400px',
-};
+// Fix default markers for React-Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 function MapView({ locations }) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-  });
-
   const center = locations && locations.length > 0
-    ? { lat: locations[0].lat, lng: locations[0].lng }
-    : { lat: 51.505, lng: -0.09 };
+    ? [locations[0].lat, locations[0].lng]
+    : [41.0082, 28.9784]; // Istanbul center
 
-  return isLoaded ? (
-    <GoogleMap
-      mapContainerStyle={containerStyle}
-      center={center}
-      zoom={13}
-    >
-      {locations.map((loc, idx) => (
-        <Marker key={idx} position={{ lat: loc.lat, lng: loc.lng }} label={loc.label} />
-      ))}
-    </GoogleMap>
-  ) : <div className="bg-gray-800 text-white flex items-center justify-center h-[400px]">Loading Map...</div>;
+  const tileUrl = import.meta.env.VITE_OSM_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  return (
+    <div style={{ width: '100%', height: '400px' }}>
+      <MapContainer 
+        center={center} 
+        zoom={13} 
+        style={{ height: '100%', width: '100%' }}
+      >
+        <TileLayer
+          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={tileUrl}
+        />
+        {locations && locations.map((loc, idx) => (
+          <Marker key={idx} position={[loc.lat, loc.lng]}>
+            <Popup>{loc.label}</Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
+  );
 }
 
 export default React.memo(MapView);

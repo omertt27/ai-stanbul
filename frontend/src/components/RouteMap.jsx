@@ -76,17 +76,23 @@ const RouteMap = ({
         maxZoom: 19
       }).addTo(map);
 
-      // Add Istanbul-specific tile layer option
-      const istanbulLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        attribution: '© Google Maps',
+      // Add alternative free tile layer options
+      const cartoLayer = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 20
       });
 
-      // Layer control
+      const esriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© <a href="https://www.esri.com/">Esri</a>',
+        maxZoom: 20
+      });
+
+      // Layer control with free alternatives only
       if (showControls) {
         const baseMaps = {
           "OpenStreetMap": map._layers[Object.keys(map._layers)[0]],
-          "Google Maps": istanbulLayer
+          "CartoDB Light": cartoLayer,
+          "Esri Streets": esriLayer
         };
         L.control.layers(baseMaps).addTo(map);
       }

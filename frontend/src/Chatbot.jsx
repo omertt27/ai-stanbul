@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchStreamingResults } from './api/api';
+import { fetchStreamingResults, fetchLocationAwareStreamingResults } from './api/api';
 import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
+import { useLocation } from './contexts/LocationContext';
 import NavBar from './components/NavBar';
 import SearchBar from './components/SearchBar';
 import MobileOptimizer from './components/MobileOptimizer';
@@ -170,6 +171,9 @@ const processTextContent = (textContent, parts, keyPrefix) => {
 };
 
 function Chatbot() {
+  // Location context integration
+  const locationContext = useLocation();
+  
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -526,77 +530,152 @@ function Chatbot() {
     let streamedContent = '';
     
     try {
-      await fetchStreamingResults(userInput, (chunk) => {
-        streamedContent += chunk;
-        
-        // Hide loading indicator as soon as we get the first chunk
-        if (streamedContent.length > 0 && loading) {
-          setLoading(false);
-          setShowLoadingSkeleton(false);
-          if (skeletonTimeoutRef.current) {
-            clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
-            skeletonTimeoutRef.current = null;
-          }
-        }
-        
-        // Show typing indicator for the first chunk, then switch to content
-        if (streamedContent.length > 0 && isTyping) {
-          setIsTyping(false);
-        }
-        
-        // Update messages in real-time as chunks come in
-        setMessages((prevMessages) => {
-          const lastMessage = prevMessages[prevMessages.length - 1];
-          
-          // If last message is assistant and streaming, update it
-          if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
-            const updatedMessages = [
-              ...prevMessages.slice(0, -1),
-              { 
-                role: 'assistant', 
-                content: streamedContent, 
-                streaming: true,
-                isTyping: streamedContent.length < 50 // Show typing animation for short responses
-              }
-            ];
-            
-            // Auto-scroll during streaming if user is not actively scrolling
-            if (!userScrolling && messagesEndRef.current) {
-              setTimeout(() => {
-                const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
-                if (chatContainer) {
-                  chatContainer.scrollTop = chatContainer.scrollHeight;
-                }
-              }, 10); // Very fast scroll during streaming
-            }
-            
-            return updatedMessages;
-          } else {
-            // Add new assistant message
-            const newMessages = [
-              ...prevMessages,
-              { 
-                role: 'assistant', 
-                content: streamedContent, 
-                streaming: true,
-                isTyping: streamedContent.length < 50
-              }
-            ];
-            
-            // Auto-scroll for new streaming message
-            if (!userScrolling && messagesEndRef.current) {
-              setTimeout(() => {
-                const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
-                if (chatContainer) {
-                  chatContainer.scrollTop = chatContainer.scrollHeight;
-                }
-              }, 10);
-            }
-            
-            return newMessages;
-          }
+      // Use location-aware streaming if location is available
+      const useLocationAware = locationContext?.hasLocation;
+      console.log(`🌍 Using ${useLocationAware ? 'location-aware' : 'standard'} chat API`);
+      
+      if (useLocationAware) {
+        const response = await fetchLocationAwareStreamingResults(userInput, locationContext, {
+          timeout: 60000
         });
-      });
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') break;
+                
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.chunk) {
+                    streamedContent += parsed.chunk;
+                    
+                    // Update UI as we stream
+                    if (streamedContent.length > 0 && loading) {
+                      setLoading(false);
+                      setShowLoadingSkeleton(false);
+                      if (skeletonTimeoutRef.current) {
+                        clearTimeout(skeletonTimeoutRef.current);
+                        skeletonTimeoutRef.current = null;
+                      }
+                    }
+                    
+                    if (streamedContent.length > 0 && isTyping) {
+                      setIsTyping(false);
+                    }
+                    
+                    setMessages(prev => {
+                      const newMessages = [...prev];
+                      if (newMessages[newMessages.length - 1]?.role === 'assistant') {
+                        newMessages[newMessages.length - 1] = {
+                          role: 'assistant',
+                          content: streamedContent,
+                          streaming: true
+                        };
+                      } else {
+                        newMessages.push({
+                          role: 'assistant',
+                          content: streamedContent,
+                          streaming: true
+                        });
+                      }
+                      return newMessages;
+                    });
+                  }
+                } catch (e) {
+                  // Ignore parsing errors for non-JSON chunks
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Stream reading error:', error);
+        } finally {
+          reader.releaseLock();
+        }
+      } else {
+        await fetchStreamingResults(userInput, (chunk) => {
+          streamedContent += chunk;
+          
+          // Hide loading indicator as soon as we get the first chunk
+          if (streamedContent.length > 0 && loading) {
+            setLoading(false);
+            setShowLoadingSkeleton(false);
+            if (skeletonTimeoutRef.current) {
+              clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
+              skeletonTimeoutRef.current = null;
+            }
+          }
+          
+          // Show typing indicator for the first chunk, then switch to content
+          if (streamedContent.length > 0 && isTyping) {
+            setIsTyping(false);
+          }
+          
+          // Update messages in real-time as chunks come in
+          setMessages((prevMessages) => {
+            const lastMessage = prevMessages[prevMessages.length - 1];
+            
+            // If last message is assistant and streaming, update it
+            if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
+              const updatedMessages = [
+                ...prevMessages.slice(0, -1),
+                { 
+                  role: 'assistant', 
+                  content: streamedContent, 
+                  streaming: true,
+                  isTyping: streamedContent.length < 50 // Show typing animation for short responses
+                }
+              ];
+              
+              // Auto-scroll during streaming if user is not actively scrolling
+              if (!userScrolling && messagesEndRef.current) {
+                setTimeout(() => {
+                  const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
+                  if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                  }
+                }, 10); // Very fast scroll during streaming
+              }
+              
+              return updatedMessages;
+            } else {
+              // Add new assistant message
+              const newMessages = [
+                ...prevMessages,
+                { 
+                  role: 'assistant', 
+                  content: streamedContent, 
+                  streaming: true,
+                  isTyping: streamedContent.length < 50
+                }
+              ];
+              
+              // Auto-scroll for new streaming message
+              if (!userScrolling && messagesEndRef.current) {
+                setTimeout(() => {
+                  const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
+                  if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                  }
+                }, 10);
+              }
+              
+              return newMessages;
+            }
+          });
+        });
+      }
       
       // Record successful API response time
       measureApiResponseTime(Date.now() - startTime);
