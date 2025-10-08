@@ -788,13 +788,93 @@ class LiveLocationRoutingSystem:
             })
         
         return {
-            "pois": filtered_pois,
-            "districts": nearby_districts,
+            "pois": recommendations_by_category,
+            "districts": self._get_nearby_districts(location, radius_km),
             "cached_routes": [],
-            "transport_info": transport_info,
+            "transport_info": self._get_basic_transport_info(location),
             "offline_timestamp": datetime.now().isoformat()
         }
     
+    def _get_nearby_districts(self, location: Coordinates, radius_km: float = 1.0) -> List[str]:
+        """Get nearby districts for a location"""
+        try:
+            # Simple district mapping based on coordinates
+            istanbul_districts = {
+                "Sultanahmet": Coordinates(41.0082, 28.9784),
+                "Beyoğlu": Coordinates(41.0369, 28.9875),
+                "Beşiktaş": Coordinates(41.0422, 29.0080),
+                "Kadıköy": Coordinates(40.9904, 29.0243),
+                "Üsküdar": Coordinates(41.0226, 29.0267),
+                "Fatih": Coordinates(41.0186, 28.9491),
+                "Galata": Coordinates(41.0258, 28.9737),
+                "Taksim": Coordinates(41.0369, 28.9840)
+            }
+            
+            nearby = []
+            for district, coords in istanbul_districts.items():
+                distance = self.location_data._haversine_distance(location, coords)
+                if distance <= radius_km:
+                    nearby.append(district)
+            
+            return nearby[:3]  # Return top 3 closest districts
+        except Exception:
+            return ["Sultanahmet"]  # Default fallback
+    
+    def _get_basic_transport_info(self, location: Coordinates) -> Dict[str, Any]:
+        """Get basic transport information for a location"""
+        try:
+            return {
+                "metro_nearby": self._is_near_metro(location),
+                "bus_stops": self._estimate_bus_stops(location),
+                "taxi_availability": "high",
+                "walking_score": self._calculate_walking_score(location),
+                "transport_modes": ["walking", "taxi", "bus", "metro"]
+            }
+        except Exception:
+            return {
+                "metro_nearby": False,
+                "bus_stops": 2,
+                "taxi_availability": "medium",
+                "walking_score": 7,
+                "transport_modes": ["walking", "taxi"]
+            }
+    
+    def _is_near_metro(self, location: Coordinates) -> bool:
+        """Check if location is near metro stations"""
+        # Simplified metro station locations
+        metro_stations = [
+            Coordinates(41.0082, 28.9784),  # Sultanahmet
+            Coordinates(41.0369, 28.9875),  # Şişhane  
+            Coordinates(41.0422, 29.0080),  # Beşiktaş
+            Coordinates(40.9904, 29.0243),  # Kadıköy
+        ]
+        
+        for station in metro_stations:
+            if self.location_data._haversine_distance(location, station) <= 0.5:  # Within 500m
+                return True
+        return False
+    
+    def _estimate_bus_stops(self, location: Coordinates) -> int:
+        """Estimate number of nearby bus stops"""
+        # Simplified estimation based on area density
+        if location.latitude > 41.0 and location.longitude > 28.95:  # Central areas
+            return 5
+        else:
+            return 3
+    
+    def _calculate_walking_score(self, location: Coordinates) -> int:
+        """Calculate walkability score (1-10)"""
+        # Simplified scoring based on central location
+        if self._is_central_area(location):
+            return 9
+        else:
+            return 6
+    
+    def _is_central_area(self, location: Coordinates) -> bool:
+        """Check if location is in central Istanbul"""
+        # Central area boundaries (approximate)
+        return (40.98 <= location.latitude <= 41.05 and 28.90 <= location.longitude <= 29.05)
+
     # New methods for FastAPI compatibility
     def plan_multi_stop_route(self, start_location: Dict[str, float], stops: List[Dict[str, Any]], preferences: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Plan a multi-stop route with optimization"""

@@ -49,27 +49,31 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
       maxWidth: 'none',
       position: 'relative'
     }}>
-      <form onSubmit={handleSubmit} className="ai-chat-searchbar searchbar" style={{
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: '100%',
-        background: expanded 
-          ? (isFocused ? '#ffffff' : '#f7f7f8')
-          : (isFocused ? 'rgba(40, 40, 40, 0.95)' : 'rgba(30, 30, 30, 0.8)'),
-        borderRadius: isMobile ? '18px' : '24px',
-        border: expanded
-          ? (isFocused ? '1px solid #e5e7eb' : '1px solid #f3f4f6')
-          : (isFocused ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)'),
-        boxShadow: isFocused 
-          ? (expanded ? '0 0 0 1px rgba(0, 0, 0, 0.02)' : '0 0 0 1px rgba(255, 255, 255, 0.1)')
-          : 'none',
-        transition: 'all 0.2s ease',
-        minHeight: isMobile ? '49px' : '62px',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-        margin: 0
-      }}>
+      <form 
+        onSubmit={handleSubmit} 
+        className="ai-chat-searchbar searchbar" 
+        data-testid="chat-form"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+          maxWidth: '100%',
+          background: expanded 
+            ? (isFocused ? '#ffffff' : '#f7f7f8')
+            : (isFocused ? 'rgba(40, 40, 40, 0.95)' : 'rgba(30, 30, 30, 0.8)'),
+          borderRadius: isMobile ? '18px' : '24px',
+          border: expanded
+            ? (isFocused ? '1px solid #e5e7eb' : '1px solid #f3f4f6')
+            : (isFocused ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.2)'),
+          boxShadow: isFocused 
+            ? (expanded ? '0 0 0 1px rgba(0, 0, 0, 0.02)' : '0 0 0 1px rgba(255, 255, 255, 0.1)')
+            : 'none',
+          transition: 'all 0.2s ease',
+          minHeight: isMobile ? '49px' : '62px',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+          margin: 0
+        }}>
         
         {/* Input Container */}
         <div style={{
@@ -91,6 +95,7 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
             placeholder={displayPlaceholder}
             disabled={isLoading}
             className="ai-chat-input"
+            data-testid="chat-input"
             style={{
               flex: 1,
               width: '100%',
@@ -134,6 +139,7 @@ const SearchBar = ({ value, onChange, onSubmit, placeholder, isLoading = false, 
             type="submit"
             disabled={isLoading || !value.trim()}
             className="ai-chat-send-button"
+            data-testid="send-button"
             style={{
               background: (isLoading || !value.trim()) 
                 ? '#f3f4f6' 

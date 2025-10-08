@@ -9,6 +9,10 @@ import CookieConsent from './components/CookieConsent';
 import NavBar from './components/NavBar';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import MainPageMobileNavbar from './components/MainPageMobileNavbar';
+import LocationPermissionModal from './components/LocationPermissionModal';
+import LocationBasedButtons from './components/LocationBasedButtons';
+import { LocationResultsContainer, RestaurantCard, RouteCard } from './components/LocationResults';
+import RoutePlanningForm from './components/RoutePlanningForm';
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
@@ -46,6 +50,13 @@ const App = () => {
   });
   const [sessionId] = useState(() => getSessionId()); // Get persistent session ID
   const chatScrollRef = useRef(null);
+  
+  // Location-based features state
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showRoutePlanning, setShowRoutePlanning] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationResults, setLocationResults] = useState(null);
+  const [activeLocationFeature, setActiveLocationFeature] = useState(null);
 
   // Mobile utilities hook
   const { 
@@ -131,6 +142,97 @@ const App = () => {
     localStorage.setItem('pending_chat_query', quickQuery);
   };
 
+  // Location-based feature handlers
+  const handleLocationSet = (location) => {
+    setUserLocation(location);
+    console.log('Location set:', location);
+  };
+
+  const handleLocationFeature = async (featureType, location) => {
+    setActiveLocationFeature(featureType);
+    
+    try {
+      if (featureType === 'restaurants') {
+        // Simulate restaurant search
+        const mockRestaurants = [
+          {
+            name: 'Pandeli Restaurant',
+            type: 'Ottoman Cuisine',
+            description: 'Historic restaurant serving traditional Ottoman dishes since 1901',
+            rating: 4.5,
+            distance: '0.3 km'
+          },
+          {
+            name: 'Hamdi Restaurant',
+            type: 'Turkish Kebab',
+            description: 'Famous for its lamb kebabs with views of the Golden Horn',
+            rating: 4.7,
+            distance: '0.5 km'
+          },
+          {
+            name: 'Balıkçı Sabahattin',
+            type: 'Seafood',
+            description: 'Traditional seafood restaurant in historic Ottoman house',
+            rating: 4.4,
+            distance: '0.7 km'
+          }
+        ];
+        setLocationResults({ type: 'restaurants', data: mockRestaurants });
+      } else if (featureType === 'route') {
+        setShowRoutePlanning(true);
+      } else if (featureType === 'attractions') {
+        // Simulate attractions search
+        const mockAttractions = [
+          {
+            name: 'Hagia Sophia',
+            type: 'Historic Site',
+            description: 'Byzantine cathedral and Ottoman mosque, now a museum',
+            rating: 4.8,
+            distance: '0.2 km'
+          },
+          {
+            name: 'Blue Mosque',
+            type: 'Religious Site',
+            description: 'Historic mosque known for its blue tiles and six minarets',
+            rating: 4.6,
+            distance: '0.4 km'
+          },
+          {
+            name: 'Topkapı Palace',
+            type: 'Palace Museum',
+            description: 'Former royal residence of Ottoman sultans',
+            rating: 4.5,
+            distance: '0.6 km'
+          }
+        ];
+        setLocationResults({ type: 'attractions', data: mockAttractions });
+      }
+    } catch (error) {
+      console.error('Location feature error:', error);
+    }
+  };
+
+  const handleRouteRequest = async (routeData) => {
+    try {
+      // Simulate route planning
+      const mockRoute = {
+        distance: '1.2 km',
+        duration: '15 min walk',
+        steps: [
+          'Head northeast on Alemdar Caddesi toward Babıhümayun Caddesi',
+          'Turn right onto Babıhümayun Caddesi',
+          'Continue straight for 400m',
+          'Turn left onto Galata Bridge',
+          'Destination will be on your right'
+        ]
+      };
+      setLocationResults({ type: 'route', data: [mockRoute] });
+      setActiveLocationFeature('route');
+    } catch (error) {
+      console.error('Route planning error:', error);
+    }
+  };
+
   const handleLogoClick = () => {
     // Track navigation back to home
     trackEvent('logo_click', 'navigation', 'home');
@@ -171,7 +273,7 @@ const App = () => {
         {/* Mobile Top Navbar for main page only */}
         {location.pathname === '/' && <MainPageMobileNavbar />}
 
-        <div className="main-page-background main-to-chat-transition" style={{
+        <div className="main-page-background main-to-chat-transition main" style={{
           flex: 1, 
           display: 'flex', 
           flexDirection: 'column', 
@@ -235,6 +337,63 @@ const App = () => {
             />
           </div>
           
+
+
+          {/* Location-based Features */}
+          {!expanded && userLocation && (
+            <div style={{ marginBottom: '2rem' }}>
+              <LocationBasedButtons onFeatureSelect={handleLocationFeature} />
+            </div>
+          )}
+
+          {/* Destination Input for Route Planning - Testing */}
+          {!expanded && userLocation && (
+            <div style={{
+              padding: '0 20px',
+              marginBottom: '1rem'
+            }}>
+              <input
+                type="text"
+                placeholder="Where do you want to go?"
+                data-testid="destination-input"
+                style={{
+                  width: '100%',
+                  maxWidth: '400px',
+                  margin: '0 auto',
+                  display: 'block',
+                  padding: '12px 16px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '12px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  backdropFilter: 'blur(10px)',
+                  boxSizing: 'border-box'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.target.value.trim()) {
+                    handleRouteRequest({
+                      from: userLocation,
+                      to: e.target.value,
+                      source: 'manual'
+                    });
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Location Results */}
+          {locationResults && (
+            <LocationResultsContainer 
+              results={locationResults.data}
+              type={locationResults.type}
+              userLocation={userLocation}
+            />
+          )}
+
           {/* Interactive Main Page Content - Show on all devices including mobile */}
           <div>
             <InteractiveMainPage onQuickStart={handleQuickStart} />
@@ -243,6 +402,21 @@ const App = () => {
           {/* Districts and interactive content now visible on all devices */}
           
         </div>
+
+        {/* Location Permission Modal */}
+        <LocationPermissionModal
+          isOpen={showLocationModal}
+          onClose={() => setShowLocationModal(false)}
+          onLocationSet={handleLocationSet}
+        />
+
+        {/* Route Planning Form */}
+        <RoutePlanningForm
+          isOpen={showRoutePlanning}
+          onClose={() => setShowRoutePlanning(false)}
+          onRouteRequest={handleRouteRequest}
+          userLocation={userLocation}
+        />
 
         {/* Cookie Consent Banner */}
         <CookieConsent />

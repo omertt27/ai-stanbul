@@ -12,7 +12,29 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 import traceback
-# defaultdict import removed - no longer needed after removing daily usage tracking
+
+# Add location intent detection import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'load-testing'))
+try:
+    from location_intent_detector import LocationIntentDetector, LocationIntentType
+    LOCATION_INTENT_AVAILABLE = True
+    print("✅ Location Intent Detection loaded successfully")
+except ImportError as e:
+    LOCATION_INTENT_AVAILABLE = False
+    print(f"⚠️ Location Intent Detection not available: {e}")
+
+# Add Advanced Understanding System import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+try:
+    from advanced_understanding_system import AdvancedUnderstandingSystem
+    from semantic_similarity_engine import SemanticSimilarityEngine, QueryContext
+    from enhanced_context_memory import EnhancedContextMemory, ContextType
+    from multi_intent_query_handler import MultiIntentQueryHandler
+    ADVANCED_UNDERSTANDING_AVAILABLE = True
+    print("✅ Advanced Understanding System loaded successfully")
+except ImportError as e:
+    ADVANCED_UNDERSTANDING_AVAILABLE = False
+    print(f"⚠️ Advanced Understanding System not available: {e}")
 
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status, Body, Query
@@ -445,6 +467,48 @@ app = FastAPI(
 )
 
 print("✅ FastAPI app initialized successfully")
+
+# Initialize Location Intent Detector
+location_detector = None
+if LOCATION_INTENT_AVAILABLE:
+    try:
+        location_detector = LocationIntentDetector()
+        print("✅ Location Intent Detector initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Location Intent Detector: {e}")
+        LOCATION_INTENT_AVAILABLE = False
+
+# Initialize Advanced Understanding System
+advanced_understanding = None
+if ADVANCED_UNDERSTANDING_AVAILABLE:
+    try:
+        # Initialize Redis client if available
+        redis_client = None
+        if REDIS_AVAILABLE:
+            try:
+                redis_client = redis.Redis(
+                    host=os.getenv('REDIS_HOST', 'localhost'),
+                    port=int(os.getenv('REDIS_PORT', 6379)),
+                    db=int(os.getenv('REDIS_DB', 2)),  # Use separate DB for context memory
+                    decode_responses=True
+                )
+                # Test connection
+                redis_client.ping()
+                print("✅ Redis connection established for context memory")
+            except Exception as e:
+                print(f"⚠️ Redis not available for context memory: {e}")
+                redis_client = None
+        
+        # Initialize the Advanced Understanding System
+        advanced_understanding = AdvancedUnderstandingSystem(redis_client=redis_client)
+        print("✅ Advanced Understanding System initialized successfully")
+        print("  🧠 Semantic Similarity Engine: Ready")
+        print("  🧠 Enhanced Context Memory: Ready")
+        print("  🎯 Multi-Intent Query Handler: Ready")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Advanced Understanding System: {e}")
+        ADVANCED_UNDERSTANDING_AVAILABLE = False
+        advanced_understanding = None
 
 # Add CORS middleware to allow frontend access
 app.add_middleware(
@@ -1748,6 +1812,119 @@ async def chat_with_ai(
         
         print(f"🏛️ AI Chat Request - Session: {session_id[:8]}..., Message: '{user_message[:50]}...', Location: {bool(location_info)}")
         
+        # ===== ADVANCED UNDERSTANDING SYSTEM =====
+        advanced_result = None
+        if ADVANCED_UNDERSTANDING_AVAILABLE and advanced_understanding:
+            try:
+                print(f"🧠 Running Advanced Understanding System analysis...")
+                
+                advanced_result = advanced_understanding.understand_query(
+                    query=user_message,
+                    user_id=session_id,
+                    location_context=location_info
+                )
+                
+                print(f"🎯 Advanced Understanding Results:")
+                print(f"   Understanding Confidence: {advanced_result.understanding_confidence:.2f}")
+                print(f"   Processing Strategy: {advanced_result.processing_strategy}")
+                print(f"   Primary Intent: {advanced_result.multi_intent_result.primary_intent.type.value}")
+                print(f"   Secondary Intents: {[i.type.value for i in advanced_result.multi_intent_result.secondary_intents]}")
+                print(f"   Relevant Contexts: {len(advanced_result.relevant_contexts)}")
+                
+            except Exception as e:
+                print(f"⚠️ Advanced Understanding System error: {e}")
+                advanced_result = None
+        
+        # ===== LOCATION INTENT DETECTION =====
+        if LOCATION_INTENT_AVAILABLE and location_detector:
+            try:
+                detected_intents = location_detector.detect_intent(user_message, location_info)
+                
+                if detected_intents:
+                    primary_intent = detected_intents[0]  # Highest confidence intent
+                    print(f"🎯 Location intent detected: {primary_intent.intent_type.value} (confidence: {primary_intent.confidence:.2f})")
+                    
+                    # If we have high confidence in a location intent, handle it specially
+                    if primary_intent.confidence >= 0.4:
+                        
+                        # Handle restaurant requests
+                        if primary_intent.intent_type == LocationIntentType.RESTAURANTS:
+                            response = await handle_restaurant_intent(primary_intent, location_info, user_message, session_id)
+                            if response:
+                                return ChatResponse(
+                                    response=response,
+                                    session_id=session_id,
+                                    success=True,
+                                    system_type="location_intent_restaurants"
+                                )
+                        
+                        # Handle museum requests
+                        elif primary_intent.intent_type == LocationIntentType.MUSEUMS:
+                            response = await handle_museum_intent(primary_intent, location_info, user_message, session_id)
+                            if response:
+                                return ChatResponse(
+                                    response=response,
+                                    session_id=session_id,
+                                    success=True,
+                                    system_type="location_intent_museums"
+                                )
+                        
+                        # Handle route planning requests
+                        elif primary_intent.intent_type == LocationIntentType.ROUTE_PLANNING:
+                            response = await handle_route_intent(primary_intent, location_info, user_message, session_id)
+                            if response:
+                                return ChatResponse(
+                                    response=response,
+                                    session_id=session_id,
+                                    success=True,
+                                    system_type="location_intent_routes"
+                                )
+                        
+                        # For other intents, enhance the AI context
+                        else:
+                            enhanced_context = build_intent_context(primary_intent, location_info)
+                            ai_result = await get_istanbul_ai_response_with_quality(
+                                user_message, session_id, user_ip, 
+                                location_context=location_info,
+                                enhanced_prompt=enhanced_context
+                            )
+                            
+                            if ai_result and ai_result.get('success'):
+                                return ChatResponse(
+                                    response=ai_result['response'],
+                                    session_id=session_id,
+                                    success=True,
+                                    system_type="location_intent_enhanced"
+                                )
+            except Exception as e:
+                print(f"⚠️ Location intent detection error: {e}")
+                # Continue with standard processing
+        
+        # Use Advanced Understanding System for enhanced response generation
+        if advanced_result and advanced_result.understanding_confidence >= 0.4:
+            try:
+                print(f"🚀 Generating advanced response using understanding system...")
+                
+                enhanced_response = await generate_advanced_response(
+                    advanced_result, user_message, session_id, location_info
+                )
+                
+                if enhanced_response:
+                    return ChatResponse(
+                        response=enhanced_response,
+                        session_id=session_id,
+                        success=True,
+                        system_type="ultra_specialized_istanbul_ai_v5.0_advanced",
+                        quality_assessment={
+                            'understanding_confidence': advanced_result.understanding_confidence,
+                            'processing_strategy': advanced_result.processing_strategy,
+                            'intents_detected': len(advanced_result.multi_intent_result.secondary_intents) + 1,
+                            'contexts_used': len(advanced_result.relevant_contexts)
+                        }
+                    )
+            except Exception as e:
+                print(f"⚠️ Advanced response generation error: {e}")
+        
         # Use the full-featured AI response system with quality assessment and location context
         ai_result = await get_istanbul_ai_response_with_quality(user_message, session_id, user_ip, location_context=location_info)
         
@@ -1790,6 +1967,497 @@ async def chat_with_ai(
             success=False,
             system_type="error_fallback"
         )
+
+# ============================================================================
+# ADVANCED UNDERSTANDING SYSTEM FUNCTIONS
+# ============================================================================
+
+async def generate_advanced_response(advanced_result, original_message: str, session_id: str, location_info: Optional[Dict] = None) -> Optional[str]:
+    """Generate enhanced response using Advanced Understanding System results"""
+    
+    try:
+        # Get response strategy from advanced understanding
+        strategy = advanced_result.response_strategy
+        primary_intent = advanced_result.multi_intent_result.primary_intent
+        
+        print(f"🎯 Generating response with strategy: {strategy}")
+        
+        # Handle different response strategies
+        if strategy == "clarification_request":
+            return await generate_clarification_response(advanced_result, original_message)
+        elif strategy == "personalized_comprehensive":
+            return await generate_personalized_response(advanced_result, location_info)
+        elif strategy == "multi_part_response":
+            return await generate_multi_part_response(advanced_result, location_info)
+        elif strategy == "comprehensive_analysis":
+            return await generate_comprehensive_response(advanced_result, location_info)
+        else:
+            return await generate_standard_enhanced_response(advanced_result, location_info)
+            
+    except Exception as e:
+        print(f"❌ Advanced response generation error: {str(e)}")
+        return None
+
+async def generate_personalized_response(advanced_result, location_info: Optional[Dict] = None) -> str:
+    """Generate personalized response using context and preferences"""
+    
+    # Extract context information
+    user_preferences = {}
+    current_location = None
+    conversation_context = []
+    
+    for context in advanced_result.relevant_contexts:
+        if context['type'] == 'preference':
+            user_preferences.update(context['content'])
+        elif context['type'] == 'location':
+            current_location = context['content']
+    
+    # Use conversation history for continuity
+    for turn in advanced_result.conversation_history[-3:]:  # Last 3 turns
+        conversation_context.append(turn['query'])
+    
+    # Build personalized response
+    response_parts = []
+    
+    # Personalized greeting based on context
+    if current_location:
+        location_name = current_location.get('name', 'your location')
+        response_parts.append(f"Based on your location in {location_name}")
+    elif location_info:
+        district = location_info.get('district', 'the area')
+        response_parts.append(f"Since you're in {district}")
+    
+    # Add preference-based customization
+    if user_preferences.get('budget_range') == 'budget':
+        response_parts.append("and your preference for budget-friendly options")
+    elif user_preferences.get('budget_range') == 'luxury':
+        response_parts.append("and your interest in premium experiences")
+    
+    # Handle primary intent with personalization
+    primary_intent = advanced_result.multi_intent_result.primary_intent
+    intent_type = primary_intent.type.value
+    
+    if 'recommendation' in intent_type:
+        response_parts.append(", here are my personalized recommendations:")
+        
+        # Add intent-specific recommendations
+        if user_preferences.get('cuisine_preference') == 'Turkish':
+            response_parts.append("\n\n🍽️ **Turkish Cuisine Recommendations:**")
+            response_parts.append("• **Hamdi Restaurant** - Authentic kebabs with Bosphorus view")
+            response_parts.append("• **Pandeli** - Historic Ottoman cuisine in Spice Bazaar")
+            response_parts.append("• **Çiya Sofrası** - Traditional regional Turkish dishes")
+        
+        if user_preferences.get('activity_type') == 'cultural':
+            response_parts.append("\n\n🏛️ **Cultural Experience Recommendations:**")
+            response_parts.append("• **Hagia Sophia** - Byzantine architecture masterpiece")
+            response_parts.append("• **Topkapi Palace** - Ottoman imperial history")
+            response_parts.append("• **Blue Mosque** - Stunning Islamic architecture")
+    
+    elif 'location' in intent_type:
+        response_parts.append(", here's how to get there:")
+        
+        if location_info:
+            response_parts.append(f"\n\n🗺️ **From {location_info.get('district', 'your location')}:**")
+            response_parts.append("• **Metro**: Take M2 line to Vezneciler station")
+            response_parts.append("• **Tram**: T1 line to Sultanahmet")
+            response_parts.append("• **Walking**: About 15-20 minutes through historic streets")
+    
+    # Add contextual follow-up based on conversation history
+    if conversation_context:
+        if any('restaurant' in query.lower() for query in conversation_context):
+            response_parts.append("\n\n💡 **Since you asked about restaurants earlier**, you might also enjoy the local food markets and street food around these areas!")
+    
+    # Add practical tips
+    response_parts.append("\n\n🎯 **Pro Tips:**")
+    if user_preferences.get('budget_range') == 'budget':
+        response_parts.append("• Visit during lunch hours for better prices")
+        response_parts.append("• Look for local 'lokanta' (casual dining) spots")
+    
+    response_parts.append("• Download the Istanbul public transport app for easy navigation")
+    response_parts.append("• Consider getting an Istanbul Museum Pass for cultural sites")
+    
+    return " ".join(response_parts)
+
+async def generate_multi_part_response(advanced_result, location_info: Optional[Dict] = None) -> str:
+    """Generate multi-part response for complex queries"""
+    
+    response_parts = []
+    primary_intent = advanced_result.multi_intent_result.primary_intent
+    secondary_intents = advanced_result.multi_intent_result.secondary_intents
+    
+    # Handle primary intent
+    response_parts.append(f"Let me help you with your {primary_intent.type.value.replace('_', ' ')} request:")
+    
+    # Execute each step in the execution plan
+    for step in advanced_result.multi_intent_result.execution_plan[:3]:  # Handle top 3 steps
+        step_response = await execute_intent_step(step, advanced_result, location_info)
+        if step_response:
+            response_parts.append(f"\n\n**{step['step']}. {step['action'].replace('_', ' ').title()}:**")
+            response_parts.append(step_response)
+    
+    # Add summary if multiple intents
+    if len(secondary_intents) > 0:
+        response_parts.append(f"\n\n📋 **Summary**: I've addressed your main request plus {len(secondary_intents)} additional aspects of your query.")
+    
+    return " ".join(response_parts)
+
+async def generate_comprehensive_response(advanced_result, location_info: Optional[Dict] = None) -> str:
+    """Generate comprehensive response for complex analysis queries"""
+    
+    response_parts = []
+    
+    # Start with understanding acknowledgment
+    complexity_level = "complex" if advanced_result.query_complexity > 0.7 else "detailed"
+    response_parts.append(f"I understand you have a {complexity_level} question about Istanbul. Let me provide a comprehensive answer:")
+    
+    # Address each detected intent systematically
+    intents = [advanced_result.multi_intent_result.primary_intent] + advanced_result.multi_intent_result.secondary_intents
+    
+    for i, intent in enumerate(intents[:4], 1):  # Handle up to 4 intents
+        response_parts.append(f"\n\n**{i}. {intent.type.value.replace('_', ' ').title()}:**")
+        
+        intent_response = await generate_intent_specific_response(intent, location_info, advanced_result)
+        if intent_response:
+            response_parts.append(intent_response)
+    
+    # Add contextual recommendations
+    if advanced_result.relevant_contexts:
+        response_parts.append("\n\n🎯 **Personalized Recommendations:**")
+        response_parts.append("Based on our conversation and your interests:")
+        
+        for context in advanced_result.relevant_contexts[:3]:
+            if context['type'] == 'preference':
+                pref_text = ", ".join([f"{k}: {v}" for k, v in context['content'].items()])
+                response_parts.append(f"• Considering your preferences ({pref_text})")
+    
+    return " ".join(response_parts)
+
+async def generate_clarification_response(advanced_result, original_message: str) -> str:
+    """Generate clarification request when understanding confidence is low"""
+    
+    response_parts = []
+    response_parts.append("I want to make sure I give you the best information about Istanbul.")
+    
+    # Identify what needs clarification
+    missing_info = []
+    if 'location_context' in advanced_result.key_information_needed:
+        missing_info.append("your current location or the area you're interested in")
+    
+    if 'user_preferences' in advanced_result.key_information_needed:
+        missing_info.append("your preferences (budget, cuisine, activities)")
+    
+    if missing_info:
+        response_parts.append(f" Could you please clarify {' and '.join(missing_info)}?")
+    
+    # Provide some context about what we understood
+    primary_intent = advanced_result.multi_intent_result.primary_intent.type.value
+    response_parts.append(f"\n\nI can see you're asking about {primary_intent.replace('_', ' ')}, and I'd love to help with specific recommendations!")
+    
+    # Offer structured options
+    response_parts.append("\n\nFor example, you could tell me:")
+    response_parts.append("• Which area of Istanbul you're in or planning to visit")
+    response_parts.append("• What type of experience you're looking for")
+    response_parts.append("• Your budget range or specific preferences")
+    
+    return " ".join(response_parts)
+
+async def generate_standard_enhanced_response(advanced_result, location_info: Optional[Dict] = None) -> str:
+    """Generate standard response enhanced with understanding system insights"""
+    
+    primary_intent = advanced_result.multi_intent_result.primary_intent
+    
+    # Use semantic matches to enhance response
+    semantic_context = ""
+    if advanced_result.semantic_matches:
+        top_match = advanced_result.semantic_matches[0]
+        semantic_context = f"Based on your interest in {top_match['text']}"
+    
+    # Use contextual suggestions
+    suggestions = []
+    for suggestion in advanced_result.contextual_suggestions[:2]:
+        suggestions.append(suggestion.get('suggested_action', ''))
+    
+    response_parts = []
+    if semantic_context:
+        response_parts.append(semantic_context)
+    
+    response_parts.append(f", here's what I recommend for {primary_intent.type.value.replace('_', ' ')}:")
+    
+    # Add intent-specific content
+    intent_response = await generate_intent_specific_response(primary_intent, location_info, advanced_result)
+    if intent_response:
+        response_parts.append(f"\n\n{intent_response}")
+    
+    # Add suggestions
+    if suggestions:
+        response_parts.append("\n\n💡 **You might also want to:**")
+        for suggestion in suggestions:
+            if suggestion:
+                response_parts.append(f"• {suggestion}")
+    
+    return " ".join(response_parts)
+
+async def execute_intent_step(step: Dict, advanced_result, location_info: Optional[Dict] = None) -> Optional[str]:
+    """Execute a specific intent step from the execution plan"""
+    
+    action = step['action']
+    parameters = step.get('parameters', {})
+    
+    if action == "search_locations":
+        locations = parameters.get('locations', [])
+        if locations:
+            return f"Here are the locations I found: {', '.join(locations)}"
+        elif location_info:
+            return f"Based on your location in {location_info.get('district', 'the area')}"
+    
+    elif action == "generate_recommendations":
+        if location_info:
+            district = location_info.get('district', 'your area')
+            return f"For {district}, I recommend visiting the local highlights and trying the neighborhood restaurants."
+    
+    elif action == "plan_route":
+        if location_info:
+            return "The best route depends on your starting point. I can suggest public transport options or walking routes."
+    
+    elif action == "provide_information":
+        return "Let me share some interesting facts and details about this topic."
+    
+    return None
+
+async def generate_intent_specific_response(intent, location_info: Optional[Dict] = None, advanced_result=None) -> str:
+    """Generate response specific to an intent type"""
+    
+    intent_type = intent.type.value
+    
+    if intent_type == "recommendation":
+        return "I'll suggest the best options based on quality, location, and visitor reviews."
+    
+    elif intent_type == "location_search":
+        return "I can help you find exact locations and the best ways to get there."
+    
+    elif intent_type == "information_request":
+        return "Here's the detailed information you're looking for, including history and practical details."
+    
+    elif intent_type == "route_planning":
+        return "I'll help you plan the most efficient route using Istanbul's transport network."
+    
+    elif intent_type == "comparison":
+        return "Let me compare these options to help you make the best choice."
+    
+    else:
+        return "I'm here to help with your Istanbul travel needs."
+
+# ============================================================================
+# LOCATION INTENT HELPER FUNCTIONS
+# ============================================================================
+
+async def handle_restaurant_intent(intent, location_info, original_message, session_id):
+    """Handle restaurant-specific intents with location awareness"""
+    try:
+        if not location_info:
+            return generate_restaurant_response_without_location(intent, original_message)
+        
+        response_parts = []
+        response_parts.append(f"🍽️ Looking for restaurants in {location_info.get('district', 'your area')}...")
+        
+        if intent.specific_requirements.get('cuisine'):
+            cuisines = ', '.join(intent.specific_requirements['cuisine'])
+            response_parts.append(f"\nI see you're interested in {cuisines} cuisine.")
+        
+        if intent.specific_requirements.get('dining_style'):
+            styles = ', '.join(intent.specific_requirements['dining_style'])
+            response_parts.append(f"Looking for {styles} dining options.")
+        
+        if intent.distance_preference:
+            response_parts.append(f"Within {intent.distance_preference} as requested.")
+        
+        response_parts.append("\nLet me suggest some great options:")
+        
+        # Add restaurants based on district
+        district = location_info.get('district', '').lower()
+        if 'sultanahmet' in district:
+            response_parts.append("\n• **Pandeli**: Historic Ottoman restaurant in Spice Bazaar")
+            response_parts.append("• **Deraliye**: Traditional Ottoman cuisine near Sultanahmet")
+            response_parts.append("• **Balıkçı Sabahattin**: Fresh seafood in historic setting")
+        elif 'beyoğlu' in district or 'taksim' in district:
+            response_parts.append("\n• **Mikla**: Modern Turkish with Bosphorus view")
+            response_parts.append("• **Karaköy Lokantası**: Contemporary Turkish in stylish setting")
+            response_parts.append("• **Çiya Sofrası**: Authentic Anatolian dishes")
+        else:
+            response_parts.append("\n• **Hamdi Restaurant**: Famous for kebabs near Galata Bridge")
+            response_parts.append("• **Sunset Grill & Bar**: International cuisine with amazing views")
+            response_parts.append("• **Nusr-Et**: World-famous steakhouse experience")
+        
+        response_parts.append("\nWould you like more specific recommendations or details about any of these places?")
+        
+        return '\n'.join(response_parts)
+        
+    except Exception as e:
+        print(f"Error handling restaurant intent: {e}")
+        return None
+
+async def handle_museum_intent(intent, location_info, original_message, session_id):
+    """Handle museum-specific intents with location awareness"""
+    try:
+        if not location_info:
+            return generate_museum_response_without_location(intent, original_message)
+        
+        response_parts = []
+        response_parts.append(f"🏛️ Finding museums near {location_info.get('district', 'your location')}...")
+        
+        if intent.specific_requirements.get('specific_sites'):
+            sites = ', '.join(intent.specific_requirements['specific_sites'])
+            response_parts.append(f"\nI see you're interested in {sites}.")
+        
+        response_parts.append("\nHere are some excellent museums in your area:")
+        
+        # Add museums based on district
+        district = location_info.get('district', '').lower()
+        if 'sultanahmet' in district:
+            response_parts.append("\n• **Hagia Sophia**: Iconic Byzantine and Ottoman architecture")
+            response_parts.append("• **Topkapi Palace**: Former Ottoman imperial palace")
+            response_parts.append("• **Istanbul Archaeology Museums**: World-class ancient artifacts")
+            response_parts.append("• **Basilica Cistern**: Ancient underground marvel")
+        elif 'beyoğlu' in district:
+            response_parts.append("\n• **Galata Tower**: Historic tower with panoramic views")
+            response_parts.append("• **Istanbul Modern**: Contemporary Turkish art")
+            response_parts.append("• **Pera Museum**: European art and Anatolian weights")
+        else:
+            response_parts.append("\n• **Dolmabahçe Palace**: 19th-century Ottoman palace")
+            response_parts.append("• **Turkish and Islamic Arts Museum**: Islamic art collection")
+            response_parts.append("• **Chora Church**: Byzantine mosaics and frescoes")
+        
+        # Add MuseumPass information
+        if any(term in original_message.lower() for term in ['museum pass', 'museumpass', 'pass', 'ticket', 'price', 'cost']):
+            response_parts.append("\n🎫 **MuseumPass Istanbul Information:**")
+            response_parts.append("• **Price**: €105 for 5 days")
+            response_parts.append("• **Coverage**: 13 museums belonging to Ministry of Culture and Tourism")
+            response_parts.append("• **Validity**: 5 days from first museum visit")
+            response_parts.append("• **Rule**: You can enter each museum once")
+            response_parts.append("• **Time limits**: Galata Tower (until 18:14), Archaeological Museums & Turkish Islamic Art Museum (until 18:45)")
+            response_parts.append("• **Not valid**: Night museums after 19:00")
+        
+        if any(term in original_message.lower() for term in ['city card', 'transportation', 'transport', 'metro', 'bus']):
+            response_parts.append("\n🚇 **Istanbul City Card Information:**")
+            response_parts.append("• **Where to get**: City Card sales points around the city, ticket vending machines")
+            response_parts.append("• **Benefits**: Public transportation, discounts at attractions and restaurants")
+            response_parts.append("• **Locations**: Easily accessible around the city")
+        
+        response_parts.append("\nWould you like opening hours, specific ticket information, or directions to any of these museums?")
+        
+        return '\n'.join(response_parts)
+        
+    except Exception as e:
+        print(f"Error handling museum intent: {e}")
+        return None
+
+async def handle_route_intent(intent, location_info, original_message, session_id):
+    """Handle route planning intents"""
+    try:
+        response_parts = []
+        
+        if location_info:
+            response_parts.append(f"🗺️ Planning routes from {location_info.get('district', 'your location')}...")
+        else:
+            response_parts.append("🗺️ I can help you with directions in Istanbul...")
+        
+        response_parts.append("\nTo get better route recommendations, could you please tell me:")
+        response_parts.append("• Where you want to go?")
+        response_parts.append("• Your preferred transportation (metro, bus, taxi, walking)?")
+        response_parts.append("• Any specific requirements or preferences?")
+        
+        response_parts.append("\nMeanwhile, here are some general transportation tips:")
+        response_parts.append("• **Metro**: Fast and efficient for longer distances")
+        response_parts.append("• **Ferry**: Scenic routes across the Bosphorus")
+        response_parts.append("• **Tram**: Great for tourist areas like Sultanahmet")
+        response_parts.append("• **Walking**: Best way to explore historic neighborhoods")
+        
+        return '\n'.join(response_parts)
+        
+    except Exception as e:
+        print(f"Error handling route intent: {e}")
+        return None
+
+def generate_restaurant_response_without_location(intent, original_message):
+    """Generate restaurant response when location is not available"""
+    response_parts = []
+    response_parts.append("🍽️ I'd love to recommend restaurants! For the best suggestions, could you share your location or tell me which area of Istanbul you're in?")
+    
+    if intent.specific_requirements.get('cuisine'):
+        cuisines = ', '.join(intent.specific_requirements['cuisine'])
+        response_parts.append(f"\nI see you're interested in {cuisines} cuisine - Istanbul has amazing options!")
+    
+    response_parts.append("\nMeanwhile, here are some top-rated restaurants across Istanbul:")
+    response_parts.append("• **Pandeli** (Eminönü): Historic Ottoman cuisine")
+    response_parts.append("• **Mikla** (Beyoğlu): Modern Turkish with city views")
+    response_parts.append("• **Çiya Sofrası** (Kadıköy): Authentic regional dishes")
+    response_parts.append("• **Hamdi Restaurant** (Eminönü): Famous for kebabs")
+    
+    return '\n'.join(response_parts)
+
+def generate_museum_response_without_location(intent, original_message):
+    """Generate museum response when location is not available"""
+    response_parts = []
+    response_parts.append("🏛️ I'd be happy to recommend museums! For location-specific suggestions, please let me know which area you're in or planning to visit.")
+    
+    response_parts.append("\nHere are Istanbul's must-visit museums:")
+    response_parts.append("• **Hagia Sophia** (Sultanahmet): Byzantine and Ottoman marvel")
+    response_parts.append("• **Topkapi Palace** (Sultanahmet): Ottoman imperial palace")
+    response_parts.append("• **Istanbul Modern** (Beyoğlu): Contemporary Turkish art")
+    response_parts.append("• **Dolmabahçe Palace** (Beşiktaş): 19th-century Ottoman palace")
+    response_parts.append("• **Turkish and Islamic Arts Museum** (Sultanahmet): Arts & Crafts collection")
+    response_parts.append("• **Galata Tower Museum** (Beyoğlu): Historical tower with panoramic views")
+    response_parts.append("• **Archaeological Museums** (Sultanahmet): 3 museums complex with ancient artifacts")
+    
+    # Add MuseumPass information if relevant
+    if any(term in original_message.lower() for term in ['museum pass', 'museumpass', 'pass', 'ticket', 'price', 'cost', 'save money']):
+        response_parts.append("\n🎫 **MuseumPass Istanbul - €105 for 5 days:**")
+        response_parts.append("• Covers **13 museums** of Ministry of Culture and Tourism")
+        response_parts.append("• Valid for **5 days** from first museum visit")
+        response_parts.append("• Enter each museum **once**")
+        response_parts.append("• **Time restrictions**: Galata Tower (until 18:14), Archaeological & Turkish Islamic Art Museums (until 18:45)")
+        response_parts.append("• **Individual prices**: Galata Tower €30, Turkish Islamic Arts €17, Archaeological €15, etc.")
+        response_parts.append("• **Savings**: Significant if visiting 4+ museums")
+    
+    # Add Istanbul City Card info if mentioned
+    if any(term in original_message.lower() for term in ['city card', 'transportation', 'transport']):
+        response_parts.append("\n🚇 **Istanbul City Card:**")
+        response_parts.append("• **Available at**: City Card sales points & ticket vending machines around the city")
+        response_parts.append("• **Benefits**: Public transportation + discounts at attractions & restaurants")
+    
+    return '\n'.join(response_parts)
+
+def build_intent_context(intent, location_info):
+    """Build enhanced context for AI responses"""
+    context_parts = []
+    context_parts.append(f"USER_INTENT: {intent.intent_type.value}")
+    context_parts.append(f"INTENT_CONFIDENCE: {intent.confidence:.2f}")
+    context_parts.append(f"MATCHED_KEYWORDS: {', '.join(intent.keywords_matched)}")
+    
+    if location_info:
+        context_parts.append(f"USER_DISTRICT: {location_info.get('district', 'Unknown')}")
+        context_parts.append(f"USER_COORDINATES: {location_info.get('latitude')}, {location_info.get('longitude')}")
+    
+    if intent.specific_requirements:
+        for req_type, values in intent.specific_requirements.items():
+            context_parts.append(f"{req_type.upper()}_PREFERENCE: {', '.join(values)}")
+    
+    if intent.distance_preference:
+        context_parts.append(f"DISTANCE_PREFERENCE: {intent.distance_preference}")
+    
+    enhanced_prompt = f"""
+LOCATION INTENT DETECTED:
+{chr(10).join(context_parts)}
+
+Please provide a location-aware response that:
+1. Acknowledges their specific intent and location context
+2. Provides relevant, practical recommendations
+3. Includes specific details like opening hours, directions, or booking info
+4. Suggests complementary activities or nearby attractions
+5. Maintains a friendly, helpful tone
+"""
+    
+    return enhanced_prompt
 
 # === Streaming Chat Endpoint ===
 @app.post("/ai/stream")
@@ -1897,231 +2565,3 @@ async def chat_with_ai_streaming(
             "Access-Control-Allow-Headers": "Content-Type",
         }
     )
-
-# === Health Check ===
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "components": {
-            "database": True,  # Your PostgreSQL database is working
-            "ai_system": "ultra_specialized_istanbul_ai",  # Your custom AI system (no OpenAI)
-            "redis": redis_available,
-            "location_services": True,  # Location features are implemented
-            "restaurant_db": True,  # 143 restaurants loaded
-            "museum_db": True,  # Museum data available
-            "openai": False  # You are NOT using OpenAI
-        },
-        "system_info": {
-            "ai_system": "ultra_specialized_istanbul_ai",
-            "version": "2.0.0",
-            "enhanced_query_understanding": ENHANCED_QUERY_UNDERSTANDING_ENABLED,
-            "llm_free": True,  # No external LLMs used
-            "restaurants_loaded": 143,
-            "museums_loaded": 40
-        }
-    }
-
-# === Restaurant Database Test Endpoint ===
-@app.get("/api/restaurants/stats")
-async def get_restaurant_database_stats():
-    """Get statistics about the restaurant database for testing"""
-    try:
-        if not RESTAURANT_SERVICE_ENABLED or not restaurant_service:
-            return {
-                "success": False,
-                "error": "Restaurant service not available"
-            }
-        
-        stats = restaurant_service.get_restaurant_stats()
-        
-        return {
-            "success": True,
-            "database_stats": stats,
-            "message": f"Restaurant database contains {stats['total']} restaurants across {len(stats['by_district'])} districts"
-        }
-        
-    except Exception as e:
-        print(f"❌ Restaurant stats error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-@app.post("/api/restaurants/search")
-async def search_restaurants_endpoint(
-    district: Optional[str] = None,
-    cuisine: Optional[str] = None, 
-    budget: Optional[str] = None,
-    keyword: Optional[str] = None,
-    limit: int = 5
-):
-    """Search restaurants in the database"""
-    try:
-        if not RESTAURANT_SERVICE_ENABLED or not restaurant_service:
-            return {
-                "success": False,
-                "error": "Restaurant service not available"
-            }
-        
-        restaurants = restaurant_service.search_restaurants(
-            district=district,
-            cuisine=cuisine,
-            budget=budget,
-            keyword=keyword,
-            limit=limit
-        )
-        
-        # Convert to dict format for JSON response
-        restaurant_data = []
-        for r in restaurants:
-            restaurant_data.append({
-                "name": r.name,
-                "district": r.district,
-                "cuisine": r.cuisine,
-                "rating": r.rating,
-                "price_level": r.price_level,
-                "budget": r.budget,
-                "description": r.description,
-                "address": r.address,
-                "place_id": r.place_id
-            })
-        
-        return {
-            "success": True,
-            "restaurants": restaurant_data,
-            "count": len(restaurant_data),
-            "search_criteria": {
-                "district": district,
-                "cuisine": cuisine,
-                "budget": budget,
-                "keyword": keyword,
-                "limit": limit
-            }
-        }
-        
-    except Exception as e:
-        print(f"❌ Restaurant search error: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-# === Direct Location Endpoints (Temporary Fix) ===
-from pydantic import BaseModel, Field
-from typing import Dict, Any, Optional
-
-class LocationValidationRequest(BaseModel):
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
-    location_name: Optional[str] = None
-
-@app.get("/api/location/health")
-async def location_health_direct():
-    """Direct location health endpoint"""
-    return {
-        "status": "healthy",
-        "service": "location_api_direct",
-        "message": "Location services operational",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.post("/api/location/validate")
-async def validate_location_direct(request: LocationValidationRequest):
-    """Direct location validation endpoint"""
-    try:
-        # Istanbul bounds
-        ISTANBUL_BOUNDS = {
-            "north": 41.2,
-            "south": 40.8,
-            "east": 29.3,
-            "west": 28.5
-        }
-        
-        lat, lng = request.latitude, request.longitude
-        
-        # Basic validation
-        if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-            return {
-                "valid": False,
-                "in_istanbul": False,
-                "error": "invalid_coordinates"
-            }
-        
-        # Check Istanbul bounds
-        in_istanbul = (
-            ISTANBUL_BOUNDS["south"] <= lat <= ISTANBUL_BOUNDS["north"] and
-            ISTANBUL_BOUNDS["west"] <= lng <= ISTANBUL_BOUNDS["east"]
-        )
-        
-        # Determine district
-        district = "Unknown"
-        if in_istanbul:
-            if lat > 41.03 and lng < 28.98:
-                district = "Beyoğlu"
-            elif lat < 41.01 and lng < 28.98:
-                district = "Fatih/Sultanahmet"  
-            elif lat > 41.03 and lng > 28.98:
-                district = "Beşiktaş"
-            elif lng > 29.0:
-                district = "Kadıköy"
-            else:
-                district = "Central Istanbul"
-        
-        return {
-            "valid": True,
-            "in_istanbul": in_istanbul,
-            "accuracy_meters": 50 if in_istanbul else 1000,
-            "location_name": request.location_name,
-            "coordinates": {"latitude": lat, "longitude": lng},
-            "district": district,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        return {
-            "valid": False,
-            "error": str(e),
-            "in_istanbul": False
-        }
-
-print("✅ Direct location endpoints added to main app")
-
-# === Correct System Status Endpoint ===
-@app.get("/system-status")
-async def system_status():
-    """Correct system status endpoint showing actual AI Istanbul configuration"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "system": "AI Istanbul",
-        "version": "2.0.0",
-        "components": {
-            "database": True,  # PostgreSQL database working
-            "ai_system": "ultra_specialized_istanbul_ai",  # Custom AI system
-            "redis": redis_available,
-            "location_services": True,  # Location features implemented
-            "restaurant_db": True,  # 143 restaurants loaded  
-            "museum_db": True,  # Museum data available
-            "openai": False,  # NOT using OpenAI
-            "llm_free": True  # No external LLMs
-        },
-        "data_loaded": {
-            "restaurants": 143,
-            "districts": 10,
-            "museums": 40,
-            "attractions": 60
-        },
-        "features": [
-            "restaurant_discovery",
-            "location_validation", 
-            "district_mapping",
-            "poi_recommendations",
-            "route_planning",
-            "mobile_responsive"
-        ]
-    }
-
-print("✅ Correct system status endpoint added at /system-status")

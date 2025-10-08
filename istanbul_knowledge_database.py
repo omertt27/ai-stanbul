@@ -1555,7 +1555,7 @@ class IstanbulKnowledgeDatabase:
                     'Pierre_Loti_Cable_Car': '₺8 one way, ₺15 round trip'
                 },
                 'money_saving_strategies': {
-                    'Museum_Pass_Istanbul': '₺325 for 5 days - covers 12+ attractions (saves ₺200+ if visiting 4+ sites)',
+                    'Museum_Pass_Istanbul': '€105 for 5 days - covers 13 museums belonging to Türkiye Ministry of Culture and Tourism (saves significant money if visiting 4+ sites)',
                     'student_discounts': '50% off with valid ISIC card or university ID + passport',
                     'senior_discounts': '50% off for 65+ with passport proof',
                     'children_free': 'Under 12 free at most attractions, some under 8',
@@ -1575,6 +1575,157 @@ class IstanbulKnowledgeDatabase:
                     'public_toilets': '₺1-2 in most attractions, free in malls and mosques',
                     'water_fountains': 'Free water fountains in parks, mosques, and major attractions',
                     'prayer_time_discounts': 'Some restaurants offer prayer-time discounts'
+                }
+            },
+            'istanbul_city_card_complete_guide': {
+                'how_to_get_city_card': {
+                    'description': 'You can get the card by visiting Istanbul City Card sales points which are easily accessible around the city',
+                    'sales_locations': [
+                        'Istanbul City Card sales points (easily accessible around the city)',
+                        'Ticket vending machines bearing Istanbul City Card design',
+                        'Metro stations and major transport hubs',
+                        'Ferry terminals and bus stations',
+                        'Tourist information centers'
+                    ],
+                    'card_benefits': 'Public transportation, discounts at attractions, restaurants, and shopping',
+                    'top_up_locations': 'Same locations as purchase points plus many local shops'
+                }
+            },
+            'museumpass_istanbul_complete_guide': {
+                'about_museumpass': {
+                    'description': 'With MuseumPass Istanbul, you can visit 13 museums that belong to Türkiye Ministry of Culture and Tourism and enjoy your journey through history',
+                    'validity': '5 days starting from your first museum visit',
+                    'price': '€105',
+                    'entry_rules': 'You can enter each museum once with MuseumPass cards',
+                    'sales_points': 'Please click for MuseumPass Istanbul sales points'
+                },
+                'time_restrictions': {
+                    'galata_tower': 'Entry must be made no later than 18:14',
+                    'archaeological_museums': 'Entry must be made no later than 18:45',
+                    'turkish_islamic_art_museum': 'Entry must be made no later than 18:45',
+                    'night_museums': 'The card is not valid for night museums after 19:00'
+                },
+                'included_museums_detailed': {
+                    'istanbul_archaeological_museums': {
+                        'type': 'Archaeology Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': 'sanalmuze.gov.tr',
+                        'ticket_price': '15€ (Euro)',
+                        'audio_guide': '✅'
+                    },
+                    'topkapi_palace_museum': {
+                        'type': 'Palace Museum',
+                        'funding': 'State Funded',
+                        'administration': 'National Palace Museums',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Invalid',
+                        'virtual_museum': '❎',
+                        'combined_ticket_price': 'Topkapı Palace & Harem & Hagia Irene = 2400₺ (Lira)',
+                        'audio_guide': '✅'
+                    },
+                    'museum_of_turkish_and_islamic_arts': {
+                        'type': 'Arts & Crafts Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': 'sanalmuze.gov.tr',
+                        'ticket_price': '17€ (Euro)',
+                        'audio_guide': '✅'
+                    },
+                    'galata_tower_museum': {
+                        'type': 'Historical Tower Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '30€ (Euro)',
+                        'audio_guide': '✅'
+                    },
+                    'galata_mevlevi_house_museum': {
+                        'type': 'Historical House Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '7€ (Euro)',
+                        'audio_guide': '❎'
+                    },
+                    'rumeli_fortress_museum': {
+                        'type': 'Historical Fortress Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '6€ (Euro)',
+                        'audio_guide': '❎'
+                    },
+                    'maidens_tower_museum': {
+                        'type': 'Historical Monument Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '32€ (Euro)',
+                        'audio_guide': '❎'
+                    },
+                    'hagia_irene_museum': {
+                        'type': 'History Museum',
+                        'funding': 'State Funded',
+                        'administration': 'National Palace Museums',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Invalid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '900₺ (Lira)',
+                        'audio_guide': '❎'
+                    },
+                    'topkapi_palace_harem': {
+                        'type': 'Palace Museum',
+                        'funding': 'State Funded',
+                        'administration': 'National Palace Museums',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Invalid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '900₺ (Lira)',
+                        'audio_guide': '✅'
+                    },
+                    'great_palace_mosaics_museum': {
+                        'type': 'Archaeology Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': '10€ (Euro)',
+                        'audio_guide': '❎'
+                    },
+                    'turbes_museum': {
+                        'type': 'Historical Mausoleum Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': 'Free',
+                        'audio_guide': '❎'
+                    },
+                    'adam_mickiewicz_museum': {
+                        'type': 'Historical House Museum',
+                        'funding': 'State Funded',
+                        'administration': 'Provincial Culture and Tourism Directorate',
+                        'icomos_cards': 'Valid',
+                        'ipc_press_cards': 'Valid',
+                        'virtual_museum': '❎',
+                        'ticket_price': 'Free',
+                        'audio_guide': '❎'
+                    }
                 }
             },
             'transportation_ultra_comprehensive': {

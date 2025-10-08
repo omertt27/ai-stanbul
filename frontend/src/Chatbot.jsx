@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchStreamingResults, fetchLocationAwareStreamingResults } from './api/api';
+import { fetchStreamingResults } from './api/api';
 import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
 import { useLocation } from './contexts/LocationContext';
 import NavBar from './components/NavBar';
 import SearchBar from './components/SearchBar';
 import MobileOptimizer from './components/MobileOptimizer';
+import LocationPermissionModal from './components/LocationPermissionModal';
 import { 
   TypingSimulator, 
   StreamingText, 
@@ -189,6 +190,11 @@ function Chatbot() {
   const [likedMessages, setLikedMessages] = useState(new Set());
   const [dislikedMessages, setDislikedMessages] = useState(new Set());
   const [savedSessions, setSavedSessions] = useState([]);
+
+  // Location-based features state
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationRequested, setLocationRequested] = useState(false);
 
   // Speech synthesis support
   const speechSynthesis = useRef(window.speechSynthesis);
@@ -446,6 +452,26 @@ function Chatbot() {
     return true
   }
 
+  // Location handling functions
+  const handleLocationSet = (location) => {
+    setUserLocation(location);
+    setShowLocationModal(false);
+    console.log('Location set in chat:', location);
+    
+    // If there was a pending message that required location, send it now
+    if (locationRequested && input.trim()) {
+      // Small delay to let the modal close
+      setTimeout(() => {
+        handleSend();
+      }, 100);
+    }
+  };
+
+  const handleLocationModalClose = () => {
+    setShowLocationModal(false);
+    setLocationRequested(false);
+  };
+
   // Enhanced function to scroll to the bottom/newest messages
   const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
@@ -483,6 +509,16 @@ function Chatbot() {
     // Prevent sending if already loading
     if (loading) {
       return;
+    }
+
+    // Check if message requires location and user hasn't provided it yet
+    const locationKeywords = ['near me', 'nearby', 'closest', 'around me', 'where is', 'directions', 'route', 'restaurant', 'hotel', 'attraction', 'distance', 'how far'];
+    const needsLocation = locationKeywords.some(keyword => userInput.toLowerCase().includes(keyword));
+    
+    if (needsLocation && !userLocation && !locationRequested) {
+      setLocationRequested(true);
+      setShowLocationModal(true);
+      return; // Don't send the message yet, wait for location
     }
     
     // Set sending flag to prevent auto-scroll during message sending
@@ -535,7 +571,7 @@ function Chatbot() {
       console.log(`🌍 Using ${useLocationAware ? 'location-aware' : 'standard'} chat API`);
       
       if (useLocationAware) {
-        const response = await fetchLocationAwareStreamingResults(userInput, locationContext, {
+        const response = await fetchStreamingResults(userInput, {
           timeout: 60000
         });
         
@@ -1507,7 +1543,7 @@ function Chatbot() {
           {/* Chat Messages - Clean Style with Action Buttons */}
           <div className="py-1">
             {messages.map((msg, index) => (
-              <div key={index} className="mb-4 group" style={{ maxWidth: '100%' }}>
+              <div key={index} className="mb-4 group chat-message" data-testid="chat-message" style={{ maxWidth: '100%' }}>
                 <div className={`flex ${
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}>
@@ -1706,6 +1742,60 @@ function Chatbot() {
             </div>
           )}
           
+          {/* Location Status & Enable Button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', gap: '8px' }}>
+            {userLocation ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px 16px',
+                backgroundColor: 'rgba(16, 163, 127, 0.1)',
+                borderRadius: '12px',
+                fontSize: '12px',
+                color: '#10a37f',
+                border: '1px solid rgba(16, 163, 127, 0.2)'
+              }}>
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: '6px' }}>
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                📍 {userLocation.name || 'Current Location'}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowLocationModal(true)}
+                data-testid="location-btn"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                  color: '#9ca3af',
+                  border: '1px solid rgba(107, 114, 128, 0.3)',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  gap: '4px'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = 'rgba(16, 163, 127, 0.1)';
+                  e.target.style.color = '#10a37f';
+                  e.target.style.borderColor = 'rgba(16, 163, 127, 0.3)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.1)';
+                  e.target.style.color = '#9ca3af';
+                  e.target.style.borderColor = 'rgba(107, 114, 128, 0.3)';
+                }}
+              >
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Enable Location
+              </button>
+            )}
+          </div>
+
           {/* Enhanced SearchBar Component */}
           <div className="kam-input-wrapper">
             <SearchBar
@@ -1772,6 +1862,13 @@ function Chatbot() {
         </div>
         </div>
       </div>
+
+      {/* Location Permission Modal */}
+      <LocationPermissionModal
+        isOpen={showLocationModal}
+        onClose={handleLocationModalClose}
+        onLocationSet={handleLocationSet}
+      />
     </div>
   );
 }

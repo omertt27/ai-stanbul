@@ -295,6 +295,8 @@ const NavBar = ({ hideLogo = false }) => {
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-start' }}>
               <button
                 onClick={toggleBurgerMenu}
+                className="hamburger"
+                data-testid="mobile-menu"
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -388,6 +390,8 @@ const NavBar = ({ hideLogo = false }) => {
           {/* Burger Menu Dropdown */}
           {isBurgerMenuOpen && (
             <div 
+              className="mobile-menu"
+              data-testid="mobile-nav-menu"
               data-burger-menu="true"
               style={{
                 position: 'fixed',
