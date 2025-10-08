@@ -2228,8 +2228,14 @@ class GooglePlacesClient:
                     filtered_restaurants.append(r)
             selected_restaurants = filtered_restaurants
         
-        # Limit to maximum 5 restaurants
-        limited_restaurants = selected_restaurants[:5]
+        # For restaurant integration service, return all restaurants
+        # For regular API calls, limit to reasonable number
+        if location is None and keyword is None:
+            # Return all restaurants for data integration
+            limited_restaurants = selected_restaurants
+        else:
+            # Limit to maximum 10 restaurants for specific searches
+            limited_restaurants = selected_restaurants[:10]
         
         return {
             "status": "OK",

@@ -242,6 +242,20 @@ try:
 except ImportError as e:
     print(f"⚠️ Enhanced services not available: {e}")
     ENHANCED_SERVICES_ENABLED = False
+
+# --- Import Restaurant Integration Service ---
+try:
+    from restaurant_integration_service import restaurant_service, RestaurantRecommendation
+    RESTAURANT_SERVICE_ENABLED = True
+    print("✅ Restaurant integration service imported successfully")
+    
+    # Get restaurant stats for logging
+    stats = restaurant_service.get_restaurant_stats()
+    print(f"📊 Restaurant Database: {stats['total']} restaurants across {len(stats['by_district'])} districts")
+except ImportError as e:
+    print(f"⚠️ Restaurant integration service not available: {e}")
+    RESTAURANT_SERVICE_ENABLED = False
+    restaurant_service = None
     
     # Create dummy services to prevent errors
     class DummyEnhancedService:
@@ -855,6 +869,42 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
         if result.get('success'):
             ai_response = result['response']
             
+            # 🍽️ RESTAURANT DATA INTEGRATION
+            # Check if this is a restaurant query and enhance with real restaurant data
+            if RESTAURANT_SERVICE_ENABLED and query_analysis.get('intent') in ['find_restaurant', 'find_cafe']:
+                try:
+                    print("🍽️ Detected restaurant query - integrating restaurant database...")
+                    
+                    # Extract search parameters from entities
+                    entities = query_analysis.get('entities', {})
+                    district = entities.get('districts', [None])[0] if entities.get('districts') else None
+                    cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
+                    budget = entities.get('budget', [None])[0] if entities.get('budget') else None
+                    
+                    # Search restaurants in database
+                    restaurants = restaurant_service.search_restaurants(
+                        district=district,
+                        cuisine=cuisine,
+                        budget=budget,
+                        keyword=None,
+                        limit=3
+                    )
+                    
+                    if restaurants:
+                        # Replace AI response with restaurant-specific response
+                        restaurant_response = restaurant_service.format_restaurant_response(
+                            restaurants, query_analysis
+                        )
+                        ai_response = restaurant_response
+                        print(f"✅ Enhanced response with {len(restaurants)} restaurant recommendations")
+                        
+                        # Boost confidence for restaurant queries
+                        confidence = min(confidence + 0.15, 0.95)
+                        
+                except Exception as e:
+                    print(f"⚠️ Restaurant integration error: {e}")
+                    # Continue with original AI response
+            
             # Calculate quality score based on confidence and system features
             confidence = result.get('confidence', 0.7)
             quality_score = min(confidence * 100, 95)  # Cap at 95% for rule-based systems
@@ -971,6 +1021,27 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
         
         if result.get('success'):
             ai_response = result['response']
+            
+            # 🍽️ RESTAURANT DATA INTEGRATION (Simple version)
+            if RESTAURANT_SERVICE_ENABLED and query_analysis.get('intent') in ['find_restaurant', 'find_cafe']:
+                try:
+                    # Simple restaurant search based on detected entities
+                    entities = query_analysis.get('entities', {})
+                    district = entities.get('districts', [None])[0] if entities.get('districts') else None
+                    cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
+                    
+                    restaurants = restaurant_service.search_restaurants(
+                        district=district,
+                        cuisine=cuisine,
+                        limit=2
+                    )
+                    
+                    if restaurants:
+                        ai_response = restaurant_service.format_restaurant_response(restaurants)
+                        print(f"✅ Simple restaurant integration: {len(restaurants)} restaurants")
+                        
+                except Exception as e:
+                    print(f"⚠️ Simple restaurant integration error: {e}")
             
             print(f"✅ Ultra-Specialized AI response (simple) - Session: {session_id}, "
                   f"Confidence: {result.get('confidence', 0.7):.2f}, "
@@ -1678,3 +1749,88 @@ async def health_check():
         "enhanced_query_understanding": ENHANCED_QUERY_UNDERSTANDING_ENABLED,
         "version": "2.0.0"
     }
+
+# === Restaurant Database Test Endpoint ===
+@app.get("/api/restaurants/stats")
+async def get_restaurant_database_stats():
+    """Get statistics about the restaurant database for testing"""
+    try:
+        if not RESTAURANT_SERVICE_ENABLED or not restaurant_service:
+            return {
+                "success": False,
+                "error": "Restaurant service not available"
+            }
+        
+        stats = restaurant_service.get_restaurant_stats()
+        
+        return {
+            "success": True,
+            "database_stats": stats,
+            "message": f"Restaurant database contains {stats['total']} restaurants across {len(stats['by_district'])} districts"
+        }
+        
+    except Exception as e:
+        print(f"❌ Restaurant stats error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/api/restaurants/search")
+async def search_restaurants_endpoint(
+    district: Optional[str] = None,
+    cuisine: Optional[str] = None, 
+    budget: Optional[str] = None,
+    keyword: Optional[str] = None,
+    limit: int = 5
+):
+    """Search restaurants in the database"""
+    try:
+        if not RESTAURANT_SERVICE_ENABLED or not restaurant_service:
+            return {
+                "success": False,
+                "error": "Restaurant service not available"
+            }
+        
+        restaurants = restaurant_service.search_restaurants(
+            district=district,
+            cuisine=cuisine,
+            budget=budget,
+            keyword=keyword,
+            limit=limit
+        )
+        
+        # Convert to dict format for JSON response
+        restaurant_data = []
+        for r in restaurants:
+            restaurant_data.append({
+                "name": r.name,
+                "district": r.district,
+                "cuisine": r.cuisine,
+                "rating": r.rating,
+                "price_level": r.price_level,
+                "budget": r.budget,
+                "description": r.description,
+                "address": r.address,
+                "place_id": r.place_id
+            })
+        
+        return {
+            "success": True,
+            "restaurants": restaurant_data,
+            "count": len(restaurant_data),
+            "search_criteria": {
+                "district": district,
+                "cuisine": cuisine,
+                "budget": budget,
+                "keyword": keyword,
+                "limit": limit
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ Restaurant search error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

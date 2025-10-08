@@ -64,6 +64,15 @@ except ImportError as e:
             self.budget_level = "medium"
             self.interests = []
 
+# Import the new comprehensive domain system
+try:
+    from services.comprehensive_domain_system import ComprehensiveDomainSystem, IstanbulDomain
+    COMPREHENSIVE_DOMAIN_SYSTEM_AVAILABLE = True
+    print("✅ Comprehensive Domain System loaded successfully!")
+except ImportError as e:
+    print(f"⚠️ Comprehensive Domain System not available: {e}")
+    COMPREHENSIVE_DOMAIN_SYSTEM_AVAILABLE = False
+
 # Database Integration Classes
 class IstanbulDatabaseManager:
     """Enhanced database manager for Istanbul AI system"""
@@ -304,6 +313,20 @@ class UltraSpecializedIstanbulIntelligence:
         """Initialize the enhanced Istanbul AI system"""
         self.db_manager = IstanbulDatabaseManager()
         
+        # Initialize comprehensive domain system
+        if COMPREHENSIVE_DOMAIN_SYSTEM_AVAILABLE:
+            try:
+                self.domain_system = ComprehensiveDomainSystem()
+                print("🎯 Comprehensive Domain System initialized successfully")
+                self.use_domain_system = True
+            except Exception as e:
+                print(f"⚠️ Error initializing Comprehensive Domain System: {e}")
+                self.domain_system = None
+                self.use_domain_system = False
+        else:
+            self.domain_system = None
+            self.use_domain_system = False
+        
         # Initialize complete query processing pipeline (retrieval-first)
         if COMPLETE_PIPELINE_AVAILABLE:
             try:
@@ -329,18 +352,51 @@ class UltraSpecializedIstanbulIntelligence:
         else:
             self.query_processor = None
             
-        print("🏛️ Ultra-Specialized Istanbul AI System Enhanced v3.0 initialized (NLP-Powered, No LLMs)")
+        print("🏛️ Ultra-Specialized Istanbul AI System Enhanced v4.0 initialized (Domain-Powered, No LLMs)")
     
     def process_istanbul_query(self, query: str, user_context: Dict = None) -> Dict[str, Any]:
-        """Process Istanbul query using complete retrieval-first pipeline (no LLMs required)"""
+        """Process Istanbul query using comprehensive domain system (no LLMs required)"""
         start_time = time.time()
         
         if user_context is None:
             user_context = {}
         
         try:
-            # Use complete query processing pipeline if available (preferred)
-            if self.use_complete_pipeline and self.query_pipeline:
+            # Use comprehensive domain system as primary handler
+            if self.use_domain_system and self.domain_system:
+                print(f"🎯 Using Comprehensive Domain System for: '{query[:50]}...'")
+                
+                # Extract entities from query context if available
+                entities = user_context.get('extracted_entities', {})
+                if not entities:
+                    # Basic entity extraction from query
+                    entities = self._extract_basic_entities(query)
+                
+                # Detect domain and generate response
+                domain, confidence = self.domain_system.detect_domain(query, entities)
+                domain_response = self.domain_system.generate_domain_response(domain, query, entities, user_context)
+                
+                # Enhance with AI services if available
+                if ENHANCEMENT_SERVICES_AVAILABLE and self.db_manager.enhancement_service:
+                    enhanced_result = self.db_manager.get_enhanced_recommendations(query, user_context)
+                    domain_response = self._merge_domain_with_enhancements(domain_response, enhanced_result)
+                
+                processing_time = time.time() - start_time
+                domain_response['processing_time'] = processing_time
+                domain_response['system_version'] = 'v4.0_comprehensive_domains'
+                domain_response['uses_llm'] = False
+                domain_response['domain_features'] = [
+                    "domain_detection",
+                    "entity_extraction", 
+                    "specialized_prompts",
+                    "context_enhancement",
+                    "followup_suggestions"
+                ]
+                
+                return domain_response
+            
+            # Fallback to complete query processing pipeline
+            elif self.use_complete_pipeline and self.query_pipeline:
                 print(f"🚀 Using Complete Query Processing Pipeline for: '{query[:50]}...'")
                 
                 # Process through complete pipeline
