@@ -670,140 +670,1112 @@ class ReportGenerator:
         
         return report_file
     
-    def generate_recommendations(self, results: Dict[str, Dict]) -> List[str]:
-        """Generate performance recommendations based on test results"""
+    def generate_enhanced_mobile_report(self, results: Dict[str, Any]) -> str:
+        """Generate enhanced mobile location testing report"""
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Enhanced Mobile Location Testing Report - AI Istanbul</title>
+            <style>
+                {self.get_enhanced_css()}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🚀 Enhanced Mobile Location Testing Report</h1>
+                    <div class="meta-info">
+                        <p><strong>AI Istanbul Project</strong></p>
+                        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                        <p>Test Duration: {results.get('summary', {}).get('total_test_time_seconds', 0)} seconds</p>
+                    </div>
+                </div>
+
+                {self._generate_enhanced_summary_section(results)}
+                {self._generate_gps_testing_section(results)}
+                {self._generate_mobile_ux_section(results)}
+                {self._generate_chat_scenarios_section(results)}
+                {self._generate_performance_section(results)}
+                {self._generate_accessibility_section(results)}
+                {self._generate_recommendations_section(results)}
+                
+                <div class="footer">
+                    <p>AI Istanbul Enhanced Mobile Location Testing Suite v2.0</p>
+                    <p>For detailed analysis and improvements, see recommendations section above.</p>
+                </div>
+            </div>
+            
+            <script>
+                {self.get_enhanced_javascript()}
+            </script>
+        </body>
+        </html>
+        """
+        
+        return html_content
+
+    def _generate_enhanced_summary_section(self, results: Dict[str, Any]) -> str:
+        """Generate enhanced summary section"""
+        
+        summary = results.get('summary', {})
+        
+        return f"""
+        <div class="section">
+            <h2>📊 Test Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card success">
+                    <h3>{summary.get('overall_success_rate', 0)}%</h3>
+                    <p>Overall Success Rate</p>
+                </div>
+                <div class="summary-card info">
+                    <h3>{summary.get('total_locations_tested', 0)}</h3>
+                    <p>Locations Tested</p>
+                </div>
+                <div class="summary-card info">
+                    <h3>{summary.get('total_devices_tested', 0)}</h3>
+                    <p>Devices Tested</p>
+                </div>
+                <div class="summary-card {'warning' if summary.get('total_errors', 0) > 0 else 'success'}">
+                    <h3>{summary.get('total_errors', 0)}</h3>
+                    <p>Total Errors</p>
+                </div>
+            </div>
+        </div>
+        """
+
+    def _generate_gps_testing_section(self, results: Dict[str, Any]) -> str:
+        """Generate GPS testing section"""
+        
+        gps_results = results.get('real_world_gps', {})
+        location_tests = gps_results.get('location_accuracy_tests', {})
+        edge_cases = gps_results.get('edge_case_handling', {})
+        distance_tests = gps_results.get('distance_calculations', {})
+        
+        html = """
+        <div class="section">
+            <h2>🛰️ Real-World GPS Testing</h2>
+            
+            <div class="subsection">
+                <h3>📍 Istanbul Location Accuracy</h3>
+                <div class="location-grid">
+        """
+        
+        for location_name, test_data in location_tests.items():
+            success = test_data.get('validation_success', False)
+            response_time = test_data.get('response_time_ms', 0)
+            district = test_data.get('district', 'Unknown')
+            
+            status_class = 'success' if success else 'error'
+            html += f"""
+                <div class="location-card {status_class}">
+                    <h4>{location_name}</h4>
+                    <p><strong>District:</strong> {district}</p>
+                    <p><strong>Status:</strong> {'✅ Valid' if success else '❌ Failed'}</p>
+                    <p><strong>Response:</strong> {response_time:.1f}ms</p>
+                    <p><strong>Nearby:</strong> {test_data.get('nearby_recommendations', 0)} attractions</p>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>⚠️ Edge Case Handling</h3>
+                <div class="edge-case-list">
+        """
+        
+        for case_name, case_data in edge_cases.items():
+            handled = case_data.get('handled_correctly', False)
+            expected = case_data.get('expected_error', 'Unknown')
+            
+            html += f"""
+                <div class="edge-case {'success' if handled else 'error'}">
+                    <strong>{case_name}</strong>
+                    <span class="status">{'✅ Handled' if handled else '❌ Not Handled'}</span>
+                    <small>Expected: {expected}</small>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>📏 Distance Calculation Accuracy</h3>
+                <div class="distance-tests">
+        """
+        
+        for route_name, dist_data in distance_tests.items():
+            accuracy = dist_data.get('accuracy_percentage', 0)
+            calculated = dist_data.get('calculated_distance_km', 0)
+            api_distance = dist_data.get('api_distance_km', 0)
+            
+            accuracy_class = 'success' if accuracy > 95 else 'warning' if accuracy > 90 else 'error'
+            
+            html += f"""
+                <div class="distance-test {accuracy_class}">
+                    <strong>{route_name.replace('_', ' → ')}</strong>
+                    <div class="distance-details">
+                        <span>Calculated: {calculated}km</span>
+                        <span>API: {api_distance}km</span>
+                        <span>Accuracy: {accuracy}%</span>
+                    </div>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+        </div>
+        """
+        
+        return html
+
+    def _generate_mobile_ux_section(self, results: Dict[str, Any]) -> str:
+        """Generate mobile UX testing section"""
+        
+        mobile_results = results.get('enhanced_mobile_ux', {})
+        device_performance = mobile_results.get('device_performance', {})
+        touch_interactions = mobile_results.get('touch_interactions', {})
+        offline_behavior = mobile_results.get('offline_behavior', {})
+        
+        html = """
+        <div class="section">
+            <h2>📱 Enhanced Mobile UX Testing</h2>
+            
+            <div class="subsection">
+                <h3>⚡ Device Performance</h3>
+                <div class="device-grid">
+        """
+        
+        for device_name, perf_data in device_performance.items():
+            load_time = perf_data.get('load_time_ms', 0)
+            memory_usage = perf_data.get('memory_usage_mb', 0)
+            performance_score = perf_data.get('performance_score', 'unknown')
+            
+            perf_class = 'success' if performance_score == 'good' else 'warning'
+            
+            html += f"""
+                <div class="device-card {perf_class}">
+                    <h4>{device_name}</h4>
+                    <p><strong>Load Time:</strong> {load_time:.1f}ms</p>
+                    <p><strong>Memory:</strong> {memory_usage:.1f}MB</p>
+                    <p><strong>Viewport:</strong> {perf_data.get('viewport', 'Unknown')}</p>
+                    <div class="score-badge {perf_class}">{performance_score}</div>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>👆 Touch Interactions</h3>
+                <div class="touch-results">
+        """
+        
+        for device_name, touch_data in touch_interactions.items():
+            html += f"""<div class="touch-device">
+                <h4>{device_name}</h4>
+                <div class="touch-tests">
+            """
+            
+            touch_tests = [
+                ('tap_accuracy', 'Tap Accuracy'),
+                ('swipe_gestures', 'Swipe Gestures'),
+                ('touch_targets_adequate', 'Touch Targets'),
+                ('long_press', 'Long Press')
+            ]
+            
+            for test_key, test_name in touch_tests:
+                passed = touch_data.get(test_key, False)
+                status_class = 'success' if passed else 'warning'
+                status_text = '✅ Pass' if passed else '⚠️ Needs Work'
+                
+                html += f"""
+                    <div class="touch-test {status_class}">
+                        <span>{test_name}</span>
+                        <span class="status">{status_text}</span>
+                    </div>
+                """
+            
+            html += "</div></div>"
+        
+        html += """
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>🌐 Offline Behavior</h3>
+                <div class="offline-results">
+        """
+        
+        offline_tests = [
+            ('offline_page_loads', 'Page Loads Offline'),
+            ('cache_effectiveness', 'Cache Effectiveness'),
+            ('offline_message_shown', 'Offline Message'),
+            ('graceful_degradation', 'Graceful Degradation')
+        ]
+        
+        for test_key, test_name in offline_tests:
+            passed = offline_behavior.get(test_key, False)
+            status_class = 'success' if passed else 'error'
+            status_text = '✅ Working' if passed else '❌ Failed'
+            
+            html += f"""
+                <div class="offline-test {status_class}">
+                    <span>{test_name}</span>
+                    <span class="status">{status_text}</span>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+        </div>
+        """
+        
+        return html
+
+    def _generate_chat_scenarios_section(self, results: Dict[str, Any]) -> str:
+        """Generate location-based chat scenarios section"""
+        
+        chat_results = results.get('location_based_chat', {})
+        location_responses = chat_results.get('location_specific_responses', {})
+        
+        html = """
+        <div class="section">
+            <h2>💬 Location-Based Chat Scenarios</h2>
+        """
+        
+        for location_name, scenario_data in location_responses.items():
+            location = scenario_data.get('location', {})
+            queries = scenario_data.get('query_responses', [])
+            context_maintained = scenario_data.get('context_maintained', False)
+            recommendations_relevant = scenario_data.get('recommendations_relevant', False)
+            
+            html += f"""
+            <div class="subsection">
+                <h3>📍 {location_name}</h3>
+                <div class="location-info">
+                    <p><strong>Coordinates:</strong> {location.get('lat', 0):.4f}, {location.get('lng', 0):.4f}</p>
+                    <p><strong>Context Maintained:</strong> {'✅ Yes' if context_maintained else '❌ No'}</p>
+                    <p><strong>Relevant Recommendations:</strong> {'✅ Yes' if recommendations_relevant else '❌ No'}</p>
+                </div>
+                
+                <div class="chat-queries">
+            """
+            
+            for query_data in queries:
+                query = query_data.get('query', '')
+                response_length = query_data.get('response_length', 0)
+                location_context = query_data.get('location_context', False)
+                specific_info = query_data.get('specific_info', False)
+                preview = query_data.get('response_preview', '')
+                
+                context_class = 'success' if location_context else 'warning'
+                info_class = 'success' if specific_info else 'warning'
+                
+                html += f"""
+                    <div class="chat-query">
+                        <div class="query"><strong>Q:</strong> {query}</div>
+                        <div class="response-info">
+                            <span class="length">Length: {response_length} chars</span>
+                            <span class="context {context_class}">Context: {'✅' if location_context else '❌'}</span>
+                            <span class="specific {info_class}">Specific: {'✅' if specific_info else '❌'}</span>
+                        </div>
+                        <div class="response-preview">{preview}</div>
+                    </div>
+                """
+            
+            html += """
+                </div>
+            </div>
+            """
+        
+        html += "</div>"
+        return html
+
+    def _generate_performance_section(self, results: Dict[str, Any]) -> str:
+        """Generate performance under load section"""
+        
+        perf_results = results.get('performance_under_load', {})
+        concurrent_requests = perf_results.get('concurrent_requests', {})
+        memory_leaks = perf_results.get('memory_leaks', {})
+        network_conditions = perf_results.get('network_conditions', {})
+        
+        html = """
+        <div class="section">
+            <h2>⚡ Performance Under Load</h2>
+            
+            <div class="subsection">
+                <h3>🔄 Concurrent Request Testing</h3>
+                <div class="concurrent-stats">
+        """
+        
+        total_requests = concurrent_requests.get('total_requests', 0)
+        successful_requests = concurrent_requests.get('successful_requests', 0)
+        success_rate = concurrent_requests.get('success_rate', 0)
+        avg_response_time = concurrent_requests.get('average_response_time', 0)
+        
+        html += f"""
+                    <div class="stat-card">
+                        <h4>Total Requests</h4>
+                        <p class="stat-value">{total_requests}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Success Rate</h4>
+                        <p class="stat-value {'success' if success_rate > 90 else 'warning'}">{success_rate:.1f}%</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Avg Response Time</h4>
+                        <p class="stat-value">{avg_response_time:.2f}s</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>🧠 Memory Leak Detection</h3>
+        """
+        
+        if memory_leaks:
+            initial_memory = memory_leaks.get('initial_memory_mb', 0)
+            final_memory = memory_leaks.get('final_memory_mb', 0)
+            memory_trend = memory_leaks.get('memory_trend', 'unknown')
+            potential_leak = memory_leaks.get('potential_leak', False)
+            
+            trend_class = 'error' if potential_leak else 'success'
+            
+            html += f"""
+                <div class="memory-analysis {trend_class}">
+                    <p><strong>Initial Memory:</strong> {initial_memory:.1f}MB</p>
+                    <p><strong>Final Memory:</strong> {final_memory:.1f}MB</p>
+                    <p><strong>Trend:</strong> {memory_trend}</p>
+                    <p><strong>Potential Leak:</strong> {'⚠️ Yes' if potential_leak else '✅ No'}</p>
+                </div>
+            """
+        else:
+            html += "<p>Memory leak testing not available</p>"
+        
+        html += """
+            </div>
+            
+            <div class="subsection">
+                <h3>🌐 Network Conditions</h3>
+                <div class="network-tests">
+        """
+        
+        for condition_name, condition_data in network_conditions.items():
+            load_time = condition_data.get('load_time_ms', 0)
+            acceptable = condition_data.get('acceptable_performance', False)
+            
+            perf_class = 'success' if acceptable else 'warning'
+            
+            html += f"""
+                <div class="network-test {perf_class}">
+                    <h4>{condition_name}</h4>
+                    <p>Load Time: {load_time:.1f}ms</p>
+                    <p>Performance: {'✅ Acceptable' if acceptable else '⚠️ Slow'}</p>
+                </div>
+            """
+        
+        html += """
+                </div>
+            </div>
+        </div>
+        """
+        
+        return html
+
+    def _generate_accessibility_section(self, results: Dict[str, Any]) -> str:
+        """Generate accessibility testing section"""
+        
+        mobile_results = results.get('enhanced_mobile_ux', {})
+        accessibility_results = mobile_results.get('accessibility', {})
+        
+        html = """
+        <div class="section">
+            <h2>♿ Accessibility Testing</h2>
+        """
+        
+        if accessibility_results:
+            for device_name, access_data in accessibility_results.items():
+                html += f"""
+                <div class="subsection">
+                    <h3>📱 {device_name}</h3>
+                    <div class="accessibility-tests">
+                """
+                
+                access_tests = [
+                    ('proper_headings', 'Proper Headings'),
+                    ('alt_text_present', 'Alt Text Present'),
+                    ('keyboard_navigation', 'Keyboard Navigation'),
+                    ('aria_labels', 'ARIA Labels')
+                ]
+                
+                for test_key, test_name in access_tests:
+                    passed = access_data.get(test_key, False)
+                    status_class = 'success' if passed else 'error'
+                    status_text = '✅ Pass' if passed else '❌ Fail'
+                    
+                    html += f"""
+                        <div class="accessibility-test {status_class}">
+                            <span>{test_name}</span>
+                            <span class="status">{status_text}</span>
+                        </div>
+                    """
+                
+                html += """
+                    </div>
+                </div>
+                """
+        else:
+            html += "<p>Accessibility testing results not available</p>"
+        
+        html += "</div>"
+        return html
+
+    def _generate_recommendations_section(self, results: Dict[str, Any]) -> str:
+        """Generate recommendations section based on test results"""
         
         recommendations = []
         
-        # Analyze response times
-        response_times = []
-        for test_type in ['load_test', 'stress_test', 'endurance_test']:
-            if test_type in results and results[test_type]:
-                result = results[test_type]
-                if 'results' in result and 'avg_response_time_ms' in result['results']:
-                    response_times.append(result['results']['avg_response_time_ms'])
-                elif 'average_response_time' in result:
-                    response_times.append(result['average_response_time'])
+        # Analyze results and generate recommendations
+        gps_results = results.get('real_world_gps', {})
+        mobile_results = results.get('enhanced_mobile_ux', {})
+        chat_results = results.get('location_based_chat', {})
+        perf_results = results.get('performance_under_load', {})
         
-        if response_times:
-            avg_response_time = statistics.mean(response_times)
-            if avg_response_time > 2000:
-                recommendations.append("Consider optimizing API response times - average exceeds 2 seconds")
-            if avg_response_time > 5000:
-                recommendations.append("Critical: Response times are very high (>5s) - immediate optimization needed")
+        # GPS recommendations
+        location_tests = gps_results.get('location_accuracy_tests', {})
+        failed_locations = [name for name, data in location_tests.items() if not data.get('validation_success', False)]
         
-        # Analyze error rates
-        error_rates = []
-        for test_type in ['load_test', 'stress_test', 'endurance_test']:
-            if test_type in results and results[test_type]:
-                result = results[test_type]
-                if 'results' in result and 'error_rate' in result['results']:
-                    error_rates.append(result['results']['error_rate'])
-                elif 'error_rate' in result:
-                    error_rates.append(result['error_rate'])
+        if failed_locations:
+            recommendations.append({
+                'category': 'GPS Accuracy',
+                'priority': 'High',
+                'issue': f'Location validation failed for {len(failed_locations)} locations',
+                'recommendation': 'Implement better error handling and fallback mechanisms for GPS validation',
+                'locations': failed_locations
+            })
         
-        if error_rates:
-            max_error_rate = max(error_rates)
-            if max_error_rate > 5:
-                recommendations.append("High error rates detected - investigate and fix error sources")
-            if max_error_rate > 10:
-                recommendations.append("Critical: Error rates exceed 10% - system stability issues need immediate attention")
+        # Performance recommendations
+        device_performance = mobile_results.get('device_performance', {})
+        slow_devices = [name for name, data in device_performance.items() if data.get('performance_score') != 'good']
         
-        # Analyze throughput
-        throughputs = []
-        for test_type in ['load_test', 'stress_test']:
-            if test_type in results and results[test_type]:
-                result = results[test_type]
-                if 'results' in result and 'requests_per_second' in result['results']:
-                    throughputs.append(result['results']['requests_per_second'])
-                elif 'requests_per_second' in result:
-                    throughputs.append(result['requests_per_second'])
+        if slow_devices:
+            recommendations.append({
+                'category': 'Mobile Performance',
+                'priority': 'Medium',
+                'issue': f'Performance issues on {len(slow_devices)} devices',
+                'recommendation': 'Optimize bundle size, implement lazy loading, and improve caching strategies',
+                'devices': slow_devices
+            })
         
-        if throughputs:
-            max_throughput = max(throughputs)
-            if max_throughput < 20:
-                recommendations.append("Low throughput detected - consider scaling or performance optimization")
+        # Accessibility recommendations
+        accessibility_results = mobile_results.get('accessibility', {})
+        accessibility_issues = []
         
-        # Memory analysis for endurance test
-        if 'endurance_test' in results and results['endurance_test']:
-            memory_analysis = results['endurance_test'].get('memory_analysis', {})
-            if memory_analysis.get('potential_leak', False):
-                recommendations.append("Potential memory leak detected in endurance test - review memory usage patterns")
+        for device_name, access_data in accessibility_results.items():
+            failed_tests = [test for test, passed in access_data.items() if not passed and test != 'errors']
+            if failed_tests:
+                accessibility_issues.extend(failed_tests)
         
-        # Frontend performance
-        if 'frontend_test' in results and results['frontend_test']:
-            overall = results['frontend_test'].get('overall_metrics', {})
-            if overall.get('avg_load_time', 0) > 3000:
-                recommendations.append("Frontend load times are high - optimize bundle size and loading strategy")
-            if overall.get('total_bundle_size', 0) > 2000000:
-                recommendations.append("Large bundle size detected - consider code splitting and lazy loading")
+        if accessibility_issues:
+            recommendations.append({
+                'category': 'Accessibility',
+                'priority': 'High',
+                'issue': f'Accessibility issues found: {set(accessibility_issues)}',
+                'recommendation': 'Implement proper ARIA labels, semantic HTML, and keyboard navigation support'
+            })
         
-        # Integration test failures
-        if 'integration_test' in results and results['integration_test']:
-            failed_scenarios = [name for name, result in results['integration_test'].items() 
-                              if isinstance(result, dict) and not result.get('success', True)]
-            if failed_scenarios:
-                recommendations.append(f"Integration test failures in: {', '.join(failed_scenarios)} - fix these workflows before production")
+        # Memory leak recommendations
+        memory_leaks = perf_results.get('memory_leaks', {})
+        if memory_leaks.get('potential_leak', False):
+            recommendations.append({
+                'category': 'Memory Management',
+                'priority': 'High',
+                'issue': 'Potential memory leak detected',
+                'recommendation': 'Review event listeners cleanup, implement proper component unmounting, and optimize DOM manipulation'
+            })
         
-        # General recommendations
-        if not recommendations:
-            recommendations.append("Performance looks good! Consider implementing continuous performance monitoring")
+        # Chat context recommendations
+        location_responses = chat_results.get('location_specific_responses', {})
+        context_issues = [name for name, data in location_responses.items() if not data.get('context_maintained', False)]
         
-        recommendations.append("Set up automated performance testing in CI/CD pipeline")
-        recommendations.append("Monitor these metrics in production with alerting thresholds")
+        if context_issues:
+            recommendations.append({
+                'category': 'Chat Context',
+                'priority': 'Medium',
+                'issue': f'Location context not maintained for {len(context_issues)} locations',
+                'recommendation': 'Improve location context awareness in chat responses and implement better session state management'
+            })
         
-        return recommendations
-    
-    def generate_comprehensive_report(self) -> str:
-        """Generate comprehensive report from all available test results"""
+        html = """
+        <div class="section">
+            <h2>🎯 Recommendations & Action Items</h2>
+        """
         
-        console.print(f"\n[bold blue]📊 Generating Comprehensive Load Testing Report[/bold blue]")
+        if recommendations:
+            for rec in recommendations:
+                priority_class = rec['priority'].lower();
+                
+                html += f"""
+                <div class="recommendation {priority_class}">
+                    <div class="rec-header">
+                        <h3>{rec['category']}</h3>
+                        <span class="priority-badge {priority_class}">{rec['priority']} Priority</span>
+                    </div>
+                    <div class="rec-content">
+                        <p><strong>Issue:</strong> {rec['issue']}</p>
+                        <p><strong>Recommendation:</strong> {rec['recommendation']}</p>
+                """
+                
+                if 'locations' in rec:
+                    html += f"<p><strong>Affected Locations:</strong> {', '.join(rec['locations'])}</p>"
+                if 'devices' in rec:
+                    html += f"<p><strong>Affected Devices:</strong> {', '.join(rec['devices'])}</p>"
+                
+                html += """
+                    </div>
+                </div>
+                """
+        else:
+            html += """
+            <div class="no-recommendations">
+                <h3>🎉 Excellent Results!</h3>
+                <p>No critical issues found. The mobile location testing shows good performance across all categories.</p>
+            </div>
+            """
         
-        # Find latest results
-        result_files = self.find_latest_results()
-        console.print(f"[cyan]Found {len([f for f in result_files.values() if f])} result files[/cyan]")
-        
-        # Load results
-        results = self.load_test_results(result_files)
-        
-        if not results:
-            console.print("[red]❌ No test results found. Run some tests first![/red]")
-            return ""
-        
-        # Generate charts
-        console.print(f"[yellow]📈 Generating performance charts...[/yellow]")
-        chart_files = self.generate_performance_charts(results)
-        console.print(f"[green]✅ Generated {len(chart_files)} charts[/green]")
-        
-        # Generate HTML report
-        console.print(f"[yellow]📝 Generating HTML report...[/yellow]")
-        report_file = self.generate_html_report(results, chart_files)
-        
-        console.print(f"[bold green]✅ Comprehensive report generated: {report_file}[/bold green]")
-        console.print(f"[cyan]📁 Report directory: {os.path.abspath(self.output_dir)}[/cyan]")
-        
-        return report_file
+        html += "</div>"
+        return html
 
-def main():
-    """Main report generation execution"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='AI Istanbul Load Testing Report Generator')
-    parser.add_argument('--output-dir', default='reports', help='Output directory for reports')
-    
-    args = parser.parse_args()
-    
-    console.print(f"[bold]📊 AI Istanbul Load Testing Report Generator[/bold]")
-    
-    # Generate report
-    generator = ReportGenerator(args.output_dir)
-    report_file = generator.generate_comprehensive_report()
-    
-    if report_file:
-        console.print(f"\n[bold green]🎉 Report generation complete![/bold green]")
-        console.print(f"[cyan]Open the report: file://{os.path.abspath(report_file)}[/cyan]")
-    else:
-        console.print(f"\n[red]❌ Report generation failed[/red]")
+    def get_enhanced_css(self) -> str:
+        """Get enhanced CSS for mobile testing report"""
+        
+        return """
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .meta-info p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+        
+        .section {
+            padding: 40px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section h2 {
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        
+        .subsection {
+            margin-bottom: 30px;
+        }
+        
+        .subsection h3 {
+            color: #444;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .summary-card.success { border-left-color: #22c55e; }
+        .summary-card.warning { border-left-color: #f59e0b; }
+        .summary-card.error { border-left-color: #ef4444; }
+        .summary-card.info { border-left-color: #3b82f6; }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .summary-card.success h3 { color: #22c55e; }
+        .summary-card.warning h3 { color: #f59e0b; }
+        .summary-card.error h3 { color: #ef4444; }
+        .summary-card.info h3 { color: #3b82f6; }
+        
+        /* Location Grid */
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .location-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .location-card.success { border-left-color: #22c55e; }
+        .location-card.error { border-left-color: #ef4444; }
+        
+        .location-card h4 {
+            margin: 0 0 15px 0;
+            color: #1a1a2e;
+            font-size: 1.1em;
+        }
+        
+        .location-card p {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        /* Device Grid */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .device-card {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .device-card.success { border-left-color: #22c55e; }
+        .device-card.warning { border-left-color: #f59e0b; }
+        
+        .score-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .score-badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .score-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        /* Touch Results */
+        .touch-results {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .touch-device {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .touch-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .touch-test {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #ddd;
+        }
+        
+        .touch-test.success { border-left-color: #22c55e; }
+        .touch-test.warning { border-left-color: #f59e0b; }
+        
+        /* Chat Queries */
+        .chat-queries {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .chat-query {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .query {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a2e;
+        }
+        
+        .response-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        .response-info span.success { color: #22c55e; }
+        .response-info span.warning { color: #f59e0b; }
+        
+        .response-preview {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            font-style: italic;
+            border-left: 3px solid #e5e7eb;
+        }
+        
+        /* Recommendations */
+        .recommendation {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-left: 4px solid #ddd;
+        }
+        
+        .recommendation.high .rec-header { border-left-color: #ef4444; }
+        .recommendation.medium .rec-header { border-left-color: #f59e0b; }
+        .recommendation.low .rec-header { border-left-color: #3b82f6; }
+        
+        .priority-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-badge.high {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
+        .priority-badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .priority-badge.low {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .rec-content {
+            padding: 20px;
+        }
+        
+        .rec-content p {
+            margin: 10px 0;
+        }
+        
+        /* Statistics */
+        .concurrent-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            margin: 0;
+            font-size: 2em;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        
+        .stat-value.success { color: #22c55e; }
+        .stat-value.warning { color: #f59e0b; }
+        .stat-value.error { color: #ef4444; }
+        
+        /* Network Tests */
+        .network-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .network-test {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .network-test.success { border-left-color: #22c55e; }
+        .network-test.warning { border-left-color: #f59e0b; }
+        
+        /* Footer */
+        .footer {
+            background: #1a1a2e;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header, .section {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .location-grid, .device-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        """
 
-if __name__ == "__main__":
-    main()
+    def get_enhanced_javascript(self) -> str:
+        """Get enhanced JavaScript for mobile testing report"""
+        
+        return """
+        // Enhanced mobile testing report interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click-to-expand functionality for detailed results
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                const header = section.querySelector('h2');
+                if (header) {
+                    header.style.cursor = 'pointer';
+                    header.addEventListener('click', function() {
+                        const content = section.querySelector('.subsection');
+                        if (content) {
+                            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                        }
+                    });
+                }
+            });
+            
+            // Add smooth scrolling for navigation
+            const smoothScroll = (target) => {
+                document.querySelector(target).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            };
+            
+            // Add print functionality
+            const printBtn = document.createElement('button');
+            printBtn.textContent = '🖨️ Print Report';
+            printBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                z-index: 1000;
+            `;
+            
+            printBtn.addEventListener('click', () => window.print());
+            document.body.appendChild(printBtn);
+            
+            // Add export functionality
+            const exportBtn = document.createElement('button');
+            exportBtn.textContent = '📊 Export Data';
+            exportBtn.style.cssText = `
+                position: fixed;
+                top: 70px;
+                right: 20px;
+                background: #22c55e;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                z-index: 1000;
+            `;
+            
+            exportBtn.addEventListener('click', function() {
+                // Extract data for CSV export
+                const data = extractReportData();
+                downloadCSV(data, 'enhanced_mobile_test_results.csv');
+            });
+            
+            document.body.appendChild(exportBtn);
+            
+            function extractReportData() {
+                // Extract key metrics from the report
+                const rows = [];
+                
+                // Add summary data
+                const summaryCards = document.querySelectorAll('.summary-card');
+                summaryCards.forEach(card => {
+                    const metric = card.querySelector('p').textContent;
+                    const value = card.querySelector('h3').textContent;
+                    rows.push(['Summary', metric, value, '']);
+                });
+                
+                // Add location data
+                const locationCards = document.querySelectorAll('.location-card');
+                locationCards.forEach(card => {
+                    const name = card.querySelector('h4').textContent;
+                    const district = card.textContent.match(/District: ([^\\n]+)/)?.[1] || '';
+                    const status = card.textContent.match(/Status: ([^\\n]+)/)?.[1] || '';
+                    const responseTime = card.textContent.match(/Response: ([^\\n]+)/)?.[1] || '';
+                    rows.push(['Location', name, district, status, responseTime]);
+                });
+                
+                return rows;
+            }
+            
+            function downloadCSV(data, filename) {
+                const csv = data.map(row => row.join(',')).join('\\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+            
+            // Add progress indicators for test results
+            const progressBars = document.querySelectorAll('.stat-value');
+            progressBars.forEach(bar => {
+                const value = parseFloat(bar.textContent);
+                if (value && value <= 100) {
+                    // Add visual progress indicator
+                    const progress = document.createElement('div');
+                    progress.style.cssText = `
+                        width: 100%;
+                        height: 4px;
+                        background: #e5e7eb;
+                        border-radius: 2px;
+                        margin-top: 8px;
+                        overflow: hidden;
+                    `;
+                    
+                    const fill = document.createElement('div');
+                    fill.style.cssText = `
+                        width: ${value}%;
+                        height: 100%;
+                        background: ${value > 90 ? '#22c55e' : value > 70 ? '#f59e0b' : '#ef4444'};
+                        transition: width 0.3s ease;
+                    `;
+                    
+                    progress.appendChild(fill);
+                    bar.parentNode.appendChild(progress);
+                }
+            });
+        });
+        """

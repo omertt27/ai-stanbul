@@ -53,7 +53,11 @@ API_ENDPOINTS = {
     "restaurants": "/api/restaurants", 
     "museums": "/api/museums",
     "docs": "/docs",
-    "openapi": "/openapi.json"
+    "openapi": "/openapi.json",
+    # Location-based endpoints (for mobile testing)
+    "location_validate": "/api/location/validate",
+    "location_nearby": "/api/location/nearby",
+    "location_health": "/api/location/health"
 }
 
 # Test Data
@@ -183,6 +187,103 @@ FRONTEND_CONFIG = {
         "/blog",
         "/about",
         "/routes"
+    ]
+}
+
+# Mobile Testing Configuration
+MOBILE_CONFIG = {
+    "viewport_sizes": [
+        {"width": 375, "height": 667, "name": "iPhone SE"},
+        {"width": 414, "height": 896, "name": "iPhone 11 Pro"},
+        {"width": 360, "height": 640, "name": "Samsung Galaxy S8"},
+        {"width": 768, "height": 1024, "name": "iPad"},
+        {"width": 1024, "height": 768, "name": "iPad Landscape"}
+    ],
+    "test_locations": [
+        {"lat": 41.0082, "lng": 28.9784, "name": "Sultanahmet Square"},
+        {"lat": 41.0096, "lng": 28.9651, "name": "Galata Tower"},
+        {"lat": 41.0058, "lng": 28.9768, "name": "Blue Mosque"},
+        {"lat": 41.0255, "lng": 28.9742, "name": "Taksim Square"},
+        {"lat": 41.0136, "lng": 28.9550, "name": "Grand Bazaar"}
+    ],
+    "location_features_to_test": [
+        "nearby_restaurants",
+        "route_planning", 
+        "location_chat_context",
+        "distance_calculations",
+        "gps_accuracy"
+    ]
+}
+
+# Enhanced Mobile Location Testing Configuration
+ENHANCED_MOBILE_CONFIG = {
+    'real_device_testing': {
+        'enabled': True,
+        'device_farm_url': None,  # Set if using cloud device testing
+        'local_devices': ['iPhone', 'Android'],
+        'test_duration_minutes': 30
+    },
+    
+    'gps_accuracy': {
+        'precision_threshold_meters': 10,
+        'timeout_seconds': 30,
+        'retry_attempts': 3,
+        'test_real_locations': True
+    },
+    
+    'network_simulation': {
+        'test_conditions': ['4G', '3G', 'Slow 3G', 'Offline'],
+        'timeout_multiplier': 2.0,
+        'retry_on_failure': True
+    },
+    
+    'performance_monitoring': {
+        'memory_threshold_mb': 50,
+        'battery_drain_monitoring': True,
+        'cpu_usage_tracking': True,
+        'network_usage_tracking': True
+    },
+    
+    'accessibility_testing': {
+        'screen_reader_simulation': True,
+        'color_contrast_check': True,
+        'touch_target_size_check': True,
+        'keyboard_navigation_test': True
+    },
+    
+    'location_contexts': {
+        'istanbul_districts': [
+            'Sultanahmet', 'Beyoğlu', 'Beşiktaş', 'Kadıköy', 
+            'Üsküdar', 'Fatih', 'Galata', 'Taksim'
+        ],
+        'poi_categories': [
+            'historic', 'religious', 'museum', 'shopping', 
+            'restaurant', 'viewpoint', 'transportation'
+        ]
+    }
+}
+
+# Location Permission Testing
+LOCATION_PERMISSION_CONFIG = {
+    "popup_messages": [
+        "Enable location to find nearby attractions",
+        "Allow location access for personalized recommendations", 
+        "Share your location for better Istanbul experience"
+    ],
+    "manual_entry_fallbacks": [
+        "Enter your location manually",
+        "Choose your area in Istanbul",
+        "Select your district"
+    ],
+    "common_istanbul_locations": [
+        "Sultanahmet",
+        "Beyoğlu",
+        "Galata", 
+        "Taksim",
+        "Beşiktaş",
+        "Kadıköy",
+        "Üsküdar",
+        "Fatih"
     ]
 }
 

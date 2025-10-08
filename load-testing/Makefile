@@ -17,6 +17,7 @@ help:
 	@echo "  make test-endurance - Run endurance tests only"
 	@echo "  make test-integration - Run integration tests only"
 	@echo "  make test-frontend - Run frontend performance tests only"
+	@echo "  make test-mobile   - Run mobile and location tests only"
 	@echo "  make test-prod     - Run all tests against production"
 	@echo "  make report        - Generate HTML report from results"
 	@echo "  make clean         - Clean test results and temporary files"
@@ -63,6 +64,10 @@ test-frontend:
 	@echo "🌐 Running frontend performance tests..."
 	python3 run_tests.py --tests frontend
 
+test-mobile:
+	@echo "📱 Running mobile and location tests..."
+	python3 run_tests.py --tests mobile
+
 test-prod:
 	@echo "🚀 Running tests against production..."
 	python3 run_tests.py --env production
@@ -75,6 +80,27 @@ test-quick:
 test-backend:
 	@echo "🖥️ Running backend-focused tests..."
 	python3 run_tests.py --tests load stress endurance
+
+# Enhanced mobile testing targets
+enhanced-mobile:
+	@echo "🚀 Running Enhanced Mobile Location Tests..."
+	python enhanced_mobile_location_test.py
+
+enhanced-mobile-prod:
+	@echo "🚀 Running Enhanced Mobile Location Tests (Production)..."
+	python enhanced_mobile_location_test.py --config config_production.py
+
+enhanced-mobile-report:
+	@echo "📊 Generating Enhanced Mobile Report..."
+	python generate_report.py --input results/enhanced_mobile_results.json --type enhanced_mobile
+
+# Complete enhanced testing suite
+enhanced-full:
+	@echo "🎯 Running Complete Enhanced Testing Suite..."
+	python run_tests.py --type enhanced_mobile
+	@echo "📊 Generating Enhanced Reports..."
+	python generate_report.py --input results/enhanced_mobile_results.json --type enhanced_mobile
+	@echo "✅ Enhanced testing complete!"
 
 # Reporting
 report:

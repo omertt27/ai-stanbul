@@ -52,3 +52,25 @@ python-dateutil>=2.8.0
 # For frontend testing
 selenium>=4.15.0
 playwright>=1.39.0
+
+# Enhanced mobile testing dependencies
+geopy>=2.3.0                    # GPS distance calculations
+pycountry>=22.3.0              # Country/location validation
+pillow>=9.5.0                  # Image processing for accessibility
+opencv-python>=4.7.0           # Computer vision for UI testing
+scipy>=1.10.0                  # Statistical analysis
+numpy>=1.24.0                  # Numerical computations
+
+# Accessibility testing
+axe-selenium-python>=2.1.6     # Accessibility testing
+beautifulsoup4>=4.12.0         # HTML parsing
+lxml>=4.9.0                    # XML processing
+
+# Performance monitoring
+py-cpuinfo>=9.0.0              # CPU information
+gputil>=1.4.0                  # GPU monitoring (optional)
+pymongo>=4.3.0                 # MongoDB for results storage (optional)
+
+# Mobile device testing
+appium-python-client>=2.10.0   # Mobile app automation (optional)
+pyfakefs>=5.2.0                # Filesystem mocking for testing

@@ -1,0 +1,840 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Enhanced Mobile Location Testing Report - AI Istanbul</title>
+            <style>
+                
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .meta-info p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+        
+        .section {
+            padding: 40px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section h2 {
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        
+        .subsection {
+            margin-bottom: 30px;
+        }
+        
+        .subsection h3 {
+            color: #444;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .summary-card.success { border-left-color: #22c55e; }
+        .summary-card.warning { border-left-color: #f59e0b; }
+        .summary-card.error { border-left-color: #ef4444; }
+        .summary-card.info { border-left-color: #3b82f6; }
+        
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .summary-card.success h3 { color: #22c55e; }
+        .summary-card.warning h3 { color: #f59e0b; }
+        .summary-card.error h3 { color: #ef4444; }
+        .summary-card.info h3 { color: #3b82f6; }
+        
+        /* Location Grid */
+        .location-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .location-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .location-card.success { border-left-color: #22c55e; }
+        .location-card.error { border-left-color: #ef4444; }
+        
+        .location-card h4 {
+            margin: 0 0 15px 0;
+            color: #1a1a2e;
+            font-size: 1.1em;
+        }
+        
+        .location-card p {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+        
+        /* Device Grid */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .device-card {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .device-card.success { border-left-color: #22c55e; }
+        .device-card.warning { border-left-color: #f59e0b; }
+        
+        .score-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .score-badge.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .score-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        /* Touch Results */
+        .touch-results {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .touch-device {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .touch-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .touch-test {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #ddd;
+        }
+        
+        .touch-test.success { border-left-color: #22c55e; }
+        .touch-test.warning { border-left-color: #f59e0b; }
+        
+        /* Chat Queries */
+        .chat-queries {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .chat-query {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .query {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a2e;
+        }
+        
+        .response-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        .response-info span.success { color: #22c55e; }
+        .response-info span.warning { color: #f59e0b; }
+        
+        .response-preview {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            font-style: italic;
+            border-left: 3px solid #e5e7eb;
+        }
+        
+        /* Recommendations */
+        .recommendation {
+            background: white;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8fafc;
+            border-left: 4px solid #ddd;
+        }
+        
+        .recommendation.high .rec-header { border-left-color: #ef4444; }
+        .recommendation.medium .rec-header { border-left-color: #f59e0b; }
+        .recommendation.low .rec-header { border-left-color: #3b82f6; }
+        
+        .priority-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-badge.high {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        
+        .priority-badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .priority-badge.low {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .rec-content {
+            padding: 20px;
+        }
+        
+        .rec-content p {
+            margin: 10px 0;
+        }
+        
+        /* Statistics */
+        .concurrent-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h4 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            margin: 0;
+            font-size: 2em;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        
+        .stat-value.success { color: #22c55e; }
+        .stat-value.warning { color: #f59e0b; }
+        .stat-value.error { color: #ef4444; }
+        
+        /* Network Tests */
+        .network-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .network-test {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #ddd;
+        }
+        
+        .network-test.success { border-left-color: #22c55e; }
+        .network-test.warning { border-left-color: #f59e0b; }
+        
+        /* Footer */
+        .footer {
+            background: #1a1a2e;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header, .section {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .location-grid, .device-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🚀 Enhanced Mobile Location Testing Report</h1>
+                    <div class="meta-info">
+                        <p><strong>AI Istanbul Project</strong></p>
+                        <p>Generated: 2025-10-08 18:26:54</p>
+                        <p>Test Duration: 0.9 seconds</p>
+                    </div>
+                </div>
+
+                
+        <div class="section">
+            <h2>📊 Test Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card success">
+                    <h3>0.0%</h3>
+                    <p>Overall Success Rate</p>
+                </div>
+                <div class="summary-card info">
+                    <h3>18</h3>
+                    <p>Locations Tested</p>
+                </div>
+                <div class="summary-card info">
+                    <h3>6</h3>
+                    <p>Devices Tested</p>
+                </div>
+                <div class="summary-card success">
+                    <h3>0</h3>
+                    <p>Total Errors</p>
+                </div>
+            </div>
+        </div>
+        
+                
+        <div class="section">
+            <h2>🛰️ Real-World GPS Testing</h2>
+            
+            <div class="subsection">
+                <h3>📍 Istanbul Location Accuracy</h3>
+                <div class="location-grid">
+        
+                <div class="location-card error">
+                    <h4>Sultanahmet Square</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 14.6ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Blue Mosque</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.6ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Hagia Sophia</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.2ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Topkapi Palace</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.5ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Grand Bazaar</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.5ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Galata Tower</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.5ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Taksim Square</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.1ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>İstiklal Street</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.2ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Maiden's Tower</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.4ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Çamlıca Hill</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.5ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Dolmabahçe Palace</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.4ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Ortaköy Mosque</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.7ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Kadıköy Market</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.3ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                <div class="location-card error">
+                    <h4>Bagdat Avenue</h4>
+                    <p><strong>District:</strong> Unknown</p>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>Response:</strong> 1.2ms</p>
+                    <p><strong>Nearby:</strong> 0 attractions</p>
+                </div>
+            
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>⚠️ Edge Case Handling</h3>
+                <div class="edge-case-list">
+        
+                <div class="edge-case success">
+                    <strong>Ankara</strong>
+                    <span class="status">✅ Handled</span>
+                    <small>Expected: outside_istanbul</small>
+                </div>
+            
+                <div class="edge-case success">
+                    <strong>Invalid</strong>
+                    <span class="status">✅ Handled</span>
+                    <small>Expected: invalid_coords</small>
+                </div>
+            
+                <div class="edge-case success">
+                    <strong>Marmara Sea</strong>
+                    <span class="status">✅ Handled</span>
+                    <small>Expected: water_location</small>
+                </div>
+            
+                <div class="edge-case success">
+                    <strong>Istanbul Airport</strong>
+                    <span class="status">✅ Handled</span>
+                    <small>Expected: airport</small>
+                </div>
+            
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>📏 Distance Calculation Accuracy</h3>
+                <div class="distance-tests">
+        
+                </div>
+            </div>
+        </div>
+        
+                
+        <div class="section">
+            <h2>📱 Enhanced Mobile UX Testing</h2>
+            
+            <div class="subsection">
+                <h3>⚡ Device Performance</h3>
+                <div class="device-grid">
+        
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>👆 Touch Interactions</h3>
+                <div class="touch-results">
+        
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>🌐 Offline Behavior</h3>
+                <div class="offline-results">
+        
+                <div class="offline-test error">
+                    <span>Page Loads Offline</span>
+                    <span class="status">❌ Failed</span>
+                </div>
+            
+                <div class="offline-test error">
+                    <span>Cache Effectiveness</span>
+                    <span class="status">❌ Failed</span>
+                </div>
+            
+                <div class="offline-test error">
+                    <span>Offline Message</span>
+                    <span class="status">❌ Failed</span>
+                </div>
+            
+                <div class="offline-test error">
+                    <span>Graceful Degradation</span>
+                    <span class="status">❌ Failed</span>
+                </div>
+            
+                </div>
+            </div>
+        </div>
+        
+                
+        <div class="section">
+            <h2>💬 Location-Based Chat Scenarios</h2>
+        </div>
+                
+        <div class="section">
+            <h2>⚡ Performance Under Load</h2>
+            
+            <div class="subsection">
+                <h3>🔄 Concurrent Request Testing</h3>
+                <div class="concurrent-stats">
+        
+                    <div class="stat-card">
+                        <h4>Total Requests</h4>
+                        <p class="stat-value">10</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Success Rate</h4>
+                        <p class="stat-value success">100.0%</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Avg Response Time</h4>
+                        <p class="stat-value">0.01s</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>🧠 Memory Leak Detection</h3>
+        <p>Memory leak testing not available</p>
+            </div>
+            
+            <div class="subsection">
+                <h3>🌐 Network Conditions</h3>
+                <div class="network-tests">
+        
+                </div>
+            </div>
+        </div>
+        
+                
+        <div class="section">
+            <h2>♿ Accessibility Testing</h2>
+        <p>Accessibility testing results not available</p></div>
+                
+        <div class="section">
+            <h2>🎯 Recommendations & Action Items</h2>
+        
+                <div class="recommendation high">
+                    <div class="rec-header">
+                        <h3>GPS Accuracy</h3>
+                        <span class="priority-badge high">High Priority</span>
+                    </div>
+                    <div class="rec-content">
+                        <p><strong>Issue:</strong> Location validation failed for 14 locations</p>
+                        <p><strong>Recommendation:</strong> Implement better error handling and fallback mechanisms for GPS validation</p>
+                <p><strong>Affected Locations:</strong> Sultanahmet Square, Blue Mosque, Hagia Sophia, Topkapi Palace, Grand Bazaar, Galata Tower, Taksim Square, İstiklal Street, Maiden's Tower, Çamlıca Hill, Dolmabahçe Palace, Ortaköy Mosque, Kadıköy Market, Bagdat Avenue</p>
+                    </div>
+                </div>
+                </div>
+                
+                <div class="footer">
+                    <p>AI Istanbul Enhanced Mobile Location Testing Suite v2.0</p>
+                    <p>For detailed analysis and improvements, see recommendations section above.</p>
+                </div>
+            </div>
+            
+            <script>
+                
+        // Enhanced mobile testing report interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click-to-expand functionality for detailed results
+            const sections = document.querySelectorAll('.section');
+            
+            sections.forEach(section => {
+                const header = section.querySelector('h2');
+                if (header) {
+                    header.style.cursor = 'pointer';
+                    header.addEventListener('click', function() {
+                        const content = section.querySelector('.subsection');
+                        if (content) {
+                            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                        }
+                    });
+                }
+            });
+            
+            // Add smooth scrolling for navigation
+            const smoothScroll = (target) => {
+                document.querySelector(target).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            };
+            
+            // Add print functionality
+            const printBtn = document.createElement('button');
+            printBtn.textContent = '🖨️ Print Report';
+            printBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                z-index: 1000;
+            `;
+            
+            printBtn.addEventListener('click', () => window.print());
+            document.body.appendChild(printBtn);
+            
+            // Add export functionality
+            const exportBtn = document.createElement('button');
+            exportBtn.textContent = '📊 Export Data';
+            exportBtn.style.cssText = `
+                position: fixed;
+                top: 70px;
+                right: 20px;
+                background: #22c55e;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                z-index: 1000;
+            `;
+            
+            exportBtn.addEventListener('click', function() {
+                // Extract data for CSV export
+                const data = extractReportData();
+                downloadCSV(data, 'enhanced_mobile_test_results.csv');
+            });
+            
+            document.body.appendChild(exportBtn);
+            
+            function extractReportData() {
+                // Extract key metrics from the report
+                const rows = [];
+                
+                // Add summary data
+                const summaryCards = document.querySelectorAll('.summary-card');
+                summaryCards.forEach(card => {
+                    const metric = card.querySelector('p').textContent;
+                    const value = card.querySelector('h3').textContent;
+                    rows.push(['Summary', metric, value, '']);
+                });
+                
+                // Add location data
+                const locationCards = document.querySelectorAll('.location-card');
+                locationCards.forEach(card => {
+                    const name = card.querySelector('h4').textContent;
+                    const district = card.textContent.match(/District: ([^\n]+)/)?.[1] || '';
+                    const status = card.textContent.match(/Status: ([^\n]+)/)?.[1] || '';
+                    const responseTime = card.textContent.match(/Response: ([^\n]+)/)?.[1] || '';
+                    rows.push(['Location', name, district, status, responseTime]);
+                });
+                
+                return rows;
+            }
+            
+            function downloadCSV(data, filename) {
+                const csv = data.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+            
+            // Add progress indicators for test results
+            const progressBars = document.querySelectorAll('.stat-value');
+            progressBars.forEach(bar => {
+                const value = parseFloat(bar.textContent);
+                if (value && value <= 100) {
+                    // Add visual progress indicator
+                    const progress = document.createElement('div');
+                    progress.style.cssText = `
+                        width: 100%;
+                        height: 4px;
+                        background: #e5e7eb;
+                        border-radius: 2px;
+                        margin-top: 8px;
+                        overflow: hidden;
+                    `;
+                    
+                    const fill = document.createElement('div');
+                    fill.style.cssText = `
+                        width: ${value}%;
+                        height: 100%;
+                        background: ${value > 90 ? '#22c55e' : value > 70 ? '#f59e0b' : '#ef4444'};
+                        transition: width 0.3s ease;
+                    `;
+                    
+                    progress.appendChild(fill);
+                    bar.parentNode.appendChild(progress);
+                }
+            });
+        });
+        
+            </script>
+        </body>
+        </html>
+        

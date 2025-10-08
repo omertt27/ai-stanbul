@@ -40,6 +40,16 @@ TESTS = {
         'script': 'frontend_performance.py',
         'description': 'Frontend Performance - UI and interaction testing',
         'duration': '3 minutes'
+    },
+    'mobile': {
+        'script': 'mobile_location_test.py',
+        'description': 'Mobile & Location Testing - GPS validation and mobile UX',
+        'duration': '4 minutes'
+    },
+    'enhanced_mobile': {
+        'script': 'enhanced_mobile_location_test.py',
+        'description': 'Enhanced Mobile & Location Testing - Advanced GPS and mobile UX',
+        'duration': '6 minutes'
     }
 }
 
