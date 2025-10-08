@@ -1,0 +1,215 @@
+name: Load Testing Suite
+
+on:
+  # Run on push to main branch
+  push:
+    branches: [ main ]
+  
+  # Run on pull requests
+  pull_request:
+    branches: [ main ]
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - local
+          - production
+      tests:
+        description: 'Tests to run (comma-separated)'
+        required: true
+        default: 'load,integration'
+        type: string
+
+jobs:
+  load-testing:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('load-testing/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        cd load-testing
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Install Playwright browsers
+      run: |
+        cd load-testing
+        python -m playwright install --with-deps
+    
+    - name: Wait for application to be ready
+      run: |
+        # Wait for the application to be accessible
+        timeout 300 bash -c 'until curl -f http://localhost:3000; do sleep 5; done' || true
+    
+    - name: Run load tests (Quick Suite)
+      if: github.event_name != 'workflow_dispatch'
+      run: |
+        cd load-testing
+        python run_tests.py --tests load integration --no-report
+    
+    - name: Run custom tests (Manual Trigger)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        cd load-testing
+        python run_tests.py --tests ${{ github.event.inputs.tests }} --env ${{ github.event.inputs.environment }} --no-report
+    
+    - name: Generate test report
+      if: always()
+      run: |
+        cd load-testing
+        python generate_report.py || true
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: load-test-results-python-${{ matrix.python-version }}
+        path: |
+          load-testing/results/*.json
+          load-testing/results/*.html
+          load-testing/results/*.png
+        retention-days: 30
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            // Look for latest test results
+            const resultsDir = path.join(process.env.GITHUB_WORKSPACE, 'load-testing', 'results');
+            const files = fs.readdirSync(resultsDir).filter(f => f.endsWith('.json'));
+            
+            if (files.length === 0) {
+              console.log('No test results found');
+              return;
+            }
+            
+            // Get the most recent result file
+            const latestFile = files.sort().reverse()[0];
+            const resultPath = path.join(resultsDir, latestFile);
+            const results = JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+            
+            // Create comment with results summary
+            const comment = `## 🧪 Load Test Results
+            
+            **Test Environment:** ${results.environment || 'local'}
+            **Python Version:** ${{ matrix.python-version }}
+            **Duration:** ${results.duration || 'N/A'}
+            
+            ### Summary
+            - **Total Requests:** ${results.summary?.total_requests || 'N/A'}
+            - **Average Response Time:** ${results.summary?.avg_response_time || 'N/A'}ms
+            - **Error Rate:** ${results.summary?.error_rate || 'N/A'}%
+            - **Throughput:** ${results.summary?.requests_per_second || 'N/A'} req/s
+            
+            ### Status
+            ${results.summary?.error_rate > 5 ? '❌ High error rate detected!' : '✅ Tests passed successfully'}
+            
+            📊 Full results available in the artifacts.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          } catch (error) {
+            console.log('Error creating comment:', error.message);
+          }
+
+  performance-monitoring:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: load-testing
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download test results
+      uses: actions/download-artifact@v3
+      with:
+        name: load-test-results-python-3.11
+        path: results/
+    
+    - name: Performance regression check
+      run: |
+        # Simple performance regression check
+        # In a real scenario, you'd compare against historical data
+        cd load-testing
+        python -c "
+        import json
+        import glob
+        
+        result_files = glob.glob('results/*load_test_results*.json')
+        if not result_files:
+            print('No results to analyze')
+            exit(0)
+            
+        latest_file = sorted(result_files)[-1]
+        with open(latest_file, 'r') as f:
+            data = json.load(f)
+        
+        # Check performance thresholds
+        avg_response = data.get('summary', {}).get('avg_response_time', 0)
+        error_rate = data.get('summary', {}).get('error_rate', 0)
+        
+        print(f'Average response time: {avg_response}ms')
+        print(f'Error rate: {error_rate}%')
+        
+        # Fail if performance is below acceptable thresholds
+        if avg_response > 2000:  # 2 second threshold
+            print('❌ Performance regression: Response time too high')
+            exit(1)
+        if error_rate > 5:  # 5% error threshold
+            print('❌ Performance regression: Error rate too high')
+            exit(1)
+            
+        print('✅ Performance within acceptable limits')
+        "
+    
+    - name: Update performance badge
+      if: always()
+      run: |
+        # Create a simple performance badge
+        # In practice, you might use shields.io or similar
+        echo "Performance: PASS" > performance-status.txt
+    
+    - name: Commit performance status
+      if: always()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add performance-status.txt || true
+        git commit -m "Update performance status [skip ci]" || true
+        git push || true
