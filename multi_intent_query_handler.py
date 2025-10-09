@@ -21,7 +21,6 @@ class IntentType(Enum):
     INFORMATION_REQUEST = "information_request"
     ROUTE_PLANNING = "route_planning"
     COMPARISON = "comparison"
-    BOOKING = "booking"
     TIME_QUERY = "time_query"
     PRICE_QUERY = "price_query"
     REVIEW_REQUEST = "review_request"
@@ -36,6 +35,7 @@ class Intent:
     text_span: Tuple[int, int]  # Start and end positions in original text
     priority: int = 1  # 1=high, 2=medium, 3=low
     dependencies: List[str] = None  # Other intent IDs this depends on
+    priority_score: float = 0.0  # Boosted score for prioritization (can exceed 1.0)
 
 @dataclass
 class MultiIntentResult:
@@ -60,12 +60,36 @@ class MultiIntentQueryHandler:
         self.intent_patterns = {
             IntentType.LOCATION_SEARCH: {
                 'patterns': [
-                    r'\b(where\s+is|find|locate|location\s+of)\b',
-                    r'\b(near|close\s+to|around|vicinity)\b',
-                    r'\b(address|directions\s+to)\b'
+                    # Strong location-specific patterns (prioritize over recommendation)
+                    r'\b(where\s+is|where\s+are|where\s+can\s+i\s+(find|get|eat))\b',
+                    r'\b(location\s+of|address\s+of|directions\s+to)\b',
+                    r'\b(near|close\s+to|around|vicinity\s+of)\b',
+                    r'\b(show\s+me.*around|show\s+me.*near)\b',
+                    # "Where" questions that are clearly location-focused
+                    r'\b(where.*in\s+(beyoğlu|sultanahmet|kadıköy|taksim|galata))\b',
+                    r'\b(where.*near\s+(the|a))\b',
+                    # Enhanced disambiguation patterns
+                    r'\b(where\s+to\s+(eat|go|find))\b',  # "Where to eat" is location search
+                    r'\b(show\s+me\s+(restaurants|places)\s+(around|near))\b',  # "Show me restaurants around" is location
+                    r'\b(where\s+can\s+i\s+get)\b',  # "Where can I get" is location-focused
+                    r'\b(where.*in\s+the\s+(city|area|historic))\b'  # "Where ... in the city/area" is location
                 ],
-                'keywords': ['where', 'find', 'locate', 'near', 'close', 'around', 'address'],
-                'priority': 1
+                'keywords': ['where', 'location', 'address', 'directions', 'near', 'close', 'around', 'vicinity', 'show'],
+                'priority': 1,
+                # Disambiguation rules to distinguish from recommendation
+                'boost_patterns': [
+                    r'\b(where\s+(can|do|to)\s+i)\b',  # "Where can I" / "Where to" vs "What are the best"
+                    r'\b(show\s+me)\b',  # "Show me" is location-focused
+                    r'\b(address|directions|location)\b',  # Explicit location words
+                    r'\b(where\s+can\s+i\s+eat)\b',  # Strong location indicator
+                    r'\b(where\s+to\s+eat)\b'  # "Where to eat" should be location primary
+                ],
+                # Patterns that should NOT trigger location intent (favor recommendation instead)
+                'negative_patterns': [
+                    r'\b(best|good|recommend|suggest|top|great|excellent)\b',  # Quality indicators favor recommendation
+                    r'\b(find\s+the\s+best|what\s+are\s+the\s+best)\b',  # "Find the best" is recommendation
+                    r'\b(recommend.*in|suggest.*in|good.*in)\b'  # "Recommend X in Y" is recommendation
+                ]
             },
             IntentType.RECOMMENDATION: {
                 'patterns': [
@@ -78,7 +102,11 @@ class MultiIntentQueryHandler:
                     r'\b(cuisine|culinary|chef|menu|dish)\b',
                     r'\b(vegetarian|vegan|halal|kosher|gluten.free)\b',
                     r'\b(budget|cheap|expensive|affordable|mid.range|luxury)\b',
-                    r'\b(seafood|turkish|italian|japanese|mediterranean|ottoman)\b'
+                    r'\b(seafood|turkish|italian|japanese|mediterranean|ottoman)\b',
+                    # Enhanced recommendation patterns that override location
+                    r'\b(find\s+(the\s+)?(best|good|great))\b',  # "Find the best" is recommendation
+                    r'\b(what\s+are\s+(the\s+)?(best|good|top))\b',  # "What are the best" is recommendation
+                    r'\b((best|good)\s+(restaurants|places|food))\b'  # Quality-focused queries
                 ],
                 'keywords': [
                            # English keywords only
@@ -86,10 +114,19 @@ class MultiIntentQueryHandler:
                            'restaurant', 'food', 'dining', 'eat', 'meal', 'lunch', 'dinner', 'breakfast',
                            'cafe', 'bistro', 'eatery', 'places', 'cuisine', 'culinary', 'chef', 'menu',
                            'vegetarian', 'vegan', 'halal', 'kosher', 'gluten-free', 'budget', 'cheap',
-                           'expensive', 'affordable', 'seafood', 'turkish', 'italian', 'japanese'
+                           'expensive', 'affordable', 'seafood', 'turkish', 'italian', 'japanese',
+                           'find', 'what', 'great'
                            ],
                 'priority': 1,
-                'restaurant_specific': True  # Flag for restaurant-specific patterns
+                'restaurant_specific': True,  # Flag for restaurant-specific patterns
+                # Strong recommendation indicators that should override location patterns
+                'boost_patterns': [
+                    r'\b(best|good|recommend|suggest|top|great|excellent)\b',  # Quality indicators
+                    r'\b(find\s+(the\s+)?(best|good|great))\b',  # "Find the best/good" 
+                    r'\b(what\s+are\s+the\s+(best|top|good))\b',  # "What are the best" questions
+                    r'\b(where\s+can\s+i\s+get\s+(good|best))\b',  # "Where can I get good" is recommendation
+                    r'\b(where.*good|where.*best)\b'  # "Where" + quality = recommendation
+                ]
             },
             IntentType.INFORMATION_REQUEST: {
                 'patterns': [
@@ -125,16 +162,19 @@ class MultiIntentQueryHandler:
             },
             IntentType.COMPARISON: {
                 'patterns': [
-                    # Primary comparison patterns
-                    r'\b(compare|vs|versus|difference\s+between|which\s+is\s+better)\b',
+                    # High-priority comparison patterns (boosted detection)
+                    r'\b(compare|vs\.?|versus|difference\s+between|which\s+is\s+better)\b',
                     r'\b(better\s+than|worse\s+than|which\s+(one|is)\s+better)\b',
                     r'\b(choose\s+between|decide\s+between|pick\s+between)\b',
                     r'\b(what\'s\s+the\s+difference|how\s+do\s+they\s+compare)\b',
                     r'\b(pros\s+and\s+cons|advantages?\s+(and|vs)\s+disadvantages?)\b',
                     r'\b(which\s+(should|would|do)\s+(i|you|we)\s+(choose|pick|visit))\b',
-                    # Multi-restaurant comparison patterns
-                    r'\b(.+)\s+(vs|versus|or)\s+(.+)\s+(restaurant|place|spot)\b',
-                    r'\b(between\s+.+\s+and\s+.+)\b'
+                    # Enhanced multi-restaurant comparison patterns
+                    r'\b(.+)\s+(vs\.?|versus|or)\s+(.+)\s+(restaurant|place|spot|food)\b',
+                    r'\b(between\s+.+\s+and\s+.+)\b',
+                    # Strong comparison indicators
+                    r'\b([a-zA-Z\s]+)\s+(vs\.?|versus)\s+([a-zA-Z\s]+)\b',  # Any "A vs B" pattern
+                    r'\b(turkish\s+vs\s+italian|italian\s+vs\s+turkish)\b'  # Cuisine comparisons
                 ],
                 'keywords': ['compare', 'vs', 'versus', 'difference', 'better', 'worse', 'which', 'choose',
                            'between', 'pros', 'cons', 'advantages', 'disadvantages'],
@@ -151,25 +191,57 @@ class MultiIntentQueryHandler:
             },
             IntentType.TIME_QUERY: {
                 'patterns': [
-                    # Enhanced time patterns with temporal keywords (English only)
-                    r'\b(when|what\s+time|hours|opening\s+times?|closing\s+times?)\b',
-                    r'\b(schedule|timetable|timing|business\s+hours)\b',
-                    r'\b(open|close|closed|available|operating)\b',
-                    # Specific temporal references
-                    r'\b(today|tomorrow|tonight|morning|afternoon|evening|weekend)\b',
-                    r'\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
-                    r'\b(now|currently|at\s+the\s+moment|right\s+now)\b',
-                    r'\b([0-9]{1,2}:\d{2}|[0-9]{1,2}\s*(am|pm|o\'clock))\b'  # Time formats
+                    # High-priority time query patterns (English only)
+                    r'\b(what\s+time|when\s+do|when\s+does|what.*hours|opening\s+times?|closing\s+times?)\b',
+                    # Indirect time patterns for meals and dining times
+                    r'\b(for\s+breakfast|breakfast\s+(at|in)|morning\s+(at|in))\b',
+                    r'\b(for\s+lunch|lunch\s+(at|in)|afternoon\s+(at|in))\b', 
+                    r'\b(for\s+dinner|dinner\s+(at|in)|evening\s+(at|in))\b',
+                    r'\b(for\s+brunch|brunch\s+(at|in)|weekend\s+(at|in))\b',
+                    # Time-specific context patterns
+                    r'\b(weekend\s+hours|weekday\s+hours|holiday\s+hours)\b',
+                    r'\b(late\s+night|early\s+morning|all\s+night)\b',
+                    r'\b(tonight|today|tomorrow|this\s+weekend)\b',
+                    r'\b(schedule|timetable|timing|business\s+hours|hours\s+of\s+operation)\b',
+                    r'\b(open\s+(at|until|from)|close\s+(at|until|from)|closed\s+on)\b',
+                    r'\b(operating\s+hours|open\s+hours|closing\s+time|opening\s+time)\b',
+                    # Strong temporal question patterns
+                    r'\b(when\s+do.*open|when\s+do.*close|what\s+time.*open|what\s+time.*close)\b',
+                    # Specific temporal references with question context
+                    r'\b(open\s+(today|tomorrow|tonight|now|currently))\b',
+                    r'\b(hours.*on\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b',
+                    r'\b([0-9]{1,2}:\d{2}|[0-9]{1,2}\s*(am|pm|o\'clock))\b',  # Time formats
+                    # Enhanced indirect time query patterns
+                    r'\b(open\s+for\s+(breakfast|lunch|dinner|brunch))\b',  # "open for breakfast"
+                    r'\b((breakfast|lunch|dinner|brunch)\s+(hours|time|timing))\b',  # meal time queries
+                    r'\b((places|spots|restaurants)\s+open\s+for\s+(breakfast|lunch|dinner))\b',  # "places open for breakfast"
+                    r'\b(early\s+(morning|hours)|late\s+(night|evening|hours))\b',  # time period queries
+                    r'\b(weekend\s+(hours|timing)|weekday\s+(hours|timing))\b',  # weekend/weekday hours
+                    r'\b(morning\s+(hours|schedule)|evening\s+(hours|schedule))\b',  # time-of-day hours
+                    r'\b(24\s*hour|24/7|all\s+night|round\s+the\s+clock)\b',  # 24-hour operations
+                    r'\b(right\s+now|at\s+the\s+moment|currently\s+open)\b'  # immediate availability
                 ],
                 'keywords': ['when', 'time', 'hours', 'open', 'close', 'schedule', 'timing', 'available',
                            'today', 'tomorrow', 'tonight', 'morning', 'afternoon', 'evening', 'weekend',
+                           'breakfast', 'lunch', 'dinner', 'brunch', 'weekday', 'holiday',
                            'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-                           'now', 'currently', 'am', 'pm', 'oclock'],
-                'priority': 2,
+                           'now', 'currently', 'am', 'pm', 'oclock', 'breakfast', 'lunch', 'dinner', 'brunch',
+                           'early', 'late', 'weekday', 'moment', '24', 'hour', 'round', 'clock'],
+                'priority': 1,  # Boosted from 2 to 1 for better time query detection
+                # Boost patterns for indirect time queries
+                'boost_patterns': [
+                    r'\b(for\s+(breakfast|lunch|dinner|brunch))\b',  # "for breakfast" strongly indicates time query
+                    r'\b(weekend|weekday|holiday)\s+(hours|timing)\b',  # Weekend/weekday hours
+                    r'\b(what\s+time|when|schedule|hours)\b',  # Direct time question words
+                    r'\b(open\s+for|places.*open|spots.*open)\b',  # "open for X" patterns
+                    r'\b(early|late)\s+(morning|night|dinner|breakfast)\b'  # "early morning", "late dinner"
+                ],
                 # Time-related correction rules
                 'correction_rules': {
                     'temporal_keywords': ['now', 'today', 'tonight', 'tomorrow', 'this', 'next'],
-                    'time_formats': [r'\b([0-9]{1,2}:\d{2})\b', r'\b([0-9]{1,2}\s*(am|pm))\b']
+                    'time_formats': [r'\b([0-9]{1,2}:\d{2})\b', r'\b([0-9]{1,2}\s*(am|pm))\b'],
+                    'meal_periods': ['breakfast', 'lunch', 'dinner', 'brunch'],
+                    'time_periods': ['morning', 'afternoon', 'evening', 'night', 'weekend', 'weekday']
                 }
             },
             IntentType.PRICE_QUERY: {
@@ -181,19 +253,7 @@ class MultiIntentQueryHandler:
                 'keywords': ['cost', 'price', 'expensive', 'cheap', 'budget', 'fee', 'ticket'],
                 'priority': 2
             },
-            IntentType.BOOKING: {
-                'patterns': [
-                    # English patterns only
-                    r'\b(book|reserve|reservation|appointment)\b',
-                    r'\b(table\s+for|room\s+for|ticket\s+for)\b',
-                    r'\b(availability|available\s+slots?)\b'
-                ],
-                'keywords': [
-                           # English only
-                           'book', 'reserve', 'reservation', 'table', 'room', 'ticket', 'availability'
-                           ],
-                'priority': 1
-            },
+
             IntentType.REVIEW_REQUEST: {
                 'patterns': [
                     r'\b(review|rating|opinion|experience)\b',
@@ -225,7 +285,6 @@ class MultiIntentQueryHandler:
         
         # Intent relationships and dependencies
         self.intent_dependencies = {
-            IntentType.BOOKING: [IntentType.LOCATION_SEARCH, IntentType.TIME_QUERY],
             IntentType.ROUTE_PLANNING: [IntentType.LOCATION_SEARCH],
             IntentType.COMPARISON: [IntentType.RECOMMENDATION, IntentType.INFORMATION_REQUEST]
         }
@@ -252,9 +311,11 @@ class MultiIntentQueryHandler:
         # Validate context alignment
         detected_intents = self._validate_context_alignment(query, detected_intents)
         
-        # Extract parameters for each intent
+        # Extract parameters for each intent (merge with existing parameters from corrections)
         for intent in detected_intents:
-            intent.parameters = self._extract_parameters(query, intent)
+            extracted_params = self._extract_parameters(query, intent)
+            # Merge extracted parameters with existing ones (corrections take precedence)
+            intent.parameters.update(extracted_params)
         
         # Calculate query complexity
         complexity = self._calculate_query_complexity(query, detected_intents)
@@ -342,6 +403,30 @@ class MultiIntentQueryHandler:
                 if pattern_matches > 1 or keyword_matches > 2:
                     confidence = min(1.0, confidence + 0.2)
                 
+                # PRIORITY BOOSTING LOGIC - Use priority score system (allows > 1.0)
+                priority_boost = 0.0
+                
+                # 1. TIME_QUERY Priority Boost
+                if intent_type == IntentType.TIME_QUERY:
+                    time_priority_patterns = [r'\b(when\s+do|when\s+does|what\s+time|hours.*open|hours.*close)\b']
+                    if any(re.search(pattern, query_lower) for pattern in time_priority_patterns):
+                        priority_boost = 0.5  # Strong time boost
+                
+                # 2. LOCATION_SEARCH Priority Boost (vs recommendation disambiguation)
+                elif intent_type == IntentType.LOCATION_SEARCH:
+                    boost_patterns = config.get('boost_patterns', [])
+                    if any(re.search(pattern, query_lower) for pattern in boost_patterns):
+                        priority_boost = 0.4  # Location boost
+                
+                # 3. COMPARISON Priority Boost
+                elif intent_type == IntentType.COMPARISON:
+                    comparison_boost_patterns = [r'\b(vs\.?|versus|compare)\b']
+                    if any(re.search(pattern, query_lower) for pattern in comparison_boost_patterns):
+                        priority_boost = 0.6  # Strong comparison boost
+                
+                # Apply priority boost (allow exceeding 1.0 for prioritization)
+                confidence = confidence + priority_boost
+                
                 # Restaurant-specific enhancement
                 if intent_type == IntentType.RECOMMENDATION and config.get('restaurant_specific', False):
                     restaurant_keywords = ['restaurant', 'food', 'dining', 'eat', 'meal', 'cuisine', 
@@ -366,17 +451,18 @@ class MultiIntentQueryHandler:
                 intent_scores[intent_type] = confidence
                 
                 # Adjusted threshold for better sensitivity
-                min_threshold = 0.25 if intent_type in [IntentType.COMPARISON, IntentType.BOOKING, IntentType.TIME_QUERY] else 0.3
+                min_threshold = 0.25 if intent_type in [IntentType.COMPARISON, IntentType.TIME_QUERY] else 0.3
                 
                 if confidence >= min_threshold:
                     text_span = text_spans[0] if text_spans else (0, len(query))
                     
                     intent = Intent(
                         type=intent_type,
-                        confidence=confidence,
+                        confidence=min(1.0, confidence),  # Cap displayed confidence at 1.0
                         parameters={},
                         text_span=text_span,
-                        priority=config['priority']
+                        priority=config['priority'],
+                        priority_score=confidence  # Store full score for prioritization
                     )
                     detected_intents.append(intent)
         
@@ -385,20 +471,44 @@ class MultiIntentQueryHandler:
             # Sort by confidence
             sorted_scores = sorted(intent_scores.items(), key=lambda x: x[1], reverse=True)
             
-            # Allow secondary intents if they're within reasonable range of primary
-            primary_score = sorted_scores[0][1]
-            for intent_type, score in sorted_scores[1:]:
-                if score >= 0.4 and score >= primary_score * 0.6:  # Allow strong secondary intents
-                    # Check if this intent is already in detected_intents
-                    if not any(i.type == intent_type for i in detected_intents):
-                        intent = Intent(
-                            type=intent_type,
-                            confidence=score,
-                            parameters={},
-                            text_span=(0, len(query)),
-                            priority=self.intent_patterns[intent_type]['priority']
-                        )
-                        detected_intents.append(intent)
+            # Special handling for Price/Hours multi-intent scenarios
+            has_price_and_time = (
+                any(intent_type in [IntentType.PRICE_QUERY, IntentType.TIME_QUERY] for intent_type, _ in sorted_scores) and
+                len([it for it, _ in sorted_scores if it in [IntentType.PRICE_QUERY, IntentType.TIME_QUERY]]) >= 1
+            )
+            
+            if has_price_and_time:
+                # For Price/Hours scenarios, be more permissive with secondary intents
+                primary_score = sorted_scores[0][1]
+                for intent_type, score in sorted_scores[1:]:
+                    if intent_type in [IntentType.PRICE_QUERY, IntentType.TIME_QUERY, IntentType.RECOMMENDATION]:
+                        if score >= 0.3 and score >= primary_score * 0.5:  # Lower threshold for Price/Hours
+                            if not any(i.type == intent_type for i in detected_intents):
+                                intent = Intent(
+                                    type=intent_type,
+                                    confidence=min(1.0, score),
+                                    parameters={},
+                                    text_span=(0, len(query)),
+                                    priority=self.intent_patterns[intent_type]['priority'],
+                                    priority_score=score
+                                )
+                                detected_intents.append(intent)
+            else:
+                # Standard multi-intent logic for other scenarios
+                primary_score = sorted_scores[0][1]
+                for intent_type, score in sorted_scores[1:]:
+                    if score >= 0.4 and score >= primary_score * 0.6:  # Allow strong secondary intents
+                        # Check if this intent is already in detected_intents
+                        if not any(i.type == intent_type for i in detected_intents):
+                            intent = Intent(
+                                type=intent_type,
+                                confidence=min(1.0, score),
+                                parameters={},
+                                text_span=(0, len(query)),
+                                priority=self.intent_patterns[intent_type]['priority'],
+                                priority_score=score
+                            )
+                            detected_intents.append(intent)
         
         return detected_intents
     
@@ -416,26 +526,62 @@ class MultiIntentQueryHandler:
             should_keep = True
             adjusted_confidence = intent.confidence
             
-            # Rule 1: Booking intent validation
-            if intent.type == IntentType.BOOKING:
-                booking_indicators = ['reservation', 'book', 'table']
-                if not any(indicator in query_lower for indicator in booking_indicators):
-                    should_keep = False
-                else:
-                    # Strong booking indicators boost confidence
-                    time_indicators = ['tonight', 'today', 'tomorrow']
-                    if any(indicator in query_lower for indicator in time_indicators):
-                        adjusted_confidence = min(1.0, adjusted_confidence + 0.2)
+            # Rule 1: Location vs Recommendation disambiguation
+            if intent.type == IntentType.LOCATION_SEARCH:
+                # Boost if clear location indicators present
+                location_boost_patterns = [
+                    r'\b(where\s+can\s+i\s+(eat|find|get))\b',
+                    r'\b(show\s+me\s+(restaurants|places)\s+(around|near))\b',
+                    r'\b(where\s+to\s+(eat|go))\b',
+                    r'\b(where.*in\s+the\s+(city|area|historic))\b'
+                ]
+                if any(re.search(pattern, query_lower) for pattern in location_boost_patterns):
+                    adjusted_confidence = min(1.0, adjusted_confidence + 0.6)  # Increased boost
+                    # Extra boost for "where to eat" specifically
+                    if re.search(r'\b(where\s+to\s+eat)\b', query_lower):
+                        adjusted_confidence = min(1.0, adjusted_confidence + 0.3)
+                
+                # Reduce confidence if recommendation indicators present (but less aggressive)
+                if any(word in query_lower for word in ['best', 'good', 'recommend', 'suggest', 'top']):
+                    adjusted_confidence = max(0.1, adjusted_confidence - 0.2)  # Reduced penalty
             
-            # Rule 2: Time query validation
+            elif intent.type == IntentType.RECOMMENDATION:
+                # Boost if clear recommendation indicators present
+                recommendation_boost_patterns = [
+                    r'\b(find\s+(the\s+)?(best|good))\b',
+                    r'\b(what\s+are\s+(the\s+)?(best|good|top))\b',
+                    r'\b(recommend|suggest)\b'
+                ]
+                if any(re.search(pattern, query_lower) for pattern in recommendation_boost_patterns):
+                    adjusted_confidence = min(1.0, adjusted_confidence + 0.4)
+            
+            # Rule 2: Enhanced Time query validation with indirect patterns
             elif intent.type == IntentType.TIME_QUERY:
-                time_indicators = ['time', 'hours', 'open', 'close']
-                if not any(indicator in query_lower for indicator in time_indicators):
+                time_indicators = ['time', 'hours', 'open', 'close', 'schedule']
+                indirect_time_indicators = ['breakfast', 'lunch', 'dinner', 'brunch', 'morning', 'evening', 'weekend']
+                
+                if not any(indicator in query_lower for indicator in time_indicators + indirect_time_indicators):
                     should_keep = False
                 else:
-                    # Boost confidence if specific time questions
+                    # Boost confidence for specific time questions
                     if re.search(r'\b(what\s+time)\b', query_lower):
                         adjusted_confidence = min(1.0, adjusted_confidence + 0.3)
+                    # Boost for indirect time queries
+                    if any(re.search(rf'\b(open\s+for\s+{meal}|{meal}\s+(hours|time))\b', query_lower) 
+                           for meal in ['breakfast', 'lunch', 'dinner', 'brunch']):
+                        adjusted_confidence = min(1.0, adjusted_confidence + 0.4)
+                    
+                    # Strong boost for "right now" / immediate availability queries
+                    if re.search(r'\b(right\s+now|open\s+now|currently\s+open|at\s+the\s+moment)\b', query_lower):
+                        adjusted_confidence = min(1.0, adjusted_confidence + 0.6)
+                    
+                    # Boost for specific meal timing patterns
+                    meal_timing_patterns = [
+                        r'\b(places\s+open\s+for\s+(breakfast|lunch|dinner))\b',
+                        r'\b((breakfast|lunch|dinner)\s+spots?\s+open)\b'
+                    ]
+                    if any(re.search(pattern, query_lower) for pattern in meal_timing_patterns):
+                        adjusted_confidence = min(1.0, adjusted_confidence + 0.5)
             
             # Rule 3: Comparison intent validation
             elif intent.type == IntentType.COMPARISON:
@@ -563,8 +709,43 @@ class MultiIntentQueryHandler:
             )
             return default_intent, []
         
-        # Sort by priority (lower number = higher priority) then by confidence
-        sorted_intents = sorted(intents, key=lambda x: (x.priority, -x.confidence))
+        # Enhanced multi-intent prioritization using priority_score
+        # Sort by priority_score first (this includes all boosts), then by priority, then by confidence
+        sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
+        
+        # Special handling for Price/Hours multi-intent scenarios
+        price_intent = next((i for i in sorted_intents if i.type == IntentType.PRICE_QUERY), None)
+        time_intent = next((i for i in sorted_intents if i.type == IntentType.TIME_QUERY), None)
+        recommendation_intent = next((i for i in sorted_intents if i.type == IntentType.RECOMMENDATION), None)
+        
+        # If we have price + time + recommendation, recommendation should be primary
+        if price_intent and time_intent and recommendation_intent:
+            # Boost recommendation intent for combined price/time/recommendation queries
+            recommendation_intent.priority_score += 0.3
+            sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
+        
+        # If we have time + recommendation, check for specific timing patterns
+        elif time_intent and recommendation_intent:
+            # Check for immediate availability queries - time should be primary
+            query_text = ' '.join([str(i.parameters) for i in intents]).lower()
+            if re.search(r'\b(right\s+now|open\s+now|currently\s+open)\b', query_text):
+                time_intent.priority_score += 0.4
+                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
+            # Check for meal-specific timing - should favor time query for "breakfast places"
+            elif re.search(r'\b((breakfast|lunch|dinner|brunch)\s+(places|spots|options))\b', query_text):
+                time_intent.priority_score += 0.4
+                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
+            # Check for meal period queries - evaluate context
+            elif any(param in str(time_intent.parameters).lower() 
+                     for param in ['breakfast', 'lunch', 'dinner', 'brunch']):
+                # If query mentions "places/spots open for meal", time should be primary
+                meal_query = ' '.join([str(i.parameters) for i in intents]).lower()
+                if re.search(r'\b(places?\s+open\s+for|spots?\s+open)', meal_query):
+                    time_intent.priority_score += 0.3
+                else:
+                    # Otherwise, recommendation primary for meal-time queries
+                    recommendation_intent.priority_score += 0.2
+                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
         
         primary_intent = sorted_intents[0]
         secondary_intents = sorted_intents[1:]
@@ -625,7 +806,6 @@ class MultiIntentQueryHandler:
             IntentType.COMPARISON: "compare_options",
             IntentType.TIME_QUERY: "check_schedules",
             IntentType.PRICE_QUERY: "get_pricing_info",
-            IntentType.BOOKING: "handle_booking",
             IntentType.REVIEW_REQUEST: "fetch_reviews",
             IntentType.ACTIVITY_PLANNING: "plan_activities"
         }
@@ -740,35 +920,96 @@ class MultiIntentQueryHandler:
         """Get response templates (English only)"""
         
         templates = {
-            'recommendation': "Here are some great restaurant recommendations for you:",
-            'booking': "I can help you book a table. Let me find available options:",
-            'time_query': "Here are the opening hours and schedule information:", 
-            'price_query': "Here's the pricing information you requested:",
-            'location_search': "Here's the location information:",
-            'comparison': "Here's a comparison of your options:",
-            'information_request': "Here's the information you requested:",
-            'route_planning': "Here are the directions and route information:",
-            'greeting': "Hello! I'm here to help you discover the best of Istanbul."
+            'recommendation': "🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:",
+            'time_query': "⏰ Let me help you with the timing! Here's what I found about restaurant hours and schedules:", 
+            'price_query': "💰 Great question about pricing! Here's what you can expect to spend at these restaurants:",
+            'location_search': "📍 I'll help you find exactly where to go! Here are the locations and directions you need:",
+            'comparison': "🤔 Let me break down the differences for you! Here's a helpful comparison of your options:",
+            'information_request': "ℹ️ I'm happy to share what I know! Here's the information you're looking for:",
+            'route_planning': "🗺️ Let me help you get there! Here are the best directions and travel options:",
+            'greeting': "👋 Hello! I'm your friendly Istanbul dining guide, and I'm excited to help you discover the city's incredible food scene!"
         }
         
         return templates
     
     def generate_response(self, result: MultiIntentResult, language: str = 'english') -> str:
-        """Generate a response in the detected language"""
+        """Generate a friendly, contextual response"""
         
         templates = self._get_response_templates(language)
         primary_intent = result.primary_intent.type.value
         
-        # Get the appropriate template
+        # Get the base template
         if primary_intent in templates:
             response = templates[primary_intent]
         else:
             response = templates.get('information_request', templates['greeting'])
         
-        # Add confidence indicator for development/testing
-        confidence_text = f" (Confidence: {result.confidence_score:.1%})"
+        # Add contextual information based on detected parameters
+        context_additions = self._generate_context_additions(result)
+        if context_additions:
+            response += f"\n\n{context_additions}"
+        
+        # Add helpful next steps or tips
+        next_steps = self._generate_helpful_tips(result)
+        if next_steps:
+            response += f"\n\n💡 {next_steps}"
+        
+        # Add confidence indicator for development/testing (but make it friendly)
+        confidence_text = f"\n\n✨ I'm {result.confidence_score:.0%} confident this matches what you're looking for!"
         
         return response + confidence_text
+    
+    def _generate_context_additions(self, result: MultiIntentResult) -> str:
+        """Generate contextual additions based on detected parameters and secondary intents"""
+        
+        additions = []
+        primary_intent = result.primary_intent
+        
+        # Add context based on detected parameters
+        if 'locations' in primary_intent.parameters:
+            locations = primary_intent.parameters['locations']
+            if locations:
+                additions.append(f"I notice you're interested in the {locations[0]} area - that's a fantastic choice for dining!")
+        
+        if 'food_types' in primary_intent.parameters:
+            food_types = primary_intent.parameters['food_types']
+            if food_types:
+                additions.append(f"You mentioned {', '.join(food_types)} - I've focused on places that excel in these cuisines.")
+        
+        if 'price_ranges' in primary_intent.parameters:
+            price_ranges = primary_intent.parameters['price_ranges']
+            if 'budget' in str(price_ranges).lower() or 'cheap' in str(price_ranges).lower():
+                additions.append("I've prioritized great value options that won't break the bank.")
+            elif 'luxury' in str(price_ranges).lower() or 'expensive' in str(price_ranges).lower():
+                additions.append("I've selected upscale dining experiences for a special occasion.")
+        
+        # Add context for secondary intents
+        if result.secondary_intents:
+            intent_types = [intent.type.value for intent in result.secondary_intents]
+            if 'time_query' in intent_types:
+                additions.append("I'll also include timing information since you asked about hours.")
+            if 'location_search' in intent_types:
+                additions.append("I'll make sure to provide clear directions and location details.")
+            if 'price_query' in intent_types:
+                additions.append("I'll include pricing information to help you plan your budget.")
+        
+        return ' '.join(additions) if additions else ""
+    
+    def _generate_helpful_tips(self, result: MultiIntentResult) -> str:
+        """Generate helpful tips based on the intent and context"""
+        
+        primary_intent = result.primary_intent.type
+        
+        tips = {
+            IntentType.RECOMMENDATION: "Would you like more details about any of these restaurants, or do you need directions to get there?",
+            IntentType.TIME_QUERY: "Keep in mind that hours can vary on holidays or special occasions. I'd recommend checking their current status before visiting!",
+            IntentType.PRICE_QUERY: "Remember that prices in Istanbul can vary by season and location. These are general estimates to help you plan.",
+            IntentType.LOCATION_SEARCH: "Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!",
+            IntentType.COMPARISON: "Each option has its unique charm - would you like more specific details about any of these to help you decide?",
+            IntentType.ROUTE_PLANNING: "Don't forget to check the latest public transport schedules, as they can change seasonally!"
+        }
+        
+        return tips.get(primary_intent, "Feel free to ask me anything else about Istanbul's amazing food scene!")
     
     def _detect_sub_intents(self, query: str, intent_type: IntentType) -> List[str]:
         """Detect sub-intents for more granular classification"""
@@ -902,7 +1143,7 @@ def test_multi_intent_query_handler():
         "I want to find good Turkish restaurants near Sultanahmet and also need directions to get there",
         "Compare the Blue Mosque and Hagia Sophia, and tell me which one is better to visit first",
         "What's the best route from Taksim to Galata Tower and how much does it cost?",
-        "Recommend some romantic restaurants with Bosphorus view and help me book a table for tonight",
+        "Recommend some romantic restaurants with Bosphorus view and tell me their opening hours for tonight",
         "Plan a full day itinerary including museums, lunch, and shopping, starting from my hotel"
     ]
     
