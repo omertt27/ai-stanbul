@@ -2254,8 +2254,19 @@ async def generate_intent_specific_response(intent, location_info: Optional[Dict
 async def handle_restaurant_intent(intent, location_info, original_message, session_id):
     """Handle restaurant-specific intents with location awareness and detailed information"""
     try:
+        print(f"DEBUG: handle_restaurant_intent called with location_info = {location_info}")
+        
+        # Initialize restaurant service to get real data
+        try:
+            from restaurant_integration_service import RestaurantIntegrationService
+            restaurant_service = RestaurantIntegrationService()
+        except Exception as e:
+            print(f"Warning: Could not load restaurant service: {e}")
+            restaurant_service = None
+        
         if not location_info:
-            return generate_restaurant_response_without_location(intent, original_message)
+            print("DEBUG: No location_info, calling generate_restaurant_response_without_location")
+            return generate_restaurant_response_without_location(intent, original_message, restaurant_service)
         
         response_parts = []
         district = location_info.get('district', 'your area').lower()
@@ -2263,6 +2274,9 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
         # Make response more keyword-responsive by echoing query terms
         original_lower = original_message.lower()
         district_name = location_info.get('district', 'your area')
+        
+        # Normalize Turkish characters for better matching
+        original_lower = original_lower.replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c').replace('ş', 's')
         
         # Check for specific area mentions and respond accordingly (check most specific first)
         if 'galata' in original_lower:
@@ -2274,6 +2288,9 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
         elif 'istiklal avenue' in original_lower or ('istiklal' in original_lower and 'avenue' in original_lower):
             response_parts.append(f"🍽️ Food places around İstiklal Avenue in {district_name}!")
             response_parts.append("İstiklal Avenue is famous for its street food and restaurants!")
+        elif 'istiklal' in original_lower or 'avenue' in original_lower:
+            response_parts.append(f"🍽️ Great restaurant recommendations for İstiklal area in {district_name}!")
+            response_parts.append("This avenue offers fantastic dining from street food to fine restaurants!")
         elif 'karaköy' in original_lower and 'neighborhood' in original_lower:
             response_parts.append(f"🍽️ Karaköy neighborhood dining options in {district_name}!")
             response_parts.append("Karaköy is a trendy area with excellent restaurant choices!")
@@ -2289,23 +2306,151 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
         elif 'fenerbahçe area' in original_lower or ('fenerbahçe' in original_lower and 'area' in original_lower):
             response_parts.append(f"🍽️ Local eateries in Fenerbahçe area, {district_name}!")
             response_parts.append("Fenerbahçe offers great local dining experiences!")
+        elif 'kumkapi' in original_lower:
+            response_parts.append(f"🍽️ Seafood places in Kumkapı!")
+            response_parts.append("Kumkapı is famous for its traditional fish restaurants and lively atmosphere!")
+            
+            # Get real seafood restaurants from our database
+            if restaurant_service:
+                try:
+                    seafood_restaurants = restaurant_service.search_restaurants(
+                        district="Fatih", cuisine="Seafood", limit=4
+                    )
+                    if seafood_restaurants:
+                        response_parts.append("\n🐟 **Kumkapı Area Seafood Restaurants:**")
+                        for restaurant in seafood_restaurants[:4]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description}")
+                    else:
+                        # Fallback to generic names if no data
+                        response_parts.append("\n� **Kumkapı Seafood Restaurants:**")
+                        response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+                        response_parts.append("• **Fresh daily catch specialists** - Marmara Sea fish varieties")
+                except Exception as e:
+                    print(f"Error getting restaurant data: {e}")
+                    response_parts.append("\n� **Kumkapı Seafood Restaurants:**")
+                    response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+                    response_parts.append("• **Fresh daily catch specialists** - Marmara Sea fish varieties")
+            else:
+                response_parts.append("\n� **Kumkapı Seafood Restaurants:**")
+                response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+                response_parts.append("• **Fresh daily catch specialists** - Marmara Sea fish varieties")
+            
+            response_parts.append("• **Fish specialties**: Sea bass, turbot, mackerel, grilled octopus, fresh mussels")
+            response_parts.append("• **Kumkapı atmosphere** - Traditional seafood dining with live Turkish music")
+            response_parts.append("• **Historic fishing district** - Authentic maritime cuisine experience since Ottoman era")
         elif 'asian side' in original_lower or 'anatolian side' in original_lower:
             response_parts.append(f"🍽️ Excellent Asian side dining recommendations in {district_name}!")
             response_parts.append("The Asian side of Istanbul offers fantastic dining experiences!")
+            
+            # Get real restaurants from Kadıköy and other Asian side districts
+            if restaurant_service:
+                try:
+                    kadikoy_restaurants = restaurant_service.search_restaurants(
+                        district="Kadıköy", limit=4
+                    )
+                    if kadikoy_restaurants:
+                        response_parts.append("\n🌊 **Asian Side Restaurant Highlights:**")
+                        for restaurant in kadikoy_restaurants[:4]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:100]}...")
+                except Exception as e:
+                    print(f"Error getting Kadıköy restaurants: {e}")
+            
+            response_parts.append("• **Kadıköy highlights**: Hip, artistic dining scene with local favorites")
+            response_parts.append("• **Moda waterfront**: Restaurants with stunning Bosphorus views")
+            response_parts.append("• **Üsküdar**: Traditional Turkish restaurants with historic charm")
         elif 'european side' in original_lower:
             response_parts.append(f"🍽️ Great European side restaurant recommendations in {district_name}!")
+            
+            # Get restaurants from Beyoğlu, Beşiktaş, and other European side districts
+            if restaurant_service:
+                try:
+                    beyoglu_restaurants = restaurant_service.search_restaurants(
+                        district="Beyoğlu", limit=3
+                    )
+                    if beyoglu_restaurants:
+                        response_parts.append("\n🏰 **European Side Restaurant Highlights:**")
+                        for restaurant in beyoglu_restaurants[:3]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:100]}...")
+                except Exception as e:
+                    print(f"Error getting European side restaurants: {e}")
         elif 'old city' in original_lower or 'historic' in original_lower:
             response_parts.append(f"🍽️ Historic Old City restaurant recommendations in {district_name}!")
             response_parts.append("The historic peninsula offers authentic Ottoman and traditional dining!")
+            
+            # Get historic restaurants from Sultanahmet and Fatih
+            if restaurant_service:
+                try:
+                    historic_restaurants = restaurant_service.search_restaurants(
+                        district="Sultanahmet", limit=3
+                    )
+                    if historic_restaurants:
+                        response_parts.append("\n🏛️ **Historic Peninsula Restaurants:**")
+                        for restaurant in historic_restaurants[:3]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:100]}...")
+                except Exception as e:
+                    print(f"Error getting historic restaurants: {e}")
         elif 'moda' in original_lower:
             response_parts.append(f"🍽️ Trendy Moda neighborhood dining recommendations!")
             response_parts.append("Moda is known for its hip, artistic dining scene!")
         elif 'hip' in original_lower or 'trendy' in original_lower:
             response_parts.append(f"🍽️ Hip and trendy restaurant recommendations in {district_name}!")
+            
+            # Get trendy restaurants from Beyoğlu and Kadıköy
+            if restaurant_service:
+                try:
+                    trendy_restaurants = restaurant_service.search_restaurants(
+                        district="Beyoğlu", limit=3
+                    )
+                    if trendy_restaurants:
+                        response_parts.append("\n🎨 **Hip & Trendy Restaurants:**")
+                        for restaurant in trendy_restaurants[:3]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:80]}...")
+                except Exception as e:
+                    print(f"Error getting trendy restaurants: {e}")
         elif 'bosphorus view' in original_lower or 'view' in original_lower:
             response_parts.append(f"🍽️ Restaurants with stunning Bosphorus views in {district_name}!")
+            
+            # Get restaurants from waterfront districts
+            if restaurant_service:
+                try:
+                    view_restaurants = restaurant_service.search_restaurants(
+                        district="Beşiktaş", limit=3
+                    )
+                    if view_restaurants:
+                        response_parts.append("\n🌊 **Bosphorus View Restaurants:**")
+                        for restaurant in view_restaurants[:3]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:80]}...")
+                except Exception as e:
+                    print(f"Error getting view restaurants: {e}")
         elif 'taksim' in original_lower:
             response_parts.append(f"🍽️ Taksim area restaurant recommendations in {district_name}!")
+            
+            # Get restaurants from Beyoğlu (includes Taksim area)
+            if restaurant_service:
+                try:
+                    taksim_restaurants = restaurant_service.search_restaurants(
+                        district="Beyoğlu", limit=4
+                    )
+                    if taksim_restaurants:
+                        response_parts.append("\n🏛️ **Taksim Area Restaurants:**")
+                        for restaurant in taksim_restaurants[:4]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine}) - {restaurant.rating}★ | 💰 {price_symbols}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:80]}...")
+                except Exception as e:
+                    print(f"Error getting Taksim restaurants: {e}")
         elif 'karaköy' in original_lower:
             response_parts.append(f"🍽️ Karaköy restaurant recommendations in {district_name}!")
         elif 'near' in original_lower:
@@ -2324,25 +2469,46 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             
             # Add cuisine-specific recommendations
             if any(cuisine in cuisines for cuisine in ['turkish', 'ottoman', 'traditional']):
-                response_parts.append("\n**🇹🇷 Turkish Cuisine Specialists:**")
+                response_parts.append("\n**🇹🇷 Turkish & Ottoman Cuisine Specialists:**")
                 response_parts.append("• **Pandeli** - Historic Ottoman recipes from 1901")
-                response_parts.append("• **Deraliye** - Royal Ottoman palace cuisine")
+                response_parts.append("  📍 Spice Bazaar | 💰 ₺₺₺ | ⏰ 12:00-17:00")
+                response_parts.append("• **Deraliye** - Royal Ottoman palace cuisine") 
+                response_parts.append("  📍 Sultanahmet | 💰 ₺₺₺₺ | ⏰ 12:00-00:00")
                 response_parts.append("• **Çiya Sofrası** - Regional Anatolian specialties")
-                response_parts.append("• **Traditional dishes**: Lamb stew, manti, Turkish breakfast")
+                response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+                response_parts.append("• **Traditional dishes**: Ottoman lamb stew, manti, Turkish breakfast, traditional recipes")
                 
             if any(cuisine in cuisines for cuisine in ['seafood', 'fish']):
-                response_parts.append("\n**🐟 Seafood Specialists:**")
+                response_parts.append("\n**🐟 Seafood & Fish Restaurant Specialists:**")
                 response_parts.append("• **Balıkçı Sabahattin** - Historic seafood in Sultanahmet")
-                response_parts.append("• **Karaköy Fish Market** - Fresh daily catch")
+                response_parts.append("  📍 Cankurtaran Mah. Seyit Hasan Sok. No:1 | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+                response_parts.append("• **Pandeli Fish House** - Fresh daily catch from Marmara")
+                response_parts.append("  📍 Kumkapı District | 💰 ₺₺ | ⏰ 17:00-24:00")
                 response_parts.append("• **Ortaköy Balık Ekmek** - Famous fish sandwich")
-                response_parts.append("• **Specialties**: Sea bass, turbot, mussels, grilled octopus")
+                response_parts.append("  📍 Ortaköy İskelesi | 💰 ₺ | ⏰ 10:00-22:00")
+                response_parts.append("• **Konyalı Restaurant** - Traditional Kumkapı fish dining")
+                response_parts.append("  📍 Kumkapı Meydanı No:12 | 💰 ₺₺₺ | ⏰ 18:00-02:00")
+                response_parts.append("• **Deniz Restaurant** - Grilled fish specialists")
+                response_parts.append("  📍 Kumkapı Marina | 💰 ₺₺₺ | ⏰ 18:30-02:00")
+                response_parts.append("• **Bebek Balıkçısı** - Bosphorus waterfront seafood")
+                response_parts.append("  📍 Cevdet Paşa Cad. No:26, Bebek | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+                response_parts.append("• **Fish specialties**: Sea bass, turbot, mackerel, grilled octopus, fresh mussels, Bosphorus catch")
                 
             if any(cuisine in cuisines for cuisine in ['street food', 'döner', 'kebab']):
                 response_parts.append("\n**🥙 Street Food & Kebab Masters:**")
-                response_parts.append("• **Hamdi Restaurant** - Famous pistachio kebab")
-                response_parts.append("• **Döner shops** - İstiklal Avenue, Sultanahmet")
-                response_parts.append("• **Balık ekmek** - Eminönü, Ortaköy waterfront")
-                response_parts.append("• **Must-try**: Döner, balık ekmek, midye dolma, börek")
+                response_parts.append("• **Hamdi Restaurant** - Famous traditional pistachio kebab")
+                response_parts.append("  📍 Kalçın Sok. No:17, Eminönü | 💰 ₺₺₺ | ⏰ 11:00-24:00")
+                response_parts.append("• **Dürümzade** - Best döner in Beyoğlu")
+                response_parts.append("  📍 Kameriye Sok. No:26, Galata | 💰 ₺ | ⏰ 11:00-02:00")
+                response_parts.append("• **Çiya Kebap** - Regional kebab specialties")
+                response_parts.append("  📍 Güneşlibahçe Sok. No:44, Kadıköy | 💰 ₺₺ | ⏰ 11:00-23:00")
+                response_parts.append("• **Şehzade Erzurum Cağ Kebabı** - Traditional cağ kebab")
+                response_parts.append("  📍 Hobyar Mah. Hamidiye Cad. No:59, Eminönü | 💰 ₺₺ | ⏰ 11:00-23:00")
+                response_parts.append("• **Eminönü Balık Ekmek** - Waterfront fish sandwich")
+                response_parts.append("  📍 Galata Bridge area | 💰 ₺ | ⏰ 08:00-20:00")
+                response_parts.append("• **Ortaköy Kumpir** - Famous stuffed potato")
+                response_parts.append("  📍 Ortaköy Square | 💰 ₺ | ⏰ 10:00-24:00")
+                response_parts.append("• **Street food specialties**: Döner, balık ekmek, midye dolma, börek, simit, kumpir, cağ kebab")
         
         if dining_styles:
             style_text = ', '.join(dining_styles)
@@ -2401,84 +2567,140 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             response_parts.append("• Street food around mosques and markets is typically cheapest")
             response_parts.append("• Turkish breakfast places offer great value (₺30-50)")
             response_parts.append("• Avoid touristy areas for better prices")
-            
         elif 'sultanahmet' in district:
             response_parts.append("\n**🏛️ Historic Sultanahmet Area:**")
-            response_parts.append("• **Pandeli** (Ottoman cuisine)")
-            response_parts.append("  📍 Spice Bazaar, Eminönü | 💰 ₺₺₺ | ⏰ 12:00-17:00")
-            response_parts.append("  🥘 Traditional Ottoman dishes, famous lamb stew")
-            response_parts.append("  🌱 Vegetarian options available")
             
-            response_parts.append("\n• **Deraliye Ottoman Palace Restaurant**")
-            response_parts.append("  📍 Near Sultanahmet Mosque | 💰 ₺₺₺₺ | ⏰ 12:00-00:00")
-            response_parts.append("  👑 Royal Ottoman recipes, elegant atmosphere")
-            response_parts.append("  🥗 Vegetarian and halal certified")
-            
-            response_parts.append("\n• **Balıkçı Sabahattin** (Seafood)")
-            response_parts.append("  📍 Cankurtaran | 💰 ₺₺₺ | ⏰ 12:00-24:00")
-            response_parts.append("  🐟 Fresh fish, sea bass, grilled octopus")
-            response_parts.append("  🌊 Historic setting with garden seating")
-            
+            # Get real restaurants from our database for Sultanahmet
+            if restaurant_service:
+                try:
+                    sultanahmet_restaurants = restaurant_service.search_restaurants(
+                        district="Sultanahmet", limit=6
+                    )
+                    if sultanahmet_restaurants:
+                        for restaurant in sultanahmet_restaurants[:6]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine})")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | {restaurant.rating}★")
+                            response_parts.append(f"  {restaurant.description[:100]}...")
+                    else:
+                        # Fallback to generic if no real data
+                        response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
+                        response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
+                except Exception as e:
+                    print(f"Error getting Sultanahmet restaurants: {e}")
+                    response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
+                    response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
+            else:
+                response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
+                response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
         elif 'beyoğlu' in district or 'taksim' in district:
             response_parts.append("\n**🌃 Modern Beyoğlu & Taksim Area:**")
             response_parts.append("• **Mikla** (Modern Turkish)")
-            response_parts.append("  📍 Marmara Pera Hotel | 💰 ₺₺₺₺₺ | ⏰ 18:00-01:00")
+            response_parts.append("  📍 Marmara Pera Hotel, Meşrutiyet Cad. No:15 | 💰 ₺₺₺₺₺ | ⏰ 18:00-01:00")
             response_parts.append("  🏆 Award-winning, Bosphorus view, tasting menu")
             response_parts.append("  🌱 Excellent vegetarian tasting menu")
-            
+
             response_parts.append("\n• **Karaköy Lokantası** (Contemporary Turkish)")
-            response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+            response_parts.append("  📍 Kemankeş Cad. No:37A, Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
             response_parts.append("  🍳 All-day dining, Ottoman-inspired, great breakfast")
             response_parts.append("  🥗 Vegetarian and vegan options")
-            
-            response_parts.append("\n• **Çiya Sofrası** (Authentic Anatolian)")
-            response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
-            response_parts.append("  🏞️ Regional Turkish cuisine, changing daily menu")
-            response_parts.append("  🌾 Many vegetarian dishes, local ingredients")
-            
+
             response_parts.append("\n• **Nicole Restaurant** (Fine Dining)")
-            response_parts.append("  📍 Tomtom Kaptan | 💰 ₺₺₺₺ | ⏰ 19:00-24:00")
+            response_parts.append("  📍 Tomtom Mah. Tomtom Kaptan Sok. No:18 | 💰 ₺₺₺₺ | ⏰ 19:00-24:00")
             response_parts.append("  🍷 Contemporary European, wine pairings")
             response_parts.append("  🌟 Michelin recommended, intimate setting")
-            
+
+            response_parts.append("\n• **360 Istanbul** (International)")
+            response_parts.append("  📍 İstiklal Cad. Mısır Apartmanı No:311 | 💰 ₺₺₺₺ | ⏰ 17:00-02:00")
+            response_parts.append("  � Panoramic city views, rooftop terrace")
+            response_parts.append("  🍸 Contemporary cuisine, craft cocktails")
+
+            response_parts.append("\n• **Leb-i Derya** (International)")
+            response_parts.append("  📍 Kumbaracı Yokuşu No:115/7, Galata | 💰 ₺₺₺ | ⏰ 12:00-02:00")
+            response_parts.append("  🌊 Golden Horn views, Mediterranean cuisine")
+            response_parts.append("  🥗 Excellent vegetarian options, stylish atmosphere")
+
+            response_parts.append("\n• **Refik Restaurant** (Traditional Turkish)")
+            response_parts.append("  📍 Sofyalı Sok. No:10/12, Asmalımescit | 💰 ₺₺ | ⏰ 12:00-01:00")
+            response_parts.append("  � Traditional Turkish tavern, authentic meze")
+            response_parts.append("  🍷 Historic meyhane atmosphere, local wines")
+
+            response_parts.append("\n• **Neolokal** (Modern Turkish)")
+            response_parts.append("  📍 Bankalar Cad. No:11, Karaköy | 💰 ₺₺₺₺ | ⏰ 18:30-24:00")
+            response_parts.append("  � Contemporary Turkish, artistic presentation")
+            response_parts.append("  🌿 Farm-to-table concept, seasonal ingredients")
         elif 'kadıköy' in district or 'asian side' in district or 'anatolian side' in district or 'moda' in district:
             response_parts.append("\n**🌊 Asian Side - Kadıköy & Moda:**")
             response_parts.append("• **Çiya Sofrası** (Regional Turkish)")
-            response_parts.append("  📍 Kadıköy Market | 💰 ₺₺ | ⏰ 12:00-22:00")
+            response_parts.append("  📍 Güneşlibahçe Sok. No:43, Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
             response_parts.append("  🏞️ Authentic Anatolian cuisine, seasonal menu")
             response_parts.append("  🥬 Extensive vegetarian options, locally sourced")
-            
+
+            response_parts.append("\n• **Çiya Kebap** (Kebab specialist)")
+            response_parts.append("  📍 Güneşlibahçe Sok. No:44, Kadıköy | 💰 ₺₺ | ⏰ 11:00-23:00")
+            response_parts.append("  🥩 Traditional regional kebabs, char-grilled meats")
+            response_parts.append("  🌶️ Spicy Urfa kebab, authentic preparation")
+
             response_parts.append("\n• **Kiva Han** (Turkish & International)")
-            response_parts.append("  📍 Kadıköy Çarşı | 💰 ₺₺₺ | ⏰ 09:00-24:00")
+            response_parts.append("  📍 Serasker Cad. No:7/A, Kadıköy | 💰 ₺₺₺ | ⏰ 09:00-24:00")
             response_parts.append("  🎨 Bohemian atmosphere, live music evenings")
             response_parts.append("  🍷 Great wine selection, vegetarian friendly")
-            
+
             response_parts.append("\n• **Moda Teras** (Mediterranean)")
-            response_parts.append("  📍 Moda Caddesi | 💰 ₺₺₺ | ⏰ 11:00-01:00")
+            response_parts.append("  📍 Moda Cad. No:265, Moda | 💰 ₺₺₺ | ⏰ 11:00-01:00")
             response_parts.append("  🌊 Sea view terrace, fresh Mediterranean cuisine")
             response_parts.append("  🐟 Excellent seafood, vegetarian mezze selection")
-            
-            response_parts.append("\n• **Kadıköy Fish Market Restaurants**")
-            response_parts.append("  📍 Kadıköy Balık Pazarı | 💰 ₺₺ | ⏰ 10:00-22:00")
+
+            response_parts.append("\n• **Tarihi Moda İskelesi** (Seafood)")
+            response_parts.append("  📍 Moda İskelesi, Moda | 💰 ₺₺ | ⏰ 10:00-24:00")
+            response_parts.append("  ⛵ Waterfront dining, fresh fish daily")
+            response_parts.append("  🌅 Sunset views, casual atmosphere")
+
+            response_parts.append("\n• **Kadıköy Balıkçısı** (Fish market restaurant)")
+            response_parts.append("  📍 Kadıköy Balık Pazarı, Serasker Cad. | 💰 ₺₺ | ⏰ 10:00-22:00")
             response_parts.append("  🐟 Fresh daily catch, simple preparation")
             response_parts.append("  💫 Authentic local experience, very affordable")
-            
+
+            response_parts.append("\n• **Yanyalı Fehmi Lokantası** (Traditional Turkish)")
+            response_parts.append("  📍 Serasker Cad. No:9, Kadıköy | 💰 ₺₺ | ⏰ 11:30-22:00")
+            response_parts.append("  🍲 Traditional Ottoman dishes, family recipes")
+            response_parts.append("  👵 Home-style cooking, generous portions")
         elif 'beşiktaş' in district or 'ortaköy' in district or 'bebek' in district:
             response_parts.append("\n**🏰 Beşiktaş & Bosphorus Neighborhoods:**")
             response_parts.append("• **Sunset Grill & Bar** (International)")
-            response_parts.append("  📍 Ulus Park | 💰 ₺₺₺₺ | ⏰ 12:00-02:00")
+            response_parts.append("  📍 Yol Sok. No:2, Ulus | 💰 ₺₺₺₺ | ⏰ 12:00-02:00")
             response_parts.append("  🌅 Panoramic Bosphorus view, upscale international")
             response_parts.append("  🥗 Extensive vegetarian menu, weekend brunch")
-            
+
             response_parts.append("\n• **Ortaköy Balık Ekmek** (Street Food)")
-            response_parts.append("  📍 Ortaköy Pier | 💰 ₺ | ⏰ 08:00-24:00")
-            response_parts.append("  🐟 Famous fish sandwich, Bosphorus view")
+            response_parts.append("  📍 Ortaköy İskelesi, Mecidiye Köprüsü altı | 💰 ₺ | ⏰ 08:00-24:00")
+            response_parts.append("  🐟 Famous fish sandwich, Bosphorus Bridge view")
             response_parts.append("  🎯 Iconic Istanbul experience, very affordable")
-            
+
             response_parts.append("\n• **Bebek Balıkçısı** (Seafood)")
-            response_parts.append("  📍 Bebek Bay | 💰 ₺₺₺ | ⏰ 12:00-24:00")
-            response_parts.append("  🦐 Fresh Bosphorus seafood, elegant setting")
+            response_parts.append("  📍 Cevdet Paşa Cad. No:26, Bebek | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+            response_parts.append("  🦐 Fresh Bosphorus seafood, elegant waterfront setting")
             response_parts.append("  🌊 Waterfront dining, some vegetarian options")
+
+            response_parts.append("\n• **Lucca** (Mediterranean)")
+            response_parts.append("  📍 Cevdet Paşa Cad. No:51/B, Bebek | 💰 ₺₺₺₺ | ⏰ 12:00-01:00")
+            response_parts.append("  🍝 Upscale Mediterranean, stylish terrace")
+            response_parts.append("  🍷 Excellent wine list, romantic atmosphere")
+
+            response_parts.append("\n• **Tugra Restaurant** (Ottoman)")
+            response_parts.append("  📍 Çırağan Palace Kempinski, Beşiktaş | 💰 ₺₺₺₺₺ | ⏰ 19:00-24:00")
+            response_parts.append("  👑 Ottoman palace cuisine, Bosphorus terrace")
+            response_parts.append("  🏆 Michelin starred, luxury dining experience")
+
+            response_parts.append("\n• **Feriye Palace Restaurant** (Fine Dining)")
+            response_parts.append("  📍 Çırağan Cad. No:40, Ortaköy | 💰 ₺₺₺₺ | ⏰ 18:00-24:00")
+            response_parts.append("  🏛️ Historic palace setting, international cuisine")
+            response_parts.append("  🌹 Romantic atmosphere, special occasions")
+
+            response_parts.append("\n• **Angelique** (Contemporary)")
+            response_parts.append("  📍 Muallim Naci Cad. No:142, Ortaköy | 💰 ₺₺₺ | ⏰ 10:00-02:00")
+            response_parts.append("  🎭 Stylish lounge-restaurant, Bosphorus views")
+            response_parts.append("  🍸 Contemporary cuisine, nightlife scene")
             
         elif 'üsküdar' in district or 'sarıyer' in district:
             response_parts.append("\n**🌲 Northern Istanbul & Asian Side:**")
@@ -2516,7 +2738,7 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             response_parts.append("  🍷 Excellent wine list, vegetarian options")
         
         # Add comprehensive dietary information if requested
-        if any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'plant', 'dietary']):
+        if any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'plant', 'plant-based', 'plant based', 'dietary']):
             response_parts.append("\n🌿 **Comprehensive Dietary Guide:**")
             
             if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or 'plant' in original_message.lower():
@@ -2662,10 +2884,64 @@ async def handle_route_intent(intent, location_info, original_message, session_i
         print(f"Error handling route intent: {e}")
         return None
 
-def generate_restaurant_response_without_location(intent, original_message):
+def generate_restaurant_response_without_location(intent, original_message, restaurant_service=None):
     """Generate enhanced restaurant response when location is not available"""
     response_parts = []
+    # Handle Turkish character normalization for location matching
     original_lower = original_message.lower()
+    # Normalize Turkish characters for better matching
+    original_lower = original_lower.replace('i̇', 'i').replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c').replace('ş', 's')
+    
+    # Check for specific location-based queries FIRST (before dietary checks)
+    if 'kumkapi' in original_lower:
+        response_parts.append("🍽️ Seafood places in Kumkapı! This historic fishing district is famous for its fresh seafood restaurants and fish dining.")
+        
+        # Get real seafood restaurants from our database
+        if restaurant_service:
+            try:
+                seafood_restaurants = restaurant_service.search_restaurants(
+                    district="Fatih", cuisine="Seafood", limit=4
+                )
+                if seafood_restaurants:
+                    response_parts.append("\n🐟 **Kumkapı Area Seafood Restaurants:**")
+                    for restaurant in seafood_restaurants[:4]:
+                        price_symbols = '₺' * (restaurant.price_level + 1)
+                        response_parts.append(f"• **{restaurant.name}** - {restaurant.rating}★ | 💰 {price_symbols}")
+                        response_parts.append(f"  📍 {restaurant.vicinity} | {restaurant.description[:80]}...")
+                else:
+                    # Fallback if no seafood restaurants found
+                    response_parts.append("\n🐟 **Kumkapı Seafood Restaurants:**")
+                    response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+                    response_parts.append("  📍 Kumkapı district | 💰 ₺₺₺ | ⏰ 18:00-02:00")
+                    response_parts.append("• **Fresh daily catch** - Seafood specialists with Bosphorus fish")
+            except Exception as e:
+                print(f"Error getting Kumkapı restaurants: {e}")
+                response_parts.append("\n🐟 **Kumkapı Seafood Restaurants:**")
+                response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+                response_parts.append("• **Fresh daily catch** - Seafood specialists with Bosphorus fish")
+        else:
+            response_parts.append("\n🐟 **Kumkapı Seafood Restaurants:**")
+            response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+            response_parts.append("• **Fresh daily catch** - Seafood specialists with Bosphorus fish")
+        
+        response_parts.append("• **Fish varieties**: Sea bass, turbot, mackerel, grilled fish")
+        response_parts.append("• **Kumkapı atmosphere** - Traditional seafood dining with live music")
+        response_parts.append("• **Historic fishing district** - Authentic maritime cuisine experience")
+        return '\n'.join(response_parts)
+    
+    # Handle generic vegetarian query (high priority to avoid generic response)
+    elif 'vegetarian restaurants' in original_lower and 'turkish' not in original_lower and 'meze' not in original_lower:
+        response_parts.append("🍽️ Vegetarian restaurants in Istanbul! Istanbul offers excellent vegetarian dining with both Turkish and international plant-based options.")
+        response_parts.append("\n🌱 **Best Vegetarian Restaurants:**")
+        response_parts.append("• **Zencefil** - 100% vegetarian restaurant in Galata")
+        response_parts.append("  📍 Galata | 💰 ₺₺ | ⏰ 11:00-23:00")
+        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian Turkish dishes daily")
+        response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+        response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu options")
+        response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+        response_parts.append("• **Turkish vegetarian specialties**: Dolma, vegetarian kebabs, mezze")
+        response_parts.append("• **International options**: Vegan burgers, plant-based Italian, vegetarian Asian")
+        return '\n'.join(response_parts)
     
     # Check intent requirements for dietary/religious needs
     requirements = intent.specific_requirements or {} if intent else {}
@@ -2689,6 +2965,64 @@ def generate_restaurant_response_without_location(intent, original_message):
         response_parts.append("• Prayer times respected during service")
         response_parts.append("• Religious dietary restrictions accommodated")
         
+    # Handle celiac/gluten-free dietary queries specifically  
+    elif any(term in original_lower for term in ['celiac', 'coeliac', 'gluten', 'wheat-free', 'allergy']) or \
+         any(term in [req.lower() for req in dietary_requirements] for term in ['celiac', 'coeliac', 'gluten', 'wheat-free']):
+        response_parts.append("🍽️ Celiac-friendly and gluten-free dining options! Istanbul offers many naturally gluten-free Turkish dishes and accommodating restaurants.")
+        response_parts.append("\n🌾 **Gluten-Free & Celiac-Friendly Restaurants:**")
+        response_parts.append("• **Turkish grilled meats** - Naturally gluten-free kebabs, köfte, grilled chicken")
+        response_parts.append("• **Rice-based dishes** - Pilav, biryani, stuffed peppers with rice")
+        response_parts.append("• **Fresh seafood** - Grilled fish, seafood mezze (ask about preparation)")
+        response_parts.append("• **Most restaurants** - Can accommodate celiac requests with advance notice")
+        response_parts.append("• **Turkish mezze** - Many options: hummus, cacık, grilled vegetables")
+        
+        response_parts.append("\n✅ **Celiac-Safe Options:**")
+        response_parts.append("• Rice dishes and grilled meats are naturally safe")
+        response_parts.append("• Most restaurants understand gluten-free needs")
+        response_parts.append("• Turkish cuisine has many naturally gluten-free dishes")
+        response_parts.append("• Always inform staff about celiac requirements")
+        
+        response_parts.append("\n⚠️ **Foods to Avoid:**")
+        response_parts.append("• Pide (Turkish pizza) - contains wheat flour")
+        response_parts.append("• Börek and pastries - made with wheat")
+        response_parts.append("• Bulgur dishes - wheat-based grain")
+        response_parts.append("• Regular bread and wheat-based items")
+        
+    # Handle plant-based/vegan dietary queries specifically
+    elif any(term in original_lower for term in ['plant-based', 'plant based', 'vegan']) or \
+         any(term in [req.lower() for req in dietary_requirements] for term in ['plant-based', 'plant based', 'vegan']):
+        response_parts.append("🍽️ Plant-based dining options! Istanbul offers fantastic vegetarian and vegan-friendly restaurants with creative plant-based dishes.")
+        response_parts.append("\n🌱 **Plant-Based & Vegan-Friendly Restaurants:**")
+        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian dishes daily, seasonal plant-based options")
+        response_parts.append("• **Karaköy Lokantası** - Complete vegetarian menu, many vegan options")
+        response_parts.append("• **Zencefil** (Galata) - 100% vegetarian restaurant with vegan dishes")
+        response_parts.append("• **Kronotrop** (Multiple locations) - Vegan coffee and plant-based breakfast")
+        response_parts.append("• **Most restaurants** - Can prepare plant-based versions of Turkish dishes")
+        
+        response_parts.append("\n✅ **Plant-Based Turkish Options:**")
+        response_parts.append("• Turkish mezze - Naturally plant-based: hummus, baba ganoush, dolma")
+        response_parts.append("• Grilled vegetables and seasonal produce")
+        response_parts.append("• Rice-based dishes and Turkish legume stews")
+        response_parts.append("• Fresh salads and plant-based Turkish breakfast")
+        
+        response_parts.append("\n🌿 **Vegan-Friendly Areas:**")
+        response_parts.append("• **Galata & Karaköy** - Hip area with vegan-conscious restaurants")
+        response_parts.append("• **Kadıköy** - Asian side with creative plant-based options")
+        response_parts.append("• **Beyoğlu** - Modern restaurants with vegan menus")
+        
+    # Handle generic vegetarian query (not plant-based specific)
+    elif 'vegetarian restaurants' in original_lower and 'turkish' not in original_lower:
+        response_parts.append("🍽️ Vegetarian restaurants in Istanbul! Istanbul offers excellent vegetarian dining with both Turkish and international plant-based options.")
+        response_parts.append("\n🌱 **Best Vegetarian Restaurants:**")
+        response_parts.append("• **Zencefil** - 100% vegetarian restaurant in Galata")
+        response_parts.append("  📍 Galata | 💰 ₺₺ | ⏰ 11:00-23:00")
+        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian Turkish dishes daily")
+        response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+        response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu options")
+        response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+        response_parts.append("• **Turkish vegetarian specialties**: Dolma, vegetarian kebabs, mezze")
+        response_parts.append("• **International options**: Vegan burgers, plant-based Italian, vegetarian Asian")
+        
     # Make response more keyword-responsive
     elif 'asian side' in original_lower or 'anatolian side' in original_lower:
         response_parts.append("🍽️ Great question about Asian side dining! The Asian side of Istanbul has amazing restaurants, especially in Kadıköy and Üsküdar. For specific location recommendations, could you tell me which Asian side district you're interested in?")
@@ -2710,20 +3044,175 @@ def generate_restaurant_response_without_location(intent, original_message):
     elif 'moda' in original_lower:
         response_parts.append("🍽️ Moda neighborhood dining recommendations! Moda is a trendy, artistic area in Kadıköy with great restaurants and Bosphorus views.")
         
+    elif any(term in original_lower for term in ['istiklal avenue', 'i̇stiklal avenue', 'istiklal caddesi', 'i̇stiklal caddesi']) or (any(term in original_lower for term in ['istiklal', 'i̇stiklal']) and any(word in original_lower for word in ['avenue', 'caddesi', 'food', 'places'])):
+        response_parts.append("🍽️ Good food places around İstiklal Avenue! İstiklal Avenue is famous for its diverse restaurants and street food scene.")
+        response_parts.append("\n🚶‍♂️ **İstiklal Avenue Restaurant Guide:**")
+        response_parts.append("• **Street food vendors** - Famous döner, midye dolma, corn on the cob")
+        response_parts.append("• **Cicek Pasaji** - Historic passage with traditional restaurants")
+        response_parts.append("• **Side streets** - Hidden gems with local Istanbul food")
+        response_parts.append("• **International cuisine** - Pizza, burgers, Asian food along the avenue")
+        response_parts.append("• **Turkish restaurants** - Traditional lokanta and kebab houses")
+        
+        response_parts.append("\n🍴 **Best Food Places on İstiklal Avenue:**")
+        response_parts.append("• **Cicek Pasaji restaurants** - Historic dining in beautiful arcade")
+        response_parts.append("• **Galata area** - Walking distance to trendy Karaköy restaurants")
+        response_parts.append("• **Taksim Square area** - Food courts and restaurant clusters")
+        response_parts.append("• **İstiklal side streets** - Authentic local Istanbul eateries")
+        
+    elif 'galata area' in original_lower or ('galata' in original_lower and ('area' in original_lower or 'restaurant' in original_lower)):
+        response_parts.append("🍽️ Where to eat in Galata area! Galata is a trendy neighborhood in Beyoğlu with excellent restaurants and historic charm.")
+        response_parts.append("\n🏗️ **Galata Area Restaurant Highlights:**")
+        response_parts.append("• **Karaköy Lokantası** - Contemporary Turkish cuisine in historic building")
+        response_parts.append("• **Galata Tower area** - Restaurants with panoramic city views")
+        response_parts.append("• **Galata neighborhood streets** - Local bistros and international food")
+        response_parts.append("• **Walking distance to Beyoğlu** - Easy access to İstiklal Avenue dining")
+        
+    elif 'taksim square' in original_lower or ('taksim' in original_lower and 'square' in original_lower):
+        response_parts.append("🍽️ Restaurants near Taksim Square! Taksim Square area offers diverse dining from street food to upscale restaurants.")
+        response_parts.append("\n🏛️ **Near Taksim Square:**")
+        response_parts.append("• **İstiklal Avenue restaurants** - Walking distance to famous food street")
+        response_parts.append("• **Taksim area food courts** - Quick meals and international options")
+        response_parts.append("• **Side streets of Taksim** - Hidden local restaurant gems")
+        response_parts.append("• **Hotel restaurants** - Upscale dining near major hotels")
+        
+    elif 'karaköy neighborhood' in original_lower or ('karaköy' in original_lower and 'neighborhood' in original_lower):
+        response_parts.append("🍽️ Dining options in Karaköy neighborhood! Karaköy is a hip, artistic district with innovative restaurants.")
+        response_parts.append("\n🎨 **Karaköy Neighborhood Dining:**")
+        response_parts.append("• **Karaköy Lokantası** - Famous contemporary Turkish restaurant")
+        response_parts.append("• **Trendy neighborhood bistros** - Local favorites with modern Turkish cuisine")
+        response_parts.append("• **Galata Bridge area** - Fresh seafood and traditional restaurants")
+        response_parts.append("• **Art district eateries** - Creative dining in artistic neighborhood setting")
+        
+    elif 'blue mosque' in original_lower or ('sultanahmet' in original_lower and 'traditional' in original_lower):
+        response_parts.append("🍽️ Traditional restaurants in Sultanahmet! Near Blue Mosque area with authentic Ottoman cuisine and historic dining.")
+        response_parts.append("\n🕌 **Near Blue Mosque & Sultanahmet:**")
+        response_parts.append("• **Deraliye Ottoman Cuisine** - Traditional Ottoman palace recipes")
+        response_parts.append("• **Historic Sultanahmet restaurants** - Ottoman-era recipes and atmosphere")
+        response_parts.append("• **Blue Mosque area eateries** - Traditional Turkish restaurants with history")
+        response_parts.append("• **Walking distance to Hagia Sophia** - Historic dining district")
+        
+    elif 'hagia sophia' in original_lower:
+        response_parts.append("🍽️ Best dining near Hagia Sophia! Historic Sultanahmet area with traditional Turkish restaurants and Ottoman cuisine.")
+        response_parts.append("\n⛪ **Near Hagia Sophia:**")
+        response_parts.append("• **Pandeli Restaurant** - Historic Ottoman restaurant since 1901")
+        response_parts.append("• **Sultanahmet traditional restaurants** - Ottoman cuisine in historic setting")
+        response_parts.append("• **Historic peninsula dining** - Authentic Turkish food with history")
+        response_parts.append("• **Walking distance to Blue Mosque** - Historic restaurant district")
+        
+    elif 'topkapi palace' in original_lower or ('topkapi' in original_lower and 'palace' in original_lower):
+        response_parts.append("🍽️ Food options around Topkapi Palace! Sultanahmet area near Topkapi offers traditional Turkish cuisine and Ottoman dining.")
+        response_parts.append("\n🏰 **Around Topkapi Palace:**")
+        response_parts.append("• **Traditional Sultanahmet restaurants** - Ottoman cuisine near the palace")
+        response_parts.append("• **Historic Turkish food** - Palace-area restaurants with royal recipes")
+        response_parts.append("• **Topkapi area eateries** - Food options near this historic palace")
+        response_parts.append("• **Ottoman culinary heritage** - Traditional dining in palace district")
+        
+    elif 'kadıköy' in original_lower and 'hip' in original_lower:
+        response_parts.append("🍽️ Hip restaurants in Kadıköy! Kadıköy is the trendy Asian side district with creative restaurants and local favorites.")
+        response_parts.append("\n🎭 **Hip Kadıköy Restaurants:**")
+        response_parts.append("• **Çiya Sofrası** - Famous for authentic Anatolian cuisine")
+        response_parts.append("• **Trendy Kadıköy cafes** - Hip, artistic dining scene")
+        response_parts.append("• **Moda waterfront** - Restaurants with Bosphorus views")
+        response_parts.append("• **Local Kadıköy favorites** - Asian side's best restaurant discoveries")
+        
+    elif 'fenerbahçe area' in original_lower or ('fenerbahçe' in original_lower and 'area' in original_lower):
+        response_parts.append("🍽️ Local eateries in Fenerbahçe area! Fenerbahçe in Kadıköy offers authentic local dining experiences and neighborhood restaurants.")
+        response_parts.append("\n⚽ **Fenerbahçe Area Local Eateries:**")
+        response_parts.append("• **Local Kadıköy restaurants** - Authentic neighborhood dining")
+        response_parts.append("• **Fenerbahçe local eateries** - Hidden gems in residential area")
+        response_parts.append("• **Asian side local food** - Traditional Turkish restaurants")
+        response_parts.append("• **Neighborhood dining** - Local favorites in Fenerbahçe district")
+        
+    elif 'bosphorus view' in original_lower and 'kadıköy' in original_lower:
+        response_parts.append("🍽️ Restaurants with Bosphorus view in Kadıköy! Kadıköy waterfront offers stunning Bosphorus views with excellent dining.")
+        response_parts.append("\n🌊 **Kadıköy Bosphorus View Restaurants:**")
+        response_parts.append("• **Moda waterfront restaurants** - Direct Bosphorus views")
+        response_parts.append("• **Kadıköy pier area** - Seafood restaurants with water views")
+        response_parts.append("• **Bosphorus view terraces** - Scenic dining on Asian side")
+        response_parts.append("• **Waterfront Kadıköy dining** - Restaurant patios overlooking the Bosphorus")
+        
     elif 'authentic turkish cuisine' in original_lower:
         response_parts.append("🍽️ Authentic Turkish cuisine restaurant recommendations! Istanbul offers incredible traditional Turkish dining experiences.")
         
     elif 'ottoman food' in original_lower:
         response_parts.append("🍽️ Best Ottoman food in Istanbul recommendations! Experience the rich culinary heritage of the Ottoman Empire.")
+        response_parts.append("\n👑 **Traditional Ottoman Food Restaurants:**")
+        response_parts.append("• **Deraliye Ottoman Palace Cuisine** - Royal traditional Ottoman recipes")
+        response_parts.append("  📍 Sultanahmet | 💰 ₺₺₺₺ | ⏰ 12:00-00:00")
+        response_parts.append("• **Pandeli** - Historic Ottoman restaurant, traditional recipes since 1901")
+        response_parts.append("  📍 Spice Bazaar | 💰 ₺₺₺ | ⏰ 12:00-17:00")
+        response_parts.append("• **Ottoman specialties**: Traditional lamb stew, palace recipes, Ottoman Turkish food")
+        response_parts.append("• **Historical atmosphere** - Authentic Ottoman dining experience")
         
     elif 'turkish breakfast' in original_lower:
         response_parts.append("🍽️ Traditional Turkish breakfast places! Start your day with a spectacular Turkish kahvaltı experience.")
+        response_parts.append("\n🍳 **Best Turkish Breakfast (Kahvaltı) Places:**")
+        response_parts.append("• **Van Kahvaltı Evi** - Authentic traditional Turkish breakfast spread")
+        response_parts.append("  📍 Multiple locations | 💰 ₺₺ | ⏰ 07:00-15:00")
+        response_parts.append("• **Karaköy Lokantası** - Upscale Turkish breakfast experience")
+        response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-12:00")
+        response_parts.append("• **Traditional kahvaltı includes**: Cheese, olives, tomatoes, cucumbers, honey, jam")
+        response_parts.append("• **Turkish breakfast specialties**: Simit, börek, menemen, Turkish tea")
+        
+    elif 'döner kebab' in original_lower or 'doner kebab' in original_lower:
+        response_parts.append("🍽️ Döner kebab places recommended! Turkish döner is iconic street food - here are the best döner shops and kebab places.")
+        response_parts.append("\n🥙 **Best Döner Kebab Places:**")
+        response_parts.append("• **Hamdi Restaurant** - Famous pistachio kebab and döner")
+        response_parts.append("• **Street döner shops in Sultanahmet** - Authentic local döner")
+        response_parts.append("• **İstiklal Avenue döner vendors** - Popular street food spots")
+        response_parts.append("• **Karaköy döner places** - Fresh daily preparation")
+        response_parts.append("• **Kadıköy street food** - Asian side döner specialists")
+        
+        response_parts.append("\n🌯 **Street Food Döner Experience:**")
+        response_parts.append("• Traditional döner served in pide bread or lavaş")
+        response_parts.append("• Fresh vegetables, onions, and special döner sauce")
+        response_parts.append("• Quick street food perfect for lunch or dinner")
+        response_parts.append("• Most döner places open from 11:00-23:00")
+        
+    elif 'balık ekmek' in original_lower or 'balik ekmek' in original_lower:
+        response_parts.append("🍽️ Where to find good balık ekmek! Balık ekmek (fish sandwich) is Istanbul's most famous street food - fresh grilled fish in bread.")
+        response_parts.append("\n🐟 **Best Balık Ekmek Places:**")
+        response_parts.append("• **Eminönü Balık Ekmek boats** - Original floating fish sandwich vendors")
+        response_parts.append("• **Galata Bridge area** - Historic balık ekmek street food stalls")
+        response_parts.append("• **Ortaköy balık ekmek** - Waterfront fish sandwich vendors")
+        response_parts.append("• **Kadıköy pier** - Asian side balık ekmek specialists")
+        response_parts.append("• **Karaköy fish market** - Fresh daily catch for sandwiches")
+        
+        response_parts.append("\n🥪 **Fish Sandwich Experience:**")
+        response_parts.append("• Fresh grilled fish (usually mackerel) in Turkish bread")
+        response_parts.append("• Served with onions, lettuce, and lemon on the side")
+        response_parts.append("• Classic Istanbul street food experience by the water")
+        response_parts.append("• Best enjoyed with Turkish tea while watching the Bosphorus")
+        response_parts.append("• Price range: ₺15-25 per fish sandwich")
         
     elif 'kebab restaurants' in original_lower:
         response_parts.append("🍽️ Kebab restaurants with good reviews! Turkish kebabs are world-famous for good reason.")
+        response_parts.append("\n🥩 **Top Kebab Restaurants:**")
+        response_parts.append("• **Hamdi Restaurant** - Famous pistachio kebab, traditional preparation")
+        response_parts.append("  📍 Eminönü | 💰 ₺₺₺ | ⏰ 11:00-24:00")
+        response_parts.append("• **Traditional kebab houses** - Authentic Turkish kebab specialists")
+        response_parts.append("• **Kebab varieties**: Adana, Urfa, döner, şiş kebab with good reviews")
+        response_parts.append("• **Grilled to perfection** - Traditional Turkish charcoal cooking methods")
         
-    elif 'meze and turkish appetizer' in original_lower:
-        response_parts.append("🍽️ Meze and Turkish appetizer places! Discover the art of Turkish appetizers and small plates.")
+    elif ('vegetarian' in original_lower and 'meze' in original_lower):
+        response_parts.append("🍽️ Vegetarian meze restaurants! Turkish meze culture offers amazing plant-based and vegetarian appetizer options.")
+        response_parts.append("\n🌱 **Best Vegetarian Meze Restaurants:**")
+        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian meze dishes daily")
+        response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+        response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian meze selection")
+        response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+        response_parts.append("• **Vegetarian meze favorites**: Hummus, baba ganoush, dolma, stuffed vine leaves")
+        response_parts.append("• **Plant-based Turkish appetizers** - Seasonal vegetables, legumes, herbs")
+        
+    elif 'meze and turkish appetizer' in original_lower or ('meze' in original_lower and 'appetizer' in original_lower):
+        response_parts.append("🍽️ Meze and Turkish appetizer places! Discover the art of traditional Turkish appetizers and small plates.")
+        response_parts.append("\n🥗 **Best Meze & Turkish Appetizer Restaurants:**")
+        response_parts.append("• **Çiya Sofrası** - Extensive traditional meze selection")
+        response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+        response_parts.append("• **Balıkçı Sabahattin** - Seafood meze specialists")
+        response_parts.append("  📍 Sultanahmet | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+        response_parts.append("• **Traditional meze varieties**: Hummus, baba ganoush, dolma, cacık")
+        response_parts.append("• **Turkish appetizer culture** - Perfect for sharing and socializing")
         
     elif 'fresh seafood' in original_lower:
         response_parts.append("🍽️ Fresh seafood restaurants Istanbul! The city's location offers amazing fresh fish and seafood options.")
@@ -2731,8 +3220,15 @@ def generate_restaurant_response_without_location(intent, original_message):
     elif 'fish restaurants near bosphorus' in original_lower:
         response_parts.append("🍽️ Best fish restaurants near Bosphorus! Waterfront dining with the freshest catch and stunning views.")
         
-    elif 'seafood places' in original_lower and 'kumkapı' in original_lower:
-        response_parts.append("🍽️ Seafood places in Kumkapı! This historic fishing district is famous for its fresh seafood restaurants.")
+    elif 'seafood places' in original_lower and 'kumkapi' in original_lower:
+        response_parts.append("🍽️ Seafood places in Kumkapı! This historic fishing district is famous for its fresh seafood restaurants and fish dining.")
+        response_parts.append("\n🐟 **Kumkapı Seafood Restaurants:**")
+        response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+        response_parts.append("  📍 Kumkapı district | 💰 ₺₺₺ | ⏰ 18:00-02:00")
+        response_parts.append("• **Fresh daily catch** - Seafood specialists with Bosphorus fish")
+        response_parts.append("• **Fish varieties**: Sea bass, turbot, mackerel, grilled fish")
+        response_parts.append("• **Kumkapı atmosphere** - Traditional seafood dining with live music")
+        response_parts.append("• **Historic fishing district** - Authentic maritime cuisine experience")
         
     elif 'black sea fish' in original_lower:
         response_parts.append("🍽️ Restaurants serving Black Sea fish! Experience the unique flavors of Black Sea maritime cuisine.")
@@ -2742,6 +3238,15 @@ def generate_restaurant_response_without_location(intent, original_message):
         
     elif 'street food' in original_lower:
         response_parts.append("🍽️ Best street food in Istanbul! From balık ekmek to döner kebab, experience authentic Turkish street eats.")
+        response_parts.append("\n🥙 **Must-Try Street Food:**")
+        response_parts.append("• **Balık ekmek** - Grilled fish sandwich by Galata Bridge")
+        response_parts.append("  📍 Eminönü, Ortaköy | 💰 ₺ | ⏰ 08:00-20:00")
+        response_parts.append("• **Döner kebab** - Traditional rotating meat, street food classic")
+        response_parts.append("  📍 İstiklal Avenue, Sultanahmet | 💰 ₺ | ⏰ 10:00-23:00")
+        response_parts.append("• **Simit** - Turkish bagel, perfect breakfast street food")
+        response_parts.append("  📍 Street vendors citywide | 💰 ₺ | ⏰ 06:00-22:00")
+        response_parts.append("• **Midye dolma** - Stuffed mussels, İstiklal Avenue specialty")
+        response_parts.append("• **Börek** - Savory pastries from bakeries and street vendors")
         
     elif 'döner kebab' in original_lower:
         response_parts.append("🍽️ Döner kebab places recommended! Find the best traditional döner spots across the city.")
@@ -2753,7 +3258,22 @@ def generate_restaurant_response_without_location(intent, original_message):
         response_parts.append("🍽️ Börek and pastry shops! Discover traditional Turkish pastries and savory börek varieties.")
         
     else:
-        response_parts.append("🍽️ I'd love to give you personalized restaurant recommendations! For the best area-specific suggestions, could you share your location or tell me which district of Istanbul you're visiting?")
+        # Final catch for Kumkapı and other specific location queries that didn't match above
+        print(f"DEBUG: original_lower = '{original_lower}'")
+        print(f"DEBUG: 'kumkapi' in original_lower = {'kumkapi' in original_lower}")
+        if 'kumkapi' in original_lower:
+            print("DEBUG: Kumkapı condition matched!")
+            response_parts.append("🍽️ Seafood places in Kumkapı! This historic fishing district is famous for its fresh seafood restaurants and fish dining.")
+            response_parts.append("\n🐟 **Kumkapı Seafood Restaurants:**")
+            response_parts.append("• **Traditional fish restaurants** - Historic Kumkapı seafood dining")
+            response_parts.append("  📍 Kumkapı district | 💰 ₺₺₺ | ⏰ 18:00-02:00")
+            response_parts.append("• **Fresh daily catch** - Seafood specialists with Bosphorus fish")
+            response_parts.append("• **Fish varieties**: Sea bass, turbot, mackerel, grilled fish")
+            response_parts.append("• **Kumkapı atmosphere** - Traditional seafood dining with live music")
+            response_parts.append("• **Historic fishing district** - Authentic maritime cuisine experience")
+        else:
+            print("DEBUG: Kumkapı condition NOT matched, using generic response")
+            response_parts.append("🍽️ I'd love to give you personalized restaurant recommendations! For the best area-specific suggestions, could you share your location or tell me which district of Istanbul you're visiting?")
     
     requirements = intent.specific_requirements or {}
     cuisines = requirements.get('cuisine', [])
@@ -2813,7 +3333,7 @@ def generate_restaurant_response_without_location(intent, original_message):
     has_halal = any('halal' in req.lower() for req in dietary_requirements)
     has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])
     
-    if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy']) or 
+    if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy', 'plant-based', 'plant based', 'jewish']) or 
         has_vegetarian or has_halal or has_gluten_free or dietary_requirements):
         response_parts.append("\n🌿 **Dietary-Friendly Options:**")
         if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or has_vegetarian:
@@ -2823,6 +3343,11 @@ def generate_restaurant_response_without_location(intent, original_message):
         if 'halal' in original_message.lower() or has_halal:
             response_parts.append("• Most traditional Turkish restaurants are halal-certified")
             response_parts.append("• **Hamdi** and **Deraliye** are fully halal")
+        if 'kosher' in original_message.lower() or 'jewish' in original_message.lower():
+            response_parts.append("• **Neve Shalom Synagogue** - Jewish community can provide kosher dining info")
+            response_parts.append("• **Jewish Quarter (Galata)** - Some kosher-friendly certified establishments")
+            response_parts.append("• **Fish restaurants** - Many offer kosher-style preparation with certification")
+            response_parts.append("• **Contact Jewish community** - Best resource for current kosher restaurant options")
         if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'friendly']) or has_gluten_free:
             response_parts.append("• Turkish grilled meats and rice dishes are naturally gluten-free")
             response_parts.append("• Most restaurants accommodate celiac-friendly and gluten-free requests")
