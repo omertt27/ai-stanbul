@@ -92,6 +92,9 @@ class AdvancedUnderstandingSystem:
         start_time = datetime.now()
         logging.info(f"🧠 Advanced understanding analysis for: {query}")
         
+        # Store query for confidence calculation
+        self._current_query = query
+        
         # Ensure we have a session
         if not session_id:
             session_id = self.context_memory.start_new_session(user_id)
@@ -132,7 +135,7 @@ class AdvancedUnderstandingSystem:
         
         # Calculate overall understanding confidence
         understanding_confidence = self._calculate_understanding_confidence(
-            multi_intent_result, semantic_analysis, relevant_contexts
+            multi_intent_result, semantic_analysis, relevant_contexts, query
         )
         
         # Determine response strategy
@@ -220,10 +223,11 @@ class AdvancedUnderstandingSystem:
     
     def _calculate_understanding_confidence(self, multi_intent_result: MultiIntentResult,
                                           semantic_analysis: Dict[str, Any],
-                                          relevant_contexts: List) -> float:
-        """Calculate overall understanding confidence"""
+                                          relevant_contexts: List, 
+                                          original_query: str = "") -> float:
+        """Calculate overall understanding confidence with restaurant query enhancements"""
         
-        # Weight different confidence sources
+        # Base confidence sources
         intent_confidence = multi_intent_result.confidence_score * 0.4
         semantic_confidence = semantic_analysis.get('overall_confidence', 0.5) * 0.3
         
@@ -233,10 +237,36 @@ class AdvancedUnderstandingSystem:
             avg_relevance = sum(ctx.relevance_score for ctx in relevant_contexts) / len(relevant_contexts)
             context_confidence = min(0.3, avg_relevance * 0.3)
         
-        # Query complexity penalty (more complex = lower confidence)
-        complexity_penalty = multi_intent_result.query_complexity * 0.1
+        # ENHANCEMENT: Restaurant query confidence boost
+        restaurant_boost = 0.0
+        primary_intent = multi_intent_result.primary_intent.type.value
         
-        total_confidence = intent_confidence + semantic_confidence + context_confidence - complexity_penalty
+        if primary_intent == "recommendation":
+            # Check if this is a restaurant-related query using the original query
+            query_lower = original_query.lower() if original_query else ""
+            restaurant_keywords = ['restaurant', 'food', 'dining', 'eat', 'meal', 'cuisine',
+                                 'vegetarian', 'vegan', 'halal', 'seafood', 'turkish', 'lunch', 'dinner']
+            
+            restaurant_matches = sum(1 for keyword in restaurant_keywords if keyword in query_lower)
+            
+            if restaurant_matches > 0:
+                # Boost confidence for restaurant queries
+                restaurant_boost = min(0.25, restaurant_matches * 0.08)
+                
+                # Additional boost for specific dietary/cuisine terms
+                specific_terms = ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten-free',
+                                'seafood', 'turkish', 'italian', 'japanese', 'budget', 'luxury']
+                specific_matches = sum(1 for term in specific_terms if term in query_lower)
+                
+                if specific_matches > 0:
+                    restaurant_boost += min(0.15, specific_matches * 0.05)
+        
+        # Reduced complexity penalty for restaurant queries (they're naturally complex)
+        complexity_penalty = multi_intent_result.query_complexity * 0.1
+        if restaurant_boost > 0:
+            complexity_penalty *= 0.5  # Reduce penalty for restaurant queries
+        
+        total_confidence = intent_confidence + semantic_confidence + context_confidence + restaurant_boost - complexity_penalty
         return max(0.1, min(1.0, total_confidence))
     
     def _determine_response_strategy(self, multi_intent_result: MultiIntentResult,

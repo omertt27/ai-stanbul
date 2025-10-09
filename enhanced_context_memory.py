@@ -255,12 +255,52 @@ class EnhancedContextMemory:
                               confidence: float = 0.8) -> str:
         """Update user preferences based on interaction patterns"""
         
+        # ENHANCEMENT: Handle list values for Redis storage compatibility
+        processed_preferences = self._serialize_for_storage(preferences)
+        
+        # Store in Redis if available
+        if self.redis_client and self.current_session_id:
+            try:
+                user_key = f"user_preferences:{self.current_session_id}"
+                self.redis_client.hset(user_key, mapping=processed_preferences)
+                logging.debug(f"User preferences saved to Redis: {user_key}")
+            except Exception as e:
+                logging.error(f"Failed to save preferences to Redis: {e}")
+        
         return self.add_context_item(
             ContextType.PREFERENCE,
-            preferences,
+            preferences,  # Store original data in context memory
             confidence=confidence,
             source="behavioral_analysis"
         )
+    
+    def _serialize_for_storage(self, data: Dict[str, Any]) -> Dict[str, str]:
+        """Serialize complex data types for Redis storage"""
+        serialized = {}
+        
+        for key, value in data.items():
+            if isinstance(value, (list, dict)):
+                # Convert lists and dicts to JSON strings
+                serialized[key] = json.dumps(value)
+            else:
+                # Keep simple types as strings
+                serialized[key] = str(value)
+        
+        return serialized
+    
+    def _deserialize_from_storage(self, data: Dict[str, str]) -> Dict[str, Any]:
+        """Deserialize data from Redis storage"""
+        deserialized = {}
+        
+        for key, value in data.items():
+            try:
+                # Try to parse as JSON first
+                deserialized[key] = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                # Keep as string if not valid JSON
+                deserialized[key] = value
+        
+        return deserialized
     
     def _calculate_relevance_score(self, context_item: ContextItem,
                                  query: str, intent: Optional[str] = None) -> float:

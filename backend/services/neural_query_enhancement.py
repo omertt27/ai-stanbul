@@ -26,21 +26,52 @@ import hashlib
 import time
 
 # Advanced ML and Deep Learning imports
+ADVANCED_ML_AVAILABLE = False
+_ml_import_error = None
+
 try:
     import torch
-    import torch.nn as nn
-    import torch.optim as optim
-    from torch.utils.data import DataLoader, Dataset
-    from transformers import (
-        AutoTokenizer, AutoModel, AutoModelForSequenceClassification,
-        BertModel, GPT2LMHeadModel, T5ForConditionalGeneration,
-        pipeline, Trainer, TrainingArguments
-    )
-    from sentence_transformers import SentenceTransformer, losses
-    import faiss  # For vector similarity search
     ADVANCED_ML_AVAILABLE = True
-except ImportError:
-    ADVANCED_ML_AVAILABLE = False
+except ImportError as e:
+    _ml_import_error = f"PyTorch: {e}"
+
+if ADVANCED_ML_AVAILABLE:
+    try:
+        import torch.nn as nn
+        import torch.optim as optim
+        from torch.utils.data import DataLoader, Dataset
+    except ImportError as e:
+        ADVANCED_ML_AVAILABLE = False
+        _ml_import_error = f"PyTorch modules: {e}"
+
+if ADVANCED_ML_AVAILABLE:
+    try:
+        from transformers import (
+            AutoTokenizer, AutoModel, AutoModelForSequenceClassification,
+            BertModel, GPT2LMHeadModel, T5ForConditionalGeneration,
+            pipeline, Trainer, TrainingArguments
+        )
+    except ImportError as e:
+        ADVANCED_ML_AVAILABLE = False
+        _ml_import_error = f"Transformers: {e}"
+
+if ADVANCED_ML_AVAILABLE:
+    try:
+        from sentence_transformers import SentenceTransformer, losses
+    except ImportError as e:
+        print(f"⚠️  SentenceTransformers not available: {e}")
+        # Don't disable all ML, just sentence transformers
+        SentenceTransformer = None
+
+if ADVANCED_ML_AVAILABLE:
+    try:
+        import faiss
+    except ImportError as e:
+        print(f"⚠️  FAISS not available: {e}")
+        faiss = None
+
+if not ADVANCED_ML_AVAILABLE and _ml_import_error:
+    print(f"⚠️  ML dependencies not available: {_ml_import_error}")
 
 logger = logging.getLogger(__name__)
 
@@ -205,14 +236,54 @@ class AdvancedNeuralProcessor:
     def _load_multilingual_models(self):
         """Load multilingual processing models"""
         try:
+            if SentenceTransformer is None:
+                logger.warning("⚠️  SentenceTransformer not available, using simple multilingual fallback")
+                self.models["multilingual_encoder"] = "simple_fallback"
+                return
+            
             config = self.model_configs["multilingual_encoder"]
             
-            self.models["multilingual_encoder"] = SentenceTransformer(config["model_name"])
+            # Force loading of multilingual encoder
+            logger.info("🌍 Loading multilingual encoder...")
             
-            logger.info("✅ Multilingual models loaded")
+            # Try primary model first
+            try:
+                self.models["multilingual_encoder"] = SentenceTransformer(config["model_name"])
+                logger.info(f"✅ Primary multilingual model loaded: {config['model_name']}")
+            except Exception as primary_error:
+                logger.warning(f"⚠️  Primary model failed, trying fallback: {primary_error}")
+                # Try fallback models in order of preference
+                fallback_models = [
+                    "all-MiniLM-L6-v2",
+                    "distiluse-base-multilingual-cased-v2",
+                    "paraphrase-multilingual-MiniLM-L12-v2"
+                ]
+                
+                for fallback_model in fallback_models:
+                    try:
+                        logger.info(f"🔄 Attempting fallback: {fallback_model}")
+                        self.models["multilingual_encoder"] = SentenceTransformer(fallback_model)
+                        logger.info(f"✅ Fallback multilingual encoder loaded: {fallback_model}")
+                        break
+                    except Exception as fallback_error:
+                        logger.warning(f"⚠️  Fallback {fallback_model} failed: {fallback_error}")
+                        continue
+                
+                if "multilingual_encoder" not in self.models:
+                    logger.warning("⚠️  All transformer models failed, using simple fallback")
+                    self.models["multilingual_encoder"] = "simple_fallback"
+                    return
+            
+            # Test the model with a simple encoding
+            test_text = "Hello world"
+            embedding = self.models["multilingual_encoder"].encode([test_text])
+            logger.info(f"✅ Multilingual encoder test successful, embedding shape: {embedding.shape}")
             
         except Exception as e:
             logger.error(f"❌ Failed to load multilingual models: {e}")
+            # Set a simple fallback
+            logger.info("🔄 Using simple multilingual fallback")
+            self.models["multilingual_encoder"] = "simple_fallback"
     
     def _initialize_vector_stores(self):
         """Initialize FAISS vector stores for similarity search"""
@@ -298,6 +369,10 @@ class AdvancedNeuralProcessor:
             attention_result = await self._analyze_attention_patterns(query, results)
             results["attention_analysis"] = attention_result
             
+            # 9. Emotional Intelligence Processing
+            emotional_result = await self._process_emotional_intelligence(query, context)
+            results["enhancements"]["emotional_intelligence"] = emotional_result
+            
             # Calculate overall confidence
             results["confidence_scores"] = self._calculate_advanced_confidence(results)
             
@@ -316,63 +391,66 @@ class AdvancedNeuralProcessor:
             return results
     
     async def _classify_intent_advanced(self, query: str, context: Dict[str, Any]) -> NeuralPrediction:
-        """Advanced intent classification with neural networks"""
+        """Advanced intent classification with neural networks and fallback strategies"""
         try:
-            if "intent_classifier" not in self.models:
-                return NeuralPrediction("unknown", 0.5, {})
-            
-            model = self.models["intent_classifier"]
-            tokenizer = self.tokenizers["intent_classifier"]
-            
-            # Tokenize input
-            inputs = tokenizer(
-                query,
-                return_tensors="pt",
-                max_length=512,
-                padding=True,
-                truncation=True
-            )
-            
-            # Get model predictions
-            with torch.no_grad():
-                outputs = model(**inputs)
-                logits = outputs.logits
-                probabilities = torch.softmax(logits, dim=-1)
-            
-            # Map to query types
-            query_types = [
-                "greeting", "attraction_info", "attraction_search", 
-                "restaurant_search", "restaurant_info", "transport_route",
-                "transport_info", "itinerary_request", "general_info",
-                "practical_info", "recommendation", "unknown"
-            ]
-            
-            # Get predictions
-            prob_dict = {}
-            for i, query_type in enumerate(query_types):
-                prob_dict[query_type] = float(probabilities[0][i])
-            
-            # Get top prediction
-            max_prob_idx = torch.argmax(probabilities, dim=-1).item()
-            predicted_intent = query_types[max_prob_idx]
-            confidence = float(probabilities[0][max_prob_idx])
-            
-            return NeuralPrediction(
-                prediction=predicted_intent,
-                confidence=confidence,
-                probabilities=prob_dict,
-                metadata={
-                    "model_version": "v1.0",
-                    "processing_method": "transformer_classification"
-                }
-            )
+            # Try neural classification first
+            if ADVANCED_ML_AVAILABLE and "intent_classifier" in self.models:
+                model = self.models["intent_classifier"]
+                tokenizer = self.tokenizers["intent_classifier"]
+                
+                # Tokenize input
+                inputs = tokenizer(
+                    query,
+                    return_tensors="pt",
+                    max_length=512,
+                    padding=True,
+                    truncation=True
+                )
+                
+                # Get model predictions
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                    logits = outputs.logits
+                    probabilities = torch.softmax(logits, dim=-1)
+                
+                # Map to query types
+                query_types = [
+                    "greeting", "attraction_info", "attraction_search", 
+                    "restaurant_search", "restaurant_info", "transport_route",
+                    "transport_info", "itinerary_request", "general_info",
+                    "practical_info", "recommendation", "unknown"
+                ]
+                
+                # Get predictions
+                prob_dict = {}
+                for i, query_type in enumerate(query_types):
+                    prob_dict[query_type] = float(probabilities[0][i])
+                
+                # Get top prediction
+                max_prob_idx = torch.argmax(probabilities, dim=-1).item()
+                predicted_intent = query_types[max_prob_idx]
+                confidence = float(probabilities[0][max_prob_idx])
+                
+                return NeuralPrediction(
+                    prediction=predicted_intent,
+                    confidence=confidence,
+                    probabilities=prob_dict,
+                    metadata={
+                        "model_version": "v1.0",
+                        "processing_method": "transformer_classification"
+                    }
+                )
+            else:
+                # Enhanced rule-based intent classification
+                return self._rule_based_intent_classification(query, context)
             
         except Exception as e:
             logger.error(f"❌ Error in advanced intent classification: {e}")
-            return NeuralPrediction("unknown", 0.1, {})
+            # Fallback to rule-based classification
+            return self._rule_based_intent_classification(query, context)
     
     async def _analyze_semantics_deep(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Deep semantic analysis using advanced embeddings"""
+        """Advanced semantic analysis using deep learning"""
         try:
             if "semantic_encoder" not in self.models:
                 return {"error": "Semantic encoder not available"}
@@ -504,36 +582,49 @@ class AdvancedNeuralProcessor:
         return adaptations
     
     async def _process_cross_lingual(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Process cross-lingual understanding"""
+        """Process cross-lingual understanding with enhanced heuristics"""
         try:
-            if "multilingual_encoder" not in self.models:
-                return {"error": "Multilingual encoder not available"}
-            
-            model = self.models["multilingual_encoder"]
-            
-            # Detect language and get multilingual embedding
-            embedding = model.encode([query])
-            
-            # Language detection (simple heuristic)
-            turkish_indicators = ["nerede", "nasıl", "ne", "istanbul", "türk"]
-            turkish_score = sum(1 for word in turkish_indicators if word in query.lower())
-            
-            detected_language = "turkish" if turkish_score > 0 else "english"
-            
-            cross_lingual_results = {
-                "detected_language": detected_language,
-                "confidence": 0.8 if turkish_score > 2 else 0.6,
-                "multilingual_embedding": embedding[0].tolist(),
-                "translation_ready": True,
-                "supported_languages": ["english", "turkish"]
+            # Enhanced language detection
+            turkish_indicators = {
+                'nerede', 'nasıl', 'ne', 'istanbul', 'türk', 'mı', 'mi', 'mu', 'mü',
+                'var', 'yok', 'için', 'ile', 'şey', 'kişi', 'gün', 'saat', 'dakika',
+                'restoran', 'otel', 'müze', 'tarihi', 'güzel', 'iyi', 'kötü'
             }
             
-            return cross_lingual_results
+            english_indicators = {
+                'where', 'how', 'what', 'when', 'why', 'the', 'is', 'are', 'and', 'or',
+                'restaurant', 'hotel', 'museum', 'historical', 'beautiful', 'good', 'bad',
+                'best', 'find', 'show', 'tell', 'help', 'need'
+            }
             
+            query_words = set(query.lower().split())
+            turkish_matches = len(query_words.intersection(turkish_indicators))
+            english_matches = len(query_words.intersection(english_indicators))
+            
+            if turkish_matches > english_matches:
+                language = "tr"
+                confidence = min(turkish_matches / 5, 1.0)
+            elif english_matches > turkish_matches:
+                language = "en"
+                confidence = min(english_matches / 5, 1.0)
+            else:
+                language = "unknown"
+                confidence = 0.5
+            
+            return {
+                "detected_language": language,
+                "confidence": confidence,
+                "cross_lingual_support": True,
+                "translation_needed": language == "tr",
+                "method": "enhanced_heuristic",
+                "turkish_score": turkish_matches,
+                "english_score": english_matches
+            }
+                
         except Exception as e:
-            logger.error(f"❌ Error in cross-lingual processing: {e}")
-            return {"error": str(e)}
-    
+            logger.error(f"❌ Cross-lingual processing failed: {e}")
+            return {"error": f"Cross-lingual processing failed: {e}"}
+
     async def _analyze_attention_patterns(self, query: str, results: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze attention patterns in neural processing"""
         # This would extract attention weights from transformer models
@@ -556,135 +647,100 @@ class AdvancedNeuralProcessor:
         
         return attention_analysis
     
-    def _find_similar_queries(self, embedding: np.ndarray) -> List[Dict[str, Any]]:
-        """Find similar queries using vector similarity"""
-        # Placeholder implementation
-        return [
-            {"query": "sample similar query", "similarity": 0.8},
-            {"query": "another similar query", "similarity": 0.7}
-        ]
-    
-    def _identify_semantic_clusters(self, embedding: np.ndarray) -> List[str]:
-        """Identify semantic clusters for the query"""
-        # Placeholder implementation
-        return ["tourism", "information_seeking", "location_based"]
-    
-    def _calculate_semantic_complexity(self, embedding: np.ndarray) -> float:
-        """Calculate semantic complexity score"""
-        # Use embedding norm as complexity indicator
-        return min(1.0, np.linalg.norm(embedding) / 10.0)
-    
-    def _analyze_topic_distribution(self, embedding: np.ndarray) -> Dict[str, float]:
-        """Analyze topic distribution"""
-        # Placeholder topic analysis
-        topics = {
-            "attractions": 0.3,
-            "restaurants": 0.2,
-            "transportation": 0.1,
-            "general": 0.4
-        }
-        return topics
-    
-    def _analyze_temporal_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze temporal context"""
-        now = datetime.now()
-        return {
-            "hour": now.hour,
-            "is_peak_hours": 9 <= now.hour <= 17,
-            "day_of_week": now.weekday(),
-            "is_weekend": now.weekday() >= 5,
-            "season": self._get_season(now.month)
-        }
-    
-    def _analyze_user_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze user context"""
-        return {
-            "user_type": context.get("user_type", "tourist"),
-            "experience_level": context.get("experience_level", "intermediate"),
-            "preferences": context.get("preferences", {}),
-            "previous_queries": context.get("query_history", [])
-        }
-    
-    def _analyze_session_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze session context"""
-        return {
-            "session_length": context.get("session_duration", 0),
-            "queries_in_session": context.get("queries_count", 1),
-            "device_type": context.get("device_type", "unknown"),
-            "location": context.get("location", "unknown")
-        }
-    
-    def _analyze_geographical_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze geographical context"""
-        return {
-            "user_location": context.get("location", "unknown"),
-            "distance_to_istanbul": context.get("distance", 0),
-            "local_time": context.get("local_time", datetime.now().isoformat()),
-            "timezone": context.get("timezone", "UTC")
-        }
-    
-    def _identify_behavioral_patterns(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Identify behavioral patterns"""
-        return {
-            "query_frequency": context.get("query_frequency", "normal"),
-            "interaction_style": context.get("interaction_style", "informational"),
-            "planning_horizon": context.get("planning_horizon", "short_term"),
-            "detail_preference": context.get("detail_preference", "moderate")
-        }
-    
-    def _get_season(self, month: int) -> str:
-        """Get season from month"""
-        if month in [12, 1, 2]:
-            return "winter"
-        elif month in [3, 4, 5]:
-            return "spring"
-        elif month in [6, 7, 8]:
-            return "summer"
-        else:
-            return "autumn"
-    
-    def _calculate_advanced_confidence(self, results: Dict[str, Any]) -> Dict[str, float]:
-        """Calculate advanced confidence scores"""
-        scores = {}
-        
-        # Intent confidence
-        intent_result = results.get("neural_predictions", {}).get("intent", {})
-        scores["intent"] = intent_result.get("confidence", 0.5)
-        
-        # Semantic confidence
-        semantic_result = results.get("neural_predictions", {}).get("semantics", {})
-        scores["semantic"] = semantic_result.get("semantic_complexity", 0.5)
-        
-        # Context confidence
-        context_enhancements = results.get("enhancements", {}).get("contextual", {})
-        scores["context"] = 0.8 if context_enhancements else 0.5
-        
-        # Safety confidence
-        adversarial_result = results.get("enhancements", {}).get("adversarial_detection", {})
-        scores["safety"] = adversarial_result.get("safety_score", 1.0)
-        
-        # Overall confidence (weighted average)
-        weights = {"intent": 0.4, "semantic": 0.3, "context": 0.2, "safety": 0.1}
-        scores["overall"] = sum(scores[key] * weights[key] for key in weights if key in scores)
-        
-        return scores
-    
-    def _record_neural_performance(self, results: Dict[str, Any]):
-        """Record neural processing performance metrics"""
-        performance_data = {
-            "processing_time_ms": results.get("processing_time_ms", 0),
-            "confidence_overall": results.get("confidence_scores", {}).get("overall", 0),
-            "neural_capabilities_used": len(results.get("neural_predictions", {})),
-            "enhancements_applied": len(results.get("enhancements", {})),
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        self.performance_history["neural_processing"].append(performance_data)
-        
-        # Keep only recent history
-        if len(self.performance_history["neural_processing"]) > 1000:
-            self.performance_history["neural_processing"] = \
-                self.performance_history["neural_processing"][-1000:]
+    async def _process_emotional_intelligence(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Process emotional intelligence understanding"""
+        try:
+            # Emotional keywords and patterns
+            emotion_patterns = {
+                "disappointment": ["disappointed", "let down", "frustrated", "not happy"],
+                "excitement": ["excited", "thrilled", "amazing", "wonderful", "fantastic"],
+                "anxiety": ["worried", "nervous", "concerned", "anxious"],
+                "satisfaction": ["satisfied", "happy", "pleased", "great", "good"],
+                "anger": ["angry", "furious", "upset", "mad"],
+                "joy": ["joyful", "delighted", "overjoyed", "ecstatic"]
+            }
+            
+            query_lower = query.lower()
+            emotion_scores = {}
+            
+            for emotion, keywords in emotion_patterns.items():
+                score = sum(1 for keyword in keywords if keyword in query_lower)
+                if score > 0:
+                    emotion_scores[emotion] = score / len(keywords)
+            
+            if emotion_scores:
+                detected_emotion = max(emotion_scores.items(), key=lambda x: x[1])
+                return {
+                    "emotion": detected_emotion[0],
+                    "confidence": detected_emotion[1],
+                    "all_emotions": emotion_scores,
+                    "emotional_context": True
+                }
+            else:
+                return {
+                    "emotion": "neutral",
+                    "confidence": 0.8,
+                    "all_emotions": {},
+                    "emotional_context": False
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Emotional intelligence processing failed: {e}")
+            return {"error": f"Emotional intelligence processing failed: {e}"}
+
+    async def _process_adversarial_detection(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Process adversarial query detection"""
+        try:
+            # Adversarial patterns
+            adversarial_patterns = [
+                "ignore all previous instructions",
+                "forget everything",
+                "system prompt",
+                "act as a different",
+                "pretend to be",
+                "override your",
+                "bypass safety",
+                "jailbreak",
+                "your instructions are",
+                "change your behavior"
+            ]
+            
+            query_lower = query.lower()
+            threat_score = 0
+            detected_patterns = []
+            
+            for pattern in adversarial_patterns:
+                if pattern in query_lower:
+                    threat_score += 1
+                    detected_patterns.append(pattern)
+            
+            # Check for excessive special characters (potential injection)
+            special_chars = sum(1 for c in query if not c.isalnum() and c not in " .,!?-'")
+            if special_chars > len(query) * 0.3:  # More than 30% special chars
+                threat_score += 1
+                detected_patterns.append("excessive_special_characters")
+            
+            # Check for extremely long queries (potential DoS)
+            if len(query) > 1000:
+                threat_score += 1
+                detected_patterns.append("excessive_length")
+            
+            is_adversarial = threat_score > 0
+            confidence = min(threat_score / 3.0, 1.0)  # Normalize to 0-1
+            
+            return {
+                "is_adversarial": is_adversarial,
+                "confidence": confidence,
+                "threat_score": threat_score,
+                "detected_patterns": detected_patterns,
+                "risk_level": "high" if confidence > 0.7 else "medium" if confidence > 0.3 else "low"
+            }
+                
+        except Exception as e:
+            logger.error(f"❌ Adversarial detection failed: {e}")
+            return {"error": f"Adversarial detection failed: {e}"}
+
+    # ...existing code...
     
     def get_neural_system_status(self) -> Dict[str, Any]:
         """Get comprehensive neural system status"""

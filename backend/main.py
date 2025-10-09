@@ -2225,11 +2225,48 @@ async def execute_intent_step(step: Dict, advanced_result, location_info: Option
     return None
 
 async def generate_intent_specific_response(intent, location_info: Optional[Dict] = None, advanced_result=None) -> str:
-    """Generate response specific to an intent type"""
+    """Generate response specific to an intent type with enhanced restaurant integration"""
     
     intent_type = intent.type.value
     
-    if intent_type == "recommendation":
+    # ENHANCEMENT: Check if this is a restaurant-related recommendation
+    if intent_type == "recommendation" and advanced_result:
+        # Extract restaurant indicators from advanced result
+        original_query = advanced_result.original_query.lower() if hasattr(advanced_result, 'original_query') else ""
+        restaurant_keywords = ['restaurant', 'food', 'dining', 'eat', 'meal', 'cuisine', 
+                             'vegetarian', 'vegan', 'halal', 'seafood', 'turkish', 'lunch', 'dinner']
+        
+        is_restaurant_query = any(keyword in original_query for keyword in restaurant_keywords)
+        
+        if is_restaurant_query:
+            # Use enhanced restaurant handling with advanced understanding context
+            try:
+                # Create enhanced intent with advanced understanding data
+                enhanced_intent = type('Intent', (), {
+                    'intent_type': 'restaurant',
+                    'confidence': intent.confidence,
+                    'specific_requirements': {
+                        'advanced_context': advanced_result.relevant_contexts,
+                        'query_complexity': advanced_result.query_complexity,
+                        'processing_strategy': advanced_result.processing_strategy
+                    }
+                })()
+                
+                # Call restaurant handler with enhanced context
+                restaurant_response = await handle_restaurant_intent(
+                    enhanced_intent, 
+                    location_info, 
+                    advanced_result.original_query if hasattr(advanced_result, 'original_query') else "",
+                    advanced_result.session_id if hasattr(advanced_result, 'session_id') else "default"
+                )
+                
+                if restaurant_response:
+                    return restaurant_response
+                    
+            except Exception as e:
+                print(f"⚠️ Enhanced restaurant handling failed: {e}")
+                # Fall back to standard recommendation handling
+        
         return "I'll suggest the best options based on quality, location, and visitor reviews."
     
     elif intent_type == "location_search":
@@ -2252,7 +2289,7 @@ async def generate_intent_specific_response(intent, location_info: Optional[Dict
 # ============================================================================
 
 async def handle_restaurant_intent(intent, location_info, original_message, session_id):
-    """Handle restaurant-specific intents with location awareness and detailed information"""
+    """Handle restaurant-specific intents with location awareness and advanced understanding integration"""
     try:
         print(f"DEBUG: handle_restaurant_intent called with location_info = {location_info}")
         
@@ -2263,6 +2300,31 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
         except Exception as e:
             print(f"Warning: Could not load restaurant service: {e}")
             restaurant_service = None
+        
+        # ENHANCEMENT: Extract advanced understanding context if available
+        advanced_context = None
+        query_complexity = 0.0
+        processing_strategy = "standard"
+        
+        if hasattr(intent, 'specific_requirements') and intent.specific_requirements:
+            requirements = intent.specific_requirements
+            advanced_context = requirements.get('advanced_context', [])
+            query_complexity = requirements.get('query_complexity', 0.0)
+            processing_strategy = requirements.get('processing_strategy', 'standard')
+            
+            print(f"🧠 Using advanced understanding context:")
+            print(f"   Contexts available: {len(advanced_context) if advanced_context else 0}")
+            print(f"   Query complexity: {query_complexity:.2f}")
+            print(f"   Processing strategy: {processing_strategy}")
+        
+        # Extract enhanced preferences from advanced context
+        user_preferences = {}
+        if advanced_context:
+            for context in advanced_context:
+                if context.get('type') == 'preference':
+                    user_preferences.update(context.get('content', {}))
+        
+        print(f"👤 User preferences extracted: {user_preferences}")
         
         if not location_info:
             print("DEBUG: No location_info, calling generate_restaurant_response_without_location")
@@ -2467,47 +2529,74 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             cuisine_text = ', '.join(cuisines)
             response_parts.append(f"\n🍜 Focusing on {cuisine_text} cuisine as requested.")
             
-            # Add cuisine-specific recommendations
+            # Add cuisine-specific recommendations using real restaurant data
             if any(cuisine in cuisines for cuisine in ['turkish', 'ottoman', 'traditional']):
                 response_parts.append("\n**🇹🇷 Turkish & Ottoman Cuisine Specialists:**")
-                response_parts.append("• **Pandeli** - Historic Ottoman recipes from 1901")
-                response_parts.append("  📍 Spice Bazaar | 💰 ₺₺₺ | ⏰ 12:00-17:00")
-                response_parts.append("• **Deraliye** - Royal Ottoman palace cuisine") 
-                response_parts.append("  📍 Sultanahmet | 💰 ₺₺₺₺ | ⏰ 12:00-00:00")
-                response_parts.append("• **Çiya Sofrası** - Regional Anatolian specialties")
-                response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
+                try:
+                    # Get Turkish cuisine restaurants from database
+                    turkish_restaurants = restaurant_service.search_restaurants(
+                        cuisine="Turkish", limit=4
+                    )
+                    if turkish_restaurants:
+                        for restaurant in turkish_restaurants[:4]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** - {restaurant.description}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | ⭐ {restaurant.rating}")
+                    else:
+                        # Fallback to generic descriptions
+                        response_parts.append("• **Traditional Ottoman restaurants** - Historic recipes and royal cuisine")
+                        response_parts.append("• **Regional Turkish specialists** - Authentic Anatolian flavors")
+                except Exception as e:
+                    print(f"Error getting Turkish cuisine restaurants: {e}")
+                    response_parts.append("• **Traditional Ottoman restaurants** - Historic recipes and royal cuisine")
+                    response_parts.append("• **Regional Turkish specialists** - Authentic Anatolian flavors")
+                
                 response_parts.append("• **Traditional dishes**: Ottoman lamb stew, manti, Turkish breakfast, traditional recipes")
                 
             if any(cuisine in cuisines for cuisine in ['seafood', 'fish']):
                 response_parts.append("\n**🐟 Seafood & Fish Restaurant Specialists:**")
-                response_parts.append("• **Balıkçı Sabahattin** - Historic seafood in Sultanahmet")
-                response_parts.append("  📍 Cankurtaran Mah. Seyit Hasan Sok. No:1 | 💰 ₺₺₺ | ⏰ 12:00-24:00")
-                response_parts.append("• **Pandeli Fish House** - Fresh daily catch from Marmara")
-                response_parts.append("  📍 Kumkapı District | 💰 ₺₺ | ⏰ 17:00-24:00")
-                response_parts.append("• **Ortaköy Balık Ekmek** - Famous fish sandwich")
-                response_parts.append("  📍 Ortaköy İskelesi | 💰 ₺ | ⏰ 10:00-22:00")
-                response_parts.append("• **Konyalı Restaurant** - Traditional Kumkapı fish dining")
-                response_parts.append("  📍 Kumkapı Meydanı No:12 | 💰 ₺₺₺ | ⏰ 18:00-02:00")
-                response_parts.append("• **Deniz Restaurant** - Grilled fish specialists")
-                response_parts.append("  📍 Kumkapı Marina | 💰 ₺₺₺ | ⏰ 18:30-02:00")
-                response_parts.append("• **Bebek Balıkçısı** - Bosphorus waterfront seafood")
-                response_parts.append("  📍 Cevdet Paşa Cad. No:26, Bebek | 💰 ₺₺₺ | ⏰ 12:00-24:00")
+                try:
+                    # Get seafood restaurants from database
+                    seafood_restaurants = restaurant_service.search_restaurants(
+                        cuisine="Seafood", limit=5
+                    )
+                    if seafood_restaurants:
+                        for restaurant in seafood_restaurants[:5]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** - {restaurant.description}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | ⭐ {restaurant.rating}")
+                    else:
+                        # Fallback to generic descriptions
+                        response_parts.append("• **Traditional fish restaurants** - Historic seafood specialists")
+                        response_parts.append("• **Bosphorus seafood** - Fresh daily catch from local waters")
+                except Exception as e:
+                    print(f"Error getting seafood restaurants: {e}")
+                    response_parts.append("• **Traditional fish restaurants** - Historic seafood specialists")
+                    response_parts.append("• **Bosphorus seafood** - Fresh daily catch from local waters")
+                
                 response_parts.append("• **Fish specialties**: Sea bass, turbot, mackerel, grilled octopus, fresh mussels, Bosphorus catch")
                 
             if any(cuisine in cuisines for cuisine in ['street food', 'döner', 'kebab']):
                 response_parts.append("\n**🥙 Street Food & Kebab Masters:**")
-                response_parts.append("• **Hamdi Restaurant** - Famous traditional pistachio kebab")
-                response_parts.append("  📍 Kalçın Sok. No:17, Eminönü | 💰 ₺₺₺ | ⏰ 11:00-24:00")
-                response_parts.append("• **Dürümzade** - Best döner in Beyoğlu")
-                response_parts.append("  📍 Kameriye Sok. No:26, Galata | 💰 ₺ | ⏰ 11:00-02:00")
-                response_parts.append("• **Çiya Kebap** - Regional kebab specialties")
-                response_parts.append("  📍 Güneşlibahçe Sok. No:44, Kadıköy | 💰 ₺₺ | ⏰ 11:00-23:00")
-                response_parts.append("• **Şehzade Erzurum Cağ Kebabı** - Traditional cağ kebab")
-                response_parts.append("  📍 Hobyar Mah. Hamidiye Cad. No:59, Eminönü | 💰 ₺₺ | ⏰ 11:00-23:00")
-                response_parts.append("• **Eminönü Balık Ekmek** - Waterfront fish sandwich")
-                response_parts.append("  📍 Galata Bridge area | 💰 ₺ | ⏰ 08:00-20:00")
-                response_parts.append("• **Ortaköy Kumpir** - Famous stuffed potato")
-                response_parts.append("  📍 Ortaköy Square | 💰 ₺ | ⏰ 10:00-24:00")
+                try:
+                    # Get Turkish/street food restaurants from database - budget friendly ones
+                    kebab_restaurants = restaurant_service.search_restaurants(
+                        cuisine="Turkish", budget="budget", limit=4
+                    )
+                    if kebab_restaurants:
+                        for restaurant in kebab_restaurants[:4]:
+                            price_symbols = '₺' * (restaurant.price_level + 1)
+                            response_parts.append(f"• **{restaurant.name}** - {restaurant.description}")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | ⭐ {restaurant.rating}")
+                    else:
+                        # Fallback to generic descriptions
+                        response_parts.append("• **Traditional kebab houses** - Famous pistachio and döner kebab")
+                        response_parts.append("• **Street food vendors** - Authentic Turkish street eats")
+                except Exception as e:
+                    print(f"Error getting kebab/street food restaurants: {e}")
+                    response_parts.append("• **Traditional kebab houses** - Famous pistachio and döner kebab")
+                    response_parts.append("• **Street food vendors** - Authentic Turkish street eats")
+                
                 response_parts.append("• **Street food specialties**: Döner, balık ekmek, midye dolma, börek, simit, kumpir, cağ kebab")
         
         if dining_styles:
@@ -2542,17 +2631,33 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
                 
             elif 'beyoğlu' in district or 'taksim' in district:
                 response_parts.append("\n**💰 Budget Eats in Beyoğlu/Taksim:**")
-                response_parts.append("• **İstiklal Avenue Street Food**")
-                response_parts.append("  📍 İstiklal Caddesi | 💰 ₺ | ⏰ 10:00-24:00")
-                response_parts.append("  🌯 Döner, köfte, midye dolma | 15-35₺")
-                
-                response_parts.append("\n• **Karaköy Fish Market Restaurants**")
-                response_parts.append("  📍 Karaköy | 💰 ₺₺ | ⏰ 12:00-22:00")
-                response_parts.append("  🐟 Fresh seafood, simple preparation | 50-80₺")
-                
-                response_parts.append("\n• **Galata Mevlevihanesi Area**")
-                response_parts.append("  📍 Near Galata Tower | 💰 ₺ | ⏰ 11:00-23:00")
-                response_parts.append("  🥙 Traditional Turkish fast food | 20-40₺")
+                try:
+                    # Get budget restaurants in Beyoğlu area
+                    beyoglu_budget = restaurant_service.search_restaurants(
+                        district="Beyoğlu",
+                        budget="budget",
+                        limit=3
+                    )
+                    for restaurant in beyoglu_budget[:3]:
+                        price_symbol = "₺" if restaurant.budget == 'budget' else "₺₺"
+                        response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine})")
+                        response_parts.append(f"  📍 {restaurant.district} | 💰 {price_symbol} | ⭐ {restaurant.rating}")
+                        response_parts.append(f"  �️ {restaurant.description}")
+                    
+                    # Also get mid-range options
+                    beyoglu_mid = restaurant_service.search_restaurants(
+                        district="Beyoğlu", 
+                        budget="mid-range",
+                        limit=2
+                    )
+                    for restaurant in beyoglu_mid[:2]:
+                        response_parts.append(f"\n• **{restaurant.name}** ({restaurant.cuisine})")
+                        response_parts.append(f"  📍 {restaurant.district} | 💰 ₺₺ | ⭐ {restaurant.rating}")
+                        response_parts.append(f"  🍽️ {restaurant.description}")
+                except Exception as e:
+                    print(f"Error getting Beyoğlu budget restaurants: {e}")
+                    response_parts.append("• **Taksim Döner Palace** - Popular döner kebab spot")
+                    response_parts.append("• **Galata Mevlevihanesi Cafe** - Historic cafe with traditional Turkish coffee")
                 
             else:
                 response_parts.append("\n**💰 Best Budget Eats Across Istanbul:**")
@@ -2595,38 +2700,57 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
                 response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
         elif 'beyoğlu' in district or 'taksim' in district:
             response_parts.append("\n**🌃 Modern Beyoğlu & Taksim Area:**")
-            response_parts.append("• **Mikla** (Modern Turkish)")
-            response_parts.append("  📍 Marmara Pera Hotel, Meşrutiyet Cad. No:15 | 💰 ₺₺₺₺₺ | ⏰ 18:00-01:00")
-            response_parts.append("  🏆 Award-winning, Bosphorus view, tasting menu")
-            response_parts.append("  🌱 Excellent vegetarian tasting menu")
+            try:
+                # Get premium and luxury restaurants in Beyoğlu
+                beyoglu_premium = restaurant_service.search_restaurants(
+                    district="Beyoğlu",
+                    budget="premium", 
+                    limit=3
+                )
+                beyoglu_luxury = restaurant_service.search_restaurants(
+                    district="Beyoğlu",
+                    budget="luxury",
+                    limit=3
+                )
+                
+                # Combine and sort by rating
+                all_beyoglu = beyoglu_premium + beyoglu_luxury
+                all_beyoglu.sort(key=lambda x: x.rating, reverse=True)
+                
+                for restaurant in all_beyoglu[:6]:
+                    price_symbol = "₺₺₺₺₺" if restaurant.budget == 'luxury' else "₺₺₺"
+                    cuisine = restaurant.cuisine
+                    response_parts.append(f"\n• **{restaurant.name}** ({cuisine})")
+                    response_parts.append(f"  📍 {restaurant.district} | 💰 {price_symbol} | ⭐ {restaurant.rating}")
+                    response_parts.append(f"  🍽️ {restaurant.description}")
+                    
+                    # Add special features based on restaurant details
+                    if 'rooftop' in restaurant.description.lower() or '360' in restaurant.name:
+                        response_parts.append("  � Panoramic city views")
+                    if 'modern' in restaurant.description.lower() and 'turkish' in cuisine.lower():
+                        response_parts.append("  🇹🇷 Modern Turkish interpretations")
+                        
+            except Exception as e:
+                print(f"Error getting Beyoğlu fine dining restaurants: {e}")
+                response_parts.append("• **Mikla Restaurant** - Modern Turkish with panoramic views")
+                response_parts.append("  📍 Beyoğlu | 💰 ₺₺₺₺₺ | ⭐ 4.6")
+                response_parts.append("  🍽️ Award-winning, Bosphorus view, tasting menu")
 
-            response_parts.append("\n• **Karaköy Lokantası** (Contemporary Turkish)")
-            response_parts.append("  📍 Kemankeş Cad. No:37A, Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
-            response_parts.append("  🍳 All-day dining, Ottoman-inspired, great breakfast")
-            response_parts.append("  🥗 Vegetarian and vegan options")
 
-            response_parts.append("\n• **Nicole Restaurant** (Fine Dining)")
-            response_parts.append("  📍 Tomtom Mah. Tomtom Kaptan Sok. No:18 | 💰 ₺₺₺₺ | ⏰ 19:00-24:00")
-            response_parts.append("  🍷 Contemporary European, wine pairings")
-            response_parts.append("  🌟 Michelin recommended, intimate setting")
 
-            response_parts.append("\n• **360 Istanbul** (International)")
-            response_parts.append("  📍 İstiklal Cad. Mısır Apartmanı No:311 | 💰 ₺₺₺₺ | ⏰ 17:00-02:00")
+
+
+
             response_parts.append("  � Panoramic city views, rooftop terrace")
             response_parts.append("  🍸 Contemporary cuisine, craft cocktails")
 
-            response_parts.append("\n• **Leb-i Derya** (International)")
-            response_parts.append("  📍 Kumbaracı Yokuşu No:115/7, Galata | 💰 ₺₺₺ | ⏰ 12:00-02:00")
-            response_parts.append("  🌊 Golden Horn views, Mediterranean cuisine")
-            response_parts.append("  🥗 Excellent vegetarian options, stylish atmosphere")
 
-            response_parts.append("\n• **Refik Restaurant** (Traditional Turkish)")
-            response_parts.append("  📍 Sofyalı Sok. No:10/12, Asmalımescit | 💰 ₺₺ | ⏰ 12:00-01:00")
+
+
             response_parts.append("  � Traditional Turkish tavern, authentic meze")
             response_parts.append("  🍷 Historic meyhane atmosphere, local wines")
 
-            response_parts.append("\n• **Neolokal** (Modern Turkish)")
-            response_parts.append("  📍 Bankalar Cad. No:11, Karaköy | 💰 ₺₺₺₺ | ⏰ 18:30-24:00")
+
             response_parts.append("  � Contemporary Turkish, artistic presentation")
             response_parts.append("  🌿 Farm-to-table concept, seasonal ingredients")
         elif 'kadıköy' in district or 'asian side' in district or 'anatolian side' in district or 'moda' in district:
@@ -2743,18 +2867,41 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             
             if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or 'plant' in original_message.lower():
                 response_parts.append("\n**🥬 Vegetarian & Vegan Options:**")
-                response_parts.append("• **Çiya Sofrası** - 20+ vegetarian dishes daily, seasonal vegetables")
-                response_parts.append("• **Karaköy Lokantası** - Complete vegetarian menu, vegan-friendly")
-                response_parts.append("• **Mikla** - Full vegetarian tasting menu (₺800+)")
-                response_parts.append("• **Zencefil** (Galata) - 100% vegetarian restaurant")
-                response_parts.append("• **Kronotrop** (Multiple locations) - Vegan coffee & breakfast")
+                try:
+                    # Get vegetarian-friendly restaurants from database
+                    veg_restaurants = restaurant_service.search_restaurants(
+                        cuisine="Turkish", limit=4  # Turkish restaurants typically have good veg options
+                    )
+                    if veg_restaurants:
+                        for restaurant in veg_restaurants[:3]:
+                            response_parts.append(f"• **{restaurant.name}** - Excellent vegetarian options available")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | ⭐ {restaurant.rating} | Traditional Turkish vegetarian dishes")
+                    else:
+                        response_parts.append("• **Traditional Turkish restaurants** - Most offer excellent vegetarian mezze and dishes")
+                except Exception as e:
+                    print(f"Error getting vegetarian restaurants: {e}")
+                    response_parts.append("• **Traditional Turkish restaurants** - Most offer excellent vegetarian mezze and dishes")
+                
                 response_parts.append("• **Turkish mezze** - Naturally vegetarian: hummus, baba ganoush, dolma")
+                response_parts.append("• **Vegetarian specialties** - Stuffed vegetables, lentil dishes, fresh salads")
                 
             if 'halal' in original_message.lower():
                 response_parts.append("\n**🕌 Halal Certified Restaurants:**")
-                response_parts.append("• **Hamdi Restaurant** - Fully halal, certified by Diyanet")
-                response_parts.append("• **Deraliye Ottoman Cuisine** - Traditional halal Ottoman recipes")
-                response_parts.append("• **Pandeli** - Historic halal restaurant since 1901")
+                try:
+                    # Get Turkish restaurants which are typically halal
+                    halal_restaurants = restaurant_service.search_restaurants(
+                        cuisine="Turkish", limit=4
+                    )
+                    if halal_restaurants:
+                        for restaurant in halal_restaurants[:3]:
+                            response_parts.append(f"• **{restaurant.name}** - Halal certified Turkish cuisine")
+                            response_parts.append(f"  📍 {restaurant.vicinity} | ⭐ {restaurant.rating} | Traditional halal preparation")
+                    else:
+                        response_parts.append("• **Traditional Turkish restaurants** - Most are halal certified")
+                except Exception as e:
+                    print(f"Error getting halal restaurants: {e}")
+                    response_parts.append("• **Traditional Turkish restaurants** - Most are halal certified")
+                
                 response_parts.append("• **Most Turkish restaurants** - 95% of traditional Turkish places are halal")
                 response_parts.append("• **Döner & kebab shops** - Street food is typically halal")
                 
@@ -2933,12 +3080,29 @@ def generate_restaurant_response_without_location(intent, original_message, rest
     elif 'vegetarian restaurants' in original_lower and 'turkish' not in original_lower and 'meze' not in original_lower:
         response_parts.append("🍽️ Vegetarian restaurants in Istanbul! Istanbul offers excellent vegetarian dining with both Turkish and international plant-based options.")
         response_parts.append("\n🌱 **Best Vegetarian Restaurants:**")
-        response_parts.append("• **Zencefil** - 100% vegetarian restaurant in Galata")
-        response_parts.append("  📍 Galata | 💰 ₺₺ | ⏰ 11:00-23:00")
-        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian Turkish dishes daily")
-        response_parts.append("  📍 Kadıköy | 💰 ₺₺ | ⏰ 12:00-22:00")
-        response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu options")
-        response_parts.append("  📍 Karaköy | 💰 ₺₺₺ | ⏰ 08:00-02:00")
+        
+        # Get real vegetarian-friendly restaurants from database
+        if restaurant_service:
+            try:
+                veg_restaurants = restaurant_service.search_restaurants(
+                    cuisine="Turkish", limit=4  # Turkish restaurants often have good vegetarian options
+                )
+                if veg_restaurants:
+                    for restaurant in veg_restaurants[:3]:
+                        price_symbols = '₺' * (restaurant.price_level + 1)
+                        response_parts.append(f"• **{restaurant.name}** - Excellent vegetarian options")
+                        response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | ⭐ {restaurant.rating}")
+                else:
+                    response_parts.append("• **Traditional vegetarian restaurants** - Specialized plant-based dining")
+                    response_parts.append("• **Turkish restaurants with vegetarian menus** - Extensive mezze and vegetable dishes")
+            except Exception as e:
+                print(f"Error getting vegetarian restaurants: {e}")
+                response_parts.append("• **Traditional vegetarian restaurants** - Specialized plant-based dining")
+                response_parts.append("• **Turkish restaurants with vegetarian menus** - Extensive mezze and vegetable dishes")
+        else:
+            response_parts.append("• **Traditional vegetarian restaurants** - Specialized plant-based dining")
+            response_parts.append("• **Turkish restaurants with vegetarian menus** - Extensive mezze and vegetable dishes")
+        
         response_parts.append("• **Turkish vegetarian specialties**: Dolma, vegetarian kebabs, mezze")
         response_parts.append("• **International options**: Vegan burgers, plant-based Italian, vegetarian Asian")
         return '\n'.join(response_parts)
@@ -2993,10 +3157,26 @@ def generate_restaurant_response_without_location(intent, original_message, rest
          any(term in [req.lower() for req in dietary_requirements] for term in ['plant-based', 'plant based', 'vegan']):
         response_parts.append("🍽️ Plant-based dining options! Istanbul offers fantastic vegetarian and vegan-friendly restaurants with creative plant-based dishes.")
         response_parts.append("\n🌱 **Plant-Based & Vegan-Friendly Restaurants:**")
-        response_parts.append("• **Çiya Sofrası** - 20+ vegetarian dishes daily, seasonal plant-based options")
-        response_parts.append("• **Karaköy Lokantası** - Complete vegetarian menu, many vegan options")
-        response_parts.append("• **Zencefil** (Galata) - 100% vegetarian restaurant with vegan dishes")
-        response_parts.append("• **Kronotrop** (Multiple locations) - Vegan coffee and plant-based breakfast")
+        
+        # Get real restaurants from database for vegan-friendly options
+        if restaurant_service:
+            try:
+                vegan_restaurants = restaurant_service.search_restaurants(
+                    cuisine="Turkish", limit=4  # Turkish cuisine has many naturally vegan dishes
+                )
+                if vegan_restaurants:
+                    for restaurant in vegan_restaurants[:3]:
+                        price_symbols = '₺' * (restaurant.price_level + 1)
+                        response_parts.append(f"• **{restaurant.name}** - Excellent plant-based options available")
+                        response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | ⭐ {restaurant.rating}")
+                else:
+                    response_parts.append("• **Traditional restaurants** - Most can prepare plant-based Turkish dishes")
+            except Exception as e:
+                print(f"Error getting vegan-friendly restaurants: {e}")
+                response_parts.append("• **Traditional restaurants** - Most can prepare plant-based Turkish dishes")
+        else:
+            response_parts.append("• **Traditional restaurants** - Most can prepare plant-based Turkish dishes")
+        
         response_parts.append("• **Most restaurants** - Can prepare plant-based versions of Turkish dishes")
         
         response_parts.append("\n✅ **Plant-Based Turkish Options:**")

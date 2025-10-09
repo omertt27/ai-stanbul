@@ -24,6 +24,11 @@ class RestaurantRecommendation:
     place_id: str
     lat: float = None
     lng: float = None
+    
+    @property
+    def vicinity(self) -> str:
+        """Alias for address to maintain compatibility with main.py"""
+        return self.address
 
 class RestaurantIntegrationService:
     """Service to integrate restaurant database with AI chat responses"""
