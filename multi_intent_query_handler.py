@@ -2,6 +2,7 @@
 """
 Multi-Intent Query Handling System for AI Istanbul
 Advanced system for detecting and handling multiple intents in complex queries
+ENHANCED WITH ATTRACTIONS SUPPORT FOR 78+ ISTANBUL ATTRACTIONS
 """
 
 import re
@@ -14,6 +15,18 @@ from datetime import datetime
 import logging
 from copy import deepcopy
 
+# Initialize logger first
+logger = logging.getLogger(__name__)
+
+# Import attractions system for comprehensive Istanbul attractions support
+try:
+    from istanbul_attractions_system import IstanbulAttractionsSystem, AttractionCategory, WeatherPreference, BudgetCategory
+    ATTRACTIONS_AVAILABLE = True
+    logger.info("🏛️ Istanbul Attractions System integrated successfully!")
+except ImportError as e:
+    logger.warning(f"Istanbul Attractions System not available: {e}")
+    ATTRACTIONS_AVAILABLE = False
+
 class IntentType(Enum):
     """Different types of intents that can be detected"""
     LOCATION_SEARCH = "location_search"
@@ -25,6 +38,12 @@ class IntentType(Enum):
     PRICE_QUERY = "price_query"
     REVIEW_REQUEST = "review_request"
     ACTIVITY_PLANNING = "activity_planning"
+    # New attraction-specific intents
+    ATTRACTION_SEARCH = "attraction_search"
+    CULTURAL_QUERY = "cultural_query"
+    FAMILY_ACTIVITY = "family_activity"
+    ROMANTIC_SPOT = "romantic_spot"
+    HIDDEN_GEM = "hidden_gem"
 
 @dataclass
 class Intent:
@@ -56,6 +75,17 @@ class MultiIntentQueryHandler:
     """
     
     def __init__(self):
+        global ATTRACTIONS_AVAILABLE
+        # Initialize attractions system for comprehensive Istanbul attractions support
+        self.attractions_system = None
+        if ATTRACTIONS_AVAILABLE:
+            try:
+                self.attractions_system = IstanbulAttractionsSystem()
+                logger.info("🏛️ Istanbul Attractions System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize attractions system: {e}")
+                ATTRACTIONS_AVAILABLE = False
+        
         # Intent detection patterns with priorities
         self.intent_patterns = {
             IntentType.LOCATION_SEARCH: {
@@ -270,6 +300,62 @@ class MultiIntentQueryHandler:
                     r'\b(spend.*time|visit.*places)\b'
                 ],
                 'keywords': ['plan', 'itinerary', 'activities', 'attractions', 'things', 'visit'],
+                'priority': 1
+            },
+            # Attraction-specific intent patterns
+            IntentType.ATTRACTION_SEARCH: {
+                'patterns': [
+                    r'\b(what\s+to\s+see|attractions\s+in|visit\s+to|explore\s+in)\b',
+                    r'\b(istanbul\s+attractions|sights\s+in|things\s+to\s+see\s+in)\b',
+                    r'\b(popular\s+attractions|top\s+sights|must-see\s+places)\b',
+                    r'\b(cultural\s+sites|historical\s+places|tourist\s+spots)\b',
+                    r'\b(hidden\s+gems|off-the-beaten-path\s+places)\b'
+                ],
+                'keywords': ['attractions', 'see', 'visit', 'explore', 'istanbul', 'sights', 'things', 'cultural', 'historical', 'tourist', 'hidden', 'gems'],
+                'priority': 1,
+                # Boost patterns for specific attraction types
+                'boost_patterns': [
+                    r'\b(cultural\s+sites|historical\s+places|tourist\s+spots)\b',
+                    r'\b(hidden\s+gems|off-the-beaten-path\s+places)\b'
+                ],
+                # Patterns that should NOT trigger attraction intent (favor other intents)
+                'negative_patterns': [
+                    r'\b(best|good|recommend|suggest|top|great|excellent)\b',  # Quality indicators favor other intents
+                    r'\b(find\s+the\s+best|what\s+are\s+the\s+best)\b',  # "Find the best" is other intents
+                    r'\b(recommend.*in|suggest.*in|good.*in)\b'  # "Recommend X in Y" is other intents
+                ]
+            },
+            IntentType.CULTURAL_QUERY: {
+                'patterns': [
+                    r'\b(culture|cultural|historical|heritage|museum|art)\b',
+                    r'\b(learn\s+about|discover\s+|explore\s+)\b',
+                    r'\b(istanbul\s+culture|local\s+customs|traditions)\b'
+                ],
+                'keywords': ['culture', 'cultural', 'historical', 'heritage', 'museum', 'art', 'learn', 'discover', 'explore', 'istanbul', 'customs', 'traditions'],
+                'priority': 1
+            },
+            IntentType.FAMILY_ACTIVITY: {
+                'patterns': [
+                    r'\b(family\s+activities|things\s+to\s+do\s+with\s+family|kid-friendly\s+places)\b',
+                    r'\b(family\s+fun|children\s+activities|family\s+attractions)\b'
+                ],
+                'keywords': ['family', 'activities', 'things', 'do', 'with', 'fun', 'children', 'attractions'],
+                'priority': 1
+            },
+            IntentType.ROMANTIC_SPOT: {
+                'patterns': [
+                    r'\b(romantic\s+restaurants|dinner\s+for\s+two|couples\s+activities)\b',
+                    r'\b(romantic\s+getaways|honeymoon\s+destinations|valentine\'s\s+day\s+ideas)\b'
+                ],
+                'keywords': ['romantic', 'restaurants', 'dinner', 'for', 'two', 'couples', 'activities', 'getaways', 'honeymoon', 'destinations', 'valentine\'s', 'day', 'ideas'],
+                'priority': 1
+            },
+            IntentType.HIDDEN_GEM: {
+                'patterns': [
+                    r'\b(hidden\s+gems|off-the-beaten-path\s+places|secret\s+spots)\b',
+                    r'\b(local\s+favorites|insider\s+tips|unique\s+experiences)\b'
+                ],
+                'keywords': ['hidden', 'gems', 'off-the-beaten-path', 'places', 'secret', 'spots', 'local', 'favorites', 'insider', 'tips', 'unique', 'experiences'],
                 'priority': 1
             }
         }
@@ -807,7 +893,13 @@ class MultiIntentQueryHandler:
             IntentType.TIME_QUERY: "check_schedules",
             IntentType.PRICE_QUERY: "get_pricing_info",
             IntentType.REVIEW_REQUEST: "fetch_reviews",
-            IntentType.ACTIVITY_PLANNING: "plan_activities"
+            IntentType.ACTIVITY_PLANNING: "plan_activities",
+            # Attraction-specific actions
+            IntentType.ATTRACTION_SEARCH: "search_attractions",
+            IntentType.CULTURAL_QUERY: "provide_cultural_info",
+            IntentType.FAMILY_ACTIVITY: "suggest_family_activities",
+            IntentType.ROMANTIC_SPOT: "suggest_romantic_spots",
+            IntentType.HIDDEN_GEM: "suggest_hidden_gems"
         }
         
         return actions.get(intent.type, "general_response")
@@ -927,7 +1019,13 @@ class MultiIntentQueryHandler:
             'comparison': "🤔 Let me break down the differences for you! Here's a helpful comparison of your options:",
             'information_request': "ℹ️ I'm happy to share what I know! Here's the information you're looking for:",
             'route_planning': "🗺️ Let me help you get there! Here are the best directions and travel options:",
-            'greeting': "👋 Hello! I'm your friendly Istanbul dining guide, and I'm excited to help you discover the city's incredible food scene!"
+            'greeting': "👋 Hello! I'm your friendly Istanbul dining guide, and I'm excited to help you discover the city's incredible food scene!",
+            # Attraction-specific templates
+            'attraction_search': "🏛️ Exploring Istanbul's attractions is a great idea! Here are some top sights and hidden gems you might love:",
+            'cultural_query': "🎭 Istanbul is rich in culture and history. Here are some cultural sites and museums you may find interesting:",
+            'family_activity': "👨‍👩‍👧‍👦 Family time in Istanbul can be fun and exciting! Here are some family-friendly activities and places:",
+            'romantic_spot': "❤️ Looking for a romantic spot? Here are some lovely restaurants and places perfect for couples:",
+            'hidden_gem': "💎 Everyone loves a hidden gem! Here are some lesser-known but amazing places to check out in Istanbul:"
         }
         
         return templates
@@ -1006,7 +1104,13 @@ class MultiIntentQueryHandler:
             IntentType.PRICE_QUERY: "Remember that prices in Istanbul can vary by season and location. These are general estimates to help you plan.",
             IntentType.LOCATION_SEARCH: "Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!",
             IntentType.COMPARISON: "Each option has its unique charm - would you like more specific details about any of these to help you decide?",
-            IntentType.ROUTE_PLANNING: "Don't forget to check the latest public transport schedules, as they can change seasonally!"
+            IntentType.ROUTE_PLANNING: "Don't forget to check the latest public transport schedules, as they can change seasonally!",
+            # Attraction-specific tips
+            IntentType.ATTRACTION_SEARCH: "Exploring attractions can be exciting! Consider visiting a mix of popular sights and hidden gems.",
+            IntentType.CULTURAL_QUERY: "Istanbul has a rich cultural heritage. Don't miss the chance to visit its famous museums and historical sites.",
+            IntentType.FAMILY_ACTIVITY: "Istanbul offers many family-friendly activities. Would you like suggestions for indoor or outdoor activities?",
+            IntentType.ROMANTIC_SPOT: "For a romantic outing, consider a dinner with a view or a stroll in one of Istanbul's beautiful parks.",
+            IntentType.HIDDEN_GEM: "Istanbul is full of hidden gems. Be sure to explore some lesser-known spots for a unique experience."
         }
         
         return tips.get(primary_intent, "Feel free to ask me anything else about Istanbul's amazing food scene!")
@@ -1128,39 +1232,174 @@ class MultiIntentQueryHandler:
             enhanced_intents.append(enhanced_intent)
         
         return enhanced_intents
-
-# Example usage and testing
-def test_multi_intent_query_handler():
-    """Test the multi-intent query handling system"""
     
-    print("🎯 Testing Multi-Intent Query Handler...")
-    
-    handler = MultiIntentQueryHandler()
-    
-    # Test complex queries
-    test_queries = [
-        "Where is Hagia Sophia and what are the opening hours?",
-        "I want to find good Turkish restaurants near Sultanahmet and also need directions to get there",
-        "Compare the Blue Mosque and Hagia Sophia, and tell me which one is better to visit first",
-        "What's the best route from Taksim to Galata Tower and how much does it cost?",
-        "Recommend some romantic restaurants with Bosphorus view and tell me their opening hours for tonight",
-        "Plan a full day itinerary including museums, lunch, and shopping, starting from my hotel"
-    ]
-    
-    for query in test_queries:
-        print(f"\n🔍 Query: {query}")
+    def handle_attraction_query(self, intent: Intent, query: str) -> Dict[str, Any]:
+        """Handle attraction-specific queries using the integrated attractions system"""
         
-        result = handler.analyze_query(query)
+        if not self.attractions_system:
+            return {
+                'status': 'error',
+                'message': 'Attractions system not available',
+                'attractions': []
+            }
         
-        print(f"   Primary Intent: {result.primary_intent.type.value} (confidence: {result.primary_intent.confidence:.2f})")
-        print(f"   Secondary Intents: {[i.type.value for i in result.secondary_intents]}")
-        print(f"   Complexity: {result.query_complexity:.2f}")
-        print(f"   Strategy: {result.processing_strategy}")
-        print(f"   Execution Steps: {len(result.execution_plan)}")
+        try:
+            # Extract query parameters
+            query_lower = query.lower()
+            
+            # Determine query type and parameters
+            if intent.type == IntentType.ATTRACTION_SEARCH:
+                return self._handle_general_attraction_search(query_lower)
+            
+            elif intent.type == IntentType.CULTURAL_QUERY:
+                return self._handle_cultural_attraction_query(query_lower)
+            
+            elif intent.type == IntentType.FAMILY_ACTIVITY:
+                return self._handle_family_attraction_query(query_lower)
+            
+            elif intent.type == IntentType.ROMANTIC_SPOT:
+                return self._handle_romantic_attraction_query(query_lower)
+            
+            elif intent.type == IntentType.HIDDEN_GEM:
+                return self._handle_hidden_gem_query(query_lower)
+            
+            else:
+                # General attraction search
+                return self._handle_general_attraction_search(query_lower)
+                
+        except Exception as e:
+            logger.error(f"Error handling attraction query: {e}")
+            return {
+                'status': 'error',
+                'message': f'Error processing attractions: {str(e)}',
+                'attractions': []
+            }
+    
+    def _handle_general_attraction_search(self, query: str) -> Dict[str, Any]:
+        """Handle general attraction search queries"""
         
-        # Show execution plan
-        for step in result.execution_plan:
-            print(f"     Step {step['step']}: {step['action']} ({step['priority']} priority)")
-
-if __name__ == "__main__":
-    test_multi_intent_query_handler()
+        # Search attractions based on query
+        search_results = self.attractions_system.search_attractions(query)
+        
+        # Get top attractions if no specific search results
+        if not search_results:
+            # Get top attractions by category
+            categories = [AttractionCategory.HISTORICAL_MONUMENT, AttractionCategory.MUSEUM, 
+                         AttractionCategory.RELIGIOUS_SITE, AttractionCategory.VIEWPOINT]
+            attractions = []
+            for category in categories:
+                category_attractions = self.attractions_system.get_attractions_by_category(category)
+                attractions.extend(category_attractions[:2])  # Top 2 from each category
+        else:
+            attractions = [result[0] for result in search_results[:8]]  # Top 8 results
+        
+        return {
+            'status': 'success',
+            'message': f'Found {len(attractions)} attractions matching your search',
+            'attractions': [self._format_attraction_response(attr) for attr in attractions],
+            'total_count': len(attractions)
+        }
+    
+    def _handle_cultural_attraction_query(self, query: str) -> Dict[str, Any]:
+        """Handle cultural and historical attraction queries"""
+        
+        # Get cultural attractions
+        cultural_categories = [AttractionCategory.HISTORICAL_MONUMENT, AttractionCategory.MUSEUM, 
+                              AttractionCategory.RELIGIOUS_SITE, AttractionCategory.CULTURAL_CENTER]
+        
+        attractions = []
+        for category in cultural_categories:
+            category_attractions = self.attractions_system.get_attractions_by_category(category)
+            attractions.extend(category_attractions)
+        
+        # Sort by cultural significance
+        attractions = sorted(attractions, key=lambda x: len(x.cultural_significance), reverse=True)
+        
+        return {
+            'status': 'success',
+            'message': f'Found {len(attractions)} cultural and historical attractions',
+            'attractions': [self._format_attraction_response(attr) for attr in attractions[:10]],
+            'total_count': len(attractions)
+        }
+    
+    def _handle_family_attraction_query(self, query: str) -> Dict[str, Any]:
+        """Handle family-friendly attraction queries"""
+        
+        # Get family-friendly attractions
+        family_attractions = self.attractions_system.get_family_friendly_attractions()
+        
+        # Prioritize family attraction category
+        family_specific = self.attractions_system.get_attractions_by_category(AttractionCategory.FAMILY_ATTRACTION)
+        
+        # Combine and deduplicate
+        all_attractions = family_specific + [attr for attr in family_attractions if attr not in family_specific]
+        
+        return {
+            'status': 'success',
+            'message': f'Found {len(all_attractions)} family-friendly attractions',
+            'attractions': [self._format_attraction_response(attr) for attr in all_attractions[:10]],
+            'total_count': len(all_attractions)
+        }
+    
+    def _handle_romantic_attraction_query(self, query: str) -> Dict[str, Any]:
+        """Handle romantic spot queries"""
+        
+        # Get romantic attractions
+        romantic_attractions = self.attractions_system.get_romantic_attractions()
+        
+        # Prioritize romantic spot category
+        romantic_specific = self.attractions_system.get_attractions_by_category(AttractionCategory.ROMANTIC_SPOT)
+        
+        # Combine and deduplicate
+        all_attractions = romantic_specific + [attr for attr in romantic_attractions if attr not in romantic_specific]
+        
+        return {
+            'status': 'success',
+            'message': f'Found {len(all_attractions)} romantic spots',
+            'attractions': [self._format_attraction_response(attr) for attr in all_attractions[:8]],
+            'total_count': len(all_attractions)
+        }
+    
+    def _handle_hidden_gem_query(self, query: str) -> Dict[str, Any]:
+        """Handle hidden gem queries"""
+        
+        # Get hidden gems
+        hidden_gems = self.attractions_system.get_hidden_gems()
+        
+        # Also get attractions from hidden gem category
+        hidden_category = self.attractions_system.get_attractions_by_category(AttractionCategory.HIDDEN_GEM)
+        
+        # Combine and deduplicate
+        all_hidden = hidden_gems + [attr for attr in hidden_category if attr not in hidden_gems]
+        
+        return {
+            'status': 'success',
+            'message': f'Found {len(all_hidden)} hidden gems',
+            'attractions': [self._format_attraction_response(attr) for attr in all_hidden[:8]],
+            'total_count': len(all_hidden)
+        }
+    
+    def _format_attraction_response(self, attraction) -> Dict[str, Any]:
+        """Format attraction data for response"""
+        
+        return {
+            'id': attraction.id,
+            'name': attraction.name,
+            'turkish_name': attraction.turkish_name,
+            'district': attraction.district,
+            'category': attraction.category.value if hasattr(attraction.category, 'value') else str(attraction.category),
+            'description': attraction.description,
+            'opening_hours': attraction.opening_hours,
+            'entrance_fee': attraction.entrance_fee.value if hasattr(attraction.entrance_fee, 'value') else str(attraction.entrance_fee),
+            'estimated_cost': attraction.estimated_cost,
+            'duration': attraction.duration,
+            'transportation': attraction.transportation,
+            'best_time': attraction.best_time,
+            'is_family_friendly': attraction.is_family_friendly,
+            'is_romantic': attraction.is_romantic,
+            'is_hidden_gem': attraction.is_hidden_gem,
+            'cultural_significance': attraction.cultural_significance,
+            'practical_tips': attraction.practical_tips,
+            'coordinates': attraction.coordinates,
+            'nearby_attractions': attraction.nearby_attractions[:3] if attraction.nearby_attractions else []
+        }

@@ -444,9 +444,24 @@ except ImportError as e:
     istanbul_ai_system = None
     ULTRA_ISTANBUL_AI_AVAILABLE = False
 
-# Use only our specialized rule-based system
-CUSTOM_AI_AVAILABLE = ULTRA_ISTANBUL_AI_AVAILABLE  
-print(f"🎯 AI System Status: {'✅ ULTRA-SPECIALIZED ISTANBUL AI ACTIVE' if CUSTOM_AI_AVAILABLE else '❌ DISABLED'}")
+# --- NEW: Enhanced Istanbul Daily Talk AI System (with Attractions) ---
+# Import our new integrated system with attractions support
+try:
+    from istanbul_daily_talk_system import IstanbulDailyTalkAI
+    istanbul_daily_talk_ai = IstanbulDailyTalkAI()
+    ISTANBUL_DAILY_TALK_AVAILABLE = True
+    print("✅ Istanbul Daily Talk AI System with 50+ Attractions loaded successfully!")
+except ImportError as e:
+    print(f"⚠️ Istanbul Daily Talk AI import failed: {e}")
+    istanbul_daily_talk_ai = None
+    ISTANBUL_DAILY_TALK_AVAILABLE = False
+
+# Use both systems - new one has priority for attractions
+CUSTOM_AI_AVAILABLE = ULTRA_ISTANBUL_AI_AVAILABLE or ISTANBUL_DAILY_TALK_AVAILABLE
+print(f"🎯 AI System Status:")
+print(f"   Ultra-Specialized: {'✅ ACTIVE' if ULTRA_ISTANBUL_AI_AVAILABLE else '❌ DISABLED'}")
+print(f"   Daily Talk + Attractions: {'✅ ACTIVE (50+ attractions)' if ISTANBUL_DAILY_TALK_AVAILABLE else '❌ DISABLED'}")
+print(f"   Overall: {'✅ ENHANCED AI SYSTEMS ACTIVE' if CUSTOM_AI_AVAILABLE else '❌ DISABLED'}")
 
 # Use istanbul_ai_system directly for all AI processing
 custom_ai_system = None
@@ -509,6 +524,17 @@ if ADVANCED_UNDERSTANDING_AVAILABLE:
         print(f"⚠️ Failed to initialize Advanced Understanding System: {e}")
         ADVANCED_UNDERSTANDING_AVAILABLE = False
         advanced_understanding = None
+
+# Integration with Enhanced AI System
+try:
+    from istanbul_ai_system_enhancement import EnhancedIstanbulAISystem
+    enhanced_ai_system = EnhancedIstanbulAISystem()
+    ENHANCED_FEATURES_AVAILABLE = True
+    logger.info("🚀 Enhanced Istanbul AI System integrated successfully!")
+except ImportError as e:
+    logger.warning(f"Enhanced features not available: {e}")
+    ENHANCED_FEATURES_AVAILABLE = False
+    enhanced_ai_system = None
 
 # Add CORS middleware to allow frontend access
 app.add_middleware(
@@ -702,7 +728,7 @@ print("✅ Security headers middleware configured")
 limiter = None
 print("✅ Rate limiting completely removed for unrestricted testing")
 
-# === Optional Enhancement Systems Initialization ===
+# --- Optional Enhancement Systems Initialization ---
 # Initialize Optional Enhancement Systems
 hybrid_search = None
 personalization_engine = None
@@ -952,8 +978,40 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
             'normalized_query': query_analysis.get('normalized_query', user_input.lower().strip())
         }
         
-        # Generate response using rule-based Ultra-Specialized Istanbul AI
-        result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        # 🏛️ ENHANCED: Check if this is an attraction-related query
+        is_attraction_query = any(keyword in user_input.lower() for keyword in [
+            'attraction', 'museum', 'palace', 'mosque', 'tower', 'monument', 'historic',
+            'visit', 'see', 'explore', 'sightseeing', 'cultural', 'heritage', 'landmark',
+            'places to go', 'what to see', 'worth visiting', 'must see', 'tourist',
+            'family friendly', 'romantic', 'hidden gem'
+        ])
+        
+        # Use new Istanbul Daily Talk AI for attraction queries (has 50+ attractions)
+        if ISTANBUL_DAILY_TALK_AVAILABLE and is_attraction_query:
+            print("🏛️ Using Istanbul Daily Talk AI (50+ attractions) for attraction query...")
+            try:
+                # Process with our new enhanced system
+                ai_response = istanbul_daily_talk_ai.process_message(session_id, user_input)
+                
+                if ai_response and len(ai_response) > 100:
+                    print(f"✅ Enhanced AI response generated: {len(ai_response)} characters")
+                    result = {
+                        'success': True,
+                        'response': ai_response,
+                        'system_type': 'istanbul_daily_talk_ai_attractions',
+                        'attractions_count': '50+',
+                        'enhanced': True
+                    }
+                else:
+                    # Fall back to original system
+                    print("⚠️ Enhanced AI response too short, falling back to original system")
+                    result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+            except Exception as e:
+                print(f"⚠️ Enhanced AI system error, falling back to original: {e}")
+                result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        else:
+            # Generate response using rule-based Ultra-Specialized Istanbul AI
+            result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
         
         if result.get('success'):
             ai_response = result['response']
@@ -2269,16 +2327,16 @@ async def generate_intent_specific_response(intent, location_info: Optional[Dict
         
         return "I'll suggest the best options based on quality, location, and visitor reviews."
     
-    elif intent_type == "location_search":
+    elif "location_search" in intent_type:
         return "I can help you find exact locations and the best ways to get there."
     
-    elif intent_type == "information_request":
+    elif "information_request" in intent_type:
         return "Here's the detailed information you're looking for, including history and practical details."
     
-    elif intent_type == "route_planning":
+    elif "route_planning" in intent_type:
         return "I'll help you plan the most efficient route using Istanbul's transport network."
     
-    elif intent_type == "comparison":
+    elif "comparison" in intent_type:
         return "Let me compare these options to help you make the best choice."
     
     else:
@@ -2608,75 +2666,64 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
                                for budget_term in ['cheap', 'budget', 'affordable', 'inexpensive', 'cheap eats'])
         
         if is_budget_request:
-            response_parts.append("\n💰 **Budget-Friendly Options in Your Area:**")
-        else:
-            response_parts.append("\n📍 **Top Recommendations:**")
-        
-        # Enhanced restaurant recommendations with prices, hours, and dietary info
-        if is_budget_request:
-            # Budget-focused recommendations
-            if 'sultanahmet' in district:
-                response_parts.append("\n**💰 Budget Eats in Historic Sultanahmet:**")
-                response_parts.append("• **Local Döner Shops** (Street Food)")
-                response_parts.append("  📍 Around Sultanahmet Square | 💰 ₺ | ⏰ 10:00-22:00")
-                response_parts.append("  🥙 Authentic döner kebab, pide, ayran | 15-25₺ per meal")
-                
-                response_parts.append("\n• **Eminönü Fish Sandwich** (Balık Ekmek)")
-                response_parts.append("  📍 Galata Bridge area | 💰 ₺ | ⏰ 08:00-20:00")
-                response_parts.append("  🐟 Fresh grilled fish sandwich | 15-20₺")
-                
-                response_parts.append("\n• **Spice Bazaar Food Court**")
-                response_parts.append("  📍 Egyptian Bazaar | 💰 ₺ | ⏰ 08:00-19:00")
-                response_parts.append("  🥘 Turkish delights, börek, simit | 10-30₺")
-                
-            elif 'beyoğlu' in district or 'taksim' in district:
-                response_parts.append("\n**💰 Budget Eats in Beyoğlu/Taksim:**")
-                try:
-                    # Get budget restaurants in Beyoğlu area
-                    beyoglu_budget = restaurant_service.search_restaurants(
-                        district="Beyoğlu",
-                        budget="budget",
-                        limit=3
-                    )
-                    for restaurant in beyoglu_budget[:3]:
-                        price_symbol = "₺" if restaurant.budget == 'budget' else "₺₺"
-                        response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine})")
-                        response_parts.append(f"  📍 {restaurant.district} | 💰 {price_symbol} | ⭐ {restaurant.rating}")
-                        response_parts.append(f"  �️ {restaurant.description}")
-                    
-                    # Also get mid-range options
-                    beyoglu_mid = restaurant_service.search_restaurants(
-                        district="Beyoğlu", 
-                        budget="mid-range",
-                        limit=2
-                    )
-                    for restaurant in beyoglu_mid[:2]:
-                        response_parts.append(f"\n• **{restaurant.name}** ({restaurant.cuisine})")
-                        response_parts.append(f"  📍 {restaurant.district} | 💰 ₺₺ | ⭐ {restaurant.rating}")
-                        response_parts.append(f"  🍽️ {restaurant.description}")
-                except Exception as e:
-                    print(f"Error getting Beyoğlu budget restaurants: {e}")
-                    response_parts.append("• **Taksim Döner Palace** - Popular döner kebab spot")
-                    response_parts.append("• **Galata Mevlevihanesi Cafe** - Historic cafe with traditional Turkish coffee")
-                
-            else:
-                response_parts.append("\n**💰 Best Budget Eats Across Istanbul:**")
-                response_parts.append("• **Eminönü Balık Ekmek** - Famous fish sandwich | 15-20₺")
-                response_parts.append("• **Sultanahmet Döner Shops** - Authentic street döner | 15-25₺")
-                response_parts.append("• **Karaköy Local Eateries** - Fresh seafood, budget-friendly | 50-80₺")
-                response_parts.append("• **Grand Bazaar Food Court** - Traditional snacks | 10-30₺")
-                response_parts.append("• **Kadıköy Street Food** - Asian side local eats | 15-35₺")
+            response_parts.append("\n💰 **Best Budget Eats Across Istanbul:**")
             
-            response_parts.append("\n🎯 **Budget Tips:**")
+            response_parts.append("\n**🏛️ Historic Areas (₺10-40 per meal):**")
+            response_parts.append("• **Eminönü Balık Ekmek** - Famous fish sandwich by Galata Bridge")
+            response_parts.append("• **Sultanahmet Döner Shops** - Authentic street döner kebab")
+            response_parts.append("• **Spice Bazaar Food Stalls** - Turkish delights, börek, simit")
+            response_parts.append("• **Grand Bazaar Eateries** - Traditional lokanta meals")
+            
+            response_parts.append("\n**🌃 Modern Areas (₺15-60 per meal):**")
+            response_parts.append("• **İstiklal Avenue Street Food** - Döner, köfte, midye dolma")
+            response_parts.append("• **Karaköy Fish Restaurants** - Simple, fresh seafood")
+            response_parts.append("• **Kadıköy Local Eateries** - Asian side authentic food")
+            response_parts.append("• **Beşiktaş Çarşı** - Local market food stalls")
+            
+            response_parts.append("\n🎯 **Money-Saving Tips:**")
+            response_parts.append("• Turkish breakfast places: ₺30-50 for full meal")
             response_parts.append("• Look for 'Lokanta' signs for traditional cheap eats")
-            response_parts.append("• Street food around mosques and markets is typically cheapest")
-            response_parts.append("• Turkish breakfast places offer great value (₺30-50)")
-            response_parts.append("• Avoid touristy areas for better prices")
-        elif 'sultanahmet' in district:
-            response_parts.append("\n**🏛️ Historic Sultanahmet Area:**")
-            
-            # Get real restaurants from our database for Sultanahmet
-            if restaurant_service:
+            response_parts.append("• Street food near mosques/markets is cheapest")
+            response_parts.append("• Avoid tourist areas like Sultanahmet Square for better prices")
+        else:
+            response_parts.append("\n⭐ **Must-Try Restaurants Across Istanbul:**")
+    
+    # Historic Peninsula (Sultanahmet/Eminönü)
+    response_parts.append("\n**🏛️ Historic Peninsula:**")
+    response_parts.append("• **Pandeli** (Spice Bazaar) - Ottoman cuisine | ₺₺₺ | 12:00-17:00")
+    response_parts.append("• **Hamdi Restaurant** (Eminönü) - Famous kebabs | ₺₺₺ | 11:00-23:00")
+    response_parts.append("• **Deraliye** (Sultanahmet) - Royal Ottoman recipes | ₺₺₺₺")
+    
+    # Modern Areas
+    response_parts.append("\n**🌃 Modern Istanbul:**")
+    response_parts.append("• **Mikla** (Beyoğlu) - Award-winning modern Turkish | ₺₺₺₺₺")
+    response_parts.append("• **Karaköy Lokantası** (Karaköy) - Contemporary Turkish | ₺₺₺")
+    response_parts.append("• **Çiya Sofrası** (Kadıköy) - Authentic Anatolian | ₺₺")
+    
+    # Add dietary-specific recommendations if requested
+    cuisines = requirements.get('cuisine', [])
+    has_vegetarian = any('vegetarian' in req.lower() or 'vegan' in req.lower() for req in dietary_requirements)
+    has_halal = any('halal' in req.lower() for req in dietary_requirements)
+    has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])
+    
+    if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy', 'plant-based', 'plant based', 'jewish']) or 
+        has_vegetarian or has_halal or has_gluten_free or dietary_requirements):
+        response_parts.append("\n🌿 **Dietary-Friendly Options:**")
+        if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or has_vegetarian:
+            response_parts.append("• **Çiya Sofrası** - Extensive vegetarian Anatolian dishes")
+            response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu")
+            response_parts.append("• **Mikla** - Full vegetarian tasting menu")
+        if 'halal' in original_message.lower() or has_halal:
+            response_parts.append("• Most traditional Turkish restaurants are halal-certified")
+            response_parts.append("• **Hamdi** and **Deraliye** are fully halal")
+        if 'kosher' in original_message.lower() or 'jewish' in original_message.lower():
+            response_parts.append("• **Neve Shalom Synagogue** - Jewish community can provide kosher dining info")
+            response_parts.append("• **Jewish Quarter (Galata)** - Some kosher-friendly certified establishments")
+            response_parts.append("• **Fish restaurants** - Many offer kosher-style preparation with certification")
+            response_parts.append("• **Contact Jewish community** - Best resource for current kosher restaurant options")
+        if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'friendly']) or has_gluten_free:
+            response_parts.append("• Turkish grilled meats and rice dishes are naturally gluten-free")
+            response_parts.append("• Most restaurants accommodate celiac-friendly and gluten-free requests")
                 try:
                     sultanahmet_restaurants = restaurant_service.search_restaurants(
                         district="Sultanahmet", limit=6
