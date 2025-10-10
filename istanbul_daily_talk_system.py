@@ -49,6 +49,34 @@ except ImportError as e:
     logger.warning(f"Multi-Intent Query Handler not available: {e}")
     MULTI_INTENT_AVAILABLE = False
 
+# Import priority enhancements system
+try:
+    from istanbul_ai_priority_enhancements import (
+        IstanbulAIPriorityEnhancements, 
+        EnhancedUserProfile, 
+        PersonalizationLevel,
+        DeepLearningFeatureType
+    )
+    PRIORITY_ENHANCEMENTS_AVAILABLE = True
+    logger.info("🚀 Priority Enhancements System loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Priority Enhancements not available: {e}")
+    PRIORITY_ENHANCEMENTS_AVAILABLE = False
+
+# Import neighborhood guides system
+try:
+    from istanbul_neighborhood_guides_system import (
+        IstanbulNeighborhoodGuidesSystem, 
+        VisitorType, 
+        NeighborhoodCharacter,
+        BestVisitingTime
+    )
+    NEIGHBORHOOD_GUIDES_AVAILABLE = True
+    logger.info("🏘️ Neighborhood Guides System loaded successfully!")
+except ImportError as e:
+    NEIGHBORHOOD_GUIDES_AVAILABLE = False
+    logger.warning(f"⚠️ Neighborhood Guides System not available: {e}")
+
 class ConversationTone(Enum):
     """Conversation tone adaptation"""
     FORMAL = "formal"
@@ -258,6 +286,22 @@ class IstanbulDailyTalkAI:
             self.multi_intent_handler = None
             logger.warning("⚠️ Multi-Intent features disabled")
         
+        # Initialize priority enhancements system
+        if PRIORITY_ENHANCEMENTS_AVAILABLE:
+            self.priority_enhancements = IstanbulAIPriorityEnhancements()
+            logger.info("🚀 Priority Enhancements System integrated successfully!")
+        else:
+            self.priority_enhancements = None
+            logger.warning("⚠️ Priority Enhancements features disabled")
+        
+        # Initialize neighborhood guides system
+        if NEIGHBORHOOD_GUIDES_AVAILABLE:
+            self.neighborhood_guides = IstanbulNeighborhoodGuidesSystem()
+            logger.info("🏘️ Neighborhood Guides System integrated successfully!")
+        else:
+            self.neighborhood_guides = None
+            logger.warning("⚠️ Neighborhood Guides features disabled")
+
         # Initialize response templates with local flavor
         self.initialize_response_templates()
         
@@ -372,6 +416,23 @@ class IstanbulDailyTalkAI:
         
         context = self.active_conversations[session_id]
         
+        # 🏘️ PRIORITY: Check for neighborhood queries before deep learning (specialized system)
+        if self._is_neighborhood_query(message):
+            logger.info(f"🏘️ Processing neighborhood query for {user_id}")
+            current_time = datetime.now()
+            response = self._process_neighborhood_query(message, user_profile, current_time)
+            context.add_interaction(message, response, "neighborhood_query")
+            
+            # Create proper entities dict for neighborhood queries
+            entities = {
+                'neighborhoods': [self._extract_neighborhood_from_message(message)] if self._extract_neighborhood_from_message(message) else [],
+                'cuisines': [],
+                'districts': [],
+                'attractions': []
+            }
+            self._update_user_profile(user_profile, message, "neighborhood_query", entities)
+            return response
+        
         # 🧠 ENHANCED: Use Deep Learning AI if available
         if self.deep_learning_ai and DEEP_LEARNING_AVAILABLE:
             try:
@@ -476,6 +537,10 @@ class IstanbulDailyTalkAI:
         if self._is_restaurant_query(message):
             return 'restaurant_query'
         
+        # Check for neighborhood queries
+        if self._is_neighborhood_query(message):
+            return 'neighborhood_query'
+        
         if any(word in message_lower for word in ['recommend', 'suggest', 'best', 'good']):
             if entities['cuisines'] or entities['neighborhoods']:
                 return 'restaurant_recommendation'
@@ -490,6 +555,10 @@ class IstanbulDailyTalkAI:
         
         if entities['landmarks']:
             return 'landmark_information'
+        
+        # Check for neighborhood-related queries
+        if self._is_neighborhood_query(message):
+            return 'neighborhood_query'
         
         # Default to conversational
         return 'general_conversation'
@@ -559,6 +628,9 @@ class IstanbulDailyTalkAI:
         
         elif intent == 'general_conversation':
             return self._generate_conversational_response(message, context, user_profile)
+        
+        elif intent == 'neighborhood_query':
+            return self._process_neighborhood_query(message, user_profile, current_time)
         
         else:
             return self._generate_fallback_response(context, user_profile)
@@ -975,176 +1047,346 @@ class IstanbulDailyTalkAI:
         message_lower = message.lower()
         return any(keyword in message_lower for keyword in restaurant_keywords)
 
-    async def process_voice_message(self, user_id: str, audio_data: bytes) -> str:
-        """🎤 ENHANCED: Process voice message with deep learning (UNLIMITED & FREE!)"""
+    def _is_neighborhood_query(self, message: str) -> bool:
+        """Check if message is neighborhood/area-related"""
+        neighborhood_keywords = [
+            'neighborhood', 'neighbourhood', 'area', 'district', 'quarter', 'region',
+            'where to stay', 'best area', 'local area', 'explore area', 'walk around',
+            'sultanahmet', 'beyoglu', 'galata', 'ortakoy', 'balat', 'kadikoy', 'besiktas',
+            'taksim', 'karakoy', 'uskudar', 'fatih', 'sisli', 'bakirkoy',
+            'character', 'atmosphere', 'vibe', 'feel like', 'authentic', 'local life',
+            'hidden gems', 'local secrets', 'off the beaten path', 'insider tips'
+        ]
         
-        if not self.deep_learning_ai:
-            return "Voice processing requires the enhanced deep learning system. Please type your message instead."
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in neighborhood_keywords)
+
+    def _process_neighborhood_query(self, message: str, user_profile: UserProfile, current_time: datetime) -> str:
+        """🏘️ ENHANCED: Process neighborhood-related queries with deep learning insights"""
+        
+        if not self.neighborhood_guides:
+            return self._generate_fallback_neighborhood_response(message)
         
         try:
-            self.feature_usage_stats['voice_interactions'] += 1
+            logger.debug(f"🏘️ Processing neighborhood query: {message}")
             
-            # Use deep learning for voice processing
-            response = await self.deep_learning_ai.handle_english_voice_input(audio_data, user_id)
+            # Extract visitor type from user profile and message
+            visitor_type = self._determine_visitor_type(user_profile, message)
+            logger.debug(f"🏘️ Determined visitor type: {visitor_type}")
             
-            logger.info(f"🎤 Voice message processed for {user_id}")
-            return response
+            # Extract interests from message using deep learning if available
+            interests = self._extract_interests_from_message(message)
+            logger.debug(f"🏘️ Extracted interests: {interests}")
+            
+            # Determine season
+            season = self._get_current_season(current_time)
+            logger.debug(f"🏘️ Current season: {season}")
+            
+            # Detect specific neighborhood mentions
+            mentioned_neighborhood = self._extract_neighborhood_from_message(message)
+            logger.debug(f"🏘️ Mentioned neighborhood: {mentioned_neighborhood}")
+            
+            if mentioned_neighborhood:
+                # Specific neighborhood guide
+                guide = self.neighborhood_guides.get_neighborhood_guide(mentioned_neighborhood)
+                if guide:
+                    logger.debug(f"🏘️ Found guide for {mentioned_neighborhood}")
+                    return self._generate_specific_neighborhood_response(guide, visitor_type, interests, season)
+                else:
+                    logger.debug(f"🏘️ No guide found for {mentioned_neighborhood}")
+            
+            # General neighborhood recommendations
+            if any(word in message.lower() for word in ['recommend', 'suggest', 'best', 'where']):
+                logger.debug("🏘️ Generating personalized recommendations")
+                personal_guide = self.neighborhood_guides.generate_personalized_neighborhood_guide(
+                    visitor_type=visitor_type,
+                    interests=interests,
+                    visit_duration=self._estimate_visit_duration(message),
+                    season=season
+                )
+                return self._generate_personalized_neighborhood_response(personal_guide, message)
+            
+            # Hidden gems query
+            if any(word in message.lower() for word in ['hidden', 'secret', 'local', 'authentic', 'off the beaten']):
+                logger.debug("🏘️ Generating hidden gems response")
+                gems = self.neighborhood_guides.search_hidden_gems()
+                return self._generate_hidden_gems_response(gems[:5], visitor_type)
+            
+            # Default neighborhood overview
+            logger.debug("🏘️ Generating neighborhood overview")
+            return self._generate_neighborhood_overview_response(visitor_type, interests)
             
         except Exception as e:
-            logger.error(f"Voice processing failed: {e}")
-            return "I had trouble processing your voice message. Could you please type your question instead?"
-    
-    def get_enhanced_user_analytics(self, user_id: str) -> Dict[str, Any]:
-        """📊 ENHANCED: Get comprehensive user analytics with deep learning insights"""
+            logger.error(f"Error processing neighborhood query: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return self._generate_fallback_neighborhood_response(message)
+
+    def _determine_visitor_type(self, user_profile: UserProfile, message: str) -> VisitorType:
+        """Determine visitor type from profile and message using deep learning insights"""
         
-        # Get traditional analytics
-        user_profile = self.user_profiles.get(user_id)
-        if not user_profile:
-            return {"message": "User not found"}
-        
-        traditional_analytics = {
-            "user_id": user_id,
-            "user_type": user_profile.user_type.value,
-            "preferred_tone": user_profile.preferred_tone.value,
-            "favorite_neighborhoods": user_profile.favorite_neighborhoods,
-            "cuisine_preferences": user_profile.cuisine_preferences,
-            "satisfaction_score": user_profile.satisfaction_score,
-            "recommendation_success_rate": user_profile.recommendation_success_rate,
-            "total_interactions": len(user_profile.interaction_history),
-            "last_interaction": user_profile.last_interaction.isoformat() if user_profile.last_interaction else None
-        }
-        
-        # Enhance with deep learning analytics if available
+        # Use deep learning insights if available
         if self.deep_learning_ai:
             try:
-                dl_analytics = self.deep_learning_ai.get_user_analytics(user_id)
+                message_analysis = self.deep_learning_ai.optimize_for_english_speakers(message)
                 
-                # Combine analytics
-                enhanced_analytics = {
-                    **traditional_analytics,
-                    "deep_learning_insights": dl_analytics,
-                    "enhanced_features_used": self.feature_usage_stats,
-                    "english_optimization_active": True,
-                    "advanced_analytics_available": True
-                }
-                
-                return enhanced_analytics
-                
+                # Analyze conversation style and preferences
+                if message_analysis.get("conversation_style") == "analytical":
+                    return VisitorType.CULTURAL_EXPLORER
+                elif message_analysis.get("conversation_style") == "creative":
+                    return VisitorType.PHOTOGRAPHY_LOVER
+                elif message_analysis.get("conversation_style") == "practical":
+                    return VisitorType.BUDGET_TRAVELER
             except Exception as e:
-                logger.warning(f"Could not get deep learning analytics: {e}")
+                logger.debug(f"Deep learning visitor type analysis failed: {e}")
         
-        # Return traditional analytics with enhancement flags
-        return {
-            **traditional_analytics,
-            "deep_learning_insights": "Not available",
-            "enhanced_features_used": self.feature_usage_stats,
-            "english_optimization_active": DEEP_LEARNING_AVAILABLE,
-            "advanced_analytics_available": DEEP_LEARNING_AVAILABLE
-        }
-    
-    def get_system_performance_metrics(self) -> Dict[str, Any]:
-        """🎯 ENHANCED: Get comprehensive system performance metrics"""
+        # Fallback to message-based analysis
+        message_lower = message.lower()
         
-        total_users = len(self.user_profiles)
-        total_conversations = len(self.active_conversations)
+        if any(word in message_lower for word in ['first time', 'never been', 'tourist']):
+            return VisitorType.FIRST_TIME_TOURIST
+        elif any(word in message_lower for word in ['culture', 'history', 'museum', 'traditional']):
+            return VisitorType.CULTURAL_EXPLORER
+        elif any(word in message_lower for word in ['food', 'eat', 'restaurant', 'cuisine']):
+            return VisitorType.FOOD_ENTHUSIAST
+        elif any(word in message_lower for word in ['photo', 'instagram', 'picture', 'camera']):
+            return VisitorType.PHOTOGRAPHY_LOVER
+        elif any(word in message_lower for word in ['local', 'authentic', 'real', 'insider']):
+            return VisitorType.LOCAL_EXPERIENCE_SEEKER
+        elif any(word in message_lower for word in ['budget', 'cheap', 'affordable', 'free']):
+            return VisitorType.BUDGET_TRAVELER
+        elif any(word in message_lower for word in ['luxury', 'expensive', 'premium', 'high-end']):
+            return VisitorType.LUXURY_TRAVELER
+        elif any(word in message_lower for word in ['family', 'kids', 'children', 'child']):
+            return VisitorType.FAMILY_WITH_CHILDREN
+        elif any(word in message_lower for word in ['young', 'backpack', 'hostel', 'party']):
+            return VisitorType.YOUNG_BACKPACKER
+        elif any(word in message_lower for word in ['business', 'work', 'meeting', 'conference']):
+            return VisitorType.BUSINESS_TRAVELER
+        else:
+            return VisitorType.FIRST_TIME_TOURIST
+
+    def _extract_interests_from_message(self, message: str) -> List[str]:
+        """Extract interests from message using deep learning if available"""
+        interests = []
+        message_lower = message.lower()
         
-        # Calculate traditional metrics
-        total_interactions = sum(len(profile.interaction_history) for profile in self.user_profiles.values())
-        avg_satisfaction = sum(profile.satisfaction_score for profile in self.user_profiles.values()) / max(total_users, 1)
-        
-        traditional_metrics = {
-            "system_type": "Enhanced Istanbul Daily Talk AI with Deep Learning & Attractions",
-            "total_users": total_users,
-            "active_conversations": total_conversations,
-            "total_interactions": total_interactions,
-            "average_satisfaction": round(avg_satisfaction, 3),
-            "feature_usage_stats": self.feature_usage_stats,
-            "deep_learning_available": DEEP_LEARNING_AVAILABLE,
-            "attractions_system_available": MULTI_INTENT_AVAILABLE
-        }
-        
-        # Enhance with deep learning metrics if available
+        # Use deep learning analysis if available
         if self.deep_learning_ai:
             try:
-                dl_metrics = self.deep_learning_ai.get_english_performance_metrics()
-                
-                enhanced_metrics = {
-                    **traditional_metrics,
-                    "deep_learning_performance": dl_metrics,
-                    "english_optimization": {
-                        "active": True,
-                        "queries_optimized": self.feature_usage_stats['english_optimized_responses'],
-                        "cultural_contexts_added": self.feature_usage_stats['cultural_context_additions'],
-                        "performance_boost": "35% faster processing for English queries"
-                    },
-                    "attractions_features": {
-                        "comprehensive_database": "78+ curated Istanbul attractions",
-                        "category_filtering": "15 categories including museums, monuments, parks",
-                        "district_recommendations": "7 major Istanbul districts covered",
-                        "weather_appropriate_suggestions": "Indoor/outdoor/all-weather classifications",
-                        "family_and_romantic_filtering": "Specialized recommendations available",
-                        "budget_friendly_options": "Free, budget, moderate, expensive categories",
-                        "hidden_gems_database": "Local favorites and off-the-beaten-path spots"
-                    },
-                    "premium_features": {
-                        "unlimited_access": True,
-                        "free_for_all_users": True,
-                        "advanced_analytics": True,
-                        "multimodal_support": True,
-                        "real_time_learning": True,
-                        "attractions_support": True
-                    },
-                    "system_grade": "A+ Enhanced with Deep Learning & Attractions"
-                }
-                
-                return enhanced_metrics
-                
+                cultural_refs = self.deep_learning_ai._detect_cultural_references(message)
+                if cultural_refs:
+                    interests.extend(['culture', 'history'])
             except Exception as e:
-                logger.warning(f"Could not get deep learning metrics: {e}")
+                logger.debug(f"Deep learning interest extraction failed: {e}")
         
-        # Return traditional metrics with enhancement info
-        return {
-            **traditional_metrics,
-            "deep_learning_performance": "Deep learning system not available",
-            "english_optimization": {
-                "active": False,
-                "message": "Requires deep learning system"
-            },
-            "attractions_features": {
-                "comprehensive_database": "78+ curated Istanbul attractions" if MULTI_INTENT_AVAILABLE else "Not available",
-                "status": "Available" if MULTI_INTENT_AVAILABLE else "Requires multi-intent system"
-            },
-            "premium_features": {
-                "unlimited_access": False,
-                "free_for_all_users": False,
-                "advanced_analytics": False,
-                "multimodal_support": False,
-                "real_time_learning": False,
-                "attractions_support": MULTI_INTENT_AVAILABLE,
-                "message": "Enhanced features require deep learning system"
-            },
-            "system_grade": "B+ Traditional System with Attractions" if MULTI_INTENT_AVAILABLE else "B Traditional System"
+        # Traditional keyword matching
+        interest_keywords = {
+            'history': ['history', 'historical', 'ancient', 'old', 'past', 'heritage'],
+            'culture': ['culture', 'cultural', 'traditional', 'art', 'museum', 'gallery'],
+            'food': ['food', 'eat', 'restaurant', 'cuisine', 'cooking', 'taste'],
+            'nightlife': ['night', 'bar', 'club', 'drink', 'party', 'entertainment'],
+            'photography': ['photo', 'picture', 'camera', 'instagram', 'scenic', 'view'],
+            'shopping': ['shop', 'shopping', 'buy', 'market', 'bazaar', 'store'],
+            'local_life': ['local', 'authentic', 'real', 'everyday', 'neighborhood', 'community']
         }
-    
-    def get_feature_status(self) -> Dict[str, Any]:
-        """🚀 Get status of all enhanced features"""
         
-        return {
-            "🧠 Deep Learning AI": "✅ Active" if DEEP_LEARNING_AVAILABLE else "❌ Not Available",
-            "🇺🇸 English Optimization": "✅ Active" if DEEP_LEARNING_AVAILABLE else "❌ Not Available", 
-            "🎤 Voice Processing": "✅ Unlimited & Free" if DEEP_LEARNING_AVAILABLE else "❌ Not Available",
-            "🎭 Personality Adaptation": "✅ Unlimited & Free" if DEEP_LEARNING_AVAILABLE else "❌ Not Available",
-            "📊 Advanced Analytics": "✅ Always On" if DEEP_LEARNING_AVAILABLE else "❌ Limited",
-            "🏛️ Cultural Intelligence": "✅ Enhanced" if DEEP_LEARNING_AVAILABLE else "✅ Basic",
-            "🔄 Real-time Learning": "✅ Active" if DEEP_LEARNING_AVAILABLE else "❌ Not Available",
-            "🎯 Multimodal Support": "✅ Text, Voice, Image" if DEEP_LEARNING_AVAILABLE else "✅ Text Only",
-            "🏛️ Attractions System": "✅ 78+ Istanbul Attractions" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "🎨 Multi-Intent Processing": "✅ Advanced Query Understanding" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "🗺️ District Recommendations": "✅ 7 Major Districts" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "👨‍👩‍👧‍👦 Family-Friendly Filter": "✅ Available" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "💕 Romantic Spots Filter": "✅ Available" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "🗝️ Hidden Gems Database": "✅ Local Favorites" if MULTI_INTENT_AVAILABLE else "❌ Not Available",
-            "💡 Usage Limits": "🚀 UNLIMITED for 10,000+ users!" if DEEP_LEARNING_AVAILABLE else "📝 Basic Access",
-            "💰 Cost": "🎉 100% FREE!" if DEEP_LEARNING_AVAILABLE else "🎉 100% FREE!",
-            "🎖️ System Grade": "A+ Enhanced with Attractions" if MULTI_INTENT_AVAILABLE and DEEP_LEARNING_AVAILABLE else "B+ Traditional with Attractions" if MULTI_INTENT_AVAILABLE else "B Traditional"
+        for interest, keywords in interest_keywords.items():
+            if any(keyword in message_lower for keyword in keywords):
+                interests.append(interest)
+        
+        return interests if interests else ['culture']  # Default interest
+
+    def _extract_neighborhood_from_message(self, message: str) -> Optional[str]:
+        """Extract specific neighborhood mentions from message"""
+        neighborhood_names = {
+            'sultanahmet': ['sultanahmet', 'sultan ahmet', 'blue mosque area', 'hagia sophia area'],
+            'beyoglu': ['beyoglu', 'beyoğlu', 'pera', 'galata', 'istiklal', 'taksim'],
+            'balat': ['balat', 'fener', 'golden horn'],
+            'ortakoy': ['ortakoy', 'ortaköy', 'bosphorus bridge area'],
+            'kadikoy': ['kadikoy', 'kadıköy', 'asian side', 'moda']
         }
+        
+        message_lower = message.lower()
+        for neighborhood, variations in neighborhood_names.items():
+            if any(variation in message_lower for variation in variations):
+                return neighborhood
+        
+        return None
+
+    def _estimate_visit_duration(self, message: str) -> str:
+        """Estimate visit duration from message"""
+        message_lower = message.lower()
+        
+        if any(word in message_lower for word in ['quick', 'short', 'hour', 'brief']):
+            return "short"
+        elif any(word in message_lower for word in ['day', 'full', 'whole', 'entire']):
+            return "long"
+        else:
+            return "medium"
+
+    def _get_current_season(self, current_time: datetime) -> str:
+        """Get current season"""
+        month = current_time.month
+        if month in [12, 1, 2]:
+            return "winter"
+        elif month in [3, 4, 5]:
+            return "spring"
+        elif month in [6, 7, 8]:
+            return "summer"
+        else:
+            return "autumn"
+
+    def _generate_specific_neighborhood_response(self, guide, visitor_type: VisitorType, 
+                                               interests: List[str], season: str) -> str:
+        """Generate detailed response for specific neighborhood"""
+        
+        response = f"🏘️ **{guide.name} Neighborhood Guide**\n\n"
+        
+        # Character description
+        response += f"**Character:** {guide.character_description}\n\n"
+        
+        # Atmosphere
+        response += f"**Atmosphere:** {guide.atmosphere}\n\n"
+        
+        # Seasonal highlight
+        if season in guide.seasonal_highlights:
+            response += f"**{season.title()} Highlight:** {guide.seasonal_highlights[season]}\n\n"
+        
+        # Best visiting times
+        times = [time.value.replace('_', ' ').title() for time in guide.best_visiting_times]
+        response += f"**Best Times to Visit:** {', '.join(times)}\n\n"
+        
+        # Personalized recommendations based on interests
+        if 'photography' in interests and guide.photo_opportunities:
+            response += f"**📸 Photo Opportunities:** {', '.join(guide.photo_opportunities[:3])}\n\n"
+        
+        if 'food' in interests and guide.must_try_foods:
+            response += f"**🍽️ Must-Try Foods:** {', '.join(guide.must_try_foods)}\n\n"
+        
+        # Hidden gems
+        if guide.hidden_gems:
+            response += f"**💎 Hidden Gems:**\n"
+            for gem in guide.hidden_gems[:2]:
+                response += f"• **{gem.name}:** {gem.description}\n"
+                response += f"  *Insider tip:* {gem.insider_tip}\n"
+            response += "\n"
+        
+        # Local insights
+        if guide.local_insights:
+            response += f"**🗝️ Local Insights:**\n"
+            for insight in guide.local_insights[:3]:
+                response += f"• {insight}\n"
+            response += "\n"
+        
+        # Practical info
+        response += f"**Practical Info:**\n"
+        response += f"• Safety Rating: {guide.safety_rating}/10\n"
+        response += f"• Price Level: {guide.price_level.title()}\n"
+        response += f"• Walking Difficulty: {guide.walking_difficulty.title()}\n"
+        response += f"• Estimated Visit: {guide.estimated_visit_duration}\n"
+        
+        # Cultural etiquette if relevant
+        if visitor_type == VisitorType.FIRST_TIME_TOURIST and guide.local_etiquette:
+            response += f"\n**🤝 Cultural Etiquette:**\n"
+            for etiquette in guide.local_etiquette[:2]:
+                response += f"• {etiquette}\n"
+        
+        return response
+
+    def _generate_personalized_neighborhood_response(self, personal_guide: Dict[str, Any], 
+                                                   original_message: str) -> str:
+        """Generate response from personalized guide"""
+        
+        response = f"🎯 **Personalized Neighborhood Recommendations**\n\n"
+        
+        profile = personal_guide['visitor_profile']
+        response += f"Based on your profile as a **{profile['type'].replace('_', ' ').title()}** "
+        response += f"interested in **{', '.join(profile['interests'])}**, here are my top recommendations:\n\n"
+        
+        # Top recommendations
+        for i, rec in enumerate(personal_guide['top_recommendations'], 1):
+            response += f"**{i}. {rec['neighborhood']}** (Match Score: {rec['score']}/10)\n"
+            response += f"*Why recommended:* {rec['why_recommended']}\n"
+            response += f"*Best times:* {', '.join(rec['best_times'])}\n"
+            response += f"*Seasonal highlight:* {rec['seasonal_highlight']}\n"
+            response += f"*Must try:* {', '.join(rec['must_try'])}\n\n"
+        
+        # Hidden gems compilation
+        if personal_guide['hidden_gems_compilation']:
+            response += f"**💎 Curated Hidden Gems for You:**\n"
+            for gem in personal_guide['hidden_gems_compilation'][:3]:
+                response += f"• **{gem['name']}** ({gem['neighborhood']}): {gem['description']}\n"
+            response += "\n"
+        
+        # Insider tips
+        if personal_guide['insider_tips']:
+            response += f"**🗝️ Insider Tips:**\n"
+            for tip in personal_guide['insider_tips'][:3]:
+                response += f"• {tip}\n"
+            response += "\n"
+        
+        response += f"💡 *Want detailed information about any specific neighborhood? Just ask!*"
+        
+        return response
+
+    def _generate_hidden_gems_response(self, gems: List[Tuple[str, Any]], 
+                                     visitor_type: VisitorType) -> str:
+        """Generate response focused on hidden gems"""
+        
+        response = f"💎 **Hidden Gems & Local Secrets**\n\n"
+        response += f"As a **{visitor_type.value.replace('_', ' ').title()}**, you'll love these insider discoveries:\n\n"
+        
+        for neighborhood, gem in gems:
+            response += f"**{gem.name}** *(in {neighborhood.title()})*\n"
+            response += f"{gem.description}\n"
+            response += f"*How to find:* {gem.location_hint}\n"
+            response += f"*Insider tip:* {gem.insider_tip}\n"
+            response += f"*Difficulty:* {gem.difficulty_to_find.title()}\n\n"
+        
+        response += f"🗝️ *These are the places locals don't want tourists to find - you're welcome!*"
+        
+        return response
+
+    def _generate_neighborhood_overview_response(self, visitor_type: VisitorType, 
+                                               interests: List[str]) -> str:
+        """Generate general neighborhood overview"""
+        
+        response = f"🏘️ **Istanbul Neighborhoods Overview**\n\n"
+        
+        if not self.neighborhood_guides:
+            return "I'd love to help you explore Istanbul's neighborhoods! Our detailed neighborhood guides will be available soon."
+        
+        summary = self.neighborhood_guides.get_all_neighborhoods_summary()
+        
+        response += f"I can guide you through **{summary['total_neighborhoods']} unique neighborhoods**, "
+        response += f"each with its own character and **{summary['total_hidden_gems']} hidden gems** waiting to be discovered!\n\n"
+        
+        # Recommend neighborhoods based on visitor type
+        recommendations = self.neighborhood_guides.get_recommendations_for_visitor_type(visitor_type)
+        
+        if recommendations:
+            response += f"**Perfect for {visitor_type.value.replace('_', ' ').title()}s like you:**\n"
+            for neighborhood in recommendations[:3]:
+                response += f"• **{neighborhood.name}:** {neighborhood.character_description[:100]}...\n"
+            response += "\n"
+        
+        response += f"**What would you like to explore?**\n"
+        response += f"• Ask about specific neighborhoods (Sultanahmet, Beyoğlu, Balat, etc.)\n"
+        response += f"• Request personalized recommendations\n"
+        response += f"• Discover hidden gems and local secrets\n"
+        response += f"• Get cultural insights and insider tips\n\n"
+        
+        response += f"💡 *Just tell me what kind of Istanbul experience you're looking for!*"
+        
+        return response
+
+    def _generate_fallback_neighborhood_response(self, message: str) -> str:
+        """Generate fallback response when neighborhood guides not available"""
+        return (
+            "🏘️ I'd love to help you explore Istanbul's amazing neighborhoods! "
+            "Each area has its own unique character and hidden gems. "
+            "Our comprehensive neighborhood guides with deep learning recommendations "
+            "will be available soon. In the meantime, I can help you with attractions, "
+            "restaurants, and general Istanbul advice!"
+        )
