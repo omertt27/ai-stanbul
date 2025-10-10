@@ -2687,64 +2687,72 @@ async def handle_restaurant_intent(intent, location_info, original_message, sess
             response_parts.append("• Avoid tourist areas like Sultanahmet Square for better prices")
         else:
             response_parts.append("\n⭐ **Must-Try Restaurants Across Istanbul:**")
-    
-    # Historic Peninsula (Sultanahmet/Eminönü)
-    response_parts.append("\n**🏛️ Historic Peninsula:**")
-    response_parts.append("• **Pandeli** (Spice Bazaar) - Ottoman cuisine | ₺₺₺ | 12:00-17:00")
-    response_parts.append("• **Hamdi Restaurant** (Eminönü) - Famous kebabs | ₺₺₺ | 11:00-23:00")
-    response_parts.append("• **Deraliye** (Sultanahmet) - Royal Ottoman recipes | ₺₺₺₺")
-    
-    # Modern Areas
-    response_parts.append("\n**🌃 Modern Istanbul:**")
-    response_parts.append("• **Mikla** (Beyoğlu) - Award-winning modern Turkish | ₺₺₺₺₺")
-    response_parts.append("• **Karaköy Lokantası** (Karaköy) - Contemporary Turkish | ₺₺₺")
-    response_parts.append("• **Çiya Sofrası** (Kadıköy) - Authentic Anatolian | ₺₺")
-    
-    # Add dietary-specific recommendations if requested
-    cuisines = requirements.get('cuisine', [])
-    has_vegetarian = any('vegetarian' in req.lower() or 'vegan' in req.lower() for req in dietary_requirements)
-    has_halal = any('halal' in req.lower() for req in dietary_requirements)
-    has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])
-    
-    if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy', 'plant-based', 'plant based', 'jewish']) or 
-        has_vegetarian or has_halal or has_gluten_free or dietary_requirements):
-        response_parts.append("\n🌿 **Dietary-Friendly Options:**")
-        if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or has_vegetarian:
-            response_parts.append("• **Çiya Sofrası** - Extensive vegetarian Anatolian dishes")
-            response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu")
-            response_parts.append("• **Mikla** - Full vegetarian tasting menu")
-        if 'halal' in original_message.lower() or has_halal:
-            response_parts.append("• Most traditional Turkish restaurants are halal-certified")
-            response_parts.append("• **Hamdi** and **Deraliye** are fully halal")
-        if 'kosher' in original_message.lower() or 'jewish' in original_message.lower():
-            response_parts.append("• **Neve Shalom Synagogue** - Jewish community can provide kosher dining info")
-            response_parts.append("• **Jewish Quarter (Galata)** - Some kosher-friendly certified establishments")
-            response_parts.append("• **Fish restaurants** - Many offer kosher-style preparation with certification")
-            response_parts.append("• **Contact Jewish community** - Best resource for current kosher restaurant options")
-        if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'friendly']) or has_gluten_free:
-            response_parts.append("• Turkish grilled meats and rice dishes are naturally gluten-free")
-            response_parts.append("• Most restaurants accommodate celiac-friendly and gluten-free requests")
+        
+        # Historic Peninsula (Sultanahmet/Eminönü)
+        response_parts.append("\n**🏛️ Historic Peninsula:**")
+        response_parts.append("• **Pandeli** (Spice Bazaar) - Ottoman cuisine | ₺₺₺ | 12:00-17:00")
+        response_parts.append("• **Hamdi Restaurant** (Eminönü) - Famous kebabs | ₺₺₺ | 11:00-23:00")
+        response_parts.append("• **Deraliye** (Sultanahmet) - Royal Ottoman recipes | ₺₺₺₺")
+        
+        # Modern Areas
+        response_parts.append("\n**🌃 Modern Istanbul:**")
+        response_parts.append("• **Mikla** (Beyoğlu) - Award-winning modern Turkish | ₺₺₺₺₺")
+        response_parts.append("• **Karaköy Lokantası** (Karaköy) - Contemporary Turkish | ₺₺₺")
+        response_parts.append("• **Çiya Sofrası** (Kadıköy) - Authentic Anatolian | ₺₺")
+        
+        # Add dietary-specific recommendations if requested
+        cuisines = requirements.get('cuisine', [])
+        dietary_requirements = requirements.get('dietary_requirements', [])
+        has_vegetarian = any('vegetarian' in req.lower() or 'vegan' in req.lower() for req in dietary_requirements)
+        has_halal = any('halal' in req.lower() for req in dietary_requirements)
+        has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])
+        
+        if (any(dietary in original_message.lower() for dietary in ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten', 'celiac', 'coeliac', 'friendly', 'allergy', 'plant-based', 'plant based', 'jewish']) or 
+            has_vegetarian or has_halal or has_gluten_free or dietary_requirements):
+            response_parts.append("\n🌿 **Dietary-Friendly Options:**")
+            if 'vegetarian' in original_message.lower() or 'vegan' in original_message.lower() or has_vegetarian:
+                response_parts.append("• **Çiya Sofrası** - Extensive vegetarian Anatolian dishes")
+                response_parts.append("• **Karaköy Lokantası** - Excellent vegetarian menu")
+                response_parts.append("• **Mikla** - Full vegetarian tasting menu")
+            if 'halal' in original_message.lower() or has_halal:
+                response_parts.append("• Most traditional Turkish restaurants are halal-certified")
+                response_parts.append("• **Hamdi** and **Deraliye** are fully halal")
+            if 'kosher' in original_message.lower() or 'jewish' in original_message.lower():
+                response_parts.append("• **Neve Shalom Synagogue** - Jewish community can provide kosher dining info")
+                response_parts.append("• **Jewish Quarter (Galata)** - Some kosher-friendly certified establishments")
+                response_parts.append("• **Fish restaurants** - Many offer kosher-style preparation with certification")
+                response_parts.append("• **Contact Jewish community** - Best resource for current kosher restaurant options")
+            if any(term in original_message.lower() for term in ['gluten', 'celiac', 'coeliac', 'wheat-free', 'friendly']) or has_gluten_free:
+                response_parts.append("• Turkish grilled meats and rice dishes are naturally gluten-free")
+                response_parts.append("• Most restaurants accommodate celiac-friendly and gluten-free requests")
+        
+        # Check location-based recommendations if location is available
+        if location_info:
+            district = location_info.get('district', '').lower()
+            if 'sultanahmet' in district:
+                response_parts.append("\n**🏛️ Historic Peninsula:**")
                 try:
-                    sultanahmet_restaurants = restaurant_service.search_restaurants(
-                        district="Sultanahmet", limit=6
-                    )
-                    if sultanahmet_restaurants:
-                        for restaurant in sultanahmet_restaurants[:6]:
-                            price_symbols = '₺' * (restaurant.price_level + 1)
-                            response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine})")
-                            response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | {restaurant.rating}★")
-                            response_parts.append(f"  {restaurant.description[:100]}...")
+                    if restaurant_service:
+                        sultanahmet_restaurants = restaurant_service.search_restaurants(
+                            district="Sultanahmet", limit=6
+                        )
+                        if sultanahmet_restaurants:
+                            for restaurant in sultanahmet_restaurants[:6]:
+                                price_symbols = '₺' * (restaurant.price_level + 1)
+                                response_parts.append(f"• **{restaurant.name}** ({restaurant.cuisine})")
+                                response_parts.append(f"  📍 {restaurant.vicinity} | 💰 {price_symbols} | {restaurant.rating}★")
+                                response_parts.append(f"  {restaurant.description[:100]}...")
+                        else:
+                            # Fallback to generic if no real data
+                            response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
+                            response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
                     else:
-                        # Fallback to generic if no real data
                         response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
                         response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
                 except Exception as e:
                     print(f"Error getting Sultanahmet restaurants: {e}")
                     response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
                     response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
-            else:
-                response_parts.append("• **Historic Ottoman restaurants** - Traditional palace cuisine")
-                response_parts.append("• **Sultanahmet traditional dining** - Authentic Turkish atmosphere")
         elif 'beyoğlu' in district or 'taksim' in district:
             response_parts.append("\n**🌃 Modern Beyoğlu & Taksim Area:**")
             try:
@@ -3556,6 +3564,7 @@ def generate_restaurant_response_without_location(intent, original_message, rest
     
     # Add dietary-specific recommendations if requested
     cuisines = requirements.get('cuisine', [])
+    dietary_requirements = requirements.get('dietary_requirements', [])
     has_vegetarian = any('vegetarian' in req.lower() or 'vegan' in req.lower() for req in dietary_requirements)
     has_halal = any('halal' in req.lower() for req in dietary_requirements)
     has_gluten_free = any(term in req.lower() for req in dietary_requirements for term in ['gluten', 'celiac', 'coeliac', 'wheat-free'])

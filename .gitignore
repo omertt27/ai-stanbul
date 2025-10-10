@@ -7,6 +7,8 @@
 .env.*
 !.env.template
 !.env.example
+config.env
+config.env.*
 backend/.env
 backend/.env.*
 !backend/.env.template
@@ -21,9 +23,17 @@ backend/credentials/
 !**/schemas/*.json
 !**/test-data/*.json
 
+# İBB API and Istanbul Transport API Configuration
+ibb_api_config.json
+istanbul_transport_config.json
+api_keys.txt
+setup_api_key.py
+
 # Documentation with API Keys (SENSITIVE)
 WEATHER_SYSTEM_FIXED.md
 GOOGLE_WEATHER_SETUP.md
+API_SETUP_INSTRUCTIONS.txt
+REAL_TIME_DATA_INTEGRATION_GUIDE.md
 
 # Database Files (Contains User Data)
 *.db

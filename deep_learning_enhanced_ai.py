@@ -1286,3 +1286,408 @@ class AdvancedAnalyticsEngine:
     def get_insights(self, user_id):
         """Get analytics insights for user"""
         return self.user_insights.get(user_id, {})
+    
+    async def analyze_transportation_intent(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """🚇 DEEP LEARNING: Analyze transportation intent with cultural and contextual awareness"""
+        
+        try:
+            if not self.nlp_pipeline:
+                return self._fallback_transport_analysis(message)
+            
+            # Extract features for transportation analysis
+            transport_features = self._extract_transport_features(message, context)
+            
+            # Use advanced NLP for intent classification
+            classification_result = self.nlp_pipeline(message)
+            
+            # Enhanced analysis with Istanbul-specific context
+            transport_analysis = {
+                'intent': self._classify_transport_intent(message, classification_result, context),
+                'confidence': self._calculate_transport_confidence(message, classification_result, transport_features),
+                'urgency': self._detect_urgency_level(message, context),
+                'preferences': self._extract_transport_preferences(message, context),
+                'cultural_awareness': self._add_cultural_transport_context(message, context),
+                'route_complexity': self._assess_route_complexity(message, context),
+                'accessibility_needs': self._detect_accessibility_requirements(message),
+                'time_constraints': self._extract_time_constraints(message, context)
+            }
+            
+            # Add deep learning insights
+            if hasattr(self, 'istanbul_transport_embeddings'):
+                transport_analysis['semantic_similarity'] = self._compute_transport_similarity(message)
+            
+            logger.info(f"🧠 Transport intent analysis: {transport_analysis['intent']} (confidence: {transport_analysis['confidence']:.2f})")
+            return transport_analysis
+            
+        except Exception as e:
+            logger.warning(f"Transportation intent analysis failed: {e}")
+            return self._fallback_transport_analysis(message)
+    
+    def _extract_transport_features(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract transportation-specific features from message and context"""
+        
+        features = {
+            'modal_mentions': [],
+            'location_entities': [],
+            'time_expressions': [],
+            'cost_concerns': False,
+            'accessibility_mentions': False,
+            'user_context': {}
+        }
+        
+        message_lower = message.lower()
+        
+        # Modal transportation mentions
+        transport_modes = {
+            'metro': ['metro', 'subway', 'underground', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'],
+            'bus': ['bus', 'autobus', 'metrobus', 'BRT', 'city bus'],
+            'tram': ['tram', 'tramway', 'T1', 'T4', 'T5'],
+            'ferry': ['ferry', 'boat', 'vapur', 'sea bus', 'bosphorus'],
+            'taxi': ['taxi', 'taksi', 'uber', 'bitaksi', 'ride'],
+            'walking': ['walk', 'walking', 'on foot', 'pedestrian']
+        }
+        
+        for mode, keywords in transport_modes.items():
+            if any(keyword in message_lower for keyword in keywords):
+                features['modal_mentions'].append(mode)
+        
+        # Location entity extraction using spaCy (if available)
+        if hasattr(self, 'nlp_model') and self.nlp_model:
+            try:
+                doc = self.nlp_model(message)
+                for ent in doc.ents:
+                    if ent.label_ in ['GPE', 'LOC', 'FAC']:  # Geographic, Location, Facility
+                        features['location_entities'].append(ent.text)
+            except:
+                pass
+        
+        # Istanbul-specific location detection
+        istanbul_locations = [
+            'sultanahmet', 'taksim', 'beyoglu', 'galata', 'kadikoy', 'besiktas',
+            'uskudar', 'ortakoy', 'balat', 'fatih', 'sisli', 'bakirkoy',
+            'airport', 'IST', 'SAW', 'hagia sophia', 'blue mosque', 'galata tower'
+        ]
+        
+        for location in istanbul_locations:
+            if location in message_lower:
+                features['location_entities'].append(location)
+        
+        # Time expressions
+        time_patterns = [
+            r'\b(?:now|asap|immediately|urgent)\b',
+            r'\b(?:morning|afternoon|evening|night)\b',
+            r'\b(?:\d{1,2}:\d{2})\b',
+            r'\b(?:in \d+ minutes?)\b'
+        ]
+        
+        for pattern in time_patterns:
+            matches = re.findall(pattern, message_lower)
+            features['time_expressions'].extend(matches)
+        
+        # Cost concerns
+        cost_keywords = ['cost', 'price', 'cheap', 'expensive', 'budget', 'fare', 'how much']
+        features['cost_concerns'] = any(keyword in message_lower for keyword in cost_keywords)
+        
+        # Accessibility mentions
+        accessibility_keywords = ['wheelchair', 'disabled', 'accessibility', 'elevator', 'handicap', 'mobility']
+        features['accessibility_mentions'] = any(keyword in message_lower for keyword in accessibility_keywords)
+        
+        # User context from input
+        if context:
+            features['user_context'] = {
+                'current_location': context.get('current_location'),
+                'gps_location': context.get('gps_location'),
+                'user_history': context.get('user_history', []),
+                'time_context': context.get('time_context'),
+                'user_type': context.get('user_type')
+            }
+        
+        return features
+    
+    def _classify_transport_intent(self, message: str, classification_result: Any, context: Dict[str, Any]) -> str:
+        """Classify transportation intent using deep learning insights"""
+        
+        message_lower = message.lower()
+        
+        # High-confidence intent patterns
+        if any(word in message_lower for word in ['airport', 'IST', 'SAW', 'havalimanı']):
+            return 'airport_transfer'
+        
+        if any(word in message_lower for word in ['how to get', 'route to', 'directions', 'way to']):
+            return 'route_planning'
+        
+        if any(word in message_lower for word in ['cost', 'price', 'fare', 'how much']):
+            return 'cost_inquiry'
+        
+        if any(word in message_lower for word in ['card', 'istanbulkart', 'payment']):
+            return 'payment_guidance'
+        
+        if any(word in message_lower for word in ['wheelchair', 'disabled', 'accessibility']):
+            return 'accessibility_inquiry'
+        
+        if any(word in message_lower for word in ['schedule', 'timetable', 'frequency', 'timing']):
+            return 'schedule_inquiry'
+        
+        # Use classification result if available
+        if classification_result and hasattr(classification_result, 'labels'):
+            # Map generic labels to transportation intents
+            label_mappings = {
+                'QUESTION': 'general_inquiry',
+                'REQUEST': 'route_planning',
+                'INFORMATION': 'general_inquiry'
+            }
+            
+            primary_label = classification_result.labels[0] if classification_result.labels else 'UNKNOWN'
+            return label_mappings.get(primary_label, 'general_transport')
+        
+        return 'general_transport'
+    
+    def _calculate_transport_confidence(self, message: str, classification_result: Any, features: Dict[str, Any]) -> float:
+        """Calculate confidence score for transportation intent classification"""
+        
+        base_confidence = 0.7
+        
+        # Boost confidence for clear modal mentions
+        if features['modal_mentions']:
+            base_confidence += 0.1 * len(features['modal_mentions'])
+        
+        # Boost confidence for location entities
+        if features['location_entities']:
+            base_confidence += 0.05 * len(features['location_entities'])
+        
+        # Boost confidence for transportation keywords
+        transport_keywords = ['transport', 'travel', 'get to', 'go from', 'route', 'directions']
+        keyword_count = sum(1 for keyword in transport_keywords if keyword in message.lower())
+        base_confidence += 0.05 * keyword_count
+        
+        # Use classification confidence if available
+        if classification_result and hasattr(classification_result, 'scores'):
+            ml_confidence = max(classification_result.scores) if classification_result.scores else 0.5
+            base_confidence = (base_confidence + ml_confidence) / 2
+        
+        return min(base_confidence, 1.0)
+    
+    def _detect_urgency_level(self, message: str, context: Dict[str, Any]) -> str:
+        """Detect urgency level from message content and context"""
+        
+        message_lower = message.lower()
+        
+        urgent_keywords = ['urgent', 'hurry', 'quickly', 'asap', 'now', 'immediately', 'late', 'emergency']
+        flexible_keywords = ['maybe', 'sometime', 'eventually', 'when convenient', 'no rush']
+        
+        if any(keyword in message_lower for keyword in urgent_keywords):
+            return 'urgent'
+        elif any(keyword in message_lower for keyword in flexible_keywords):
+            return 'flexible'
+        else:
+            return 'normal'
+    
+    def _extract_transport_preferences(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract transportation preferences from message and context"""
+        
+        preferences = {
+            'prefer_speed': False,
+            'prefer_cost': False,
+            'prefer_comfort': False,
+            'prefer_scenic': False,
+            'avoid_crowds': False,
+            'accessibility_required': False
+        }
+        
+        message_lower = message.lower()
+        
+        # Speed preferences
+        if any(word in message_lower for word in ['fast', 'quick', 'fastest', 'express']):
+            preferences['prefer_speed'] = True
+        
+        # Cost preferences
+        if any(word in message_lower for word in ['cheap', 'budget', 'affordable', 'economical']):
+            preferences['prefer_cost'] = True
+        
+        # Comfort preferences
+        if any(word in message_lower for word in ['comfortable', 'relaxing', 'air conditioning', 'quiet']):
+            preferences['prefer_comfort'] = True
+        
+        # Scenic preferences
+        if any(word in message_lower for word in ['scenic', 'beautiful', 'view', 'sightseeing', 'bosphorus']):
+            preferences['prefer_scenic'] = True
+        
+        # Crowd avoidance
+        if any(word in message_lower for word in ['crowded', 'busy', 'packed', 'avoid crowds']):
+            preferences['avoid_crowds'] = True
+        
+        # Accessibility
+        if any(word in message_lower for word in ['wheelchair', 'disabled', 'accessibility', 'elevator']):
+            preferences['accessibility_required'] = True
+        
+        return preferences
+    
+    def _add_cultural_transport_context(self, message: str, context: Dict[str, Any]) -> List[str]:
+        """Add Istanbul-specific cultural context for transportation"""
+        
+        cultural_context = []
+        message_lower = message.lower()
+        
+        # Ferry cultural context
+        if any(word in message_lower for word in ['ferry', 'boat', 'bosphorus']):
+            cultural_context.append("Ferry rides offer stunning Bosphorus views and are a quintessential Istanbul experience")
+        
+        # Metro cultural context
+        if any(word in message_lower for word in ['metro', 'subway']):
+            cultural_context.append("Istanbul metro is modern, clean, and connects major tourist areas efficiently")
+        
+        # Tram cultural context
+        if 'tram' in message_lower or 'T1' in message:
+            cultural_context.append("The T1 tram is perfect for tourists, connecting airport to Sultanahmet historic area")
+        
+        # Walking cultural context
+        if any(word in message_lower for word in ['walk', 'walking']):
+            cultural_context.append("Walking in Istanbul reveals hidden gems, but consider the city's hills and cobblestones")
+        
+        # Area-specific context
+        if 'sultanahmet' in message_lower:
+            cultural_context.append("Sultanahmet is best explored on foot, with major attractions within walking distance")
+        elif 'beyoglu' in message_lower:
+            cultural_context.append("Beyoğlu is perfect for walking along İstiklal Avenue and discovering local culture")
+        
+        return cultural_context
+    
+    def _assess_route_complexity(self, message: str, context: Dict[str, Any]) -> str:
+        """Assess the complexity of the requested route"""
+        
+        # Count location mentions
+        location_count = len(context.get('location_entities', [])) if context else 0
+        
+        # Check for cross-Bosphorus travel
+        european_side = ['sultanahmet', 'beyoglu', 'taksim', 'galata', 'fatih', 'sisli']
+        asian_side = ['kadikoy', 'uskudar', 'bagdat', 'adaköy']
+        
+        message_lower = message.lower()
+        mentions_european = any(loc in message_lower for loc in european_side)
+        mentions_asian = any(loc in message_lower for loc in asian_side)
+        
+        if mentions_european and mentions_asian:
+            return 'cross_bosphorus'
+        elif location_count > 2:
+            return 'multi_stop'
+        elif any(word in message_lower for word in ['airport', 'IST', 'SAW']):
+            return 'airport_connection'
+        else:
+            return 'simple'
+    
+    def _detect_accessibility_requirements(self, message: str) -> bool:
+        """Detect if accessibility features are required"""
+        
+        accessibility_keywords = [
+            'wheelchair', 'disabled', 'accessibility', 'elevator', 'handicap',
+            'mobility', 'crutches', 'walker', 'step-free', 'barrier-free'
+        ]
+        
+        return any(keyword in message.lower() for keyword in accessibility_keywords)
+    
+    def _extract_time_constraints(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract time-related constraints from message"""
+        
+        time_constraints = {
+            'has_deadline': False,
+            'specific_time': None,
+            'time_flexibility': 'flexible',
+            'rush_hour_concern': False
+        }
+        
+        message_lower = message.lower()
+        
+        # Check for specific times
+        time_patterns = [
+            r'\b(\d{1,2}):(\d{2})\b',
+            r'\b(\d{1,2})\s*(am|pm)\b',
+            r'\bin\s+(\d+)\s+(minutes?|hours?)\b'
+        ]
+        
+        for pattern in time_patterns:
+            match = re.search(pattern, message_lower)
+            if match:
+                time_constraints['has_deadline'] = True
+                time_constraints['specific_time'] = match.group()
+                time_constraints['time_flexibility'] = 'strict'
+                break
+        
+        # Check for rush hour concerns
+        if any(word in message_lower for word in ['rush hour', 'peak time', 'busy time', 'crowded']):
+            time_constraints['rush_hour_concern'] = True
+        
+        # Check for flexibility indicators
+        if any(word in message_lower for word in ['whenever', 'anytime', 'flexible', 'no rush']):
+            time_constraints['time_flexibility'] = 'very_flexible'
+        
+        return time_constraints
+    
+    async def extract_locations_with_context(self, message: str, transport_analysis: Dict[str, Any]) -> Dict[str, str]:
+        """Extract origin and destination with contextual understanding"""
+        
+        try:
+            locations = {'origin': None, 'destination': None}
+            
+            # Use spaCy for NER if available
+            if hasattr(self, 'nlp_model') and self.nlp_model:
+                doc = self.nlp_model(message)
+                location_entities = [ent.text for ent in doc.ents if ent.label_ in ['GPE', 'LOC', 'FAC']]
+            else:
+                location_entities = []
+            
+            # Pattern matching for "from X to Y" structures
+            from_to_patterns = [
+                r'from\s+([^to]+)\s+to\s+([^?.!]+)',
+                r'get from\s+([^to]+)\s+to\s+([^?.!]+)',
+                r'go from\s+([^to]+)\s+to\s+([^?.!]+)',
+                r'travel from\s+([^to]+)\s+to\s+([^?.!]+)'
+            ]
+            
+            for pattern in from_to_patterns:
+                match = re.search(pattern, message.lower())
+                if match:
+                    locations['origin'] = match.group(1).strip()
+                    locations['destination'] = match.group(2).strip()
+                    break
+            
+            # If no pattern match, try to infer from context
+            if not locations['origin'] and not locations['destination']:
+                # Check for destination indicators
+                destination_patterns = [
+                    r'(?:to|towards?|going to)\s+([a-zA-Z\s]+)',
+                    r'(?:want to go to|need to get to)\s+([a-zA-Z\s]+)',
+                    r'(?:directions to|route to)\s+([a-zA-Z\s]+)'
+                ]
+                
+                for pattern in destination_patterns:
+                    match = re.search(pattern, message.lower())
+                    if match:
+                        locations['destination'] = match.group(1).strip()
+                        break
+            
+            # Clean and validate locations
+            for key in locations:
+                if locations[key]:
+                    # Remove common stopwords
+                    cleaned = re.sub(r'\b(the|a|an|in|at|on)\b', '', locations[key])
+                    locations[key] = cleaned.strip()
+            
+            return locations
+            
+        except Exception as e:
+            logger.warning(f"Location extraction failed: {e}")
+            return {'origin': None, 'destination': None}
+    
+    def _fallback_transport_analysis(self, message: str) -> Dict[str, Any]:
+        """Fallback transportation analysis when deep learning fails"""
+        
+        return {
+            'intent': 'general_transport',
+            'confidence': 0.6,
+            'urgency': 'normal',
+            'preferences': {},
+            'cultural_awareness': [],
+            'route_complexity': 'simple',
+            'accessibility_needs': False,
+            'time_constraints': {'has_deadline': False, 'time_flexibility': 'flexible'}
+        }
