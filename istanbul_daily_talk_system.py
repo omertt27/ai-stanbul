@@ -29,6 +29,15 @@ import asyncio
 import uuid
 import requests
 
+# Import ML personalization helpers
+from ml_personalization_helpers import (
+    handle_preference_update,
+    handle_recommendation_feedback, 
+    get_personalization_insights,
+    calculate_personalization_score,
+    calculate_recommendation_compatibility
+)
+
 # Configure logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -515,114 +524,41 @@ class IstanbulDailyTalkAI:
         
         return greeting
     
-    # ML Personalization Handler Methods
-    def handle_preference_update(self, message: str, user_id: str) -> str:
-        """Handle user preference updates through natural language"""
+    def process_message(self, user_id: str, message: str) -> str:
+        """Process user message with ML personalization and context awareness"""
+        
+        # Get user profile and active conversation
         user_profile = self.get_or_create_user_profile(user_id)
+        session_id = self._get_active_session_id(user_id)
+        
+        if session_id is None or session_id not in self.active_conversations:
+            # Start new conversation but then process the message
+            self.start_conversation(user_id)
+            session_id = self._get_active_session_id(user_id)
+        
+        context = self.active_conversations[session_id]
+        
+        # Handle ML personalization features first
         message_lower = message.lower()
         
-        updates = []
+        if any(phrase in message_lower for phrase in ['rate', 'i loved', 'i liked', 'was amazing', 'was great', 'didn\'t like', 'was bad', 'terrible']):
+            logger.info(f"🌟 Processing recommendation feedback for {user_id}")
+            return self.handle_recommendation_feedback(message, user_id)
         
-        # Extract dietary preferences
-        if 'vegetarian' in message_lower:
-            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['vegetarian']))
-            updates.append("dietary preferences (vegetarian)")
+        if any(phrase in message_lower for phrase in ['my preferences', 'i like', 'i prefer', 'update my', 'traveling with', 'i\'m vegetarian', 'i have dietary']):
+            logger.info(f"📝 Processing preference update for {user_id}")
+            return self.handle_preference_update(message, user_id)
         
-        if 'vegan' in message_lower:
-            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['vegan']))
-            updates.append("dietary preferences (vegan)")
-            
-        if 'halal' in message_lower:
-            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['halal']))
-            updates.append("dietary preferences (halal)")
+        if any(phrase in message_lower for phrase in ['my profile', 'personalization', 'how much do you know', 'show my data', 'my insights']):
+            logger.info(f"📊 Providing personalization insights for {user_id}")
+            return self.get_personalization_insights(user_id)
         
-        # Extract travel preferences
-        if 'family' in message_lower or 'kids' in message_lower or 'children' in message_lower:
-            user_profile.interests = list(set(user_profile.interests + ['family-friendly']))
-            updates.append("travel style (family-friendly)")
-            
-        if 'solo' in message_lower or 'alone' in message_lower:
-            user_profile.interests = list(set(user_profile.interests + ['solo-travel']))
-            updates.append("travel style (solo travel)")
-            
-        if 'couple' in message_lower or 'romantic' in message_lower:
-            user_profile.interests = list(set(user_profile.interests + ['romantic']))
-            updates.append("travel style (romantic)")
-        
-        # Extract interests
-        interests_keywords = {
-            'history': ['history', 'historical', 'museum', 'ancient'],
-            'food': ['food', 'cuisine', 'restaurant', 'eating', 'taste'],
-            'culture': ['culture', 'cultural', 'traditional', 'local'],
-            'shopping': ['shopping', 'bazaar', 'market', 'souvenir'],
-            'nightlife': ['nightlife', 'bar', 'club', 'evening'],
-            'art': ['art', 'gallery', 'artist', 'creative'],
-            'architecture': ['architecture', 'building', 'mosque', 'palace']
-        }
-        
-        for interest, keywords in interests_keywords.items():
-            if any(keyword in message_lower for keyword in keywords):
-                if interest not in user_profile.interests:
-                    user_profile.interests.append(interest)
-                    updates.append(f"interests ({interest})")
-        
-        # Extract budget preferences
-        if any(word in message_lower for word in ['budget', 'cheap', 'affordable', 'economical']):
-            user_profile.budget_range = 'budget'
-            updates.append("budget preferences (budget-friendly)")
-        elif any(word in message_lower for word in ['luxury', 'expensive', 'premium', 'high-end']):
-            user_profile.budget_range = 'luxury'
-            updates.append("budget preferences (luxury)")
-        elif any(word in message_lower for word in ['mid-range', 'moderate', 'medium']):
-            user_profile.budget_range = 'mid-range'
-            return response
-        
-        # 🧠 ENHANCED: Use Deep Learning AI if available
-        if self.deep_learning_ai and DEEP_LEARNING_AVAILABLE:
-            try:
-                # Track usage stats
-                self.feature_usage_stats['deep_learning_queries'] += 1
-                
-                # Use advanced deep learning processing
-                response = asyncio.run(
-                    self.deep_learning_ai.generate_english_optimized_response(
-                        message, user_id, {'context': context.__dict__}
-                    )
-                )
-                
-                self.feature_usage_stats['english_optimized_responses'] += 1
-                
-                # Add cultural context for Istanbul-specific queries
-                if any(word in message.lower() for word in ['istanbul', 'restaurant', 'food', 'travel', 'visit']):
-                    cultural_context = self.deep_learning_ai.generate_english_cultural_context("dining")
-                    if cultural_context and cultural_context not in response:
-                        response += f"\n\n{cultural_context}"
-                        self.feature_usage_stats['cultural_context_additions'] += 1
-                
-                # Update conversation context
-                context.add_interaction(message, response, "deep_learning_enhanced")
-                
-                # Update user profile with deep learning insights
-                if hasattr(self.deep_learning_ai, 'user_analytics') and user_id in self.deep_learning_ai.user_analytics:
-                    dl_analytics = self.deep_learning_ai.get_user_analytics(user_id)
-                    self._sync_deep_learning_profile(user_profile, dl_analytics)
-                
-                logger.info(f"🧠 Deep Learning response generated for {user_id}")
-                return response
-                
-            except Exception as e:
-                logger.warning(f"Deep Learning processing failed, using fallback: {e}")
-                # Fall through to original processing
-        
-        # 🔄 FALLBACK: Original processing if deep learning unavailable
-        logger.info(f"📝 Using traditional processing for {user_id}")
+        if any(phrase in message_lower for phrase in ['privacy settings', 'show my data', 'clear my data']):
+            return self.handle_privacy_request(message, user_id)
         
         # Extract entities and understand intent
         entities = self.entity_recognizer.extract_entities(message)
         intent = self._classify_intent_with_context(message, entities, context)
-        
-        # Update context memory
-        self._update_context_memory(context, message, entities, intent)
         
         # Generate contextually-aware response
         response = self._generate_contextual_response(
@@ -633,9 +569,44 @@ class IstanbulDailyTalkAI:
         context.add_interaction(message, response, intent)
         
         # Update user profile based on interaction
-        self._update_user_profile(user_profile, message, intent, entities)
+        from ml_personalization_helpers import update_user_profile
+        update_user_profile(user_profile, message, intent, entities)
         
         return response
+    
+    # ML Personalization Methods (delegating to helpers)
+    def handle_preference_update(self, message: str, user_id: str) -> str:
+        """Handle user preference updates through natural language"""
+        user_profile = self.get_or_create_user_profile(user_id)
+        return handle_preference_update(user_profile, message, user_id)
+    
+    def handle_recommendation_feedback(self, message: str, user_id: str) -> str:
+        """Handle user feedback on recommendations"""
+        user_profile = self.get_or_create_user_profile(user_id)
+        return handle_recommendation_feedback(user_profile, message, user_id)
+    
+    def get_personalization_insights(self, user_id: str) -> str:
+        """Provide insights about the user's personalization data"""
+        user_profile = self.get_or_create_user_profile(user_id)
+        return get_personalization_insights(user_profile, user_id)
+    
+    def show_privacy_settings(self, user_id: str) -> str:
+        """Show current privacy settings and available controls"""
+        if user_id not in self.user_profiles:
+            return "No profile found. Your privacy is protected - we only store data when you interact with recommendations."
+        user_profile = self.user_profiles[user_id]
+        return show_privacy_settings(user_profile, user_id)
+    
+    def show_user_data(self, user_id: str) -> str:
+        """Show all data stored about the user"""
+        if user_id not in self.user_profiles:
+            return "No data stored about you. You can start fresh anytime!"
+        user_profile = self.user_profiles[user_id]
+        return show_user_data(user_profile, user_id)
+    
+    def clear_user_data(self, user_id: str) -> str:
+        """Clear all user data"""
+        return clear_user_data(self.user_profiles, self.active_conversations, user_id)
     
     def _generate_personalized_greeting(self, user_profile: UserProfile, context: ConversationContext) -> str:
         """Generate personalized greeting based on user profile and context"""
@@ -1021,12 +992,7 @@ class IstanbulDailyTalkAI:
     
     def _get_meal_context(self, hour: int) -> str:
         """Determine meal context based on hour"""
-        if hour < 11:
-            return "breakfast"
-        elif hour < 16:
-            return "lunch"
-        else:
-            return "dinner"
+        return get_meal_context(hour)
     
     # =============================
     # ADVANCED PERSONALIZATION & ML RECOMMENDATION SYSTEM
@@ -1078,295 +1044,47 @@ class IstanbulDailyTalkAI:
     
     def _calculate_personalization_score(self, user_profile: UserProfile) -> float:
         """Calculate how complete and useful the user profile is for personalization"""
-        
-        score_components = {
-            'basic_info': 0.2 if user_profile.travel_style else 0.0,
-            'interests': min(len(user_profile.interests) * 0.1, 0.3),
-            'preferences': min(len(user_profile.cuisine_preferences) * 0.05, 0.2),
-            'behavioral_data': min(len(user_profile.interaction_history) * 0.02, 0.2),
-            'feedback_data': min(len(user_profile.recommendation_feedback) * 0.03, 0.1)
-        }
-        
-        total_score = sum(score_components.values())
-        return min(max(total_score, 0.3), 1.0)  # Ensure minimum 0.3, maximum 1.0
+        return calculate_personalization_score(user_profile)
     
     def _calculate_recommendation_compatibility(self, recommendation: Dict, user_profile: UserProfile, context: ConversationContext) -> float:
         """Calculate how compatible a recommendation is with user preferences"""
-        
-        compatibility_score = 0.5  # Base score
-        
-        # Interest alignment
-        if user_profile.interests:
-            rec_category = recommendation.get('category', '').lower()
-            interest_match = any(interest.lower() in rec_category or rec_category in interest.lower() 
-                               for interest in user_profile.interests)
-            if interest_match:
-                compatibility_score += 0.2
-        
-        # Budget alignment
-        rec_price_level = recommendation.get('price_level', 'moderate').lower()
-        user_budget = (user_profile.budget_range or 'moderate').lower()
-        if rec_price_level == user_budget:
-            compatibility_score += 0.15
-        
-        # Travel style alignment
-        if user_profile.travel_style:
-            style_bonus = self._get_travel_style_bonus(recommendation, user_profile.travel_style)
-            compatibility_score += style_bonus
-        
-        # Accessibility considerations
-        if user_profile.accessibility_needs:
-            accessibility_score = self._check_accessibility_compatibility(recommendation, user_profile)
-            compatibility_score += accessibility_score
-        
-        # Group type alignment
-        if user_profile.group_type:
-            group_bonus = self._get_group_type_bonus(recommendation, user_profile)
-            compatibility_score += group_bonus
-        
-        # Time preference alignment
-        current_time = datetime.now().hour
-        time_bonus = self._get_time_preference_bonus(recommendation, user_profile, current_time)
-        compatibility_score += time_bonus
-        
-        return min(compatibility_score, 1.0)
+        return calculate_recommendation_compatibility(recommendation, user_profile, context)
     
     def _apply_behavioral_patterns(self, recommendation: Dict, user_profile: UserProfile) -> float:
         """Apply learned behavioral patterns to recommendation scoring"""
-        
-        pattern_score = 0.5  # Base score
-        
-        # Analyze past feedback
-        if user_profile.recommendation_feedback:
-            similar_recs = self._find_similar_recommendations(recommendation, user_profile.recommendation_feedback)
-            if similar_recs:
-                avg_feedback = sum(similar_recs.values()) / len(similar_recs)
-                pattern_score += (avg_feedback - 0.5) * 0.3  # Adjust based on past feedback
-        
-        # Frequency patterns
-        rec_location = recommendation.get('location', '').lower()
-        if rec_location in user_profile.visit_frequency:
-            # Boost score for frequently visited areas, but add some variety
-            visit_count = user_profile.visit_frequency[rec_location]
-            frequency_bonus = min(visit_count * 0.05, 0.2) - (visit_count * 0.01)  # Diminishing returns
-            pattern_score += frequency_bonus
-        
-        # Temporal patterns
-        current_hour = datetime.now().hour
-        if user_profile.preferred_times:
-            time_period = self._get_time_period(current_hour)
-            if time_period in user_profile.preferred_times:
-                pattern_score += 0.1
-        
-        return min(max(pattern_score, 0.0), 1.0)
+        return apply_behavioral_patterns(recommendation, user_profile)
     
     def _generate_personalization_reason(self, recommendation: Dict, user_profile: UserProfile) -> str:
         """Generate human-readable reason for why this recommendation was personalized"""
-        
-        reasons = []
-        
-        # Interest-based reasons
-        if user_profile.interests:
-            rec_category = recommendation.get('category', '').lower()
-            matching_interests = [interest for interest in user_profile.interests 
-                                if interest.lower() in rec_category or rec_category in interest.lower()]
-            if matching_interests:
-                reasons.append(f"matches your interest in {', '.join(matching_interests)}")
-        
-        # Travel style reasons
-        if user_profile.travel_style == 'family' and recommendation.get('family_friendly', False):
-            reasons.append("perfect for families")
-        elif user_profile.travel_style == 'solo' and recommendation.get('solo_friendly', True):
-            reasons.append("great for solo travelers")
-        elif user_profile.travel_style == 'couple' and recommendation.get('romantic', False):
-            reasons.append("romantic atmosphere")
-        
-        # Budget reasons
-        user_budget = user_profile.budget_range or 'moderate'
-        if recommendation.get('price_level', '').lower() == user_budget.lower():
-            reasons.append(f"fits your {user_budget} budget")
-        
-        # Accessibility reasons
-        if user_profile.accessibility_needs and recommendation.get('accessible', False):
-            reasons.append("accessible for your needs")
-        
-        # Past behavior reasons
-        if user_profile.favorite_neighborhoods:
-            rec_location = recommendation.get('location', '').lower()
-            matching_neighborhoods = [n for n in user_profile.favorite_neighborhoods if n.lower() in rec_location]
-            if matching_neighborhoods:
-                reasons.append(f"in your favorite area ({matching_neighborhoods[0]})")
-        
-        if not reasons:
-            return "recommended based on your profile"
-        
-        return "Recommended because it " + " and ".join(reasons)
+        return generate_personalization_reason(recommendation, user_profile)
     
     def _calculate_confidence_level(self, ml_score: float, user_profile: UserProfile) -> str:
         """Calculate confidence level for the recommendation"""
-        
-        profile_completeness = user_profile.profile_completeness
-        
-        if ml_score >= 0.8 and profile_completeness >= 0.7:
-            return "very_high"
-        elif ml_score >= 0.7 and profile_completeness >= 0.5:
-            return "high"
-        elif ml_score >= 0.6 and profile_completeness >= 0.3:
-            return "medium"
-        else:
-            return "low"
+        return calculate_confidence_level(ml_score, user_profile)
     
     def _get_adaptation_factors(self, recommendation: Dict, user_profile: UserProfile, context: ConversationContext) -> Dict[str, float]:
         """Get detailed breakdown of adaptation factors"""
-        
-        factors = {
-            'interest_match': 0.0,
-            'budget_alignment': 0.0,
-            'travel_style_fit': 0.0,
-            'accessibility_score': 0.0,
-            'behavioral_pattern': 0.0,
-            'temporal_relevance': 0.0,
-            'location_preference': 0.0
-        }
-        
-        # Calculate each factor (simplified for brevity)
-        if user_profile.interests:
-            rec_category = recommendation.get('category', '').lower()
-            factors['interest_match'] = 0.8 if any(interest.lower() in rec_category 
-                                                 for interest in user_profile.interests) else 0.2
-        
-        user_budget = user_profile.budget_range or 'moderate'
-        if recommendation.get('price_level', '').lower() == user_budget.lower():
-            factors['budget_alignment'] = 0.9
-        
-        return factors
+        return get_adaptation_factors(recommendation, user_profile, context)
     
     def _apply_diversity_filter(self, recommendations: List[Dict], user_profile: UserProfile) -> List[Dict]:
         """Apply diversity filtering to avoid monotonous recommendations"""
-        
-        if len(recommendations) <= 3:
-            return recommendations
-        
-        diverse_recommendations = []
-        used_categories = set()
-        used_locations = set()
-        
-        # First pass: Select diverse recommendations
-        for rec in recommendations:
-            category = rec.get('category', 'general')
-            location = rec.get('location', 'unknown')
-            
-            # Add if category and location are not overrepresented
-            if (len([r for r in diverse_recommendations if r.get('category') == category]) < 2 and
-                len([r for r in diverse_recommendations if r.get('location') == location]) < 3):
-                diverse_recommendations.append(rec)
-                used_categories.add(category)
-                used_locations.add(location)
-        
-        # Second pass: Fill remaining slots with highest scoring items
-        remaining_slots = 8 - len(diverse_recommendations)
-        for rec in recommendations:
-            if len(diverse_recommendations) >= 8:
-                break
-            if rec not in diverse_recommendations:
-                diverse_recommendations.append(rec)
-        
-        return diverse_recommendations
+        return apply_diversity_filter(recommendations, user_profile)
     
     def _update_learning_patterns(self, user_profile: UserProfile, recommendations: List[Dict]):
         """Update ML learning patterns based on generated recommendations"""
-        
-        # Update adaptation weights based on recommendation success
-        current_patterns = user_profile.learning_patterns.get('recommendation_patterns', {})
-        
-        # Track recommendation types generated
-        rec_types = [rec.get('category', 'general') for rec in recommendations]
-        for rec_type in rec_types:
-            current_patterns[rec_type] = current_patterns.get(rec_type, 0) + 1
-        
-        # Update learning patterns
-        user_profile.learning_patterns['recommendation_patterns'] = current_patterns
-        user_profile.learning_patterns['last_update'] = datetime.now().isoformat()
-        user_profile.learning_patterns['total_recommendations'] = user_profile.learning_patterns.get('total_recommendations', 0) + len(recommendations)
+        return update_learning_patterns(user_profile, recommendations)
     
     def collect_recommendation_feedback(self, user_id: str, recommendation_id: str, rating: float, feedback_text: str = None) -> bool:
         """Collect user feedback on recommendations for ML improvement"""
-        
-        if user_id not in self.user_profiles:
-            return False
-        
-        user_profile = self.user_profiles[user_id]
-        
-        # Store feedback
-        user_profile.recommendation_feedback[recommendation_id] = rating
-        
-        # Update success rate
-        all_ratings = list(user_profile.recommendation_feedback.values())
-        user_profile.recommendation_success_rate = sum(r >= 3.0 for r in all_ratings) / len(all_ratings)
-        
-        # Update satisfaction score (weighted average)
-        user_profile.satisfaction_score = (user_profile.satisfaction_score * 0.8 + (rating / 5.0) * 0.2)
-        
-        # Store detailed feedback if provided
-        if feedback_text:
-            feedback_entry = {
-                'recommendation_id': recommendation_id,
-                'rating': rating,
-                'text': feedback_text,
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            if 'detailed_feedback' not in user_profile.learning_patterns:
-                user_profile.learning_patterns['detailed_feedback'] = []
-            
-            user_profile.learning_patterns['detailed_feedback'].append(feedback_entry)
-            
-            # Keep only last 50 feedback entries
-            if len(user_profile.learning_patterns['detailed_feedback']) > 50:
-                user_profile.learning_patterns['detailed_feedback'] = user_profile.learning_patterns['detailed_feedback'][-50:]
-        
-        # Update profile completeness
-        self._recalculate_profile_completeness(user_profile)
-        
-        return True
+        return collect_recommendation_feedback(self.user_profiles, user_id, recommendation_id, rating, feedback_text)
     
     def update_user_interests(self, user_id: str, interests: List[str], travel_style: str = None, accessibility_needs: str = None) -> bool:
         """Update user interests and preferences for better personalization"""
-        
-        if user_id not in self.user_profiles:
-            return False
-        
-        user_profile = self.user_profiles[user_id]
-        
-        # Update interests
-        user_profile.interests = list(set(user_profile.interests + interests))  # Avoid duplicates
-        
-        # Update travel style if provided
-        if travel_style:
-            user_profile.travel_style = travel_style
-        
-        # Update accessibility needs if provided
-        if accessibility_needs:
-            user_profile.accessibility_needs = accessibility_needs
-        
-        # Update profile completeness
-        self._recalculate_profile_completeness(user_profile)
-        
-        return True
+        return update_user_interests(self.user_profiles, user_id, interests, travel_style, accessibility_needs)
     
     def _recalculate_profile_completeness(self, user_profile: UserProfile):
         """Recalculate profile completeness score"""
-        
-        completeness_factors = {
-            'basic_info': 1.0 if user_profile.travel_style else 0.0,
-            'interests': min(len(user_profile.interests) / 5.0, 1.0),  # Up to 5 interests
-            'preferences': min(len(user_profile.cuisine_preferences) / 3.0, 1.0),  # Up to 3 cuisines
-            'location_prefs': min(len(user_profile.favorite_neighborhoods) / 3.0, 1.0),
-            'behavioral_data': min(len(user_profile.interaction_history) / 20.0, 1.0),
-            'feedback_quality': min(len(user_profile.recommendation_feedback) / 10.0, 1.0)
-        }
-        
-        user_profile.profile_completeness = sum(completeness_factors.values()) / len(completeness_factors)
+        return recalculate_profile_completeness(user_profile)
     
     # =============================
     # AI EXPLAINABILITY & TRUST SYSTEM
@@ -1374,31 +1092,7 @@ class IstanbulDailyTalkAI:
     
     def get_recommendation_explanation(self, recommendation_id: str, user_id: str) -> Dict[str, Any]:
         """Generate detailed explanation for why a specific recommendation was made"""
-        
-        if user_id not in self.user_profiles:
-            return {'error': 'User profile not found'}
-        
-        user_profile = self.user_profiles[user_id]
-        
-        # Find the recommendation in recent interactions
-        recommendation_data = self._find_recommendation_by_id(recommendation_id, user_profile)
-        
-        if not recommendation_data:
-            return {'error': 'Recommendation not found'}
-        
-        explanation = {
-            'recommendation_id': recommendation_id,
-            'recommendation_name': recommendation_data.get('name', 'Unknown'),
-            'explanation_summary': self._generate_explanation_summary(recommendation_data, user_profile),
-            'detailed_factors': self._generate_detailed_explanation_factors(recommendation_data, user_profile),
-            'transparency_info': self._generate_transparency_info(user_profile),
-            'data_usage': self._explain_data_usage(user_profile),
-            'confidence_breakdown': self._explain_confidence_score(recommendation_data, user_profile),
-            'alternatives_considered': self._explain_alternatives(recommendation_data, user_profile),
-            'privacy_context': self._get_privacy_context(user_profile)
-        }
-        
-        return explanation
+        return get_recommendation_explanation(self.user_profiles, recommendation_id, user_id)
     
     def _generate_explanation_summary(self, recommendation: Dict, user_profile: UserProfile) -> str:
         """Generate a clear, human-readable summary of why this recommendation was made"""
@@ -1434,7 +1128,7 @@ class IstanbulDailyTalkAI:
         
         # Past behavior reasoning
         if user_profile.recommendation_feedback:
-            similar_recs = self._find_similar_recommendations(recommendation, user_profile.recommendation_feedback)
+            similar_recs = find_similar_recommendations(recommendation, user_profile.recommendation_feedback)
             if similar_recs:
                 avg_rating = sum(similar_recs.values()) / len(similar_recs)
                 if avg_rating >= 4.0:
@@ -1443,7 +1137,7 @@ class IstanbulDailyTalkAI:
         # Time-based reasoning
         current_hour = datetime.now().hour
         suitable_times = recommendation.get('suitable_times', [])
-        time_period = self._get_time_period(current_hour)
+        time_period = get_time_period(current_hour)
         if time_period in suitable_times:
             factors.append(f"it's perfect for {time_period} visits")
         
@@ -1765,7 +1459,7 @@ class IstanbulDailyTalkAI:
             return self.explain_data_usage_simple(user_id)
         
         else:
-            return self.show_privacy_help()
+            return "I can help with privacy settings, showing your data, or clearing your data. What would you like to do?"
     
     def show_privacy_settings(self, user_id: str) -> str:
         """Show current privacy settings and available controls"""
@@ -2028,3 +1722,120 @@ class IstanbulDailyTalkAI:
                 'status': 'unavailable',
                 'message': 'Event information temporarily unavailable'
             }
+    
+    def _enhance_intent_classification(self, message: str) -> str:
+        """Enhanced intent classification with attraction support"""
+        message_lower = message.lower()
+        
+        # Transportation keywords
+        transport_keywords = ['metro', 'bus', 'ferry', 'tram', 'taxi', 'transport', 'get to', 'how to reach']
+        if any(keyword in message_lower for keyword in transport_keywords):
+            return 'transportation_query'
+        
+        # Attraction keywords
+        attraction_keywords = ['visit', 'see', 'attraction', 'museum', 'palace', 'mosque', 'tower', 'monument']
+        if any(keyword in message_lower for keyword in attraction_keywords):
+            return 'attraction_query'
+        
+        # Cultural keywords
+        cultural_keywords = ['culture', 'cultural', 'traditional', 'heritage', 'historic']
+        if any(keyword in message_lower for keyword in cultural_keywords):
+            return 'cultural_query'
+        
+        return 'general_conversation'
+    
+    def _is_transportation_query(self, message: str) -> bool:
+        """Check if message is about transportation"""
+        transport_keywords = [
+            'metro', 'bus', 'ferry', 'tram', 'taxi', 'transport', 'transportation',
+            'get to', 'how to reach', 'how to get', 'travel to', 'go to',
+            'metro station', 'bus stop', 'ferry terminal', 'airport',
+            'dolmuş', 'metrobüs', 'vapur', 'otobüs'
+        ]
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in transport_keywords)
+    
+    def _is_restaurant_query(self, message: str) -> bool:
+        """Check if message is about restaurants"""
+        restaurant_keywords = [
+            'restaurant', 'food', 'eat', 'dining', 'cuisine', 'meal',
+            'breakfast', 'lunch', 'dinner', 'café', 'coffee',
+            'lokanta', 'restoran', 'yemek', 'kahvaltı'
+        ]
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in restaurant_keywords)
+    
+    def _is_neighborhood_query(self, message: str) -> bool:
+        """Check if message is about neighborhoods"""
+        neighborhood_keywords = [
+            'neighborhood', 'district', 'area', 'quarter',
+            'sultanahmet', 'beyoğlu', 'galata', 'taksim', 'kadıköy',
+            'beşiktaş', 'şişli', 'fatih', 'üsküdar', 'ortaköy'
+        ]
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in neighborhood_keywords)
+    
+    def _has_transportation_keywords(self, message: str) -> bool:
+        """Check if message contains transportation-related keywords"""
+        return self._is_transportation_query(message)
+    
+    # Response Generation Methods
+    def _generate_fallback_response(self, context, user_profile) -> str:
+        """Generate fallback response when other methods fail"""
+        responses = [
+            "I'm here to help you explore Istanbul! What would you like to know about the city?",
+            "Let me know what you're interested in - restaurants, attractions, transportation, or anything else about Istanbul!",
+            "I can help you with restaurant recommendations, finding attractions, getting around the city, and much more. What interests you?",
+            "What would you like to discover about Istanbul today? I'm here to help with personalized recommendations!"
+        ]
+        
+        # Use user profile to personalize the fallback
+        if user_profile.interests:
+            if 'food' in user_profile.interests:
+                return "I notice you're interested in food! Would you like restaurant recommendations, or are you curious about something else in Istanbul?"
+            elif 'history' in user_profile.interests:
+                return "Given your interest in history, I can recommend historical sites, museums, or help with other Istanbul questions. What would you like to know?"
+        
+        # Return a random friendly response
+        import random
+        return random.choice(responses)
+    
+    def _enhance_multi_intent_response(self, multi_intent_response: str, entities: Dict, user_profile, current_time: datetime) -> str:
+        """Enhance multi-intent response with Istanbul-specific context and personalization"""
+        enhanced_response = multi_intent_response
+        
+        # Add time-based context
+        hour = current_time.hour
+        if hour < 11:
+            time_context = "Since it's morning, consider places that serve good breakfast!"
+        elif hour < 16:
+            time_context = "Perfect timing for lunch recommendations!"
+        else:
+            time_context = "Great time for dinner suggestions!"
+        
+        # Add personalized context based on user profile
+        personal_context = ""
+        if user_profile.interests:
+            if 'food' in user_profile.interests:
+                personal_context = "Based on your love for food, I've focused on culinary experiences."
+            elif 'family-friendly' in user_profile.interests:
+                personal_context = "I've made sure these are family-friendly options."
+        
+        # Add dietary considerations
+        dietary_context = ""
+        if user_profile.dietary_restrictions:
+            dietary_context = f"I've considered your {', '.join(user_profile.dietary_restrictions)} preferences."
+        
+        # Combine contexts
+        context_additions = []
+        if personal_context:
+            context_additions.append(personal_context)
+        if dietary_context:
+            context_additions.append(dietary_context)
+        if time_context:
+            context_additions.append(time_context)
+        
+        if context_additions:
+            enhanced_response += f"\n\n💡 {' '.join(context_additions)}"
+        
+        return enhanced_response
