@@ -182,49 +182,64 @@ async def chat_with_ai_enhanced(
 # ============================================================================
 
 async def handle_restaurant_intent(intent, location_info, response_config, original_message):
-    """Handle restaurant-specific intents"""
+    """Handle restaurant-specific intents using local database"""
     try:
         if not location_info:
             return generate_restaurant_response_without_location(intent, original_message)
         
-        # Try to get restaurants from your location API
-        search_params = response_config['search_params']
+        # Use local restaurant database instead of live API
+        from backend.services.restaurant_database_service import RestaurantDatabaseService, RestaurantQuery
         
-        # You can make an API call to your restaurant service here
-        # For now, generate a smart response based on the intent
+        # Initialize restaurant database service
+        db_service = RestaurantDatabaseService()
+        
+        # Build query from intent
+        query = RestaurantQuery(
+            district=location_info.get('district'),
+            cuisine_type=intent.specific_requirements.get('cuisine', [None])[0] if intent.specific_requirements.get('cuisine') else None,
+            budget=extract_budget_from_intent(intent),
+            rating_min=extract_rating_from_intent(intent),
+            location=(location_info.get('latitude'), location_info.get('longitude')) if location_info.get('latitude') else None,
+            radius_km=extract_radius_from_intent(intent),
+            keywords=intent.keywords_matched
+        )
+        
+        # Get restaurants from local database
+        restaurants = db_service.filter_restaurants(query, limit=5)
         
         response_parts = []
-        response_parts.append(f"🍽️ Looking for restaurants in {location_info.get('district', 'your area')}...")
+        response_parts.append(f"🍽️ Found {len(restaurants)} restaurants in {location_info.get('district', 'your area')} from our local database...")
         
         if intent.specific_requirements.get('cuisine'):
             cuisines = ', '.join(intent.specific_requirements['cuisine'])
-            response_parts.append(f"\\nI see you're interested in {cuisines} cuisine.")
+            response_parts.append(f"\\nFiltered for {cuisines} cuisine.")
         
         if intent.specific_requirements.get('dining_style'):
             styles = ', '.join(intent.specific_requirements['dining_style'])
             response_parts.append(f"Looking for {styles} dining options.")
         
-        if intent.distance_preference:
-            response_parts.append(f"Within {intent.distance_preference} as requested.")
+        if restaurants:
+            response_parts.append("\\n**Top Recommendations:**")
+            
+            for i, restaurant in enumerate(restaurants[:3], 1):
+                name = restaurant.get('name', 'Unknown Restaurant')
+                rating = restaurant.get('rating', 'N/A')
+                budget = restaurant.get('budget_category', 'moderate').title()
+                cuisines = ', '.join(restaurant.get('cuisine_types', ['Restaurant']))
+                address = restaurant.get('address', 'Address not available')
+                
+                response_parts.append(f"\\n{i}. **{name}**")
+                response_parts.append(f"   ⭐ {rating}/5 • 💰 {budget} • 🍴 {cuisines}")
+                response_parts.append(f"   📍 {address}")
+                
+                if restaurant.get('phone'):
+                    response_parts.append(f"   📞 {restaurant['phone']}")
         
-        response_parts.append("\\nLet me suggest some great options:")
-        
-        # Add some sample restaurants based on district
-        district = location_info.get('district', '').lower()
-        if 'sultanahmet' in district:
-            response_parts.append("\\n• **Pandeli**: Historic Ottoman restaurant in Spice Bazaar")
-            response_parts.append("• **Deraliye**: Traditional Ottoman cuisine near Sultanahmet")
-            response_parts.append("• **Balıkçı Sabahattin**: Fresh seafood in historic setting")
-        elif 'beyoğlu' in district or 'taksim' in district:
-            response_parts.append("\\n• **Mikla**: Modern Turkish with Bosphorus view")
-            response_parts.append("• **Karaköy Lokantası**: Contemporary Turkish in stylish setting")
-            response_parts.append("• **Çiya Sofrası**: Authentic Anatolian dishes")
         else:
-            response_parts.append("\\n• **Hamdi Restaurant**: Famous for kebabs near Galata Bridge")
-            response_parts.append("• **Sunset Grill & Bar**: International cuisine with amazing views")
-            response_parts.append("• **Nusr-Et**: World-famous steakhouse experience")
+            response_parts.append("\\nNo restaurants found matching your criteria. Let me suggest some popular options in your area:")
+            return generate_restaurant_response_without_location(intent, original_message)
         
-        response_parts.append("\\nWould you like more specific recommendations or details about any of these places?")
+        response_parts.append("\\nWould you like more details about any of these restaurants, or shall I search with different criteria?")
         
         return '\\n'.join(response_parts)
         
@@ -359,6 +374,95 @@ Please provide a location-aware response that:
 """
     
     return enhanced_prompt
+
+# ============================================================================
+# HELPER FUNCTIONS FOR RESTAURANT DATABASE QUERIES
+# ============================================================================
+
+def extract_budget_from_intent(intent):
+    """Extract budget preference from intent"""
+    if not intent.specific_requirements:
+        return None
+    
+    # Check for budget-related keywords in requirements
+    budget_keywords = {
+        'budget': ['cheap', 'budget', 'affordable', 'inexpensive'],
+        'moderate': ['moderate', 'mid-range', 'reasonable', 'normal'],
+        'upscale': ['upscale', 'expensive', 'high-end', 'fine'],
+        'luxury': ['luxury', 'luxurious', 'premium', 'exclusive']
+    }
+    
+    # Check dining_style for budget indicators
+    dining_styles = intent.specific_requirements.get('dining_style', [])
+    for style in dining_styles:
+        style_lower = style.lower()
+        for budget_cat, keywords in budget_keywords.items():
+            if any(keyword in style_lower for keyword in keywords):
+                return budget_cat
+    
+    # Check keywords_matched for budget indicators
+    for keyword in intent.keywords_matched:
+        keyword_lower = keyword.lower()
+        for budget_cat, keywords in budget_keywords.items():
+            if any(kw in keyword_lower for kw in keywords):
+                return budget_cat
+    
+    return None
+
+def extract_rating_from_intent(intent):
+    """Extract minimum rating preference from intent"""
+    # Look for rating mentions in keywords
+    for keyword in intent.keywords_matched:
+        if 'star' in keyword.lower() or 'rating' in keyword.lower():
+            # Try to extract number
+            import re
+            numbers = re.findall(r'(\d+(?:\.\d+)?)', keyword)
+            if numbers:
+                rating = float(numbers[0])
+                if 1 <= rating <= 5:
+                    return rating
+    
+    # Default high rating for "best" or "top" requests
+    if any(word in ' '.join(intent.keywords_matched).lower() for word in ['best', 'top', 'excellent', 'amazing']):
+        return 4.0
+    
+    return None
+
+def extract_radius_from_intent(intent):
+    """Extract search radius from intent distance preference"""
+    if not intent.distance_preference:
+        return None
+    
+    distance_text = intent.distance_preference.lower()
+    
+    # Extract distance values
+    import re
+    
+    # Look for "within X km/meters/minutes"
+    km_match = re.search(r'(\d+(?:\.\d+)?)\s*km', distance_text)
+    if km_match:
+        return float(km_match.group(1))
+    
+    meter_match = re.search(r'(\d+)\s*m(?:eter)?s?', distance_text)
+    if meter_match:
+        return float(meter_match.group(1)) / 1000  # Convert to km
+    
+    # Walking time to distance conversion (rough estimate)
+    minute_match = re.search(r'(\d+)\s*min', distance_text)
+    if minute_match:
+        minutes = int(minute_match.group(1))
+        # Assume 5 km/h walking speed
+        return (minutes / 60) * 5
+    
+    # Default search radius based on keywords
+    if 'nearby' in distance_text or 'close' in distance_text:
+        return 1.0  # 1 km
+    elif 'walking' in distance_text:
+        return 0.5  # 500m
+    elif 'area' in distance_text or 'district' in distance_text:
+        return 3.0  # 3 km
+    
+    return 2.0  # Default 2km radius
 
 # ============================================================================
 # 5. TESTING THE INTEGRATION

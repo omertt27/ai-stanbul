@@ -35,7 +35,28 @@ from ml_personalization_helpers import (
     handle_recommendation_feedback, 
     get_personalization_insights,
     calculate_personalization_score,
-    calculate_recommendation_compatibility
+    calculate_recommendation_compatibility,
+    generate_personalization_reason,
+    calculate_confidence_level,
+    generate_explanation_summary,
+    apply_behavioral_patterns,
+    get_meal_context,
+    update_learning_patterns,
+    get_adaptation_factors,
+    apply_diversity_filter,
+    collect_recommendation_feedback,
+    update_user_interests,
+    recalculate_profile_completeness,
+    get_recommendation_explanation,
+    find_similar_recommendations,
+    get_time_period,
+    process_neighborhood_query,
+    format_attraction_response_text,
+    generate_conversational_response_enhanced,
+    process_transportation_query_enhanced,
+    show_privacy_settings,
+    show_user_data,
+    clear_user_data
 )
 
 # Configure logging first
@@ -721,7 +742,7 @@ class IstanbulDailyTalkAI:
                         )
                         
                         if attraction_response['status'] == 'success':
-                            return self._format_attraction_response_text(attraction_response, user_profile, current_time)
+                            return format_attraction_response_text(attraction_response, user_profile, current_time)
                         else:
                             logger.warning(f"Attraction query failed: {attraction_response.get('message', 'Unknown error')}")
                     except Exception as e:
@@ -743,7 +764,7 @@ class IstanbulDailyTalkAI:
         
         # 🚇 ENHANCED: Handle transportation queries with GPS and deep learning
         if intent == 'transportation_query':
-            return self._process_transportation_query(message, user_profile, current_time, context)
+            return process_transportation_query_enhanced(message, user_profile, current_time, context)
         
         if intent == 'restaurant_recommendation':
             return self._generate_restaurant_recommendation(entities, context, user_profile, current_time)
@@ -755,13 +776,13 @@ class IstanbulDailyTalkAI:
             return self._generate_time_response(entities, context, current_time)
         
         elif intent == 'general_conversation':
-            return self._generate_conversational_response(message, context, user_profile)
+            return generate_conversational_response_enhanced(message, context, user_profile)
         
         elif intent == 'neighborhood_query':
-            return self._process_neighborhood_query(message, user_profile, current_time)
+            return process_neighborhood_query(message, user_profile, current_time)
         
         elif intent == 'transportation_query':
-            return self._process_transportation_query(message, user_profile, current_time)
+            return process_transportation_query_enhanced(message, user_profile, current_time, context)
         
         else:
             return self._generate_fallback_response(context, user_profile)
@@ -773,19 +794,31 @@ class IstanbulDailyTalkAI:
         # 📍 Get GPS location for accurate recommendations
         gps_location = self._get_or_request_gps_location(user_profile, context)
         if not gps_location:
-            return self._request_location_for_restaurant("", user_profile)
+            return self._request_location_for_restaurant(context.current_message, user_profile)
         
         # Extract location information
-        location_info = self._extract_or_request_location("", user_profile, context, gps_location)
+        location_info = self._extract_or_request_location(context.current_message, user_profile, context, gps_location)
         
-        # Generate base recommendations
-        base_recommendations = self._generate_base_restaurant_recommendations(location_info, entities, current_time)
+        # Get restaurant data from local database (500+ restaurants from Google Places)
+        database_recommendations = self._get_restaurant_data_from_local_database(location_info, entities, context.current_message)
+        
+        if database_recommendations:
+            # Use local database (500+ restaurants from Google Places)
+            base_recommendations = database_recommendations
+            logger.info(f"Using local database: found {len(database_recommendations)} restaurants")
+        else:
+            # Fallback to static recommendations if database query fails
+            base_recommendations = self._generate_base_restaurant_recommendations(location_info, entities, current_time)
+            logger.info("Using static fallback recommendations")
         
         if not base_recommendations:
-            return f"I couldn't find restaurants in your area right now. Please try a different neighborhood or let me know your specific preferences!"
+            return f"I couldn't find restaurants in {location_info.get('neighborhood', 'your area')} right now. Please try a different neighborhood or let me know your specific preferences!"
         
         # Apply ML-based personalization and adaptation
         ml_adapted_recommendations = self.adapt_recommendations_with_ml(user_profile, base_recommendations, context)
+        
+        # Update user's location and preferences based on this search
+        self._update_user_location_and_preferences(user_profile, location_info, entities)
         
         # Generate enhanced response with personalized recommendations
         return self._generate_enhanced_location_response(location_info, ml_adapted_recommendations, user_profile)
@@ -1320,156 +1353,156 @@ class IstanbulDailyTalkAI:
             },
             'data_not_collected': [
                 'Personal identification information',
-                'Financial or payment data',
+                },
+                'feedback_and_ratings': {
+                    'collected': bool(user_profile.recommendation_feedback),ata from other apps or services',
+                    'purpose': 'Understand what you like and improve future suggestions',n tracking'
+                    'retention': 'Latest 50 ratings kept',
+                    'user_control': 'Individual ratings can be modified or removed'
+                },
+                'location_data': {
+                    'collected': bool(user_profile.gps_location),anonymized_analytics': 'Only aggregated, non-identifiable usage statistics',
+                    'purpose': 'Provide location-relevant recommendations',  'marketing_purposes': False
+                    'retention': 'Current session only, not permanently stored',
+                    'user_control': 'Can be disabled or manually entered'
+                } you',
+            },,
+            'data_not_collected': [ated data',
+                'Personal identification information',le format',
+                'Financial or payment data',  'Opt out of data collection features'
                 'Private messages or conversations',
                 'Data from other apps or services',
                 'Permanent location tracking'
             ],
             'data_sharing': {
-                'with_third_parties': False,
-                'with_venues': False,
+                'with_third_parties': False,in_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
+                'with_venues': False,dence scores are calculated"""
                 'anonymized_analytics': 'Only aggregated, non-identifiable usage statistics',
-                'marketing_purposes': False
-            },
+                'marketing_purposes': False)
+            },l', 'medium')
             'user_rights': [
                 'View all data we have about you',
-                'Update or correct your information',
-                'Delete your profile and all associated data',
-                'Export your data in a readable format',
-                'Opt out of data collection features'
-            ]
+                'Update or correct your information',confidence_level': confidence_level,
+                'Delete your profile and all associated data',   'numerical_score': f"{ml_score:.3f} out of 1.000",
+                'Export your data in a readable format',    'what_it_means': {
+                'Opt out of data collection features'h': 'We\'re very confident this matches your preferences (85-100%)',
+            ]            'high': 'We\'re confident this is a good match for you (70-84%)',
         }
-        
-        return data_usage
+        e less certain (30-54%)'
+        return data_usage    }.get(confidence_level, 'Confidence level not available'),
     
-    def _explain_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
-        """Explain how confidence scores are calculated"""
-        
-        ml_score = recommendation.get('ml_score', 0.5)
+    def _explain_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:.1%}",
+        """Explain how confidence scores are calculated"""        f"Historical feedback: {len(user_profile.recommendation_feedback)} ratings provided",
+        ty: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",
+        ml_score = recommendation.get('ml_score', 0.5)profile.interaction_history)} previous conversations"
         confidence_level = recommendation.get('confidence_level', 'medium')
-        
+        nfidence': [
         confidence_explanation = {
             'confidence_level': confidence_level,
             'numerical_score': f"{ml_score:.3f} out of 1.000",
             'what_it_means': {
                 'very_high': 'We\'re very confident this matches your preferences (85-100%)',
-                'high': 'We\'re confident this is a good match for you (70-84%)',
-                'medium': 'This seems like a reasonable match (55-69%)',
+                'high': 'We\'re confident this is a good match for you (70-84%)',ons to maintain accuracy',
+                'medium': 'This seems like a reasonable match (55-69%)',ns'
                 'low': 'This might interest you, but we\'re less certain (30-54%)'
             }.get(confidence_level, 'Confidence level not available'),
             'factors_affecting_confidence': [
-                f"Profile completeness: {user_profile.profile_completeness:.1%}",
+                f"Profile completeness: {user_profile.profile_completeness:.1%}", confidence_explanation
                 f"Historical feedback: {len(user_profile.recommendation_feedback)} ratings provided",
-                f"Preference clarity: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",
-                f"Interaction history: {len(user_profile.interaction_history)} previous conversations"
+                f"Preference clarity: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",ofile) -> Dict[str, Any]:
+                f"Interaction history: {len(user_profile.interaction_history)} previous conversations"was chosen"""
             ],
             'how_to_improve_confidence': [
-                'Rate more recommendations to help us learn your preferences',
+                'Rate more recommendations to help us learn your preferences',s and ranked them based on your preferences',
                 'Update your profile with interests and travel style',
                 'Provide feedback on places you visit',
-                'Specify dietary restrictions or accessibility needs'
-            ] if user_profile.profile_completeness < 0.7 else [
-                'Continue rating recommendations to maintain accuracy',
-                'Your profile is well-developed for high-confidence recommendations'
-            ]
+                'Specify dietary restrictions or accessibility needs'   'filtering_criteria': [
+            ] if user_profile.profile_completeness < 0.7 else [           f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
+                'Continue rating recommendations to maintain accuracy',            f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
+                'Your profile is well-developed for high-confidence recommendations'uitable for {user_profile.travel_style or 'general'} travelers",
+            ]                f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
         }
         
-        return confidence_explanation
-    
+        return confidence_explanation        ],
+    'ranking_factors': [
     def _explain_alternatives(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
-        """Explain what alternatives were considered and why this one was chosen"""
+        """Explain what alternatives were considered and why this one was chosen"""e',
         
-        return {
+        return {d ratings',
             'selection_process': 'We considered multiple options and ranked them based on your preferences',
             'alternatives_considered': {
                 'total_options_evaluated': 'All available venues in your area',
-                'filtering_criteria': [
-                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
+                'filtering_criteria': [ the best overall match'),
+                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}"," to see other highly-rated alternatives',
                     f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
-                    f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
-                    f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
+                    f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",pecify different cuisine types',
+                    f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",rice ranges',
                     'Accessibility: Meeting any specified requirements',
-                    'Time: Appropriate for current time of day'
+                    'Time: Appropriate for current time of day'ific recommendations'
                 ],
                 'ranking_factors': [
                     'Personal preference match (highest weight)',
-                    'Location convenience',
-                    'Past feedback similarity',
+                    'Location convenience',acy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
+                    'Past feedback similarity',vide privacy context and controls"""
                     'Overall quality and ratings',
                     'Contextual appropriateness'
                 ]
-            },
-            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),
-            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',
-            'customization_options': [
-                'Specify different cuisine types',
-                'Request different price ranges',
-                'Ask for options in specific neighborhoods',
+            },ser_profile.gps_location else 'Disabled',
+            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),ed' if user_profile.interests or user_profile.travel_style else 'Basic',
+            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',profile.recommendation_feedback else 'Disabled',
+            'customization_options': [ings max)'
+                'Specify different cuisine types',,
+                'Request different price ranges',   'privacy_controls': [
+                'Ask for options in specific neighborhoods',            'Say "disable location" to stop using GPS data',
                 'Request accessibility-specific recommendations'
-            ]
-        }
+            ]red information',
+        }        'Say "privacy settings" to adjust data preferences'
     
-    def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
+    def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:: [
         """Provide privacy context and controls"""
         
         return {
             'privacy_status': {
                 'location_sharing': 'Enabled' if user_profile.gps_location else 'Disabled',
-                'profile_personalization': 'Enabled' if user_profile.interests or user_profile.travel_style else 'Basic',
+                'profile_personalization': 'Enabled' if user_profile.interests or user_profile.travel_style else 'Basic',': 'You can always ask "why did you recommend this?" for any suggestion'
                 'learning_from_feedback': 'Enabled' if user_profile.recommendation_feedback else 'Disabled',
                 'data_retention': 'Standard (50 interactions/ratings max)'
             },
-            'privacy_controls': [
-                'Say "disable location" to stop using GPS data',
+            'privacy_controls': [ -> str:
+                'Say "disable location" to stop using GPS data',dle privacy-related requests from users"""
                 'Say "clear my data" to reset your profile',
                 'Say "show my data" to see all stored information',
                 'Say "privacy settings" to adjust data preferences'
-            ],
+            ],ivacy options' in user_input_lower:
             'data_minimization': [
                 'We only collect data necessary for recommendations',
                 'Location data is used only for current session',
-                'Personal conversations are not stored',
-                'All data is kept locally to your session'
-            ],
+                'Personal conversations are not stored',   return self.show_user_data(user_id)
+                'All data is kept locally to your session'    
+            ],in user_input_lower or 'delete my data' in user_input_lower:
             'transparency_promise': 'You can always ask "why did you recommend this?" for any suggestion'
         }
-    
-    # Privacy Control Methods
+    elif 'disable location' in user_input_lower:
+    # Privacy Control Methodsing(user_id)
     def handle_privacy_request(self, user_input: str, user_id: str) -> str:
         """Handle privacy-related requests from users"""
-        
+        d)
         user_input_lower = user_input.lower()
         
-        if 'privacy settings' in user_input_lower or 'privacy options' in user_input_lower:
+        if 'privacy settings' in user_input_lower or 'privacy options' in user_input_lower:le(user_id)
             return self.show_privacy_settings(user_id)
         
-        elif 'show my data' in user_input_lower or 'what data do you have' in user_input_lower:
+        elif 'show my data' in user_input_lower or 'what data do you have' in user_input_lower:ings, showing your data, or clearing your data. What would you like to do?"
             return self.show_user_data(user_id)
-        
-        elif 'clear my data' in user_input_lower or 'delete my data' in user_input_lower:
+         str:
+        elif 'clear my data' in user_input_lower or 'delete my data' in user_input_lower:ntrols"""
             return self.clear_user_data(user_id)
         
-        elif 'disable location' in user_input_lower:
+        elif 'disable location' in user_input_lower:otected - we only store data when you interact with recommendations."
             return self.disable_location_sharing(user_id)
         
         elif 'enable location' in user_input_lower:
-            return self.enable_location_sharing(user_id)
-        
-        elif 'data usage' in user_input_lower or 'how do you use my data' in user_input_lower:
-            return self.explain_data_usage_simple(user_id)
-        
-        else:
-            return "I can help with privacy settings, showing your data, or clearing your data. What would you like to do?"
-    
-    def show_privacy_settings(self, user_id: str) -> str:
-        """Show current privacy settings and available controls"""
-        
-        if user_id not in self.user_profiles:
-            return "No profile found. Your privacy is protected - we only store data when you interact with recommendations."
-        
-        user_profile = self.user_profiles[user_id]
-        
-        response = "🔒 **Your Privacy Settings**\n\n"
+            return self.enable_location_sharing(user_id)response = "🔒 **Your Privacy Settings**\n\n"
         
         response += "**Current Status:**\n"
         response += f"• Location sharing: {'✅ Enabled' if user_profile.gps_location else '❌ Disabled'}\n"
@@ -1769,8 +1802,10 @@ class IstanbulDailyTalkAI:
         """Check if message is about neighborhoods"""
         neighborhood_keywords = [
             'neighborhood', 'district', 'area', 'quarter',
-            'sultanahmet', 'beyoğlu', 'galata', 'taksim', 'kadıköy',
-            'beşiktaş', 'şişli', 'fatih', 'üsküdar', 'ortaköy'
+            'sultanahmet', 'beyoğlu', 'beyoglu', 'galata', 'karaköy', 'karakoy',
+            'taksim', 'kadıköy', 'kadikoy', 'beşiktaş', 'besiktas', 'ortaköy', 'ortakoy',
+            'eminönü', 'eminonu', 'fatih', 'şişli', 'sisli', 'bakırköy', 'bakirkoy',
+            'üsküdar', 'uskudar', 'sarıyer', 'sariyer', 'pendik', 'maltepe'
         ]
         message_lower = message.lower()
         return any(keyword in message_lower for keyword in neighborhood_keywords)
@@ -1839,3 +1874,325 @@ class IstanbulDailyTalkAI:
             enhanced_response += f"\n\n💡 {' '.join(context_additions)}"
         
         return enhanced_response
+    
+    def _get_or_request_gps_location(self, user_profile: UserProfile, context: ConversationContext) -> Optional[Dict]:
+        """Get GPS location from user or request if not available"""
+        
+        # Check if user has location sharing enabled
+        if not user_profile.location_sharing_enabled:
+            return None
+            
+        # Try to get current GPS location from context
+        if hasattr(context, 'gps_coordinates') and context.gps_coordinates:
+            return {
+                'lat': context.gps_coordinates.get('lat'),
+                'lng': context.gps_coordinates.get('lng'),
+                'source': 'gps',
+                'accuracy': context.gps_coordinates.get('accuracy', 'unknown')
+            }
+        
+        # Check if we have a recent location from user profile
+        if user_profile.last_known_location and user_profile.last_location_update:
+            # Use location if it's less than 30 minutes old
+            time_diff = datetime.utcnow() - user_profile.last_location_update
+            if time_diff.total_seconds() < 1800:  # 30 minutes
+                return {
+                    'lat': user_profile.last_known_location.get('lat'),
+                    'lng': user_profile.last_known_location.get('lng'),
+                    'source': 'cached',
+                    'accuracy': 'approximate'
+                }
+        
+        # Try ML-predicted location based on user patterns
+        if user_profile.favorite_neighborhoods:
+            predicted_location = self._predict_user_location(user_profile)
+            if predicted_location:
+                return {
+                    'neighborhood': predicted_location,
+                    'source': 'ml_predicted',
+                    'accuracy': 'neighborhood_level'
+                }
+        
+        return None
+    
+    def _predict_user_location(self, user_profile: UserProfile) -> Optional[str]:
+        """Predict user location based on their interaction patterns"""
+        
+        if not user_profile.favorite_neighborhoods:
+            return None
+            
+        # Get most frequently visited neighborhood
+        if user_profile.visit_frequency:
+            most_visited = max(user_profile.visit_frequency.items(), key=lambda x: x[1])
+            return most_visited[0]
+        
+        # Fallback to first favorite neighborhood
+        return user_profile.favorite_neighborhoods[0]
+    
+    def _request_location_for_restaurant(self, query: str, user_profile: UserProfile) -> str:
+        """Request location from user for restaurant recommendations"""
+        
+        response = "🗺️ **Location Needed for Restaurant Recommendations**\n\n"
+        
+        if not user_profile.location_sharing_enabled:
+            response += "I'd love to recommend restaurants near you! To get personalized, distance-based recommendations:\n\n"
+            response += "📍 **Option 1: Enable GPS Location**\n"
+            response += "• Say 'enable location sharing' for automatic nearby suggestions\n"
+            response += "• Your location is only used for this session and not stored\n\n"
+            response += "🏙️ **Option 2: Tell Me Your Area**\n"
+            response += "• Just mention which Istanbul district you're in or heading to\n"
+            response += "• Examples: 'Sultanahmet', 'Beyoğlu', 'Kadıköy', 'Taksim area'\n\n"
+        else:
+            response += "I need to know where you are to suggest the best nearby restaurants!\n\n"
+            response += "📱 **Please share your location** or tell me which Istanbul district you're in:\n"
+            response += "• Sultanahmet • Beyoğlu • Galata • Kadıköy\n"
+            response += "• Taksim • Beşiktaş • Ortaköy • Eminönü\n\n"
+        
+        response += "💡 **Meanwhile, I can help with:**\n"
+        response += "• General restaurant recommendations by cuisine type\n"
+        response += "• Famous Istanbul restaurants and must-try dishes\n"
+        response += "• Restaurant recommendations for specific districts\n\n"
+        
+        response += "Just let me know your preferences and I'll help you find amazing food! 🍽️"
+        
+        return response
+    
+    def _extract_or_request_location(self, query: str, user_profile: UserProfile, 
+                                   context: ConversationContext, gps_location: Optional[Dict] = None) -> Dict:
+        """Extract location from query/GPS or request from user"""
+        
+        # Use GPS location if available
+        if gps_location and gps_location.get('lat') and gps_location.get('lng'):
+            neighborhood = self._get_neighborhood_from_coordinates(
+                gps_location['lat'], gps_location['lng']
+            )
+            return {
+                'neighborhood': neighborhood,
+                'coordinates': {'lat': gps_location['lat'], 'lng': gps_location['lng']},
+                'source': gps_location['source'],
+                'accuracy': 'high'
+            }
+        
+        # Check if location is mentioned in query
+        istanbul_districts = [
+            'sultanahmet', 'beyoğlu', 'beyoglu', 'galata', 'karaköy', 'karakoy',
+            'taksim', 'kadıköy', 'kadikoy', 'beşiktaş', 'besiktas', 'ortaköy', 'ortakoy',
+            'eminönü', 'eminonu', 'fatih', 'şişli', 'sisli', 'bakırköy', 'bakirkoy',
+            'üsküdar', 'uskudar', 'sarıyer', 'sariyer', 'pendik', 'maltepe'
+        ]
+        
+        query_lower = query.lower()
+        for district in istanbul_districts:
+            if district in query_lower:
+                return {
+                    'neighborhood': district,
+                    'source': 'user_specified',
+                    'accuracy': 'district_level'
+                }
+        
+        # Check user's favorite neighborhoods
+        if user_profile.favorite_neighborhoods:
+            return {
+                'neighborhood': user_profile.favorite_neighborhoods[0],
+                'source': 'user_profile',
+                'accuracy': 'inferred'
+            }
+        
+        # Default to central Istanbul
+        return {
+            'neighborhood': 'sultanahmet',
+            'source': 'default',
+            'accuracy': 'low'
+        }
+    
+    def _get_neighborhood_from_coordinates(self, lat: float, lng: float) -> str:
+        """Convert GPS coordinates to Istanbul neighborhood"""
+        
+        # Define rough boundaries for major Istanbul districts
+        district_boundaries = {
+            'sultanahmet': {'lat_min': 41.000, 'lat_max': 41.015, 'lng_min': 28.975, 'lng_max': 28.985},
+            'beyoğlu': {'lat_min': 41.025, 'lat_max': 41.040, 'lng_min': 28.970, 'lng_max': 28.985},
+            'taksim': {'lat_min': 41.035, 'lat_max': 41.042, 'lng_min': 28.985, 'lng_max': 28.995},
+            'galata': {'lat_min': 41.020, 'lat_max': 41.028, 'lng_min': 28.970, 'lng_max': 28.980},
+            'kadıköy': {'lat_min': 40.980, 'lat_max': 41.000, 'lng_min': 29.025, 'lng_max': 29.040},
+            'beşiktaş': {'lat_min': 41.035, 'lat_max': 41.050, 'lng_min': 29.000, 'lng_max': 29.015},
+            'ortaköy': {'lat_min': 41.045, 'lat_max': 41.055, 'lng_min': 29.020, 'lng_max': 29.030}
+        }
+        
+        # Check which district the coordinates fall into
+        for district, bounds in district_boundaries.items():
+            if (bounds['lat_min'] <= lat <= bounds['lat_max'] and 
+                bounds['lng_min'] <= lng <= bounds['lng_max']):
+                return district
+        
+        # Default to closest major area if no exact match
+        if lng < 29.000:  # European side
+            return 'beyoğlu'
+        else:  # Asian side
+            return 'kadıköy'
+    
+    def _get_restaurant_data_from_local_database(self, location_info: Dict, entities: Dict, query: str) -> List[Dict]:
+        """Get restaurant data from local database (500+ restaurants from Google Places)"""
+        
+        try:
+            # Use local restaurant database instead of live API calls
+            from backend.services.restaurant_database_service import RestaurantDatabaseService, RestaurantQuery
+            
+            # Initialize restaurant database service
+            db_service = RestaurantDatabaseService()
+            
+            if not db_service.restaurants:
+                logger.warning("Local restaurant database is empty, using fallback")
+                return []
+            
+            # Build query from location and entities
+            district = location_info.get('neighborhood') or location_info.get('district')
+            cuisine_type = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
+            
+            # Extract budget from query text
+            budget = self._extract_budget_from_query(query)
+            rating_min = self._extract_rating_from_query(query)
+            
+            # Create database query
+            db_query = RestaurantQuery(
+                district=district,
+                cuisine_type=cuisine_type,
+                budget=budget,
+                rating_min=rating_min,
+                location=(location_info.get('coordinates', {}).get('lat'), 
+                         location_info.get('coordinates', {}).get('lng')) if location_info.get('coordinates') else None,
+                radius_km=2.0,  # 2km default radius
+                keywords=query.lower().split()
+            )
+            
+            # Get restaurants from local database
+            restaurants = db_service.filter_restaurants(db_query, limit=10)
+            
+            if restaurants:
+                # Convert database format to internal format
+                return self._convert_db_restaurants_to_internal_format(restaurants)
+                    
+        except ImportError:
+            logger.warning("Restaurant database service not available, using static data")
+        except Exception as e:
+            logger.error(f"Error getting restaurant data from local database: {e}")
+            
+        return []
+    
+    def _extract_budget_from_query(self, query: str) -> Optional[str]:
+        """Extract budget preference from query text"""
+        query_lower = query.lower()
+        
+        budget_keywords = {
+            'budget': ['cheap', 'budget', 'affordable', 'inexpensive', 'economical'],
+            'moderate': ['moderate', 'mid-range', 'reasonable', 'normal', 'average'],
+            'upscale': ['upscale', 'expensive', 'high-end', 'fine dining', 'premium'],
+            'luxury': ['luxury', 'luxurious', 'exclusive', 'top-tier', 'finest']
+        }
+        
+        for budget_cat, keywords in budget_keywords.items():
+            if any(keyword in query_lower for keyword in keywords):
+                return budget_cat
+        
+        return None
+    
+    def _extract_rating_from_query(self, query: str) -> Optional[float]:
+        """Extract minimum rating preference from query text"""
+        query_lower = query.lower()
+        
+        # Look for explicit rating mentions
+        import re
+        rating_matches = re.findall(r'(\d+(?:\.\d+)?)\s*(?:star|rating)', query_lower)
+        if rating_matches:
+            rating = float(rating_matches[0])
+            if 1 <= rating <= 5:
+                return rating
+        
+        # Implicit high rating requests
+        if any(word in query_lower for word in ['best', 'top', 'excellent', 'amazing', 'outstanding', 'highly rated']):
+            return 4.0
+        
+        return None
+    
+    def _convert_db_restaurants_to_internal_format(self, db_restaurants: List[Dict]) -> List[Dict]:
+        """Convert database restaurant format to internal format"""
+        
+        converted_restaurants = []
+        
+        for restaurant in db_restaurants:
+            # Map database fields to our internal format
+            converted = {
+                'id': restaurant.get('place_id', f"db_{len(converted_restaurants)}"),
+                'name': restaurant.get('name', 'Unknown Restaurant'),
+                'category': self._categorize_db_restaurant(restaurant),
+                'location': restaurant.get('district', '').lower(),
+                'price_level': self._convert_db_price_level(restaurant.get('budget_category')),
+                'rating': restaurant.get('rating', 4.0),
+                'cuisine': ', '.join(restaurant.get('cuisine_types', ['Restaurant'])),
+                'family_friendly': restaurant.get('rating', 4.0) >= 4.0,  # Heuristic
+                'romantic': 'romantic' in restaurant.get('name', '').lower() or restaurant.get('budget_category') == 'luxury',
+                'walking_time': self._estimate_walking_time_from_coords(restaurant),
+                'accessible': True,  # Most restaurants are accessible
+                'suitable_times': ['breakfast', 'lunch', 'dinner'],  # Default all times
+                'description': f"Rated {restaurant.get('rating', 'N/A')}/5 with {restaurant.get('reviews_count', 0)} reviews. {restaurant.get('address', 'Istanbul location')}",
+                'photo_url': restaurant.get('photos', [None])[0] if restaurant.get('photos') else None,
+                'address': restaurant.get('address', ''),
+                'phone': restaurant.get('phone', ''),
+                'website': restaurant.get('website', ''),
+                'opening_hours': restaurant.get('opening_hours', {}).get('weekday_text', []) if restaurant.get('opening_hours') else [],
+                'api_source': False  # Mark as database data
+            }
+            
+            converted_restaurants.append(converted)
+            
+        return converted_restaurants
+    
+    def _categorize_db_restaurant(self, db_restaurant: Dict) -> str:
+        """Categorize restaurant based on database data"""
+        
+        cuisine_types = db_restaurant.get('cuisine_types', [])
+        name = db_restaurant.get('name', '').lower()
+        
+        # Turkish/local cuisine indicators
+        if any(cuisine in ['turkish', 'kebab', 'ottoman'] for cuisine in cuisine_types):
+            return 'turkish'
+        
+        # International cuisine
+        international_cuisines = ['italian', 'chinese', 'japanese', 'mexican', 'indian', 'french']
+        for cuisine in cuisine_types:
+            if cuisine in international_cuisines:
+                return cuisine
+        
+        # Fine dining indicators
+        if db_restaurant.get('budget_category') in ['upscale', 'luxury']:
+            return 'fine_dining'
+        
+        # Casual dining default
+        return 'casual'
+    
+    def _convert_db_price_level(self, budget_category: str) -> str:
+        """Convert database budget category to price level"""
+        budget_mapping = {
+            'budget': 'budget',
+            'moderate': 'mid',
+            'upscale': 'high',
+            'luxury': 'luxury'
+        }
+        return budget_mapping.get(budget_category, 'mid')
+    
+    def _estimate_walking_time_from_coords(self, restaurant: Dict) -> int:
+        """Estimate walking time from restaurant coordinates (placeholder)"""
+        # In a real implementation, this would calculate distance from user location
+        # For now, return a reasonable default based on district
+        district = restaurant.get('district', '').lower()
+        
+        # Different districts have different typical walking distances
+        district_times = {
+            'sultanahmet': 5,
+            'beyoğlu': 7,
+            'galata': 4,
+            'taksim': 8,
+            'kadıköy': 6
+        }
+        
+        return district_times.get(district, 5)  # Default 5 minutes
