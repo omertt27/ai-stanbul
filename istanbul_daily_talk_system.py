@@ -545,7 +545,7 @@ class IstanbulDailyTalkAI:
         
         return greeting
     
-    def process_message(self, user_id: str, message: str) -> str:
+    def process_message(self, message: str, user_id: str) -> str:
         """Process user message with ML personalization and context awareness"""
         
         # Get user profile and active conversation
@@ -683,6 +683,10 @@ class IstanbulDailyTalkAI:
         if self._is_restaurant_query(message):
             return 'restaurant_query'
         
+        # PRIORITY: Check for museum queries (comprehensive handling)
+        if self._is_museum_query(message):
+            return 'museum_query'
+        
         # Check for neighborhood queries (after transport to avoid conflicts)
         if self._is_neighborhood_query(message):
             return 'neighborhood_query'
@@ -717,8 +721,8 @@ class IstanbulDailyTalkAI:
         current_time = datetime.now()
         traffic_info = self.real_time_data['traffic']()
         
-        # 🎯 ENHANCED: Use Multi-Intent Query Handler for restaurant and attraction queries
-        if intent in ['restaurant_query', 'restaurant_recommendation', 'attraction_query', 'place_recommendation', 'cultural_query', 'activity_planning'] and self.multi_intent_handler:
+        # 🎯 ENHANCED: Use Multi-Intent Query Handler for restaurant, museum, and attraction queries
+        if intent in ['restaurant_query', 'museum_query', 'restaurant_recommendation', 'attraction_query', 'place_recommendation', 'cultural_query', 'activity_planning'] and self.multi_intent_handler:
             try:
                 logger.info(f"🎯 Using Multi-Intent Handler for: {message}")
                 
@@ -778,8 +782,30 @@ class IstanbulDailyTalkAI:
         elif intent == 'general_conversation':
             return generate_conversational_response_enhanced(message, context, user_profile)
         
+        elif intent == 'museum_query':
+            # Use enhanced museum advising system with GPS and ML
+            user_location = None
+            if user_profile.gps_location:
+                user_location = (user_profile.gps_location.get('lat'), user_profile.gps_location.get('lng'))
+            
+            # Convert user profile to dict format for museum system
+            user_profile_dict = {
+                'interests': user_profile.interests,
+                'budget_range': user_profile.budget_range,
+                'accessibility_needs': user_profile.accessibility_needs
+            }
+            
+            from museum_advising_system import process_museum_query_enhanced
+            return process_museum_query_enhanced(message, user_profile_dict, current_time, user_location)
+        
         elif intent == 'neighborhood_query':
-            return process_neighborhood_query(message, user_profile, current_time)
+            # Use enhanced district advising system with GPS and ML
+            user_location = None
+            if user_profile.gps_location:
+                user_location = (user_profile.gps_location.get('lat'), user_profile.gps_location.get('lng'))
+            
+            from district_advising_system import process_neighborhood_query_enhanced
+            return process_neighborhood_query_enhanced(message, user_profile, current_time, user_location)
         
         elif intent == 'transportation_query':
             return process_transportation_query_enhanced(message, user_profile, current_time, context)
@@ -1173,6 +1199,17 @@ class IstanbulDailyTalkAI:
         time_period = get_time_period(current_hour)
         if time_period in suitable_times:
             factors.append(f"it's perfect for {time_period} visits")
+            if similar_recs:
+                avg_rating = sum(similar_recs.values()) / len(similar_recs)
+                if avg_rating >= 4.0:
+                    factors.append("you've rated similar places highly in the past")
+        
+        # Time-based reasoning
+        current_hour = datetime.now().hour
+        suitable_times = recommendation.get('suitable_times', [])
+        time_period = get_time_period(current_hour)
+        if time_period in suitable_times:
+            factors.append(f"it's perfect for {time_period} visits")
         
         # Accessibility reasoning
         if user_profile.accessibility_needs and recommendation.get('accessible'):
@@ -1353,157 +1390,148 @@ class IstanbulDailyTalkAI:
             },
             'data_not_collected': [
                 'Personal identification information',
-                },
-                'feedback_and_ratings': {
-                    'collected': bool(user_profile.recommendation_feedback),ata from other apps or services',
-                    'purpose': 'Understand what you like and improve future suggestions',n tracking'
-                    'retention': 'Latest 50 ratings kept',
-                    'user_control': 'Individual ratings can be modified or removed'
-                },
-                'location_data': {
-                    'collected': bool(user_profile.gps_location),anonymized_analytics': 'Only aggregated, non-identifiable usage statistics',
-                    'purpose': 'Provide location-relevant recommendations',  'marketing_purposes': False
-                    'retention': 'Current session only, not permanently stored',
-                    'user_control': 'Can be disabled or manually entered'
-                } you',
-            },,
-            'data_not_collected': [ated data',
-                'Personal identification information',le format',
-                'Financial or payment data',  'Opt out of data collection features'
-                'Private messages or conversations',
                 'Data from other apps or services',
                 'Permanent location tracking'
             ],
             'data_sharing': {
-                'with_third_parties': False,in_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
-                'with_venues': False,dence scores are calculated"""
+                'with_third_parties': False,
+                'with_venues': False,
                 'anonymized_analytics': 'Only aggregated, non-identifiable usage statistics',
-                'marketing_purposes': False)
-            },l', 'medium')
+                'marketing_purposes': False
+            },
             'user_rights': [
                 'View all data we have about you',
-                'Update or correct your information',confidence_level': confidence_level,
-                'Delete your profile and all associated data',   'numerical_score': f"{ml_score:.3f} out of 1.000",
-                'Export your data in a readable format',    'what_it_means': {
-                'Opt out of data collection features'h': 'We\'re very confident this matches your preferences (85-100%)',
-            ]            'high': 'We\'re confident this is a good match for you (70-84%)',
+                'Update or correct your information',
+                'Delete your profile and all associated data',
+                'Export your data in a readable format',
+                'Opt out of data collection features'
+            ]
         }
-        e less certain (30-54%)'
-        return data_usage    }.get(confidence_level, 'Confidence level not available'),
+        
+        return data_usage
     
-    def _explain_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:.1%}",
-        """Explain how confidence scores are calculated"""        f"Historical feedback: {len(user_profile.recommendation_feedback)} ratings provided",
-        ty: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",
-        ml_score = recommendation.get('ml_score', 0.5)profile.interaction_history)} previous conversations"
+    def _explain_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
+        """Explain how confidence scores are calculated"""
         confidence_level = recommendation.get('confidence_level', 'medium')
-        nfidence': [
+        ml_score = recommendation.get('ml_score', 0.5)
+        
         confidence_explanation = {
             'confidence_level': confidence_level,
             'numerical_score': f"{ml_score:.3f} out of 1.000",
             'what_it_means': {
                 'very_high': 'We\'re very confident this matches your preferences (85-100%)',
-                'high': 'We\'re confident this is a good match for you (70-84%)',ons to maintain accuracy',
-                'medium': 'This seems like a reasonable match (55-69%)',ns'
+                'high': 'We\'re confident this is a good match for you (70-84%)',
+                'medium': 'This seems like a reasonable match (55-69%)',
                 'low': 'This might interest you, but we\'re less certain (30-54%)'
             }.get(confidence_level, 'Confidence level not available'),
             'factors_affecting_confidence': [
-                f"Profile completeness: {user_profile.profile_completeness:.1%}", confidence_explanation
+                f"Profile completeness: {user_profile.profile_completeness:.1%}",
                 f"Historical feedback: {len(user_profile.recommendation_feedback)} ratings provided",
-                f"Preference clarity: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",ofile) -> Dict[str, Any]:
-                f"Interaction history: {len(user_profile.interaction_history)} previous conversations"was chosen"""
+                f"Preference clarity: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",
+                f"Interaction history: {len(user_profile.interaction_history)} previous conversations"
             ],
             'how_to_improve_confidence': [
-                'Rate more recommendations to help us learn your preferences',s and ranked them based on your preferences',
+                'Rate more recommendations to help us learn your preferences',
                 'Update your profile with interests and travel style',
                 'Provide feedback on places you visit',
-                'Specify dietary restrictions or accessibility needs'   'filtering_criteria': [
-            ] if user_profile.profile_completeness < 0.7 else [           f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
-                'Continue rating recommendations to maintain accuracy',            f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
-                'Your profile is well-developed for high-confidence recommendations'uitable for {user_profile.travel_style or 'general'} travelers",
-            ]                f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
+                'Specify dietary restrictions or accessibility needs'
+            ],
+            'filtering_criteria': [
+                f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
+                f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
+                f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
+                f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
+            ]
         }
         
-        return confidence_explanation        ],
-    'ranking_factors': [
+        return confidence_explanation
+    
     def _explain_alternatives(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
-        """Explain what alternatives were considered and why this one was chosen"""e',
+        """Explain what alternatives were considered and why this one was chosen"""
         
-        return {d ratings',
+        return {
             'selection_process': 'We considered multiple options and ranked them based on your preferences',
             'alternatives_considered': {
                 'total_options_evaluated': 'All available venues in your area',
-                'filtering_criteria': [ the best overall match'),
-                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}"," to see other highly-rated alternatives',
+                'filtering_criteria': [
+                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
                     f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
-                    f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",pecify different cuisine types',
-                    f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",rice ranges',
+                    f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
+                    f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
                     'Accessibility: Meeting any specified requirements',
-                    'Time: Appropriate for current time of day'ific recommendations'
+                    'Time: Appropriate for current time of day'
                 ],
                 'ranking_factors': [
                     'Personal preference match (highest weight)',
-                    'Location convenience',acy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
-                    'Past feedback similarity',vide privacy context and controls"""
+                    'Location convenience',
+                    'Past feedback similarity',
                     'Overall quality and ratings',
                     'Contextual appropriateness'
                 ]
-            },ser_profile.gps_location else 'Disabled',
-            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),ed' if user_profile.interests or user_profile.travel_style else 'Basic',
-            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',profile.recommendation_feedback else 'Disabled',
-            'customization_options': [ings max)'
-                'Specify different cuisine types',,
-                'Request different price ranges',   'privacy_controls': [
-                'Ask for options in specific neighborhoods',            'Say "disable location" to stop using GPS data',
-                'Request accessibility-specific recommendations'
-            ]red information',
-        }        'Say "privacy settings" to adjust data preferences'
+            },
+            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),
+            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',
+            'customization_options': [
+                'Ask for options in specific neighborhoods',
+                'Request accessibility-specific recommendations',
+                'Specify different cuisine types',
+                'Request different price ranges'
+            ]
+        }
     
-    def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:: [
+    def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
         """Provide privacy context and controls"""
         
         return {
             'privacy_status': {
                 'location_sharing': 'Enabled' if user_profile.gps_location else 'Disabled',
-                'profile_personalization': 'Enabled' if user_profile.interests or user_profile.travel_style else 'Basic',': 'You can always ask "why did you recommend this?" for any suggestion'
+                'profile_personalization': 'Enabled' if user_profile.interests or user_profile.travel_style else 'Basic',
                 'learning_from_feedback': 'Enabled' if user_profile.recommendation_feedback else 'Disabled',
                 'data_retention': 'Standard (50 interactions/ratings max)'
             },
-            'privacy_controls': [ -> str:
-                'Say "disable location" to stop using GPS data',dle privacy-related requests from users"""
+            'privacy_controls': [
+                'Say "disable location" to stop using GPS data',
                 'Say "clear my data" to reset your profile',
                 'Say "show my data" to see all stored information',
                 'Say "privacy settings" to adjust data preferences'
-            ],ivacy options' in user_input_lower:
+            ],
             'data_minimization': [
                 'We only collect data necessary for recommendations',
                 'Location data is used only for current session',
-                'Personal conversations are not stored',   return self.show_user_data(user_id)
+                'Personal conversations are not stored',
                 'All data is kept locally to your session'    
-            ],in user_input_lower or 'delete my data' in user_input_lower:
+            ],
             'transparency_promise': 'You can always ask "why did you recommend this?" for any suggestion'
         }
-    elif 'disable location' in user_input_lower:
-    # Privacy Control Methodsing(user_id)
+    
+    # Privacy Control Methods
     def handle_privacy_request(self, user_input: str, user_id: str) -> str:
         """Handle privacy-related requests from users"""
-        d)
         user_input_lower = user_input.lower()
         
-        if 'privacy settings' in user_input_lower or 'privacy options' in user_input_lower:le(user_id)
+        if 'privacy settings' in user_input_lower or 'privacy options' in user_input_lower:
             return self.show_privacy_settings(user_id)
         
-        elif 'show my data' in user_input_lower or 'what data do you have' in user_input_lower:ings, showing your data, or clearing your data. What would you like to do?"
+        elif 'show my data' in user_input_lower or 'what data do you have' in user_input_lower:
             return self.show_user_data(user_id)
-         str:
-        elif 'clear my data' in user_input_lower or 'delete my data' in user_input_lower:ntrols"""
+        
+        elif 'clear my data' in user_input_lower or 'delete my data' in user_input_lower:
             return self.clear_user_data(user_id)
         
-        elif 'disable location' in user_input_lower:otected - we only store data when you interact with recommendations."
+        elif 'disable location' in user_input_lower:
             return self.disable_location_sharing(user_id)
         
         elif 'enable location' in user_input_lower:
-            return self.enable_location_sharing(user_id)response = "🔒 **Your Privacy Settings**\n\n"
+            return self.enable_location_sharing(user_id)
         
+        else:
+            return "I can help with privacy settings, showing your data, or clearing your data. What would you like to do?"
+    
+    def show_privacy_settings(self, user_id: str) -> str:
+        """Show current privacy settings for the user"""
+        user_profile = self.get_user_profile(user_id)
+        
+        response = "🔒 **Your Privacy Settings**\n\n"
         response += "**Current Status:**\n"
         response += f"• Location sharing: {'✅ Enabled' if user_profile.gps_location else '❌ Disabled'}\n"
         response += f"• Profile personalization: {'✅ Active' if user_profile.interests or user_profile.travel_style else '⚪ Basic'}\n"
@@ -1787,6 +1815,17 @@ class IstanbulDailyTalkAI:
         ]
         message_lower = message.lower()
         return any(keyword in message_lower for keyword in transport_keywords)
+    
+    def _is_museum_query(self, message: str) -> bool:
+        """Check if message is about museums"""
+        museum_keywords = [
+            'museum', 'museums', 'gallery', 'galleries', 'exhibition', 'exhibit',
+            'palace', 'palaces', 'collection', 'artifacts', 'art', 'history',
+            'archaeological', 'cultural', 'heritage', 'islamic arts',
+            'müze', 'müzeler', 'saray', 'koleksiyon', 'sergi'
+        ]
+        message_lower = message.lower()
+        return any(keyword in message_lower for keyword in museum_keywords)
     
     def _is_restaurant_query(self, message: str) -> bool:
         """Check if message is about restaurants"""
