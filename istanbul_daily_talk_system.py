@@ -475,6 +475,25 @@ class IstanbulDailyTalkAI:
         
         return self.user_profiles[user_id]
     
+    def _generate_session_id(self, user_id: str) -> str:
+        """Generate a unique session ID for a user"""
+        import uuid
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        return f"{user_id}_{timestamp}_{unique_id}"
+    
+    def _get_active_session_id(self, user_id: str) -> Optional[str]:
+        """Get the active session ID for a user"""
+        # Find the most recent session for this user
+        user_sessions = [session_id for session_id, context in self.active_conversations.items() 
+                        if context.user_profile.user_id == user_id]
+        
+        if user_sessions:
+            # Return the most recent session (sessions are chronologically ordered by timestamp)
+            return max(user_sessions)
+        
+        return None
+    
     def start_conversation(self, user_id: str) -> str:
         """Start or resume conversation with personalized greeting"""
         
@@ -496,66 +515,66 @@ class IstanbulDailyTalkAI:
         
         return greeting
     
-    def process_message(self, user_id: str, message: str) -> str:
-        """🚀 ENHANCED Process user message with Deep Learning & English Optimization
-        
-        NOW WITH UNLIMITED DEEP LEARNING CAPABILITIES AND ML-POWERED PERSONALIZATION!
-        """
-        
-        # Get user profile and active conversation
+    # ML Personalization Handler Methods
+    def handle_preference_update(self, message: str, user_id: str) -> str:
+        """Handle user preference updates through natural language"""
         user_profile = self.get_or_create_user_profile(user_id)
-        session_id = self._get_active_session_id(user_id)
-        
-        if session_id is None or session_id not in self.active_conversations:
-            # Start new conversation but then process the message
-            self.start_conversation(user_id)
-            session_id = self._get_active_session_id(user_id)
-        
-        context = self.active_conversations[session_id]
-        
-        # 🎯 PRIORITY #0: Handle ML personalization features (feedback, preferences, insights)
         message_lower = message.lower()
         
-        if any(phrase in message_lower for phrase in ['rate', 'i loved', 'i liked', 'was amazing', 'was great', 'didn\'t like', 'was bad', 'terrible']):
-            logger.info(f"🌟 Processing recommendation feedback for {user_id}")
-            return self.handle_recommendation_feedback(message, user_id)
+        updates = []
         
-        if any(phrase in message_lower for phrase in ['my preferences', 'i like', 'i prefer', 'update my', 'traveling with', 'i\'m vegetarian', 'i have dietary']):
-            logger.info(f"📝 Processing preference update for {user_id}")
-            return self.handle_preference_update(message, user_id)
+        # Extract dietary preferences
+        if 'vegetarian' in message_lower:
+            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['vegetarian']))
+            updates.append("dietary preferences (vegetarian)")
         
-        if any(phrase in message_lower for phrase in ['my profile', 'personalization', 'how much do you know', 'show my data', 'my insights']):
-            logger.info(f"📊 Providing personalization insights for {user_id}")
-            return self.get_personalization_insights(user_id)
-        
-        # 🚇 PRIORITY #1: Check for transportation queries FIRST (highest priority)
-        # Transportation queries often mention locations, so they must be checked before neighborhood queries
-        if self._is_transportation_query(message):
-            logger.info(f"🚇 Processing transportation query for {user_id}")
-            current_time = datetime.now()
-            response = self._process_transportation_query(message, user_profile, current_time, context)
-            context.add_interaction(message, response, "transportation_query")
+        if 'vegan' in message_lower:
+            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['vegan']))
+            updates.append("dietary preferences (vegan)")
             
-            # Create proper entities dict for transportation queries
-            entities = self.entity_recognizer.extract_entities(message)
-            self._update_user_profile(user_profile, message, "transportation_query", entities)
-            return response
+        if 'halal' in message_lower:
+            user_profile.dietary_restrictions = list(set(user_profile.dietary_restrictions + ['halal']))
+            updates.append("dietary preferences (halal)")
         
-        # 🏘️ PRIORITY #2: Check for neighborhood queries (after transportation to avoid conflicts)
-        if self._is_neighborhood_query(message) and not self._has_transportation_keywords(message):
-            logger.info(f"🏘️ Processing neighborhood query for {user_id}")
-            current_time = datetime.now()
-            response = self._process_neighborhood_query_with_gps(message, user_profile, current_time, context)
-            context.add_interaction(message, response, "neighborhood_query")
+        # Extract travel preferences
+        if 'family' in message_lower or 'kids' in message_lower or 'children' in message_lower:
+            user_profile.interests = list(set(user_profile.interests + ['family-friendly']))
+            updates.append("travel style (family-friendly)")
             
-            # Create proper entities dict for neighborhood queries
-            entities = {
-                'neighborhoods': [self._extract_neighborhood_from_message(message)] if self._extract_neighborhood_from_message(message) else [],
-                'cuisines': [],
-                'districts': [],
-                'attractions': []
-            }
-            self._update_user_profile(user_profile, message, "neighborhood_query", entities)
+        if 'solo' in message_lower or 'alone' in message_lower:
+            user_profile.interests = list(set(user_profile.interests + ['solo-travel']))
+            updates.append("travel style (solo travel)")
+            
+        if 'couple' in message_lower or 'romantic' in message_lower:
+            user_profile.interests = list(set(user_profile.interests + ['romantic']))
+            updates.append("travel style (romantic)")
+        
+        # Extract interests
+        interests_keywords = {
+            'history': ['history', 'historical', 'museum', 'ancient'],
+            'food': ['food', 'cuisine', 'restaurant', 'eating', 'taste'],
+            'culture': ['culture', 'cultural', 'traditional', 'local'],
+            'shopping': ['shopping', 'bazaar', 'market', 'souvenir'],
+            'nightlife': ['nightlife', 'bar', 'club', 'evening'],
+            'art': ['art', 'gallery', 'artist', 'creative'],
+            'architecture': ['architecture', 'building', 'mosque', 'palace']
+        }
+        
+        for interest, keywords in interests_keywords.items():
+            if any(keyword in message_lower for keyword in keywords):
+                if interest not in user_profile.interests:
+                    user_profile.interests.append(interest)
+                    updates.append(f"interests ({interest})")
+        
+        # Extract budget preferences
+        if any(word in message_lower for word in ['budget', 'cheap', 'affordable', 'economical']):
+            user_profile.budget_range = 'budget'
+            updates.append("budget preferences (budget-friendly)")
+        elif any(word in message_lower for word in ['luxury', 'expensive', 'premium', 'high-end']):
+            user_profile.budget_range = 'luxury'
+            updates.append("budget preferences (luxury)")
+        elif any(word in message_lower for word in ['mid-range', 'moderate', 'medium']):
+            user_profile.budget_range = 'mid-range'
             return response
         
         # 🧠 ENHANCED: Use Deep Learning AI if available
@@ -1086,7 +1105,8 @@ class IstanbulDailyTalkAI:
         
         # Budget alignment
         rec_price_level = recommendation.get('price_level', 'moderate').lower()
-        if rec_price_level == user_profile.budget_range.lower():
+        user_budget = (user_profile.budget_range or 'moderate').lower()
+        if rec_price_level == user_budget:
             compatibility_score += 0.15
         
         # Travel style alignment
@@ -1162,8 +1182,9 @@ class IstanbulDailyTalkAI:
             reasons.append("romantic atmosphere")
         
         # Budget reasons
-        if recommendation.get('price_level', '').lower() == user_profile.budget_range.lower():
-            reasons.append(f"fits your {user_profile.budget_range} budget")
+        user_budget = user_profile.budget_range or 'moderate'
+        if recommendation.get('price_level', '').lower() == user_budget.lower():
+            reasons.append(f"fits your {user_budget} budget")
         
         # Accessibility reasons
         if user_profile.accessibility_needs and recommendation.get('accessible', False):
@@ -1214,7 +1235,8 @@ class IstanbulDailyTalkAI:
             factors['interest_match'] = 0.8 if any(interest.lower() in rec_category 
                                                  for interest in user_profile.interests) else 0.2
         
-        if recommendation.get('price_level', '').lower() == user_profile.budget_range.lower():
+        user_budget = user_profile.budget_range or 'moderate'
+        if recommendation.get('price_level', '').lower() == user_budget.lower():
             factors['budget_alignment'] = 0.9
         
         return factors
@@ -1346,582 +1368,663 @@ class IstanbulDailyTalkAI:
         
         user_profile.profile_completeness = sum(completeness_factors.values()) / len(completeness_factors)
     
-    # Helper methods for ML recommendation system
-    def _get_travel_style_bonus(self, recommendation: Dict, travel_style: str) -> float:
-        """Calculate bonus score based on travel style alignment"""
+    # =============================
+    # AI EXPLAINABILITY & TRUST SYSTEM
+    # =============================
+    
+    def get_recommendation_explanation(self, recommendation_id: str, user_id: str) -> Dict[str, Any]:
+        """Generate detailed explanation for why a specific recommendation was made"""
         
-        style_bonuses = {
-            'solo': {
-                'cafe': 0.15, 'museum': 0.1, 'cultural_site': 0.1, 'walking_tour': 0.2
-            },
-            'couple': {
-                'restaurant': 0.15, 'romantic_spot': 0.2, 'sunset_view': 0.15, 'wine_bar': 0.1
-            },
-            'family': {
-                'park': 0.2, 'family_restaurant': 0.15, 'interactive_museum': 0.1, 'playground': 0.15
-            },
-            'group': {
-                'entertainment': 0.15, 'group_activity': 0.2, 'nightlife': 0.1, 'large_restaurant': 0.1
-            },
-            'business': {
-                'business_hotel': 0.1, 'conference_center': 0.15, 'business_restaurant': 0.1, 'transport_hub': 0.05
-            }
+        if user_id not in self.user_profiles:
+            return {'error': 'User profile not found'}
+        
+        user_profile = self.user_profiles[user_id]
+        
+        # Find the recommendation in recent interactions
+        recommendation_data = self._find_recommendation_by_id(recommendation_id, user_profile)
+        
+        if not recommendation_data:
+            return {'error': 'Recommendation not found'}
+        
+        explanation = {
+            'recommendation_id': recommendation_id,
+            'recommendation_name': recommendation_data.get('name', 'Unknown'),
+            'explanation_summary': self._generate_explanation_summary(recommendation_data, user_profile),
+            'detailed_factors': self._generate_detailed_explanation_factors(recommendation_data, user_profile),
+            'transparency_info': self._generate_transparency_info(user_profile),
+            'data_usage': self._explain_data_usage(user_profile),
+            'confidence_breakdown': self._explain_confidence_score(recommendation_data, user_profile),
+            'alternatives_considered': self._explain_alternatives(recommendation_data, user_profile),
+            'privacy_context': self._get_privacy_context(user_profile)
         }
         
-        rec_category = recommendation.get('category', '').lower()
-        return style_bonuses.get(travel_style, {}).get(rec_category, 0.0)
+        return explanation
     
-    def _check_accessibility_compatibility(self, recommendation: Dict, user_profile: UserProfile) -> float:
-        """Check accessibility compatibility and return score adjustment"""
+    def _generate_explanation_summary(self, recommendation: Dict, user_profile: UserProfile) -> str:
+        """Generate a clear, human-readable summary of why this recommendation was made"""
         
-        if not user_profile.accessibility_needs:
-            return 0.0
+        factors = []
         
-        accessibility_features = recommendation.get('accessibility_features', {})
-        
-        if user_profile.accessibility_needs == 'wheelchair':
-            return 0.2 if accessibility_features.get('wheelchair_accessible', False) else -0.1
-        elif user_profile.accessibility_needs == 'hearing':
-            return 0.15 if accessibility_features.get('hearing_loop', False) else 0.0
-        elif user_profile.accessibility_needs == 'visual':
-            return 0.15 if accessibility_features.get('braille_menu', False) else 0.0
-        
-        return 0.0
-    
-    def _get_group_type_bonus(self, recommendation: Dict, user_profile: UserProfile) -> float:
-        """Calculate bonus based on group type suitability"""
-        
-        group_type = user_profile.group_type
-        group_size = user_profile.group_size
-        
-        if group_type == 'family' and user_profile.has_children:
-            return 0.15 if recommendation.get('child_friendly', False) else -0.05
-        
-        if group_size > 6:
-            return 0.1 if recommendation.get('large_groups', False) else -0.05
-        
-        return 0.0
-    
-    def _get_time_preference_bonus(self, recommendation: Dict, user_profile: UserProfile, current_hour: int) -> float:
-        """Calculate time-based preference bonus"""
-        
-        time_period = self._get_time_period(current_hour)
-        
-        if time_period in user_profile.preferred_visit_times:
-            return 0.1
-        
-        # Check if recommendation is suitable for current time
-        rec_suitable_times = recommendation.get('suitable_times', ['morning', 'afternoon', 'evening'])
-        if time_period in rec_suitable_times:
-            return 0.05
-        
-        return 0.0
-    
-    def _get_time_period(self, hour: int) -> str:
-        """Convert hour to time period"""
-        
-        if 6 <= hour < 12:
-            return 'morning'
-        elif 12 <= hour < 17:
-            return 'afternoon'
-        elif 17 <= hour < 22:
-            return 'evening'
-        else:
-            return 'night'
-    
-    def _find_similar_recommendations(self, recommendation: Dict, feedback_history: Dict[str, float]) -> Dict[str, float]:
-        """Find similar recommendations in feedback history"""
-        
-        similar_recs = {}
-        rec_category = recommendation.get('category', '').lower()
-        rec_location = recommendation.get('location', '').lower()
-        
-        # This is a simplified similarity check - in a real ML system, you'd use more sophisticated similarity metrics
-        for rec_id, rating in feedback_history.items():
-            # In a real implementation, you'd have stored recommendation details
-            # For now, we'll use a simple heuristic
-            if rec_category in rec_id.lower() or rec_location in rec_id.lower():
-                similar_recs[rec_id] = rating
-        
-        return similar_recs
-    
-    # =============================
-    # MISSING HELPER METHODS
-    # =============================
-    
-    def _get_transport_status(self) -> Dict:
-        """Get current transport status from live IBB API"""
-        try:
-            # Live IBB Transport API Integration
-            headers = {'User-Agent': 'Istanbul-AI-Guide/1.0'}
-            
-            # Metro status from IBB API
-            metro_response = requests.get(f"{self.ibb_api_base}/transport/metro/status", 
-                                        headers=headers, timeout=5)
-            metro_data = metro_response.json() if metro_response.status_code == 200 else {
-                'status': 'unknown', 'delays': [], 'lines': {}
-            }
-            
-            # Bus status from IBB API
-            bus_response = requests.get(f"{self.ibb_api_base}/transport/bus/status", 
-                                      headers=headers, timeout=5)
-            bus_data = bus_response.json() if bus_response.status_code == 200 else {
-                'status': 'unknown', 'delays': [], 'disruptions': []
-            }
-            
-            # Ferry status from IBB API
-            ferry_response = requests.get(f"{self.ibb_api_base}/transport/ferry/status", 
-                                        headers=headers, timeout=5)
-            ferry_data = ferry_response.json() if ferry_response.status_code == 200 else {
-                'status': 'unknown', 'weather_dependent': True, 'routes': {}
-            }
-            
-            logger.info("✅ Live transport data retrieved from IBB API")
-            return {
-                'metro': metro_data,
-                'bus': bus_data,
-                'ferry': ferry_data,
-                'last_updated': datetime.now().isoformat(),
-                'source': 'live_ibb_api'
-            }
-            
-        except requests.RequestException as e:
-            logger.warning(f"IBB transport API error: {e}, using fallback data")
-            # Fallback to simulated data if API fails
-            return {
-                'metro': {'status': 'operational', 'delays': [], 'note': 'fallback_data'},
-                'bus': {'status': 'operational', 'delays': ['Some routes may have delays'], 'note': 'fallback_data'},
-                'ferry': {'status': 'operational', 'weather_dependent': True, 'note': 'fallback_data'},
-                'last_updated': datetime.now().isoformat(),
-                'source': 'fallback_simulation'
-            }
-        except Exception as e:
-            logger.error(f"Unexpected transport API error: {e}")
-            return {'error': 'transport_data_unavailable', 'last_updated': datetime.now().isoformat()}
-
-    def _get_traffic_status(self) -> Dict:
-        """Get current traffic status from IBB traffic API"""
-        try:
-            # Live IBB Traffic API Integration
-            headers = {'User-Agent': 'Istanbul-AI-Guide/1.0'}
-            
-            traffic_response = requests.get(f"{self.ibb_api_base}/traffic/status", 
-                                          headers=headers, timeout=5)
-            
-            if traffic_response.status_code == 200:
-                traffic_data = traffic_response.json()
-                logger.info("✅ Live traffic data retrieved from IBB API")
-                return {
-                    'overall_condition': traffic_data.get('overall', 'moderate'),
-                    'congested_areas': traffic_data.get('congested_areas', []),
-                    'bridge_status': traffic_data.get('bridges', {}),
-                    'recommended_routes': traffic_data.get('recommendations', {}),
-                    'incidents': traffic_data.get('incidents', []),
-                    'last_updated': datetime.now().isoformat(),
-                    'source': 'live_ibb_traffic_api'
-                }
+        # Location-based reasoning
+        if recommendation.get('location') and user_profile.current_location:
+            if recommendation['location'].lower() == user_profile.current_location.lower():
+                factors.append(f"it's in {user_profile.current_location.title()}, your current area")
             else:
-                raise requests.RequestException(f"Traffic API returned status {traffic_response.status_code}")
-                
-        except requests.RequestException as e:
-            logger.warning(f"IBB traffic API error: {e}, using fallback data")
-            # Fallback to simulated traffic data
-            return {
-                'overall_condition': 'moderate',
-                'congested_areas': ['Taksim', 'Eminönü', 'Beşiktaş'],
-                'bridge_status': {
-                    'bosphorus_bridge': 'moderate_traffic',
-                    'fatih_sultan_mehmet': 'heavy_traffic',
-                    'yavuz_sultan_selim': 'light_traffic'
-                },
-                'recommended_routes': {
-                    'to_sultanahmet': 'Use Metro M2 to Vezneciler',
-                    'to_galata_tower': 'Walk from Karaköy or take bus'
-                },
-                'incidents': [],
-                'last_updated': datetime.now().isoformat(),
-                'source': 'fallback_simulation',
-                'note': 'traffic_api_unavailable'
+                factors.append(f"it's easily accessible from your location")
+        
+        # Interest-based reasoning
+        if user_profile.interests:
+            matching_interests = []
+            rec_category = recommendation.get('category', '').lower()
+            for interest in user_profile.interests:
+                if interest.lower() in rec_category or rec_category in interest.lower():
+                    matching_interests.append(interest)
+            
+            if matching_interests:
+                factors.append(f"it matches your interests in {', '.join(matching_interests)}")
+        
+        # Travel style reasoning
+        if user_profile.travel_style:
+            if user_profile.travel_style == 'family' and recommendation.get('family_friendly'):
+                factors.append("it's perfect for families like yours")
+            elif user_profile.travel_style == 'couple' and recommendation.get('romantic'):
+                factors.append("it offers a romantic atmosphere for couples")
+            elif user_profile.travel_style == 'solo' and recommendation.get('solo_friendly', True):
+                factors.append("it's great for solo travelers")
+        
+        # Past behavior reasoning
+        if user_profile.recommendation_feedback:
+            similar_recs = self._find_similar_recommendations(recommendation, user_profile.recommendation_feedback)
+            if similar_recs:
+                avg_rating = sum(similar_recs.values()) / len(similar_recs)
+                if avg_rating >= 4.0:
+                    factors.append("you've rated similar places highly in the past")
+        
+        # Time-based reasoning
+        current_hour = datetime.now().hour
+        suitable_times = recommendation.get('suitable_times', [])
+        time_period = self._get_time_period(current_hour)
+        if time_period in suitable_times:
+            factors.append(f"it's perfect for {time_period} visits")
+        
+        # Accessibility reasoning
+        if user_profile.accessibility_needs and recommendation.get('accessible'):
+            factors.append("it meets your accessibility requirements")
+        
+        # Budget reasoning
+        user_budget = user_profile.budget_range or 'moderate'
+        if recommendation.get('price_level', '').lower() == user_budget.lower():
+            factors.append(f"it fits your {user_budget} budget preferences")
+        
+        if not factors:
+            return f"This recommendation is based on general popularity and location convenience."
+        
+        return f"I recommended this because {', '.join(factors)}."
+    
+    def _generate_detailed_explanation_factors(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
+        """Generate detailed breakdown of all factors that influenced the recommendation"""
+        
+        factors = {
+            'user_profile_factors': {},
+            'contextual_factors': {},
+            'behavioral_factors': {},
+            'external_factors': {},
+            'weights_and_scores': {}
+        }
+        
+        # User Profile Factors
+        factors['user_profile_factors'] = {
+            'interests_match': {
+                'weight': 0.25,
+                'score': self._calculate_interest_match_score(recommendation, user_profile),
+                'explanation': f"Based on your interests: {', '.join(user_profile.interests) if user_profile.interests else 'None specified'}"
+            },
+            'travel_style_alignment': {
+                'weight': 0.20,
+                'score': self._calculate_travel_style_score(recommendation, user_profile),
+                'explanation': f"Aligned with your {user_profile.travel_style or 'unspecified'} travel style"
+            },
+            'budget_compatibility': {
+                'weight': 0.15,
+                'score': self._calculate_budget_score(recommendation, user_profile),
+                'explanation': f"Matches your {user_profile.budget_range or 'moderate'} budget range"
+            },
+            'accessibility_needs': {
+                'weight': 0.10,
+                'score': self._calculate_accessibility_score(recommendation, user_profile),
+                'explanation': f"Accessibility: {user_profile.accessibility_needs or 'No special needs'}"
             }
-        except Exception as e:
-            logger.error(f"Unexpected traffic API error: {e}")
-            return {'error': 'traffic_data_unavailable', 'last_updated': datetime.now().isoformat()}
-
-    def _get_local_events(self) -> Dict:
-        """Get current local events from curated sources"""
-        try:
-            current_time = datetime.now()
-            current_date = current_time.date()
-            day_of_week = current_date.weekday()  # 0=Monday, 6=Sunday
-            
-            # Generate realistic events based on current date/time
-            today_events = []
-            week_events = []
-            
-            # Common recurring events in Istanbul
-            if day_of_week == 4:  # Friday
-                today_events.append({
-                    'name': 'Friday Prayer', 
-                    'location': 'Blue Mosque & other mosques', 
-                    'time': '12:30', 
-                    'type': 'religious',
-                    'note': 'Mosques may be crowded 12:00-14:00'
-                })
-            
-            if day_of_week in [5, 6]:  # Weekend
-                today_events.extend([
-                    {'name': 'Grand Bazaar Shopping', 'location': 'Grand Bazaar', 'time': '09:00-19:00', 'type': 'shopping'},
-                    {'name': 'Bosphorus Ferry Tour', 'location': 'Eminönü Pier', 'time': 'Every 2 hours', 'type': 'sightseeing'}
-                ])
-            
-            # Regular weekly events
-            week_events = [
-                {'name': 'Turkish Bath Experience', 'location': 'Cagaloglu Hamami', 'dates': 'Daily', 'type': 'cultural'},
-                {'name': 'Spice Bazaar Visit', 'location': 'Eminönü', 'dates': 'Mon-Sat', 'type': 'shopping'},
-                {'name': 'Istanbul Modern Art Museum', 'location': 'Karaköy', 'dates': 'Tue-Sun', 'type': 'art'},
-                {'name': 'Galata Tower Visits', 'location': 'Galata', 'dates': 'Daily 09:00-20:30', 'type': 'sightseeing'}
-            ]
-            
-            logger.info("✅ Local curated events generated")
-            return {
-                'today': today_events,
-                'this_week': week_events,
-                'featured': [
-                    {'name': 'Hagia Sophia Visit', 'location': 'Sultanahmet', 'time': 'Daily 09:00-19:00', 'type': 'historic'},
-                    {'name': 'Topkapi Palace Tour', 'location': 'Sultanahmet', 'time': 'Wed-Mon 09:00-18:00', 'type': 'historic'}
-                ],
-                'cultural': [
-                    {'name': 'Turkish Music & Dance Shows', 'location': 'Various venues', 'type': 'performance'},
-                    {'name': 'Traditional Craft Workshops', 'location': 'Various locations', 'type': 'workshop'}
-                ],
-                'note': 'IBB does not provide public events API - using curated local recommendations',
-                'last_updated': datetime.now().isoformat(),
-                'source': 'curated_local_events'
+        }
+        
+        # Contextual Factors
+        current_time = datetime.now()
+        factors['contextual_factors'] = {
+            'location_proximity': {
+                'weight': 0.20,
+                'score': 0.8 if recommendation.get('location') == user_profile.current_location else 0.6,
+                'explanation': f"Distance from your current location: {recommendation.get('walking_time', 'Unknown')} minutes"
+            },
+            'time_suitability': {
+                'weight': 0.15,
+                'score': self._calculate_time_suitability_score(recommendation, current_time),
+                'explanation': f"Suitable for current time ({current_time.strftime('%H:%M')})"
+            },
+            'seasonal_relevance': {
+                'weight': 0.05,
+                'score': 0.7,  # Default seasonal score
+                'explanation': f"Appropriate for {current_time.strftime('%B')} season"
             }
-                
-        except Exception as e:
-            logger.error(f"Local events generation error: {e}")
-            return {
-                'today': [],
-                'this_week': [],
-                'error': 'events_generation_failed',
-                'last_updated': datetime.now().isoformat(),
-                'source': 'error_fallback'
+        }
+        
+        # Behavioral Factors
+        factors['behavioral_factors'] = {
+            'past_feedback': {
+                'weight': 0.20,
+                'score': self._calculate_feedback_score(recommendation, user_profile),
+                'explanation': f"Based on {len(user_profile.recommendation_feedback)} previous ratings"
+            },
+            'interaction_history': {
+                'weight': 0.10,
+                'score': self._calculate_interaction_history_score(recommendation, user_profile),
+                'explanation': f"Learning from {len(user_profile.interaction_history)} past interactions"
             }
+        }
+        
+        # External Factors
+        factors['external_factors'] = {
+            'popularity_score': {
+                'weight': 0.10,
+                'score': recommendation.get('rating', 0.0) / 5.0,
+                'explanation': f"Overall rating: {recommendation.get('rating', 'N/A')}/5.0"
+            },
+            'real_time_availability': {
+                'weight': 0.05,
+                'score': 0.9,  # Assume generally available
+                'explanation': "Currently open and available"
+            }
+        }
+        
+        # Calculate overall weighted score
+        total_weighted_score = 0
+        total_weight = 0
+        
+        for category in factors.values():
+            if isinstance(category, dict) and 'weight' in str(category):
+                for factor in category.values():
+                    if isinstance(factor, dict) and 'weight' in factor and 'score' in factor:
+                        total_weighted_score += factor['weight'] * factor['score']
+                        total_weight += factor['weight']
+        
+        factors['weights_and_scores'] = {
+            'final_score': total_weighted_score,
+            'confidence_level': self._calculate_confidence_level(total_weighted_score, user_profile),
+            'score_explanation': f"Weighted average of all factors: {total_weighted_score:.3f}"
+        }
+        
+        return factors
     
-    # Stub methods for compatibility - these would be implemented based on specific system requirements
-    def _is_transportation_query(self, message: str) -> bool:
-        """Check if message is a transportation query"""
-        transport_keywords = ['metro', 'bus', 'ferry', 'transport', 'how to get', 'directions', 'travel to']
-        return any(keyword in message.lower() for keyword in transport_keywords)
-    
-    def _is_neighborhood_query(self, message: str) -> bool:
-        """Check if message is a neighborhood query"""
-        neighborhood_keywords = ['neighborhood', 'area', 'district', 'where to stay', 'sultanahmet', 'beyoğlu', 'galata']
-        return any(keyword in message.lower() for keyword in neighborhood_keywords)
-    
-    def _has_transportation_keywords(self, message: str) -> bool:
-        """Check if message has transportation-specific keywords"""
-        return self._is_transportation_query(message)
-    
-    def _is_restaurant_query(self, message: str) -> bool:
-        """Check if message is a restaurant query"""
-        restaurant_keywords = ['restaurant', 'food', 'eat', 'dining', 'meal', 'cuisine', 'hungry']
-        return any(keyword in message.lower() for keyword in restaurant_keywords)
-    
-    def _enhance_intent_classification(self, message: str) -> str:
-        """Enhanced intent classification"""
-        if self._is_transportation_query(message):
-            return 'transportation_query'
-        elif self._is_restaurant_query(message):
-            return 'restaurant_query'
-        elif self._is_neighborhood_query(message):
-            return 'neighborhood_query'
-        else:
-            return 'general_conversation'
-    
-    # Placeholder methods - these would be fully implemented based on system architecture
-    def _get_or_request_gps_location(self, user_profile: UserProfile, context: ConversationContext) -> Optional[Dict]:
-        """Get GPS location or request from user"""
-        return user_profile.gps_location if user_profile.gps_location else {'lat': 41.0082, 'lng': 28.9784}
-    
-    def _extract_or_request_location(self, message: str, user_profile: UserProfile, context: ConversationContext, gps_location: Dict) -> Dict:
-        """Extract location info from GPS or user input"""
+    def _generate_transparency_info(self, user_profile: UserProfile) -> Dict[str, Any]:
+        """Generate transparency information about the AI system's decision-making"""
+        
         return {
-            'neighborhood': user_profile.current_location or 'sultanahmet',
-            'gps': gps_location,
-            'has_gps': bool(gps_location)
+            'algorithm_type': 'Hybrid Machine Learning with Rule-based Components',
+            'data_sources': [
+                'Your personal preferences and profile',
+                'Your interaction history and feedback',
+                'Real-time location data (if enabled)',
+                'General venue information and ratings',
+                'Contextual factors (time, season, etc.)'
+            ],
+            'decision_process': [
+                '1. Analyze your profile and preferences',
+                '2. Filter relevant options based on location and context',
+                '3. Score each option using ML algorithms',
+                '4. Apply personalization weights',
+                '5. Rank and select top recommendations',
+                '6. Generate explanations for transparency'
+            ],
+            'personalization_level': f"{user_profile.profile_completeness:.1%} (based on profile completeness)",
+            'learning_status': f"Learning from {len(user_profile.interaction_history)} interactions",
+            'last_updated': user_profile.last_interaction.isoformat() if user_profile.last_interaction else 'Never',
+            'bias_mitigation': [
+                'Diversity filtering to avoid echo chambers',
+                'Regular model retraining with new data',
+                'Balanced representation across price ranges',
+                'Accessibility consideration in all recommendations'
+            ]
         }
     
-    def _request_location_for_restaurant(self, message: str, user_profile: UserProfile) -> str:
-        """Request location information for restaurant recommendations"""
-        return "I'd love to recommend restaurants near you! Could you share your current location or tell me which neighborhood you're in?"
-    
-    # Additional stub methods for full compatibility
-    def _process_transportation_query(self, message: str, user_profile: UserProfile, current_time: datetime, context: ConversationContext = None) -> str:
-        """Process transportation-related queries"""
-        return "I can help you with Istanbul transportation! Metro, bus, and ferry services are generally running well. What's your destination?"
-    
-    def _process_neighborhood_query_with_gps(self, message: str, user_profile: UserProfile, current_time: datetime, context: ConversationContext) -> str:
-        """Process neighborhood queries with GPS context"""
-        return "I can tell you about Istanbul's amazing neighborhoods! Each has its own character and attractions. Which area interests you?"
-    
-    def _process_neighborhood_query(self, message: str, user_profile: UserProfile, current_time: datetime) -> str:
-        """Process neighborhood queries"""
-        return self._process_neighborhood_query_with_gps(message, user_profile, current_time, None)
-    
-    def _extract_neighborhood_from_message(self, message: str) -> Optional[str]:
-        """Extract neighborhood name from message"""
-        for neighborhood, variants in self.entity_recognizer.neighborhoods.items():
-            if any(variant in message.lower() for variant in variants):
-                return neighborhood
-        return None
-    
-    def _sync_deep_learning_profile(self, user_profile: UserProfile, dl_analytics: Dict):
-        """Sync profile with deep learning analytics"""
-        # This would sync data between the user profile and deep learning system
-        pass
-    
-    def _format_attraction_response_text(self, attraction_response: Dict, user_profile: UserProfile, current_time: datetime) -> str:
-        """Format attraction response for text output"""
-        return "Here are some great Istanbul attractions based on your preferences!"
-    
-    def _enhance_multi_intent_response(self, response: str, entities: Dict, user_profile: UserProfile, current_time: datetime) -> str:
-        """Enhance multi-intent response with Istanbul context"""
-        return response + "\n\n🌟 Enjoy exploring Istanbul!"
-    
-    def _generate_location_response(self, entities: Dict, context: ConversationContext, traffic_info: Dict) -> str:
-        """Generate location-based response"""
-        return "I can help you find locations in Istanbul! What specific place are you looking for?"
-    
-    def _generate_time_response(self, entities: Dict, context: ConversationContext, current_time: datetime) -> str:
-        """Generate time-based response"""
-        return f"Current time in Istanbul is {current_time.strftime('%H:%M')}. Most attractions and restaurants are open now!"
-    
-    def _generate_conversational_response(self, message: str, context: ConversationContext, user_profile: UserProfile) -> str:
-        """Generate conversational response"""
-        return "I'm here to help you explore Istanbul! Ask me about restaurants, attractions, transportation, or neighborhoods."
-    
-    def _generate_fallback_response(self, context: ConversationContext, user_profile: UserProfile) -> str:
-        """Generate fallback response"""
-        return "I'd love to help you explore Istanbul! You can ask me about restaurants, attractions, transportation, or any other questions about the city."
-    
-    def _generate_session_id(self, user_id: str) -> str:
-        """Generate unique session ID for user conversation"""
-        import uuid
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        unique_id = str(uuid.uuid4())[:8]
-        return f"{user_id}_{timestamp}_{unique_id}"
-    
-    def _get_active_session_id(self, user_id: str) -> Optional[str]:
-        """Get active session ID for user, or None if no active session"""
-        # Look for existing active sessions for this user
-        for session_id, context in self.active_conversations.items():
-            if context.user_profile.user_id == user_id:
-                # Check if session is recent (within 1 hour)
-                if context.session_start:
-                    time_diff = datetime.now() - context.session_start
-                    if time_diff <= timedelta(hours=1):
-                        return session_id
-        return None
-
-    def handle_preference_update(self, user_input: str, user_id: str) -> str:
-        """Handle user preference updates for better personalization"""
+    def _explain_data_usage(self, user_profile: UserProfile) -> Dict[str, Any]:
+        """Explain how user data is used in recommendations"""
         
-        if user_id not in self.user_profiles:
-            return "I don't have your profile information. Please start a new conversation first."
+        data_usage = {
+            'data_collected': {
+                'profile_information': {
+                    'collected': bool(user_profile.interests or user_profile.travel_style),
+                    'purpose': 'Personalize recommendations to your preferences',
+                    'retention': 'Stored until account deletion',
+                    'user_control': 'Can be updated or deleted anytime'
+                },
+                'interaction_history': {
+                    'collected': bool(user_profile.interaction_history),
+                    'purpose': 'Learn your preferences and improve recommendations',
+                    'retention': 'Latest 50 interactions kept',
+                    'user_control': 'Can be cleared from profile settings'
+                },
+                'feedback_and_ratings': {
+                    'collected': bool(user_profile.recommendation_feedback),
+                    'purpose': 'Understand what you like and improve future suggestions',
+                    'retention': 'Latest 50 ratings kept',
+                    'user_control': 'Individual ratings can be modified or removed'
+                },
+                'location_data': {
+                    'collected': bool(user_profile.gps_location),
+                    'purpose': 'Provide location-relevant recommendations',
+                    'retention': 'Current session only, not permanently stored',
+                    'user_control': 'Can be disabled or manually entered'
+                }
+            },
+            'data_not_collected': [
+                'Personal identification information',
+                'Financial or payment data',
+                'Private messages or conversations',
+                'Data from other apps or services',
+                'Permanent location tracking'
+            ],
+            'data_sharing': {
+                'with_third_parties': False,
+                'with_venues': False,
+                'anonymized_analytics': 'Only aggregated, non-identifiable usage statistics',
+                'marketing_purposes': False
+            },
+            'user_rights': [
+                'View all data we have about you',
+                'Update or correct your information',
+                'Delete your profile and all associated data',
+                'Export your data in a readable format',
+                'Opt out of data collection features'
+            ]
+        }
         
-        # Parse preference updates from user input
-        preferences = self._parse_preference_input(user_input)
+        return data_usage
+    
+    def _explain_confidence_score(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
+        """Explain how confidence scores are calculated"""
         
-        if not preferences:
-            return "I didn't understand your preferences. Try: 'I like Turkish food and have dietary restrictions' or 'I'm traveling with family'"
+        ml_score = recommendation.get('ml_score', 0.5)
+        confidence_level = recommendation.get('confidence_level', 'medium')
         
-        # Update user preferences
-        success = self.update_user_interests(
-            user_id,
-            preferences.get('interests', []),
-            preferences.get('travel_style'),
-            preferences.get('accessibility_needs')
-        )
+        confidence_explanation = {
+            'confidence_level': confidence_level,
+            'numerical_score': f"{ml_score:.3f} out of 1.000",
+            'what_it_means': {
+                'very_high': 'We\'re very confident this matches your preferences (85-100%)',
+                'high': 'We\'re confident this is a good match for you (70-84%)',
+                'medium': 'This seems like a reasonable match (55-69%)',
+                'low': 'This might interest you, but we\'re less certain (30-54%)'
+            }.get(confidence_level, 'Confidence level not available'),
+            'factors_affecting_confidence': [
+                f"Profile completeness: {user_profile.profile_completeness:.1%}",
+                f"Historical feedback: {len(user_profile.recommendation_feedback)} ratings provided",
+                f"Preference clarity: {'High' if len(user_profile.interests) >= 3 else 'Medium' if len(user_profile.interests) >= 1 else 'Low'}",
+                f"Interaction history: {len(user_profile.interaction_history)} previous conversations"
+            ],
+            'how_to_improve_confidence': [
+                'Rate more recommendations to help us learn your preferences',
+                'Update your profile with interests and travel style',
+                'Provide feedback on places you visit',
+                'Specify dietary restrictions or accessibility needs'
+            ] if user_profile.profile_completeness < 0.7 else [
+                'Continue rating recommendations to maintain accuracy',
+                'Your profile is well-developed for high-confidence recommendations'
+            ]
+        }
         
-        if success:
-            user_profile = self.user_profiles[user_id]
-            completeness_pct = int(user_profile.profile_completeness * 100)
-            
-            response = f"Great! I've updated your preferences. 📊 Profile completeness: {completeness_pct}%\n\n"
-            
-            if user_profile.interests:
-                response += f"🎯 Your interests: {', '.join(user_profile.interests)}\n"
-            
-            if user_profile.travel_style:
-                response += f"✈️ Travel style: {user_profile.travel_style}\n"
-            
-            if user_profile.accessibility_needs:
-                response += f"♿ Accessibility: {user_profile.accessibility_needs}\n"
-            
-            response += f"\n💡 The more I know about your preferences, the better recommendations I can provide!"
-            
-            return response
+        return confidence_explanation
+    
+    def _explain_alternatives(self, recommendation: Dict, user_profile: UserProfile) -> Dict[str, Any]:
+        """Explain what alternatives were considered and why this one was chosen"""
+        
+        return {
+            'selection_process': 'We considered multiple options and ranked them based on your preferences',
+            'alternatives_considered': {
+                'total_options_evaluated': 'All available venues in your area',
+                'filtering_criteria': [
+                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
+                    f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
+                    f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
+                    f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
+                    'Accessibility: Meeting any specified requirements',
+                    'Time: Appropriate for current time of day'
+                ],
+                'ranking_factors': [
+                    'Personal preference match (highest weight)',
+                    'Location convenience',
+                    'Past feedback similarity',
+                    'Overall quality and ratings',
+                    'Contextual appropriateness'
+                ]
+            },
+            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),
+            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',
+            'customization_options': [
+                'Specify different cuisine types',
+                'Request different price ranges',
+                'Ask for options in specific neighborhoods',
+                'Request accessibility-specific recommendations'
+            ]
+        }
+    
+    def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
+        """Provide privacy context and controls"""
+        
+        return {
+            'privacy_status': {
+                'location_sharing': 'Enabled' if user_profile.gps_location else 'Disabled',
+                'profile_personalization': 'Enabled' if user_profile.interests or user_profile.travel_style else 'Basic',
+                'learning_from_feedback': 'Enabled' if user_profile.recommendation_feedback else 'Disabled',
+                'data_retention': 'Standard (50 interactions/ratings max)'
+            },
+            'privacy_controls': [
+                'Say "disable location" to stop using GPS data',
+                'Say "clear my data" to reset your profile',
+                'Say "show my data" to see all stored information',
+                'Say "privacy settings" to adjust data preferences'
+            ],
+            'data_minimization': [
+                'We only collect data necessary for recommendations',
+                'Location data is used only for current session',
+                'Personal conversations are not stored',
+                'All data is kept locally to your session'
+            ],
+            'transparency_promise': 'You can always ask "why did you recommend this?" for any suggestion'
+        }
+    
+    # Privacy Control Methods
+    def handle_privacy_request(self, user_input: str, user_id: str) -> str:
+        """Handle privacy-related requests from users"""
+        
+        user_input_lower = user_input.lower()
+        
+        if 'privacy settings' in user_input_lower or 'privacy options' in user_input_lower:
+            return self.show_privacy_settings(user_id)
+        
+        elif 'show my data' in user_input_lower or 'what data do you have' in user_input_lower:
+            return self.show_user_data(user_id)
+        
+        elif 'clear my data' in user_input_lower or 'delete my data' in user_input_lower:
+            return self.clear_user_data(user_id)
+        
+        elif 'disable location' in user_input_lower:
+            return self.disable_location_sharing(user_id)
+        
+        elif 'enable location' in user_input_lower:
+            return self.enable_location_sharing(user_id)
+        
+        elif 'data usage' in user_input_lower or 'how do you use my data' in user_input_lower:
+            return self.explain_data_usage_simple(user_id)
+        
         else:
-            return "Sorry, I couldn't update your preferences. Please try again."
+            return self.show_privacy_help()
     
-    def handle_recommendation_feedback(self, user_input: str, user_id: str) -> str:
-        """Handle user feedback on recommendations for ML improvement"""
+    def show_privacy_settings(self, user_id: str) -> str:
+        """Show current privacy settings and available controls"""
         
         if user_id not in self.user_profiles:
-            return "I don't have your profile information. Please start a new conversation first."
-        
-        # Parse feedback from user input
-        feedback_info = self._parse_feedback_input(user_input)
-        
-        if not feedback_info:
-            return "I didn't understand your feedback. You can rate recommendations like: 'Rate Matbah Restaurant 4 stars' or 'I loved Çiya Sofrası!'"
-        
-        # Store the feedback
-        success = self.collect_recommendation_feedback(
-            user_id, 
-            feedback_info['recommendation_id'], 
-            feedback_info['rating'], 
-            feedback_info.get('text')
-        )
-        
-        if success:
-            user_profile = self.user_profiles[user_id]
-            return f"Thanks for your feedback! 🌟 Your rating helps me understand your preferences better. Current satisfaction score: {user_profile.satisfaction_score:.1f}/5.0"
-        else:
-            return "Sorry, I couldn't save your feedback. Please try again."
-    
-    def get_personalization_insights(self, user_id: str) -> str:
-        """Get insights about user's personalization data for transparency"""
-        
-        if user_id not in self.user_profiles:
-            return "I don't have personalization data for you yet. Start a conversation to begin building your profile!"
+            return "No profile found. Your privacy is protected - we only store data when you interact with recommendations."
         
         user_profile = self.user_profiles[user_id]
-        completeness_pct = int(user_profile.profile_completeness * 100)
         
-        insights = f"📊 **Your Personalization Profile**\n\n"
-        insights += f"**Profile Completeness:** {completeness_pct}%\n"
-        insights += f"**Satisfaction Score:** {user_profile.satisfaction_score:.1f}/5.0\n"
-        insights += f"**Recommendation Success Rate:** {user_profile.recommendation_success_rate:.1%}\n\n"
+        response = "🔒 **Your Privacy Settings**\n\n"
         
-        if user_profile.interests:
-            insights += f"🎯 **Your Interests:** {', '.join(user_profile.interests)}\n"
+        response += "**Current Status:**\n"
+        response += f"• Location sharing: {'✅ Enabled' if user_profile.gps_location else '❌ Disabled'}\n"
+        response += f"• Profile personalization: {'✅ Active' if user_profile.interests or user_profile.travel_style else '⚪ Basic'}\n"
+        response += f"• Learning from feedback: {'✅ Active' if user_profile.recommendation_feedback else '⚪ Inactive'}\n"
+        response += f"• Data stored: {len(user_profile.interaction_history)} interactions, {len(user_profile.recommendation_feedback)} ratings\n\n"
         
-        if user_profile.travel_style:
-            insights += f"✈️ **Travel Style:** {user_profile.travel_style}\n"
+        response += "**Available Controls:**\n"
+        response += "• 'Disable location' - Stop using GPS data\n"
+        response += "• 'Clear my data' - Reset your entire profile\n"
+        response += "• 'Show my data' - See all information we have\n"
+        response += "• 'Data usage' - Learn how we use your information\n\n"
         
-        if user_profile.favorite_neighborhoods:
-            insights += f"📍 **Favorite Areas:** {', '.join(user_profile.favorite_neighborhoods)}\n"
+        response += "**Privacy Guarantees:**\n"
+        response += "🔹 No personal identification data stored\n"
+        response += "🔹 Location data used only for current session\n"
+        response += "🔹 No data sharing with third parties\n"
+        response += "🔹 You control all data collection and can delete anytime\n"
         
-        if user_profile.cuisine_preferences:
-            insights += f"🍽️ **Cuisine Preferences:** {', '.join(user_profile.cuisine_preferences)}\n"
-        
-        insights += f"\n📈 **Learning Stats:**\n"
-        insights += f"• Total interactions: {len(user_profile.interaction_history)}\n"
-        insights += f"• Recommendations rated: {len(user_profile.recommendation_feedback)}\n"
-        
-        if user_profile.learning_patterns:
-            total_recommendations = user_profile.learning_patterns.get('total_recommendations', 0)
-            insights += f"• Total recommendations provided: {total_recommendations}\n"
-        
-        insights += f"\n💡 **How to improve your profile:**\n"
-        
-        if completeness_pct < 50:
-            insights += f"• Tell me about your interests and travel style\n"
-            insights += f"• Rate recommendations I give you\n"
-            insights += f"• Let me know your dietary restrictions or accessibility needs\n"
-        elif completeness_pct < 80:
-            insights += f"• Continue rating recommendations to improve accuracy\n"
-            insights += f"• Share feedback about places you visit\n"
-        else:
-            insights += f"• Your profile is well-developed! Keep rating recommendations to maintain accuracy\n"
-        
-        return insights
-            preferences['travel_style'] = 'family'
-        elif any(word in user_input_lower for word in ['couple', 'romantic', 'partner']):
-            preferences['travel_style'] = 'couple'
-        elif any(word in user_input_lower for word in ['solo', 'alone', 'myself']):
-            preferences['travel_style'] = 'solo'
-        elif any(word in user_input_lower for word in ['group', 'friends']):
-            preferences['travel_style'] = 'group'
-        elif any(word in user_input_lower for word in ['business', 'work']):
-            preferences['travel_style'] = 'business'
-        
-        # Extract accessibility needs
-        if any(word in user_input_lower for word in ['wheelchair', 'mobility']):
-            preferences['accessibility_needs'] = 'wheelchair'
-        elif any(word in user_input_lower for word in ['hearing', 'deaf']):
-            preferences['accessibility_needs'] = 'hearing'
-        elif any(word in user_input_lower for word in ['visual', 'blind', 'sight']):
-            preferences['accessibility_needs'] = 'visual'
-        
-        return preferences if preferences else None
+        return response
     
-    def get_personalization_insights(self, user_id: str) -> str:
-        """Get insights about user's personalization data for transparency"""
+    def show_user_data(self, user_id: str) -> str:
+        """Show all data stored about the user"""
         
         if user_id not in self.user_profiles:
-            return "I don't have personalization data for you yet. Start a conversation to begin building your profile!"
+            return "No data stored about you. You can start fresh anytime!"
         
         user_profile = self.user_profiles[user_id]
-        completeness_pct = int(user_profile.profile_completeness * 100)
         
-        insights = f"📊 **Your Personalization Profile**\n\n"
-        insights += f"**Profile Completeness:** {completeness_pct}%\n"
-        insights += f"**Satisfaction Score:** {user_profile.satisfaction_score:.1f}/5.0\n"
-        insights += f"**Recommendation Success Rate:** {user_profile.recommendation_success_rate:.1%}\n\n"
+        response = "📊 **Your Data Summary**\n\n"
         
-        if user_profile.interests:
-            insights += f"🎯 **Your Interests:** {', '.join(user_profile.interests)}\n"
+        response += "**Profile Information:**\n"
+        response += f"• Interests: {', '.join(user_profile.interests) if user_profile.interests else 'None specified'}\n"
+        response += f"• Travel style: {user_profile.travel_style or 'Not specified'}\n"
+        response += f"• Budget preference: {user_profile.budget_range or 'Not specified'}\n"
+        response += f"• Accessibility needs: {user_profile.accessibility_needs or 'None specified'}\n"
+        response += f"• Favorite neighborhoods: {', '.join(user_profile.favorite_neighborhoods) if user_profile.favorite_neighborhoods else 'None yet'}\n\n"
         
-        if user_profile.travel_style:
-            insights += f"✈️ **Travel Style:** {user_profile.travel_style}\n"
+        response += "**Learning Data:**\n"
+        response += f"• Total interactions: {len(user_profile.interaction_history)}\n"
+        response += f"• Recommendations rated: {len(user_profile.recommendation_feedback)}\n"
+        response += f"• Profile completeness: {user_profile.profile_completeness:.1%}\n"
+        response += f"• Satisfaction score: {user_profile.satisfaction_score:.1f}/5.0\n\n"
         
-        if user_profile.favorite_neighborhoods:
-            insights += f"📍 **Favorite Areas:** {', '.join(user_profile.favorite_neighborhoods)}\n"
+        response += "**Session Data:**\n"
+        response += f"• Current location sharing: {'Yes' if user_profile.gps_location else 'No'}\n"
+        response += f"• Last interaction: {user_profile.last_interaction.strftime('%Y-%m-%d %H:%M') if user_profile.last_interaction else 'Never'}\n\n"
         
-        if user_profile.cuisine_preferences:
-            insights += f"🍽️ **Cuisine Preferences:** {', '.join(user_profile.cuisine_preferences)}\n"
+        if user_profile.recommendation_feedback:
+            response += "**Recent Ratings:** (Latest 5)\n"
+            recent_feedback = list(user_profile.recommendation_feedback.items())[-5:]
+            for rec_id, rating in recent_feedback:
+                response += f"• {rec_id.replace('restaurant_', '').replace('_', ' ').title()}: {rating}/5 ⭐\n"
         
-        insights += f"\n📈 **Learning Stats:**\n"
-        insights += f"• Total interactions: {len(user_profile.interaction_history)}\n"
-        insights += f"• Recommendations rated: {len(user_profile.recommendation_feedback)}\n"
+        response += "\n💡 You can 'clear my data' to delete everything or update specific preferences anytime."
         
-        if user_profile.learning_patterns:
-            total_recommendations = user_profile.learning_patterns.get('total_recommendations', 0)
-            insights += f"• Total recommendations provided: {total_recommendations}\n"
+        return response
+    
+    def clear_user_data(self, user_id: str) -> str:
+        """Clear all user data"""
         
-        insights += f"\n💡 **How to improve your profile:**\n"
+        if user_id in self.user_profiles:
+            del self.user_profiles[user_id]
+            
+            # Also clear from active conversations
+            sessions_to_remove = []
+            for session_id, context in self.active_conversations.items():
+                if context.user_profile.user_id == user_id:
+                    sessions_to_remove.append(session_id)
+            
+            for session_id in sessions_to_remove:
+                del self.active_conversations[session_id]
+            
+            return "✅ **Data Cleared Successfully**\n\nAll your profile data, preferences, ratings, and interaction history have been permanently deleted. You can start fresh with a new conversation!\n\n🔒 Your privacy is protected - no trace of your previous data remains."
+        else:
+            return "No data found to clear. Your privacy is already protected!"
+    
+    def disable_location_sharing(self, user_id: str) -> str:
+        """Disable location sharing for user"""
         
-        if completeness_pct < 50:
-                'rating': rating,
-                'text': user_input
+        if user_id in self.user_profiles:
+            user_profile = self.user_profiles[user_id]
+            user_profile.gps_location = None
+            user_profile.location_accuracy = None
+            user_profile.location_timestamp = None
+            
+            return "📍 **Location Sharing Disabled**\n\nI will no longer use GPS data for recommendations. You can still get great suggestions by telling me which neighborhood you're in!\n\n💡 Say 'enable location' to turn GPS recommendations back on anytime."
+        else:
+            return "Location sharing is already disabled. No location data is being collected."
+    
+    def enable_location_sharing(self, user_id: str) -> str:
+        """Enable location sharing for user"""
+        
+        return "📍 **Location Sharing**\n\nTo enable location-based recommendations, I'll need access to your GPS location. This helps me suggest nearby restaurants and attractions!\n\n🔒 **Privacy Protection:**\n• Location used only for current session\n• Not stored permanently\n• Never shared with third parties\n• You can disable anytime\n\n💡 Your browser will ask for location permission. Allow it for personalized nearby recommendations!"
+    
+    def explain_data_usage_simple(self, user_id: str) -> str:
+        """Simple explanation of data usage"""
+        
+        return "🔍 **How We Use Your Data**\n\n**We DO use:**\n• Your preferences (interests, travel style) - to personalize recommendations\n• Your ratings and feedback - to learn what you like\n• Your current location - to suggest nearby places (session only)\n• Your conversation context - to provide relevant responses\n\n**We DON'T collect:**\n• Personal identification information\n• Permanent location tracking\n• Financial or payment data\n• Data from other apps\n• Private personal details\n\n**Your Control:**\n✅ Update preferences anytime\n✅ Delete all data with one command\n✅ See exactly what we store\n✅ Disable features you don't want\n\n🔒 **Bottom line:** We only use data to make your Istanbul experience better, and you're always in control!"
+    
+    def show_privacy_help(self) -> str:
+        """Show privacy help and available commands"""
+        
+        return "🔒 **Privacy Help**\n\nI'm designed with privacy in mind. Here's what you can ask:\n\n**Data Control:**\n• 'Show my data' - See what information I have\n• 'Clear my data' - Delete everything and start fresh\n• 'Privacy settings' - View and manage your privacy\n\n**Location Control:**\n• 'Disable location' - Stop using GPS data\n• 'Enable location' - Allow location-based recommendations\n\n**Transparency:**\n• 'How do you use my data?' - Learn about data usage\n• 'Why did you recommend this?' - Explain any recommendation\n\n**Quick Facts:**\n🔹 No personal ID or financial data collected\n🔹 Location used only for current session\n🔹 You control all data collection\n🔹 Everything can be deleted instantly\n\n💡 I'm built to be helpful while respecting your privacy!"
+    
+    def _get_transport_status(self) -> Dict[str, Any]:
+        """Get real-time transport status (mock implementation)"""
+        try:
+            # Mock transport status - in real implementation, this would connect to IBB API
+            return {
+                'metro': {
+                    'status': 'operational',
+                    'delays': [],
+                    'message': 'All metro lines running normally'
+                },
+                'bus': {
+                    'status': 'operational', 
+                    'delays': ['Line 28: 5 min delay due to traffic'],
+                    'message': 'Minor delays on some bus routes'
+                },
+                'ferry': {
+                    'status': 'operational',
+                    'delays': [],
+                    'message': 'Ferry services running on schedule'
+                },
+                'traffic_density': 'moderate',
+                'last_updated': datetime.now().isoformat()
             }
-        
-        # Pattern for positive feedback: "I loved/liked [restaurant]"
-        positive_patterns = [r'i loved (.+)', r'i really liked (.+)', r'(.+) was amazing', r'(.+) was great']
-        for pattern in positive_patterns:
-            match = re.search(pattern, user_input_lower)
-            if match:
-                restaurant_name = match.group(1).strip()
-                return {
-                    'recommendation_id': f"restaurant_{restaurant_name.replace(' ', '_')}",
-                    'rating': 4.5,
-                    'text': user_input
-                }
-        
-        # Pattern for negative feedback: "I didn't like [restaurant]"
-        negative_patterns = [r'i didn\'t like (.+)', r'(.+) was bad', r'(.+) was terrible']
-        for pattern in negative_patterns:
-            match = re.search(pattern, user_input_lower)
-            if match:
-                restaurant_name = match.group(1).strip()
-                return {
-                    'recommendation_id': f"restaurant_{restaurant_name.replace(' ', '_')}",
-                    'rating': 2.0,
-                    'text': user_input
-                }
-        
-        return None
+        except Exception as e:
+            logger.error(f"Error getting transport status: {e}")
+            return {
+                'status': 'unavailable',
+                'message': 'Transport information temporarily unavailable'
+            }
+
+    def _get_traffic_status(self) -> Dict[str, Any]:
+        """Get real-time traffic status (mock implementation)"""
+        try:
+            # Mock traffic status - in real implementation, this would connect to traffic APIs
+            return {
+                'overall_status': 'moderate',
+                'congestion_level': 65,
+                'problem_areas': [
+                    'Bosphorus Bridge - Heavy traffic',
+                    'Fatih Sultan Mehmet Bridge - Moderate congestion',
+                    'E-5 Highway (European side) - Slow moving'
+                ],
+                'estimated_travel_times': {
+                    'Sultanahmet to Taksim': '25-35 minutes',
+                    'Kadıköy to Beşiktaş': '30-40 minutes',
+                    'Airport to Sultanahmet': '45-60 minutes'
+                },
+                'recommendations': [
+                    'Use metro when possible for cross-city travel',
+                    'Consider ferry for Bosphorus crossings',
+                    'Avoid E-5 highway during peak hours'
+                ],
+                'last_updated': datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting traffic status: {e}")
+            return {
+                'status': 'unavailable',
+                'message': 'Traffic information temporarily unavailable'
+            }
+
+    def _get_local_events(self) -> Dict[str, Any]:
+        """Get local events information (curated local events, not IBB API)"""
+        try:
+            # Curated local events - this could be expanded with real event data
+            current_month = datetime.now().month
+            current_day = datetime.now().day
+            
+            # Sample events based on season/month
+            events = []
+            
+            if current_month in [6, 7, 8]:  # Summer
+                events = [
+                    {
+                        'name': 'Istanbul Music Festival',
+                        'location': 'Various venues',
+                        'type': 'music',
+                        'description': 'Classical music performances across the city'
+                    },
+                    {
+                        'name': 'Bosphorus Sunset Concerts',
+                        'location': 'Ortaköy',
+                        'type': 'music',
+                        'description': 'Evening concerts with Bosphorus views'
+                    }
+                ]
+            elif current_month in [9, 10, 11]:  # Autumn
+                events = [
+                    {
+                        'name': 'Istanbul Biennial',
+                        'location': 'Various galleries',
+                        'type': 'art',
+                        'description': 'Contemporary art exhibitions'
+                    },
+                    {
+                        'name': 'Autumn Food Festival',
+                        'location': 'Galata',
+                        'type': 'food',
+                        'description': 'Seasonal Turkish cuisine showcase'
+                    }
+                ]
+            elif current_month in [12, 1, 2]:  # Winter
+                events = [
+                    {
+                        'name': 'New Year Celebrations',
+                        'location': 'Taksim Square',
+                        'type': 'celebration',
+                        'description': 'New Year festivities and concerts'
+                    },
+                    {
+                        'name': 'Winter Arts Festival',
+                        'location': 'Cultural centers',
+                        'type': 'culture',
+                        'description': 'Indoor cultural performances'
+                    }
+                ]
+            else:  # Spring
+                events = [
+                    {
+                        'name': 'Tulip Festival',
+                        'location': 'Emirgan Park',
+                        'type': 'nature',
+                        'description': 'Beautiful tulip displays across the city'
+                    },
+                    {
+                        'name': 'Spring Markets',
+                        'location': 'Various neighborhoods',
+                        'type': 'shopping',
+                        'description': 'Local artisan markets and crafts'
+                    }
+                ]
+            
+            return {
+                'current_events': events,
+                'event_count': len(events),
+                'categories': list(set([event['type'] for event in events])),
+                'last_updated': datetime.now().isoformat(),
+                'note': 'Curated local events - check official sources for exact dates and times'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting local events: {e}")
+            return {
+                'current_events': [],
+                'status': 'unavailable',
+                'message': 'Event information temporarily unavailable'
+            }
