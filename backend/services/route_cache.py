@@ -19,7 +19,7 @@ import threading
 import time
 from collections import defaultdict
 
-from services.route_maker_service import GeneratedRoute, RouteRequest
+from .route_maker_service import GeneratedRoute, RouteRequest
 
 class RouteCacheManager:
     """
@@ -645,6 +645,769 @@ class RouteCacheManager:
                 "error": str(e),
                 "cache_type": "Redis" if self.cache_enabled else "Memory"
             }
+    
+    def cache_location_query(self, query: str, location_data: Dict[str, Any], user_id: str = None) -> bool:
+        """Cache location query results for fast retrieval"""
+        try:
+            cache_key = self._generate_cache_key("location", {"query": query.lower(), "user_id": user_id})
+            
+            cache_data = {
+                "location_data": location_data,
+                "query": query,
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "hit_count": 0
+            }
+            
+            if self.cache_enabled:
+                # Store in Redis with 2 hour TTL for location queries
+                self.redis_client.setex(cache_key, 7200, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache location query: {e}")
+            return False
+    
+    def get_cached_location(self, query: str, user_id: str = None) -> Optional[Dict[str, Any]]:
+        """Retrieve cached location query results"""
+        try:
+            cache_key = self._generate_cache_key("location", {"query": query.lower(), "user_id": user_id})
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    # Update hit count
+                    result["hit_count"] = result.get("hit_count", 0) + 1
+                    self.redis_client.setex(cache_key, 7200, pickle.dumps(result))
+                    return result["location_data"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    result["hit_count"] = result.get("hit_count", 0) + 1
+                    return result["location_data"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve cached location: {e}")
+            return None
+    
+    def cache_user_preferences(self, user_id: str, preferences: Dict[str, Any]) -> bool:
+        """Cache user personalization preferences"""
+        try:
+            cache_key = f"user_prefs:{user_id}"
+            
+            cache_data = {
+                "preferences": preferences,
+                "user_id": user_id,
+                "updated_at": datetime.now().isoformat(),
+                "version": 1
+            }
+            
+            if self.cache_enabled:
+                # Store user preferences with 24 hour TTL
+                self.redis_client.setex(cache_key, 86400, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache user preferences: {e}")
+            return False
+    
+    def get_cached_user_preferences(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached user preferences"""
+        try:
+            cache_key = f"user_prefs:{user_id}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    return result["preferences"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    return result["preferences"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve cached user preferences: {e}")
+            return None
+    
+    def cache_personalized_route(self, route_request: RouteRequest, route: GeneratedRoute, 
+                                user_id: str, personalization_factors: Dict[str, Any]) -> bool:
+        """Cache personalized route with user-specific factors"""
+        try:
+            # Create personalized cache key
+            request_data = {
+                "from_location": route_request.from_location,
+                "to_location": route_request.to_location,
+                "optimization_type": route_request.optimization_type,
+                "user_id": user_id,
+                "personalization": personalization_factors
+            }
+            
+            cache_key = self._generate_cache_key("personalized_route", request_data)
+            
+            cache_data = {
+                "route": asdict(route),
+                "request": asdict(route_request),
+                "user_id": user_id,
+                "personalization_factors": personalization_factors,
+                "cached_at": datetime.now().isoformat(),
+                "computation_time": getattr(route, 'computation_time', 0),
+                "hit_count": 0
+            }
+            
+            if self.cache_enabled:
+                # Store personalized routes with 1 hour TTL (shorter due to personalization)
+                self.redis_client.setex(cache_key, 3600, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            # Track popular personalized routes
+            self._track_popular_personalized_route(request_data)
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache personalized route: {e}")
+            return False
+    
+    def get_cached_personalized_route(self, route_request: RouteRequest, user_id: str, 
+                                     personalization_factors: Dict[str, Any]) -> Optional[GeneratedRoute]:
+        """Retrieve cached personalized route"""
+        try:
+            request_data = {
+                "from_location": route_request.from_location,
+                "to_location": route_request.to_location,
+                "optimization_type": route_request.optimization_type,
+                "user_id": user_id,
+                "personalization": personalization_factors
+            }
+            
+            cache_key = self._generate_cache_key("personalized_route", request_data)
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    # Update hit count
+                    result["hit_count"] = result.get("hit_count", 0) + 1
+                    self.redis_client.setex(cache_key, 3600, pickle.dumps(result))
+                    
+                    # Convert back to GeneratedRoute object
+                    route_data = result["route"]
+                    route = GeneratedRoute(**route_data)
+                    route.cached = True
+                    route.cache_hit_count = result["hit_count"]
+                    return route
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    result["hit_count"] = result.get("hit_count", 0) + 1
+                    
+                    route_data = result["route"]
+                    route = GeneratedRoute(**route_data)
+                    route.cached = True
+                    route.cache_hit_count = result["hit_count"]
+                    return route
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve cached personalized route: {e}")
+            return None
+    
+    def _track_popular_personalized_route(self, request_data: Dict[str, Any]):
+        """Track popular personalized route combinations"""
+        try:
+            # Create a route signature without user-specific data
+            route_signature = f"{request_data['from_location']}|{request_data['to_location']}|{request_data['optimization_type']}"
+            
+            # Track in popular routes (personalization-aware)
+            if route_signature not in self.popular_routes:
+                self.popular_routes[route_signature] = {
+                    "count": 0,
+                    "from_location": request_data['from_location'],
+                    "to_location": request_data['to_location'],
+                    "optimization_type": request_data['optimization_type'],
+                    "last_requested": datetime.now().isoformat(),
+                    "personalization_patterns": defaultdict(int)
+                }
+            
+            self.popular_routes[route_signature]["count"] += 1
+            self.popular_routes[route_signature]["last_requested"] = datetime.now().isoformat()
+            
+            # Track personalization patterns
+            for key, value in request_data.get('personalization', {}).items():
+                pattern_key = f"{key}:{value}"
+                self.popular_routes[route_signature]["personalization_patterns"][pattern_key] += 1
+                
+        except Exception as e:
+            print(f"Failed to track popular personalized route: {e}")
+    
+    def get_location_based_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics for location-based queries"""
+        try:
+            stats = {
+                "location_queries": 0,
+                "user_preferences": 0,
+                "personalized_routes": 0,
+                "popular_locations": [],
+                "cache_performance": self.stats
+            }
+            
+            if self.cache_enabled:
+                # Count different types of cached items
+                location_keys = self.redis_client.keys("location:*")
+                user_pref_keys = self.redis_client.keys("user_prefs:*")
+                personalized_route_keys = self.redis_client.keys("personalized_route:*")
+                
+                stats["location_queries"] = len(location_keys)
+                stats["user_preferences"] = len(user_pref_keys)
+                stats["personalized_routes"] = len(personalized_route_keys)
+            else:
+                # Memory cache statistics
+                for key in self.memory_cache.keys():
+                    if key.startswith("location:"):
+                        stats["location_queries"] += 1
+                    elif key.startswith("user_prefs:"):
+                        stats["user_preferences"] += 1
+                    elif key.startswith("personalized_route:"):
+                        stats["personalized_routes"] += 1
+            
+            # Add popular location patterns
+            location_patterns = defaultdict(int)
+            for route_sig, route_data in self.popular_routes.items():
+                from_loc = route_data["from_location"]
+                to_loc = route_data["to_location"]
+                location_patterns[from_loc] += route_data["count"]
+                location_patterns[to_loc] += route_data["count"]
+            
+            stats["popular_locations"] = [
+                {"location": loc, "requests": count}
+                for loc, count in sorted(location_patterns.items(), key=lambda x: x[1], reverse=True)[:10]
+            ]
+            
+            return stats
+            
+        except Exception as e:
+            print(f"Failed to get location-based cache stats: {e}")
+            return {}
+    
+    def cleanup_expired_personalized_cache(self):
+        """Clean up expired personalized cache entries"""
+        try:
+            if not self.cache_enabled:
+                # Memory cache cleanup
+                current_time = datetime.now()
+                expired_keys = []
+                
+                for key, data in self.memory_cache.items():
+                    if key.startswith(("location:", "user_prefs:", "personalized_route:")):
+                        if "timestamp" in data or "cached_at" in data:
+                            timestamp_str = data.get("timestamp") or data.get("cached_at")
+                            cached_time = datetime.fromisoformat(timestamp_str)
+                            
+                            # Different TTL for different types
+                            if key.startswith("location:") and current_time - cached_time > timedelta(hours=2):
+                                expired_keys.append(key)
+                            elif key.startswith("user_prefs:") and current_time - cached_time > timedelta(hours=24):
+                                expired_keys.append(key)
+                            elif key.startswith("personalized_route:") and current_time - cached_time > timedelta(hours=1):
+                                expired_keys.append(key)
+                
+                for key in expired_keys:
+                    del self.memory_cache[key]
+                
+                print(f"🧹 Cleaned up {len(expired_keys)} expired cache entries")
+            
+        except Exception as e:
+            print(f"Failed to cleanup expired personalized cache: {e}")
+    
+    # ==============================================
+    # COMPETITIVE ADVANTAGE FEATURES
+    # Features that differentiate from Google Maps/TripAdvisor
+    # ==============================================
+    
+    def cache_localized_tips(self, location_id: str, tips: List[Dict[str, Any]], source: str = "local") -> bool:
+        """Cache insider tips and local knowledge that Google Maps doesn't have"""
+        try:
+            cache_key = f"localized_tips:{location_id}"
+            
+            cache_data = {
+                "tips": tips,
+                "location_id": location_id,
+                "source": source,  # "local", "insider", "community"
+                "cached_at": datetime.now().isoformat(),
+                "tip_count": len(tips),
+                "languages": list(set(tip.get("language", "tr") for tip in tips))
+            }
+            
+            if self.cache_enabled:
+                # Store tips with 6 hour TTL (they change less frequently)
+                self.redis_client.setex(cache_key, 21600, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            print(f"💡 Cached {len(tips)} localized tips for {location_id}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache localized tips: {e}")
+            return False
+    
+    def get_cached_localized_tips(self, location_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Retrieve cached insider tips and local knowledge"""
+        try:
+            cache_key = f"localized_tips:{location_id}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    print(f"💡 Retrieved {result['tip_count']} localized tips for {location_id}")
+                    return result["tips"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    print(f"💡 Retrieved {result['tip_count']} localized tips for {location_id}")
+                    return result["tips"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve localized tips: {e}")
+            return None
+    
+    def cache_hidden_gems(self, area: str, gems: List[Dict[str, Any]], discovery_method: str = "local_knowledge") -> bool:
+        """Cache hidden gems that mainstream apps don't know about"""
+        try:
+            cache_key = f"hidden_gems:{area.lower().replace(' ', '_')}"
+            
+            cache_data = {
+                "gems": gems,
+                "area": area,
+                "discovery_method": discovery_method,  # "local_knowledge", "community", "ai_discovery"
+                "cached_at": datetime.now().isoformat(),
+                "gem_count": len(gems),
+                "categories": list(set(gem.get("category", "local") for gem in gems)),
+                "authenticity_score": sum(gem.get("authenticity_score", 8.0) for gem in gems) / len(gems) if gems else 0
+            }
+            
+            if self.cache_enabled:
+                # Store gems with 12 hour TTL (they're more stable)
+                self.redis_client.setex(cache_key, 43200, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            print(f"💎 Cached {len(gems)} hidden gems for {area}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache hidden gems: {e}")
+            return False
+    
+    def get_cached_hidden_gems(self, area: str) -> Optional[List[Dict[str, Any]]]:
+        """Retrieve cached hidden gems"""
+        try:
+            cache_key = f"hidden_gems:{area.lower().replace(' ', '_')}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    print(f"💎 Retrieved {result['gem_count']} hidden gems for {area}")
+                    return result["gems"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    print(f"💎 Retrieved {result['gem_count']} hidden gems for {area}")
+                    return result["gems"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve hidden gems: {e}")
+            return None
+    
+    def cache_smart_daily_guidance(self, user_profile: Dict[str, Any], guidance: Dict[str, Any]) -> bool:
+        """Cache AI-powered daily guidance based on time, weather, crowds, user preferences"""
+        try:
+            user_id = user_profile.get("user_id", "anonymous")
+            date_key = datetime.now().strftime("%Y-%m-%d")
+            cache_key = f"daily_guidance:{user_id}:{date_key}"
+            
+            cache_data = {
+                "guidance": guidance,
+                "user_profile": user_profile,
+                "generated_at": datetime.now().isoformat(),
+                "weather_conditions": guidance.get("weather_context", {}),
+                "crowd_predictions": guidance.get("crowd_predictions", {}),
+                "personalization_factors": guidance.get("personalization_factors", {}),
+                "daily_theme": guidance.get("theme", "explore")
+            }
+            
+            if self.cache_enabled:
+                # Store daily guidance with 4 hour TTL (updates throughout day)
+                self.redis_client.setex(cache_key, 14400, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            print(f"🧠 Cached smart daily guidance for user {user_id} - Theme: {cache_data['daily_theme']}")
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache smart daily guidance: {e}")
+            return False
+    
+    def get_cached_smart_daily_guidance(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached smart daily guidance"""
+        try:
+            date_key = datetime.now().strftime("%Y-%m-%d")
+            cache_key = f"daily_guidance:{user_id}:{date_key}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    print(f"🧠 Retrieved smart daily guidance for {user_id} - Theme: {result['daily_theme']}")
+                    return result["guidance"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    print(f"🧠 Retrieved smart daily guidance for {user_id} - Theme: {result['daily_theme']}")
+                    return result["guidance"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve smart daily guidance: {e}")
+            return None
+    
+    # ==============================================
+    # REAL-TIME DATA INTEGRATION
+    # ==============================================
+    
+    def cache_real_time_traffic_data(self, route_id: str, traffic_data: Dict[str, Any]) -> bool:
+        """Cache real-time traffic data from İBB and other sources"""
+        try:
+            cache_key = f"traffic_realtime:{route_id}"
+            
+            cache_data = {
+                "traffic_data": traffic_data,
+                "route_id": route_id,
+                "timestamp": datetime.now().isoformat(),
+                "data_sources": traffic_data.get("sources", ["ibb_traffic", "waze_api"]),
+                "congestion_level": traffic_data.get("congestion_level", "moderate"),
+                "estimated_delay_minutes": traffic_data.get("delay_minutes", 0)
+            }
+            
+            if self.cache_enabled:
+                # Short TTL for real-time data (5 minutes)
+                self.redis_client.setex(cache_key, 300, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache real-time traffic data: {e}")
+            return False
+    
+    def get_cached_real_time_traffic(self, route_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached real-time traffic data"""
+        try:
+            cache_key = f"traffic_realtime:{route_id}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    return result["traffic_data"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    return result["traffic_data"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve real-time traffic data: {e}")
+            return None
+    
+    def cache_crowd_predictions(self, location_id: str, predictions: Dict[str, Any]) -> bool:
+        """Cache crowd predictions for popular attractions"""
+        try:
+            cache_key = f"crowd_predictions:{location_id}"
+            
+            cache_data = {
+                "predictions": predictions,
+                "location_id": location_id,
+                "generated_at": datetime.now().isoformat(),
+                "prediction_model": predictions.get("model_version", "v1.0"),
+                "hourly_predictions": predictions.get("hourly", {}),
+                "best_visit_times": predictions.get("best_times", []),
+                "avoid_times": predictions.get("avoid_times", [])
+            }
+            
+            if self.cache_enabled:
+                # Store predictions with 2 hour TTL
+                self.redis_client.setex(cache_key, 7200, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache crowd predictions: {e}")
+            return False
+    
+    def get_cached_crowd_predictions(self, location_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached crowd predictions"""
+        try:
+            cache_key = f"crowd_predictions:{location_id}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    return result["predictions"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    return result["predictions"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve crowd predictions: {e}")
+            return None
+    
+    def cache_event_data(self, area: str, events: List[Dict[str, Any]]) -> bool:
+        """Cache real-time event data affecting routes and attractions"""
+        try:
+            cache_key = f"events_realtime:{area.lower().replace(' ', '_')}"
+            
+            cache_data = {
+                "events": events,
+                "area": area,
+                "cached_at": datetime.now().isoformat(),
+                "event_count": len(events),
+                "event_types": list(set(event.get("type", "general") for event in events)),
+                "impact_levels": [event.get("impact_level", "low") for event in events]
+            }
+            
+            if self.cache_enabled:
+                # Store events with 30 minute TTL (events change frequently)
+                self.redis_client.setex(cache_key, 1800, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache event data: {e}")
+            return False
+    
+    def get_cached_event_data(self, area: str) -> Optional[List[Dict[str, Any]]]:
+        """Retrieve cached event data"""
+        try:
+            cache_key = f"events_realtime:{area.lower().replace(' ', '_')}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    return result["events"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    return result["events"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve event data: {e}")
+            return None
+    
+    # ==============================================
+    # UX OPTIMIZATION & ANALYTICS
+    # ==============================================
+    
+    def cache_ux_optimization_data(self, feature: str, optimization_data: Dict[str, Any]) -> bool:
+        """Cache UX optimization data for smooth user experiences"""
+        try:
+            cache_key = f"ux_optimization:{feature}"
+            
+            cache_data = {
+                "optimization_data": optimization_data,
+                "feature": feature,
+                "cached_at": datetime.now().isoformat(),
+                "performance_metrics": optimization_data.get("performance", {}),
+                "user_interaction_data": optimization_data.get("interactions", {}),
+                "a_b_test_results": optimization_data.get("ab_test", {})
+            }
+            
+            if self.cache_enabled:
+                # Store UX data with 1 hour TTL
+                self.redis_client.setex(cache_key, 3600, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to cache UX optimization data: {e}")
+            return False
+    
+    def get_cached_ux_optimization_data(self, feature: str) -> Optional[Dict[str, Any]]:
+        """Retrieve cached UX optimization data"""
+        try:
+            cache_key = f"ux_optimization:{feature}"
+            
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    result = pickle.loads(cached_data)
+                    return result["optimization_data"]
+            else:
+                if cache_key in self.memory_cache:
+                    result = self.memory_cache[cache_key]
+                    return result["optimization_data"]
+            
+            return None
+            
+        except Exception as e:
+            print(f"Failed to retrieve UX optimization data: {e}")
+            return None
+    
+    def track_competitive_advantage_usage(self, feature_type: str, user_id: str, value_delivered: Dict[str, Any]) -> bool:
+        """Track usage of features that provide competitive advantage over Google Maps/TripAdvisor"""
+        try:
+            today = datetime.now().strftime("%Y-%m-%d")
+            cache_key = f"competitive_analytics:{feature_type}:{today}"
+            
+            # Get existing data or initialize
+            existing_data = None
+            if self.cache_enabled:
+                cached_data = self.redis_client.get(cache_key)
+                if cached_data:
+                    existing_data = pickle.loads(cached_data)
+            else:
+                existing_data = self.memory_cache.get(cache_key)
+            
+            if existing_data is None:
+                existing_data = {
+                    "feature_type": feature_type,
+                    "date": today,
+                    "unique_users": set(),
+                    "usage_count": 0,
+                    "value_metrics": defaultdict(list),
+                    "user_satisfaction": []
+                }
+            
+            # Update metrics
+            existing_data["unique_users"].add(user_id)
+            existing_data["usage_count"] += 1
+            
+            for metric, value in value_delivered.items():
+                existing_data["value_metrics"][metric].append(value)
+            
+            # Convert set to list for JSON serialization
+            cache_data = existing_data.copy()
+            cache_data["unique_users"] = list(existing_data["unique_users"])
+            cache_data["unique_user_count"] = len(existing_data["unique_users"])
+            
+            if self.cache_enabled:
+                # Store analytics with 24 hour TTL
+                self.redis_client.setex(cache_key, 86400, pickle.dumps(cache_data))
+            else:
+                self.memory_cache[cache_key] = cache_data
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to track competitive advantage usage: {e}")
+            return False
+    
+    def get_competitive_advantage_analytics(self, days_back: int = 7) -> Dict[str, Any]:
+        """Get analytics on competitive advantage features usage"""
+        try:
+            analytics = {
+                "summary": {
+                    "total_unique_value_delivered": 0,
+                    "features_with_advantage": [],
+                    "user_retention_from_unique_features": 0
+                },
+                "feature_breakdown": {},
+                "daily_trends": []
+            }
+            
+            # Analyze last N days
+            for days_ago in range(days_back):
+                date = (datetime.now() - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+                
+                # Check all competitive feature types
+                feature_types = ["localized_tips", "hidden_gems", "smart_daily_guidance", "real_time_data"]
+                
+                daily_data = {"date": date, "features": {}}
+                
+                for feature_type in feature_types:
+                    cache_key = f"competitive_analytics:{feature_type}:{date}"
+                    
+                    feature_data = None
+                    if self.cache_enabled:
+                        cached_data = self.redis_client.get(cache_key)
+                        if cached_data:
+                            feature_data = pickle.loads(cached_data)
+                    else:
+                        feature_data = self.memory_cache.get(cache_key)
+                    
+                    if feature_data:
+                        daily_data["features"][feature_type] = {
+                            "unique_users": feature_data.get("unique_user_count", 0),
+                            "usage_count": feature_data.get("usage_count", 0),
+                            "avg_satisfaction": sum(feature_data.get("user_satisfaction", [])) / len(feature_data.get("user_satisfaction", [1])) if feature_data.get("user_satisfaction") else 0
+                        }
+                        
+                        # Add to feature breakdown
+                        if feature_type not in analytics["feature_breakdown"]:
+                            analytics["feature_breakdown"][feature_type] = {
+                                "total_users": set(),
+                                "total_usage": 0,
+                                "satisfaction_scores": []
+                            }
+                        
+                        analytics["feature_breakdown"][feature_type]["total_users"].update(feature_data.get("unique_users", []))
+                        analytics["feature_breakdown"][feature_type]["total_usage"] += feature_data.get("usage_count", 0)
+                        analytics["feature_breakdown"][feature_type]["satisfaction_scores"].extend(feature_data.get("user_satisfaction", []))
+                
+                analytics["daily_trends"].append(daily_data)
+            
+            # Finalize summary
+            for feature_type, data in analytics["feature_breakdown"].items():
+                data["unique_user_count"] = len(data["total_users"])
+                data["total_users"] = list(data["total_users"])  # Convert set to list
+                data["avg_satisfaction"] = sum(data["satisfaction_scores"]) / len(data["satisfaction_scores"]) if data["satisfaction_scores"] else 0
+                
+                analytics["summary"]["total_unique_value_delivered"] += data["total_usage"]
+                if data["unique_user_count"] > 0:
+                    analytics["summary"]["features_with_advantage"].append(feature_type)
+            
+            return analytics
+            
+        except Exception as e:
+            print(f"Failed to get competitive advantage analytics: {e}")
+            return {"error": str(e)}
 
 # Global cache instance
 route_cache = RouteCacheManager()

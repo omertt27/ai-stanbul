@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import logging
 
@@ -1181,3 +1181,232 @@ All your data has been permanently deleted:
 You can start using the system normally - I'll only remember what you tell me in new conversations.
 
 Your privacy is fully protected! 🔒"""
+
+# =============================
+# GPS AND LOCATION PROCESSING HELPERS
+# =============================
+
+def extract_gps_coordinates(message: str) -> Optional[Tuple[float, float]]:
+    """Extract GPS coordinates from message"""
+    import re
+    
+    # Look for coordinate patterns
+    coord_patterns = [
+        r"(\d+\.\d+),\s*(\d+\.\d+)",  # Decimal coordinates
+        r"(\d+°\d+'\d+\.?\d*\"?)\s*([NS]),?\s*(\d+°\d+'\d+\.?\d*\"?)\s*([EW])",  # DMS format
+        r"GPS:?\s*(\d+\.\d+),\s*(\d+\.\d+)",  # GPS: prefix
+        r"location:?\s*(\d+\.\d+),\s*(\d+\.\d+)",  # location: prefix
+        r"coordinates:?\s*(\d+\.\d+),\s*(\d+\.\d+)"  # coordinates: prefix
+    ]
+    
+    for pattern in coord_patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            try:
+                if len(match.groups()) == 2:
+                    lat, lon = float(match.group(1)), float(match.group(2))
+                    # Validate Istanbul coordinates (approximate bounds)
+                    if 40.8 <= lat <= 41.3 and 28.6 <= lon <= 29.3:
+                        return (lat, lon)
+            except ValueError:
+                continue
+    
+    return None
+
+def detect_transportation_intent(message: str) -> Dict[str, Any]:
+    """Enhanced transportation intent detection"""
+    import re
+    message_lower = message.lower()
+    
+    intent_info = {
+        'is_transportation': False,
+        'transport_modes': [],
+        'optimization_preference': 'fastest',
+        'include_attractions': False,
+        'gps_mentioned': False,
+        'route_planning': False
+    }
+    
+    # Check for transportation keywords
+    transport_keywords = {
+        'metro': ['metro', 'subway', 'underground', 'M1', 'M2', 'M3', 'M4', 'M7'],
+        'bus': ['bus', 'otobüs', 'autobus'],
+        'ferry': ['ferry', 'vapur', 'boat', 'bosphorus'],
+        'tram': ['tram', 'tramway'],
+        'taxi': ['taxi', 'taksi', 'uber', 'bitaksi'],
+        'walking': ['walk', 'walking', 'on foot', 'yürü']
+    }
+    
+    for mode, keywords in transport_keywords.items():
+        if any(keyword in message_lower for keyword in keywords):
+            intent_info['transport_modes'].append(mode)
+            intent_info['is_transportation'] = True
+    
+    # Check for general transportation phrases
+    general_transport = [
+        'how to get', 'how do i get', 'get to', 'go to', 'travel to',
+        'from.*to', 'route', 'direction', 'transportation', 'transport'
+    ]
+    
+    if any(re.search(phrase, message_lower) for phrase in general_transport):
+        intent_info['is_transportation'] = True
+        intent_info['route_planning'] = True
+    
+    # Check for optimization preferences
+    if any(word in message_lower for word in ['fast', 'quick', 'fastest', 'quickest']):
+        intent_info['optimization_preference'] = 'fastest'
+    elif any(word in message_lower for word in ['cheap', 'cheapest', 'affordable', 'budget']):
+        intent_info['optimization_preference'] = 'cheapest'
+    elif any(word in message_lower for word in ['short', 'shortest', 'direct']):
+        intent_info['optimization_preference'] = 'shortest'
+    elif any(word in message_lower for word in ['scenic', 'beautiful', 'sightseeing']):
+        intent_info['optimization_preference'] = 'most_scenic'
+    
+    # Check for POI/attraction integration
+    attraction_keywords = [
+        'museum', 'palace', 'mosque', 'attraction', 'sightseeing',
+        'stop by', 'visit on the way', 'include', 'see along'
+    ]
+    
+    if any(keyword in message_lower for keyword in attraction_keywords):
+        intent_info['include_attractions'] = True
+    
+    # Check for GPS mentions
+    gps_keywords = ['gps', 'coordinates', 'location', 'my location', 'current location']
+    if any(keyword in message_lower for keyword in gps_keywords):
+        intent_info['gps_mentioned'] = True
+    
+    return intent_info
+
+def is_enhanced_transportation_query(message: str) -> bool:
+    """Check if message requires enhanced transportation features"""
+    intent_info = detect_transportation_intent(message)
+    
+    # Enhanced features needed if:
+    # - GPS coordinates are mentioned
+    # - Multiple transport modes requested
+    # - Optimization preferences specified
+    # - POI integration requested
+    # - Complex route planning needed
+    
+    return (intent_info['is_transportation'] and 
+            (intent_info['gps_mentioned'] or 
+             len(intent_info['transport_modes']) > 1 or
+             intent_info['optimization_preference'] != 'fastest' or
+             intent_info['include_attractions'] or
+             intent_info['route_planning']))
+
+async def process_enhanced_transportation_query(message: str, user_profile, current_time, context=None) -> str:
+    """Process enhanced transportation query with ML and GPS features"""
+    try:
+        # Import the transportation integration helper
+        from transportation_integration_helper import TransportationQueryProcessor
+        
+        processor = TransportationQueryProcessor()
+        
+        # Extract GPS coordinates if mentioned
+        gps_coords = extract_gps_coordinates(message)
+        
+        # Process with enhanced features
+        response = await processor.process_transportation_query_enhanced(
+            message, user_profile, current_time, gps_coords
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Enhanced transportation query failed: {e}")
+        # Fallback to basic transportation processing
+        return process_transportation_query_enhanced(message, user_profile, current_time, context)
+
+# Enhanced Transportation Query Processing with ML and GPS
+try:
+    from transportation_integration_helper import process_enhanced_transportation_query
+    ENHANCED_TRANSPORT_AVAILABLE = True
+    logger.info("🚀 Enhanced transportation system available!")
+except ImportError:
+    ENHANCED_TRANSPORT_AVAILABLE = False
+    logger.warning("Enhanced transportation system not available")
+
+async def process_transportation_query_ml_enhanced(message: str, user_profile, current_time, 
+                                                 user_location: Optional[Tuple[float, float]] = None) -> str:
+    """
+    Process transportation query with ML enhancement, GPS integration, and POI optimization
+    
+    Features:
+    - İBB real-time data integration
+    - ML-based crowding and travel time predictions
+    - GPS location-based routing
+    - POI integration with museums and attractions
+    - Multi-modal route optimization
+    """
+    if ENHANCED_TRANSPORT_AVAILABLE:
+        try:
+            return await process_enhanced_transportation_query(message, user_profile, current_time, user_location)
+        except Exception as e:
+            logger.error(f"Enhanced transportation processing failed: {e}")
+            # Fall back to original implementation
+    
+    # Fallback to original implementation
+    return process_transportation_query_enhanced(message, user_profile, current_time)
+
+def extract_gps_location_from_profile(user_profile) -> Optional[Tuple[float, float]]:
+    """Extract GPS location from user profile if available"""
+    try:
+        if hasattr(user_profile, 'gps_location') and user_profile.gps_location:
+            lat = user_profile.gps_location.get('lat')
+            lng = user_profile.gps_location.get('lng')
+            if lat and lng:
+                return (float(lat), float(lng))
+    except Exception as e:
+        logger.debug(f"GPS extraction failed: {e}")
+    
+    return None
+
+def is_route_planning_query(message: str) -> bool:
+    """Check if message is asking for route planning with attractions"""
+    message_lower = message.lower()
+    route_indicators = [
+        'route', 'directions', 'how to get', 'best way to', 'travel to',
+        'go from', 'get from', 'journey from', 'path to', 'way to'
+    ]
+    attraction_indicators = [
+        'museum', 'palace', 'mosque', 'tower', 'attraction', 'visit',
+        'see', 'sightseeing', 'tourist', 'landmark', 'monument'
+    ]
+    
+    has_route = any(indicator in message_lower for indicator in route_indicators)
+    has_attraction = any(indicator in message_lower for indicator in attraction_indicators)
+    
+    return has_route and has_attraction
+
+def extract_locations_from_query(message: str) -> Dict[str, Optional[str]]:
+    """Extract start and destination locations from transportation query"""
+    message_lower = message.lower()
+    locations = {'start': None, 'end': None}
+    
+    # Pattern: "from X to Y"
+    if ' from ' in message_lower and ' to ' in message_lower:
+        parts = message_lower.split(' from ')
+        if len(parts) > 1:
+            location_part = parts[1]
+            if ' to ' in location_part:
+                start_end = location_part.split(' to ')
+                locations['start'] = start_end[0].strip()
+                locations['end'] = start_end[1].strip()
+    
+    # Pattern: "to X" or "directions to X"
+    elif ' to ' in message_lower:
+        to_parts = message_lower.split(' to ')
+        if len(to_parts) > 1:
+            locations['end'] = to_parts[1].strip()
+    
+    # Pattern: "X from my location"
+    elif 'from my location' in message_lower or 'from here' in message_lower:
+        locations['start'] = 'current_location'
+        # Try to extract destination
+        words = message_lower.replace('from my location', '').replace('from here', '').strip()
+        if words:
+            locations['end'] = words
+    
+    return locations

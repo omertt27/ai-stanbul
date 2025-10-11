@@ -54,6 +54,10 @@ from ml_personalization_helpers import (
     format_attraction_response_text,
     generate_conversational_response_enhanced,
     process_transportation_query_enhanced,
+    extract_gps_coordinates,
+    detect_transportation_intent,
+    is_enhanced_transportation_query,
+    process_enhanced_transportation_query,
     show_privacy_settings,
     show_user_data,
     clear_user_data
@@ -118,7 +122,17 @@ except ImportError as e:
     ENHANCEMENT_SYSTEM_AVAILABLE = False
     logger.warning(f"Enhancement System not available: {e}")
 
-# Import enhanced transportation system
+# Import ML-enhanced transportation system
+try:
+    from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system
+    from transportation_integration_helper import TransportationQueryProcessor
+    ML_ENHANCED_TRANSPORTATION_AVAILABLE = True
+    logger.info("🚇 ML-Enhanced Transportation System loaded successfully!")
+except ImportError as e:
+    ML_ENHANCED_TRANSPORTATION_AVAILABLE = False
+    logger.warning(f"ML-Enhanced Transportation System not available: {e}")
+
+# Fallback to basic enhanced transportation
 try:
     from enhanced_transportation_system import EnhancedTransportationSystem
     from enhanced_transportation_advisor import EnhancedTransportationAdvisor
@@ -399,14 +413,23 @@ class IstanbulDailyTalkAI:
             self.neighborhood_guides = None
             logger.warning("⚠️ Neighborhood Guides features disabled")
 
-        # Initialize enhanced transportation system
-        if ENHANCED_TRANSPORTATION_AVAILABLE:
+        # Initialize ML-enhanced transportation system
+        if ML_ENHANCED_TRANSPORTATION_AVAILABLE:
+            self.ml_transportation_system = create_ml_enhanced_transportation_system()
+            self.transportation_processor = TransportationQueryProcessor()
+            logger.info("🚇 ML-Enhanced Transportation System integrated successfully!")
+        elif ENHANCED_TRANSPORTATION_AVAILABLE:
+            # Fallback to basic enhanced system
             self.transportation_system = EnhancedTransportationSystem()
             self.transportation_advisor = EnhancedTransportationAdvisor()
+            self.ml_transportation_system = None
+            self.transportation_processor = None
             logger.info("🚇 Enhanced Transportation System integrated successfully!")
         else:
             self.transportation_system = None
             self.transportation_advisor = None
+            self.ml_transportation_system = None
+            self.transportation_processor = None
             logger.warning("⚠️ Enhanced Transportation features disabled")
 
         # Initialize response templates with local flavor
@@ -724,10 +747,30 @@ class IstanbulDailyTalkAI:
         # 🎯 ENHANCED: Use Multi-Intent Query Handler for restaurant, museum, and attraction queries
         if intent in ['restaurant_query', 'museum_query', 'restaurant_recommendation', 'attraction_query', 'place_recommendation', 'cultural_query', 'activity_planning'] and self.multi_intent_handler:
             try:
-                logger.info(f"🎯 Using Multi-Intent Handler for: {message}")
+                logger.info(f"🎯 Using Multi-Intent Handler with Deep Learning for: {message}")
                 
-                # Process through multi-intent handler
-                multi_intent_result = self.multi_intent_handler.analyze_query(message)
+                # Create enhanced context for deep learning integration  
+                enhanced_context = {
+                    'user_id': user_profile.user_id,
+                    'session_id': context.session_id,
+                    'conversation_history': [interaction.get('user_input', '') for interaction in context.conversation_history],
+                    'user_preferences': {
+                        'interests': user_profile.interests,
+                        'budget_range': user_profile.budget_range,
+                        'accessibility_needs': user_profile.accessibility_needs
+                    },
+                    'location': None
+                }
+                
+                # Add GPS location if available
+                if user_profile.gps_location:
+                    enhanced_context['location'] = (
+                        user_profile.gps_location.get('lat'), 
+                        user_profile.gps_location.get('lng')
+                    )
+                
+                # Process through multi-intent handler with enhanced context
+                multi_intent_result = self.multi_intent_handler.analyze_query(message, enhanced_context)
                 
                 # Check if this is an attraction-related query by analyzing the message content
                 is_attraction_query = any(keyword in message.lower() for keyword in [
@@ -766,9 +809,48 @@ class IstanbulDailyTalkAI:
                 logger.warning(f"Multi-intent processing failed, using fallback: {e}")
                 # Fall through to traditional recommendation
         
-        # 🚇 ENHANCED: Handle transportation queries with GPS and deep learning
+        # 🚇 ENHANCED: Handle transportation queries with ML, GPS, and POI integration
         if intent == 'transportation_query':
-            return process_transportation_query_enhanced(message, user_profile, current_time, context)
+            # Check if this requires enhanced processing
+            if is_enhanced_transportation_query(message):
+                # Use ML-enhanced transportation system if available
+                if self.ml_transportation_system and self.transportation_processor:
+                    try:
+                        # Extract GPS coordinates from message or user profile
+                        gps_coords = extract_gps_coordinates(message)
+                        
+                        # Try async processing with fallback to sync
+                        import asyncio
+                        try:
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                # Already in async context, create task
+                                return asyncio.create_task(
+                                    self.transportation_processor.process_transportation_query_enhanced(
+                                        message, user_profile, current_time, gps_coords
+                                    )
+                                ).result()
+                            else:
+                                # Create new event loop
+                                return asyncio.run(
+                                    self.transportation_processor.process_transportation_query_enhanced(
+                                        message, user_profile, current_time, gps_coords
+                                    )
+                                )
+                        except Exception:
+                            # Fallback to sync processing
+                            return self._process_transportation_query_sync(message, user_profile, current_time, gps_coords)
+                            
+                    except Exception as e:
+                        logger.warning(f"ML transportation processing failed: {e}")
+                        # Fallback to basic enhanced processing
+                        return process_transportation_query_enhanced(message, user_profile, current_time, context)
+                else:
+                    # Use available transportation system
+                    return process_transportation_query_enhanced(message, user_profile, current_time, context)
+            else:
+                # Use basic transportation processing
+                return process_transportation_query_enhanced(message, user_profile, current_time, context)
         
         if intent == 'restaurant_recommendation':
             return self._generate_restaurant_recommendation(entities, context, user_profile, current_time)
@@ -2235,3 +2317,51 @@ class IstanbulDailyTalkAI:
         }
         
         return district_times.get(district, 5)  # Default 5 minutes
+    
+    def _process_transportation_query_sync(self, message: str, user_profile, current_time, gps_coords=None) -> str:
+        """Synchronous transportation query processing as fallback"""
+        try:
+            # Basic transportation response with available info
+            intent_info = detect_transportation_intent(message)
+            
+            # Build response based on detected intent
+            response_parts = []
+            
+            if gps_coords:
+                response_parts.append(f"📍 I can see your location coordinates. Let me help you navigate from there!")
+            
+            if intent_info['transport_modes']:
+                modes_text = ', '.join(intent_info['transport_modes'])
+                response_parts.append(f"🚇 For {modes_text} transportation:")
+            
+            # Add basic transportation info
+            if 'metro' in intent_info['transport_modes']:
+                response_parts.append("• Metro: Fast, reliable, and air-conditioned")
+                response_parts.append("• Use Istanbulkart for all public transport")
+            
+            if 'bus' in intent_info['transport_modes']:
+                response_parts.append("• Bus: Extensive network covering all areas")
+                response_parts.append("• Check real-time arrivals on İBB mobile app")
+            
+            if 'ferry' in intent_info['transport_modes']:
+                response_parts.append("• Ferry: Scenic route with Bosphorus views")
+                response_parts.append("• Great for avoiding traffic between continents")
+            
+            # Add optimization tips
+            if intent_info['optimization_preference'] == 'cheapest':
+                response_parts.append("💰 Most budget-friendly options: Bus → Metro → Ferry → Taxi")
+            elif intent_info['optimization_preference'] == 'fastest':
+                response_parts.append("⚡ Fastest routes usually combine Metro + Bus or Ferry")
+            
+            # Add POI suggestions if requested
+            if intent_info['include_attractions']:
+                response_parts.append("🏛️ I can suggest routes that pass by popular attractions!")
+            
+            if response_parts:
+                return "\n".join(response_parts) + "\n\nTell me your specific start and end points for detailed directions!"
+            else:
+                return "I'd be happy to help with transportation! Where would you like to go?"
+                
+        except Exception as e:
+            logger.error(f"Sync transportation processing failed: {e}")
+            return "I can help you navigate Istanbul! Tell me where you'd like to go and I'll suggest the best routes."

@@ -18,6 +18,20 @@ from copy import deepcopy
 # Initialize logger first
 logger = logging.getLogger(__name__)
 
+# Import lightweight deep learning system for enhanced intent classification
+try:
+    from lightweight_deep_learning import (
+        DeepLearningMultiIntentIntegration, 
+        LearningContext, 
+        LearningMode,
+        create_lightweight_deep_learning_system
+    )
+    DEEP_LEARNING_AVAILABLE = True
+    logger.info("🧠 Lightweight Deep Learning System available!")
+except ImportError as e:
+    logger.warning(f"Deep Learning System not available: {e}")
+    DEEP_LEARNING_AVAILABLE = False
+
 # Import attractions system for comprehensive Istanbul attractions support
 try:
     from istanbul_attractions_system import IstanbulAttractionsSystem, AttractionCategory, WeatherPreference, BudgetCategory
@@ -76,6 +90,16 @@ class MultiIntentQueryHandler:
     
     def __init__(self):
         global ATTRACTIONS_AVAILABLE
+        # Initialize lightweight deep learning system for enhanced intent classification
+        self.deep_learning_system = None
+        if DEEP_LEARNING_AVAILABLE:
+            try:
+                self.deep_learning_system = create_lightweight_deep_learning_system()
+                logger.info("🧠 Lightweight Deep Learning System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize deep learning system: {e}")
+                self.deep_learning_system = None
+        
         # Initialize attractions system for comprehensive Istanbul attractions support
         self.attractions_system = None
         if ATTRACTIONS_AVAILABLE:
@@ -384,15 +408,18 @@ class MultiIntentQueryHandler:
         ]
     
     def analyze_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> MultiIntentResult:
-        """Analyze a query for multiple intents"""
+        """Analyze a query for multiple intents with deep learning enhancement"""
         
         logging.info(f"🔍 Analyzing multi-intent query: {query}")
         
         # Detect query language
         detected_language = self._detect_language(query)
         
-        # Detect all intents
-        detected_intents = self._detect_intents(query)
+        # Create learning context for deep learning system
+        learning_context = self._create_learning_context(query, context)
+        
+        # Detect all intents with deep learning enhancement
+        detected_intents = self._detect_intents_enhanced(query, learning_context)
         
         # Validate context alignment
         detected_intents = self._validate_context_alignment(query, detected_intents)
@@ -1403,3 +1430,141 @@ class MultiIntentQueryHandler:
             'coordinates': attraction.coordinates,
             'nearby_attractions': attraction.nearby_attractions[:3] if attraction.nearby_attractions else []
         }
+    
+    def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> 'LearningContext':
+        """Create learning context for deep learning system"""
+        if not DEEP_LEARNING_AVAILABLE:
+            return None
+        
+        # Extract user information from context
+        user_id = "anonymous"
+        session_id = "default_session"
+        conversation_history = []
+        user_preferences = {}
+        location_context = None
+        
+        if context:
+            user_id = context.get('user_id', user_id)
+            session_id = context.get('session_id', session_id)
+            conversation_history = context.get('conversation_history', [])
+            user_preferences = context.get('user_preferences', {})
+            
+            # Extract location if available
+            location = context.get('location')
+            if location and isinstance(location, (tuple, list)) and len(location) >= 2:
+                location_context = (float(location[0]), float(location[1]))
+        
+        return LearningContext(
+            user_id=user_id,
+            session_id=session_id,
+            conversation_history=conversation_history,
+            user_preferences=user_preferences,
+            location_context=location_context,
+            interaction_count=len(conversation_history)
+        )
+
+    def _detect_intents_enhanced(self, query: str, learning_context) -> List[Intent]:
+        """Enhanced intent detection using deep learning + rule-based hybrid approach"""
+        
+        # Start with rule-based detection (existing logic)
+        rule_based_intents = self._detect_intents_rule_based(query)
+        
+        # If deep learning system is available, enhance with ML predictions
+        if self.deep_learning_system and learning_context:
+            try:
+                # Get ML-based intent classification
+                ml_prediction = self.deep_learning_system.intent_classifier.classify_intent(
+                    query, learning_context
+                )
+                
+                logger.info(f"🧠 ML Intent Prediction: {ml_prediction.prediction} (confidence: {ml_prediction.confidence:.3f})")
+                
+                # Convert ML prediction to Intent object
+                ml_intent = self._convert_ml_prediction_to_intent(ml_prediction, query)
+                
+                # Combine rule-based and ML results
+                enhanced_intents = self._combine_rule_and_ml_intents(
+                    rule_based_intents, [ml_intent], query
+                )
+                
+                logger.info(f"✨ Enhanced intent detection: {len(enhanced_intents)} intents detected")
+                return enhanced_intents
+                
+            except Exception as e:
+                logger.warning(f"ML intent classification failed, using rule-based fallback: {e}")
+        
+        # Fallback to rule-based only
+        return rule_based_intents
+
+    def _convert_ml_prediction_to_intent(self, ml_prediction, query: str) -> Intent:
+        """Convert ML prediction to Intent object"""
+        
+        # Map ML intent predictions to IntentType enum
+        intent_mapping = {
+            'restaurant': IntentType.RECOMMENDATION,
+            'museum': IntentType.ATTRACTION_SEARCH,
+            'district': IntentType.LOCATION_SEARCH,
+            'transportation': IntentType.ROUTE_PLANNING,
+            'attraction': IntentType.ATTRACTION_SEARCH,
+            'recommendation': IntentType.RECOMMENDATION,
+            'information': IntentType.INFORMATION_REQUEST
+        }
+        
+        intent_type = intent_mapping.get(ml_prediction.prediction, IntentType.INFORMATION_REQUEST)
+        
+        return Intent(
+            type=intent_type,
+            confidence=ml_prediction.confidence,
+            parameters={'ml_reasoning': ml_prediction.reasoning},
+            text_span=(0, len(query)),
+            priority=1 if ml_prediction.confidence > 0.7 else 2,
+            priority_score=ml_prediction.confidence
+        )
+
+    def _combine_rule_and_ml_intents(self, rule_intents: List[Intent], ml_intents: List[Intent], query: str) -> List[Intent]:
+        """Combine rule-based and ML-based intent predictions intelligently"""
+        
+        if not ml_intents:
+            return rule_intents
+        
+        combined_intents = []
+        ml_intent = ml_intents[0]  # Take primary ML prediction
+        
+        # Find if rule-based system detected the same intent type
+        matching_rule_intent = None
+        for rule_intent in rule_intents:
+            if rule_intent.type == ml_intent.type:
+                matching_rule_intent = rule_intent
+                break
+        
+        if matching_rule_intent:
+            # Both systems agree - boost confidence
+            boosted_confidence = min(
+                0.7 * matching_rule_intent.confidence + 0.3 * ml_intent.confidence, 
+                1.0
+            )
+            matching_rule_intent.confidence = boosted_confidence
+            matching_rule_intent.priority_score = boosted_confidence
+            matching_rule_intent.parameters.update(ml_intent.parameters)
+            combined_intents.append(matching_rule_intent)
+            
+            # Add other rule-based intents with slightly reduced confidence
+            for rule_intent in rule_intents:
+                if rule_intent.type != ml_intent.type:
+                    rule_intent.confidence *= 0.9  # Slight reduction
+                    combined_intents.append(rule_intent)
+        else:
+            # Systems disagree - use ML if high confidence, otherwise use rule-based
+            if ml_intent.confidence > 0.8:
+                combined_intents.append(ml_intent)
+                # Add rule-based intents with reduced confidence
+                for rule_intent in rule_intents:
+                    rule_intent.confidence *= 0.8
+                    combined_intents.append(rule_intent)
+            else:
+                # Use rule-based as primary, add ML as secondary
+                combined_intents.extend(rule_intents)
+                ml_intent.priority = 3  # Lower priority
+                combined_intents.append(ml_intent)
+        
+        return combined_intents

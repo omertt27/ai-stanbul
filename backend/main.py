@@ -1479,139 +1479,139 @@ def post_ai_cleanup(text):
     
     return text.strip()
 
-# --- Import Enhanced Query Understanding System ---
-try:
-    from enhanced_query_understanding import process_enhanced_query, enhanced_query_processor
-    ENHANCED_QUERY_UNDERSTANDING_ENABLED = True
-    print("✅ Enhanced Query Understanding System imported successfully")
-except ImportError as e:
-    print(f"⚠️ Enhanced Query Understanding System not available: {e}")
-    ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
-    # Create dummy function
-    def process_enhanced_query(query: str, session_id: str = None) -> Dict[str, Any]:
-        return {
-            'original_query': query,
-            'normalized_query': query.lower().strip(),
-            'intent': 'general_info',
-            'confidence': 0.3,
-            'entities': {},
-            'corrections': [],
-            'success': True
-        }
+# --- User-Facing Hidden Gems and Localized Tips API Endpoints ---
 
-# === REDIS CONVERSATIONAL MEMORY ENDPOINTS ===
+class LocationRequest(BaseModel):
+    location: str
+    area: Optional[str] = None
+    user_id: Optional[str] = None
+    language: Optional[str] = "en"
 
-@app.get("/api/redis/conversation/{session_id}")
-async def get_redis_conversation(session_id: str):
-    """Get conversation history from Redis for a specific session"""
+class HiddenGemsResponse(BaseModel):
+    gems: List[Dict[str, Any]]
+    area: str
+    total_count: int
+    authenticity_score: float
+    success: bool
+
+class LocalizedTipsResponse(BaseModel):
+    tips: List[Dict[str, Any]]
+    location: str
+    total_count: int
+    success: bool
+
+@app.post("/api/hidden-gems", response_model=HiddenGemsResponse)
+async def get_hidden_gems(request: LocationRequest):
+    """
+    Get hidden gems for a specific area in Istanbul
+    Returns authentic local spots that mainstream apps don't know about
+    """
     try:
-        if not redis_memory:
-            return {
-                "success": False,
-                "error": "Redis conversational memory not available",
-                "session_id": session_id
-            }
+        from services.route_cache import RouteCache
         
-        conversation = redis_memory.get_conversation(session_id)
-        preferences = redis_memory.get_preferences(session_id)
-        context = redis_memory.get_context(session_id, "")
+        # Initialize route cache
+        route_cache = RouteCache()
         
-        return {
-            "success": True,
-            "session_id": session_id,
-            "conversation": [
-                {
-                    "timestamp": turn.timestamp,
-                    "user_query": turn.user_query,
-                    "intent": turn.intent,
-                    "entities": turn.entities,
-                    "response": turn.response,
-                    "confidence": turn.confidence
-                }
-                for turn in conversation
-            ],
-            "preferences": preferences.__dict__ if preferences else None,
-            "context": context,
-            "stats": redis_memory.get_session_stats()
-        }
+        # First check if we have cached gems
+        area = request.area or request.location
+        cached_gems = route_cache.get_cached_hidden_gems(area)
+        
+        if cached_gems:
+            authenticity_score = sum(gem.get("authenticity_score", 8.0) for gem in cached_gems) / len(cached_gems)
+            return HiddenGemsResponse(
+                gems=cached_gems,
+                area=area,
+                total_count=len(cached_gems),
+                authenticity_score=authenticity_score,
+                success=True
+            )
+        
+        # If no cached data, generate some sample hidden gems for the area
+        sample_gems = generate_sample_hidden_gems(area, request.language)
+        
+        # Cache the generated gems
+        route_cache.cache_hidden_gems(area, sample_gems)
+        
+        authenticity_score = sum(gem.get("authenticity_score", 8.0) for gem in sample_gems) / len(sample_gems) if sample_gems else 0
+        
+        return HiddenGemsResponse(
+            gems=sample_gems,
+            area=area,
+            total_count=len(sample_gems),
+            authenticity_score=authenticity_score,
+            success=True
+        )
         
     except Exception as e:
-        print(f"❌ Error getting Redis conversation: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "session_id": session_id
-        }
+        print(f"Error in hidden gems endpoint: {e}")
+        return HiddenGemsResponse(
+            gems=[],
+            area=request.area or request.location,
+            total_count=0,
+            authenticity_score=0.0,
+            success=False
+        )
 
-@app.get("/api/redis/sessions/active")
-async def get_active_redis_sessions():
-    """Get all active Redis sessions"""
+@app.post("/api/localized-tips", response_model=LocalizedTipsResponse)
+async def get_localized_tips(request: LocationRequest):
+    """
+    Get insider tips and local knowledge for a specific location
+    Returns tips that only locals would know
+    """
     try:
-        if not redis_memory:
-            return {
-                "success": False,
-                "error": "Redis conversational memory not available"
-            }
+        from services.route_cache import RouteCache
         
-        stats = redis_memory.get_session_stats()
+        # Initialize route cache
+        route_cache = RouteCache()
         
-        # Get a sample of active sessions
-        active_sessions = []
-        if redis_client:
-            try:
-                session_keys = redis_client.smembers("active_sessions")
-                for session_id in list(session_keys)[:10]:  # Limit to first 10
-                    conversation = redis_memory.get_conversation(session_id)
-                    if conversation:
-                        active_sessions.append({
-                            "session_id": session_id,
-                            "turn_count": len(conversation),
-                            "last_activity": conversation[-1].timestamp if conversation else None,
-                            "recent_intent": conversation[-1].intent if conversation else None
-                        })
-            except Exception as e:
-                print(f"⚠️ Error getting session list: {e}")
+        # First check if we have cached tips
+        cached_tips = route_cache.get_cached_localized_tips(request.location)
         
-        return {
-            "success": True,
-            "stats": stats,
-            "active_sessions": active_sessions,
-            "redis_connected": redis_available
-        }
+        if cached_tips:
+            return LocalizedTipsResponse(
+                tips=cached_tips,
+                location=request.location,
+                total_count=len(cached_tips),
+                success=True
+            )
+        
+        # If no cached data, generate some sample localized tips
+        sample_tips = generate_sample_localized_tips(request.location, request.language)
+        
+        # Cache the generated tips
+        route_cache.cache_localized_tips(request.location, sample_tips)
+        
+        return LocalizedTipsResponse(
+            tips=sample_tips,
+            location=request.location,
+            total_count=len(sample_tips),
+            success=True
+        )
         
     except Exception as e:
-        print(f"❌ Error getting active Redis sessions: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        print(f"Error in localized tips endpoint: {e}")
+        return LocalizedTipsResponse(
+            tips=[],
+            location=request.location,
+            total_count=0,
+            success=False
+        )
 
-@app.post("/api/redis/test-conversation")
-async def test_redis_conversation():
-    """Test Redis conversational memory with a sample conversation"""
-    try:
-        if not redis_memory:
-            return {
-                "success": False,
-                "error": "Redis conversational memory not available"
-            }
-        
-        test_session_id = f"test_redis_{int(time.time())}"
-        
-        # Test conversation turns
-        test_turns = [
-            {
-                "query": "I'm looking for a romantic restaurant in Sultanahmet",
-                "intent": "restaurant_search",
-                "entities": {"district": ["Sultanahmet"], "vibe": ["romantic"]},
-                "response": "I recommend Pandeli Restaurant in Sultanahmet for a romantic dinner..."
-            },
-            {
-                "query": "What about something similar in Beyoğlu?",
-                "intent": "restaurant_search",
-                "entities": {"district": ["Beyoğlu"], "reference": ["similar"]},
-                "response": "For a similar romantic experience in Beyoğlu, try Mikla Restaurant..."
-            },
+@app.get("/api/areas/popular")
+async def get_popular_areas():
+    """
+    Get list of popular Istanbul areas that have hidden gems and tips available
+    """
+    popular_areas = [
+        {"name": "Sultanahmet", "description": "Historic heart of Istanbul", "gem_count": 15},
+        {"name": "Beyoğlu", "description": "Modern cultural district", "gem_count": 22},
+        {"name": "Kadıköy", "description": "Asian side cultural hub", "gem_count": 18},
+        {"name": "Beşiktaş", "description": "Bosphorus district", "gem_count": 12},
+        {"name": "Üsküdar", "description": "Traditional Asian side", "gem_count": 10},
+        {"name": "Galata", "description": "Historic European quarter", "gem_count": 14},
+        {"name": "Ortaköy", "description": "Bosphorus village", "gem_count": 8},
+        {"name": "Balat", "description": "Colorful historic neighborhood", "gem_count": 11},
+        {"name": "Fener", "description": "Historic Greek quarter", "gem_count": 7},
             {
                 "query": "How do I get there from my hotel?",
                 "intent": "transportation",
