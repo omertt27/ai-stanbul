@@ -151,6 +151,15 @@ except ImportError as e:
     REAL_TIME_TRANSPORT_API_AVAILABLE = False
     logger.warning(f"Real-time Transport API not available: {e}")
 
+# Import hidden gems and local tips system
+try:
+    from hidden_gems_local_tips import HiddenGemsLocalTips, LocalTip, HiddenGem, TipCategory
+    HIDDEN_GEMS_AVAILABLE = True
+    logger.info("💎 Hidden Gems & Local Tips System loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Hidden Gems & Local Tips system not available: {e}")
+    HIDDEN_GEMS_AVAILABLE = False
+
 class ConversationTone(Enum):
     """Conversation tone adaptation"""
     FORMAL = "formal"
@@ -465,6 +474,17 @@ class IstanbulDailyTalkAI:
             except Exception as e:
                 logger.warning(f"Failed to initialize Enhancement System: {e}")
         
+        # Initialize hidden gems and local tips system
+        self.hidden_gems_system = None
+        if HIDDEN_GEMS_AVAILABLE:
+            try:
+                self.hidden_gems_system = HiddenGemsLocalTips()
+                logger.info("💎 Hidden Gems & Local Tips System integrated successfully!")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Hidden Gems System: {e}")
+        else:
+            logger.warning("⚠️ Hidden Gems & Local Tips features disabled")
+        
         logger.info("🎉 Enhanced Istanbul Daily Talk AI System initialized with ALL features!")
         if DEEP_LEARNING_AVAILABLE:
             logger.info("🌟 Deep Learning Features: UNLIMITED & FREE for all users!")
@@ -685,8 +705,12 @@ class IstanbulDailyTalkAI:
         if context.current_topic == 'restaurant_search' and any(word in message_lower for word in ['yes', 'sure', 'sounds good']):
             return 'confirmation'
         
-        # ENHANCED: Use enhanced intent classification with attractions support
+        # ENHANCED: Use enhanced intent classification with attractions and hidden gems support
         enhanced_intent = self._enhance_intent_classification(message)
+        
+        # If enhanced classification found hidden gems query, use it (high priority)
+        if enhanced_intent == 'hidden_gems_query':
+            return 'hidden_gems_query'
         
         # If enhanced classification found attraction-related intent, use it
         if enhanced_intent in ['attraction_query', 'cultural_query', 'family_activity', 'romantic_spot', 'hidden_gem']:
@@ -891,6 +915,33 @@ class IstanbulDailyTalkAI:
         
         elif intent == 'transportation_query':
             return process_transportation_query_enhanced(message, user_profile, current_time, context)
+        
+        elif intent == 'hidden_gems_query':
+            # Use hidden gems and local tips system with GPS and ML personalization
+            if self.hidden_gems_system:
+                user_location = None
+                if user_profile.gps_location:
+                    user_location = (user_profile.gps_location.get('lat'), user_profile.gps_location.get('lng'))
+                
+                # Convert user profile to dict format for hidden gems system
+                user_context = {
+                    'interests': user_profile.interests,
+                    'budget_range': user_profile.budget_range,
+                    'accessibility_needs': user_profile.accessibility_needs,
+                    'travel_style': user_profile.travel_style,
+                    'group_type': user_profile.group_type,
+                    'cultural_immersion_level': user_profile.cultural_immersion_level,
+                    'location': user_location,
+                    'current_time': current_time
+                }
+                
+                try:
+                    return self.hidden_gems_system.process_hidden_gems_query(message, user_context)
+                except Exception as e:
+                    logger.warning(f"Hidden gems processing failed: {e}")
+                    return self._generate_fallback_hidden_gems_response(message, user_profile, current_time)
+            else:
+                return self._generate_fallback_hidden_gems_response(message, user_profile, current_time)
         
         else:
             return self._generate_fallback_response(context, user_profile)
@@ -1867,8 +1918,18 @@ class IstanbulDailyTalkAI:
             }
     
     def _enhance_intent_classification(self, message: str) -> str:
-        """Enhanced intent classification with attraction support"""
+        """Enhanced intent classification with attraction support and hidden gems detection"""
         message_lower = message.lower()
+        
+        # Hidden gems and local tips keywords (high priority)
+        hidden_gems_keywords = [
+            'hidden gem', 'hidden gems', 'secret', 'locals go', 'local favorite', 'local tip', 'local tips',
+            'off the beaten path', 'undiscovered', 'authentic', 'insider tip', 'insider tips',
+            'where locals eat', 'local secret', 'best kept secret', 'not touristy', 'avoid crowds',
+            'real istanbul', 'authentic istanbul', 'local experience', 'local places', 'neighborhood secret'
+        ]
+        if any(keyword in message_lower for keyword in hidden_gems_keywords):
+            return 'hidden_gems_query'
         
         # Transportation keywords
         transport_keywords = ['metro', 'bus', 'ferry', 'tram', 'taxi', 'transport', 'get to', 'how to reach']
@@ -2365,3 +2426,122 @@ class IstanbulDailyTalkAI:
         except Exception as e:
             logger.error(f"Sync transportation processing failed: {e}")
             return "I can help you navigate Istanbul! Tell me where you'd like to go and I'll suggest the best routes."
+    
+    def _generate_fallback_hidden_gems_response(self, message: str, user_profile: UserProfile, current_time: datetime) -> str:
+        """Generate fallback response for hidden gems queries when main system is unavailable"""
+        
+        message_lower = message.lower()
+        
+        # Basic hidden gems database for fallback
+        hidden_gems_fallback = {
+            'sultanahmet': {
+                'gems': [
+                    {
+                        'name': 'Pandeli Restaurant',
+                        'type': 'restaurant',
+                        'description': 'Historic restaurant above Spice Bazaar - where locals have eaten since 1901',
+                        'tip': 'Go upstairs in the Spice Bazaar, many tourists miss this gem'
+                    },
+                    {
+                        'name': 'Gülhane Park Tea Gardens',
+                        'type': 'spot',
+                        'description': 'Secret tea garden with Bosphorus views that most tourists walk past',
+                        'tip': 'Follow the path behind the main park area for the hidden tea spot'
+                    }
+                ],
+                'local_tips': [
+                    'Visit Sultanahmet early morning (7-8 AM) to avoid crowds and get better photos',
+                    'The best döner in Sultanahmet is at the small place behind the Blue Mosque, not the touristy ones'
+                ]
+            },
+            'beyoğlu': {
+                'gems': [
+                    {
+                        'name': 'Çukur Meyhane',
+                        'type': 'restaurant', 
+                        'description': 'Tiny meyhane on Nevizade Street where locals actually drink rakı',
+                        'tip': 'Go after 8 PM, ask for Ali - he knows everyone in the neighborhood'
+                    },
+                    {
+                        'name': 'French Street (Fransız Sokağı)',
+                        'type': 'spot',
+                        'description': 'Cobblestone street with authentic French cafes, hidden from main tourist flow',
+                        'tip': 'Perfect for quiet coffee breaks between Galata Tower visits'
+                    }
+                ],
+                'local_tips': [
+                    'Take the historic tunnel (Tünel) from Karaköy - it\'s the world\'s second oldest underground railway',
+                    'The real nightlife starts after 11 PM on weekends in the side streets off İstiklal'
+                ]
+            },
+            'kadıköy': {
+                'gems': [
+                    {
+                        'name': 'Çiya Sofrası',
+                        'type': 'restaurant',
+                        'description': 'Famous among food lovers but unknown to most tourists - authentic Anatolian cuisine',
+                        'tip': 'Try the daily specials board, they rotate regional dishes from all over Turkey'
+                    },
+                    {
+                        'name': 'Moda Coastline Walk',
+                        'type': 'spot', 
+                        'description': 'Local favorite seaside promenade with the best sunset views of the old city',
+                        'tip': 'Bring tea from a local shop and sit on the grass - it\'s what locals do'
+                    }
+                ],
+                'local_tips': [
+                    'Tuesday farmers market near the ferry terminal has the freshest produce in the city',
+                    'Bahariye Street has better shopping than İstiklal and half the tourists'
+                ]
+            }
+        }
+        
+        # Determine area of interest from message or user location
+        area = 'general'
+        for neighborhood in hidden_gems_fallback.keys():
+            if neighborhood in message_lower:
+                area = neighborhood
+                break
+        
+        # If no specific area mentioned and user has location, try to determine area
+        if area == 'general' and user_profile.current_location:
+            area = user_profile.current_location.lower()
+        
+        # Build response
+        response = "💎 **Hidden Gems & Local Tips**\n\n"
+        
+        if area in hidden_gems_fallback:
+            gems_data = hidden_gems_fallback[area]
+            response += f"**Secret spots in {area.title()}:**\n\n"
+            
+            for gem in gems_data['gems'][:2]:  # Show top 2 gems
+                response += f"🔸 **{gem['name']}**\n"
+                response += f"   {gem['description']}\n"
+                response += f"   💡 *Local tip: {gem['tip']}*\n\n"
+            
+            response += "**Insider Tips:**\n"
+            for tip in gems_data['local_tips']:
+                response += f"• {tip}\n"
+            
+        else:
+            # General hidden gems advice
+            response += "**General Local Secrets:**\n\n"
+            response += "🔸 **Best times to visit major attractions:**\n"
+            response += "   • Early morning (7-9 AM) for photos without crowds\n"
+            response += "   • Late afternoon (4-6 PM) for golden hour lighting\n\n"
+            
+            response += "🔸 **Where locals actually eat:**\n"
+            response += "   • Small family restaurants in residential areas\n"
+            response += "   • Places with handwritten menus in Turkish only\n"
+            response += "   • Ask taxi drivers - they know the real spots\n\n"
+            
+            response += "🔸 **Transportation secrets:**\n"
+            response += "   • Use İstanbulkart for everything - buses, metro, ferries\n"
+            response += "   • Dolmuş (shared taxis) are faster than buses during rush hour\n"
+            response += "   • Ferry rides are the cheapest way to see the Bosphorus\n\n"
+        
+        response += "\n💬 **Want more specific hidden gems?**\n"
+        response += "Tell me your interests (food, history, nightlife, art) and your location for personalized local secrets!\n\n"
+        response += "*💡 Pro tip: The best hidden gems are discovered by talking to locals - don't be shy to ask shopkeepers and restaurant owners for their recommendations!*"
+        
+        return response
