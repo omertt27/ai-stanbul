@@ -36,6 +36,158 @@ except ImportError as e:
     ADVANCED_UNDERSTANDING_AVAILABLE = False
     print(f"⚠️ Advanced Understanding System not available: {e}")
 
+# Enhanced Query Understanding Configuration
+ENHANCED_QUERY_UNDERSTANDING_ENABLED = ADVANCED_UNDERSTANDING_AVAILABLE
+
+# Initialize Enhanced Query Understanding if available
+enhanced_understanding_system = None
+if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
+    try:
+        enhanced_understanding_system = AdvancedUnderstandingSystem()
+        print("✅ Enhanced Understanding System initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Enhanced Understanding System: {e}")
+        ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
+
+def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
+    """Process query using Enhanced Understanding System"""
+    if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
+        return {
+            'success': False,
+            'intent': 'general_info',
+            'confidence': 0.3,
+            'entities': {},
+            'corrections': [],
+            'normalized_query': user_input.lower().strip(),
+            'original_query': user_input
+        }
+    
+    try:
+        # Use the enhanced understanding system
+        result = enhanced_understanding_system.process_query(user_input, session_id)
+        
+        return {
+            'success': True,
+            'intent': result.get('primary_intent', 'general_info'),
+            'confidence': result.get('confidence', 0.5),
+            'entities': result.get('entities', {}),
+            'corrections': result.get('corrections', []),
+            'normalized_query': result.get('normalized_query', user_input.lower().strip()),
+            'original_query': user_input,
+            'detailed_result': result
+        }
+    except Exception as e:
+        print(f"Error in process_enhanced_query: {e}")
+        return {
+            'success': False,
+            'intent': 'general_info',
+            'confidence': 0.3,
+            'entities': {},
+            'corrections': [],
+            'normalized_query': user_input.lower().strip(),
+            'original_query': user_input
+        }
+
+def generate_sample_hidden_gems(area: str, language: str = 'en') -> List[Dict[str, Any]]:
+    """Generate sample hidden gems for a given area"""
+    # Sample hidden gems data based on area
+    gems_data = {
+        'sultanahmet': [
+            {
+                'name': 'Historic Cistern Coffee',
+                'description': 'Hidden coffee shop built into ancient cistern walls',
+                'location': 'Near Basilica Cistern',
+                'type': 'cafe',
+                'authenticity_score': 9.2,
+                'local_rating': 4.8,
+                'price_range': '₺₺'
+            },
+            {
+                'name': 'Artisan Carpet Workshop',
+                'description': 'Traditional carpet weaving workshop open to visitors',
+                'location': 'Behind Blue Mosque',
+                'type': 'cultural',
+                'authenticity_score': 9.5,
+                'local_rating': 4.9,
+                'price_range': 'Free to visit'
+            }
+        ],
+        'beyoglu': [
+            {
+                'name': 'Rooftop Garden Cafe',
+                'description': 'Secret garden cafe with Bosphorus views',
+                'location': 'Hidden in Galata backstreets',
+                'type': 'cafe',
+                'authenticity_score': 8.8,
+                'local_rating': 4.7,
+                'price_range': '₺₺₺'
+            },
+            {
+                'name': 'Underground Jazz Club',
+                'description': 'Intimate jazz venue in historic building basement',
+                'location': 'Near Istiklal Avenue',
+                'type': 'entertainment',
+                'authenticity_score': 9.0,
+                'local_rating': 4.8,
+                'price_range': '₺₺'
+            }
+        ]
+    }
+    
+    return gems_data.get(area.lower(), [
+        {
+            'name': 'Local Discovery',
+            'description': f'Authentic local experience in {area}',
+            'location': area,
+            'type': 'cultural',
+            'authenticity_score': 8.5,
+            'local_rating': 4.5,
+            'price_range': '₺₺'
+        }
+    ])
+
+def generate_sample_localized_tips(location: str, language: str = 'en') -> List[Dict[str, Any]]:
+    """Generate sample localized tips for a location"""
+    tips_data = {
+        'sultanahmet': [
+            {
+                'tip': 'Visit early morning to avoid crowds at major attractions',
+                'category': 'timing',
+                'usefulness_score': 9.1,
+                'local_insight': True
+            },
+            {
+                'tip': 'Small restaurants behind the mosque serve authentic food',
+                'category': 'dining',
+                'usefulness_score': 8.8,
+                'local_insight': True
+            }
+        ],
+        'beyoglu': [
+            {
+                'tip': 'Take the historic tunnel from Karakoy to avoid the steep walk',
+                'category': 'transportation',
+                'usefulness_score': 9.0,
+                'local_insight': True
+            },
+            {
+                'tip': 'Best nightlife starts after 22:00 on weekends',
+                'category': 'entertainment',
+                'usefulness_score': 8.5,
+                'local_insight': True
+            }
+        ]
+    }
+    
+    return tips_data.get(location.lower(), [
+        {
+            'tip': f'Explore local neighborhoods in {location} for authentic experiences',
+            'category': 'general',
+            'usefulness_score': 8.0,
+            'local_insight': True
+        }
+    ])
+
 # --- Third-Party Imports ---
 from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status, Body, Query
 from fastapi.responses import StreamingResponse, HTMLResponse
@@ -456,12 +608,12 @@ except ImportError as e:
     istanbul_daily_talk_ai = None
     ISTANBUL_DAILY_TALK_AVAILABLE = False
 
-# Use both systems - new one has priority for attractions
-CUSTOM_AI_AVAILABLE = ULTRA_ISTANBUL_AI_AVAILABLE or ISTANBUL_DAILY_TALK_AVAILABLE
+# Istanbul Daily Talk AI is now the primary system, Ultra-Specialized is fallback
+CUSTOM_AI_AVAILABLE = ISTANBUL_DAILY_TALK_AVAILABLE or ULTRA_ISTANBUL_AI_AVAILABLE
 print(f"🎯 AI System Status:")
-print(f"   Ultra-Specialized: {'✅ ACTIVE' if ULTRA_ISTANBUL_AI_AVAILABLE else '❌ DISABLED'}")
-print(f"   Daily Talk + Attractions: {'✅ ACTIVE (50+ attractions)' if ISTANBUL_DAILY_TALK_AVAILABLE else '❌ DISABLED'}")
-print(f"   Overall: {'✅ ENHANCED AI SYSTEMS ACTIVE' if CUSTOM_AI_AVAILABLE else '❌ DISABLED'}")
+print(f"   🏛️ Istanbul Daily Talk AI (PRIMARY): {'✅ ACTIVE (50+ attractions, restaurants, transport)' if ISTANBUL_DAILY_TALK_AVAILABLE else '❌ DISABLED'}")
+print(f"   🔧 Ultra-Specialized AI (FALLBACK): {'✅ ACTIVE' if ULTRA_ISTANBUL_AI_AVAILABLE else '❌ DISABLED'}")
+print(f"   🚀 Overall System: {'✅ FULLY INTEGRATED AI SYSTEMS' if CUSTOM_AI_AVAILABLE else '❌ DISABLED'}")
 
 # Use istanbul_ai_system directly for all AI processing
 custom_ai_system = None
@@ -978,40 +1130,65 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
             'normalized_query': query_analysis.get('normalized_query', user_input.lower().strip())
         }
         
-        # 🏛️ ENHANCED: Check if this is an attraction-related query
-        is_attraction_query = any(keyword in user_input.lower() for keyword in [
-            'attraction', 'museum', 'palace', 'mosque', 'tower', 'monument', 'historic',
-            'visit', 'see', 'explore', 'sightseeing', 'cultural', 'heritage', 'landmark',
-            'places to go', 'what to see', 'worth visiting', 'must see', 'tourist',
-            'family friendly', 'romantic', 'hidden gem'
-        ])
-        
-        # Use new Istanbul Daily Talk AI for attraction queries (has 50+ attractions)
-        if ISTANBUL_DAILY_TALK_AVAILABLE and is_attraction_query:
-            print("🏛️ Using Istanbul Daily Talk AI (50+ attractions) for attraction query...")
+        # 🏛️ PRIMARY AI SYSTEM: Use Istanbul Daily Talk AI as the main system
+        # This system handles all types of Istanbul queries with comprehensive data
+        if ISTANBUL_DAILY_TALK_AVAILABLE:
+            print("🏛️ Using Istanbul Daily Talk AI as PRIMARY system (50+ attractions, restaurants, transportation)...")
             try:
-                # Process with our new enhanced system
+                # Process with our primary Istanbul Daily Talk AI system
                 ai_response = istanbul_daily_talk_ai.process_message(session_id, user_input)
                 
-                if ai_response and len(ai_response) > 100:
-                    print(f"✅ Enhanced AI response generated: {len(ai_response)} characters")
+                if ai_response and len(ai_response) > 50:  # More lenient threshold
+                    print(f"✅ Istanbul Daily Talk AI response generated: {len(ai_response)} characters")
                     result = {
                         'success': True,
                         'response': ai_response,
-                        'system_type': 'istanbul_daily_talk_ai_attractions',
-                        'attractions_count': '50+',
-                        'enhanced': True
+                        'system_type': 'istanbul_daily_talk_ai_primary',
+                        'features': 'comprehensive_istanbul_data',
+                        'enhanced': True,
+                        'confidence': 0.85  # High confidence for primary system
                     }
                 else:
-                    # Fall back to original system
-                    print("⚠️ Enhanced AI response too short, falling back to original system")
-                    result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+                    # Fall back to Ultra-Specialized system if response is too short
+                    print("⚠️ Istanbul Daily Talk AI response too short, using fallback system")
+                    if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
+                        result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+                    else:
+                        # Create minimal fallback result
+                        result = {
+                            'success': False,
+                            'response': "I'm here to help with Istanbul information. Could you please be more specific about what you'd like to know?",
+                            'system_type': 'fallback',
+                            'confidence': 0.3
+                        }
+                        
             except Exception as e:
-                print(f"⚠️ Enhanced AI system error, falling back to original: {e}")
-                result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+                print(f"⚠️ Istanbul Daily Talk AI system error, using fallback: {e}")
+                # Fall back to Ultra-Specialized system
+                if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
+                    result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+                else:
+                    # Create minimal fallback result
+                    result = {
+                        'success': False,
+                        'response': "I'm experiencing technical difficulties. Please try rephrasing your question about Istanbul.",
+                        'system_type': 'fallback_error',
+                        'confidence': 0.2,
+                        'error': str(e)
+                    }
         else:
-            # Generate response using rule-based Ultra-Specialized Istanbul AI
-            result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+            # Fallback to Ultra-Specialized Istanbul AI if Daily Talk AI is not available
+            print("⚠️ Istanbul Daily Talk AI not available, using Ultra-Specialized Istanbul AI as fallback")
+            if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
+                result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+            else:
+                # No AI systems available
+                result = {
+                    'success': False,
+                    'response': "I'm sorry, the AI systems are currently unavailable. Please try again later.",
+                    'system_type': 'no_ai_available',
+                    'confidence': 0.1
+                }
         
         if result.get('success'):
             ai_response = result['response']
@@ -1133,17 +1310,10 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
 async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
     """Generate response using Ultra-Specialized Istanbul AI (Rule-Based) - Simple version"""
     try:
-        # Use our Ultra-Specialized Istanbul AI System (completely rule-based)
-        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
-            print("❌ Ultra-Specialized Istanbul AI not available")
-            return None
-        
-        # Sanitize input
+        # Sanitize input first
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
-        
-        print(f"🏛️ Using Ultra-Specialized Istanbul AI (Rule-Based) for session: {session_id}")
         
         # 🧠 ENHANCED QUERY UNDERSTANDING INTEGRATION (Simple version)
         query_analysis = {}
@@ -1168,8 +1338,30 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
             'normalized_query': query_analysis.get('normalized_query', user_input.lower().strip())
         }
         
-        # Generate response using rule-based Ultra-Specialized Istanbul AI
-        result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        # 🏛️ PRIMARY: Use Istanbul Daily Talk AI as the main system (Simple version)
+        if ISTANBUL_DAILY_TALK_AVAILABLE:
+            print(f"🏛️ Using Istanbul Daily Talk AI (PRIMARY) for session: {session_id}")
+            try:
+                # Process with Istanbul Daily Talk AI
+                ai_response = istanbul_daily_talk_ai.process_message(session_id, user_input)
+                
+                if ai_response and len(ai_response) > 30:  # Simple threshold
+                    print(f"✅ Istanbul Daily Talk AI (simple) response: {len(ai_response)} characters")
+                    return ai_response
+                else:
+                    print("⚠️ Istanbul Daily Talk AI response too short, using fallback")
+                    # Fall through to fallback system
+            except Exception as e:
+                print(f"⚠️ Istanbul Daily Talk AI error (simple): {e}")
+                # Fall through to fallback system
+        
+        # FALLBACK: Use Ultra-Specialized Istanbul AI if Daily Talk AI fails or unavailable
+        if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
+            print(f"🏛️ Using Ultra-Specialized Istanbul AI (FALLBACK) for session: {session_id}")
+            result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        else:
+            print("❌ No AI systems available")
+            return None
         
         if result.get('success'):
             ai_response = result['response']
@@ -1868,10 +2060,11 @@ async def chat_with_ai(
     user_request: Request
 ):
     """
-    Main AI chat endpoint using Ultra-Specialized Istanbul AI (Rule-Based System)
+    Main AI chat endpoint using Istanbul Daily Talk AI as Primary System
     
-    This endpoint processes user queries about Istanbul using our specialized,
-    rule-based AI system with enhanced query understanding and Redis memory.
+    This endpoint processes user queries about Istanbul using our comprehensive
+    Istanbul Daily Talk AI system (50+ attractions, restaurants, transport) with
+    Ultra-Specialized AI as fallback, plus enhanced query understanding and Redis memory.
     """
     try:
         # Generate session ID if not provided
