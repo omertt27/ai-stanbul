@@ -12,6 +12,14 @@ import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
+from enum import Enum
+
+# Custom JSON encoder to handle enums
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -471,8 +479,8 @@ async def chat(
         
         # Process with enhanced deep learning system
         ai_response = ai_system.process_message(
-            message.user_id,
-            message.message
+            message.message,
+            message.user_id
         )
         
         processing_time = time.time() - start_time
@@ -495,7 +503,7 @@ async def chat(
         background_tasks.add_task(
             cache_set, 
             cache_key, 
-            json.dumps(response_data), 
+            json.dumps(response_data, cls=CustomJSONEncoder), 
             300,  # 5 minutes TTL
             redis_conn
         )
@@ -642,7 +650,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 await websocket.send_text(json.dumps({
                     "error": "AI system not available",
                     "timestamp": datetime.now().isoformat()
-                }))
+                }, cls=CustomJSONEncoder))
                 continue
             
             # Process message
@@ -662,7 +670,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, session_id: str
                 "timestamp": datetime.now().isoformat()
             }
             
-            await websocket.send_text(json.dumps(response_data))
+            await websocket.send_text(json.dumps(response_data, cls=CustomJSONEncoder))
             RESPONSE_GENERATION_TIME.observe(processing_time)
             
     except WebSocketDisconnect:
@@ -1451,3 +1459,288 @@ async def send_route_update_notification_async(user_id: str, route_data: Dict[st
             )
         except Exception as e:
             logger.warning(f"Failed to send route update notification: {e}")
+
+# =============================
+# DAILY TALK ENHANCEMENT ENDPOINTS
+# =============================
+
+# Import daily talk enhancement system
+try:
+    from services.daily_talk_enhancement import (
+        get_daily_conversation, get_weather_aware_daily_greeting, 
+        get_advanced_daily_conversation
+    )
+    DAILY_TALK_AVAILABLE = True
+    logger.info("🗣️ Daily Talk Enhancement System available")
+except ImportError as e:
+    DAILY_TALK_AVAILABLE = False
+    logger.warning(f"🗣️ Daily Talk Enhancement not available: {e}")
+
+# Advanced Daily Talk AI
+try:
+    from services.advanced_daily_talk_ai import process_advanced_daily_talk, advanced_daily_talk_ai
+    ADVANCED_DAILY_TALK_AVAILABLE = True
+    logger.info("🧠 Advanced Daily Talk AI available - GPT-level intelligence!")
+except ImportError as e:
+    ADVANCED_DAILY_TALK_AVAILABLE = False
+    logger.warning(f"🧠 Advanced Daily Talk AI not available: {e}")
+
+@app.get("/api/v1/daily-greeting")
+@limiter.limit("20/minute")
+async def get_daily_greeting(
+    request: Request,
+    location: str = "Istanbul",
+    user_id: Optional[str] = None
+):
+    """Get personalized daily greeting with weather awareness"""
+    try:
+        if not DAILY_TALK_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Daily talk system not available",
+                "fallback_greeting": "Merhaba! Welcome to Istanbul! 🏙️ Ready for today's adventure?"
+            }
+        
+        # Use user_id from request or generate anonymous one
+        if not user_id:
+            user_id = f"anonymous_{int(time.time())}"
+        
+        greeting = get_weather_aware_daily_greeting(user_id, location)
+        
+        return {
+            "success": True,
+            "greeting": greeting,
+            "location": location,
+            "timestamp": datetime.now().isoformat(),
+            "weather_aware": WEATHER_SERVICES_AVAILABLE
+        }
+        
+    except Exception as e:
+        logger.error(f"Daily greeting error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_greeting": "Merhaba! Welcome to Istanbul! 🏙️ Ready for today's adventure?"
+        }
+
+@app.get("/api/v1/daily-conversation")
+@limiter.limit("15/minute") 
+async def get_daily_conversation_endpoint(
+    request: Request,
+    location: str = "Istanbul",
+    user_id: Optional[str] = None
+):
+    """Get full daily conversation with recommendations and tips"""
+    try:
+        if not DAILY_TALK_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Daily talk system not available"
+            }
+        
+        # Use user_id from request or generate anonymous one
+        if not user_id:
+            user_id = f"anonymous_{int(time.time())}"
+        
+        conversation = get_daily_conversation(user_id, location)
+        
+        # Format context for API response
+        context_data = {
+            "time_of_day": conversation["context"].time_of_day.value,
+            "weather_condition": conversation["context"].weather_condition,
+            "temperature": conversation["context"].temperature,
+            "user_location": conversation["context"].user_location,
+            "user_mood": conversation["context"].user_mood.value,
+            "is_weekday": conversation["context"].is_weekday
+        }
+        
+        return {
+            "success": True,
+            "greeting": conversation["greeting"],
+            "recommendations": conversation["recommendations"],
+            "conversation_flow": conversation["conversation_flow"],
+            "mood_suggestions": conversation["mood_suggestions"],
+            "local_tips": conversation["local_tips"],
+            "context": context_data,
+            "location": location,
+            "timestamp": datetime.now().isoformat(),
+            "weather_aware": WEATHER_SERVICES_AVAILABLE
+        }
+        
+    except Exception as e:
+        logger.error(f"Daily conversation error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_data": {
+                "greeting": "Merhaba! Welcome to Istanbul! 🏙️",
+                "recommendations": [{"type": "activity", "title": "Explore Istanbul", "description": "Discover the magic where Europe meets Asia!"}],
+                "conversation_flow": ["What would you like to explore today?"],
+                "local_tips": ["Istanbul is a city of endless discoveries!"]
+            }
+        }
+
+@app.get("/api/v1/daily-mood-activities")
+@limiter.limit("10/minute")
+async def get_mood_based_activities(
+    request: Request,
+    mood: str = "curious",
+    location: str = "Istanbul",
+    user_id: Optional[str] = None
+):
+    """Get mood-based activity recommendations"""
+    try:
+        if not DAILY_TALK_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Daily talk system not available"
+            }
+        
+        # Use user_id from request or generate anonymous one
+        if not user_id:
+            user_id = f"anonymous_{int(time.time())}"
+        
+        conversation = get_daily_conversation(user_id, location)
+        
+        return {
+            "success": True,
+            "mood": mood,
+            "activities": conversation["mood_suggestions"],
+            "local_tips": conversation["local_tips"],
+            "location": location,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Mood activities error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_activities": ["Explore the beautiful streets of Istanbul!", "Visit a traditional Turkish cafe", "Take a walk along the Bosphorus"]
+        }
+
+@app.post("/api/v1/advanced-daily-talk")
+@limiter.limit("30/minute")
+async def advanced_daily_talk(
+    request: Request,
+    message: str,
+    user_id: Optional[str] = None,
+    location: str = "Istanbul"
+):
+    """Advanced GPT-level daily talk conversation"""
+    try:
+        if not ADVANCED_DAILY_TALK_AVAILABLE:
+            # Fallback to regular daily talk
+            if DAILY_TALK_AVAILABLE:
+                conversation = get_daily_conversation(user_id or f"fallback_{int(time.time())}", location)
+                return {
+                    "success": True,
+                    "response": conversation["greeting"],
+                    "fallback_mode": True,
+                    "ai_level": "traditional"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Advanced daily talk system not available",
+                    "fallback_response": "Merhaba! I'm here to help you explore Istanbul! What would you like to discover?"
+                }
+        
+        # Use user_id or generate anonymous one
+        if not user_id:
+            user_id = f"advanced_{int(time.time())}"
+        
+        # Get weather context
+        weather_context = None
+        if WEATHER_SERVICES_AVAILABLE:
+            try:
+                weather_data = get_weather_for_ai()
+                if weather_data and 'condition' in weather_data:
+                    weather_context = {
+                        "condition": weather_data['condition'],
+                        "temperature": weather_data.get('temperature', 20.0),
+                        "description": weather_data.get('description', '')
+                    }
+            except Exception:
+                pass  # Continue without weather context
+        
+        # Process with advanced AI
+        result = process_advanced_daily_talk(message, user_id, weather_context)
+        
+        return {
+            "success": True,
+            "response": result["response"],
+            "user_id": user_id,
+            "analysis": {
+                "intent": result["analysis"]["intent"].value,
+                "emotional_tone": result["analysis"]["emotional_tone"].value,
+                "entities": result["analysis"]["entities"],
+                "topics": result["analysis"]["topics"],
+                "complexity": result["analysis"]["complexity_level"],
+                "urgency": result["analysis"]["urgency_level"]
+            },
+            "conversation_state": result["conversation_state"],
+            "personalization_level": result["personalization_level"],
+            "emotional_state": result["emotional_state"],
+            "suggestions": result["suggestions"],
+            "ai_level": "advanced",
+            "weather_aware": weather_context is not None,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Advanced daily talk error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_response": "I'm here to help you explore Istanbul! What interests you most about the city?"
+        }
+
+@app.get("/api/v1/conversation-summary/{user_id}")
+@limiter.limit("10/minute")
+async def get_conversation_summary(
+    request: Request,
+    user_id: str
+):
+    """Get comprehensive conversation summary for a user"""
+    try:
+        if not ADVANCED_DAILY_TALK_AVAILABLE:
+            return {
+                "success": False,
+                "error": "Advanced daily talk system not available"
+            }
+        
+        summary = advanced_daily_talk_ai.get_conversation_summary(user_id)
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "summary": summary,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Conversation summary error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+# Add healthcheck endpoint for daily talk systems
+@app.get("/api/v1/daily-talk-status")
+async def daily_talk_status():
+    """Check status of daily talk systems"""
+    return {
+        "traditional_daily_talk": DAILY_TALK_AVAILABLE,
+        "advanced_daily_talk": ADVANCED_DAILY_TALK_AVAILABLE,
+        "weather_services": WEATHER_SERVICES_AVAILABLE,
+        "capabilities": {
+            "basic_conversations": DAILY_TALK_AVAILABLE,
+            "advanced_ai": ADVANCED_DAILY_TALK_AVAILABLE,
+            "weather_awareness": WEATHER_SERVICES_AVAILABLE,
+            "conversation_memory": ADVANCED_DAILY_TALK_AVAILABLE,
+            "emotional_intelligence": ADVANCED_DAILY_TALK_AVAILABLE,
+            "personalization": ADVANCED_DAILY_TALK_AVAILABLE
+        },
+        "timestamp": datetime.now().isoformat()
+    }

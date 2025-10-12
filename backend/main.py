@@ -1611,7 +1611,42 @@ async def get_popular_areas():
         {"name": "Galata", "description": "Historic European quarter", "gem_count": 14},
         {"name": "Ortaköy", "description": "Bosphorus village", "gem_count": 8},
         {"name": "Balat", "description": "Colorful historic neighborhood", "gem_count": 11},
-        {"name": "Fener", "description": "Historic Greek quarter", "gem_count": 7},
+        {"name": "Fener", "description": "Historic Greek quarter", "gem_count": 7}
+    ]
+    
+    return {
+        "success": True,
+        "areas": popular_areas,
+        "total_areas": len(popular_areas)
+    }
+
+# Test Redis conversation endpoint
+@app.post("/api/redis/test-conversation")
+async def test_redis_conversation():
+    """Test Redis conversational memory with sample conversation"""
+    try:
+        if not redis_memory or not redis_client:
+            return {
+                "success": False,
+                "error": "Redis not available"
+            }
+        
+        test_session_id = f"test_session_{int(time.time())}"
+        
+        # Sample conversation turns
+        test_turns = [
+            {
+                "query": "I'm looking for good restaurants in Beyoğlu",
+                "intent": "find_restaurant",
+                "entities": {"location": ["Beyoğlu"], "cuisine": []},
+                "response": "Here are some excellent restaurants in Beyoğlu..."
+            },
+            {
+                "query": "What about vegetarian options?",
+                "intent": "filter_cuisine",
+                "entities": {"dietary": ["vegetarian"]},
+                "response": "For vegetarian dining in Beyoğlu, I recommend..."
+            },
             {
                 "query": "How do I get there from my hotel?",
                 "intent": "transportation",

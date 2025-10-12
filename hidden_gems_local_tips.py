@@ -19,6 +19,7 @@ import json
 import logging
 import random
 import math
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,14 @@ class TipCategory(Enum):
     INSIDER_KNOWLEDGE = "insider_knowledge"
     LOCAL_TRADITION = "local_tradition"
     OFF_BEATEN_PATH = "off_beaten_path"
+    
+    def __str__(self):
+        """String representation for JSON serialization"""
+        return self.value
+    
+    def __json__(self):
+        """JSON serialization support"""
+        return self.value
 
 @dataclass
 class LocalTip:

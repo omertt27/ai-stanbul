@@ -415,10 +415,42 @@ def get_weather_aware_route_recommendations(area: str, style: str = 'balanced', 
             'error': str(e)
         }
 
-def get_transportation_advice_for_weather(weather_data=None) -> List[str]:
-    """Get transportation advice based on weather conditions"""
+def get_transportation_advice_for_weather(weather_data=None, start_location=None, end_location=None) -> Dict[str, Any]:
+    """Get detailed transportation advice like Google Maps based on weather conditions"""
+    
+    # Default locations if not provided
+    if not start_location:
+        start_location = "Taksim"
+    if not end_location:
+        end_location = "Sultanahmet"
+    
+    base_advice = {
+        "route_overview": f"Best routes from {start_location} to {end_location}",
+        "weather_impact": "Current weather conditions analyzed",
+        "recommended_routes": [],
+        "alternative_routes": [],
+        "real_time_alerts": [],
+        "cost_breakdown": {},
+        "accessibility_info": []
+    }
+    
     if not weather_data:
-        return ["Use public transportation or walking as preferred"]
+        # Default recommendations without weather data
+        base_advice["recommended_routes"] = [
+            {
+                "route_name": "Metro Route",
+                "duration": "25-30 min",
+                "cost": "15₺",
+                "steps": [
+                    {"mode": "walk", "instruction": f"Walk to {start_location} Metro Station", "duration": "3 min"},
+                    {"mode": "metro", "instruction": "Take M2 Line towards Vezneciler", "duration": "20 min"},
+                    {"mode": "walk", "instruction": f"Walk to {end_location}", "duration": "5 min"}
+                ],
+                "comfort_level": "High",
+                "weather_suitability": "All weather"
+            }
+        ]
+        return base_advice
     
     try:
         condition = getattr(weather_data, 'condition', '').lower()
@@ -426,47 +458,329 @@ def get_transportation_advice_for_weather(weather_data=None) -> List[str]:
         wind_speed = getattr(weather_data, 'wind_speed', 0)
         rainfall = getattr(weather_data, 'rainfall_1h', 0) or 0
         
-        advice = []
+        # Analyze weather impact
+        weather_category = _categorize_weather_for_transport(condition, temp, wind_speed, rainfall)
+        base_advice["weather_impact"] = f"Current: {condition.title()}, {temp}°C - {weather_category} conditions"
         
-        if rainfall > 0.5 or 'rain' in condition:
-            advice.extend([
-                "🚇 Metro and tram are best options - stay dry underground",
-                "🚌 Use buses for longer distances to avoid getting wet",
-                "🚗 Consider taxi/Uber for comfort in heavy rain",
-                "⚠️ Ferry services may be affected by weather"
-            ])
+        # Generate detailed route recommendations
+        routes = _generate_detailed_routes(start_location, end_location, weather_category, temp, rainfall, wind_speed)
+        base_advice["recommended_routes"] = routes["recommended"]
+        base_advice["alternative_routes"] = routes["alternatives"]
         
-        if temp > 30:
-            advice.extend([
-                "🌡️ Use air-conditioned metro and buses during peak heat",
-                "🚇 Underground transport keeps you cool",
-                "🕒 Avoid walking long distances between 12-16:00",
-                "💧 Stay hydrated during any outdoor transport waits"
-            ])
+        # Real-time alerts based on weather
+        base_advice["real_time_alerts"] = _generate_weather_alerts(weather_category, temp, rainfall, wind_speed)
         
-        if temp < 5:
-            advice.extend([
-                "🧥 Dress warmly for outdoor transport waits",
-                "🚇 Underground metro stations provide warmth",
-                "🚌 Heated buses are more comfortable than walking",
-                "⚠️ Be careful of icy conditions on walkways"
-            ])
+        # Cost breakdown
+        base_advice["cost_breakdown"] = {
+            "metro_tram": "15₺ (Istanbulkart)",
+            "bus": "15₺ (Istanbulkart)", 
+            "ferry": "25₺ (Istanbulkart)",
+            "taxi_estimate": "45-60₺",
+            "walking": "Free"
+        }
         
-        if wind_speed > 25:
-            advice.extend([
-                "⚠️ Ferry services may be cancelled due to strong winds",
-                "🌊 Avoid Bosphorus ferries - very windy on water",
-                "🚇 Underground transport unaffected by wind",
-                "🚶‍♂️ Be extra careful walking near waterfront"
-            ])
+        # Accessibility information
+        base_advice["accessibility_info"] = [
+            "🦽 Metro stations have elevator access",
+            "🚌 Low-floor buses available on main routes",
+            "⚠️ Ferry terminals have limited accessibility",
+            "🚶‍♀️ Sidewalk conditions vary by district"
+        ]
         
-        if not advice:
-            advice.append("🌞 Perfect weather for all transportation options!")
-        
-        return advice
+        return base_advice
         
     except Exception as e:
-        return [f"Transportation advice unavailable: {e}"]
+        base_advice["error"] = f"Transportation advice unavailable: {e}"
+        return base_advice
+
+def _categorize_weather_for_transport(condition: str, temp: float, wind_speed: float, rainfall: float) -> str:
+    """Categorize weather for detailed transport planning"""
+    if rainfall > 2.0:
+        return "Heavy Rain"
+    elif rainfall > 0.5:
+        return "Light Rain"
+    elif temp > 32:
+        return "Very Hot"
+    elif temp > 28:
+        return "Hot"
+    elif temp < 5:
+        return "Very Cold"
+    elif temp < 10:
+        return "Cold"
+    elif wind_speed > 30:
+        return "Very Windy"
+    elif wind_speed > 20:
+        return "Windy"
+    else:
+        return "Pleasant"
+
+def _generate_detailed_routes(start: str, end: str, weather_category: str, temp: float, rainfall: float, wind_speed: float) -> Dict[str, List]:
+    """Generate detailed route options like Google Maps"""
+    
+    routes = {"recommended": [], "alternatives": []}
+    
+    # Weather-optimized primary route
+    if weather_category in ["Heavy Rain", "Light Rain"]:
+        # Prioritize underground/covered transport
+        routes["recommended"].append({
+            "route_name": "Metro + Tram (Weather Optimized)",
+            "duration": "28-35 min",
+            "cost": "15₺",
+            "weather_rating": "⭐⭐⭐⭐⭐ Excellent for rain",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {start} Metro Station (use covered walkways)",
+                    "duration": "4 min",
+                    "distance": "300m",
+                    "weather_tip": "Stay under building overhangs when possible"
+                },
+                {
+                    "mode": "metro",
+                    "instruction": "Take M2 Line (Red Line) towards Vezneciler",
+                    "duration": "18 min",
+                    "stations": "6 stops",
+                    "weather_tip": "Completely dry and climate controlled"
+                },
+                {
+                    "mode": "tram",
+                    "instruction": "Transfer to T1 Tram towards Eminönü",
+                    "duration": "8 min",
+                    "stations": "3 stops",
+                    "weather_tip": "Modern trams with good weather protection"
+                },
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {end} (use covered Grand Bazaar if possible)",
+                    "duration": "6 min",
+                    "distance": "400m",
+                    "weather_tip": "Grand Bazaar provides full rain protection"
+                }
+            ],
+            "comfort_level": "Very High",
+            "accessibility": "Full wheelchair access",
+            "real_time_info": "Live departure times available via IBB Mobile app"
+        })
+        
+        # Alternative bus route
+        routes["alternatives"].append({
+            "route_name": "Express Bus Route",
+            "duration": "35-45 min",
+            "cost": "15₺",
+            "weather_rating": "⭐⭐⭐ Good with short walks",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {start} bus stop",
+                    "duration": "5 min",
+                    "weather_tip": "Bring umbrella for bus stop wait"
+                },
+                {
+                    "mode": "bus",
+                    "instruction": "Take Bus 28, 30M, or 46C towards Eminönü",
+                    "duration": "25-30 min",
+                    "weather_tip": "Modern buses with AC and heating"
+                },
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {end}",
+                    "duration": "8 min",
+                    "weather_tip": "Final walk - stay on main streets with better drainage"
+                }
+            ],
+            "comfort_level": "Medium",
+            "traffic_warning": "May be delayed due to rain-related traffic"
+        })
+        
+    elif weather_category in ["Very Hot", "Hot"]:
+        # Prioritize air-conditioned transport
+        routes["recommended"].append({
+            "route_name": "Air-Conditioned Metro Route",
+            "duration": "25-30 min",
+            "cost": "15₺",
+            "weather_rating": f"⭐⭐⭐⭐⭐ Perfect for {temp}°C weather",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {start} Metro (seek shade, avoid 12-16:00)",
+                    "duration": "3 min",
+                    "distance": "250m",
+                    "weather_tip": f"Very hot ({temp}°C) - walk in building shadows"
+                },
+                {
+                    "mode": "metro",
+                    "instruction": "Take M2 Line - fully air conditioned",
+                    "duration": "20 min",
+                    "weather_tip": "Cool and comfortable - perfect escape from heat"
+                },
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {end} (use shaded paths)",
+                    "duration": "5 min",
+                    "weather_tip": "Stick to shaded side of streets, carry water"
+                }
+            ],
+            "comfort_level": "Very High",
+            "health_tip": "Stay hydrated - drink water before and after journey"
+        })
+        
+        # Scenic ferry alternative (if not too hot)
+        if temp < 30:
+            routes["alternatives"].append({
+                "route_name": "Scenic Ferry Route",
+                "duration": "40-50 min",
+                "cost": "25₺",
+                "weather_rating": "⭐⭐⭐⭐ Great with Bosphorus breeze",
+                "steps": [
+                    {
+                        "mode": "walk",
+                        "instruction": "Walk to Kabataş Ferry Terminal",
+                        "duration": "12 min",
+                        "weather_tip": "Morning or evening recommended for this walk"
+                    },
+                    {
+                        "mode": "ferry",
+                        "instruction": "Take Bosphorus ferry to Eminönü",
+                        "duration": "25 min",
+                        "weather_tip": "Sit on shaded side of ferry, enjoy sea breeze"
+                    },
+                    {
+                        "mode": "walk",
+                        "instruction": f"Walk to {end}",
+                        "duration": "8 min",
+                        "weather_tip": "Short final walk in historic area"
+                    }
+                ],
+                "comfort_level": "High",
+                "scenic_value": "Excellent Bosphorus views"
+            })
+    
+    elif weather_category in ["Very Windy", "Windy"]:
+        # Avoid ferries, prefer underground
+        routes["recommended"].append({
+            "route_name": "Underground Metro (Wind Protected)",
+            "duration": "25-30 min", 
+            "cost": "15₺",
+            "weather_rating": f"⭐⭐⭐⭐⭐ Completely wind-free",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {start} Metro (stay away from open areas)",
+                    "duration": "4 min",
+                    "weather_tip": f"Strong winds ({wind_speed} m/s) - avoid waterfront areas"
+                },
+                {
+                    "mode": "metro",
+                    "instruction": "Take M2 Line - underground, no wind impact",
+                    "duration": "20 min",
+                    "weather_tip": "Completely protected from wind"
+                },
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {end} via sheltered streets",
+                    "duration": "5 min",
+                    "weather_tip": "Use narrow streets between buildings for wind protection"
+                }
+            ],
+            "comfort_level": "Very High",
+            "safety_note": "Ferries may be cancelled due to strong winds"
+        })
+    
+    else:
+        # Pleasant weather - all options available
+        routes["recommended"].append({
+            "route_name": "Balanced Metro + Walking",
+            "duration": "25-30 min",
+            "cost": "15₺", 
+            "weather_rating": "⭐⭐⭐⭐⭐ Perfect weather for any transport",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {start} Metro Station",
+                    "duration": "3 min",
+                    "distance": "250m",
+                    "weather_tip": f"Pleasant {temp}°C - enjoy the walk!"
+                },
+                {
+                    "mode": "metro",
+                    "instruction": "Take M2 Line towards Vezneciler",
+                    "duration": "20 min",
+                    "stations": "6 stops"
+                },
+                {
+                    "mode": "walk",
+                    "instruction": f"Walk to {end}",
+                    "duration": "5 min",
+                    "distance": "400m",
+                    "weather_tip": "Perfect weather for exploring on foot"
+                }
+            ],
+            "comfort_level": "High",
+            "scenic_value": "Good opportunity for street photography"
+        })
+        
+        # Walking route for pleasant weather
+        routes["alternatives"].append({
+            "route_name": "Scenic Walking Route",
+            "duration": "45-60 min",
+            "cost": "Free",
+            "weather_rating": f"⭐⭐⭐⭐⭐ Ideal walking weather ({temp}°C)",
+            "steps": [
+                {
+                    "mode": "walk",
+                    "instruction": "Walk via İstiklal Street → Galata Bridge → Eminönü",
+                    "duration": "50 min",
+                    "distance": "4.2 km",
+                    "weather_tip": "Perfect temperature for sightseeing walk"
+                }
+            ],
+            "comfort_level": "Medium",
+            "scenic_value": "Excellent - passes major landmarks",
+            "health_benefit": "Great exercise with beautiful views"
+        })
+    
+    return routes
+
+def _generate_weather_alerts(weather_category: str, temp: float, rainfall: float, wind_speed: float) -> List[str]:
+    """Generate real-time weather alerts for transportation"""
+    alerts = []
+    
+    if weather_category == "Heavy Rain":
+        alerts.extend([
+            "⚠️ Heavy rain alert: Metro and tram services recommended",
+            "🚌 Bus services may experience delays due to flooding on some routes",
+            "🚗 Traffic congestion expected - add 15-20 minutes to taxi times",
+            "⛴️ Ferry services may be suspended - check IDO website"
+        ])
+    
+    elif weather_category == "Light Rain":
+        alerts.extend([
+            "🌧️ Light rain: Slight delays possible on bus routes",
+            "☂️ Bring umbrella for short walks between stations"
+        ])
+    
+    elif weather_category == "Very Hot":
+        alerts.extend([
+            f"🌡️ Extreme heat warning: {temp}°C - avoid outdoor walking 12:00-16:00",
+            "💧 Carry water and stay hydrated",
+            "🚇 Metro stations provide air conditioning relief"
+        ])
+        
+    elif weather_category == "Very Windy":
+        alerts.extend([
+            f"💨 Strong wind alert: {wind_speed} m/s - ferry services may be cancelled",
+            "⚠️ Be cautious walking near Bosphorus and Golden Horn",
+            "🌉 Avoid bridges during peak wind hours"
+        ])
+    
+    elif weather_category == "Very Cold":
+        alerts.extend([
+            f"🥶 Very cold: {temp}°C - dress warmly for outdoor waiting",
+            "🧥 Heated buses and metro provide warm transport",
+            "⚠️ Watch for icy conditions on walkways"
+        ])
+    
+    return alerts
 
 # Global cache instances
 route_cache = RouteCache(max_size=500, default_ttl=1800)  # 30 minutes TTL

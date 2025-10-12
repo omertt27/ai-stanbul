@@ -2327,12 +2327,33 @@ class IstanbulDailyTalkAI:
                         response += f"• {rec}\n"
                     response += "\n"
                 
-                transportation_advice = get_transportation_advice_for_weather(weather_data)
-                if transportation_advice:
-                    response += "🚇 **Transportation Advice:**\n"
-                    for advice in transportation_advice[:2]:  # Top 2
-                        response += f"• {advice}\n"
-                    response += "\n"
+                transportation_advice = get_transportation_advice_for_weather(weather_data, 
+                    location_info.get('neighborhood', 'Current Location'), 'Destination')
+                if transportation_advice and 'recommended_routes' in transportation_advice:
+                    response += "🚇 **Detailed Transportation Guide:**\n"
+                    response += f"📍 {transportation_advice['route_overview']}\n"
+                    response += f"🌤️ {transportation_advice['weather_impact']}\n\n"
+                    
+                    # Show primary recommended route
+                    if transportation_advice['recommended_routes']:
+                        primary_route = transportation_advice['recommended_routes'][0]
+                        response += f"**🎯 Recommended: {primary_route['route_name']}**\n"
+                        response += f"⏱️ Duration: {primary_route['duration']} | 💰 Cost: {primary_route['cost']}\n"
+                        response += f"🌟 {primary_route['weather_rating']}\n\n"
+                        
+                        response += "**Step-by-step directions:**\n"
+                        for i, step in enumerate(primary_route['steps'][:4], 1):  # Show first 4 steps
+                            response += f"{i}. {step['instruction']} ({step['duration']})\n"
+                            if 'weather_tip' in step:
+                                response += f"   💡 {step['weather_tip']}\n"
+                        response += "\n"
+                    
+                    # Show real-time alerts
+                    if transportation_advice['real_time_alerts']:
+                        response += "⚠️ **Current Alerts:**\n"
+                        for alert in transportation_advice['real_time_alerts'][:2]:
+                            response += f"• {alert}\n"
+                        response += "\n"
                     
             except Exception as e:
                 logger.warning(f"Failed to get weather-aware recommendations: {e}")
@@ -2415,7 +2436,10 @@ class IstanbulDailyTalkAI:
                 try:
                     # Get weather recommendations from route cache
                     weather_recommendations = weather_aware_cache.get_weather_recommendations(weather_data)
-                    transportation_advice = get_transportation_advice_for_weather(weather_data)
+                    start_coords = self._get_coordinates_for_location(location_info)
+                    transportation_advice = get_transportation_advice_for_weather(weather_data, 
+                        location_info.get('neighborhood', 'Current Location'), 
+                        ', '.join(places_to_visit[:2]) if places_to_visit else 'Destination')
                 except Exception as e:
                     logger.warning(f"Failed to get weather recommendations: {e}")
             
@@ -2593,9 +2617,38 @@ class IstanbulDailyTalkAI:
                 response += f"• {rec}\n"
         
         if route_result.get('transportation_advice'):
-            response += "\n🚇 **Transportation Advice:**\n"
-            for advice in route_result['transportation_advice'][:2]:  # Top 2 advice
-                response += f"• {advice}\n"
+            transportation_advice = route_result['transportation_advice']
+            if isinstance(transportation_advice, dict) and 'recommended_routes' in transportation_advice:
+                response += "\n🚇 **Detailed Transportation Guide:**\n"
+                response += f"📍 {transportation_advice['route_overview']}\n"
+                if 'weather_impact' in transportation_advice:
+                    response += f"🌤️ {transportation_advice['weather_impact']}\n\n"
+                
+                # Show recommended route
+                if transportation_advice['recommended_routes']:
+                    primary_route = transportation_advice['recommended_routes'][0]
+                    response += f"**🎯 Best Route: {primary_route['route_name']}**\n"
+                    response += f"⏱️ {primary_route['duration']} | 💰 {primary_route['cost']} | {primary_route.get('weather_rating', '')}\n\n"
+                    
+                    response += "**Directions:**\n"
+                    for i, step in enumerate(primary_route['steps'][:3], 1):  # Show first 3 steps
+                        response += f"{i}. {step['instruction']} ({step['duration']})\n"
+                        if 'weather_tip' in step:
+                            response += f"   💡 {step['weather_tip']}\n"
+                    response += "\n"
+                
+                # Show alerts
+                if transportation_advice.get('real_time_alerts'):
+                    response += "⚠️ **Current Alerts:**\n"
+                    for alert in transportation_advice['real_time_alerts'][:2]:
+                        response += f"• {alert}\n"
+                    response += "\n"
+            else:
+                # Fallback for simple list format
+                response += "\n🚇 **Transportation Advice:**\n"
+                advice_list = transportation_advice if isinstance(transportation_advice, list) else [str(transportation_advice)]
+                for advice in advice_list[:2]:
+                    response += f"• {advice}\n"
         
         # Add real-time advice
         current_hour = current_time.hour
