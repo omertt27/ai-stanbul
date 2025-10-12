@@ -127,7 +127,7 @@ export const fetchResults = async (query, sessionId = null) => {
   });
 };
 
-export const fetchStreamingResults = async (query, onChunk, sessionId = null, onError = null) => {
+export const fetchStreamingResults = async (query, onChunk, sessionId = null, onError = null, locationContext = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
@@ -137,7 +137,8 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
       
       const requestBody = { 
         user_input: query,
-        session_id: currentSessionId  // Always include session ID
+        session_id: currentSessionId,  // Always include session ID
+        ...(locationContext && { location_context: locationContext }) // Add location context if provided
       };
       
       console.log('📋 Request body:', { ...requestBody, user_input: query.substring(0, 50) + '...' });

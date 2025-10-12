@@ -1,9 +1,11 @@
 /**
  * Location Context - Provides location state management across the app
+ * Enhanced with GPS Location Service integration
  */
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import locationApi from '../services/locationApi';
+import gpsLocationService from '../services/gpsLocationService';
 
 // Initial state
 const initialState = {
@@ -39,6 +41,14 @@ const initialState = {
   isTracking: false,
   trackingWatchId: null,
   
+  // GPS-specific state
+  gpsPermission: 'unknown',
+  gpsAccuracy: null,
+  lastKnownPosition: null,
+  locationTimestamp: null,
+  neighborhood: null,
+  locationSource: null, // 'gps', 'manual', 'cached'
+  
   // User preferences
   preferences: {
     language: 'en',
@@ -55,6 +65,14 @@ const actionTypes = {
   SET_LOCATION_LOADING: 'SET_LOCATION_LOADING',
   SET_CURRENT_LOCATION: 'SET_CURRENT_LOCATION',
   SET_LOCATION_ERROR: 'SET_LOCATION_ERROR',
+  
+  // GPS-specific actions
+  SET_GPS_PERMISSION: 'SET_GPS_PERMISSION',
+  SET_GPS_POSITION: 'SET_GPS_POSITION',
+  SET_NEIGHBORHOOD: 'SET_NEIGHBORHOOD',
+  SET_LOCATION_SOURCE: 'SET_LOCATION_SOURCE',
+  SET_TRACKING: 'SET_TRACKING',
+  CLEAR_LOCATION: 'CLEAR_LOCATION',
   
   // Session actions
   SET_SESSION_ACTIVE: 'SET_SESSION_ACTIVE',
@@ -109,6 +127,44 @@ function locationReducer(state, action) {
         ...state, 
         locationError: action.payload, 
         locationLoading: false 
+      };
+      
+    case actionTypes.SET_GPS_PERMISSION:
+      return { ...state, gpsPermission: action.payload };
+      
+    case actionTypes.SET_GPS_POSITION:
+      return { 
+        ...state, 
+        currentLocation: action.payload.location,
+        gpsAccuracy: action.payload.accuracy,
+        locationTimestamp: action.payload.timestamp,
+        lastKnownPosition: action.payload.location,
+        locationError: null,
+        locationLoading: false
+      };
+      
+    case actionTypes.SET_NEIGHBORHOOD:
+      return { ...state, neighborhood: action.payload };
+      
+    case actionTypes.SET_LOCATION_SOURCE:
+      return { ...state, locationSource: action.payload };
+      
+    case actionTypes.SET_TRACKING:
+      return { 
+        ...state, 
+        isTracking: action.payload.isTracking,
+        trackingWatchId: action.payload.watchId
+      };
+      
+    case actionTypes.CLEAR_LOCATION:
+      return { 
+        ...state, 
+        currentLocation: null,
+        gpsAccuracy: null,
+        locationTimestamp: null,
+        neighborhood: null,
+        locationSource: null,
+        locationError: null
       };
       
     case actionTypes.SET_SESSION_ACTIVE:
@@ -242,6 +298,67 @@ export const LocationProvider = ({ children }) => {
     localStorage.setItem('ai_istanbul_preferences', JSON.stringify(state.preferences));
   }, [state.preferences]);
 
+  // Initialize GPS service and set up location listeners
+  useEffect(() => {
+    const initializeGPS = async () => {
+      try {
+        // Check permission status
+        const permission = await gpsLocationService.getLocationPermissionStatus();
+        dispatch({ type: actionTypes.SET_GPS_PERMISSION, payload: permission });
+        
+        // Try to get last known position
+        const lastKnown = gpsLocationService.getLastKnownPosition();
+        if (lastKnown) {
+          const neighborhood = await gpsLocationService.getNeighborhoodFromCoordinates(lastKnown);
+          dispatch({ 
+            type: actionTypes.SET_GPS_POSITION, 
+            payload: {
+              location: { lat: lastKnown.lat, lng: lastKnown.lng },
+              accuracy: lastKnown.accuracy,
+              timestamp: lastKnown.timestamp
+            }
+          });
+          dispatch({ type: actionTypes.SET_NEIGHBORHOOD, payload: neighborhood });
+          dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'cached' });
+        }
+      } catch (error) {
+        console.error('Error initializing GPS:', error);
+      }
+    };
+
+    // Set up location update listeners
+    const locationUnsubscribe = gpsLocationService.onLocationUpdate(async (position) => {
+      try {
+        const neighborhood = await gpsLocationService.getNeighborhoodFromCoordinates(position);
+        dispatch({ 
+          type: actionTypes.SET_GPS_POSITION, 
+          payload: {
+            location: { lat: position.lat, lng: position.lng },
+            accuracy: position.accuracy,
+            timestamp: position.timestamp
+          }
+        });
+        dispatch({ type: actionTypes.SET_NEIGHBORHOOD, payload: neighborhood });
+        dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'gps' });
+      } catch (error) {
+        console.error('Error processing location update:', error);
+      }
+    });
+
+    const errorUnsubscribe = gpsLocationService.onLocationError((error) => {
+      dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: error.message });
+    });
+
+    initializeGPS();
+
+    // Cleanup
+    return () => {
+      locationUnsubscribe();
+      errorUnsubscribe();
+      gpsLocationService.stopLocationTracking();
+    };
+  }, []);
+
   // Action creators
   const actions = {
     // Location actions
@@ -256,6 +373,106 @@ export const LocationProvider = ({ children }) => {
         dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: error.message });
         throw error;
       }
+    },
+
+    // GPS-specific actions
+    async requestGPSLocation(options = {}) {
+      dispatch({ type: actionTypes.SET_LOCATION_LOADING, payload: true });
+      
+      try {
+        const position = await gpsLocationService.requestLocationPermission();
+        const neighborhood = await gpsLocationService.getNeighborhoodFromCoordinates(position);
+        
+        dispatch({ 
+          type: actionTypes.SET_GPS_POSITION, 
+          payload: {
+            location: { lat: position.lat, lng: position.lng },
+            accuracy: position.accuracy,
+            timestamp: position.timestamp
+          }
+        });
+        
+        dispatch({ type: actionTypes.SET_NEIGHBORHOOD, payload: neighborhood });
+        dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'gps' });
+        
+        // Update permission status
+        const permission = await gpsLocationService.getLocationPermissionStatus();
+        dispatch({ type: actionTypes.SET_GPS_PERMISSION, payload: permission });
+        
+        return { ...position, neighborhood };
+      } catch (error) {
+        dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: error.message });
+        
+        // Update permission status on error
+        const permission = await gpsLocationService.getLocationPermissionStatus();
+        dispatch({ type: actionTypes.SET_GPS_PERMISSION, payload: permission });
+        
+        throw error;
+      }
+    },
+
+    async setManualLocation(locationData) {
+      try {
+        let processedLocation;
+        
+        if (typeof locationData === 'string') {
+          processedLocation = {
+            lat: null,
+            lng: null,
+            neighborhood: locationData
+          };
+        } else {
+          const neighborhood = locationData.neighborhood || 
+            (locationData.lat && locationData.lng ? 
+              await gpsLocationService.getNeighborhoodFromCoordinates(locationData) : 
+              'Unknown Area');
+              
+          processedLocation = {
+            lat: locationData.lat || null,
+            lng: locationData.lng || null,
+            neighborhood
+          };
+        }
+        
+        dispatch({ type: actionTypes.SET_CURRENT_LOCATION, payload: processedLocation });
+        dispatch({ type: actionTypes.SET_NEIGHBORHOOD, payload: processedLocation.neighborhood });
+        dispatch({ type: actionTypes.SET_LOCATION_SOURCE, payload: 'manual' });
+        
+        return processedLocation;
+      } catch (error) {
+        dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: 'Failed to set manual location' });
+        throw error;
+      }
+    },
+
+    startGPSTracking() {
+      try {
+        const watchId = gpsLocationService.startLocationTracking();
+        dispatch({ type: actionTypes.SET_TRACKING, payload: { isTracking: true, watchId } });
+        return watchId;
+      } catch (error) {
+        dispatch({ type: actionTypes.SET_LOCATION_ERROR, payload: error.message });
+        throw error;
+      }
+    },
+
+    stopGPSTracking() {
+      gpsLocationService.stopLocationTracking();
+      dispatch({ type: actionTypes.SET_TRACKING, payload: { isTracking: false, watchId: null } });
+    },
+
+    clearLocation() {
+      dispatch({ type: actionTypes.CLEAR_LOCATION });
+      gpsLocationService.stopLocationTracking();
+    },
+
+    getDistanceToLocation(targetLocation) {
+      if (!state.currentLocation || !targetLocation) return null;
+      
+      return gpsLocationService.calculateDistance(
+        state.currentLocation,
+        targetLocation
+      );
     },
 
     async createSession(userLocation, preferences = {}) {
@@ -407,7 +624,28 @@ export const LocationProvider = ({ children }) => {
     hasLocation: !!state.currentLocation,
     hasRecommendations: state.recommendations.length > 0,
     hasRoute: !!state.currentRoute,
-    hasNearbyPOIs: state.nearbyPOIs.length > 0
+    hasNearbyPOIs: state.nearbyPOIs.length > 0,
+    
+    // GPS-specific computed values
+    hasGPSLocation: !!(state.currentLocation && state.locationSource === 'gps'),
+    hasLocationPermission: state.gpsPermission === 'granted',
+    isLocationRecent: state.locationTimestamp ? 
+      (Date.now() - new Date(state.locationTimestamp).getTime() < 300000) : false, // 5 minutes
+    locationSummary: state.neighborhood || 
+      (state.currentLocation ? 
+        `${state.currentLocation.lat?.toFixed(4)}, ${state.currentLocation.lng?.toFixed(4)}` : 
+        'No location'),
+    
+    // Utility methods
+    isLocationAvailable: gpsLocationService.isLocationAvailable(),
+    formatLocationForAI: () => ({
+      lat: state.currentLocation?.lat || null,
+      lng: state.currentLocation?.lng || null,
+      accuracy: state.gpsAccuracy,
+      timestamp: state.locationTimestamp,
+      neighborhood: state.neighborhood,
+      source: state.locationSource
+    })
   };
 
   return (

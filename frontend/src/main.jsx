@@ -9,6 +9,7 @@ import './i18n' // Initialize i18n
 import AppRouter from './AppRouter.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { BlogProvider } from './contexts/BlogContext.jsx'
+import { LocationProvider } from './contexts/LocationContext.jsx'
 // import './utils/websiteProtection.js' // Initialize website protection - DISABLED
 
 console.log('Starting React app...')
@@ -30,8 +31,10 @@ try {
       <HelmetProvider>
         <ThemeProvider>
           <BlogProvider>
-            <AppRouter />
-            <Analytics />
+            <LocationProvider>
+              <AppRouter />
+              <Analytics />
+            </LocationProvider>
           </BlogProvider>
         </ThemeProvider>
       </HelmetProvider>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from './contexts/LocationContext';
 import SearchBar from './components/SearchBar';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
@@ -11,6 +12,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import MainPageMobileNavbar from './components/MainPageMobileNavbar';
 import LocationPermissionModal from './components/LocationPermissionModal';
 import LocationBasedButtons from './components/LocationBasedButtons';
+import GPSLocationStatus from './components/GPSLocationStatus';
 import { LocationResultsContainer, RestaurantCard, RouteCard } from './components/LocationResults';
 import RoutePlanningForm from './components/RoutePlanningForm';
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
@@ -20,9 +22,27 @@ import './App.css';
 import './components/InteractiveMainPage.css';
 
 const App = () => {
-  const location = useLocation();
+  const routerLocation = useRouterLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  
+  // Location context
+  const {
+    currentLocation,
+    hasLocation,
+    locationLoading,
+    locationError,
+    gpsPermission,
+    neighborhood,
+    locationSource,
+    isTracking,
+    requestGPSLocation,
+    setManualLocation,
+    startGPSTracking,
+    stopGPSTracking,
+    clearLocation,
+    formatLocationForAI
+  } = useLocation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -54,7 +74,6 @@ const App = () => {
   // Location-based features state
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showRoutePlanning, setShowRoutePlanning] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
   const [locationResults, setLocationResults] = useState(null);
   const [activeLocationFeature, setActiveLocationFeature] = useState(null);
 
@@ -72,14 +91,14 @@ const App = () => {
   useEffect(() => {
     // Ensure page stays at top when component mounts
     window.scrollTo(0, 0);
-    if (location.pathname === '/chat') {
+    if (routerLocation.pathname === '/chat') {
       setExpanded(true);
     }
-  }, [location.pathname]);
+  }, [routerLocation.pathname]);
 
   // Add/remove main-page class on body
   useEffect(() => {
-    if (location.pathname === '/') {
+    if (routerLocation.pathname === '/') {
       document.body.classList.add('main-page');
     } else {
       document.body.classList.remove('main-page');
@@ -89,7 +108,7 @@ const App = () => {
     return () => {
       document.body.classList.remove('main-page');
     };
-  }, [location.pathname]);
+  }, [routerLocation.pathname]);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
@@ -143,13 +162,31 @@ const App = () => {
   };
 
   // Location-based feature handlers
-  const handleLocationSet = (location) => {
-    setUserLocation(location);
-    console.log('Location set:', location);
+  const handleLocationSet = async (location) => {
+    try {
+      if (location.source === 'gps') {
+        // GPS location from modal
+        await requestGPSLocation();
+      } else {
+        // Manual location from modal
+        await setManualLocation(location);
+      }
+      console.log('Location set:', location);
+    } catch (error) {
+      console.error('Error setting location:', error);
+    }
   };
 
-  const handleLocationFeature = async (featureType, location) => {
+  const handleLocationFeature = async (featureType, userProvidedLocation) => {
     setActiveLocationFeature(featureType);
+    
+    // Use current location from context or provided location
+    const locationToUse = userProvidedLocation || currentLocation;
+    
+    if (!locationToUse && featureType !== 'route') {
+      setShowLocationModal(true);
+      return;
+    }
     
     try {
       if (featureType === 'restaurants') {
@@ -339,15 +376,22 @@ const App = () => {
           
 
 
+          {/* GPS Location Status */}
+          {!expanded && (
+            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <GPSLocationStatus />
+            </div>
+          )}
+
           {/* Location-based Features */}
-          {!expanded && userLocation && (
+          {!expanded && hasLocation && (
             <div style={{ marginBottom: '2rem' }}>
               <LocationBasedButtons onFeatureSelect={handleLocationFeature} />
             </div>
           )}
 
           {/* Destination Input for Route Planning - Testing */}
-          {!expanded && userLocation && (
+          {!expanded && hasLocation && (
             <div style={{
               padding: '0 20px',
               marginBottom: '1rem'
@@ -390,7 +434,7 @@ const App = () => {
             <LocationResultsContainer 
               results={locationResults.data}
               type={locationResults.type}
-              userLocation={userLocation}
+              userLocation={currentLocation}
             />
           )}
 
@@ -415,7 +459,7 @@ const App = () => {
           isOpen={showRoutePlanning}
           onClose={() => setShowRoutePlanning(false)}
           onRouteRequest={handleRouteRequest}
-          userLocation={userLocation}
+          userLocation={currentLocation}
         />
 
         {/* Cookie Consent Banner */}

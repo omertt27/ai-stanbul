@@ -193,7 +193,7 @@ function Chatbot() {
 
   // Location-based features state
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  // Note: userLocation is now managed by LocationContext
   const [locationRequested, setLocationRequested] = useState(false);
 
   // Speech synthesis support
@@ -453,17 +453,25 @@ function Chatbot() {
   }
 
   // Location handling functions
-  const handleLocationSet = (location) => {
-    setUserLocation(location);
-    setShowLocationModal(false);
-    console.log('Location set in chat:', location);
-    
-    // If there was a pending message that required location, send it now
-    if (locationRequested && input.trim()) {
-      // Small delay to let the modal close
-      setTimeout(() => {
-        handleSend();
-      }, 100);
+  const handleLocationSet = async (location) => {
+    try {
+      if (location.source === 'gps') {
+        await locationContext.requestGPSLocation();
+      } else {
+        await locationContext.setManualLocation(location);
+      }
+      setShowLocationModal(false);
+      console.log('Location set via context:', location);
+      
+      // If there was a pending message that required location, send it now
+      if (locationRequested && input.trim()) {
+        // Small delay to let the modal close
+        setTimeout(() => {
+          handleSend();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error setting location:', error);
     }
   };
 
@@ -515,7 +523,7 @@ function Chatbot() {
     const locationKeywords = ['near me', 'nearby', 'closest', 'around me', 'where is', 'directions', 'route', 'restaurant', 'hotel', 'attraction', 'distance', 'how far'];
     const needsLocation = locationKeywords.some(keyword => userInput.toLowerCase().includes(keyword));
     
-    if (needsLocation && !userLocation && !locationRequested) {
+    if (needsLocation && !locationContext.hasLocation && !locationRequested) {
       setLocationRequested(true);
       setShowLocationModal(true);
       return; // Don't send the message yet, wait for location
@@ -571,9 +579,14 @@ function Chatbot() {
       console.log(`🌍 Using ${useLocationAware ? 'location-aware' : 'standard'} chat API`);
       
       if (useLocationAware) {
-        const response = await fetchStreamingResults(userInput, {
-          timeout: 60000
-        });
+        const locationData = locationContext.formatLocationForAI();
+        const response = await fetchStreamingResults(
+          userInput,
+          () => {}, // onChunk callback - will be handled by manual reader below
+          currentSessionId,
+          null, // onError
+          locationData // location context
+        );
         
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -1744,7 +1757,7 @@ function Chatbot() {
           
           {/* Location Status & Enable Button */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', gap: '8px' }}>
-            {userLocation ? (
+            {locationContext.hasLocation ? (
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1758,7 +1771,7 @@ function Chatbot() {
                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: '6px' }}>
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                 </svg>
-                📍 {userLocation.name || 'Current Location'}
+                📍 {locationContext.locationSummary || 'Current Location'}
               </div>
             ) : (
               <button

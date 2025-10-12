@@ -1,40 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import gpsLocationService from '../services/gpsLocationService';
 
 const LocationPermissionModal = ({ isOpen, onClose, onLocationSet }) => {
   const { t } = useTranslation();
   const [manualLocation, setManualLocation] = useState('');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState('unknown');
+  const [error, setError] = useState(null);
 
-  const handleUseMyLocation = () => {
-    setIsLoading(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
+  useEffect(() => {
+    if (isOpen) {
+      checkPermissionStatus();
+    }
+  }, [isOpen]);
+
+  const checkPermissionStatus = async () => {
+    try {
+      const status = await gpsLocationService.getLocationPermissionStatus();
+      setPermissionStatus(status);
+      
+      // If already granted, try to get last known position
+      if (status === 'granted') {
+        const lastKnown = gpsLocationService.getLastKnownPosition();
+        if (lastKnown) {
+          const neighborhood = await gpsLocationService.getNeighborhoodFromCoordinates(lastKnown);
           onLocationSet({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: lastKnown.lat,
+            longitude: lastKnown.lng,
             source: 'gps',
-            name: 'Current Location'
+            name: neighborhood || 'Current Location',
+            accuracy: lastKnown.accuracy,
+            timestamp: lastKnown.timestamp
           });
-          setIsLoading(false);
           onClose();
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setIsLoading(false);
-          setShowManualEntry(true);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
         }
-      );
-    } else {
-      setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking permission status:', error);
+    }
+  };
+
+  const handleUseMyLocation = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const position = await gpsLocationService.requestLocationPermission();
+      const neighborhood = await gpsLocationService.getNeighborhoodFromCoordinates(position);
+      
+      onLocationSet({
+        latitude: position.lat,
+        longitude: position.lng,
+        source: 'gps',
+        name: neighborhood || 'Current Location',
+        accuracy: position.accuracy,
+        timestamp: position.timestamp
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('GPS location error:', error);
+      setError(error.message);
       setShowManualEntry(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 

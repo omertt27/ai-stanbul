@@ -29,6 +29,9 @@ import asyncio
 from collections import defaultdict, deque
 import random
 
+# Import the hidden gems system
+from hidden_gems_local_tips import HiddenGemsLocalTips
+
 # Configure advanced logging
 logging.basicConfig(
     level=logging.INFO,
@@ -48,6 +51,7 @@ class IntentType(Enum):
     SHOPPING_GUIDANCE = "shopping_guidance"
     NIGHTLIFE_RECOMMENDATIONS = "nightlife_recommendations"
     LOCAL_TIPS = "local_tips"
+    HIDDEN_GEMS = "hidden_gems"  # Added for hidden gems integration
     PRICE_INQUIRY = "price_inquiry"
     TIME_INQUIRY = "time_inquiry"
     COMPARATIVE_ANALYSIS = "comparative_analysis"
@@ -410,12 +414,19 @@ class HybridIntentClassifier:
             IntentType.EVENT_DISCOVERY: [
                 re.compile(r'\b(event|festival|concert|show|exhibition|happening)\b', re.IGNORECASE)
             ],
-            IntentType.PRICE_INQUIRY: [
-                re.compile(r'\b(price|cost|expensive|cheap|budget|affordable|how much)\b', re.IGNORECASE)
+            IntentType.SHOPPING_GUIDANCE: [
+                re.compile(r'\b(shop|shopping|buy|market|bazaar|store|souvenir)\b', re.IGNORECASE)
             ],
-            IntentType.TIME_INQUIRY: [
-                re.compile(r'\b(time|hours|open|close|when|schedule|timing)\b', re.IGNORECASE),
-                re.compile(r'\b(open (now|today|tonight|for breakfast|for lunch|for dinner))\b', re.IGNORECASE)
+            IntentType.NIGHTLIFE_RECOMMENDATIONS: [
+                re.compile(r'\b(nightlife|bar|club|night|evening|drinks|party)\b', re.IGNORECASE)
+            ],
+            IntentType.LOCAL_TIPS: [
+                re.compile(r'\b(local|tip|advice|recommend|suggestion|insider|authentic)\b', re.IGNORECASE)
+            ],
+            IntentType.HIDDEN_GEMS: [
+                re.compile(r'\b(hidden|secret|gem|unknown|discover|explore|off beaten path)\b', re.IGNORECASE),
+                re.compile(r'\b(local spot|locals go|authentic place|not touristy|insider)\b', re.IGNORECASE),
+                re.compile(r'\b(secret place|hidden treasure|local secret|undiscovered)\b', re.IGNORECASE)
             ]
         }
     
@@ -642,6 +653,10 @@ class PersonalizedResponseGenerator:
             response = await self._generate_cultural_response(entities, user_profile, context)
         elif primary_intent == IntentType.WEATHER_INQUIRY:
             response = await self._generate_weather_response(user_profile, context)
+        elif primary_intent == IntentType.HIDDEN_GEMS:
+            response = await self._generate_hidden_gems_response(entities, user_profile, context)
+        elif primary_intent == IntentType.LOCAL_TIPS:
+            response = await self._generate_local_tips_response(entities, user_profile, context)
         else:
             response = await self._generate_general_response(user_profile, context)
         
@@ -807,13 +822,14 @@ class AdvancedIstanbulAI:
         self.intent_classifier = HybridIntentClassifier()
         self.response_generator = PersonalizedResponseGenerator()
         self.data_integrator = RealTimeDataIntegrator()
+        self.hidden_gems_system = HiddenGemsLocalTips()  # Initialize hidden gems system
         
         # Initialize components
         self._init_database()
         self.active_sessions: Dict[str, DialogueContext] = {}
         self.user_profiles: Dict[str, UserProfile] = {}
         
-        logger.info("Advanced Istanbul AI System initialized successfully!")
+        logger.info("Advanced Istanbul AI System with Hidden Gems integration initialized successfully!")
     
     def _init_database(self):
         """Initialize SQLite database for persistence"""
