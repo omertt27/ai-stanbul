@@ -37,6 +37,13 @@ import networkx as nx
 import geopandas as gpd
 import folium
 from geopy.distance import geodesic
+
+# Fix SSL certificate issues for geopy
+import ssl
+import certifi
+import geopy.geocoders
+ctx = ssl.create_default_context(cafile=certifi.where())
+geopy.geocoders.options.default_ssl_context = ctx
 from typing import List, Dict, Tuple, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -53,8 +60,30 @@ import pytz
 ISTANBUL_TIMEZONE = pytz.timezone('Europe/Istanbul')
 import pytz
 
-from database import get_db
-from services.performance_monitor import monitor_performance, profile_route_generation, performance_monitor
+# Import local modules - with fallback for missing database
+try:
+    from database import get_db
+except ImportError:
+    # Fallback when database module is not available
+    def get_db():
+        return None
+
+try:
+    from services.performance_monitor import monitor_performance, profile_route_generation, performance_monitor
+except ImportError:
+    # Fallback when performance monitor is not available
+    def monitor_performance(*args, **kwargs):
+        def decorator(func):
+            return func
+        if len(args) == 1 and callable(args[0]):
+            return args[0]
+        return decorator
+    def profile_route_generation(func):
+        return func
+    class MockPerformanceMonitor:
+        def log_route_generation(self, *args, **kwargs):
+            pass
+    performance_monitor = MockPerformanceMonitor()
 
 
 class IstanbulOptimizations:

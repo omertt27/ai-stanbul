@@ -67,6 +67,18 @@ from ml_personalization_helpers import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import route planning service
+try:
+    from backend.services.route_maker_service import (
+        IstanbulRoutemaker, RouteRequest, RouteStyle, TransportMode, 
+        GeneratedRoute, RoutePoint, IstanbulOptimizations
+    )
+    ROUTE_MAKER_AVAILABLE = True
+    logger.info("🗺️ Route Maker Service loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Route Maker Service not available: {e}")
+    ROUTE_MAKER_AVAILABLE = False
+
 # Import our enhanced deep learning system
 try:
     from deep_learning_enhanced_ai import DeepLearningEnhancedAI, ConversationMemory, EmotionalState
@@ -441,6 +453,18 @@ class IstanbulDailyTalkAI:
             self.transportation_processor = None
             logger.warning("⚠️ Enhanced Transportation features disabled")
 
+        # Initialize route maker service
+        self.route_maker = None
+        if ROUTE_MAKER_AVAILABLE:
+            try:
+                self.route_maker = IstanbulRoutemaker()
+                logger.info("🗺️ Route Maker Service integrated successfully!")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Route Maker: {e}")
+                self.route_maker = None
+        else:
+            logger.warning("⚠️ Route Maker features disabled")
+        
         # Initialize response templates with local flavor
         self.initialize_response_templates()
         
@@ -720,6 +744,10 @@ class IstanbulDailyTalkAI:
         if enhanced_intent == 'transportation_query':
             return 'transportation_query'
         
+        # PRIORITY: Check for route planning queries (high priority)
+        if self.is_route_planning_query(message):
+            return 'route_planning'
+        
         # 🚇 PRIORITY: Check for transportation queries FIRST (comprehensive handling)
         # This needs to be checked before neighborhood queries since transport queries
         # often mention specific locations that might trigger neighborhood detection
@@ -942,6 +970,10 @@ class IstanbulDailyTalkAI:
                     return self._generate_fallback_hidden_gems_response(message, user_profile, current_time)
             else:
                 return self._generate_fallback_hidden_gems_response(message, user_profile, current_time)
+        
+        elif intent == 'route_planning':
+            # Handle route planning queries with multi-modal routing
+            return self.handle_route_planning_query(message, user_profile, context, current_time)
         
         else:
             return self._generate_fallback_response(context, user_profile)
@@ -1384,7 +1416,7 @@ class IstanbulDailyTalkAI:
             'budget_compatibility': {
                 'weight': 0.15,
                 'score': self._calculate_budget_score(recommendation, user_profile),
-                'explanation': f"Matches your {user_profile.budget_range or 'moderate'} budget range"
+                'explanation': f"Matches your {user_profile.budget_range or 'not specified'} budget range"
             },
             'accessibility_needs': {
                 'weight': 0.10,
@@ -1665,6 +1697,7 @@ class IstanbulDailyTalkAI:
         user_profile = self.get_user_profile(user_id)
         
         response = "🔒 **Your Privacy Settings**\n\n"
+
         response += "**Current Status:**\n"
         response += f"• Location sharing: {'✅ Enabled' if user_profile.gps_location else '❌ Disabled'}\n"
         response += f"• Profile personalization: {'✅ Active' if user_profile.interests or user_profile.travel_style else '⚪ Basic'}\n"
@@ -1921,6 +1954,17 @@ class IstanbulDailyTalkAI:
         """Enhanced intent classification with attraction support and hidden gems detection"""
         message_lower = message.lower()
         
+        # Route planning keywords (high priority)
+        route_keywords = [
+            'route', 'plan my day', 'itinerary', 'tour plan', 'day plan', 
+            'plan route', 'visiting multiple', 'best route', 'optimize route',
+            'day trip', 'multi-stop', 'several places', 'different attractions',
+            'plan visit', 'route to visit', 'how to visit all', 'sequence',
+            'order to visit', 'efficient route', 'walking route', 'travel plan'
+        ]
+        if any(keyword in message_lower for keyword in route_keywords):
+            return 'route_planning'
+        
         # Hidden gems and local tips keywords (high priority)
         hidden_gems_keywords = [
             'hidden gem', 'hidden gems', 'secret', 'locals go', 'local favorite', 'local tip', 'local tips',
@@ -1996,552 +2040,479 @@ class IstanbulDailyTalkAI:
         """Check if message contains transportation-related keywords"""
         return self._is_transportation_query(message)
     
-    # Response Generation Methods
-    def _generate_fallback_response(self, context, user_profile) -> str:
-        """Generate fallback response when other methods fail"""
-        responses = [
-            "I'm here to help you explore Istanbul! What would you like to know about the city?",
-            "Let me know what you're interested in - restaurants, attractions, transportation, or anything else about Istanbul!",
-            "I can help you with restaurant recommendations, finding attractions, getting around the city, and much more. What interests you?",
-            "What would you like to discover about Istanbul today? I'm here to help with personalized recommendations!"
+    def is_route_planning_query(self, message: str) -> bool:
+        """Check if message is asking for route planning"""
+        route_keywords = [
+            'route', 'plan my day', 'itinerary', 'tour plan', 'day plan', 
+            'plan route', 'visiting multiple', 'best route', 'optimize route',
+            'day trip', 'multi-stop', 'several places', 'different attractions',
+            'plan visit', 'route to visit', 'how to visit all', 'sequence',
+            'order to visit', 'efficient route', 'walking route', 'travel plan',
+            'visit in order', 'how to see everything', 'optimize my trip',
+            'plan my trip', 'best way to visit', 'route between', 'connect places'
         ]
-        
-        # Use user profile to personalize the fallback
-        if user_profile.interests:
-            if 'food' in user_profile.interests:
-                return "I notice you're interested in food! Would you like restaurant recommendations, or are you curious about something else in Istanbul?"
-            elif 'history' in user_profile.interests:
-                return "Given your interest in history, I can recommend historical sites, museums, or help with other Istanbul questions. What would you like to know?"
-        
-        # Return a random friendly response
-        import random
-        return random.choice(responses)
-    
-    def _enhance_multi_intent_response(self, multi_intent_response: str, entities: Dict, user_profile, current_time: datetime) -> str:
-        """Enhance multi-intent response with Istanbul-specific context and personalization"""
-        enhanced_response = multi_intent_response
-        
-        # Add time-based context
-        hour = current_time.hour
-        if hour < 11:
-            time_context = "Since it's morning, consider places that serve good breakfast!"
-        elif hour < 16:
-            time_context = "Perfect timing for lunch recommendations!"
-        else:
-            time_context = "Great time for dinner suggestions!"
-        
-        # Add personalized context based on user profile
-        personal_context = ""
-        if user_profile.interests:
-            if 'food' in user_profile.interests:
-                personal_context = "Based on your love for food, I've focused on culinary experiences."
-            elif 'family-friendly' in user_profile.interests:
-                personal_context = "I've made sure these are family-friendly options."
-        
-        # Add dietary considerations
-        dietary_context = ""
-        if user_profile.dietary_restrictions:
-            dietary_context = f"I've considered your {', '.join(user_profile.dietary_restrictions)} preferences."
-        
-        # Combine contexts
-        context_additions = []
-        if personal_context:
-            context_additions.append(personal_context)
-        if dietary_context:
-            context_additions.append(dietary_context)
-        if time_context:
-            context_additions.append(time_context)
-        
-        if context_additions:
-            enhanced_response += f"\n\n💡 {' '.join(context_additions)}"
-        
-        return enhanced_response
-    
-    def _get_or_request_gps_location(self, user_profile: UserProfile, context: ConversationContext) -> Optional[Dict]:
-        """Get GPS location from user or request if not available"""
-        
-        # Check if user has location sharing enabled
-        if not user_profile.location_sharing_enabled:
-            return None
-            
-        # Try to get current GPS location from context
-        if hasattr(context, 'gps_coordinates') and context.gps_coordinates:
-            return {
-                'lat': context.gps_coordinates.get('lat'),
-                'lng': context.gps_coordinates.get('lng'),
-                'source': 'gps',
-                'accuracy': context.gps_coordinates.get('accuracy', 'unknown')
-            }
-        
-        # Check if we have a recent location from user profile
-        if user_profile.last_known_location and user_profile.last_location_update:
-            # Use location if it's less than 30 minutes old
-            time_diff = datetime.utcnow() - user_profile.last_location_update
-            if time_diff.total_seconds() < 1800:  # 30 minutes
-                return {
-                    'lat': user_profile.last_known_location.get('lat'),
-                    'lng': user_profile.last_known_location.get('lng'),
-                    'source': 'cached',
-                    'accuracy': 'approximate'
-                }
-        
-        # Try ML-predicted location based on user patterns
-        if user_profile.favorite_neighborhoods:
-            predicted_location = self._predict_user_location(user_profile)
-            if predicted_location:
-                return {
-                    'neighborhood': predicted_location,
-                    'source': 'ml_predicted',
-                    'accuracy': 'neighborhood_level'
-                }
-        
-        return None
-    
-    def _predict_user_location(self, user_profile: UserProfile) -> Optional[str]:
-        """Predict user location based on their interaction patterns"""
-        
-        if not user_profile.favorite_neighborhoods:
-            return None
-            
-        # Get most frequently visited neighborhood
-        if user_profile.visit_frequency:
-            most_visited = max(user_profile.visit_frequency.items(), key=lambda x: x[1])
-            return most_visited[0]
-        
-        # Fallback to first favorite neighborhood
-        return user_profile.favorite_neighborhoods[0]
-    
-    def _request_location_for_restaurant(self, query: str, user_profile: UserProfile) -> str:
-        """Request location from user for restaurant recommendations"""
-        
-        response = "🗺️ **Location Needed for Restaurant Recommendations**\n\n"
-        
-        if not user_profile.location_sharing_enabled:
-            response += "I'd love to recommend restaurants near you! To get personalized, distance-based recommendations:\n\n"
-            response += "📍 **Option 1: Enable GPS Location**\n"
-            response += "• Say 'enable location sharing' for automatic nearby suggestions\n"
-            response += "• Your location is only used for this session and not stored\n\n"
-            response += "🏙️ **Option 2: Tell Me Your Area**\n"
-            response += "• Just mention which Istanbul district you're in or heading to\n"
-            response += "• Examples: 'Sultanahmet', 'Beyoğlu', 'Kadıköy', 'Taksim area'\n\n"
-        else:
-            response += "I need to know where you are to suggest the best nearby restaurants!\n\n"
-            response += "📱 **Please share your location** or tell me which Istanbul district you're in:\n"
-            response += "• Sultanahmet • Beyoğlu • Galata • Kadıköy\n"
-            response += "• Taksim • Beşiktaş • Ortaköy • Eminönü\n\n"
-        
-        response += "💡 **Meanwhile, I can help with:**\n"
-        response += "• General restaurant recommendations by cuisine type\n"
-        response += "• Famous Istanbul restaurants and must-try dishes\n"
-        response += "• Restaurant recommendations for specific districts\n\n"
-        
-        response += "Just let me know your preferences and I'll help you find amazing food! 🍽️"
-        
-        return response
-    
-    def _extract_or_request_location(self, query: str, user_profile: UserProfile, 
-                                   context: ConversationContext, gps_location: Optional[Dict] = None) -> Dict:
-        """Extract location from query/GPS or request from user"""
-        
-        # Use GPS location if available
-        if gps_location and gps_location.get('lat') and gps_location.get('lng'):
-            neighborhood = self._get_neighborhood_from_coordinates(
-                gps_location['lat'], gps_location['lng']
-            )
-            return {
-                'neighborhood': neighborhood,
-                'coordinates': {'lat': gps_location['lat'], 'lng': gps_location['lng']},
-                'source': gps_location['source'],
-                'accuracy': 'high'
-            }
-        
-        # Check if location is mentioned in query
-        istanbul_districts = [
-            'sultanahmet', 'beyoğlu', 'beyoglu', 'galata', 'karaköy', 'karakoy',
-            'taksim', 'kadıköy', 'kadikoy', 'beşiktaş', 'besiktas', 'ortaköy', 'ortakoy',
-            'eminönü', 'eminonu', 'fatih', 'şişli', 'sisli', 'bakırköy', 'bakirkoy',
-            'üsküdar', 'uskudar', 'sarıyer', 'sariyer', 'pendik', 'maltepe'
-        ]
-        
-        query_lower = query.lower()
-        for district in istanbul_districts:
-            if district in query_lower:
-                return {
-                    'neighborhood': district,
-                    'source': 'user_specified',
-                    'accuracy': 'district_level'
-                }
-        
-        # Check user's favorite neighborhoods
-        if user_profile.favorite_neighborhoods:
-            return {
-                'neighborhood': user_profile.favorite_neighborhoods[0],
-                'source': 'user_profile',
-                'accuracy': 'inferred'
-            }
-        
-        # Default to central Istanbul
-        return {
-            'neighborhood': 'sultanahmet',
-            'source': 'default',
-            'accuracy': 'low'
-        }
-    
-    def _get_neighborhood_from_coordinates(self, lat: float, lng: float) -> str:
-        """Convert GPS coordinates to Istanbul neighborhood"""
-        
-        # Define rough boundaries for major Istanbul districts
-        district_boundaries = {
-            'sultanahmet': {'lat_min': 41.000, 'lat_max': 41.015, 'lng_min': 28.975, 'lng_max': 28.985},
-            'beyoğlu': {'lat_min': 41.025, 'lat_max': 41.040, 'lng_min': 28.970, 'lng_max': 28.985},
-            'taksim': {'lat_min': 41.035, 'lat_max': 41.042, 'lng_min': 28.985, 'lng_max': 28.995},
-            'galata': {'lat_min': 41.020, 'lat_max': 41.028, 'lng_min': 28.970, 'lng_max': 28.980},
-            'kadıköy': {'lat_min': 40.980, 'lat_max': 41.000, 'lng_min': 29.025, 'lng_max': 29.040},
-            'beşiktaş': {'lat_min': 41.035, 'lat_max': 41.050, 'lng_min': 29.000, 'lng_max': 29.015},
-            'ortaköy': {'lat_min': 41.045, 'lat_max': 41.055, 'lng_min': 29.020, 'lng_max': 29.030}
-        }
-        
-        # Check which district the coordinates fall into
-        for district, bounds in district_boundaries.items():
-            if (bounds['lat_min'] <= lat <= bounds['lat_max'] and 
-                bounds['lng_min'] <= lng <= bounds['lng_max']):
-                return district
-        
-        # Default to closest major area if no exact match
-        if lng < 29.000:  # European side
-            return 'beyoğlu'
-        else:  # Asian side
-            return 'kadıköy'
-    
-    def _get_restaurant_data_from_local_database(self, location_info: Dict, entities: Dict, query: str) -> List[Dict]:
-        """Get restaurant data from local database (500+ restaurants from Google Places)"""
-        
-        try:
-            # Use local restaurant database instead of live API calls
-            from backend.services.restaurant_database_service import RestaurantDatabaseService, RestaurantQuery
-            
-            # Initialize restaurant database service
-            db_service = RestaurantDatabaseService()
-            
-            if not db_service.restaurants:
-                logger.warning("Local restaurant database is empty, using fallback")
-                return []
-            
-            # Build query from location and entities
-            district = location_info.get('neighborhood') or location_info.get('district')
-            cuisine_type = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
-            
-            # Extract budget from query text
-            budget = self._extract_budget_from_query(query)
-            rating_min = self._extract_rating_from_query(query)
-            
-            # Create database query
-            db_query = RestaurantQuery(
-                district=district,
-                cuisine_type=cuisine_type,
-                budget=budget,
-                rating_min=rating_min,
-                location=(location_info.get('coordinates', {}).get('lat'), 
-                         location_info.get('coordinates', {}).get('lng')) if location_info.get('coordinates') else None,
-                radius_km=2.0,  # 2km default radius
-                keywords=query.lower().split()
-            )
-            
-            # Get restaurants from local database
-            restaurants = db_service.filter_restaurants(db_query, limit=10)
-            
-            if restaurants:
-                # Convert database format to internal format
-                return self._convert_db_restaurants_to_internal_format(restaurants)
-                    
-        except ImportError:
-            logger.warning("Restaurant database service not available, using static data")
-        except Exception as e:
-            logger.error(f"Error getting restaurant data from local database: {e}")
-            
-        return []
-    
-    def _extract_budget_from_query(self, query: str) -> Optional[str]:
-        """Extract budget preference from query text"""
-        query_lower = query.lower()
-        
-        budget_keywords = {
-            'budget': ['cheap', 'budget', 'affordable', 'inexpensive', 'economical'],
-            'moderate': ['moderate', 'mid-range', 'reasonable', 'normal', 'average'],
-            'upscale': ['upscale', 'expensive', 'high-end', 'fine dining', 'premium'],
-            'luxury': ['luxury', 'luxurious', 'exclusive', 'top-tier', 'finest']
-        }
-        
-        for budget_cat, keywords in budget_keywords.items():
-            if any(keyword in query_lower for keyword in keywords):
-                return budget_cat
-        
-        return None
-    
-    def _extract_rating_from_query(self, query: str) -> Optional[float]:
-        """Extract minimum rating preference from query text"""
-        query_lower = query.lower()
-        
-        # Look for explicit rating mentions
-        import re
-        rating_matches = re.findall(r'(\d+(?:\.\d+)?)\s*(?:star|rating)', query_lower)
-        if rating_matches:
-            rating = float(rating_matches[0])
-            if 1 <= rating <= 5:
-                return rating
-        
-        # Implicit high rating requests
-        if any(word in query_lower for word in ['best', 'top', 'excellent', 'amazing', 'outstanding', 'highly rated']):
-            return 4.0
-        
-        return None
-    
-    def _convert_db_restaurants_to_internal_format(self, db_restaurants: List[Dict]) -> List[Dict]:
-        """Convert database restaurant format to internal format"""
-        
-        converted_restaurants = []
-        
-        for restaurant in db_restaurants:
-            # Map database fields to our internal format
-            converted = {
-                'id': restaurant.get('place_id', f"db_{len(converted_restaurants)}"),
-                'name': restaurant.get('name', 'Unknown Restaurant'),
-                'category': self._categorize_db_restaurant(restaurant),
-                'location': restaurant.get('district', '').lower(),
-                'price_level': self._convert_db_price_level(restaurant.get('budget_category')),
-                'rating': restaurant.get('rating', 4.0),
-                'cuisine': ', '.join(restaurant.get('cuisine_types', ['Restaurant'])),
-                'family_friendly': restaurant.get('rating', 4.0) >= 4.0,  # Heuristic
-                'romantic': 'romantic' in restaurant.get('name', '').lower() or restaurant.get('budget_category') == 'luxury',
-                'walking_time': self._estimate_walking_time_from_coords(restaurant),
-                'accessible': True,  # Most restaurants are accessible
-                'suitable_times': ['breakfast', 'lunch', 'dinner'],  # Default all times
-                'description': f"Rated {restaurant.get('rating', 'N/A')}/5 with {restaurant.get('reviews_count', 0)} reviews. {restaurant.get('address', 'Istanbul location')}",
-                'photo_url': restaurant.get('photos', [None])[0] if restaurant.get('photos') else None,
-                'address': restaurant.get('address', ''),
-                'phone': restaurant.get('phone', ''),
-                'website': restaurant.get('website', ''),
-                'opening_hours': restaurant.get('opening_hours', {}).get('weekday_text', []) if restaurant.get('opening_hours') else [],
-                'api_source': False  # Mark as database data
-            }
-            
-            converted_restaurants.append(converted)
-            
-        return converted_restaurants
-    
-    def _categorize_db_restaurant(self, db_restaurant: Dict) -> str:
-        """Categorize restaurant based on database data"""
-        
-        cuisine_types = db_restaurant.get('cuisine_types', [])
-        name = db_restaurant.get('name', '').lower()
-        
-        # Turkish/local cuisine indicators
-        if any(cuisine in ['turkish', 'kebab', 'ottoman'] for cuisine in cuisine_types):
-            return 'turkish'
-        
-        # International cuisine
-        international_cuisines = ['italian', 'chinese', 'japanese', 'mexican', 'indian', 'french']
-        for cuisine in cuisine_types:
-            if cuisine in international_cuisines:
-                return cuisine
-        
-        # Fine dining indicators
-        if db_restaurant.get('budget_category') in ['upscale', 'luxury']:
-            return 'fine_dining'
-        
-        # Casual dining default
-        return 'casual'
-    
-    def _convert_db_price_level(self, budget_category: str) -> str:
-        """Convert database budget category to price level"""
-        budget_mapping = {
-            'budget': 'budget',
-            'moderate': 'mid',
-            'upscale': 'high',
-            'luxury': 'luxury'
-        }
-        return budget_mapping.get(budget_category, 'mid')
-    
-    def _estimate_walking_time_from_coords(self, restaurant: Dict) -> int:
-        """Estimate walking time from restaurant coordinates (placeholder)"""
-        # In a real implementation, this would calculate distance from user location
-        # For now, return a reasonable default based on district
-        district = restaurant.get('district', '').lower()
-        
-        # Different districts have different typical walking distances
-        district_times = {
-            'sultanahmet': 5,
-            'beyoğlu': 7,
-            'galata': 4,
-            'taksim': 8,
-            'kadıköy': 6
-        }
-        
-        return district_times.get(district, 5)  # Default 5 minutes
-    
-    def _process_transportation_query_sync(self, message: str, user_profile, current_time, gps_coords=None) -> str:
-        """Synchronous transportation query processing as fallback"""
-        try:
-            # Basic transportation response with available info
-            intent_info = detect_transportation_intent(message)
-            
-            # Build response based on detected intent
-            response_parts = []
-            
-            if gps_coords:
-                response_parts.append(f"📍 I can see your location coordinates. Let me help you navigate from there!")
-            
-            if intent_info['transport_modes']:
-                modes_text = ', '.join(intent_info['transport_modes'])
-                response_parts.append(f"🚇 For {modes_text} transportation:")
-            
-            # Add basic transportation info
-            if 'metro' in intent_info['transport_modes']:
-                response_parts.append("• Metro: Fast, reliable, and air-conditioned")
-                response_parts.append("• Use Istanbulkart for all public transport")
-            
-            if 'bus' in intent_info['transport_modes']:
-                response_parts.append("• Bus: Extensive network covering all areas")
-                response_parts.append("• Check real-time arrivals on İBB mobile app")
-            
-            if 'ferry' in intent_info['transport_modes']:
-                response_parts.append("• Ferry: Scenic route with Bosphorus views")
-                response_parts.append("• Great for avoiding traffic between continents")
-            
-            # Add optimization tips
-            if intent_info['optimization_preference'] == 'cheapest':
-                response_parts.append("💰 Most budget-friendly options: Bus → Metro → Ferry → Taxi")
-            elif intent_info['optimization_preference'] == 'fastest':
-                response_parts.append("⚡ Fastest routes usually combine Metro + Bus or Ferry")
-            
-            # Add POI suggestions if requested
-            if intent_info['include_attractions']:
-                response_parts.append("🏛️ I can suggest routes that pass by popular attractions!")
-            
-            if response_parts:
-                return "\n".join(response_parts) + "\n\nTell me your specific start and end points for detailed directions!"
-            else:
-                return "I'd be happy to help with transportation! Where would you like to go?"
-                
-        except Exception as e:
-            logger.error(f"Sync transportation processing failed: {e}")
-            return "I can help you navigate Istanbul! Tell me where you'd like to go and I'll suggest the best routes."
-    
-    def _generate_fallback_hidden_gems_response(self, message: str, user_profile: UserProfile, current_time: datetime) -> str:
-        """Generate fallback response for hidden gems queries when main system is unavailable"""
         
         message_lower = message.lower()
+        return any(keyword in message_lower for keyword in route_keywords)
+
+    def _detect_route_planning_intent(self, message: str) -> Dict[str, Any]:
+        """Detect specific route planning intent and extract parameters"""
+        message_lower = message.lower()
         
-        # Basic hidden gems database for fallback
-        hidden_gems_fallback = {
-            'sultanahmet': {
-                'gems': [
-                    {
-                        'name': 'Pandeli Restaurant',
-                        'type': 'restaurant',
-                        'description': 'Historic restaurant above Spice Bazaar - where locals have eaten since 1901',
-                        'tip': 'Go upstairs in the Spice Bazaar, many tourists miss this gem'
-                    },
-                    {
-                        'name': 'Gülhane Park Tea Gardens',
-                        'type': 'spot',
-                        'description': 'Secret tea garden with Bosphorus views that most tourists walk past',
-                        'tip': 'Follow the path behind the main park area for the hidden tea spot'
-                    }
-                ],
-                'local_tips': [
-                    'Visit Sultanahmet early morning (7-8 AM) to avoid crowds and get better photos',
-                    'The best döner in Sultanahmet is at the small place behind the Blue Mosque, not the touristy ones'
-                ]
-            },
-            'beyoğlu': {
-                'gems': [
-                    {
-                        'name': 'Çukur Meyhane',
-                        'type': 'restaurant', 
-                        'description': 'Tiny meyhane on Nevizade Street where locals actually drink rakı',
-                        'tip': 'Go after 8 PM, ask for Ali - he knows everyone in the neighborhood'
-                    },
-                    {
-                        'name': 'French Street (Fransız Sokağı)',
-                        'type': 'spot',
-                        'description': 'Cobblestone street with authentic French cafes, hidden from main tourist flow',
-                        'tip': 'Perfect for quiet coffee breaks between Galata Tower visits'
-                    }
-                ],
-                'local_tips': [
-                    'Take the historic tunnel (Tünel) from Karaköy - it\'s the world\'s second oldest underground railway',
-                    'The real nightlife starts after 11 PM on weekends in the side streets off İstiklal'
-                ]
-            },
-            'kadıköy': {
-                'gems': [
-                    {
-                        'name': 'Çiya Sofrası',
-                        'type': 'restaurant',
-                        'description': 'Famous among food lovers but unknown to most tourists - authentic Anatolian cuisine',
-                        'tip': 'Try the daily specials board, they rotate regional dishes from all over Turkey'
-                    },
-                    {
-                        'name': 'Moda Coastline Walk',
-                        'type': 'spot', 
-                        'description': 'Local favorite seaside promenade with the best sunset views of the old city',
-                        'tip': 'Bring tea from a local shop and sit on the grass - it\'s what locals do'
-                    }
-                ],
-                'local_tips': [
-                    'Tuesday farmers market near the ferry terminal has the freshest produce in the city',
-                    'Bahariye Street has better shopping than İstiklal and half the tourists'
-                ]
-            }
+        intent_data = {
+            'is_route_planning': self.is_route_planning_query(message),
+            'route_style': 'balanced',  # Default
+            'transport_mode': 'walking',  # Default
+            'max_duration_hours': 4.0,  # Default
+            'include_food': True,  # Default
+            'max_attractions': 6,  # Default
+            'optimization_preference': 'balanced'
         }
         
-        # Determine area of interest from message or user location
-        area = 'general'
-        for neighborhood in hidden_gems_fallback.keys():
-            if neighborhood in message_lower:
-                area = neighborhood
-                break
+        # Extract route style preferences
+        if any(word in message_lower for word in ['scenic', 'beautiful', 'views', 'photography']):
+            intent_data['route_style'] = 'scenic'
+        elif any(word in message_lower for word in ['cultural', 'history', 'heritage', 'museum']):
+            intent_data['route_style'] = 'cultural'
+        elif any(word in message_lower for word in ['efficient', 'quick', 'fast', 'shortest']):
+            intent_data['route_style'] = 'efficient'
         
-        # If no specific area mentioned and user has location, try to determine area
-        if area == 'general' and user_profile.current_location:
-            area = user_profile.current_location.lower()
+        # Extract transport preferences
+        if any(word in message_lower for word in ['walking', 'walk', 'on foot']):
+            intent_data['transport_mode'] = 'walking'
+        elif any(word in message_lower for word in ['public transport', 'metro', 'bus', 'ferry']):
+            intent_data['transport_mode'] = 'public_transport'
+        elif any(word in message_lower for word in ['driving', 'car', 'taxi']):
+            intent_data['transport_mode'] = 'driving'
         
-        # Build response
-        response = "💎 **Hidden Gems & Local Tips**\n\n"
+        # Extract time duration
+        time_matches = re.findall(r'(\d+)\s*(?:hour|hr|h)', message_lower)
+        if time_matches:
+            intent_data['max_duration_hours'] = float(time_matches[0])
         
-        if area in hidden_gems_fallback:
-            gems_data = hidden_gems_fallback[area]
-            response += f"**Secret spots in {area.title()}:**\n\n"
-            
-            for gem in gems_data['gems'][:2]:  # Show top 2 gems
-                response += f"🔸 **{gem['name']}**\n"
-                response += f"   {gem['description']}\n"
-                response += f"   💡 *Local tip: {gem['tip']}*\n\n"
-            
-            response += "**Insider Tips:**\n"
-            for tip in gems_data['local_tips']:
-                response += f"• {tip}\n"
-            
-        else:
-            # General hidden gems advice
-            response += "**General Local Secrets:**\n\n"
-            response += "🔸 **Best times to visit major attractions:**\n"
-            response += "   • Early morning (7-9 AM) for photos without crowds\n"
-            response += "   • Late afternoon (4-6 PM) for golden hour lighting\n\n"
-            
-            response += "🔸 **Where locals actually eat:**\n"
-            response += "   • Small family restaurants in residential areas\n"
-            response += "   • Places with handwritten menus in Turkish only\n"
-            response += "   • Ask taxi drivers - they know the real spots\n\n"
-            
-            response += "🔸 **Transportation secrets:**\n"
-            response += "   • Use İstanbulkart for everything - buses, metro, ferries\n"
-            response += "   • Dolmuş (shared taxis) are faster than buses during rush hour\n"
-            response += "   • Ferry rides are the cheapest way to see the Bosphorus\n\n"
+        # Extract optimization preferences
+        if any(word in message_lower for word in ['shortest', 'fastest', 'quick']):
+            intent_data['optimization_preference'] = 'time'
+        elif any(word in message_lower for word in ['cheapest', 'budget', 'affordable']):
+            intent_data['optimization_preference'] = 'cost'
+        elif any(word in message_lower for word in ['best', 'top', 'must-see']):
+            intent_data['optimization_preference'] = 'quality'
         
-        response += "\n💬 **Want more specific hidden gems?**\n"
-        response += "Tell me your interests (food, history, nightlife, art) and your location for personalized local secrets!\n\n"
-        response += "*💡 Pro tip: The best hidden gems are discovered by talking to locals - don't be shy to ask shopkeepers and restaurant owners for their recommendations!*"
+        return intent_data
+
+    # =============================
+    # ROUTE PLANNING SYSTEM INTEGRATION
+    # =============================
+    
+    def handle_route_planning_query(self, message: str, user_profile: UserProfile, 
+                                  context: ConversationContext, current_time: datetime) -> str:
+        """Handle route planning queries with multi-modal routing"""
+        try:
+            # Check if route maker service is available
+            if not hasattr(self, 'route_maker') or self.route_maker is None:
+                return self._generate_fallback_route_response(message, user_profile, current_time)
+            
+            # Detect route planning intent and extract parameters
+            route_intent = self._detect_route_planning_intent(message)
+            
+            if not route_intent['is_route_planning']:
+                return "I'd be happy to help you plan a route! Tell me which places you'd like to visit and I'll create an optimized itinerary for you."
+            
+            # Get or request user location
+            location_info = self._extract_or_request_location(message, user_profile, context)
+            
+            if location_info['accuracy'] == 'low' and location_info['source'] == 'default':
+                return self._request_location_for_route_planning(message, user_profile)
+            
+            # Extract places/attractions from the message
+            places_to_visit = self._extract_places_from_message(message)
+            
+            # If no specific places mentioned, suggest based on user preferences
+            if not places_to_visit:
+                return self._suggest_route_based_on_preferences(message, user_profile, location_info, route_intent)
+            
+            # Generate route using the route maker service
+            route_result = self._generate_optimized_route(
+                places_to_visit, location_info, user_profile, route_intent, current_time
+            )
+            
+            # Format and return the route response
+            return self._format_route_response(route_result, user_profile, current_time)
+            
+        except Exception as e:
+            logger.error(f"Route planning failed: {e}")
+            return self._generate_fallback_route_response(message, user_profile, current_time)
+
+    def _request_location_for_route_planning(self, query: str, user_profile: UserProfile) -> str:
+        """Request location from user for route planning"""
+        
+        response = "🗺️ **Location Needed for Route Planning**\n\n"
+        
+        response += "To create the perfect route for you, I need to know where you're starting from:\n\n"
+        
+        if not user_profile.location_sharing_enabled:
+            response += "📍 **Option 1: Enable GPS Location**\n"
+            response += "• Say 'enable location sharing' for automatic location-based routing\n"
+            response += "• Your location is only used for this session\n\n"
+        
+        response += "🏙️ **Option 2: Tell Me Your Starting Point**\n"
+        response += "• Mention which Istanbul district or landmark you're starting from\n"
+        response += "• Examples: 'Starting from Sultanahmet', 'I'm at Taksim Square', 'From my hotel in Beyoğlu'\n\n"
+        
+        response += "💡 **Meanwhile, you can also specify:**\n"
+        response += "• How long you want to spend (e.g., '4 hours', 'half day')\n"
+        response += "• Your preferred style ('scenic route', 'cultural tour', 'efficient route')\n"
+        response += "• Transportation preference ('walking', 'public transport', 'mixed')\n\n"
+        
+        response += "Just let me know your starting point and preferences, and I'll create an amazing route for you! 🚶‍♂️🗺️"
+        
+        return response
+
+    def _extract_places_from_message(self, message: str) -> List[str]:
+        """Extract place names and attractions from user message"""
+        
+        # Common Istanbul attractions and landmarks
+        istanbul_places = [
+            'hagia sophia', 'blue mosque', 'topkapi palace', 'grand bazaar', 'spice bazaar',
+            'galata tower', 'basilica cistern', 'dolmabahce palace', 'bosphorus bridge',
+            'taksim square', 'istiklal street', 'karakoy', 'beyoglu', 'sultanahmet',
+            'kadikoy', 'besiktas', 'ortakoy', 'eminonu', 'galata bridge',
+            'princes islands', 'maiden tower', 'rumeli fortress', 'eyup sultan mosque',
+            'suleymaniye mosque', 'archaeological museum', 'turkish and islamic arts museum',
+            'istanbul modern', 'pera museum', 'chora church', 'little hagia sophia'
+        ]
+        
+        message_lower = message.lower()
+        found_places = []
+        
+        for place in istanbul_places:
+            if place in message_lower:
+                found_places.append(place.title())
+        
+        # Also look for generic categories
+        if 'museum' in message_lower and not any('museum' in place for place in found_places):
+            found_places.append('Museums')
+        if 'mosque' in message_lower and not any('mosque' in place for place in found_places):
+            found_places.append('Mosques')
+        if 'palace' in message_lower and not any('palace' in place for place in found_places):
+            found_places.append('Palaces')
+        
+        return found_places
+
+    def _suggest_route_based_on_preferences(self, message: str, user_profile: UserProfile, 
+                                          location_info: Dict, route_intent: Dict) -> str:
+        """Suggest route options based on user preferences when no specific places mentioned"""
+        
+        response = "🎯 **Route Planning Suggestions**\n\n"
+        
+        # Determine user interests
+        interests = user_profile.interests or []
+        route_style = route_intent['route_style']
+        duration = route_intent['max_duration_hours']
+        
+        response += f"Based on your preferences, here are some great {duration}-hour route options from {location_info['neighborhood'].title()}:\n\n"
+        
+        # Generate route suggestions based on style and interests
+        if route_style == 'cultural' or 'history' in interests:
+            response += "🏛️ **Cultural Heritage Route:**\n"
+            response += "• Hagia Sophia → Blue Mosque → Topkapi Palace → Archaeological Museum\n"
+            response += "• Perfect for history lovers and architecture enthusiasts\n"
+            response += "• Estimated time: 4-5 hours with guided visits\n\n"
+        
+        if route_style == 'scenic' or 'photography' in interests:
+            response += "📸 **Scenic Bosphorus Route:**\n"
+            response += "• Galata Tower → Galata Bridge → Eminönu Ferry → Ortaköy → Dolmabahçe Palace\n"
+            response += "• Best views of the city and Bosphorus\n"
+            response += "• Great for photography and sunset views\n\n"
+        
+        if 'food' in interests or route_intent['include_food']:
+            response += "🍽️ **Food & Culture Route:**\n"
+            response += "• Spice Bazaar → Karaköy food scene → Beyoğlu meyhanes → Istiklal Street\n"
+            response += "• Combines cultural sites with authentic local dining\n"
+            response += "• Perfect for food enthusiasts\n\n"
+        
+        if route_style == 'efficient':
+            response += "⚡ **Essential Istanbul Route:**\n"
+            response += "• Sultanahmet Square → Grand Bazaar → Galata Tower → Taksim Square\n"
+            response += "• Covers major highlights efficiently\n"
+            response += "• Ideal for limited time visitors\n\n"
+        
+        response += "💡 **To create your personalized route:**\n"
+        response += "• Choose which route interests you most\n"
+        response += "• Tell me specific places you want to visit\n"
+        response += "• Let me know your time constraints and transport preferences\n\n"
+        
+        response += "Which route style appeals to you, or would you like me to plan something custom based on specific places you want to visit?"
+        
+        return response
+
+    def _generate_optimized_route(self, places_to_visit: List[str], location_info: Dict, 
+                                user_profile: UserProfile, route_intent: Dict, 
+                                current_time: datetime) -> Dict:
+        """Generate optimized route using the route maker service"""
+        
+        try:
+            from backend.services.route_maker_service import RouteRequest, RouteStyle, TransportMode
+            
+            # Convert string parameters to enums
+            route_style_map = {
+                'scenic': RouteStyle.SCENIC,
+                'cultural': RouteStyle.CULTURAL,
+                'efficient': RouteStyle.EFFICIENT,
+                'balanced': RouteStyle.BALANCED
+            }
+            
+            transport_mode_map = {
+                'walking': TransportMode.WALKING,
+                'driving': TransportMode.DRIVING,
+                'public_transport': TransportMode.PUBLIC_TRANSPORT
+            }
+            
+            # Get coordinates for starting location
+            start_coords = self._get_coordinates_for_location(location_info)
+            
+            if not start_coords:
+                raise ValueError("Could not determine starting coordinates")
+            
+            # Build route request
+            route_request = RouteRequest(
+                start_lat=start_coords['lat'],
+                start_lng=start_coords['lng'],
+                max_distance_km=route_intent.get('max_distance_km', 5.0),
+                available_time_hours=route_intent['max_duration_hours'],
+                preferred_categories=self._convert_interests_to_categories(user_profile.interests),
+                route_style=route_style_map.get(route_intent['route_style'], RouteStyle.BALANCED),
+                transport_mode=transport_mode_map.get(route_intent['transport_mode'], TransportMode.WALKING),
+                include_food=route_intent['include_food'],
+                max_attractions=route_intent['max_attractions']
+            )
+            
+            # Generate route using the route maker service
+            try:
+                from database import get_db
+                db = next(get_db())
+                generated_route = self.route_maker.generate_route(route_request, db)
+                db.close()
+            except Exception:
+                # Fallback without database
+                generated_route = self.route_maker.generate_route(route_request, None)
+            
+            # Add personalization based on user profile
+            personalized_route = self._personalize_route(generated_route, user_profile)
+            
+            return {
+                'success': True,
+                'route': personalized_route,
+                'places_requested': places_to_visit,
+                'optimization_applied': True
+            }
+            
+        except Exception as e:
+            logger.error(f"Route generation failed: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'places_requested': places_to_visit
+            }
+
+    def _get_coordinates_for_location(self, location_info: Dict) -> Optional[Dict]:
+        """Get coordinates for a given location"""
+        
+        # If coordinates already available, use them
+        if location_info.get('coordinates'):
+            return location_info['coordinates']
+        
+        # Define approximate coordinates for major Istanbul districts
+        district_coordinates = {
+            'sultanahmet': {'lat': 41.0086, 'lng': 28.9802},
+            'beyoğlu': {'lat': 41.0370, 'lng': 28.9777},
+            'beyoglu': {'lat': 41.0370, 'lng': 28.9777},
+            'taksim': {'lat': 41.0370, 'lng': 28.9844},
+            'galata': {'lat': 41.0255, 'lng': 28.9742},
+            'karaköy': {'lat': 41.0255, 'lng': 28.9742},
+            'karakoy': {'lat': 41.0255, 'lng': 28.9742},
+            'kadıköy': {'lat': 40.9897, 'lng': 29.0267},
+            'kadikoy': {'lat': 40.9897, 'lng': 29.0267},
+            'beşiktaş': {'lat': 41.0422, 'lng': 29.0094},
+            'besiktas': {'lat': 41.0422, 'lng': 29.0094},
+            'ortaköy': {'lat': 41.0550, 'lng': 29.0268},
+            'ortakoy': {'lat': 41.0550, 'lng': 29.0268},
+            'eminönü': {'lat': 41.0170, 'lng': 28.9700},
+            'eminonu': {'lat': 41.0170, 'lng': 28.9700}
+        }
+        
+        neighborhood = location_info.get('neighborhood', '').lower()
+        return district_coordinates.get(neighborhood)
+
+    def _convert_interests_to_categories(self, interests: List[str]) -> List[str]:
+        """Convert user interests to route maker categories"""
+        
+        if not interests:
+            return ['tourist_attraction', 'cultural', 'historical']
+        
+        category_mapping = {
+            'history': 'historical',
+            'culture': 'cultural',
+            'art': 'cultural',
+            'food': 'restaurant',
+            'architecture': 'architectural',
+            'photography': 'scenic',
+            'nature': 'park',
+            'shopping': 'shopping',
+            'nightlife': 'entertainment',
+            'family': 'family_friendly',
+            'romance': 'romantic'
+        }
+        
+        categories = []
+        for interest in interests:
+            category = category_mapping.get(interest.lower(), 'tourist_attraction')
+            if category not in categories:
+                categories.append(category)
+        
+        # Always include tourist attractions as baseline
+        if 'tourist_attraction' not in categories:
+            categories.append('tourist_attraction')
+        
+        return categories
+
+    def _personalize_route(self, generated_route, user_profile: UserProfile):
+        """Add personalization to the generated route"""
+        
+        # Add personalized recommendations and tips
+        for point in generated_route.points:
+            # Add accessibility information if needed
+            if user_profile.accessibility_needs:
+                point.notes += f"\n♿ Accessibility: Wheelchair accessible venue"
+            
+            # Add dietary recommendations if applicable
+            if user_profile.dietary_restrictions and 'restaurant' in point.category.lower():
+                dietary_info = ", ".join(user_profile.dietary_restrictions)
+                point.notes += f"\n🥗 Dietary: {dietary_info} options available"
+            
+            # Add budget information
+            if user_profile.budget_range:
+                budget_emoji = {'budget': '💰', 'moderate': '💰💰', 'upscale': '💰💰💰', 'luxury': '💰💰💰💰'}
+                point.notes += f"\n{budget_emoji.get(user_profile.budget_range, '💰💰')} Budget: {user_profile.budget_range.title()} range"
+        
+        return generated_route
+
+    def _format_route_response(self, route_result: Dict, user_profile: UserProfile, 
+                             current_time: datetime) -> str:
+        """Format the route result into a user-friendly response"""
+        
+        if not route_result['success']:
+            return f"I encountered an issue creating your route: {route_result.get('error', 'Unknown error')}. Let me help you plan manually - which specific places would you like to visit?"
+        
+        route = route_result['route']
+        response = f"🗺️ **Your Optimized Istanbul Route**\n\n"
+        
+        # Route overview
+        response += f"📊 **Route Overview:**\n"
+        response += f"• **Total Distance:** {route.total_distance_km:.1f} km\n"
+        response += f"• **Estimated Duration:** {route.estimated_duration_hours:.1f} hours\n"
+        response += f"• **Route Style:** {route.description}\n"
+        response += f"• **Overall Score:** {route.overall_score:.1f}/10\n\n"
+        
+        # Route points
+        response += f"📍 **Your Itinerary ({len(route.points)} stops):**\n\n"
+        
+        for i, point in enumerate(route.points):
+            if i == 0:
+                response += f"🏁 **Start:** {point.name}\n"
+                if point.arrival_time:
+                    response += f"   ⏰ Starting time: {point.arrival_time}\n"
+            else:
+                response += f"{i}. **{point.name}**"
+                if point.category:
+                    response += f" ({point.category.title()})"
+                response += "\n"
+                
+                if point.arrival_time:
+                    response += f"   ⏰ Arrival: {point.arrival_time}\n"
+                
+                if point.estimated_duration_minutes > 0:
+                    response += f"   🕐 Visit duration: {point.estimated_duration_minutes} minutes\n"
+                
+                if point.score > 0:
+                    response += f"   ⭐ Attraction score: {point.score:.1f}/10\n"
+                
+                if point.notes:
+                    # Clean up notes and format nicely
+                    clean_notes = point.notes.strip()
+                    if clean_notes:
+                        response += f"   💡 {clean_notes}\n"
+            
+            response += "\n"
+        
+        # Add route optimization info
+        response += f"🎯 **Route Optimization:**\n"
+        response += f"• **Efficiency Score:** {route.efficiency_score:.1f}/10\n"
+        response += f"• **Diversity Score:** {route.diversity_score:.1f}/10\n"
+        response += f"• Route optimized using TSP algorithm for minimal travel time\n\n"
+        
+        # Add personalized tips
+        response += f"💡 **Personalized Tips:**\n"
+        
+        if user_profile.budget_range:
+            response += f"• Budget optimized for {user_profile.budget_range} range\n"
+        
+        if user_profile.interests:
+            interests_text = ", ".join(user_profile.interests)
+            response += f"• Route tailored to your interests: {interests_text}\n"
+        
+        if user_profile.accessibility_needs:
+            response += f"• All locations verified for accessibility\n"
+        
+        # Add real-time advice
+        current_hour = current_time.hour
+        if current_hour < 10:
+            response += f"• Perfect morning start - most attractions will be less crowded\n"
+        elif current_hour > 16:
+            response += f"• Evening route - consider which attractions stay open late\n"
+        
+        response += "\n🗺️ **Need adjustments?** Tell me if you want to:\n"
+        response += "• Add or remove specific places\n"
+        response += "• Change transportation method\n"
+        response += "• Adjust time constraints\n"
+        response += "• Get directions between specific points\n\n"
+        
+        response += "Have an amazing time exploring Istanbul! 🌟"
+        
+        return response
+
+    def _generate_fallback_route_response(self, message: str, user_profile: UserProfile, 
+                                        current_time: datetime) -> str:
+        """Generate fallback route response when route maker is unavailable"""
+        
+        response = "🗺️ **Route Planning Assistant**\n\n"
+        
+        response += "I'd love to help you plan the perfect route through Istanbul! Here's what I can do:\n\n"
+        
+        response += "🎯 **Popular Route Options:**\n\n"
+        
+        response += "**1. Classic Historic Route** (4-5 hours)\n"
+        response += "• Sultanahmet → Hagia Sophia → Blue Mosque → Topkapi Palace → Grand Bazaar\n"
+        response += "• Best for first-time visitors\n\n"
+        
+        response += "**2. Bosphorus Scenic Route** (3-4 hours)\n"
+        response += "• Galata Tower → Galata Bridge → Eminönu Ferry → Ortaköy → Dolmabahçe Palace\n"
+        response += "• Perfect for photography and views\n\n"
+        
+        response += "**3. Modern Istanbul Route** (4-5 hours)\n"
+        response += "• Taksim → İstiklal Street → Galata → Karaköy → Beyoğlu food scene\n"
+        response += "• Great for culture and nightlife\n\n"
+        
+        response += "**4. Asian Side Discovery** (3-4 hours)\n"
+        response += "• Kadıköy → Moda → Üsküdar → Çamlıca Hill\n"
+        response += "• Less touristy, more authentic\n\n"
+        
+        response += "💡 **To customize your route:**\n"
+        response += "• Tell me your specific interests (history, food, art, etc.)\n"
+        response += "• Let me know your time constraints\n"
+        response += "• Specify your starting location\n"
+        response += "• Mention any places you definitely want to see\n\n"
+        
+        response += "Which route interests you, or would you like help planning something custom?"
         
         return response

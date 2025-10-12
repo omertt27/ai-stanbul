@@ -26,16 +26,38 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-# Import our enhanced Istanbul AI system with deep learning capabilities
-from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
-from deep_learning_enhanced_ai import DeepLearningEnhancedAI, EmotionalState, UserType
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Optional NLP imports with fallbacks
+try:
+    import spacy
+    import nltk
+    from transformers import pipeline
+    NLP_AVAILABLE = True
+    logger.info("✅ Advanced NLP libraries available")
+except ImportError as e:
+    NLP_AVAILABLE = False
+    logger.warning(f"⚠️ Advanced NLP libraries not available: {e}")
+
+# Optional geo utilities
+try:
+    import geopy
+    import geopandas
+    import shapely
+    GEO_UTILITIES_AVAILABLE = True
+    logger.info("✅ Advanced geo utilities available")
+except ImportError as e:
+    GEO_UTILITIES_AVAILABLE = False
+    logger.warning(f"⚠️ Advanced geo utilities not available: {e}")
+
+# Import our enhanced Istanbul AI system with deep learning capabilities
+from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
+from deep_learning_enhanced_ai import DeepLearningEnhancedAI, EmotionalState, UserType
 
 # Prometheus metrics
 REQUEST_COUNT = Counter('istanbul_ai_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
@@ -571,33 +593,338 @@ async def adapt_personality(
         logger.error(f"Personality adaptation error: {e}")
         raise HTTPException(status_code=500, detail="Personality adaptation failed")
 
-# Error handlers
-@app.exception_handler(404)
-async def not_found_handler(request: Request, exc):
-    return JSONResponse(
-        status_code=404,
-        content={"error": "Endpoint not found", "path": str(request.url.path)}
-    )
+# =============================
+# ROUTE PLANNING API ENDPOINTS
+# =============================
 
-@app.exception_handler(500)
-async def internal_error_handler(request: Request, exc):
-    logger.error(f"Internal server error: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error", "timestamp": datetime.now().isoformat()}
-    )
+class RouteRequest(BaseModel):
+    """Route planning request model"""
+    start_location: str = Field(..., description="Starting location (address, landmark, or GPS coordinates)")
+    places_to_visit: Optional[List[str]] = Field(default=[], description="Specific places to visit")
+    duration_hours: Optional[float] = Field(default=4.0, description="Available time in hours")
+    route_style: Optional[str] = Field(default="balanced", description="Route style: efficient, scenic, cultural, balanced")
+    transport_mode: Optional[str] = Field(default="walking", description="Transport mode: walking, public_transport, driving")
+    include_food: Optional[bool] = Field(default=True, description="Include restaurant stops")
+    max_attractions: Optional[int] = Field(default=6, description="Maximum number of attractions")
+    user_preferences: Optional[Dict[str, Any]] = Field(default={}, description="User preferences and interests")
 
-# Development server
-if __name__ == "__main__":
-    print("🚀 Starting Advanced Istanbul AI Web Service...")
-    print("📚 API Documentation: http://localhost:8080/docs")
-    print("📊 Metrics: http://localhost:8080/metrics")
-    print("💬 WebSocket: ws://localhost:8080/ws/{user_id}/{session_id}")
+class RouteResponse(BaseModel):
+    """Route planning response model"""
+    success: bool
+    route_id: Optional[str] = None
+    route_name: str
+    description: str
+    total_distance_km: float
+    estimated_duration_hours: float
+    route_points: List[Dict[str, Any]]
+    optimization_info: Dict[str, Any]
+    map_data: Optional[Dict[str, Any]] = None
+    personalized_tips: List[str]
+    real_time_advice: List[str]
+
+@app.post("/api/v1/route/plan", response_model=RouteResponse)
+@limiter.limit("10/minute")
+async def plan_route(
+    route_request: RouteRequest,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Plan an optimized multi-modal route through Istanbul"""
+    try:
+        start_time = time.time()
+        
+        if not ai_system:
+            raise HTTPException(status_code=503, detail="AI system not available")
+        
+        # Create a route planning query from the request
+        query = f"Plan a {route_request.duration_hours}-hour {route_request.route_style} route starting from {route_request.start_location}"
+        
+        if route_request.places_to_visit:
+            places_text = ", ".join(route_request.places_to_visit)
+            query += f" visiting {places_text}"
+        
+        query += f" using {route_request.transport_mode} transport"
+        
+        # Get user profile
+        user_profile = ai_system.get_or_create_user_profile(current_user)
+        
+        # Update user profile with preferences from request
+        if route_request.user_preferences:
+            for key, value in route_request.user_preferences.items():
+                if hasattr(user_profile, key):
+                    setattr(user_profile, key, value)
+        
+        # Create conversation context
+        from conversation_context import ConversationContext
+        context = ConversationContext(f"route_session_{current_user}")
+        context.current_message = query
+        
+        # Process route planning query
+        response = ai_system.handle_route_planning_query(
+            query, user_profile, context, datetime.now()
+        )
+        
+        processing_time = time.time() - start_time
+        RESPONSE_GENERATION_TIME.observe(processing_time)
+        
+        # Extract route data from AI response (parse the formatted text response)
+        route_data = parse_route_response(response)
+        
+        return RouteResponse(
+            success=True,
+            route_id=f"route_{current_user}_{int(time.time())}",
+            route_name=route_data.get("name", "Custom Istanbul Route"),
+            description=route_data.get("description", "Optimized route through Istanbul"),
+            total_distance_km=route_data.get("distance", 0.0),
+            estimated_duration_hours=route_data.get("duration", route_request.duration_hours),
+            route_points=route_data.get("points", []),
+            optimization_info=route_data.get("optimization", {}),
+            map_data=route_data.get("map_data"),
+            personalized_tips=route_data.get("tips", []),
+            real_time_advice=route_data.get("advice", [])
+        )
+        
+    except Exception as e:
+        logger.error(f"Route planning error: {e}")
+        raise HTTPException(status_code=500, detail=f"Route planning failed: {str(e)}")
+
+@app.post("/api/v1/route/optimize")
+@limiter.limit("5/minute")
+async def optimize_route(
+    route_request: RouteRequest,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Optimize an existing route or re-optimize with new parameters"""
+    try:
+        if not ai_system:
+            raise HTTPException(status_code=503, detail="AI system not available")
+        
+        # Check if route maker service is available for advanced optimization
+        if hasattr(ai_system, 'route_maker') and ai_system.route_maker:
+            # Use advanced route optimization
+            from backend.services.route_maker_service import RouteRequest as RouteReq, RouteStyle, TransportMode
+            
+            # Convert API request to route maker request
+            style_map = {
+                'efficient': RouteStyle.EFFICIENT,
+                'scenic': RouteStyle.SCENIC,
+                'cultural': RouteStyle.CULTURAL,
+                'balanced': RouteStyle.BALANCED
+            }
+            
+            transport_map = {
+                'walking': TransportMode.WALKING,
+                'public_transport': TransportMode.PUBLIC_TRANSPORT,
+                'driving': TransportMode.DRIVING
+            }
+            
+            # Get coordinates for starting location
+            coords = get_coordinates_from_location(route_request.start_location)
+            if not coords:
+                raise HTTPException(status_code=400, detail="Could not resolve starting location")
+            
+            route_req = RouteReq(
+                start_lat=coords['lat'],
+                start_lng=coords['lng'],
+                max_distance_km=route_request.duration_hours * 2,  # Estimate based on walking speed
+                available_time_hours=route_request.duration_hours,
+                route_style=style_map.get(route_request.route_style, RouteStyle.BALANCED),
+                transport_mode=transport_map.get(route_request.transport_mode, TransportMode.WALKING),
+                include_food=route_request.include_food,
+                max_attractions=route_request.max_attractions
+            )
+            
+            # Generate optimized route
+            try:
+                from database import get_db
+                db = next(get_db())
+                optimized_route = ai_system.route_maker.generate_route(route_req, db)
+                db.close()
+            except:
+                optimized_route = ai_system.route_maker.generate_route(route_req, None)
+            
+            # Convert to API response format
+            route_points = []
+            for point in optimized_route.points:
+                route_points.append({
+                    'name': point.name,
+                    'lat': point.lat,
+                    'lng': point.lng,
+                    'category': point.category,
+                    'duration_minutes': point.estimated_duration_minutes,
+                    'arrival_time': point.arrival_time,
+                    'score': point.score,
+                    'notes': point.notes
+                })
+            
+            return RouteResponse(
+                success=True,
+                route_id=f"optimized_{current_user}_{int(time.time())}",
+                route_name=optimized_route.name or "Optimized Istanbul Route",
+                description=optimized_route.description or "AI-optimized route using TSP algorithm",
+                total_distance_km=optimized_route.total_distance_km,
+                estimated_duration_hours=optimized_route.estimated_duration_hours,
+                route_points=route_points,
+                optimization_info={
+                    'efficiency_score': optimized_route.efficiency_score,
+                    'diversity_score': optimized_route.diversity_score,
+                    'overall_score': optimized_route.overall_score,
+                    'algorithm': 'TSP with Istanbul-specific optimizations'
+                },
+                personalized_tips=[
+                    f"Route optimized for {route_request.route_style} experience",
+                    f"Total walking distance: {optimized_route.total_distance_km:.1f} km",
+                    f"Estimated completion time: {optimized_route.estimated_duration_hours:.1f} hours"
+                ],
+                real_time_advice=[
+                    "Check opening hours before visiting attractions",
+                    "Use İstanbulkart for public transportation",
+                    "Consider traffic and prayer times for mosque visits"
+                ]
+            )
+        else:
+            # Fallback to text-based optimization
+            return await plan_route(route_request, request, current_user)
+            
+    except Exception as e:
+        logger.error(f"Route optimization error: {e}")
+        raise HTTPException(status_code=500, detail=f"Route optimization failed: {str(e)}")
+
+@app.get("/api/v1/route/directions/{route_id}")
+@limiter.limit("20/minute")
+async def get_route_directions(
+    route_id: str,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Get step-by-step directions for a specific route"""
+    try:
+        # In production: retrieve route from database using route_id
+        # For now, provide generic directions template
+        
+        return {
+            "route_id": route_id,
+            "directions": [
+                {
+                    "step": 1,
+                    "instruction": "Start at your specified location",
+                    "distance_meters": 0,
+                    "duration_minutes": 0,
+                    "transport_mode": "walking"
+                },
+                {
+                    "step": 2,
+                    "instruction": "Head towards first attraction",
+                    "distance_meters": 500,
+                    "duration_minutes": 6,
+                    "transport_mode": "walking",
+                    "waypoints": []
+                }
+            ],
+            "alternative_routes": [],
+            "real_time_updates": {
+                "traffic_status": "normal",
+                "public_transport_delays": [],
+                "weather_impact": "none"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Route directions error: {e}")
+        raise HTTPException(status_code=500, detail="Could not retrieve directions")
+
+def parse_route_response(ai_response: str) -> Dict[str, Any]:
+    """Parse AI response text to extract structured route data"""
     
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0",
-        port=8080,
-        reload=True,
-        log_level="info"
-    )
+    # Extract basic information using regex patterns
+    route_data = {
+        "name": "Istanbul Route",
+        "description": "Personalized route through Istanbul",
+        "distance": 0.0,
+        "duration": 0.0,
+        "points": [],
+        "optimization": {},
+        "tips": [],
+        "advice": []
+    }
+    
+    try:
+        import re
+        
+        # Extract distance
+        distance_match = re.search(r'(\d+\.?\d*)\s*km', ai_response)
+        if distance_match:
+            route_data["distance"] = float(distance_match.group(1))
+        
+        # Extract duration
+        duration_match = re.search(r'(\d+\.?\d*)\s*hours?', ai_response)
+        if duration_match:
+            route_data["duration"] = float(duration_match.group(1))
+        
+        # Extract route points (simplified parsing)
+        lines = ai_response.split('\n')
+        points = []
+        for line in lines:
+            if '.' in line and any(word in line.lower() for word in ['mosque', 'palace', 'tower', 'museum', 'bazaar']):
+                # Extract attraction name
+                point_match = re.search(r'\d+\.\s*\*\*(.+?)\*\*', line)
+                if point_match:
+                    points.append({
+                        'name': point_match.group(1),
+                        'category': 'attraction',
+                        'duration_minutes': 60,
+                        'score': 8.0
+                    })
+        
+        route_data["points"] = points
+        
+        # Extract tips
+        tips = []
+        for line in lines:
+            if line.strip().startswith('•') or line.strip().startswith('-'):
+                tip = line.strip().lstrip('•-').strip()
+                if tip:
+                    tips.append(tip)
+        
+        route_data["tips"] = tips[:5]  # Limit to 5 tips
+        
+    except Exception as e:
+        logger.warning(f"Error parsing route response: {e}")
+    
+    return route_data
+
+def get_coordinates_from_location(location: str) -> Optional[Dict[str, float]]:
+    """Get coordinates from location string"""
+    
+    # Define coordinates for major Istanbul locations
+    location_coords = {
+        'sultanahmet': {'lat': 41.0086, 'lng': 28.9802},
+        'beyoğlu': {'lat': 41.0370, 'lng': 28.9777},
+        'beyoglu': {'lat': 41.0370, 'lng': 28.9777},
+        'taksim': {'lat': 41.0370, 'lng': 28.9844},
+        'galata': {'lat': 41.0255, 'lng': 28.9742},
+        'karaköy': {'lat': 41.0255, 'lng': 28.9742},
+        'karakoy': {'lat': 41.0255, 'lng': 28.9742},
+        'kadıköy': {'lat': 40.9897, 'lng': 29.0267},
+        'kadikoy': {'lat': 40.9897, 'lng': 29.0267},
+        'beşiktaş': {'lat': 41.0422, 'lng': 29.0094},
+        'besiktas': {'lat': 41.0422, 'lng': 29.0094},
+        'ortaköy': {'lat': 41.0550, 'lng': 29.0268},
+        'ortakoy': {'lat': 41.0550, 'lng': 29.0268}
+    }
+    
+    location_lower = location.lower()
+    
+    # Check for GPS coordinates in the location string
+    gps_match = re.search(r'(-?\d+\.?\d*),\s*(-?\d+\.?\d*)', location)
+    if gps_match:
+        return {'lat': float(gps_match.group(1)), 'lng': float(gps_match.group(2))}
+    
+    # Check predefined locations
+    for loc_name, coords in location_coords.items():
+        if loc_name in location_lower:
+            return coords
+    
+    # Default to Sultanahmet if no match found
+    return location_coords['sultanahmet']
