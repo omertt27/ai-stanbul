@@ -158,10 +158,37 @@ class RouteCache:
         return len(expired_keys)
 
 
-class PopularRouteCache:
-    """Cache for popular/pre-computed routes"""
+class WeatherAwareRouteCache:
+    """Weather-aware route cache with dynamic recommendations based on weather"""
     
     def __init__(self):
+        # Weather-aware route recommendations
+        self.weather_route_adaptations = {
+            'rainy': {
+                'indoor_focus': True,
+                'covered_routes': True,
+                'underground_preferred': True,
+                'duration_reduction': 0.7  # Reduce outdoor time by 30%
+            },
+            'hot': {
+                'shade_preferred': True,
+                'early_morning': True,
+                'water_nearby': True,
+                'duration_reduction': 0.8  # Reduce walking in heat
+            },
+            'cold': {
+                'indoor_warmup_stops': True,
+                'reduced_outdoor_time': True,
+                'duration_reduction': 0.8
+            },
+            'windy': {
+                'avoid_waterfront': True,
+                'sheltered_routes': True,
+                'bosphorus_warning': True
+            }
+        }
+        
+        # Base popular routes with weather adaptations
         self.popular_routes = {
             'sultanahmet_historic': {
                 'name': 'Historic Sultanahmet Tour',
@@ -170,6 +197,24 @@ class PopularRouteCache:
                 'duration_hours': 4.0,
                 'distance_km': 3.2,
                 'attractions': ['Hagia Sophia', 'Blue Mosque', 'Topkapi Palace', 'Basilica Cistern'],
+                'weather_adaptations': {
+                    'rainy': {
+                        'indoor_attractions': ['Hagia Sophia', 'Blue Mosque', 'Basilica Cistern', 'Istanbul Archaeological Museums'],
+                        'covered_areas': ['Grand Bazaar', 'Underground Cistern'],
+                        'advice': 'Perfect for rainy weather - mostly covered historical sites'
+                    },
+                    'hot': {
+                        'best_time': 'early_morning',
+                        'shade_spots': ['Sultanahmet Park', 'Gulhane Park'],
+                        'indoor_breaks': ['Hagia Sophia', 'Blue Mosque'],
+                        'advice': 'Start early morning, take breaks in shaded mosques'
+                    },
+                    'cold': {
+                        'indoor_focus': ['Hagia Sophia', 'Topkapi Palace indoor sections'],
+                        'warm_spots': ['Turkish baths', 'Traditional cafes'],
+                        'advice': 'Focus on indoor palace rooms and warm up with Turkish tea'
+                    }
+                },
                 'cached_at': time.time()
             },
             'bosphorus_scenic': {
@@ -192,28 +237,240 @@ class PopularRouteCache:
             }
         }
     
-    def get_popular_route(self, area: str, style: str = 'balanced') -> Optional[Dict]:
-        """Get a popular pre-computed route for an area"""
+    def get_popular_route(self, area: str, style: str = 'balanced', weather_data=None) -> Optional[Dict]:
+        """Get a popular pre-computed route for an area, adapted for current weather"""
         area_lower = area.lower()
         
-        # Simple matching logic
+        # Get base route
+        base_route = None
         if 'sultanahmet' in area_lower or 'historic' in style.lower():
-            return self.popular_routes.get('sultanahmet_historic')
+            base_route = self.popular_routes.get('sultanahmet_historic')
         elif 'galata' in area_lower or 'scenic' in style.lower():
-            return self.popular_routes.get('bosphorus_scenic')
+            base_route = self.popular_routes.get('bosphorus_scenic')
         elif 'taksim' in area_lower or 'modern' in area_lower:
-            return self.popular_routes.get('modern_istanbul')
+            base_route = self.popular_routes.get('modern_istanbul')
         
-        return None
+        if not base_route:
+            return None
+        
+        # Adapt route based on weather
+        if weather_data:
+            return self.adapt_route_for_weather(base_route.copy(), weather_data)
+        
+        return base_route.copy()
     
-    def get_all_popular_routes(self) -> Dict[str, Dict]:
-        """Get all popular routes"""
-        return self.popular_routes.copy()
+    def adapt_route_for_weather(self, route: Dict, weather_data: Any) -> Dict:
+        """Adapt a route based on current weather conditions"""
+        try:
+            # Extract weather condition
+            condition = getattr(weather_data, 'condition', '').lower()
+            temp = getattr(weather_data, 'current_temp', 20)
+            wind_speed = getattr(weather_data, 'wind_speed', 0)
+            rainfall = getattr(weather_data, 'rainfall_1h', 0) or 0
+            
+            # Determine weather category
+            weather_category = self._categorize_weather(condition, temp, wind_speed, rainfall)
+            
+            # Apply weather adaptations
+            if weather_category in self.weather_route_adaptations:
+                adaptation = self.weather_route_adaptations[weather_category]
+                route = self._apply_adaptation(route, adaptation, weather_category)
+            
+            # Add weather-specific recommendations
+            route['weather_adapted'] = True
+            route['current_weather'] = {
+                'condition': condition,
+                'temperature': temp,
+                'category': weather_category,
+                'adapted_at': datetime.now().isoformat()
+            }
+            
+            # Route-specific weather adaptations
+            route_name = route.get('name', '').lower()
+            if 'weather_adaptations' in route and weather_category in route['weather_adaptations']:
+                weather_adaptation = route['weather_adaptations'][weather_category]
+                route.update(weather_adaptation)
+                
+                # Add weather advice
+                if 'advice' in weather_adaptation:
+                    route['weather_advice'] = weather_adaptation['advice']
+            
+            return route
+            
+        except Exception as e:
+            print(f"Error adapting route for weather: {e}")
+            return route
+    
+    def _categorize_weather(self, condition: str, temp: float, wind_speed: float, rainfall: float) -> str:
+        """Categorize weather conditions for route adaptation"""
+        if rainfall > 0.5 or 'rain' in condition or 'drizzle' in condition:
+            return 'rainy'
+        elif temp > 28:
+            return 'hot'
+        elif temp < 10:
+            return 'cold'
+        elif wind_speed > 20:
+            return 'windy'
+        else:
+            return 'clear'
+    
+    def _apply_adaptation(self, route: Dict, adaptation: Dict, weather_category: str) -> Dict:
+        """Apply general weather adaptations to route"""
+        if adaptation.get('duration_reduction'):
+            route['duration_hours'] *= adaptation['duration_reduction']
+            route['weather_notes'] = route.get('weather_notes', [])
+            route['weather_notes'].append(f"Duration reduced for {weather_category} weather")
+        
+        if adaptation.get('indoor_focus'):
+            route['weather_notes'] = route.get('weather_notes', [])
+            route['weather_notes'].append("Route adapted to focus on indoor attractions")
+        
+        if adaptation.get('shade_preferred'):
+            route['weather_notes'] = route.get('weather_notes', [])
+            route['weather_notes'].append("Route prioritizes shaded areas")
+        
+        return route
+    
+    def get_weather_recommendations(self, weather_data: Any) -> List[str]:
+        """Get weather-specific route recommendations"""
+        try:
+            condition = getattr(weather_data, 'condition', '').lower()
+            temp = getattr(weather_data, 'current_temp', 20)
+            wind_speed = getattr(weather_data, 'wind_speed', 0)
+            rainfall = getattr(weather_data, 'rainfall_1h', 0) or 0
+            
+            recommendations = []
+            
+            if rainfall > 0.5 or 'rain' in condition:
+                recommendations.extend([
+                    "Consider indoor attractions like Hagia Sophia and Basilica Cistern",
+                    "Grand Bazaar and Spice Bazaar are perfect for rainy weather",
+                    "Use covered walkways and underground passages when possible"
+                ])
+            
+            if temp > 28:
+                recommendations.extend([
+                    "Start your tour early morning (before 10 AM) or late afternoon",
+                    "Take frequent breaks in air-conditioned museums and cafes",
+                    "Stay hydrated and seek shade in parks like Gülhane"
+                ])
+            
+            if temp < 10:
+                recommendations.extend([
+                    "Focus on indoor palaces and museums",
+                    "Warm up with traditional Turkish tea or coffee",
+                    "Turkish baths (hamams) are perfect for cold weather"
+                ])
+            
+            if wind_speed > 20:
+                recommendations.extend([
+                    "Avoid exposed waterfront areas like Galata Bridge",
+                    "Choose sheltered streets in old city areas",
+                    "Be cautious near the Bosphorus - strong winds expected"
+                ])
+            
+            if not recommendations:
+                recommendations.append("Perfect weather for exploring Istanbul!")
+            
+            return recommendations
+            
+        except Exception as e:
+            return ["Weather data unavailable - enjoy your Istanbul exploration!"]
+    
+    def get_all_popular_routes(self, weather_data=None) -> Dict[str, Dict]:
+        """Get all popular routes, optionally adapted for weather"""
+        routes = {}
+        for key, route in self.popular_routes.items():
+            if weather_data:
+                routes[key] = self.adapt_route_for_weather(route.copy(), weather_data)
+            else:
+                routes[key] = route.copy()
+        return routes
 
+def get_weather_aware_route_recommendations(area: str, style: str = 'balanced', weather_data=None) -> Dict[str, Any]:
+    """Get weather-aware route recommendations using the cache"""
+    try:
+        # Get weather-adapted route
+        route = weather_aware_cache.get_popular_route(area, style, weather_data)
+        
+        # Get weather recommendations
+        weather_recommendations = []
+        if weather_data:
+            weather_recommendations = weather_aware_cache.get_weather_recommendations(weather_data)
+        
+        return {
+            'route': route,
+            'weather_recommendations': weather_recommendations,
+            'weather_aware': weather_data is not None,
+            'generated_at': datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error getting weather-aware recommendations: {e}")
+        # Fallback to basic route
+        return {
+            'route': weather_aware_cache.get_popular_route(area, style),
+            'weather_recommendations': ["Weather data unavailable - enjoy exploring!"],
+            'weather_aware': False,
+            'error': str(e)
+        }
+
+def get_transportation_advice_for_weather(weather_data=None) -> List[str]:
+    """Get transportation advice based on weather conditions"""
+    if not weather_data:
+        return ["Use public transportation or walking as preferred"]
+    
+    try:
+        condition = getattr(weather_data, 'condition', '').lower()
+        temp = getattr(weather_data, 'current_temp', 20)
+        wind_speed = getattr(weather_data, 'wind_speed', 0)
+        rainfall = getattr(weather_data, 'rainfall_1h', 0) or 0
+        
+        advice = []
+        
+        if rainfall > 0.5 or 'rain' in condition:
+            advice.extend([
+                "🚇 Metro and tram are best options - stay dry underground",
+                "🚌 Use buses for longer distances to avoid getting wet",
+                "🚗 Consider taxi/Uber for comfort in heavy rain",
+                "⚠️ Ferry services may be affected by weather"
+            ])
+        
+        if temp > 30:
+            advice.extend([
+                "🌡️ Use air-conditioned metro and buses during peak heat",
+                "🚇 Underground transport keeps you cool",
+                "🕒 Avoid walking long distances between 12-16:00",
+                "💧 Stay hydrated during any outdoor transport waits"
+            ])
+        
+        if temp < 5:
+            advice.extend([
+                "🧥 Dress warmly for outdoor transport waits",
+                "🚇 Underground metro stations provide warmth",
+                "🚌 Heated buses are more comfortable than walking",
+                "⚠️ Be careful of icy conditions on walkways"
+            ])
+        
+        if wind_speed > 25:
+            advice.extend([
+                "⚠️ Ferry services may be cancelled due to strong winds",
+                "🌊 Avoid Bosphorus ferries - very windy on water",
+                "🚇 Underground transport unaffected by wind",
+                "🚶‍♂️ Be extra careful walking near waterfront"
+            ])
+        
+        if not advice:
+            advice.append("🌞 Perfect weather for all transportation options!")
+        
+        return advice
+        
+    except Exception as e:
+        return [f"Transportation advice unavailable: {e}"]
 
 # Global cache instances
 route_cache = RouteCache(max_size=500, default_ttl=1800)  # 30 minutes TTL
-popular_cache = PopularRouteCache()
+weather_aware_cache = WeatherAwareRouteCache()
 
 # Cleanup task - in production this would be a background task
 def cleanup_caches():

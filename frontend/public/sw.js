@@ -96,52 +96,181 @@ self.addEventListener('sync', (event) => {
     console.log('[ServiceWorker] Background sync: chat-sync');
     // Handle chat message synchronization when online
     event.waitUntil(syncChatMessages());
+  } else if (event.tag === 'notification-sync') {
+    console.log('[ServiceWorker] Background sync: notification-sync');
+    // Handle notification synchronization when online
+    event.waitUntil(syncNotifications());
   }
 });
 
-// Handle push notifications (for future implementation)
+// Handle messages from the main thread
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GET_USER_ID') {
+    // Send back user ID from localStorage equivalent in service worker context
+    event.ports[0].postMessage({ userId: null }); // Simplified for now
+  }
+});
+
+// Handle push notifications
 self.addEventListener('push', (event) => {
-  console.log('[ServiceWorker] Push received');
-  const options = {
-    body: event.data ? event.data.text() : 'New travel update available!',
+  console.log('[ServiceWorker] Push notification received');
+  
+  let notificationData = {
+    title: 'Istanbul AI',
+    body: 'You have a new notification',
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    vibrate: [200, 100, 200],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'Explore',
-        icon: '/favicon.svg'
-      },
-      {
-        action: 'close',
-        title: 'Close',
-        icon: '/favicon.svg'
-      }
-    ]
+    tag: 'default',
+    data: {}
   };
-  
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      notificationData = {
+        title: payload.title || notificationData.title,
+        body: payload.message || payload.body || notificationData.body,
+        icon: payload.icon || notificationData.icon,
+        badge: payload.badge || notificationData.badge,
+        tag: payload.id || payload.tag || notificationData.tag,
+        data: payload.data || payload,
+        actions: getNotificationActions(payload.type),
+        requireInteraction: payload.priority === 'urgent',
+        silent: payload.priority === 'low'
+      };
+    } catch (error) {
+      console.error('[ServiceWorker] Failed to parse push payload:', error);
+      // Use text if JSON parsing fails
+      notificationData.body = event.data.text();
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification('AI Istanbul', options)
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag,
+      data: notificationData.data,
+      actions: notificationData.actions,
+      requireInteraction: notificationData.requireInteraction,
+      silent: notificationData.silent,
+      vibrate: notificationData.silent ? [] : [100, 50, 100]
+    })
   );
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('[ServiceWorker] Notification click received');
+  console.log('[ServiceWorker] Notification clicked:', event.action);
   
   event.notification.close();
-  
-  if (event.action === 'explore') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
+
+  const notification = event.notification;
+  const action = event.action;
+  const data = notification.data || {};
+
+  let urlToOpen = '/';
+
+  // Handle action buttons
+  if (action) {
+    switch (action) {
+      case 'view':
+      case 'view_route':
+      case 'view_attraction':
+      case 'view_weather':
+        urlToOpen = data.action_url || '/';
+        break;
+      case 'dismiss':
+        return; // Just close, don't open anything
+      case 'explore':
+        urlToOpen = '/';
+        break;
+      default:
+        urlToOpen = data.action_url || '/';
+    }
+  } else {
+    // Regular click
+    urlToOpen = data.action_url || '/';
   }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Check if there's already a window/tab open
+        for (const client of clientList) {
+          if ('focus' in client) {
+            return client.focus().then(() => {
+              // Send message to client about notification click
+              client.postMessage({
+                type: 'NOTIFICATION_CLICKED',
+                notificationId: data.notification_id || data.id,
+                data: data,
+                action: action
+              });
+            });
+          }
+        }
+
+        // If no existing window, open a new one
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(urlToOpen);
+        }
+      })
+  );
 });
+
+// Get notification actions based on type
+function getNotificationActions(type) {
+  const commonActions = [
+    {
+      action: 'view',
+      title: 'View'
+    },
+    {
+      action: 'dismiss',
+      title: 'Dismiss'
+    }
+  ];
+
+  switch (type) {
+    case 'route_update':
+      return [
+        {
+          action: 'view_route',
+          title: 'View Route'
+        },
+        {
+          action: 'dismiss',
+          title: 'Dismiss'
+        }
+      ];
+    case 'attraction_recommendation':
+      return [
+        {
+          action: 'view_attraction',
+          title: 'Learn More'
+        },
+        {
+          action: 'dismiss',
+          title: 'Later'
+        }
+      ];
+    case 'weather_alert':
+      return [
+        {
+          action: 'view_weather',
+          title: 'Check Weather'
+        },
+        {
+          action: 'dismiss',
+          title: 'OK'
+        }
+      ];
+    default:
+      return commonActions;
+  }
+}
 
 // Sync chat messages function (placeholder for future implementation)
 async function syncChatMessages() {
@@ -151,5 +280,16 @@ async function syncChatMessages() {
     // Implementation would depend on your backend API
   } catch (error) {
     console.log('[ServiceWorker] Sync failed:', error);
+  }
+}
+
+// Sync notifications when back online
+async function syncNotifications() {
+  try {
+    console.log('[ServiceWorker] Syncing notifications...');
+    // This would fetch missed notifications when back online
+    // For now, just log the action
+  } catch (error) {
+    console.log('[ServiceWorker] Notification sync failed:', error);
   }
 }

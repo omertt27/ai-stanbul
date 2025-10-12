@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationPanel from './NotificationPanel';
 import { trackEvent } from '../utils/analytics';
 
 const MainPageMobileNavbar = () => {
@@ -74,12 +75,14 @@ const MainPageMobileNavbar = () => {
         </span>
       </div>
       
-      {/* Language options positioned more to the left */}
+      {/* Right side - Language switcher and notifications */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        marginLeft: '2rem', // Position it with some space from the logo but not at the far right
+        marginLeft: 'auto', // Push to the right
+        gap: '1rem'
       }}>
+        <NotificationPanel />
         <LanguageSwitcher />
       </div>
     </div>

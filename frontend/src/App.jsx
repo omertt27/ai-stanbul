@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from './contexts/LocationContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import SearchBar from './components/SearchBar';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
@@ -15,6 +16,8 @@ import LocationBasedButtons from './components/LocationBasedButtons';
 import GPSLocationStatus from './components/GPSLocationStatus';
 import { LocationResultsContainer, RestaurantCard, RouteCard } from './components/LocationResults';
 import RoutePlanningForm from './components/RoutePlanningForm';
+import NotificationPanel from './components/NotificationPanel';
+import NotificationTestPanel from './components/NotificationTestPanel';
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
@@ -324,6 +327,18 @@ const App = () => {
           paddingRight: isMobile || window.innerWidth <= 768 ? '1rem' : '2rem'
         }}>
           
+          {/* Desktop notification panel - fixed position top-right */}
+          {!(isMobile || window.innerWidth <= 768) && (
+            <div style={{
+              position: 'fixed',
+              top: '2rem',
+              right: '2rem',
+              zIndex: 1001
+            }}>
+              <NotificationPanel />
+            </div>
+          )}
+
           {/* Centered logo - Only show on desktop, mobile has navbar logo */}
           {!(isMobile || window.innerWidth <= 768) && (
             <div 
@@ -467,6 +482,9 @@ const App = () => {
         
         {/* PWA Install Button */}
         <InstallPWAButton />
+
+        {/* Notification Test Panel - Development Only */}
+        <NotificationTestPanel />
       </div>
     </WeatherThemeProvider>
   );

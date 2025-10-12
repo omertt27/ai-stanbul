@@ -8,6 +8,7 @@ import asyncio
 import time
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
@@ -59,6 +60,62 @@ except ImportError as e:
 from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
 from deep_learning_enhanced_ai import DeepLearningEnhancedAI, EmotionalState, UserType
 
+# Import push notification system
+try:
+    from services.push_notification_service import (
+        notification_service, NotificationType, NotificationPriority, Notification
+    )
+    NOTIFICATIONS_AVAILABLE = True
+    logger.info("🔔 Push Notification Service available")
+except ImportError as e:
+    NOTIFICATIONS_AVAILABLE = False
+    logger.warning(f"🔔 Push Notification Service not available: {e}")
+    
+    # Create mock notification service
+    class MockNotificationService:
+        async def send_notification(self, *args, **kwargs):
+            return {'mock': True}
+        async def send_route_update(self, *args, **kwargs):
+            return {'mock': True}
+        async def send_attraction_recommendation(self, *args, **kwargs):
+            return {'mock': True}
+        def register_device_token(self, *args, **kwargs):
+            pass
+        def get_user_notifications(self, *args, **kwargs):
+            return []
+        async def connect_websocket(self, websocket, user_id):
+            return "mock_connection"
+        def disconnect_websocket(self, connection_id):
+            pass
+    
+    notification_service = MockNotificationService()
+
+# Import weather services
+try:
+    from services.weather_cache_service import (
+        weather_cache, get_current_weather, get_weather_for_ai, update_weather_cache
+    )
+    from services.weather_notification_service import (
+        send_weather_alerts, weather_notification_manager
+    )
+    WEATHER_SERVICES_AVAILABLE = True
+    logger.info("🌤️ Weather Services available")
+except ImportError as e:
+    WEATHER_SERVICES_AVAILABLE = False
+    logger.warning(f"🌤️ Weather Services not available: {e}")
+    
+    # Create mock weather service
+    def get_current_weather():
+        return {
+            'current': {
+                'current_temp': 20,
+                'condition': 'Clear',
+                'description': 'clear sky'
+            },
+            'recommendations': ['Perfect weather for exploring!'],
+            'mock': True
+        }
+
 # Prometheus metrics
 REQUEST_COUNT = Counter('istanbul_ai_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
 REQUEST_DURATION = Histogram('istanbul_ai_request_duration_seconds', 'Request duration')
@@ -101,6 +158,29 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Background tasks
+async def weather_update_task():
+    """Background task to update weather cache every hour"""
+    while True:
+        try:
+            await asyncio.sleep(3600)  # Wait 1 hour
+            if WEATHER_SERVICES_AVAILABLE:
+                success = await update_weather_cache()
+                if success:
+                    logger.info("🌤️ Hourly weather cache update completed")
+                    
+                    # Send weather alerts if needed
+                    try:
+                        await send_weather_alerts()
+                        logger.info("📤 Weather alerts checked and sent")
+                    except Exception as e:
+                        logger.warning(f"Weather alerts failed: {e}")
+                else:
+                    logger.warning("⚠️ Weather cache update failed")
+        except Exception as e:
+            logger.error(f"Weather background task error: {e}")
+            await asyncio.sleep(300)  # Wait 5 minutes before retry
+
 # Application lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -121,6 +201,18 @@ async def lifespan(app: FastAPI):
         redis_client = redis.from_url("redis://localhost:6379/0", decode_responses=True)
         await redis_client.ping()
         logger.info("✅ Redis connected")
+        
+        # Initialize weather services
+        if WEATHER_SERVICES_AVAILABLE:
+            try:
+                await update_weather_cache()
+                logger.info("🌤️ Weather cache initialized")
+                
+                # Start background weather update task
+                asyncio.create_task(weather_update_task())
+                logger.info("🌤️ Weather background task started")
+            except Exception as e:
+                logger.warning(f"Weather initialization failed: {e}")
         
         logger.info("🎯 Service startup complete!")
         
@@ -204,6 +296,27 @@ class HealthResponse(BaseModel):
     version: str = "2.0.0"
     services: Dict[str, str] = Field(default_factory=dict)
 
+class NotificationRequest(BaseModel):
+    """Push notification request model"""
+    user_id: str = Field(..., description="Target user ID")
+    title: str = Field(..., description="Notification title")
+    message: str = Field(..., description="Notification message")
+    type: str = Field(default="system_message", description="Notification type")
+    priority: str = Field(default="normal", description="Notification priority")
+    data: Optional[Dict[str, Any]] = Field(default={}, description="Additional notification data")
+
+class DeviceTokenRequest(BaseModel):
+    """Device token registration request"""
+    device_token: str = Field(..., description="FCM device token")
+
+class NotificationPreferencesRequest(BaseModel):
+    """Notification preferences request"""
+    route_updates: bool = Field(default=True, description="Receive route update notifications")
+    attraction_recommendations: bool = Field(default=True, description="Receive attraction recommendations")
+    weather_alerts: bool = Field(default=True, description="Receive weather alerts")
+    traffic_updates: bool = Field(default=True, description="Receive traffic updates")
+    personalized_tips: bool = Field(default=True, description="Receive personalized tips")
+
 # Dependency functions
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Extract user from JWT token (simplified for demo)"""
@@ -273,6 +386,60 @@ async def metrics():
     """Prometheus metrics endpoint"""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+# Background notification tasks
+async def send_chat_notification_async(user_id: str, user_message: str, ai_response: str):
+    """Send notification for chat response"""
+    try:
+        if NOTIFICATIONS_AVAILABLE:
+            preview = ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
+            await notification_service.send_chat_response(
+                user_id=user_id,
+                response_data={
+                    'preview': preview,
+                    'query': user_message,
+                    'full_response': ai_response,
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+    except Exception as e:
+        logger.error(f"Failed to send chat notification: {e}")
+
+async def send_weather_context_notification(user_id: str, user_message: str, ai_response: str):
+    """Send weather-context notification when relevant"""
+    try:
+        if WEATHER_SERVICES_AVAILABLE:
+            weather_data = get_weather_for_ai()
+            if weather_data and 'error' not in weather_data:
+                
+                # Check if weather affects the user's query
+                if not weather_data.get('is_good_weather', True):
+                    weather_message = f"Current weather: {weather_data.get('condition', 'Unknown')}, {weather_data.get('temperature', '?')}°C"
+                    if weather_data.get('recommendations'):
+                        weather_message += f". {weather_data['recommendations'][0]}"
+                    
+                    await notification_service.send_personalized_tip(
+                        user_id=user_id,
+                        tip_data={
+                            'type': 'weather_context',
+                            'title': '🌤️ Weather Update',
+                            'message': weather_message,
+                            'weather_data': weather_data,
+                            'user_query': user_message
+                        }
+                    )
+                elif weather_data.get('needs_umbrella', False):
+                    await notification_service.send_weather_alert(
+                        user_id=user_id,
+                        weather_data={
+                            'message': f"Rain expected! {weather_data.get('condition', 'Weather update')}, bring an umbrella.",
+                            'temperature': weather_data.get('temperature'),
+                            'condition': weather_data.get('condition')
+                        }
+                    )
+                    
+    except Exception as e:
+        logger.error(f"Failed to send weather context notification: {e}")
+
 @app.post("/api/v1/chat", response_model=ChatResponse)
 @limiter.limit("60/minute")
 async def chat(
@@ -332,6 +499,26 @@ async def chat(
             300,  # 5 minutes TTL
             redis_conn
         )
+        
+        # Send real-time notification for important responses
+        if NOTIFICATIONS_AVAILABLE and len(ai_response) > 200:  # Only for substantial responses
+            background_tasks.add_task(
+                send_chat_notification_async,
+                message.user_id,
+                message.message,
+                ai_response
+            )
+        
+        # Send weather-based notifications if relevant to the query
+        if WEATHER_SERVICES_AVAILABLE and any(keyword in message.message.lower() for keyword in [
+            'weather', 'rain', 'sun', 'hot', 'cold', 'outdoor', 'walk', 'visit', 'explore', 'sightseeing'
+        ]):
+            background_tasks.add_task(
+                send_weather_context_notification,
+                message.user_id,
+                message.message,
+                ai_response
+            )
         
         REQUEST_COUNT.labels(method="POST", endpoint="/chat", status="200").inc()
         REQUEST_DURATION.observe(processing_time)
@@ -501,6 +688,93 @@ async def get_system_status():
             "Multi-language Support"
         ]
     }
+
+@app.get("/api/v1/weather")
+async def get_weather():
+    """Get current weather information for Istanbul"""
+    try:
+        if WEATHER_SERVICES_AVAILABLE:
+            weather_data = get_current_weather()
+            if weather_data and 'error' not in weather_data:
+                return weather_data
+            else:
+                # Return mock data if no real weather available
+                return get_current_weather()  # Mock function
+        else:
+            return get_current_weather()  # Mock function
+    except Exception as e:
+        logger.error(f"Weather API error: {e}")
+        raise HTTPException(status_code=500, detail="Weather service temporarily unavailable")
+
+@app.get("/api/v1/weather/ai")
+async def get_weather_for_ai_endpoint():
+    """Get weather data optimized for AI processing"""
+    try:
+        if WEATHER_SERVICES_AVAILABLE:
+            weather_ai_data = get_weather_for_ai()
+            return weather_ai_data
+        else:
+            return {
+                'temperature': 20,
+                'condition': 'Clear',
+                'comfort_level': 'good',
+                'outdoor_suitability': 'excellent',
+                'is_good_weather': True,
+                'recommendations': ['Perfect weather for exploring Istanbul!'],
+                'mock': True
+            }
+    except Exception as e:
+        logger.error(f"Weather AI API error: {e}")
+        raise HTTPException(status_code=500, detail="Weather AI service temporarily unavailable")
+
+@app.post("/api/v1/weather/update")
+async def update_weather_cache_endpoint():
+    """Manually trigger weather cache update (admin only)"""
+    try:
+        if WEATHER_SERVICES_AVAILABLE:
+            success = await update_weather_cache()
+            return {
+                "success": success,
+                "message": "Weather cache updated successfully" if success else "Failed to update weather cache",
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {"success": False, "message": "Weather services not available", "mock": True}
+    except Exception as e:
+        logger.error(f"Weather update error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update weather cache")
+
+@app.post("/api/v1/weather/test-notification")
+async def test_weather_notification(user_id: str = "test_user"):
+    """Test weather notification system"""
+    try:
+        if WEATHER_SERVICES_AVAILABLE and NOTIFICATIONS_AVAILABLE:
+            # Send a test weather alert
+            await send_weather_alerts([user_id])
+            
+            # Send weather context notification
+            await send_weather_context_notification(
+                user_id, 
+                "What should I do outdoors today?", 
+                "Based on current weather conditions..."
+            )
+            
+            return {
+                "success": True,
+                "message": "Test weather notifications sent",
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "success": False, 
+                "message": "Weather or notification services not available",
+                "weather_available": WEATHER_SERVICES_AVAILABLE,
+                "notifications_available": NOTIFICATIONS_AVAILABLE
+            }
+    except Exception as e:
+        logger.error(f"Weather notification test error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to test weather notifications")
 
 @app.get("/api/v1/neighborhoods")
 async def get_neighborhoods():
@@ -928,3 +1202,252 @@ def get_coordinates_from_location(location: str) -> Optional[Dict[str, float]]:
     
     # Default to Sultanahmet if no match found
     return location_coords['sultanahmet']
+
+# =============================
+# PUSH NOTIFICATION ENDPOINTS
+# =============================
+
+@app.websocket("/ws/notifications/{user_id}")
+async def websocket_notifications_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket endpoint for real-time notifications"""
+    if not NOTIFICATIONS_AVAILABLE:
+        await websocket.close(code=1000, reason="Notifications not available")
+        return
+    
+    connection_id = await notification_service.connect_websocket(websocket, user_id)
+    if not connection_id:
+        await websocket.close(code=1000, reason="WebSocket not available")
+        return
+    
+    try:
+        # Send welcome message
+        welcome_notification = Notification(
+            id="welcome_" + user_id,
+            user_id=user_id,
+            type=NotificationType.SYSTEM_MESSAGE,
+            title="🔔 Notifications Connected",
+            message="You'll receive real-time updates here!",
+            priority=NotificationPriority.LOW
+        )
+        await notification_service.websocket_manager.send_to_user(user_id, welcome_notification)
+        
+        # Keep connection alive
+        while True:
+            try:
+                # Wait for client messages (like pings)
+                data = await websocket.receive_text()
+                logger.debug(f"WebSocket message from {user_id}: {data}")
+                
+                # Handle ping/pong
+                if data == "ping":
+                    await websocket.send_text("pong")
+                    
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"WebSocket error for {user_id}: {e}")
+                break
+    
+    finally:
+        notification_service.disconnect_websocket(connection_id)
+
+@app.post("/api/v1/notifications/send")
+@limiter.limit("10/minute")
+async def send_notification(
+    notification_request: NotificationRequest,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Send a push notification to a user"""
+    if not NOTIFICATIONS_AVAILABLE:
+        return {"success": False, "message": "Notifications not available"}
+    
+    try:
+        # Create notification object
+        notification = Notification(
+            user_id=notification_request.user_id,
+            type=NotificationType(notification_request.type),
+            title=notification_request.title,
+            message=notification_request.message,
+            priority=NotificationPriority(notification_request.priority),
+            data=notification_request.data or {}
+        )
+        
+        # Send notification
+        results = await notification_service.send_notification(notification)
+        
+        return {
+            "success": True,
+            "notification_id": notification.id,
+            "delivery_results": results,
+            "message": "Notification sent successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Send notification error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send notification: {str(e)}")
+
+@app.post("/api/v1/notifications/device-token")
+@limiter.limit("5/minute")
+async def register_device_token(
+    token_request: DeviceTokenRequest,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Register FCM device token for push notifications"""
+    try:
+        notification_service.register_device_token(current_user, token_request.device_token)
+        
+        return {
+            "success": True,
+            "message": "Device token registered successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Device token registration error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to register device token: {str(e)}")
+
+@app.get("/api/v1/notifications")
+@limiter.limit("30/minute")
+async def get_notifications(
+    request: Request,
+    unread_only: bool = False,
+    limit: int = 50,
+    current_user: str = Depends(get_current_user)
+):
+    """Get notifications for the current user"""
+    try:
+        notifications = notification_service.get_user_notifications(
+            current_user, unread_only=unread_only, limit=limit
+        )
+        
+        return {
+            "success": True,
+            "notifications": notifications,
+            "count": len(notifications),
+            "unread_only": unread_only
+        }
+        
+    except Exception as e:
+        logger.error(f"Get notifications error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get notifications: {str(e)}")
+
+@app.post("/api/v1/notifications/{notification_id}/read")
+@limiter.limit("60/minute")
+async def mark_notification_read(
+    notification_id: str,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Mark a notification as read"""
+    try:
+        success = notification_service.mark_notification_read(current_user, notification_id)
+        
+        return {
+            "success": success,
+            "message": "Notification marked as read" if success else "Notification not found"
+        }
+        
+    except Exception as e:
+        logger.error(f"Mark notification read error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to mark notification as read: {str(e)}")
+
+@app.post("/api/v1/notifications/read-all")
+@limiter.limit("10/minute")
+async def mark_all_notifications_read(
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Mark all notifications as read for the current user"""
+    try:
+        count = notification_service.mark_all_read(current_user)
+        
+        return {
+            "success": True,
+            "marked_count": count,
+            "message": f"Marked {count} notifications as read"
+        }
+        
+    except Exception as e:
+        logger.error(f"Mark all notifications read error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to mark notifications as read: {str(e)}")
+
+@app.post("/api/v1/notifications/preferences")
+@limiter.limit("5/minute")
+async def update_notification_preferences(
+    preferences: NotificationPreferencesRequest,
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Update notification preferences for the current user"""
+    try:
+        preferences_dict = {
+            'route_updates': preferences.route_updates,
+            'attraction_recommendations': preferences.attraction_recommendations,
+            'weather_alerts': preferences.weather_alerts,
+            'traffic_updates': preferences.traffic_updates,
+            'personalized_tips': preferences.personalized_tips
+        }
+        
+        notification_service.update_notification_preferences(current_user, preferences_dict)
+        
+        return {
+            "success": True,
+            "preferences": preferences_dict,
+            "message": "Notification preferences updated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Update notification preferences error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update preferences: {str(e)}")
+
+@app.get("/api/v1/notifications/stats")
+@limiter.limit("10/minute")
+async def get_notification_stats(
+    request: Request,
+    current_user: str = Depends(get_current_user)
+):
+    """Get notification service statistics"""
+    try:
+        stats = notification_service.get_service_stats()
+        
+        return {
+            "success": True,
+            "stats": stats,
+            "notifications_available": NOTIFICATIONS_AVAILABLE
+        }
+        
+    except Exception as e:
+        logger.error(f"Get notification stats error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get notification stats: {str(e)}")
+
+# =============================
+# NOTIFICATION INTEGRATION WITH CHAT
+# =============================
+
+async def send_chat_notification_async(user_id: str, message: str, response: str):
+    """Send chat response notification asynchronously"""
+    if NOTIFICATIONS_AVAILABLE:
+        try:
+            await notification_service.send_chat_response(
+                user_id=user_id,
+                response_data={
+                    'message': message,
+                    'response': response,
+                    'preview': response[:100] + "..." if len(response) > 100 else response,
+                    'timestamp': datetime.now().isoformat()
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send chat notification: {e}")
+
+async def send_route_update_notification_async(user_id: str, route_data: Dict[str, Any]):
+    """Send route update notification asynchronously"""
+    if NOTIFICATIONS_AVAILABLE:
+        try:
+            await notification_service.send_route_update(
+                user_id=user_id,
+                route_data=route_data
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send route update notification: {e}")

@@ -79,6 +79,33 @@ except ImportError as e:
     logger.warning(f"Route Maker Service not available: {e}")
     ROUTE_MAKER_AVAILABLE = False
 
+# Import weather services
+try:
+    from services.weather_cache_service import (
+        weather_cache, get_weather_for_ai, WeatherData
+    )
+    from services.weather_notification_service import (
+        notify_route_weather, notify_location_weather
+    )
+    WEATHER_SERVICES_AVAILABLE = True
+    logger.info("🌤️ Weather Services loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Weather Services not available: {e}")
+    WEATHER_SERVICES_AVAILABLE = False
+
+# Import weather-aware route cache
+try:
+    from services.route_cache import (
+        get_weather_aware_route_recommendations,
+        get_transportation_advice_for_weather,
+        weather_aware_cache
+    )
+    ROUTE_CACHE_AVAILABLE = True
+    logger.info("🗺️ Weather-aware route cache loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Weather-aware route cache not available: {e}")
+    ROUTE_CACHE_AVAILABLE = False
+
 # Import our enhanced deep learning system
 try:
     from deep_learning_enhanced_ai import DeepLearningEnhancedAI, ConversationMemory, EmotionalState
@@ -465,6 +492,13 @@ class IstanbulDailyTalkAI:
         else:
             logger.warning("⚠️ Route Maker features disabled")
         
+        # Initialize weather services
+        self.weather_enabled = WEATHER_SERVICES_AVAILABLE
+        if self.weather_enabled:
+            logger.info("🌤️ Weather Services integrated successfully!")
+        else:
+            logger.warning("⚠️ Weather Services disabled")
+        
         # Initialize response templates with local flavor
         self.initialize_response_templates()
         
@@ -796,6 +830,16 @@ class IstanbulDailyTalkAI:
         current_time = datetime.now()
         traffic_info = self.real_time_data['traffic']()
         
+        # Get weather context for intelligent recommendations
+        weather_context = None
+        if self.weather_enabled:
+            try:
+                weather_context = get_weather_for_ai()
+                if weather_context and 'error' not in weather_context:
+                    logger.info("🌤️ Weather context integrated for response generation")
+            except Exception as e:
+                logger.warning(f"Failed to get weather context: {e}")
+        
         # 🎯 ENHANCED: Use Multi-Intent Query Handler for restaurant, museum, and attraction queries
         if intent in ['restaurant_query', 'museum_query', 'restaurant_recommendation', 'attraction_query', 'place_recommendation', 'cultural_query', 'activity_planning'] and self.multi_intent_handler:
             try:
@@ -989,6 +1033,18 @@ class IstanbulDailyTalkAI:
         
         # Extract location information
         location_info = self._extract_or_request_location(context.current_message, user_profile, context, gps_location)
+        
+        # 🌤️ Get weather context for restaurant recommendations
+        weather_context = None
+        if self.weather_enabled:
+            try:
+                weather_context = get_weather_for_ai()
+                if weather_context and 'error' not in weather_context:
+                    # Add weather-based restaurant suggestions
+                    location_info['weather_context'] = weather_context
+                    logger.info(f"🌤️ Added weather context to restaurant search: {weather_context['condition']}")
+            except Exception as e:
+                logger.warning(f"Failed to get weather context for restaurants: {e}")
         
         # Get restaurant data from local database (500+ restaurants from Google Places)
         database_recommendations = self._get_restaurant_data_from_local_database(location_info, entities, context.current_message)
@@ -2203,14 +2259,36 @@ class IstanbulDailyTalkAI:
                                           location_info: Dict, route_intent: Dict) -> str:
         """Suggest route options based on user preferences when no specific places mentioned"""
         
+        # Get weather context
+        weather_data = None
+        weather_context = ""
+        if self.weather_enabled:
+            try:
+                weather_data = get_weather_for_ai()
+                if weather_data:
+                    temp = weather_data.current_temp
+                    condition = weather_data.condition
+                    weather_context = f"🌤️ **Current Weather:** {temp}°C, {condition}\n\n"
+                    
+                    # Add weather-specific advice
+                    if weather_data.rainfall_1h and weather_data.rainfall_1h > 0:
+                        weather_context += "☔ Rain expected - routes adapted for covered attractions\n\n"
+                    elif temp > 28:
+                        weather_context += "🌞 Hot weather - early morning or indoor routes recommended\n\n"
+                    elif temp < 10:
+                        weather_context += "🧥 Cool weather - indoor attractions and warm-up spots included\n\n"
+            except Exception as e:
+                logger.warning(f"Could not get weather data: {e}")
+        
         response = "🎯 **Route Planning Suggestions**\n\n"
+        response += weather_context
         
         # Determine user interests
         interests = user_profile.interests or []
         route_style = route_intent['route_style']
         duration = route_intent['max_duration_hours']
         
-        response += f"Based on your preferences, here are some great {duration}-hour route options from {location_info['neighborhood'].title()}:\n\n"
+        response += f"Based on your preferences and current conditions, here are some great {duration}-hour route options from {location_info['neighborhood'].title()}:\n\n"
         
         # Generate route suggestions based on style and interests
         if route_style == 'cultural' or 'history' in interests:
@@ -2237,6 +2315,28 @@ class IstanbulDailyTalkAI:
             response += "• Covers major highlights efficiently\n"
             response += "• Ideal for limited time visitors\n\n"
         
+        # Add weather-aware recommendations if available
+        if weather_data and ROUTE_CACHE_AVAILABLE:
+            try:
+                area = location_info.get('neighborhood', 'sultanahmet')
+                weather_recommendations = get_weather_aware_route_recommendations(area, route_style, weather_data)
+                
+                if weather_recommendations.get('weather_recommendations'):
+                    response += "🌤️ **Weather-Adapted Recommendations:**\n"
+                    for rec in weather_recommendations['weather_recommendations'][:3]:  # Top 3
+                        response += f"• {rec}\n"
+                    response += "\n"
+                
+                transportation_advice = get_transportation_advice_for_weather(weather_data)
+                if transportation_advice:
+                    response += "🚇 **Transportation Advice:**\n"
+                    for advice in transportation_advice[:2]:  # Top 2
+                        response += f"• {advice}\n"
+                    response += "\n"
+                    
+            except Exception as e:
+                logger.warning(f"Failed to get weather-aware recommendations: {e}")
+        
         response += "💡 **To create your personalized route:**\n"
         response += "• Choose which route interests you most\n"
         response += "• Tell me specific places you want to visit\n"
@@ -2249,7 +2349,15 @@ class IstanbulDailyTalkAI:
     def _generate_optimized_route(self, places_to_visit: List[str], location_info: Dict, 
                                 user_profile: UserProfile, route_intent: Dict, 
                                 current_time: datetime) -> Dict:
-        """Generate optimized route using the route maker service"""
+        """Generate optimized route using the route maker service with weather awareness"""
+        
+        # Get weather context first
+        weather_data = None
+        if self.weather_enabled:
+            try:
+                weather_data = get_weather_for_ai()
+            except Exception as e:
+                logger.warning(f"Could not get weather data: {e}")
         
         try:
             from backend.services.route_maker_service import RouteRequest, RouteStyle, TransportMode
@@ -2300,11 +2408,25 @@ class IstanbulDailyTalkAI:
             # Add personalization based on user profile
             personalized_route = self._personalize_route(generated_route, user_profile)
             
+            # Add weather-aware recommendations if available
+            weather_recommendations = []
+            transportation_advice = []
+            if weather_data and ROUTE_CACHE_AVAILABLE:
+                try:
+                    # Get weather recommendations from route cache
+                    weather_recommendations = weather_aware_cache.get_weather_recommendations(weather_data)
+                    transportation_advice = get_transportation_advice_for_weather(weather_data)
+                except Exception as e:
+                    logger.warning(f"Failed to get weather recommendations: {e}")
+            
             return {
                 'success': True,
                 'route': personalized_route,
                 'places_requested': places_to_visit,
-                'optimization_applied': True
+                'optimization_applied': True,
+                'weather_recommendations': weather_recommendations,
+                'transportation_advice': transportation_advice,
+                'weather_data': weather_data.to_dict() if weather_data else None
             }
             
         except Exception as e:
@@ -2463,6 +2585,17 @@ class IstanbulDailyTalkAI:
         
         if user_profile.accessibility_needs:
             response += f"• All locations verified for accessibility\n"
+        
+        # Add weather-aware advice
+        if route_result.get('weather_recommendations'):
+            response += "\n🌤️ **Weather-Aware Tips:**\n"
+            for rec in route_result['weather_recommendations'][:3]:  # Top 3 recommendations
+                response += f"• {rec}\n"
+        
+        if route_result.get('transportation_advice'):
+            response += "\n🚇 **Transportation Advice:**\n"
+            for advice in route_result['transportation_advice'][:2]:  # Top 2 advice
+                response += f"• {advice}\n"
         
         # Add real-time advice
         current_hour = current_time.hour

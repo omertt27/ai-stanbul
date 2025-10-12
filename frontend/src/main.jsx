@@ -10,6 +10,7 @@ import AppRouter from './AppRouter.jsx'
 import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import { BlogProvider } from './contexts/BlogContext.jsx'
 import { LocationProvider } from './contexts/LocationContext.jsx'
+import { NotificationProvider } from './contexts/NotificationContext.jsx'
 // import './utils/websiteProtection.js' // Initialize website protection - DISABLED
 
 console.log('Starting React app...')
@@ -32,8 +33,10 @@ try {
         <ThemeProvider>
           <BlogProvider>
             <LocationProvider>
-              <AppRouter />
-              <Analytics />
+              <NotificationProvider>
+                <AppRouter />
+                <Analytics />
+              </NotificationProvider>
             </LocationProvider>
           </BlogProvider>
         </ThemeProvider>
