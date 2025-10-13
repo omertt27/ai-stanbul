@@ -199,6 +199,30 @@ except ImportError as e:
     logger.warning(f"Hidden Gems & Local Tips system not available: {e}")
     HIDDEN_GEMS_AVAILABLE = False
 
+# Import monthly events scheduler system  
+try:
+    from monthly_events_scheduler import (
+        fetch_monthly_events, get_cached_events, check_if_fetch_needed,
+        events_scheduler
+    )
+    EVENTS_SCHEDULER_AVAILABLE = True
+    logger.info("🎭 Monthly Events Scheduler System loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Monthly Events Scheduler system not available: {e}")
+    EVENTS_SCHEDULER_AVAILABLE = False
+
+# Import monthly events scheduler system  
+try:
+    from monthly_events_scheduler import (
+        fetch_monthly_events, get_cached_events, check_if_fetch_needed,
+        events_scheduler
+    )
+    EVENTS_SCHEDULER_AVAILABLE = True
+    logger.info("🎭 Monthly Events Scheduler System loaded successfully!")
+except ImportError as e:
+    logger.warning(f"Monthly Events Scheduler system not available: {e}")
+    EVENTS_SCHEDULER_AVAILABLE = False
+
 class ConversationTone(Enum):
     """Conversation tone adaptation"""
     FORMAL = "formal"
@@ -544,6 +568,13 @@ class IstanbulDailyTalkAI:
         else:
             logger.warning("⚠️ Hidden Gems & Local Tips features disabled")
         
+        # Initialize monthly events scheduler system
+        self.events_system_enabled = EVENTS_SCHEDULER_AVAILABLE
+        if self.events_system_enabled:
+            logger.info("🎭 Monthly Events Scheduler System integrated successfully!")
+        else:
+            logger.warning("⚠️ Events Scheduler features disabled")
+        
         logger.info("🎉 Enhanced Istanbul Daily Talk AI System initialized with ALL features!")
         if DEEP_LEARNING_AVAILABLE:
             logger.info("🌟 Deep Learning Features: UNLIMITED & FREE for all users!")
@@ -597,10 +628,7 @@ class IstanbulDailyTalkAI:
             self.user_profiles[user_id] = UserProfile(
                 user_id=user_id,
                 interests=[],  # e.g., ['history', 'food', 'art']
-                travel_style=None,  # e.g., 'solo', 'family', 'couple', 'group'
-                accessibility_needs=None,  # e.g., 'wheelchair', 'hearing', None
-                budget_range=None,  # e.g., 'budget', 'mid', 'luxury'
-                group_type=None,  # e.g., 'family', 'friends', 'business'
+                travel_style=None  # e.g., 'solo', 'family', 'couple', 'group'
                 # ...other fields...
             )
             logger.info(f"Created new user profile for {user_id}")
@@ -778,6 +806,10 @@ class IstanbulDailyTalkAI:
         # If enhanced classification found transportation intent, use it
         if enhanced_intent == 'transportation_query':
             return 'transportation_query'
+        
+        # 🎭 PRIORITY: Check for events queries (high priority for cultural engagement)
+        if self._is_events_query(message):
+            return 'events_query'
         
         # PRIORITY: Check for route planning queries (high priority)
         if self.is_route_planning_query(message):
@@ -1677,6 +1709,9 @@ class IstanbulDailyTalkAI:
                 'total_options_evaluated': 'All available venues in your area',
                 'filtering_criteria': [
                     f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
+                'total_options_evaluated': 'All available venues in your area',
+                'filtering_criteria': [
+                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
                     f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
                     f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
                     f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
@@ -1688,19 +1723,7 @@ class IstanbulDailyTalkAI:
                     'Location convenience',
                     'Past feedback similarity',
                     'Overall quality and ratings',
-                    'Contextual appropriateness'
-                ]
-            },
-            'why_this_recommendation': recommendation.get('personalization_reason', 'Selected as the best overall match'),
-            'other_good_options': 'Ask me for "different recommendations" to see other highly-rated alternatives',
-            'customization_options': [
-                'Ask for options in specific neighborhoods',
-                'Request accessibility-specific recommendations',
-                'Specify different cuisine types',
-                'Request different price ranges'
-            ]
-        }
-    
+                    '
     def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
         """Provide privacy context and controls"""
         
@@ -2618,16 +2641,16 @@ class IstanbulDailyTalkAI:
                 response += f"• {rec}\n"
         
         if route_result.get('transportation_advice'):
-            transportation_advice = route_result['transportation_advice']
-            if isinstance(transportation_advice, dict) and 'recommended_routes' in transportation_advice:
-                response += "\n🚇 **Detailed Transportation Guide:**\n"
-                response += f"📍 {transportation_advice['route_overview']}\n"
-                if 'weather_impact' in transportation_advice:
-                    response += f"🌤️ {transportation_advice['weather_impact']}\n\n"
-                
-                # Show recommended route
-                if transportation_advice['recommended_routes']:
-                    primary_route = transportation_advice['recommended_routes'][0]
+        if user_profile.interests:
+            interests_text = ", ".join(user_profile.interests)
+            response += f"• Route tailored to your interests: {interests_text}\n"
+        
+        if user_profile.accessibility_needs:
+            response += f"• All locations verified for accessibility\n"
+        
+        # Add weather-aware advice
+        if route_result.get('weather_recommendations'):
+            response += "\n🌤️ **Weather-Aware Tips:**\n"
                     response += f"**🎯 Best Route: {primary_route['route_name']}**\n"
                     response += f"⏱️ {primary_route['duration']} | 💰 {primary_route['cost']} | {primary_route.get('weather_rating', '')}\n\n"
                     

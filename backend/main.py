@@ -36,6 +36,15 @@ except ImportError as e:
     ADVANCED_UNDERSTANDING_AVAILABLE = False
     print(f"⚠️ Advanced Understanding System not available: {e}")
 
+# Add Monthly Events Scheduler import
+try:
+    from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
+    EVENTS_SCHEDULER_AVAILABLE = True
+    print("✅ Monthly Events Scheduler loaded successfully")
+except ImportError as e:
+    EVENTS_SCHEDULER_AVAILABLE = False
+    print(f"⚠️ Monthly Events Scheduler not available: {e}")
+
 # Enhanced Query Understanding Configuration
 ENHANCED_QUERY_UNDERSTANDING_ENABLED = ADVANCED_UNDERSTANDING_AVAILABLE
 
