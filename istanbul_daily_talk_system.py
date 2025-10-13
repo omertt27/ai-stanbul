@@ -1048,6 +1048,10 @@ class IstanbulDailyTalkAI:
             else:
                 return self._generate_fallback_hidden_gems_response(message, user_profile, current_time)
         
+        elif intent == 'events_query':
+            # Handle events queries with real-time event data from İKSV
+            return self._handle_events_query(message, user_profile, current_time)
+        
         elif intent == 'route_planning':
             # Handle route planning queries with multi-modal routing
             return self.handle_route_planning_query(message, user_profile, context, current_time)
@@ -1709,9 +1713,6 @@ class IstanbulDailyTalkAI:
                 'total_options_evaluated': 'All available venues in your area',
                 'filtering_criteria': [
                     f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
-                'total_options_evaluated': 'All available venues in your area',
-                'filtering_criteria': [
-                    f"Location: Within reasonable distance of {user_profile.current_location or 'your area'}",
                     f"Preferences: Matching your interests ({', '.join(user_profile.interests) if user_profile.interests else 'general'})",
                     f"Travel style: Suitable for {user_profile.travel_style or 'general'} travelers",
                     f"Budget: Compatible with {user_profile.budget_range or 'moderate'} budget",
@@ -1723,7 +1724,12 @@ class IstanbulDailyTalkAI:
                     'Location convenience',
                     'Past feedback similarity',
                     'Overall quality and ratings',
-                    '
+                    'Diversity of options'
+                ],
+                'final_selection': 'The option with the highest overall score, considering all factors'
+            }
+        }
+    
     def _get_privacy_context(self, user_profile: UserProfile) -> Dict[str, Any]:
         """Provide privacy context and controls"""
         
@@ -2361,24 +2367,22 @@ class IstanbulDailyTalkAI:
                     # Show primary recommended route
                     if transportation_advice['recommended_routes']:
                         primary_route = transportation_advice['recommended_routes'][0]
-                        response += f"**🎯 Recommended: {primary_route['route_name']}**\n"
-                        response += f"⏱️ Duration: {primary_route['duration']} | 💰 Cost: {primary_route['cost']}\n"
-                        response += f"🌟 {primary_route['weather_rating']}\n\n"
+                        response += f"**🎯 Best Route: {primary_route['route_name']}**\n"
+                        response += f"⏱️ {primary_route['duration']} | 💰 {primary_route['cost']} | {primary_route.get('weather_rating', '')}\n\n"
                         
-                        response += "**Step-by-step directions:**\n"
-                        for i, step in enumerate(primary_route['steps'][:4], 1):  # Show first 4 steps
+                        response += "**Directions:**\n"
+                        for i, step in enumerate(primary_route['steps'][:3], 1):  # Show first 3 steps
                             response += f"{i}. {step['instruction']} ({step['duration']})\n"
                             if 'weather_tip' in step:
                                 response += f"   💡 {step['weather_tip']}\n"
                         response += "\n"
-                    
-                    # Show real-time alerts
-                    if transportation_advice['real_time_alerts']:
-                        response += "⚠️ **Current Alerts:**\n"
-                        for alert in transportation_advice['real_time_alerts'][:2]:
-                            response += f"• {alert}\n"
-                        response += "\n"
-                    
+                
+                # Show alerts
+                if transportation_advice.get('real_time_alerts'):
+                    response += "⚠️ **Current Alerts:**\n"
+                    for alert in transportation_advice['real_time_alerts'][:2]:
+                        response += f"• {alert}\n"
+                    response += "\n"
             except Exception as e:
                 logger.warning(f"Failed to get weather-aware recommendations: {e}")
         
@@ -2562,8 +2566,8 @@ class IstanbulDailyTalkAI:
             
             # Add budget information
             if user_profile.budget_range:
-                budget_emoji = {'budget': '💰', 'moderate': '💰💰', 'upscale': '💰💰💰', 'luxury': '💰💰💰💰'}
-                point.notes += f"\n{budget_emoji.get(user_profile.budget_range, '💰💰')} Budget: {user_profile.budget_range.title()} range"
+                budget_emoji = {'budget': '💰', 'mid': '💰💰', 'luxury': '💰💰💰'}.get(rec['price_level'], '💰💰')
+                point.notes += f"\n{budget_emoji} Budget: {user_profile.budget_range.title()} range"
         
         return generated_route
 
@@ -2641,38 +2645,15 @@ class IstanbulDailyTalkAI:
                 response += f"• {rec}\n"
         
         if route_result.get('transportation_advice'):
-        if user_profile.interests:
-            interests_text = ", ".join(user_profile.interests)
-            response += f"• Route tailored to your interests: {interests_text}\n"
-        
-        if user_profile.accessibility_needs:
-            response += f"• All locations verified for accessibility\n"
-        
-        # Add weather-aware advice
-        if route_result.get('weather_recommendations'):
-            response += "\n🌤️ **Weather-Aware Tips:**\n"
-                    response += f"**🎯 Best Route: {primary_route['route_name']}**\n"
-                    response += f"⏱️ {primary_route['duration']} | 💰 {primary_route['cost']} | {primary_route.get('weather_rating', '')}\n\n"
-                    
-                    response += "**Directions:**\n"
-                    for i, step in enumerate(primary_route['steps'][:3], 1):  # Show first 3 steps
-                        response += f"{i}. {step['instruction']} ({step['duration']})\n"
-                        if 'weather_tip' in step:
-                            response += f"   💡 {step['weather_tip']}\n"
-                    response += "\n"
-                
-                # Show alerts
-                if transportation_advice.get('real_time_alerts'):
-                    response += "⚠️ **Current Alerts:**\n"
-                    for alert in transportation_advice['real_time_alerts'][:2]:
-                        response += f"• {alert}\n"
-                    response += "\n"
-            else:
-                # Fallback for simple list format
-                response += "\n🚇 **Transportation Advice:**\n"
-                advice_list = transportation_advice if isinstance(transportation_advice, list) else [str(transportation_advice)]
-                for advice in advice_list[:2]:
-                    response += f"• {advice}\n"
+            response += f"**🎯 Best Route: {primary_route['route_name']}**\n"
+            response += f"⏱️ {primary_route['duration']} | 💰 {primary_route['cost']} | {primary_route.get('weather_rating', '')}\n\n"
+            
+            response += "**Directions:**\n"
+            for i, step in enumerate(primary_route['steps'][:3], 1):  # Show first 3 steps
+                response += f"{i}. {step['instruction']} ({step['duration']})\n"
+                if 'weather_tip' in step:
+                    response += f"   💡 {step['weather_tip']}\n"
+            response += "\n"
         
         # Add real-time advice
         current_hour = current_time.hour
@@ -2693,7 +2674,7 @@ class IstanbulDailyTalkAI:
 
     def _generate_fallback_route_response(self, message: str, user_profile: UserProfile, 
                                         current_time: datetime) -> str:
-        """Generate fallback route response when route maker is unavailable"""
+        """Generate fallback response when route maker is unavailable"""
         
         response = "🗺️ **Route Planning Assistant**\n\n"
         
@@ -2726,3 +2707,210 @@ class IstanbulDailyTalkAI:
         response += "Which route interests you, or would you like help planning something custom?"
         
         return response
+
+    def _handle_events_query(self, message: str, user_profile: UserProfile, current_time: datetime) -> str:
+        """Handle events queries by fetching current events from the scheduler"""
+        try:
+            if not self.events_system_enabled:
+                return self._generate_fallback_events_response()
+            
+            # Import the events utilities
+            from monthly_events_scheduler import fetch_monthly_events, get_cached_events, check_if_fetch_needed
+            
+            # Check if we need to fetch fresh events
+            if check_if_fetch_needed():
+                logger.info("Fetching fresh events for user query...")
+                events = fetch_monthly_events()
+            else:
+                logger.info("Using cached events for user query...")
+                events = get_cached_events()
+            
+            if not events:
+                return self._generate_no_events_response()
+            
+            # Filter and format events based on user query and preferences
+            relevant_events = self._filter_events_for_query(events, message, user_profile, current_time)
+            
+            if not relevant_events:
+                return self._generate_no_matching_events_response(message)
+            
+            # Generate personalized response with events
+            return self._format_events_response(relevant_events, message, user_profile, current_time)
+            
+        except Exception as e:
+            logger.error(f"Error handling events query: {e}")
+            return self._generate_fallback_events_response()
+    
+    def _filter_events_for_query(self, events: List[Dict], message: str, user_profile: UserProfile, current_time: datetime) -> List[Dict]:
+        """Filter events based on user query and preferences"""
+        relevant_events = []
+        message_lower = message.lower()
+        
+        # Time-based filtering
+        today = current_time.date()
+        this_weekend = [today + timedelta(days=(5-today.weekday())), today + timedelta(days=(6-today.weekday()))]
+        
+        for event in events:
+            include_event = True
+            
+            # Time filtering
+            if any(word in message_lower for word in ['today', 'tonight', 'bugün', 'bu akşam']):
+                if event.get('date') != today.strftime('%Y-%m-%d'):
+                    include_event = False
+            elif 'tomorrow' in message_lower or 'yarın' in message_lower:
+                tomorrow = (today + timedelta(days=1)).strftime('%Y-%m-%d')
+                if event.get('date') != tomorrow:
+                    include_event = False
+            elif any(word in message_lower for word in ['weekend', 'hafta sonu']):
+                event_date = event.get('date', '')
+                if event_date not in [d.strftime('%Y-%m-%d') for d in this_weekend]:
+                    include_event = False
+            elif 'this week' in message_lower or 'bu hafta' in message_lower:
+                week_start = today - timedelta(days=today.weekday())
+                week_end = week_start + timedelta(days=6)
+                event_date_str = event.get('date', '')
+                if event_date_str:
+                    try:
+                        event_date = datetime.strptime(event_date_str, '%Y-%m-%d').date()
+                        if not (week_start <= event_date <= week_end):
+                            include_event = False
+                    except:
+                        include_event = False
+            
+            # Category filtering based on user interests and query content
+            if include_event:
+                event_title_lower = event.get('title', '').lower()
+                event_category = event.get('category', '').lower()
+                
+                # Match specific event types mentioned in query
+                if any(word in message_lower for word in ['concert', 'music', 'konser', 'müzik']):
+                    if not any(word in event_title_lower or word in event_category for word in ['concert', 'music', 'jazz', 'classical', 'acoustic']):
+                        include_event = False
+                elif any(word in message_lower for word in ['theatre', 'theater', 'play', 'tiyatro', 'oyun']):
+                    if not any(word in event_title_lower or word in event_category for word in ['theatre', 'theater', 'play', 'drama', 'comedy']):
+                        include_event = False
+                elif any(word in message_lower for word in ['exhibition', 'art', 'gallery', 'sergi', 'sanat']):
+                    if not any(word in event_title_lower or word in event_category for word in ['exhibition', 'art', 'gallery', 'painting', 'sculpture']):
+                        include_event = False
+                elif any(word in message_lower for word in ['film', 'movie', 'cinema', 'sinema']):
+                    if not any(word in event_title_lower or word in event_category for word in ['film', 'movie', 'cinema', 'screening']):
+                        include_event = False
+            
+            if include_event:
+                relevant_events.append(event)
+        
+        # Sort by date and limit to reasonable number
+        relevant_events.sort(key=lambda x: x.get('date', ''))
+        return relevant_events[:10]  # Limit to 10 events for readability
+    
+    def _format_events_response(self, events: List[Dict], message: str, user_profile: UserProfile, current_time: datetime) -> str:
+        """Format events into a conversational response"""
+        response = "🎭 **Current Events in Istanbul**\n\n"
+        
+        # Add personalized intro based on query
+        message_lower = message.lower()
+        if 'tonight' in message_lower or 'this evening' in message_lower:
+            response = "🌃 **Tonight's Events in Istanbul**\n\n"
+        elif 'weekend' in message_lower:
+            response = "🎉 **Weekend Events in Istanbul**\n\n"
+        elif 'today' in message_lower:
+            response = "📅 **Today's Events in Istanbul**\n\n"
+        
+        for i, event in enumerate(events, 1):
+            title = event.get('title', 'Untitled Event')
+            date = event.get('date', 'Date TBA')
+            time = event.get('time', 'Time TBA')
+            venue = event.get('venue', 'Venue TBA')
+            category = event.get('category', 'Event')
+            
+            # Format date for better readability
+            try:
+                if date != 'Date TBA':
+                    date_obj = datetime.strptime(date, '%Y-%m-%d')
+                    date = date_obj.strftime('%B %d, %Y')
+            except:
+                pass
+            
+            response += f"**{i}. {title}**\n"
+            response += f"📅 {date} at {time}\n"
+            response += f"📍 {venue}\n"
+            if category and category != 'Event':
+                response += f"🎨 Category: {category}\n"
+            response += "\n"
+        
+        # Add helpful footer
+        response += "💡 **Tips:**\n"
+        response += "• Check venue websites for ticket availability\n"
+        response += "• Many venues are accessible by metro and bus\n"
+        response += "• Consider booking in advance for popular events\n\n"
+        
+        response += "Would you like more details about any of these events, or help with transportation to a venue?"
+        
+        return response
+    
+    def _generate_fallback_events_response(self) -> str:
+        """Generate fallback response when events system is unavailable"""
+        return ("🎭 I'd love to help you find current events in Istanbul! However, I'm having trouble accessing "
+                "the latest event information right now.\n\n"
+                "📍 **Popular venues to check for events:**\n"
+                "• İKSV venues (Salon İKSV, Zorlu PSM)\n"
+                "• Harbiye Cemil Topuzlu Open-Air Theatre\n"
+                "• İstanbul Modern\n"
+                "• Pera Museum\n"
+                "• Borusan Music House\n\n"
+                "You can also check İKSV's website (iksv.org) for comprehensive cultural events in the city!")
+    
+    def _generate_no_events_response(self) -> str:
+        """Generate response when no events are found"""
+        return ("🎭 I couldn't find any current events in my database right now. This might mean:\n\n"
+                "• Events are being updated\n"
+                "• It's a quiet period in the cultural calendar\n"
+                "• The event sources might be temporarily unavailable\n\n"
+                "📍 **I recommend checking:**\n"
+                "• İKSV website (iksv.org) for official cultural events\n"
+                "• Zorlu PSM for concerts and performances\n"
+                "• Local venues directly for their schedules\n\n"
+                "Would you like recommendations for other activities in Istanbul instead?")
+    
+    def _generate_no_matching_events_response(self, message: str) -> str:
+        """Generate response when no events match the specific query"""
+        return ("🎭 I couldn't find any events matching your specific request right now.\n\n"
+                "📅 **Try asking about:**\n"
+                "• 'What events are happening tonight?'\n"
+                "• 'Any concerts this weekend?'\n"
+                "• 'Art exhibitions in Istanbul?'\n"
+                "• 'Theatre shows this week?'\n\n"
+                "Or I can suggest other activities and attractions in Istanbul that might interest you!")
+
+    def _is_events_query(self, message: str) -> bool:
+        """Check if message is about events, performances, or cultural activities"""
+        events_keywords = [
+            'events', 'event', 'happening', 'whats on', "what's on", 'performances', 'performance',
+            'shows', 'show', 'concerts', 'concert', 'festivals', 'festival', 'exhibitions', 'exhibition',
+            'theatre', 'theater', 'opera', 'ballet', 'dance', 'music', 'cultural events',
+            'activities', 'entertainment', 'nightlife', 'calendar', 'schedule',
+            'tonight', 'this weekend', 'this week', 'next week', 'this month',
+            'iksv', 'zorlu', 'harbiye', 'salon iksv', 'biennial', 'film festival',
+            'jazz festival', 'theatre festival', 'filmekimi', 'istanbul festival',
+            'etkinlik', 'etkinlikler', 'konser', 'gösteri', 'sahne', 'tiyatro'
+        ]
+        
+        time_indicators = [
+            'today', 'tomorrow', 'tonight', 'this evening', 'weekend', 'week', 'month',
+            'bugün', 'yarın', 'bu akşam', 'hafta sonu', 'bu hafta'
+        ]
+        
+        message_lower = message.lower()
+        
+        # Direct event keywords
+        has_event_keywords = any(keyword in message_lower for keyword in events_keywords)
+        
+        # Questions about what to do with time indicators often refer to events  
+        has_activity_question = any(phrase in message_lower for phrase in [
+            'what to do', 'what should i do', 'something to do', 'activities',
+            'where to go', 'recommendations for', 'what can i do'
+        ])
+        
+        has_time_indicator = any(time in message_lower for time in time_indicators)
+        
+        return has_event_keywords or (has_activity_question and has_time_indicator)

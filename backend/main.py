@@ -514,6 +514,60 @@ except ImportError as e:
     print(f"⚠️ Enhanced services not available: {e}")
     ENHANCED_SERVICES_ENABLED = False
 
+# --- Import Restaurant Database Service ---
+try:
+    from services.restaurant_database_service import RestaurantDatabaseService
+    restaurant_service = RestaurantDatabaseService()
+    
+    # Add compatibility methods for the expected interface
+    def search_restaurants_compat(district=None, cuisine=None, limit=10):
+        """Compatibility wrapper for restaurant search with named parameters"""
+        query_parts = []
+        if cuisine:
+            query_parts.append(cuisine)
+        if district:
+            query_parts.append(district)
+        query = " ".join(query_parts) if query_parts else "restaurants in Istanbul"
+        
+        # Get filtered restaurants instead of formatted response
+        parsed_query = restaurant_service.parse_restaurant_query(query)
+        filtered_restaurants = restaurant_service.filter_restaurants(parsed_query, limit=limit)
+        return filtered_restaurants
+    
+    def format_restaurant_response_compat(restaurants):
+        """Compatibility wrapper for formatting restaurant response"""
+        if not restaurants:
+            return "No restaurants found matching your criteria."
+        
+        if len(restaurants) == 1:
+            return restaurant_service.format_single_restaurant_response(restaurants[0])
+        else:
+            # Create a simple parsed query for formatting
+            from services.restaurant_database_service import RestaurantQuery
+            query = RestaurantQuery()
+            return restaurant_service.format_restaurant_list_response(restaurants, query)
+    
+    # Override the methods to use compatibility versions
+    restaurant_service.search_restaurants_compat = search_restaurants_compat
+    restaurant_service.format_restaurant_response = format_restaurant_response_compat
+    
+    RESTAURANT_SERVICE_ENABLED = True
+    print("✅ Restaurant Database Service imported successfully")
+except ImportError as e:
+    print(f"⚠️ Restaurant Database Service not available: {e}")
+    RESTAURANT_SERVICE_ENABLED = False
+    # Create dummy restaurant service
+    class DummyRestaurantService:
+        def search_restaurants(self, *args, **kwargs):
+            return []
+        def search_restaurants_compat(self, *args, **kwargs):
+            return []
+        def format_restaurant_response(self, *args, **kwargs):
+            return "Restaurant service not available"
+        def get_restaurant_stats(self):
+            return {"total_restaurants": 0, "status": "disabled"}
+    restaurant_service = DummyRestaurantService()
+
 # --- Import Intelligent Location Detection Service ---
 try:
     from services.intelligent_location_detector import (
@@ -545,6 +599,30 @@ except ImportError as e:
     
     async def detect_user_location(text, user_context=None, ip_address=None):
         return DetectedLocation()
+
+# --- Define helper functions ---
+def post_ai_cleanup(response: str) -> str:
+    """Clean up AI response for better formatting and readability"""
+    if not response:
+        return response
+    
+    # Remove excessive newlines
+    response = re.sub(r'\n{3,}', '\n\n', response)
+    
+    # Clean up markdown formatting issues
+    response = re.sub(r'\*{3,}', '**', response)  # Fix excessive asterisks
+    response = re.sub(r'#{3,}', '##', response)   # Fix excessive hashtags
+    
+    # Ensure proper spacing after punctuation
+    response = re.sub(r'([.!?])([A-Z])', r'\1 \2', response)
+    
+    # Remove excessive spaces
+    response = re.sub(r' {2,}', ' ', response)
+    
+    # Ensure proper line breaks before section headers
+    response = re.sub(r'([^\n])(#+\s)', r'\1\n\n\2', response)
+    
+    return response.strip()
 
 from sqlalchemy.orm import Session
 
@@ -678,14 +756,14 @@ except ImportError as e:
     ULTRA_ISTANBUL_AI_AVAILABLE = False
 
 # --- NEW: Enhanced Istanbul Daily Talk AI System (with Attractions) ---
-# Import our new integrated system with attractions support
+# Import our new modular integrated system with attractions support
 try:
-    from istanbul_daily_talk_system import IstanbulDailyTalkAI
+    from istanbul_daily_talk_system_modular import IstanbulDailyTalkAI
     istanbul_daily_talk_ai = IstanbulDailyTalkAI()
     ISTANBUL_DAILY_TALK_AVAILABLE = True
-    print("✅ Istanbul Daily Talk AI System with 50+ Attractions loaded successfully!")
+    print("✅ Istanbul Daily Talk AI System (Modular) with 50+ Attractions loaded successfully!")
 except ImportError as e:
-    print(f"⚠️ Istanbul Daily Talk AI import failed: {e}")
+    print(f"⚠️ Istanbul Daily Talk AI (Modular) import failed: {e}")
     istanbul_daily_talk_ai = None
     ISTANBUL_DAILY_TALK_AVAILABLE = False
 
@@ -1135,331 +1213,55 @@ def sanitize_user_input(user_input: str) -> str:
     return user_input.strip()
 
 async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None, location_context: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
-    """Generate response using Ultra-Specialized Istanbul AI (Rule-Based) with Enhanced Query Understanding and Redis conversational memory"""
+    """SIMPLIFIED: Generate response using Istanbul Daily Talk AI (Primary System)"""
     try:
-        # Use our Ultra-Specialized Istanbul AI System (completely rule-based)
-        if not ULTRA_ISTANBUL_AI_AVAILABLE or not istanbul_ai_system:
-            print("❌ Ultra-Specialized Istanbul AI not available")
-            return None
-        
         # Sanitize input
         user_input = sanitize_user_input(user_input)
         if not user_input:
             return None
         
-        print(f"🏛️ Using Ultra-Specialized Istanbul AI (Rule-Based) for session: {session_id}")
+        print(f"🏛️ Using Istanbul Daily Talk AI (SIMPLIFIED) for session: {session_id}")
         
-        # 🚀 REDIS CONVERSATIONAL MEMORY INTEGRATION
-        conversation_context = {}
-        if redis_memory:
-            try:
-                # Get previous conversation context from Redis
-                conversation_context = redis_memory.get_context(session_id, user_input)
-                print(f"✅ Redis context retrieved - Turn: {conversation_context.get('turn_count', 0)}")
-            except Exception as e:
-                print(f"⚠️ Redis context retrieval failed: {e}")
-                conversation_context = {}
-        
-        # 🧠 ENHANCED QUERY UNDERSTANDING INTEGRATION
-        query_analysis = {}
-        if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
-            try:
-                print(f"🧠 Processing query with Enhanced Query Understanding System...")
-                query_analysis = process_enhanced_query(user_input, session_id)
-                
-                if query_analysis.get('success'):
-                    print(f"✅ Query Analysis - Intent: {query_analysis['intent']} "
-                          f"(confidence: {query_analysis['confidence']:.2f}), "
-                          f"Entities: {len(query_analysis['entities'])}, "
-                          f"Corrections: {len(query_analysis['corrections'])}")
-                    
-                    if query_analysis['corrections']:
-                        print(f"🔧 Applied corrections: {', '.join(query_analysis['corrections'])}")
-                else:
-                    print(f"⚠️ Enhanced query understanding failed, using basic analysis")
-                    
-            except Exception as e:
-                print(f"⚠️ Enhanced query understanding error: {e}")
-                # Fallback to basic analysis
-                query_analysis = {
-                    'original_query': user_input,
-                    'normalized_query': user_input.lower().strip(),
-                    'intent': 'general_info',
-                    'confidence': 0.3,
-                    'entities': {},
-                    'corrections': [],
-                    'success': True
-                }
-        
-        # Prepare user context with Redis conversation context, query analysis, and location context
-        user_context = {
-            'session_id': session_id,
-            'user_ip': user_ip,
-            'timestamp': datetime.now().isoformat(),
-            'location_context': location_context,
-            'conversation_context': conversation_context,
-            'recent_intents': conversation_context.get('recent_intents', []),
-            'recent_entities': conversation_context.get('recent_entities', {}),
-            'user_preferences': conversation_context.get('user_preferences', {}),
-            'conversation_flow': conversation_context.get('conversation_flow', []),
-            # Add enhanced query understanding results
-            'query_analysis': query_analysis,
-            'detected_intent': query_analysis.get('intent', 'general_info'),
-            'query_confidence': query_analysis.get('confidence', 0.3),
-            'extracted_entities': query_analysis.get('entities', {}),
-            'query_corrections': query_analysis.get('corrections', []),
-            'normalized_query': query_analysis.get('normalized_query', user_input.lower().strip())
-        }
-        
-        # �🏛️ PRIMARY AI SYSTEM: Use Istanbul Daily Talk AI with its enhanced query detection
-        # This system has its own advanced intent classification and query understanding
-        result = None
-        
+        # Use Istanbul Daily Talk AI as the primary system - it handles everything internally
         if ISTANBUL_DAILY_TALK_AVAILABLE:
-            print("🏛️ Using Istanbul Daily Talk AI as PRIMARY system (with enhanced query detection)...")
             try:
-                # Process with Istanbul Daily Talk AI - it has its own enhanced query detection
-                ai_response = istanbul_daily_talk_ai.process_message(session_id, user_input)
+                # Let Istanbul Daily Talk AI handle all the complex processing internally
+                ai_response = istanbul_daily_talk_ai.process_message(user_input, session_id)
                 
-                # Check if Istanbul Daily Talk AI detected this as a restaurant query
-                # by analyzing the user input using its internal classification
-                try:
-                    # Use Istanbul Daily Talk AI's enhanced intent classification (simpler approach)
-                    entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(user_input)
+                if ai_response and len(ai_response) > 20:
+                    print(f"✅ Istanbul Daily Talk AI response: {len(ai_response)} characters")
                     
-                    # Use the enhanced intent classification method directly
-                    enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
+                    # Apply post-processing cleanup
+                    ai_response = post_ai_cleanup(ai_response)
                     
-                    # Check restaurant-specific patterns
-                    is_restaurant_pattern = istanbul_daily_talk_ai._is_restaurant_query(user_input)
-                    
-                    # Determine final intent
-                    if is_restaurant_pattern or enhanced_intent in ['restaurant_query']:
-                        intent = 'restaurant_query'
-                    elif enhanced_intent == 'attraction_query':
-                        intent = 'attraction_query'
-                    elif enhanced_intent == 'transportation_query':
-                        intent = 'transportation_query'
-                    elif enhanced_intent == 'hidden_gems_query':
-                        intent = 'hidden_gems_query'
-                    else:
-                        intent = enhanced_intent if enhanced_intent != 'general_conversation' else 'general_info'
-                    
-                    print(f"🧠 Istanbul Daily Talk AI detected intent: '{intent}' for query: '{user_input[:50]}...'")
-                    
-                    # 🍽️ ENHANCE RESTAURANT RESPONSES WITH DATABASE DATA if it's a restaurant query
-                    restaurant_intents = ['restaurant_query', 'restaurant_recommendation', 'dining', 'food']
-                    if RESTAURANT_SERVICE_ENABLED and intent in restaurant_intents and ai_response:
-                        print(f"🍽️ Restaurant query detected by Istanbul Daily Talk AI - enhancing with database")
-                        try:
-                            # Extract search parameters from Istanbul Daily Talk AI's entities
-                            district = entities.get('neighborhoods', [None])[0] if entities.get('neighborhoods') else None
-                            cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
-                            
-                            # Search restaurant database with enhanced parameters
-                            restaurants = restaurant_service.search_restaurants(
-                                district=district,
-                                cuisine=cuisine,
-                                limit=6  # Balanced number for comprehensive response
-                            )
-                            
-                            if restaurants:
-                                # Create enhanced database response that complements AI response
-                                database_response = restaurant_service.format_restaurant_response(restaurants)
-                                print(f"✅ Enhanced with restaurant database: {len(restaurants)} restaurants")
-                                
-                                # Combine AI response with database results for comprehensive answer
-                                combined_response = f"{ai_response}\n\n{database_response}"
-                                
-                                result = {
-                                    'success': True,
-                                    'response': combined_response,
-                                    'confidence': 0.95,  # High confidence for AI + database combination
-                                    'system_version': 'istanbul_daily_talk_ai_enhanced_with_database',
-                                    'processing_time': 0.15,
-                                    'fallback_mode': False
-                                }
-                            else:
-                                print("⚠️ No restaurants found in database, using Istanbul Daily Talk AI response only")
-                                result = {
-                                    'success': True,
-                                    'response': ai_response,
-                                    'confidence': 0.85,
-                                    'system_version': 'istanbul_daily_talk_ai',
-                                    'processing_time': 0.2,
-                                    'fallback_mode': False
-                                }
-                                
-                        except Exception as e:
-                            print(f"⚠️ Restaurant database enhancement error: {e}")
-                            # Use original AI response
-                            result = {
-                                'success': True,
-                                'response': ai_response,
-                                'confidence': 0.8,
-                                'system_version': 'istanbul_daily_talk_ai',
-                                'processing_time': 0.2,
-                                'fallback_mode': False
-                            }
-                    else:
-                        # Non-restaurant query or no database - use Istanbul Daily Talk AI response directly
-                        if ai_response and len(ai_response) > 50:
-                            result = {
-                                'success': True,
-                                'response': ai_response,
-                                'confidence': 0.85,
-                                'system_version': 'istanbul_daily_talk_ai',
-                                'processing_time': 0.2,
-                                'fallback_mode': False
-                            }
-                        else:
-                            print("⚠️ Istanbul Daily Talk AI response insufficient, using fallback")
-                            
-                except Exception as intent_error:
-                    print(f"⚠️ Error in intent classification, using AI response as-is: {intent_error}")
-                    # Use the AI response without enhancement
-                    if ai_response and len(ai_response) > 50:
-                        result = {
-                            'success': True,
-                            'response': ai_response,
-                            'confidence': 0.8,
-                            'system_version': 'istanbul_daily_talk_ai',
+                    return {
+                        'success': True,
+                        'response': ai_response,
+                        'session_id': session_id,
+                        'has_context': True,
+                        'uses_llm': False,
+                        'system_type': 'istanbul_daily_talk_ai',
+                        'quality_assessment': {
+                            'overall_score': 90,
+                            'confidence': 0.85,
+                            'used_fallback': False,
                             'processing_time': 0.2,
-                            'fallback_mode': False
+                            'system_version': 'istanbul_daily_talk_ai_integrated'
                         }
-                
+                    }
+                else:
+                    print("⚠️ Istanbul Daily Talk AI response insufficient")
+                    return None
+                    
             except Exception as e:
                 print(f"⚠️ Istanbul Daily Talk AI error: {e}")
-                # Fall through to fallback system
+                return None
         else:
-            # Fallback to Ultra-Specialized Istanbul AI if Daily Talk AI is not available
-            print("⚠️ Istanbul Daily Talk AI not available, using Ultra-Specialized Istanbul AI as fallback")
-            if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
-                result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
-            else:
-                # No AI systems available
-                result = {
-                    'success': False,
-                    'response': "I'm sorry, the AI systems are currently unavailable. Please try again later.",
-                    'system_type': 'no_ai_available',
-                    'confidence': 0.1
-                }
-        
-        if result.get('success'):
-            ai_response = result['response']
-            
-            # 🍽️ RESTAURANT DATA INTEGRATION
-            # Check if this is a restaurant query and enhance with real restaurant data
-            if RESTAURANT_SERVICE_ENABLED and query_analysis.get('intent') in ['find_restaurant', 'find_cafe']:
-                try:
-                    print("🍽️ Detected restaurant query - integrating restaurant database...")
-                    
-                    # Extract search parameters from entities and location context
-                    entities = query_analysis.get('entities', {})
-                    district = entities.get('districts', [None])[0] if entities.get('districts') else None
-                    cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
-                    budget = entities.get('budget', [None])[0] if entities.get('budget') else None
-                    
-                    # Use location context district if available and no explicit district mentioned
-                    if not district and location_context and location_context.get('district'):
-                        district = location_context['district']
-                        print(f"🌍 Using location context district: {district}")
-                    
-                    # Search restaurants in database with location awareness
-                    restaurants = restaurant_service.search_restaurants(
-                        district=district,
-                        cuisine=cuisine,
-                        budget=budget,
-                        keyword=None,
-                        limit=3
-                    )
-                    
-                    if restaurants:
-                        # Replace AI response with restaurant-specific response
-                        restaurant_response = restaurant_service.format_restaurant_response(
-                            restaurants, query_analysis
-                        )
-                        ai_response = restaurant_response
-                        print(f"✅ Enhanced response with {len(restaurants)} restaurant recommendations")
-                        
-                        # Boost confidence for restaurant queries
-                        confidence = min(confidence + 0.15, 0.95)
-                        
-                except Exception as e:
-                    print(f"⚠️ Restaurant integration error: {e}")
-                    # Continue with original AI response
-            
-            # Calculate quality score based on confidence and system features
-            confidence = result.get('confidence', 0.7)
-            quality_score = min(confidence * 100, 95)  # Cap at 95% for rule-based systems
-            
-            print(f"✅ Ultra-Specialized AI response generated - Session: {session_id}, "
-                  f"Confidence: {confidence:.2f}, "
-                  f"Quality: {quality_score:.1f}%, "
-                  f"System: {result.get('system_version', 'ultra_specialized')}, "
-                  f"Time: {result.get('processing_time', 0):.3f}s")
-            
-            # Apply post-processing cleanup (remove any formatting artifacts)
-            ai_response = post_ai_cleanup(ai_response)
-            
-            # Apply restaurant response formatting
-            try:
-                from restaurant_response_formatter import format_restaurant_response
-                ai_response = format_restaurant_response(ai_response, user_input)
-            except ImportError:
-                pass  # Formatter not available, continue without it
-            
-            # 🚀 STORE CONVERSATION TURN IN REDIS
-            if redis_memory:
-                try:
-                    from redis_conversational_memory import ConversationTurn
-                    
-                    # Create conversation turn with enhanced query understanding data
-                    turn = ConversationTurn(
-                        timestamp=datetime.now().isoformat(),
-                        user_query=user_input,
-                        normalized_query=query_analysis.get('normalized_query', user_input.lower().strip()),
-                        intent=query_analysis.get('intent', result.get('detected_intent', 'general')),
-                        entities=query_analysis.get('entities', result.get('entities', {})),
-                        response=ai_response,
-                        confidence=confidence
-                    )
-                    
-                    # Store in Redis
-                    redis_success = redis_memory.add_turn(session_id, turn)
-                    if redis_success:
-                        print(f"✅ Conversation turn stored in Redis - Session: {session_id}")
-                    else:
-                        print(f"⚠️ Failed to store conversation turn in Redis - Session: {session_id}")
-                        
-                except Exception as redis_error:
-                    print(f"⚠️ Redis storage error: {redis_error}")
-            
-            # Return properly formatted result
-            return {
-                'success': True,
-                'response': ai_response,
-                'session_id': session_id,
-                'has_context': True,
-                'uses_llm': False,  # Explicitly mark as non-LLM
-                'system_type': 'ultra_specialized_istanbul_ai',
-                'redis_stored': redis_memory is not None,
-                'quality_assessment': {
-                    'overall_score': quality_score,
-                    'confidence': confidence,
-                    'used_fallback': result.get('fallback_mode', False),
-                    'processing_time': result.get('processing_time', 0),
-                    'system_version': result.get('system_version', 'ultra_specialized')
-                }
-            }
-        else:
-            print(f"❌ Ultra-Specialized Istanbul AI failed: {result.get('error', 'Unknown error')}")
+            print("❌ Istanbul Daily Talk AI not available")
             return None
             
     except Exception as e:
-        print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Error in simplified AI system: {str(e)}")
         return None
 
 async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
@@ -1532,7 +1334,7 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
                             cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
                             
                             # Search restaurant database
-                            restaurants = restaurant_service.search_restaurants(
+                            restaurants = restaurant_service.search_restaurants_compat(
                                 district=district,
                                 cuisine=cuisine,
                                 limit=3
@@ -1606,7 +1408,7 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
                     district = entities.get('districts', [None])[0] if entities.get('districts') else None
                     cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
                     
-                    restaurants = restaurant_service.search_restaurants(
+                    restaurants = restaurant_service.search_restaurants_compat(
                         district=district,
                         cuisine=cuisine,
                         limit=2
@@ -1807,7 +1609,7 @@ async def plan_route_from_gps_location(request: GPSRouteRequest):
         route_query = " ".join(location_query_parts)
         
         # Create context with GPS location
-        from istanbul_daily_talk_system import ConversationContext
+        from istanbul_daily_talk_system_modular import ConversationContext
         context = ConversationContext(
             session_id=session_id,
             user_profile=user_profile
@@ -2093,256 +1895,223 @@ async def chat_with_istanbul_ai(
     user_ip: str = Query(None, description="User IP for analytics")
 ):
     """
-    Main chat endpoint using Istanbul Daily Talk AI System
-    Handles all types of queries with enhanced personalization
+    Streamlined chat endpoint - delegates to Istanbul Daily Talk AI System
+    The backend focuses on API responsibilities while the AI system handles intelligence
     """
     try:
         # Generate session ID if not provided
         session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
         user_id = request.user_id or session_id
         
-        # Sanitize input
+        # Basic input validation
         user_input = sanitize_user_input(request.message)
         if not user_input:
             raise HTTPException(status_code=400, detail="Invalid message content")
         
-        print(f"🏛️ Chat request - Session: {session_id}, Message: '{user_input[:50]}...'")
+        print(f"� Chat API - Session: {session_id}, Message: '{user_input[:50]}...'")
         
-        # === STEP 1: INTELLIGENT LOCATION DETECTION ===
-        detected_location = None
-        if INTELLIGENT_LOCATION_ENABLED:
-            try:
-                # Get user context (previous location, preferences, etc.)
-                user_context = {}
-                
-                # Try to get user's IP address from request or parameter
-                client_ip = user_ip
-                if not client_ip and hasattr(request, 'client') and hasattr(request.client, 'host'):
-                    client_ip = request.client.host
-                
-                # Detect location from text input and IP
-                detected_location = await detect_user_location(
-                    text=user_input,
-                    user_context=user_context,
-                    ip_address=client_ip
-                )
-                
-                if detected_location and detected_location.latitude:
-                    print(f"📍 Location detected: {detected_location.source} - "
-                          f"{detected_location.latitude:.4f}, {detected_location.longitude:.4f} "
-                          f"(Confidence: {detected_location.confidence.value})")
-                    
-                    # Add location to user context for the AI system
-                    user_context['detected_location'] = {
-                        'lat': detected_location.latitude,
-                        'lng': detected_location.longitude,
-                        'name': detected_location.name,
-                        'neighborhood': detected_location.neighborhood,
-                        'district': detected_location.district,
-                        'confidence': detected_location.confidence.value,
-                        'source': detected_location.source,
-                        'accuracy_meters': detected_location.accuracy_meters
-                    }
-                    
-                else:
-                    print("📍 No specific location detected from input")
-                    
-            except Exception as e:
-                print(f"⚠️ Location detection failed: {e}")
-                detected_location = None
+        # === PRIMARY: USE ISTANBUL DAILY TALK AI SYSTEM ===
+        # This system has all the advanced capabilities: events, ML, personalization, etc.
+        if not ISTANBUL_DAILY_TALK_AVAILABLE:
+            raise HTTPException(status_code=503, detail="AI system temporarily unavailable")
         
-        # Use Istanbul Daily Talk AI as primary system
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            try:
-                # === STEP 2: UPDATE USER PROFILE WITH DETECTED LOCATION ===
-                if detected_location and detected_location.latitude:
-                    # Get user profile and update location
-                    user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(user_id)
-                    
-                    # Update GPS location in user profile
-                    user_profile.gps_location = {
-                        'lat': detected_location.latitude,
-                        'lng': detected_location.longitude
-                    }
-                    
-                    # Update current location name if available
-                    if detected_location.name:
-                        user_profile.current_location = detected_location.name
-                    elif detected_location.neighborhood:
-                        user_profile.current_location = detected_location.neighborhood
-                    elif detected_location.district:
-                        user_profile.current_location = detected_location.district
-                    
-                    # Update location accuracy and timestamp
-                    user_profile.location_accuracy = detected_location.accuracy_meters
-                    user_profile.location_timestamp = detected_location.detected_at
-                    
-                    print(f"📍 Updated user profile with location: {user_profile.current_location} "
-                          f"({detected_location.latitude:.4f}, {detected_location.longitude:.4f})")
-                
-                # Process message with Istanbul Daily Talk AI
-                ai_response = istanbul_daily_talk_ai.process_message(user_id, user_input)
-                
-                # Detect intent using Istanbul Daily Talk AI's enhanced classification
+        try:
+            # === OPTIONAL: ENHANCE WITH LOCATION DETECTION ===
+            detected_location = None
+            user_context = {}
+            
+            if INTELLIGENT_LOCATION_ENABLED:
                 try:
-                    enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
-                    confidence = 0.85  # High confidence for Istanbul Daily Talk AI
-                    
-                    # Generate follow-up suggestions based on intent
-                    suggestions = []
-                    if enhanced_intent == 'restaurant_query':
-                        suggestions = [
-                            "Tell me about Turkish breakfast places",
-                            "What about seafood restaurants?",
-                            "Show me budget-friendly options"
-                        ]
-                    elif enhanced_intent == 'attraction_query':
-                        suggestions = [
-                            "Plan a route to visit these places",
-                            "What are the opening hours?",
-                            "Tell me about nearby restaurants"
-                        ]
-                    elif enhanced_intent == 'transportation_query':
-                        suggestions = [
-                            "What's the fastest route?",
-                            "Show me metro connections",
-                            "Any traffic updates?"
-                        ]
-                    else:
-                        suggestions = [
-                            "Tell me about Istanbul attractions",
-                            "Recommend some restaurants",
-                            "Help me plan a route"
-                        ]
-                    
-                    # Enhance restaurant responses with database if available
-                    if RESTAURANT_SERVICE_ENABLED and enhanced_intent in ['restaurant_query']:
-                        try:
-                            entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(user_input)
-                            district = entities.get('neighborhoods', [None])[0] if entities.get('neighborhoods') else None
-                            cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
-                            
-                            restaurants = restaurant_service.search_restaurants(
-                                district=district,
-                                cuisine=cuisine,
-                                limit=3
-                            )
-                            
-                            if restaurants:
-                                database_response = restaurant_service.format_restaurant_response(restaurants)
-                                ai_response = f"{ai_response}\n\n{database_response}"
-                                confidence = 0.9  # Higher confidence with database enhancement
-                                print(f"✅ Enhanced response with {len(restaurants)} restaurants")
-                        except Exception as e:
-                            print(f"⚠️ Restaurant enhancement error: {e}")
-                    
-                    # Format nearby events for response
-                    nearby_events_data = None
-                    if detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
-                        nearby_events_data = []
-                        for event in detected_location.nearby_events:
-                            event_data = {
-                                'title': event.title,
-                                'category': event.category.value,
-                                'venue': event.venue,
-                                'district': event.district,
-                                'neighborhood': event.neighborhood,
-                                'organizer': event.organizer,
-                                'is_free': event.is_free,
-                                'description': event.description,
-                                'url': event.url
-                            }
-                            if event.start_date:
-                                event_data['start_date'] = event.start_date.isoformat()
-                            nearby_events_data.append(event_data)
-                    
-                    return ChatResponse(
-                        response=clean_text_formatting(ai_response),
-                        session_id=session_id,
-                        intent=enhanced_intent,
-                        confidence=confidence,
-                        suggestions=suggestions,
-                        detected_location=user_context.get('detected_location') if detected_location else None,
-                        nearby_events=nearby_events_data
+                    client_ip = user_ip or (hasattr(request, 'client') and request.client.host)
+                    detected_location = await detect_user_location(
+                        text=user_input,
+                        user_context={},
+                        ip_address=client_ip
                     )
                     
-                except Exception as intent_error:
-                    print(f"⚠️ Intent classification error: {intent_error}")
-                    # Return basic response
-                    # Format nearby events for fallback response
-                    nearby_events_data = None
-                    if detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
-                        nearby_events_data = []
-                        for event in detected_location.nearby_events:
-                            event_data = {
-                                'title': event.title,
-                                'category': event.category.value,
-                                'venue': event.venue,
-                                'district': event.district,
-                                'neighborhood': event.neighborhood,
-                                'organizer': event.organizer,
-                                'is_free': event.is_free,
-                                'description': event.description,
-                                'url': event.url
-                            }
-                            if event.start_date:
-                                event_data['start_date'] = event.start_date.isoformat()
-                            nearby_events_data.append(event_data)
-                    
-                    return ChatResponse(
-                        response=clean_text_formatting(ai_response),
-                        session_id=session_id,
-                        intent="general_conversation",
-                        confidence=0.7,
-                        detected_location=user_context.get('detected_location') if detected_location else None,
-                        nearby_events=nearby_events_data
-                    )
+                    if detected_location and detected_location.latitude:
+                        # Update user profile with location data
+                        user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(user_id)
+                        user_profile.gps_location = {
+                            'lat': detected_location.latitude,
+                            'lng': detected_location.longitude
+                        }
+                        if detected_location.name:
+                            user_profile.current_location = detected_location.name
+                        elif detected_location.neighborhood:
+                            user_profile.current_location = detected_location.neighborhood
+                        
+                        user_context['detected_location'] = {
+                            'lat': detected_location.latitude,
+                            'lng': detected_location.longitude,
+                            'name': detected_location.name or detected_location.neighborhood,
+                            'confidence': detected_location.confidence.value
+                        }
+                        
+                        print(f"📍 Location detected: {detected_location.name or detected_location.neighborhood}")
+                        
+                except Exception as e:
+                    print(f"⚠️ Location detection failed: {e}")
+            
+            # === DELEGATE TO ISTANBUL DAILY TALK AI ===
+            # Let the advanced AI system handle all the intelligence
+            print(f"🎭 Delegating to Istanbul Daily Talk AI System...")
+            ai_response = istanbul_daily_talk_ai.process_message(user_id, user_input)
+            
+            # Extract intent and confidence from the AI system's classification
+            intent = "general_conversation"
+            confidence = 0.85
+            suggestions = []
+            
+            try:
+                # Use Istanbul Daily Talk AI's advanced intent classification
+                enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
+                intent = enhanced_intent
                 
+                # Generate contextual suggestions based on the AI's understanding
+                if enhanced_intent == 'events_query':
+                    suggestions = ["Show me tonight's events", "What cultural activities are available?", "Tell me about art exhibitions"]
+                elif enhanced_intent == 'restaurant_query':
+                    suggestions = ["Show me Turkish breakfast places", "What about seafood restaurants?", "Budget-friendly options nearby"]
+                elif enhanced_intent == 'attraction_query':
+                    suggestions = ["Plan a route to these places", "What are the opening hours?", "Transportation options"]
+                elif enhanced_intent == 'transportation_query':
+                    suggestions = ["How to get there by metro?", "What's the fastest route?", "Traffic conditions"]
+                else:
+                    suggestions = ["Tell me about Istanbul attractions", "What events are happening?", "Recommend restaurants"]
+                    
             except Exception as e:
-                print(f"⚠️ Istanbul Daily Talk AI error: {e}")
-                # Fall through to fallback
-        
-        # Fallback to basic response
-        fallback_response = create_fallback_response(user_input)
-        # Format nearby events for final fallback
-        nearby_events_data = None
-        if 'detected_location' in locals() and detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
+                print(f"⚠️ Intent classification error: {e}")
+            
+            # === PREPARE ENHANCED RESPONSE DATA ===
             nearby_events_data = []
-            for event in detected_location.nearby_events:
-                event_data = {
-                    'title': event.title,
-                    'category': event.category.value,
-                    'venue': event.venue,
-                    'district': event.district,
-                    'neighborhood': event.neighborhood,
-                    'organizer': event.organizer,
-                    'is_free': event.is_free,
-                    'description': event.description,
-                    'url': event.url
-                }
-                if event.start_date:
-                    event_data['start_date'] = event.start_date.isoformat()
-                nearby_events_data.append(event_data)
-        
-        return ChatResponse(
-            response=fallback_response,
-            session_id=session_id,
-            intent="general_info",
-            confidence=0.5,
-            suggestions=[
-                "Tell me about Istanbul attractions",
-                "Recommend some restaurants",
-                "Help me with transportation"
-            ],
-            detected_location=user_context.get('detected_location') if 'user_context' in locals() and detected_location else None,
-            nearby_events=nearby_events_data
-        )
-        
-    except HTTPException:
-        raise
+            if detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
+                for event in detected_location.nearby_events:
+                    event_data = {
+                        'title': event.title,
+                        'category': event.category.value,
+                        'venue': event.venue,
+                        'district': event.district,
+                        'is_free': event.is_free,
+                        'description': event.description[:200] + "..." if len(event.description) > 200 else event.description
+                    }
+                    if event.start_date:
+                        event_data['start_date'] = event.start_date.isoformat()
+                    nearby_events_data.append(event_data)
+            
+            # Return structured response
+            return ChatResponse(
+                response=clean_text_formatting(ai_response),
+                session_id=session_id,
+                intent=intent,
+                confidence=confidence,
+                suggestions=suggestions[:3] if suggestions else [],
+                detected_location=user_context.get('detected_location'),
+                nearby_events=nearby_events_data[:5] if nearby_events_data else []
+            )
+            
+        except Exception as e:
+            print(f"❌ Istanbul Daily Talk AI processing failed: {e}")
+            # Fallback to basic response only if the main AI system fails
+            fallback_response = f"I apologize, but I'm having trouble processing your request about Istanbul right now. Please try asking about attractions, restaurants, or events in a simple way."
+            
+            return ChatResponse(
+                response=fallback_response,
+                session_id=session_id,
+                intent="error_fallback",
+                confidence=0.3,
+                suggestions=["Tell me about Istanbul attractions", "What restaurants do you recommend?", "Show me current events"],
+                detected_location=user_context.get('detected_location') if 'user_context' in locals() else None
+            )
+
     except Exception as e:
         print(f"❌ Chat endpoint error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return ChatResponse(
+            response="I apologize, but I encountered an error processing your request. Please try again.",
+            session_id=session_id,
+            intent="error",
+            confidence=0.1,
+            suggestions=["Try asking about Istanbul attractions", "Ask about restaurants", "Request help with transportation"]
+        )
+
+
+# =============================
+# PYDANTIC MODELS FOR SPECIALIZED ENDPOINTS  
+# =============================
+
+class GPSRouteRequest(BaseModel):
+    user_location: Dict[str, float] = Field(..., description="User's GPS coordinates {lat, lng}")
+    preferences: Optional[List[str]] = Field(None, description="Travel preferences")
+    time_available: Optional[str] = Field(None, description="Available time for the route")
+    interests: Optional[List[str]] = Field(None, description="User interests")
+    session_id: Optional[str] = Field(None, description="Session ID for personalization")
+
+class TransportRequest(BaseModel):
+    origin: Dict[str, float] = Field(..., description="Origin coordinates {lat, lng}")
+    destination: Dict[str, float] = Field(..., description="Destination coordinates {lat, lng}")
+    preferences: Optional[List[str]] = Field(None, description="Transport preferences")
+    session_id: Optional[str] = Field(None, description="Session ID")
+
+class MuseumRequest(BaseModel):
+    query: str = Field(..., description="Museum-related query")
+    location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lng}")
+    preferences: Optional[List[str]] = Field(None, description="Museum preferences")
+    session_id: Optional[str] = Field(None, description="Session ID")
+
+class RouteResponse(BaseModel):
+    route: Dict[str, Any] = Field(..., description="Generated route")
+    total_duration: str = Field(..., description="Total route duration")
+    total_distance: str = Field(..., description="Total route distance")
+    waypoints: List[Dict[str, Any]] = Field(..., description="Route waypoints")
+    suggestions: Optional[List[str]] = Field(None, description="Additional suggestions")
+
+class TransportResponse(BaseModel):
+    recommendations: List[Dict[str, Any]] = Field(..., description="Transport recommendations")
+    fastest_option: Dict[str, Any] = Field(..., description="Fastest transport option")
+    cheapest_option: Dict[str, Any] = Field(..., description="Cheapest transport option")
+    weather_advice: Optional[str] = Field(None, description="Weather-related advice")
+
+class MuseumResponse(BaseModel):
+    museums: List[Dict[str, Any]] = Field(..., description="Museum recommendations")
+    personalized_tips: List[str] = Field(..., description="Personalized museum tips")
+    opening_hours: Dict[str, str] = Field(..., description="Current opening hours")
+    ticket_info: Dict[str, Any] = Field(..., description="Ticket information")
+
+
+# Note: GPS-based route planning is handled by the existing /api/route/gps-plan endpoint above
+
+# =============================
+# SYSTEM STATUS & HEALTH ENDPOINTS
+# =============================
+
+@app.get("/api/istanbul-ai/status", tags=["System Status"])
+async def get_system_status():
+    """Get comprehensive system status including AI systems and database availability"""
+    return {
+        "status": "operational",
+        "timestamp": datetime.now().isoformat(),
+        "ai_systems": {
+            "istanbul_daily_talk": {
+                "available": ISTANBUL_DAILY_TALK_AVAILABLE,
+                "features": ["attractions", "restaurants", "events", "transportation", "personalization"]
+            }
+        },
+        "databases": {
+            "restaurants": RESTAURANT_SERVICE_ENABLED,
+            "events": EVENTS_SCHEDULER_AVAILABLE
+        },
+        "endpoints": [
+            "/api/chat",
+            "/api/route/gps-plan",
+            "/api/istanbul-ai/status",
+            "/api/istanbul-ai/capabilities"
+        ]
+    }
+
+
+# =============================
+# DEVELOPMENT & TESTING ENDPOINTS
+# =============================
 
 # =============================
 # ROUTE PLANNING API ENDPOINT
@@ -2370,7 +2139,7 @@ async def plan_route_with_istanbul_ai(request: RouteRequest):
                 user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(session_id)
                 
                 # Create context with location information
-                from istanbul_daily_talk_system import ConversationContext
+                from istanbul_daily_talk_system_modular import ConversationContext
                 context = ConversationContext(
                     session_id=session_id,
                     user_profile=user_profile

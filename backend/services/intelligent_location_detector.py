@@ -494,7 +494,7 @@ class IntelligentLocationDetector:
         """Get location from IP address (fallback method)"""
         try:
             # Use a free IP geolocation service
-            response = requests.get(f'http://ip-api.com/json/{
+            response = requests.get(f'http://ip-api.com/json/{ip_address}')
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'success':

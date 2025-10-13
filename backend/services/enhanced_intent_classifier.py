@@ -14,6 +14,9 @@ from collections import defaultdict, Counter
 from enum import Enum
 import numpy as np
 
+# Initialize logger first
+logger = logging.getLogger(__name__)
+
 # ML libraries for advanced classification
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer
@@ -33,8 +36,6 @@ try:
 except ImportError:
     FALLBACK_AVAILABLE = False
     logger.warning("Smart fallback system not available")
-
-logger = logging.getLogger(__name__)
 
 class IntentType(Enum):
     """Enhanced intent types for Istanbul tourism"""
