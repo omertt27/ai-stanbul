@@ -1709,6 +1709,7 @@ class ChatResponse(BaseModel):
     confidence: Optional[float] = Field(None, description="Response confidence")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
     detected_location: Optional[Dict[str, Any]] = Field(None, description="Detected user location information")
+    nearby_events: Optional[List[Dict[str, Any]]] = Field(None, description="Events near detected location")
 
 class RouteRequest(BaseModel):
     message: str = Field(..., description="Route planning request")
@@ -2226,24 +2227,66 @@ async def chat_with_istanbul_ai(
                         except Exception as e:
                             print(f"⚠️ Restaurant enhancement error: {e}")
                     
+                    # Format nearby events for response
+                    nearby_events_data = None
+                    if detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
+                        nearby_events_data = []
+                        for event in detected_location.nearby_events:
+                            event_data = {
+                                'title': event.title,
+                                'category': event.category.value,
+                                'venue': event.venue,
+                                'district': event.district,
+                                'neighborhood': event.neighborhood,
+                                'organizer': event.organizer,
+                                'is_free': event.is_free,
+                                'description': event.description,
+                                'url': event.url
+                            }
+                            if event.start_date:
+                                event_data['start_date'] = event.start_date.isoformat()
+                            nearby_events_data.append(event_data)
+                    
                     return ChatResponse(
                         response=clean_text_formatting(ai_response),
                         session_id=session_id,
                         intent=enhanced_intent,
                         confidence=confidence,
                         suggestions=suggestions,
-                        detected_location=user_context.get('detected_location') if detected_location else None
+                        detected_location=user_context.get('detected_location') if detected_location else None,
+                        nearby_events=nearby_events_data
                     )
                     
                 except Exception as intent_error:
                     print(f"⚠️ Intent classification error: {intent_error}")
                     # Return basic response
+                    # Format nearby events for fallback response
+                    nearby_events_data = None
+                    if detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
+                        nearby_events_data = []
+                        for event in detected_location.nearby_events:
+                            event_data = {
+                                'title': event.title,
+                                'category': event.category.value,
+                                'venue': event.venue,
+                                'district': event.district,
+                                'neighborhood': event.neighborhood,
+                                'organizer': event.organizer,
+                                'is_free': event.is_free,
+                                'description': event.description,
+                                'url': event.url
+                            }
+                            if event.start_date:
+                                event_data['start_date'] = event.start_date.isoformat()
+                            nearby_events_data.append(event_data)
+                    
                     return ChatResponse(
                         response=clean_text_formatting(ai_response),
                         session_id=session_id,
                         intent="general_conversation",
                         confidence=0.7,
-                        detected_location=user_context.get('detected_location') if detected_location else None
+                        detected_location=user_context.get('detected_location') if detected_location else None,
+                        nearby_events=nearby_events_data
                     )
                 
             except Exception as e:
@@ -2252,6 +2295,26 @@ async def chat_with_istanbul_ai(
         
         # Fallback to basic response
         fallback_response = create_fallback_response(user_input)
+        # Format nearby events for final fallback
+        nearby_events_data = None
+        if 'detected_location' in locals() and detected_location and hasattr(detected_location, 'nearby_events') and detected_location.nearby_events:
+            nearby_events_data = []
+            for event in detected_location.nearby_events:
+                event_data = {
+                    'title': event.title,
+                    'category': event.category.value,
+                    'venue': event.venue,
+                    'district': event.district,
+                    'neighborhood': event.neighborhood,
+                    'organizer': event.organizer,
+                    'is_free': event.is_free,
+                    'description': event.description,
+                    'url': event.url
+                }
+                if event.start_date:
+                    event_data['start_date'] = event.start_date.isoformat()
+                nearby_events_data.append(event_data)
+        
         return ChatResponse(
             response=fallback_response,
             session_id=session_id,
@@ -2262,7 +2325,8 @@ async def chat_with_istanbul_ai(
                 "Recommend some restaurants",
                 "Help me with transportation"
             ],
-            detected_location=user_context.get('detected_location') if 'user_context' in locals() and detected_location else None
+            detected_location=user_context.get('detected_location') if 'user_context' in locals() and detected_location else None,
+            nearby_events=nearby_events_data
         )
         
     except HTTPException:

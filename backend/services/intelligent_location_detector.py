@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from enum import Enum
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
+import aiohttp
 
 # Import route maker service to access OpenStreetMap data
 try:
@@ -32,6 +34,47 @@ class LocationConfidence(Enum):
     LOW = "low"                  # City-level, vague references
     UNKNOWN = "unknown"          # No location information detected
 
+class EventCategory(Enum):
+    """Event categories in Istanbul"""
+    MUSIC = "music"
+    THEATER = "theater"
+    DANCE = "dance"
+    VISUAL_ARTS = "visual_arts"
+    FILM = "film"
+    LITERATURE = "literature"
+    FESTIVAL = "festival"
+    CULTURAL = "cultural"
+    SPORTS = "sports"
+    FOOD = "food"
+    NIGHTLIFE = "nightlife"
+    FAMILY = "family"
+    EXHIBITION = "exhibition"
+    CONFERENCE = "conference"
+
+@dataclass
+class IstanbulEvent:
+    """Istanbul event information"""
+    title: str
+    category: EventCategory
+    venue: str
+    venue_lat: Optional[float] = None
+    venue_lng: Optional[float] = None
+    district: Optional[str] = None
+    neighborhood: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    price: Optional[str] = None
+    description: Optional[str] = None
+    url: Optional[str] = None
+    organizer: Optional[str] = None
+    is_free: bool = False
+    is_recurring: bool = False
+    languages: List[str] = None
+    
+    def __post_init__(self):
+        if self.languages is None:
+            self.languages = []
+
 @dataclass
 class DetectedLocation:
     """Detected location information"""
@@ -45,10 +88,13 @@ class DetectedLocation:
     accuracy_meters: Optional[float] = None
     detected_at: datetime = None
     raw_input: str = ""
+    nearby_events: List[IstanbulEvent] = None
     
     def __post_init__(self):
         if self.detected_at is None:
             self.detected_at = datetime.now()
+        if self.nearby_events is None:
+            self.nearby_events = []
 
 class IntelligentLocationDetector:
     """
@@ -61,6 +107,9 @@ class IntelligentLocationDetector:
         self.load_istanbul_landmarks()
         self.load_neighborhoods()
         self.load_transportation_hubs()
+        self.load_event_venues()
+        self.events_cache = {}
+        self.cache_expiry = None
         
     def load_istanbul_landmarks(self):
         """Load Istanbul landmarks with precise coordinates"""
@@ -155,6 +204,31 @@ class IntelligentLocationDetector:
             # Bus Stations
             'esenler bus station': {'lat': 41.0411, 'lng': 28.8822, 'type': 'bus'},
             'harem bus station': {'lat': 41.0167, 'lng': 29.0289, 'type': 'bus'},
+        }
+    
+    def load_event_venues(self):
+        """Load major event venues in Istanbul with coordinates"""
+        self.event_venues = {
+            # İKSV Venues
+            'akm': {'lat': 41.0369, 'lng': 28.9850, 'name': 'Atatürk Cultural Center', 'district': 'Beyoğlu'},
+            'akbank sanat': {'lat': 41.0342, 'lng': 28.9784, 'name': 'Akbank Sanat', 'district': 'Beyoğlu'},
+            'garaj istanbul': {'lat': 41.0256, 'lng': 28.9744, 'name': 'Garaj Istanbul', 'district': 'Beyoğlu'},
+            'salon iksv': {'lat': 41.0369, 'lng': 28.9850, 'name': 'Salon İKSV', 'district': 'Beyoğlu'},
+            
+            # Major Cultural Centers
+            'cemal resit rey': {'lat': 41.0783, 'lng': 29.0161, 'name': 'Cemal Reşit Rey Concert Hall', 'district': 'Şişli'},
+            'zorlu psm': {'lat': 41.0783, 'lng': 29.0161, 'name': 'Zorlu PSM', 'district': 'Beşiktaş'},
+            'turkcell kuruçeşme arena': {'lat': 41.0719, 'lng': 29.0408, 'name': 'Turkcell Kuruçeşme Arena', 'district': 'Beşiktaş'},
+            'harbiye cemil topuzlu': {'lat': 41.0472, 'lng': 28.9922, 'name': 'Harbiye Cemil Topuzlu Open Air Theater', 'district': 'Şişli'},
+            
+            # Museums and Galleries
+            'istanbul modern': {'lat': 41.0256, 'lng': 28.9744, 'name': 'Istanbul Modern', 'district': 'Beyoğlu'},
+            'pera museum': {'lat': 41.0342, 'lng': 28.9784, 'name': 'Pera Museum', 'district': 'Beyoğlu'},
+            'sakıp sabancı museum': {'lat': 41.1086, 'lng': 29.0586, 'name': 'Sakıp Sabancı Museum', 'district': 'Sarıyer'},
+            
+            # Traditional Venues
+            'hagia irene': {'lat': 41.0115, 'lng': 28.9833, 'name': 'Hagia Irene', 'district': 'Fatih'},
+            'basilica cistern': {'lat': 41.0084, 'lng': 28.9778, 'name': 'Basilica Cistern', 'district': 'Fatih'},
         }
 
     async def detect_location_from_text(self, text: str, user_context: Optional[Dict] = None) -> DetectedLocation:
@@ -420,7 +494,7 @@ class IntelligentLocationDetector:
         """Get location from IP address (fallback method)"""
         try:
             # Use a free IP geolocation service
-            response = requests.get(f'http://ip-api.com/json/{ip_address}', timeout=5)
+            response = requests.get(f'http://ip-api.com/json/{
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'success':
@@ -495,85 +569,148 @@ class IntelligentLocationDetector:
             self.logger.info(f"🏛️ Found nearby landmark: {landmark_name} ({min_distance:.3f}km away)")
         
         return location
-    
-    def _calculate_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-        """Calculate distance between two coordinates in kilometers"""
-        import math
+
+    async def find_nearby_events(self, location: DetectedLocation, radius_km: float = 5.0) -> List[IstanbulEvent]:
+        """Find events near the detected location"""
+        if not location.latitude or not location.longitude:
+            return []
         
-        R = 6371  # Earth's radius in kilometers
-        
-        lat1_rad = math.radians(lat1)
-        lat2_rad = math.radians(lat2)
-        delta_lat = math.radians(lat2 - lat1)
-        delta_lng = math.radians(lng2 - lng1)
-        
-        a = (math.sin(delta_lat / 2) ** 2 +
-             math.cos(lat1_rad) * math.cos(lat2_rad) *
-             math.sin(delta_lng / 2) ** 2)
-        
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        
-        return R * c
-    
-    def _find_nearest_osm_node(self, lat: float, lng: float) -> Optional[Dict[str, Any]]:
-        """
-        Find the nearest OpenStreetMap node to given GPS coordinates
-        Returns node information if found
-        """
-        if not ROUTE_MAKER_AVAILABLE:
-            return None
+        nearby_events = []
         
         try:
-            route_maker = get_route_maker()
+            # Fetch events from İKSV
+            iksv_events = await self.fetch_iksv_events()
             
-            if not hasattr(route_maker, 'available_districts'):
-                return None
-            
-            nearest_node = None
-            min_distance = float('inf')
-            best_district = None
-            
-            # Search through all loaded districts
-            for district_name, district_graph in route_maker.available_districts.items():
-                nodes = list(district_graph.nodes(data=True))
-                
-                for node_id, node_data in nodes:
-                    if 'y' not in node_data or 'x' not in node_data:
-                        continue
+            for event in iksv_events:
+                if event.venue_lat and event.venue_lng:
+                    distance = self._calculate_distance(
+                        location.latitude, location.longitude,
+                        event.venue_lat, event.venue_lng
+                    )
+                    
+                    if distance <= radius_km:
+                        nearby_events.append(event)
                         
-                    node_lat = node_data['y']
-                    node_lng = node_data['x']
-                    
-                    # Calculate distance to the target GPS coordinate
-                    distance = self._calculate_distance(lat, lng, node_lat, node_lng)
-                    
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_node = {
-                            'node_id': node_id,
-                            'lat': node_lat,
-                            'lng': node_lng,
-                            'distance_km': distance,
-                            'district': district_name
-                        }
-                        best_district = district_name
+            # Sort by distance
+            nearby_events.sort(key=lambda e: self._calculate_distance(
+                location.latitude, location.longitude,
+                e.venue_lat or 0, e.venue_lng or 0
+            ))
             
-            # Only return if reasonably close (within 2km)
-            if nearest_node and min_distance < 2.0:
-                self.logger.info(f"🎯 Found nearest OSM node in {best_district}: {min_distance:.3f}km away")
-                return nearest_node
+            # Also add static events based on district/neighborhood
+            static_events = self._get_static_events_for_location(location)
+            nearby_events.extend(static_events)
+            
+            self.logger.info(f"🎭 Found {len(nearby_events)} events near location")
             
         except Exception as e:
-            self.logger.warning(f"Error finding nearest OSM node: {e}")
+            self.logger.warning(f"Error finding nearby events: {e}")
+            
+        return nearby_events[:10]  # Limit to 10 events
+    
+    def _get_static_events_for_location(self, location: DetectedLocation) -> List[IstanbulEvent]:
+        """Get static/recurring events based on location"""
+        static_events = []
         
-        return None
+        # Events by district
+        district_events = {
+            'Fatih': [
+                IstanbulEvent(
+                    title="Grand Bazaar Traditional Crafts",
+                    category=EventCategory.CULTURAL,
+                    venue="Grand Bazaar",
+                    venue_lat=41.0106,
+                    venue_lng=28.9681,
+                    district="Fatih",
+                    neighborhood="Beyazıt",
+                    description="Traditional Turkish crafts and carpet weaving demonstrations",
+                    is_recurring=True,
+                    organizer="Grand Bazaar Artisans"
+                ),
+                IstanbulEvent(
+                    title="Whirling Dervishes Ceremony",
+                    category=EventCategory.CULTURAL,
+                    venue="Hodjapasha Cultural Center",
+                    venue_lat=41.0147,
+                    venue_lng=28.9761,
+                    district="Fatih",
+                    neighborhood="Sirkeci",
+                    description="Traditional Sufi whirling ceremony",
+                    is_recurring=True,
+                    organizer="Hodjapasha Cultural Center"
+                )
+            ],
+            'Beyoğlu': [
+                IstanbulEvent(
+                    title="Istiklal Street Street Performances",
+                    category=EventCategory.MUSIC,
+                    venue="Istiklal Street",
+                    venue_lat=41.0342,
+                    venue_lng=28.9784,
+                    district="Beyoğlu",
+                    neighborhood="Beyoğlu",
+                    description="Daily street musicians and performers",
+                    is_recurring=True,
+                    is_free=True,
+                    organizer="Street Artists"
+                ),
+                IstanbulEvent(
+                    title="Galata Tower Evening Views",
+                    category=EventCategory.CULTURAL,
+                    venue="Galata Tower",
+                    venue_lat=41.0256,
+                    venue_lng=28.9744,
+                    district="Beyoğlu",
+                    neighborhood="Galata",
+                    description="Panoramic Istanbul views and photography",
+                    is_recurring=True,
+                    organizer="Galata Tower"
+                )
+            ],
+            'Beşiktaş': [
+                IstanbulEvent(
+                    title="Ortaköy Weekend Market",
+                    category=EventCategory.FOOD,
+                    venue="Ortaköy Square",
+                    venue_lat=41.0553,
+                    venue_lng=29.0275,
+                    district="Beşiktaş",
+                    neighborhood="Ortaköy",
+                    description="Traditional Turkish food and local crafts",
+                    is_recurring=True,
+                    is_free=True,
+                    organizer="Ortaköy Municipality"
+                )
+            ],
+            'Kadıköy': [
+                IstanbulEvent(
+                    title="Kadıköy Tuesday Market",
+                    category=EventCategory.FOOD,
+                    venue="Kadıköy Market Area",
+                    venue_lat=41.0066,
+                    venue_lng=29.0297,
+                    district="Kadıköy",
+                    neighborhood="Kadıköy",
+                    description="Fresh produce and local food market",
+                    is_recurring=True,
+                    is_free=True,
+                    organizer="Kadıköy Municipality"
+                )
+            ]
+        }
+        
+        # Add events for user's district
+        if location.district and location.district in district_events:
+            static_events.extend(district_events[location.district])
+            
+        return static_events
 
-# Global instance
+    # Global instance
 intelligent_location_detector = IntelligentLocationDetector()
 
-async def detect_user_location(text: str, user_context: Optional[Dict] = None, ip_address: Optional[str] = None) -> DetectedLocation:
+async def detect_user_location(text: str, user_context: Optional[Dict] = None, ip_address: Optional[str] = None, include_events: bool = True) -> DetectedLocation:
     """
-    Main function to detect user location from various sources
+    Main function to detect user location from various sources and nearby events
     """
     detector = intelligent_location_detector
     
@@ -587,5 +724,23 @@ async def detect_user_location(text: str, user_context: Optional[Dict] = None, i
     # Enhance location with nearby information
     if location.latitude and location.longitude:
         location = detector.enhance_location_with_nearby_info(location)
+        
+        # Find nearby events if requested
+        if include_events:
+            try:
+                nearby_events = await detector.find_nearby_events(location)
+                location.nearby_events = nearby_events
+                if nearby_events:
+                    detector.logger.info(f"🎭 Added {len(nearby_events)} nearby events to location")
+            except Exception as e:
+                detector.logger.warning(f"Error finding events: {e}")
     
     return location
+
+async def get_events_for_location(latitude: float, longitude: float, radius_km: float = 5.0) -> List[IstanbulEvent]:
+    """
+    Get events for a specific location
+    """
+    detector = intelligent_location_detector
+    location = DetectedLocation(latitude=latitude, longitude=longitude)
+    return await detector.find_nearby_events(location, radius_km)
