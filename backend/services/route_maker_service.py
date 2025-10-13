@@ -278,18 +278,53 @@ class IstanbulRoutemaker:
     LLM-free, algorithmic approach with intelligent attraction selection
     """
     
+    # Class-level cache to share graph data across instances
+    _shared_graph = None
+    _shared_districts = None
+    _shared_available_districts = None
+    _shared_primary_district = None
+    _class_graph_loaded = False
+    
     def __init__(self):
-        self.graph = None
+        # Use shared graph data if available
+        if IstanbulRoutemaker._class_graph_loaded:
+            print("🗺️ Reusing cached Istanbul graph data")
+            self.graph = IstanbulRoutemaker._shared_graph
+            self.covered_districts = IstanbulRoutemaker._shared_districts or ["Cached"]
+            self.available_districts = IstanbulRoutemaker._shared_available_districts or {}
+            self.primary_district = IstanbulRoutemaker._shared_primary_district or "Unknown"
+        else:
+            self.graph = None
+            self.covered_districts = []
+            self.available_districts = {}
+            self.primary_district = None
+            
         self.istanbul_bounds = {
             'north': 41.25,
             'south': 40.80,
             'east': 29.40,
             'west': 28.60
         }
+        self._graph_loaded = False
         self._load_istanbul_graph()
     
     def _load_istanbul_graph(self):
         """Load Istanbul street network from OSM - using district selection instead of merging"""
+        # Check if class-level cache is available
+        if IstanbulRoutemaker._class_graph_loaded:
+            print("🗺️ Using cached Istanbul graph data from class cache")
+            self.graph = IstanbulRoutemaker._shared_graph
+            self.covered_districts = IstanbulRoutemaker._shared_districts or ["Cached"]
+            self.available_districts = IstanbulRoutemaker._shared_available_districts or {}
+            self.primary_district = IstanbulRoutemaker._shared_primary_district or "Unknown"
+            self._graph_loaded = True
+            return
+            
+        # Check if already loaded to prevent multiple downloads
+        if self._graph_loaded and self.graph is not None:
+            print("🗺️ Istanbul graph already loaded, skipping OpenStreetMap download")
+            return
+            
         try:
             print("🗺️ Loading Istanbul tourist districts from OpenStreetMap...")
             
@@ -366,6 +401,18 @@ class IstanbulRoutemaker:
                     print("🆘 Using minimal test graph...")
                     self.graph = self._create_fallback_graph()
                     self.covered_districts = ["Test Graph"]
+        
+        # Mark graph as loaded to prevent future downloads
+        self._graph_loaded = True
+        
+        # Store in class cache for other instances
+        IstanbulRoutemaker._shared_graph = self.graph
+        IstanbulRoutemaker._shared_districts = getattr(self, 'covered_districts', ["Unknown"])
+        IstanbulRoutemaker._shared_available_districts = getattr(self, 'available_districts', {})
+        IstanbulRoutemaker._shared_primary_district = getattr(self, 'primary_district', "Unknown")
+        IstanbulRoutemaker._class_graph_loaded = True
+        
+        print("✅ Graph loading completed - cached for future instances")
     
     def _create_fallback_graph(self):
         """Create a simple fallback graph for testing"""
@@ -1310,5 +1357,16 @@ class IstanbulRoutemaker:
             "graph_status": self.get_district_status()
         }
 
-# Global instance
-route_maker = IstanbulRoutemaker()
+# Singleton instance - lazy loaded to prevent multiple OSM downloads
+_route_maker_instance = None
+
+def get_route_maker():
+    """Get singleton instance of IstanbulRoutemaker to prevent multiple OSM downloads"""
+    global _route_maker_instance
+    if _route_maker_instance is None:
+        print("🗺️ Initializing IstanbulRoutemaker singleton...")
+        _route_maker_instance = IstanbulRoutemaker()
+    return _route_maker_instance
+
+# For backward compatibility
+route_maker = None  # Will be lazy-loaded when accessed

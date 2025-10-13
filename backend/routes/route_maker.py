@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from database import get_db
 from services.route_maker_service import (
-    route_maker, RouteRequest, RouteStyle, TransportMode, 
+    get_route_maker, RouteRequest, RouteStyle, TransportMode, 
     GeneratedRoute, RoutePoint
 )
 from models import Route, RouteWaypoint, EnhancedAttraction, UserRoutePreferences
@@ -140,7 +140,7 @@ async def generate_route(
         )
         
         # Generate the route with enhanced optimization
-        generated_route = route_maker.generate_route(route_request, db)
+        generated_route = get_route_maker().generate_route(route_request, db)
         
         # Determine which optimization method was used
         num_attractions = len([p for p in generated_route.points if p.attraction_id])
@@ -158,7 +158,7 @@ async def generate_route(
         route_id = None
         if save_to_db and generated_route.points:
             try:
-                saved_route = route_maker.save_route_to_db(generated_route, db)
+                saved_route = get_route_maker().save_route_to_db(generated_route, db)
                 route_id = saved_route.id
             except Exception as save_error:
                 print(f"Warning: Failed to save route to DB: {save_error}")
@@ -198,7 +198,7 @@ async def generate_route(
         return response
         
         # Generate map HTML
-        map_html = route_maker.generate_map_html(generated_route)
+        map_html = get_route_maker().generate_map_html(generated_route)
         
         # Convert to response model
         response = GeneratedRouteModel(
@@ -252,10 +252,10 @@ async def save_route(
             max_attractions=request.max_attractions
         )
         
-        generated_route = route_maker.generate_route(route_request, db)
+        generated_route = get_route_maker().generate_route(route_request, db)
         
         # Save to database
-        saved_route = route_maker.save_route_to_db(generated_route, db)
+        saved_route = get_route_maker().save_route_to_db(generated_route, db)
         
         return {
             "success": True,
@@ -392,7 +392,7 @@ async def get_route_map(route_id: int, db: Session = Depends(get_db)):
             overall_score=route.overall_score
         )
         
-        map_html = route_maker.generate_map_html(generated_route)
+        map_html = get_route_maker().generate_map_html(generated_route)
         
         return {
             "route_id": route_id,
@@ -532,7 +532,7 @@ async def save_route_to_db(
         )
         
         # Save to database
-        saved_route = route_maker.save_route_to_db(generated_route, db)
+        saved_route = get_route_maker().save_route_to_db(generated_route, db)
         
         return {
             "success": True,
@@ -621,7 +621,7 @@ async def get_nearby_attractions(
 ):
     """Get attractions near a specific location"""
     try:
-        attractions = route_maker.get_attractions_near_point(lat, lng, radius_km, db)
+        attractions = get_route_maker().get_attractions_near_point(lat, lng, radius_km, db)
         
         # Filter by category if specified
         if category:
@@ -802,11 +802,11 @@ async def analyze_tsp_optimization(
                 continue
             
             try:
-                optimized = route_maker.optimize_route_order(
+                optimized = get_route_maker().optimize_route_order(
                     attractions, request.start_lat, request.start_lng, method=method
                 )
                 
-                total_distance = route_maker._calculate_route_distance(
+                total_distance = get_route_maker()._calculate_route_distance(
                     optimized, request.start_lat, request.start_lng
                 )
                 
@@ -866,19 +866,19 @@ async def get_districts_status():
             "primary_district": getattr(route_maker, 'primary_district', 'Unknown'),
             "available_districts": list(getattr(route_maker, 'available_districts', {}).keys()),
             "graph_stats": {
-                "nodes": len(route_maker.graph.nodes) if route_maker.graph else 0,
-                "edges": len(route_maker.graph.edges) if route_maker.graph else 0
+                "nodes": len(get_route_maker().graph.nodes) if get_route_maker().graph else 0,
+                "edges": len(get_route_maker().graph.edges) if get_route_maker().graph else 0
             },
             "district_stats": {}
         }
         
         # Add stats for each available district
         if hasattr(route_maker, 'available_districts'):
-            for name, graph in route_maker.available_districts.items():
+            for name, graph in get_route_maker().available_districts.items():
                 status["district_stats"][name] = {
                     "nodes": len(graph.nodes),
                     "edges": len(graph.edges),
-                    "is_primary": name == route_maker.primary_district
+                    "is_primary": name == get_route_maker().primary_district
                 }
         
         return status
@@ -892,16 +892,16 @@ async def switch_district(
 ):
     """Switch the primary routing district"""
     try:
-        success = route_maker.switch_to_district(district_name)
+        success = get_route_maker().switch_to_district(district_name)
         
         if success:
             return {
                 "success": True,
                 "message": f"Switched to {district_name} district",
-                "new_primary": route_maker.primary_district,
+                "new_primary": get_route_maker().primary_district,
                 "graph_size": {
-                    "nodes": len(route_maker.graph.nodes),
-                    "edges": len(route_maker.graph.edges)
+                    "nodes": len(get_route_maker().graph.nodes),
+                    "edges": len(get_route_maker().graph.edges)
                 }
             }
         else:
@@ -1124,7 +1124,7 @@ async def get_istanbul_optimization_status():
         from services.route_maker_service import ISTANBUL_TIMEZONE
         
         current_time = datetime.now(ISTANBUL_TIMEZONE)
-        status = route_maker.get_istanbul_optimization_status(current_time)
+        status = get_route_maker().get_istanbul_optimization_status(current_time)
         
         return {
             "success": True,
@@ -1256,7 +1256,7 @@ async def generate_istanbul_optimized_route(
         )
         
         # Generate route with Istanbul optimizations enabled
-        generated_route = route_maker.generate_route(route_request, db)
+        generated_route = get_route_maker().generate_route(route_request, db)
         
         # Add Istanbul-specific metadata
         from datetime import datetime

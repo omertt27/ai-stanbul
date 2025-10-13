@@ -480,12 +480,13 @@ class IstanbulDailyTalkAI:
             self.transportation_processor = None
             logger.warning("⚠️ Enhanced Transportation features disabled")
 
-        # Initialize route maker service
+        # Initialize route maker service using singleton to prevent multiple OSM downloads
         self.route_maker = None
         if ROUTE_MAKER_AVAILABLE:
             try:
-                self.route_maker = IstanbulRoutemaker()
-                logger.info("🗺️ Route Maker Service integrated successfully!")
+                from backend.services.route_maker_service import get_route_maker
+                self.route_maker = get_route_maker()
+                logger.info("🗺️ Route Maker Service integrated successfully (using singleton)!")
             except Exception as e:
                 logger.warning(f"Failed to initialize Route Maker: {e}")
                 self.route_maker = None
