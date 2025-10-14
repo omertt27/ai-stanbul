@@ -43,19 +43,19 @@ class ResponseGenerator:
             'historic': {
                 'intro': "🏛️ Istanbul's history spans over 2,500 years, with layers of Byzantine, Roman, and Ottoman heritage:",
                 'details': [
-                    "**Hagia Sophia** - Marvel at this architectural wonder that served as a church, mosque, and now museum. The golden mosaics and soaring dome represent 1,500 years of history.",
-                    "**Topkapi Palace** - Explore the opulent former residence of Ottoman sultans, with stunning views over the Bosphorus and priceless imperial collections.",
-                    "**Blue Mosque** - Admire the six minarets and blue Iznik tiles of this active place of worship, a masterpiece of Ottoman architecture.",
-                    "**Basilica Cistern** - Descend into this mystical underground marvel with 336 columns, featured in countless films and legends."
+                    "Hagia Sophia - Marvel at this architectural wonder that served as a church, mosque, and now museum. The golden mosaics and soaring dome represent 1,500 years of history.",
+                    "Topkapi Palace - Explore the opulent former residence of Ottoman sultans, with stunning views over the Bosphorus and priceless imperial collections.",
+                    "Blue Mosque - Admire the six minarets and blue Iznik tiles of this active place of worship, a masterpiece of Ottoman architecture.",
+                    "Basilica Cistern - Descend into this mystical underground marvel with 336 columns, featured in countless films and legends."
                 ]
             },
             'cultural': {
                 'intro': "🎭 Istanbul's cultural richness reflects its position as a bridge between worlds:",
                 'details': [
-                    "**Grand Bazaar** - Navigate through 4,000 shops in this historic covered market, perfect for authentic Turkish carpets, ceramics, and spices.",
-                    "**Galata Tower** - Enjoy panoramic 360° views of the city from this medieval Genoese tower, especially magical at sunset.",
-                    "**Turkish and Islamic Arts Museum** - Discover world-class collections of calligraphy, ceramics, and the famous carpet collection.",
-                    "**Dolmabahce Palace** - Experience 19th-century Ottoman luxury in this European-style palace on the Bosphorus."
+                    "Grand Bazaar - Navigate through 4,000 shops in this historic covered market, perfect for authentic Turkish carpets, ceramics, and spices.",
+                    "Galata Tower - Enjoy panoramic 360° views of the city from this medieval Genoese tower, especially magical at sunset.",
+                    "Turkish and Islamic Arts Museum - Discover world-class collections of calligraphy, ceramics, and the famous carpet collection.",
+                    "Dolmabahce Palace - Experience 19th-century Ottoman luxury in this European-style palace on the Bosphorus."
                 ]
             }
         }
@@ -162,18 +162,18 @@ class ResponseGenerator:
         # Add recommendations with full details
         for i, rec in enumerate(recommendations[:3], 1):
             response_parts.append(f"""
-**{i}. {rec['name']}** ({rec['type']})
-📍 **Location**: {rec['location']}
-🍴 **Specialty**: {rec['specialty']}
-💰 **Price**: {rec['price_range']}
-🕐 **Hours**: {rec['hours']}
-🚇 **Transport**: {rec['transport']}
-✨ **Why visit**: {rec['highlights']}
-👥 **Best for**: {rec['best_for']}""")
+{i}. {rec['name']} ({rec['type']})
+📍 Location: {rec['location']}
+🍴 Specialty: {rec['specialty']}
+💰 Price range: {rec['price_range']}
+🕐 Hours: {rec['hours']}
+🚇 Transport: {rec['transport']}
+✨ Why visit: {rec['highlights']}
+👥 Best for: {rec['best_for']}""")
         
         # Add practical tips
         response_parts.append(f"""
-**💡 Practical Tips:**
+💡 Practical Tips:
 • Make reservations for dinner, especially weekends
 • Try Turkish tea (çay) or coffee after meals
 • Tipping: 10-15% is standard for good service
@@ -183,7 +183,7 @@ class ResponseGenerator:
         # Add weather-appropriate suggestion
         weather_context = self._get_weather_context(current_time)
         if weather_context:
-            response_parts.append(f"🌤️ **Weather note**: {weather_context}")
+            response_parts.append(f"🌤️ Weather note: {weather_context}")
         
         return '\n'.join(response_parts)
     
@@ -215,8 +215,8 @@ class ResponseGenerator:
                 'type': 'Historic Monument',
                 'location': 'Sultanahmet',
                 'visit_duration': '1-2 hours',
-                'entry_fee': 'Free (donations welcome)',
-                'hours': '24/7 (prayer times may restrict access)',
+                'access': 'Free entry (respectful behavior required)',
+                'hours': 'Open daily (prayer times may affect access)',
                 'transport': 'Sultanahmet tram station (2 min walk)',
                 'highlights': '1,500-year history, stunning dome, Byzantine mosaics',
                 'best_time': 'Early morning (9-11 AM) or late afternoon',
@@ -228,8 +228,8 @@ class ResponseGenerator:
                 'type': 'Palace Museum',
                 'location': 'Sultanahmet',
                 'visit_duration': '2-3 hours',
-                'entry_fee': '100 TL (Harem additional 70 TL)',
-                'hours': '09:00-18:00 (closed Tuesdays)',
+                'access': 'Museum entry required (check current rates)',
+                'hours': '09:00-18:00 (closed Tuesdays in winter)',
                 'transport': 'Sultanahmet tram station (5 min walk)',
                 'highlights': 'Ottoman imperial treasures, Bosphorus views, sacred relics',
                 'best_time': 'Morning (9-11 AM) to avoid crowds',
@@ -241,7 +241,7 @@ class ResponseGenerator:
                 'type': 'Historic Market',
                 'location': 'Beyazıt/Eminönü',
                 'visit_duration': '1-3 hours',
-                'entry_fee': 'Free',
+                'access': 'Free entry',
                 'hours': '09:00-19:00 (closed Sundays)',
                 'transport': 'Beyazıt-Kapalıçarşı tram station (1 min walk)',
                 'highlights': '4,000 shops, authentic Turkish crafts, historic architecture',
@@ -264,34 +264,34 @@ class ResponseGenerator:
         # Add detailed attraction information
         for i, attraction in enumerate(attractions[:3], 1):
             response_parts.append(f"""
-**{i}. {attraction['name']}** ({attraction['type']})
-📍 **Location**: {attraction['location']}
-⏰ **Visit time**: {attraction['visit_duration']}
-💰 **Entry fee**: {attraction['entry_fee']}
-🕐 **Hours**: {attraction['hours']}
-🚇 **Transport**: {attraction['transport']}
-✨ **Highlights**: {attraction['highlights']}
-📸 **Photography**: {attraction['photography']}
-♿ **Accessibility**: {attraction['accessibility']}
-🌟 **Best time**: {attraction['best_time']}""")
+{i}. {attraction['name']} ({attraction['type']})
+📍 Location: {attraction['location']}
+⏰ Visit time: {attraction['visit_duration']}
+🎫 Access: {attraction['access']}
+🕐 Hours: {attraction['hours']}
+🚇 Transport: {attraction['transport']}
+✨ Highlights: {attraction['highlights']}
+📸 Photography: {attraction['photography']}
+♿ Accessibility: {attraction['accessibility']}
+🌟 Best time: {attraction['best_time']}""")
         
         # Add practical visiting tips
         response_parts.append(f"""
-**💡 Essential Visiting Tips:**
-• **Museum Pass**: Consider Istanbul Museum Pass (325 TL) for multiple attractions
-• **Dress code**: Modest clothing for mosques (covering shoulders/knees)
-• **Prayer times**: Some mosques close 30 min before prayers
-• **Crowds**: Visit major attractions early morning or late afternoon
-• **Guided tours**: Available in multiple languages at most sites
-• **Audio guides**: Often available for self-guided exploration""")
+💡 Essential Visiting Tips:
+• Museum Pass: Consider Istanbul Museum Pass for multiple attractions (check current pricing)
+• Dress code: Modest clothing for mosques (covering shoulders/knees)
+• Prayer times: Some mosques close 30 min before prayers
+• Crowds: Visit major attractions early morning or late afternoon
+• Guided tours: Available in multiple languages at most sites
+• Audio guides: Often available for self-guided exploration""")
         
         # Add transportation and route suggestions
         response_parts.append(f"""
-**🚇 Getting Around:**
-• **Sultanahmet area**: Most historic attractions within walking distance
-• **Istanbulkart**: Essential transport card (13 TL + credit)
-• **Tram T1**: Connects Sultanahmet to Galata Bridge and beyond
-• **Metro/Tram combos**: Efficient for crossing between districts""")
+🚇 Getting Around:
+• Sultanahmet area: Most historic attractions within walking distance
+• Istanbulkart: Essential transport card (check current rates)
+• Tram T1: Connects Sultanahmet to Galata Bridge and beyond
+• Metro/Tram combos: Efficient for crossing between districts""")
         
         return '\n'.join(response_parts)
     
@@ -360,29 +360,29 @@ class ResponseGenerator:
         # Add detailed neighborhood information
         for i, neighborhood in enumerate(neighborhoods, 1):
             response_parts.append(f"""
-**{i}. {neighborhood['name']}**
-🏘️ **Character**: {neighborhood['character']}
-👥 **Best for**: {neighborhood['best_for']}
-✨ **Highlights**:
+{i}. {neighborhood['name']}
+🏘️ Character: {neighborhood['character']}
+👥 Best for: {neighborhood['best_for']}
+✨ Highlights:
 {chr(10).join(f'   • {highlight}' for highlight in neighborhood['highlights'])}
-🎭 **Atmosphere**: {neighborhood['atmosphere']}
-🚇 **Transport**: {neighborhood['transport']}
-💰 **Budget**: {neighborhood['budget']}
-⏰ **Best time**: {neighborhood['best_time']}""")
+🎭 Atmosphere: {neighborhood['atmosphere']}
+🚇 Transport: {neighborhood['transport']}
+💰 Budget: {neighborhood['budget']}
+⏰ Best time: {neighborhood['best_time']}""")
         
         # Add comprehensive area guide
         response_parts.append(f"""
-**🗺️ Navigation Tips:**
-• **Cross-Continental**: Take ferries between European and Asian sides
-• **Historic walking**: Sultanahmet to Galata Bridge is a beautiful walk
-• **Local transport**: Each neighborhood has distinct transport connections
-• **District hopping**: Plan 2-3 hours minimum per neighborhood
+🗺️ Navigation Tips:
+• Cross-Continental: Take ferries between European and Asian sides
+• Historic walking: Sultanahmet to Galata Bridge is a beautiful walk
+• Local transport: Each neighborhood has distinct transport connections
+• District hopping: Plan 2-3 hours minimum per neighborhood
 
-**🎯 Choosing Your Base:**
-• **History focus**: Stay in Sultanahmet
-• **Nightlife/modern**: Choose Beyoğlu/Galata
-• **Local experience**: Consider Asian side (Kadıköy/Üsküdar)
-• **Luxury/views**: Bosphorus-facing areas in Beşiktaş""")
+🎯 Choosing Your Base:
+• History focus: Stay in Sultanahmet
+• Nightlife/modern: Choose Beyoğlu/Galata
+• Local experience: Consider Asian side (Kadıköy/Üsküdar)
+• Luxury/views: Bosphorus-facing areas in Beşiktaş""")
         
         return '\n'.join(response_parts)
     
@@ -394,38 +394,38 @@ class ResponseGenerator:
         
         # Time-based suggestions
         if hour < 10:
-            time_suggestion = "🌅 **Perfect morning activities**: Visit Hagia Sophia before crowds, enjoy traditional Turkish breakfast in Sultanahmet, or take an early Bosphorus walk."
+            time_suggestion = "🌅 Perfect morning activities: Visit Hagia Sophia before crowds, enjoy traditional Turkish breakfast in Sultanahmet, or take an early Bosphorus walk."
         elif hour < 14:
-            time_suggestion = "☀️ **Great midday options**: Explore Grand Bazaar, enjoy lunch in a traditional lokanta, visit Topkapi Palace with its shaded courtyards."
+            time_suggestion = "☀️ Great midday options: Explore Grand Bazaar, enjoy lunch in a traditional lokanta, visit Topkapi Palace with its shaded courtyards."
         elif hour < 18:
-            time_suggestion = "🌤️ **Wonderful afternoon choices**: Climb Galata Tower for sunset views, stroll through trendy Beyoğlu, discover local cafes in Karaköy."
+            time_suggestion = "🌤️ Wonderful afternoon choices: Climb Galata Tower for sunset views, stroll through trendy Beyoğlu, discover local cafes in Karaköy."
         else:
-            time_suggestion = "🌆 **Evening magic awaits**: Experience Istanbul's vibrant nightlife, enjoy dinner with Bosphorus views, or explore illuminated historic monuments."
+            time_suggestion = "🌆 Evening magic awaits: Experience Istanbul's vibrant nightlife, enjoy dinner with Bosphorus views, or explore illuminated historic monuments."
         
         fallback_response = f"""
 🎯 I'd love to give you more specific recommendations! While I gather more details about what you're looking for, here are some wonderful Istanbul experiences:
 
 {time_suggestion}
 
-**🏛️ Must-See Attractions (any time):**
-• **Hagia Sophia** - Architectural marvel spanning 1,500 years
-• **Blue Mosque** - Stunning Ottoman architecture with six minarets  
-• **Grand Bazaar** - 4,000 shops in historic covered market
-• **Bosphorus** - The strait that divides Europe and Asia
+🏛️ Must-See Attractions (any time):
+• Hagia Sophia - Architectural marvel spanning 1,500 years
+• Blue Mosque - Stunning Ottoman architecture with six minarets  
+• Grand Bazaar - 4,000 shops in historic covered market
+• Bosphorus - The strait that divides Europe and Asia
 
-**🍽️ Culinary Experiences:**
-• **Traditional breakfast** - Try serpme kahvaltı (spread breakfast)
-• **Street food** - Döner, simit, and fresh fish sandwiches
-• **Ottoman cuisine** - Historic recipes in traditional restaurants
-• **Turkish coffee & baklava** - Perfect afternoon treats
+🍽️ Culinary Experiences:
+• Traditional breakfast - Try serpme kahvaltı (spread breakfast)
+• Street food - Döner, simit, and fresh fish sandwiches
+• Ottoman cuisine - Historic recipes in traditional restaurants
+• Turkish coffee & baklava - Perfect afternoon treats
 
-**🏘️ Neighborhood Character:**
-• **Sultanahmet** - Historic heart with major monuments
-• **Beyoğlu** - Modern, trendy area with nightlife
-• **Kadıköy** - Authentic local life on Asian side
-• **Beşiktaş** - Upscale with beautiful Bosphorus views
+🏘️ Neighborhood Character:
+• Sultanahmet - Historic heart with major monuments
+• Beyoğlu - Modern, trendy area with nightlife
+• Kadıköy - Authentic local life on Asian side
+• Beşiktaş - Upscale with beautiful Bosphorus views
 
-**💡 Pro Tips:**
+💡 Pro Tips:
 • Get an Istanbulkart for easy public transport
 • Dress modestly when visiting mosques
 • Learn basic Turkish greetings - locals appreciate it!
@@ -449,14 +449,14 @@ What specifically interests you most? I can provide detailed recommendations bas
         # Add connections between different intents
         if 'restaurant' in intents and 'attraction' in intents:
             enhancement_parts.append("""
-**🍽️➡️🏛️ Perfect Combinations:**
+🍽️➡️🏛️ Perfect Combinations:
 • Visit Hagia Sophia, then lunch at nearby Pandeli restaurant
 • Explore Grand Bazaar, then traditional Ottoman dinner in Sultanahmet
 • Morning at Topkapi Palace, afternoon tea in historic Soğukçeşme Street""")
         
         if 'transportation' in intents and ('restaurant' in intents or 'attraction' in intents):
             enhancement_parts.append("""
-**🚇 Easy Transport Connections:**
+🚇 Easy Transport Connections:
 • Sultanahmet tram connects all major historic sites
 • Ferry rides offer scenic routes between districts
 • Metro system efficiently connects modern areas
@@ -464,16 +464,16 @@ What specifically interests you most? I can provide detailed recommendations bas
         
         if 'neighborhood' in intents and 'restaurant' in intents:
             enhancement_parts.append("""
-**🏘️🍴 Neighborhood Food Specialties:**
-• **Sultanahmet**: Traditional Ottoman cuisine and tourist-friendly restaurants
-• **Beyoğlu**: Trendy cafes, international cuisine, and rooftop dining
-• **Kadıköy**: Authentic local eateries and incredible street food markets
-• **Beşiktaş**: Upscale dining with Bosphorus views""")
+🏘️🍴 Neighborhood Food Specialties:
+• Sultanahmet: Traditional Ottoman cuisine and tourist-friendly restaurants
+• Beyoğlu: Trendy cafes, international cuisine, and rooftop dining
+• Kadıköy: Authentic local eateries and incredible street food markets
+• Beşiktaş: Upscale dining with Bosphorus views""")
         
         # Add user-specific enhancements
         if user_profile.travel_style == 'family':
             enhancement_parts.append("""
-**👨‍👩‍👧‍👦 Family-Friendly Tips:**
+👨‍👩‍👧‍👦 Family-Friendly Tips:
 • Many restaurants welcome children and offer high chairs
 • Historic sites have facilities and shorter visit options
 • Parks and waterfront areas great for kids to play

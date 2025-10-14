@@ -50,6 +50,67 @@ class LocationDetectionResult:
     metadata: Dict[str, Any]
     explanation: Optional[str] = None  # Human-readable explanation
     alternative_scores: Dict[str, float] = field(default_factory=dict)  # Alternative location scores
+    gps_distance: Optional[float] = None  # Distance from user's GPS location
+    context_match: Dict[str, float] = field(default_factory=dict)  # Context matching scores
+    recommendations: Dict[str, Any] = field(default_factory=dict)  # Related recommendations
+
+@dataclass
+class RestaurantSearchContext:
+    """Context for restaurant-specific location detection"""
+    cuisine_preferences: List[str]
+    dietary_restrictions: List[str]
+    price_range: Optional[Tuple[int, int]]  # (min, max) price level 1-4
+    operating_hours: Optional[str]
+    group_size: Optional[int]
+    special_occasions: List[str]
+    typo_corrections: Dict[str, str] = field(default_factory=dict)
+
+@dataclass
+class AttractionSearchContext:
+    """Context for attraction-specific location detection"""
+    categories: List[str]  # museums, monuments, parks, religious sites
+    weather_preferences: List[str]  # indoor, outdoor, covered
+    family_friendly: bool = False
+    romantic: bool = False
+    budget_friendly: bool = False
+    accessibility_needs: List[str] = field(default_factory=list)
+    visit_duration: Optional[str] = None  # short, medium, long
+
+@dataclass
+class TransportationContext:
+    """Context for transportation-specific detection"""
+    transport_modes: List[str]  # metro, bus, ferry, walking, taxi
+    accessibility_needs: List[str]
+    luggage_requirements: bool = False
+    time_constraints: Optional[str] = None
+    budget_preferences: Optional[str] = None
+
+@dataclass
+class WeatherContext:
+    """Weather-aware context for recommendations"""
+    current_weather: Dict[str, Any]
+    forecast: List[Dict[str, Any]]
+    temperature: float
+    precipitation: float
+    wind_speed: float
+    weather_type: str  # sunny, rainy, cloudy, snowy
+
+@dataclass
+class EventContext:
+    """Event-aware context for recommendations"""
+    current_events: List[Dict[str, Any]]
+    cultural_events: List[Dict[str, Any]]
+    festivals: List[Dict[str, Any]]
+    seasonal_activities: List[Dict[str, Any]]
+
+@dataclass
+class GPSContext:
+    """GPS-aware location context"""
+    user_location: Optional[Tuple[float, float]]  # (latitude, longitude)
+    accuracy: Optional[float]  # GPS accuracy in meters
+    movement_pattern: Optional[str]  # stationary, walking, driving
+    nearby_landmarks: List[str]
+    district_proximity: Dict[str, float]  # district -> distance mapping
 
 @dataclass
 class LocationPattern:
@@ -151,12 +212,25 @@ class UserPatternLearner(nn.Module):
     
     def forward(self, features):
         hidden = features
+        confidence_features = None
+        
+        # Forward pass through network
         for i, layer in enumerate(self.network[:-1]):
             hidden = layer(hidden)
-            if i == len(self.network) - 4:  # Before last layer
-                confidence = self.confidence_head(hidden)
+            # Capture features before the final classification layer for confidence
+            if i == len(self.network) - 2:  # One layer before final
+                confidence_features = hidden
         
+        # Get final location predictions
         location_scores = self.network[-1](hidden)
+        
+        # Calculate confidence using captured features
+        if confidence_features is not None:
+            confidence = self.confidence_head(confidence_features)
+        else:
+            # Fallback confidence calculation
+            confidence = torch.sigmoid(torch.mean(torch.abs(location_scores), dim=1, keepdim=True))
+        
         return location_scores, confidence
 
 class TemporalLocationPredictor(nn.Module):
@@ -262,6 +336,81 @@ class IntelligentLocationDetector:
                 districts=['Ortaköy', 'Bebek', 'Arnavutköy', 'Beşiktaş'],
                 confidence_boost=0.12,
                 context_type='waterfront'
+            ),
+            # Restaurant-specific patterns
+            LocationPattern(
+                keywords=['restaurant', 'food', 'dining', 'eat', 'cuisine', 'meal'],
+                districts=['Beyoğlu', 'Kadıköy', 'Sultanahmet', 'Nişantaşı'],
+                confidence_boost=0.10,
+                context_type='restaurant'
+            ),
+            LocationPattern(
+                keywords=['turkish', 'kebab', 'meze', 'baklava', 'turkish food'],
+                districts=['Sultanahmet', 'Eminönü', 'Beyoğlu', 'Üsküdar'],
+                confidence_boost=0.12,
+                context_type='turkish_cuisine'
+            ),
+            LocationPattern(
+                keywords=['seafood', 'fish', 'mussels', 'balık', 'sea food'],
+                districts=['Ortaköy', 'Bebek', 'Arnavutköy', 'Kadıköy'],
+                confidence_boost=0.11,
+                context_type='seafood'
+            ),
+            LocationPattern(
+                keywords=['vegetarian', 'vegan', 'plant-based', 'healthy'],
+                districts=['Kadıköy', 'Cihangir', 'Moda', 'Beyoğlu'],
+                confidence_boost=0.09,
+                context_type='vegetarian'
+            ),
+            LocationPattern(
+                keywords=['street food', 'cheap eats', 'budget food', 'fast food'],
+                districts=['Eminönü', 'Kadıköy', 'Taksim', 'Beyoğlu'],
+                confidence_boost=0.08,
+                context_type='street_food'
+            ),
+            # Attraction-specific patterns
+            LocationPattern(
+                keywords=['museum', 'gallery', 'art', 'exhibition', 'cultural'],
+                districts=['Sultanahmet', 'Beyoğlu', 'Beşiktaş', 'Karaköy'],
+                confidence_boost=0.13,
+                context_type='museum'
+            ),
+            LocationPattern(
+                keywords=['mosque', 'religious', 'spiritual', 'prayer', 'islamic'],
+                districts=['Sultanahmet', 'Eminönü', 'Üsküdar', 'Beyoğlu'],
+                confidence_boost=0.12,
+                context_type='religious'
+            ),
+            LocationPattern(
+                keywords=['park', 'garden', 'green space', 'outdoor', 'nature'],
+                districts=['Beşiktaş', 'Üsküdar', 'Kadıköy', 'Sultanahmet'],
+                confidence_boost=0.10,
+                context_type='park'
+            ),
+            LocationPattern(
+                keywords=['family', 'children', 'kids', 'family-friendly'],
+                districts=['Beşiktaş', 'Kadıköy', 'Üsküdar', 'Bostancı'],
+                confidence_boost=0.09,
+                context_type='family'
+            ),
+            # Transportation patterns
+            LocationPattern(
+                keywords=['metro', 'subway', 'underground', 'train'],
+                districts=['Taksim', 'Şişli', 'Levent', 'Kadıköy'],
+                confidence_boost=0.11,
+                context_type='metro'
+            ),
+            LocationPattern(
+                keywords=['ferry', 'boat', 'vapur', 'maritime'],
+                districts=['Eminönü', 'Karaköy', 'Üsküdar', 'Kadıköy'],
+                confidence_boost=0.12,
+                context_type='ferry'
+            ),
+            LocationPattern(
+                keywords=['airport', 'flight', 'transfer', 'IST', 'SAW'],
+                districts=['Taksim', 'Şişli', 'Levent', 'Beşiktaş'],
+                confidence_boost=0.10,
+                context_type='airport'
             )
         ]
         
@@ -309,41 +458,185 @@ class IntelligentLocationDetector:
         self.location_success_rates = defaultdict(float)
         self.temporal_preferences = defaultdict(list)
         
-        # Initialize ML components
+        # ML/DL debugging and configuration
+        self.ml_debug_mode = True  # Enable detailed ML debugging
+        self.ml_fallback_mode = False  # Track if we're in fallback mode
+        
+        # Initialize ML components with proper error handling
         self._initialize_ml_components()
+        
+        # Initialize advanced patterns
+        self._initialize_advanced_patterns()
         
         # Import and integrate with existing backend detector
         self._integrate_with_backend_detector()
 
     def _initialize_ml_components(self):
         """Initialize advanced ML/DL components for enhanced detection"""
-        try:
-            # Basic ML components
-            self.semantic_similarity_cache = {}
-            self.location_frequency_model = defaultdict(float)
-            self.context_pattern_weights = defaultdict(float)
+        self.logger.info("🔧 Starting ML/DL component initialization...")
+        
+        # Initialize basic components that always work
+        self.semantic_similarity_cache = {}
+        self.location_frequency_model = defaultdict(float)
+        self.context_pattern_weights = defaultdict(float)
+        
+        # Initialize component availability flags
+        self.semantic_encoder = None
+        self.pattern_learner = None 
+        self.temporal_predictor = None
+        self.sentence_transformer = None
+        self.tfidf_vectorizer = None
+        self.location_classifier = None
+        self.confidence_estimator = None
+        self.scaler = None
+        
+        # Enhanced ML/DL components
+        if ML_AVAILABLE:
+            self.logger.info("🧠 ML libraries available - initializing advanced components...")
+            self.ml_fallback_mode = False
             
-            # Advanced ML/DL components
-            if ML_AVAILABLE:
-                self._initialize_deep_learning_models()
-                self._initialize_semantic_models()
-                self._initialize_ensemble_models()
-                self._initialize_feature_extractors()
+            # Initialize neural networks with comprehensive error handling
+            try:
+                self.semantic_encoder = LocationSemanticEncoder()
+                self.pattern_learner = UserPatternLearner()
+                self.temporal_predictor = TemporalLocationPredictor()
+                self.logger.info("✅ Neural networks initialized successfully")
+            except Exception as e:
+                self.logger.error(f"❌ Neural network initialization failed: {e}")
+                if self.ml_debug_mode:
+                    import traceback
+                    self.logger.debug(f"Neural network error traceback:\n{traceback.format_exc()}")
+                self.semantic_encoder = None
+                self.pattern_learner = None
+                self.temporal_predictor = None
+            
+            # Initialize sentence transformer with multiple fallback options
+            try:
+                # Try different models in order of preference
+                models_to_try = [
+                    'paraphrase-multilingual-MiniLM-L12-v2',
+                    'all-MiniLM-L6-v2',
+                    'all-mpnet-base-v2'
+                ]
                 
-            # Fallback to traditional ML
-            self._initialize_traditional_ml()
+                for model_name in models_to_try:
+                    try:
+                        self.sentence_transformer = SentenceTransformer(model_name)
+                        self.logger.info(f"✅ Sentence transformer loaded: {model_name}")
+                        break
+                    except Exception as model_error:
+                        if self.ml_debug_mode:
+                            self.logger.debug(f"Failed to load {model_name}: {model_error}")
+                        continue
+                
+                if self.sentence_transformer is None:
+                    self.logger.warning("⚠️ All sentence transformer models failed, using fallback")
+                    
+            except Exception as e:
+                self.logger.warning(f"⚠️ Sentence transformer initialization failed: {e}")
+                if self.ml_debug_mode:
+                    import traceback
+                    self.logger.debug(f"Sentence transformer error traceback:\n{traceback.format_exc()}")
+                self.sentence_transformer = None
+                
+            # Initialize classical ML components
+            try:
+                self.tfidf_vectorizer = TfidfVectorizer(
+                    max_features=1000, 
+                    stop_words='english',
+                    ngram_range=(1, 2)
+                )
+                self.location_classifier = RandomForestClassifier(
+                    n_estimators=100, 
+                    random_state=42,
+                    max_depth=10
+                )
+                self.confidence_estimator = GradientBoostingClassifier(
+                    n_estimators=50, 
+                    random_state=42,
+                    max_depth=5
+                )
+                self.scaler = StandardScaler()
+                self.logger.info("✅ Classical ML components initialized successfully")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Classical ML initialization failed: {e}")
+                if self.ml_debug_mode:
+                    import traceback
+                    self.logger.debug(f"Classical ML error traceback:\n{traceback.format_exc()}")
+                self.tfidf_vectorizer = None
+                self.location_classifier = None
+                self.confidence_estimator = None
+                self.scaler = None
+
+            # Determine overall ML availability
+            self.ml_components_available = any([
+                self.semantic_encoder is not None,
+                self.sentence_transformer is not None,
+                self.tfidf_vectorizer is not None,
+                self.location_classifier is not None
+            ])
             
-            # Initialize learning data structures
+            if self.ml_components_available:
+                self.logger.info("🎯 ML/DL location detection system ready")
+                if self.ml_debug_mode:
+                    self._log_ml_component_status()
+            else:
+                self.logger.warning("❌ No ML/DL components available, using rule-based fallback")
+                self.ml_fallback_mode = True
+                
+        else:
+            self.logger.info("📚 ML/DL libraries not available, using enhanced rule-based detection")
+            self.ml_components_available = False
+            self.ml_fallback_mode = True
+        
+        # Initialize learning data structures
+        self._safe_initialize_learning_storage()
+        
+        # Bootstrap with initial patterns
+        self._safe_bootstrap_ml_patterns()
+        
+        self.logger.info(f"🎉 ML/DL components initialization complete (Fallback mode: {self.ml_fallback_mode})")
+        
+    def _log_ml_component_status(self):
+        """Log the status of each ML component for debugging"""
+        if not self.ml_debug_mode:
+            return
+            
+        components = {
+            'Semantic Encoder': self.semantic_encoder is not None,
+            'Pattern Learner': self.pattern_learner is not None,
+            'Temporal Predictor': self.temporal_predictor is not None,
+            'Sentence Transformer': self.sentence_transformer is not None,
+            'TF-IDF Vectorizer': self.tfidf_vectorizer is not None,
+            'Location Classifier': self.location_classifier is not None,
+            'Confidence Estimator': self.confidence_estimator is not None,
+            'Standard Scaler': self.scaler is not None
+        }
+        
+        self.logger.debug("� ML Component Status:")
+        for component, status in components.items():
+            status_emoji = "✅" if status else "❌"
+            self.logger.debug(f"  {status_emoji} {component}: {'Available' if status else 'Not Available'}")
+            
+    def _safe_initialize_learning_storage(self):
+        """Safely initialize learning data structures"""
+        try:
             self._initialize_learning_storage()
-            
-            # Bootstrap with initial patterns
-            self._bootstrap_ml_patterns()
-            
-            self.logger.info("ML/DL components initialized successfully")
-            
         except Exception as e:
-            self.logger.warning(f"ML components initialization failed: {e}")
-            self._use_fallback_ml = True
+            self.logger.error(f"❌ Learning storage initialization failed: {e}")
+            if self.ml_debug_mode:
+                import traceback
+                self.logger.debug(f"Learning storage error traceback:\n{traceback.format_exc()}")
+                
+    def _safe_bootstrap_ml_patterns(self):
+        """Safely bootstrap ML patterns"""
+        try:
+            self._bootstrap_ml_patterns()
+        except Exception as e:
+            self.logger.error(f"❌ ML patterns bootstrap failed: {e}")
+            if self.ml_debug_mode:
+                import traceback
+                self.logger.debug(f"ML patterns bootstrap error traceback:\n{traceback.format_exc()}")
 
     def _initialize_deep_learning_models(self):
         """Initialize deep learning models for location detection"""
@@ -502,1103 +795,1157 @@ class IntelligentLocationDetector:
         for area in local_areas:
             self.location_frequency_model[area] = 0.6
 
-    def _calculate_semantic_similarity(self, text1: str, text2: str) -> float:
-        """Calculate enhanced semantic similarity with caching and fuzzy matching"""
-        cache_key = f"{text1.lower()}:{text2.lower()}"
-        if cache_key in self._semantic_cache:
-            return self._semantic_cache[cache_key]
-        
-        # Clean and normalize text
-        words1 = set(self._normalize_text(text1).split())
-        words2 = set(self._normalize_text(text2).split())
-        
-        if not words1 or not words2:
-            similarity = 0.0
-        else:
-            # Enhanced Jaccard similarity with fuzzy matching
-            exact_intersection = len(words1.intersection(words2))
-            union = len(words1.union(words2))
+    def _load_pretrained_models(self):
+        """Load pre-trained models if available"""
+        try:
+            # Define model paths
+            model_dir = Path(__file__).parent.parent / "models" / "location_detection"
             
-            # Base similarity
-            similarity = exact_intersection / union if union > 0 else 0.0
+            # Try to load semantic encoder
+            semantic_model_path = model_dir / "semantic_encoder.pth"
+            if semantic_model_path.exists() and self.semantic_encoder is not None:
+                try:
+                    self.semantic_encoder.load_state_dict(torch.load(semantic_model_path, map_location='cpu'))
+                    self.logger.info("✅ Pre-trained semantic encoder loaded")
+                except Exception as e:
+                    if self.ml_debug_mode:
+                        self.logger.debug(f"Failed to load semantic encoder: {e}")
             
-            # Add fuzzy matching for partial word overlap
-            fuzzy_matches = 0
-            for w1 in words1:
-                for w2 in words2:
-                    if w1 != w2 and self._fuzzy_word_match(w1, w2):
-                        fuzzy_matches += 0.5
+            # Try to load pattern learner
+            pattern_model_path = model_dir / "pattern_learner.pth" 
+            if pattern_model_path.exists() and self.pattern_learner is not None:
+                try:
+                    self.pattern_learner.load_state_dict(torch.load(pattern_model_path, map_location='cpu'))
+                    self.logger.info("✅ Pre-trained pattern learner loaded")
+                except Exception as e:
+                    if self.ml_debug_mode:
+                        self.logger.debug(f"Failed to load pattern learner: {e}")
             
-            similarity += (fuzzy_matches / union) if union > 0 else 0
-            
-            # Enhanced synonym detection with cultural context
-            similarity += self._calculate_synonym_boost(words1, words2)
-            
-        # Cache management
-        if len(self._semantic_cache) >= self._cache_max_size:
-            self._semantic_cache.clear()
-            
-        self._semantic_cache[cache_key] = min(1.0, similarity)
-        return self._semantic_cache[cache_key]
+            # Try to load temporal predictor
+            temporal_model_path = model_dir / "temporal_predictor.pth"
+            if temporal_model_path.exists() and self.temporal_predictor is not None:
+                try:
+                    self.temporal_predictor.load_state_dict(torch.load(temporal_model_path, map_location='cpu'))
+                    self.logger.info("✅ Pre-trained temporal predictor loaded")
+                except Exception as e:
+                    if self.ml_debug_mode:
+                        self.logger.debug(f"Failed to load temporal predictor: {e}")
+                        
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Pre-trained model loading failed: {e}")
+            # Not critical - models can work without pre-training
+            pass
 
-    def _normalize_text(self, text: str) -> str:
-        """Normalize text for better semantic matching"""
-        import re
-        # Remove punctuation and convert to lowercase
-        normalized = re.sub(r'[^\w\s]', ' ', text.lower())
-        # Remove multiple spaces
-        normalized = re.sub(r'\s+', ' ', normalized).strip()
-        return normalized
-
-    def _fuzzy_word_match(self, word1: str, word2: str) -> bool:
-        """Check if two words are similar enough (fuzzy matching)"""
-        if len(word1) < 3 or len(word2) < 3:
-            return False
+    def _get_district_descriptions(self):
+        """Get descriptions for each district for semantic embeddings"""
+        return {
+            'Sultanahmet': 'Historic Ottoman Byzantine imperial mosque palace ancient cultural heritage museum',
+            'Beyoğlu': 'Modern trendy nightlife shopping cultural European style entertainment art galleries',
+            'Taksim': 'Central commercial business shopping entertainment transportation hub modern',
+            'Kadıköy': 'Asian side local authentic residential hipster food market cultural diverse',
+            'Beşiktaş': 'Upscale Bosphorus waterfront luxury residential business mixed development',
+            'Galata': 'Historic tower medieval Genoese cultural bridge European quarter',
+            'Karaköy': 'Business financial modern art galleries trendy cafes waterfront',
+            'Levent': 'Business district modern skyscrapers commercial office financial center',
+            'Şişli': 'Commercial shopping business residential modern urban development',
+            'Nişantaşı': 'Upscale luxury shopping fashion boutiques high-end residential elegant',
+            'Ortaköy': 'Scenic Bosphorus waterfront mosque cultural nightlife touristic beautiful',
+            'Üsküdar': 'Traditional Asian side residential religious cultural authentic local',
+            'Eminönü': 'Historic spice bazaar ferry terminal commercial traditional market',
+            'Cihangir': 'Bohemian artistic cultural trendy residential European style creative',
+            'Arnavutköy': 'Coastal Bosphorus traditional wooden houses scenic quiet residential',
+            'Bebek': 'Upscale Bosphorus waterfront luxury residential beautiful scenic elite',
+            'Bostancı': 'Asian side residential peaceful suburban family-friendly quiet',
+            'Fenerbahçe': 'Residential Asian side peaceful suburban quiet family neighborhood',
+            'Moda': 'Trendy hipster cultural artistic cafes bars creative young residential',
+            'Balat': 'Historic colorful traditional authentic cultural heritage Jewish quarter',
+            'Fener': 'Historic Greek Orthodox cultural heritage traditional authentic religious'
+        }
         
-        # Simple edit distance approximation
-        if abs(len(word1) - len(word2)) > 2:
-            return False
+    def _get_istanbul_corpus(self):
+        """Get Istanbul-specific text corpus for TF-IDF training"""
+        corpus = []
         
-        # Check for common prefixes/suffixes
-        if word1[:3] == word2[:3] or word1[-3:] == word2[-3:]:
-            return True
+        # Add district descriptions
+        corpus.extend(self._get_district_descriptions().values())
         
-        # Check for substring containment
-        if len(word1) > 4 and len(word2) > 4:
-            if word1 in word2 or word2 in word1:
-                return len(min(word1, word2, key=len)) / len(max(word1, word2, key=len)) > 0.7
-        
-        return False
-
-    def _calculate_synonym_boost(self, words1: Set[str], words2: Set[str]) -> float:
-        """Calculate similarity boost from synonym groups with Istanbul context"""
-        synonym_groups = [
-            # Historical/Cultural
-            (['historic', 'historical', 'ancient', 'old'], ['traditional', 'heritage', 'classical']),
-            (['mosque', 'masjid'], ['islamic', 'religious']),
-            (['palace', 'saray'], ['imperial', 'royal', 'sultan']),
-            (['bazaar', 'market'], ['shopping', 'commercial', 'trade']),
-            
-            # Food & Dining
-            (['restaurant', 'dining', 'food'], ['eat', 'meal', 'cuisine']),
-            (['turkish', 'ottoman'], ['local', 'traditional', 'authentic']),
-            (['seafood', 'fish'], ['marine', 'ocean', 'bosphorus']),
-            (['street food', 'snack'], ['quick', 'casual', 'local']),
-            
-            # Entertainment & Nightlife
-            (['nightlife', 'party', 'entertainment'], ['bar', 'club', 'music']),
-            (['cultural', 'art'], ['gallery', 'museum', 'exhibition']),
-            
-            # Shopping & Business
-            (['shopping', 'shop', 'store'], ['boutique', 'retail', 'commercial']),
-            (['business', 'office'], ['corporate', 'work', 'professional']),
-            
-            # Location & Movement
-            (['nearby', 'close'], ['near', 'adjacent', 'vicinity']),
-            (['waterfront', 'coastal'], ['sea', 'bosphorus', 'water', 'harbor']),
-            (['upscale', 'luxury'], ['expensive', 'premium', 'high-end'])
+        # Add common Istanbul queries and contexts
+        istanbul_contexts = [
+            'best restaurants in Istanbul traditional Turkish cuisine',
+            'historic sites Byzantine Ottoman heritage museums',
+            'nightlife bars clubs entertainment districts',
+            'shopping malls boutiques fashion districts',
+            'Bosphorus waterfront scenic views ferry routes',
+            'local authentic neighborhoods residential areas',
+            'business districts modern commercial centers',
+            'cultural attractions art galleries exhibitions',
+            'transportation metro tram ferry connections',
+            'tourist attractions must-see landmarks',
+            'food markets street food local specialties',
+            'luxury upscale high-end premium experiences',
+            'budget affordable cheap local options',
+            'family-friendly activities children entertainment',
+            'romantic couples scenic beautiful locations'
         ]
         
-        boost = 0.0
-        for group1, group2 in synonym_groups:
-            if any(w in words1 for w in group1) and any(w in words2 for w in group2):
-                boost += 0.15
-            elif any(w in words1 for w in group2) and any(w in words2 for w in group1):
-                boost += 0.15
+        corpus.extend(istanbul_contexts)
+        return corpus
+    
+    def _build_location_vocabulary(self):
+        """Build vocabulary for location-specific TF-IDF"""
+        vocabulary = set()
         
-        return min(0.4, boost)  # Cap synonym boost at 0.4
+        # Add district names and variations
+        for district in self.district_coords.keys():
+            vocabulary.add(district.lower())
+            # Add common variations and spellings
+            if district == 'Sultanahmet':
+                vocabulary.update(['sultanahmet', 'sultan', 'ahmed', 'historic', 'peninsula'])
+            elif district == 'Beyoğlu':
+                vocabulary.update(['beyoglu', 'beyoğlu', 'pera', 'modern', 'european'])
+            elif district == 'Taksim':
+                vocabulary.update(['taksim', 'square', 'center', 'central'])
+            elif district == 'Kadıköy':
+                vocabulary.update(['kadikoy', 'kadıköy', 'asian', 'side', 'local'])
+            # Add more variations as needed
+        
+        # Add location-related keywords
+        location_keywords = [
+            'near', 'nearby', 'close', 'around', 'area', 'district', 'neighborhood',
+            'walking', 'distance', 'metro', 'tram', 'ferry', 'transport',
+            'restaurant', 'hotel', 'attraction', 'museum', 'mosque', 'palace',
+            'shopping', 'market', 'bazaar', 'cafe', 'bar', 'club',
+            'historic', 'modern', 'traditional', 'authentic', 'local', 'tourist',
+            'bosphorus', 'waterfront', 'sea', 'bridge', 'tower', 'hill'
+        ]
+        vocabulary.update(location_keywords)
+        
+        return list(vocabulary)
+    
+    def _calculate_pattern_weights(self):
+        """Calculate weights for different location patterns"""
+        weights = {}
+        
+        # Time-based patterns
+        weights['morning'] = {'historic': 1.2, 'tourist': 1.1, 'museum': 1.3}
+        weights['afternoon'] = {'shopping': 1.2, 'cafe': 1.1, 'market': 1.1}
+        weights['evening'] = {'restaurant': 1.3, 'nightlife': 1.4, 'entertainment': 1.2}
+        weights['night'] = {'bar': 1.4, 'club': 1.5, 'nightlife': 1.5}
+        
+        # Context-based patterns
+        weights['tourist'] = {'historic': 1.3, 'museum': 1.2, 'landmark': 1.4}
+        weights['local'] = {'residential': 1.2, 'authentic': 1.3, 'neighborhood': 1.2}
+        weights['business'] = {'commercial': 1.2, 'office': 1.1, 'modern': 1.1}
+        weights['luxury'] = {'upscale': 1.4, 'premium': 1.3, 'high-end': 1.3}
+        
+        # Proximity patterns
+        weights['proximity'] = {'nearby': 1.5, 'close': 1.3, 'walking': 1.4, 'area': 1.2}
+        
+        return weights
 
-    def _apply_temporal_context(self, candidates: List[LocationDetectionResult], user_input: str) -> List[LocationDetectionResult]:
-        """Apply temporal context to boost location confidence"""
-        current_hour = datetime.now().hour
+    def _integrate_with_backend_detector(self):
+        """Integrate with existing backend location detector if available"""
+        try:
+            # Try to import and integrate with backend detector
+            from ...backend.services.intelligent_location_detector import IntelligentLocationDetector as BackendDetector
+            self.backend_detector = BackendDetector()
+            self.backend_integration = True
+            self.logger.info("✅ Backend location detector integration successful")
+        except ImportError:
+            self.backend_detector = None
+            self.backend_integration = False
+            self.logger.info("ℹ️ Backend detector not available, using standalone mode")
+        except Exception as e:
+            self.backend_detector = None
+            self.backend_integration = False
+            if self.ml_debug_mode:
+                self.logger.debug(f"Backend integration error: {e}")
+
+    def detect_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """
+        Main location detection method with ML/DL enhancement
+        """
+        try:
+            self.logger.info(f"🔍 Detecting location for: '{user_input[:50]}...'")
+            
+            # Multi-stage detection approach
+            candidates = []
+            
+            # Stage 1: Rule-based detection (always available)
+            rule_based_result = self._rule_based_detection(user_input, user_profile, context)
+            if rule_based_result:
+                candidates.append(rule_based_result)
+            
+            # Stage 2: ML/DL enhancement (if available)
+            if self.ml_components_available and not self.ml_fallback_mode:
+                ml_result = self._ml_enhanced_detection(user_input, user_profile, context)
+                if ml_result:
+                    candidates.append(ml_result)
+            
+            # Stage 3: Backend integration (if available)
+            if self.backend_integration:
+                backend_result = self._backend_detection(user_input, user_profile, context)
+                if backend_result:
+                    candidates.append(backend_result)
+            
+            # Select best candidate
+            if candidates:
+                best_result = self._select_best_candidate(candidates)
+                self.logger.info(f"✅ Location detected: {best_result.location} (confidence: {best_result.confidence:.3f})")
+                return best_result
+            else:
+                self.logger.info("❌ No location detected")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"❌ Location detection failed: {e}")
+            if self.ml_debug_mode:
+                import traceback
+                self.logger.debug(f"Detection error traceback:\n{traceback.format_exc()}")
+            return None
+
+    def _rule_based_detection(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Rule-based location detection (fallback method)"""
+        try:
+            # Extract entities using entity recognizer
+            entities = self.entity_recognizer.extract_entities(user_input)
+            districts = entities.get('districts', [])
+            
+            if districts:
+                location = districts[0]
+                confidence = 0.8  # High confidence for explicit mentions
+                return LocationDetectionResult(
+                    location=location,
+                    confidence=confidence,
+                    detection_method='rule_based_explicit',
+                    fallback_locations=districts[1:] if len(districts) > 1 else [],
+                    metadata={'entities': entities},
+                    explanation=f"Location explicitly mentioned in query"
+                )
+            
+            # Check for proximity keywords
+            proximity_result = self._detect_proximity_location(user_input, context)
+            if proximity_result:
+                return proximity_result
+            
+            # Pattern-based detection
+            pattern_result = self._pattern_based_detection(user_input, user_profile)
+            if pattern_result:
+                return pattern_result
+                
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Rule-based detection error: {e}")
+            return None
+
+    def _ml_enhanced_detection(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """ML/DL enhanced location detection"""
+        if not self.ml_components_available:
+            return None
+            
+        try:
+            # Use sentence transformer for semantic similarity
+            if self.sentence_transformer is not None:
+                return self._semantic_similarity_detection(user_input, user_profile, context)
+            
+            # Use classical ML as fallback
+            if self.location_classifier is not None:
+                return self._classical_ml_detection(user_input, user_profile, context)
+                
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"ML enhanced detection error: {e}")
+            return None
+
+    def _backend_detection(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Use backend detector if available"""
+        if not self.backend_integration or self.backend_detector is None:
+            return None
+            
+        try:
+            result = self.backend_detector.detect_location(user_input, user_profile, context)
+            if result:
+                # Wrap in our result format
+                return LocationDetectionResult(
+                    location=result.location,
+                    confidence=result.confidence * 0.9,  # Slightly lower confidence for backend
+                    detection_method='backend_integration',
+                    fallback_locations=result.fallback_locations,
+                    metadata=result.metadata,
+                    explanation="Detected using backend integration"
+                )
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Backend detection error: {e}")
+            return None
+
+    def _detect_proximity_location(self, user_input: str, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Detect location based on proximity keywords"""
         user_input_lower = user_input.lower()
         
-        # Determine time period
-        time_period = None
-        if 6 <= current_hour < 12:
-            time_period = 'morning'
-        elif 12 <= current_hour < 17:
-            time_period = 'afternoon'
-        elif 17 <= current_hour < 22:
-            time_period = 'evening'
-        else:
-            time_period = 'night'
-            
-        # Check for weekend
-        is_weekend = datetime.now().weekday() >= 5
-        if is_weekend:
-            time_period = 'weekend'
-            
-        # Apply temporal boosts
-        for candidate in candidates:
-            if time_period in self.temporal_patterns:
-                pattern = self.temporal_patterns[time_period]
-                if candidate.location in pattern['districts']:
-                    boost = pattern['time_boost']
-                    candidate.confidence = min(0.98, candidate.confidence + boost)
-                    if 'temporal_boosts' not in candidate.metadata:
-                        candidate.metadata['temporal_boosts'] = []
-                    candidate.metadata['temporal_boosts'].append({
-                        'time_period': time_period,
-                        'boost': boost
-                    })
-                    
-        return candidates
+        for keyword, props in self.proximity_keywords.items():
+            if keyword in user_input_lower:
+                # Look for recent location in context
+                recent_location = context.get_context('current_detected_location')
+                if recent_location:
+                    return LocationDetectionResult(
+                        location=recent_location,
+                        confidence=props['score'] * props['semantic_weight'],
+                        detection_method='proximity_inference',
+                        fallback_locations=[],
+                        metadata={'proximity_keyword': keyword},
+                        explanation=f"Inferred from proximity keyword '{keyword}'"
+                    )
+        
+        return None
 
-    def _apply_semantic_pattern_matching(self, candidates: List[LocationDetectionResult], user_input: str) -> List[LocationDetectionResult]:
-        """Apply semantic pattern matching to enhance location detection"""
+    def _pattern_based_detection(self, user_input: str, user_profile: UserProfile) -> Optional[LocationDetectionResult]:
+        """Pattern-based location detection"""
         user_input_lower = user_input.lower()
+        best_match = None
+        best_score = 0.0
         
         for pattern in self.location_patterns:
-            # Check if any pattern keywords match the user input
-            pattern_match_score = 0.0
+            score = 0.0
             matched_keywords = []
             
             for keyword in pattern.keywords:
                 if keyword in user_input_lower:
-                    pattern_match_score += 1.0
+                    score += 1.0
                     matched_keywords.append(keyword)
-                else:
-                    # Check semantic similarity
-                    similarity = self._calculate_semantic_similarity(keyword, user_input)
-                    if similarity > 0.3:
-                        pattern_match_score += similarity
-                        matched_keywords.append(f"{keyword}~{similarity:.2f}")
             
-            if pattern_match_score > 0:
-                # Apply pattern boost to relevant candidates
-                for candidate in candidates:
-                    if candidate.location in pattern.districts:
-                        boost = pattern.confidence_boost * (pattern_match_score / len(pattern.keywords))
-                        candidate.confidence = min(0.97, candidate.confidence + boost)
-                        
-                        if 'semantic_boosts' not in candidate.metadata:
-                            candidate.metadata['semantic_boosts'] = []
-                        candidate.metadata['semantic_boosts'].append({
-                            'pattern_type': pattern.context_type,
-                            'matched_keywords': matched_keywords,
-                            'boost': boost,
-                            'match_score': pattern_match_score
-                        })
-        
-        return candidates
-
-    def _apply_ml_learning_adjustments(self, candidates: List[LocationDetectionResult], user_input: str, context: ConversationContext) -> List[LocationDetectionResult]:
-        """Apply machine learning based adjustments from historical data"""
-        for candidate in candidates:
-            location = candidate.location
-            
-            # Apply frequency-based adjustments
-            if location in self.location_frequency_model:
-                frequency_boost = self.location_frequency_model[location] * 0.05
-                candidate.confidence = min(0.96, candidate.confidence + frequency_boost)
+            if matched_keywords:
+                # Normalize by number of keywords
+                score = (score / len(pattern.keywords)) * pattern.confidence_boost
                 
-                if 'ml_adjustments' not in candidate.metadata:
-                    candidate.metadata['ml_adjustments'] = {}
-                candidate.metadata['ml_adjustments']['frequency_boost'] = frequency_boost
-            
-            # Apply confidence history adjustments
-            if location in self.location_confidence_history:
-                recent_confidences = self.location_confidence_history[location][-10:]  # Last 10
-                if recent_confidences:
-                    avg_confidence = sum(recent_confidences) / len(recent_confidences)
-                    if avg_confidence > 0.7:  # Good historical performance
-                        history_boost = 0.03
-                        candidate.confidence = min(0.96, candidate.confidence + history_boost)
-                        
-                        if 'ml_adjustments' not in candidate.metadata:
-                            candidate.metadata['ml_adjustments'] = {}
-                        candidate.metadata['ml_adjustments']['history_boost'] = history_boost
-                        candidate.metadata['ml_adjustments']['avg_historical_confidence'] = avg_confidence
+                if score > best_score:
+                    best_score = score
+                    best_match = {
+                        'pattern': pattern,
+                        'score': score,
+                        'keywords': matched_keywords
+                    }
         
-        return candidates
-
-    def _enhance_backend_detection_with_ml(self, user_input: str, user_profile: UserProfile, 
-                                           context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Enhanced backend detection with ML/DL improvements"""
+        if best_match and best_score > 0.1:
+            # Select most appropriate district from pattern
+            location = best_match['pattern'].districts[0] if best_match['pattern'].districts else None
+            if location:
+                return LocationDetectionResult(
+                    location=location,
+                    confidence=min(best_score, 0.7),  # Cap confidence for pattern matching
+                    detection_method='pattern_based',
+                    fallback_locations=best_match['pattern'].districts[1:],
+                    metadata={
+                        'matched_keywords': best_match['keywords'],
+                        'pattern_type': best_match['pattern'].context_type
+                    },
+                    explanation=f"Matched pattern for {best_match['pattern'].context_type}"
+                )
         
-        try:
-            # Try to use backend detector if available
-            if hasattr(self, 'backend_detector'):
-                backend_result = self.backend_detector.detect_location_from_text(user_input)
-                if backend_result:
-                    return LocationDetectionResult(
-                        location=backend_result.location,
-                        confidence=backend_result.confidence,
-                        detection_method='backend_enhanced',
-                        fallback_locations=[],
-                        metadata={'backend_source': True}
-                    )
-        except Exception as e:
-            self.logger.warning(f"Backend detection failed: {e}")
-        
-        # Fallback to our own enhanced detection
         return None
-    
-    def _generate_enhanced_explanation(self, result: LocationDetectionResult) -> str:
-        """Generate explanation for location detection result"""
-        method_explanations = {
-            'gps_coordinates': 'Detected from your device location',
-            'explicit_query': 'You mentioned this location in your message',
-            'proximity_inference': 'Inferred from nearby landmarks you mentioned',
-            'natural_language': 'Detected from location expressions in your message',
-            'backend_enhanced': 'Detected using enhanced location analysis',
-            'profile_location': 'Based on your location preferences',
-            'context_location': 'Inferred from conversation context'
-        }
-        
-        explanation = method_explanations.get(result.detection_method, 'Location detected')
-        if result.confidence < 0.7:
-            explanation += f" (confidence: {result.confidence:.0%})"
-        
-        return explanation
-    
-    def _update_learning_models(self, result: LocationDetectionResult):
-        """Update ML learning models with successful detection"""
-        # Placeholder for ML model updates
-        # In production, this would update user patterns and improve detection
-        pass
 
-    def detect_location(
-        self, 
-        user_input: str, 
-        user_profile: UserProfile, 
-        context: ConversationContext,
-        require_confidence: float = 0.3
-    ) -> LocationDetectionResult:
-        """
-        Intelligently detect user location from all available sources with ML enhancements
-        """
-        
-        # Step 1: Try backend integration first (leverages existing system)
-        backend_result = self._enhance_backend_detection_with_ml(user_input, user_profile, context)
-        if backend_result and backend_result.confidence >= require_confidence:
-            backend_result.explanation = self._generate_enhanced_explanation(backend_result)
-            self._update_learning_models(backend_result)
-            return backend_result
-        
-        # Step 2: Fallback to our own detection methods
-        detection_methods = [
-            self._detect_gps_location,                # Highest priority: GPS/device location
-            self._detect_natural_language_location,   # High priority: Natural language expressions
-            self._detect_explicit_location,           # High priority: Explicit mentions
-            self._detect_proximity_location,
-            self._detect_profile_location,
-            self._detect_context_location,
-            self._detect_history_location,
-            self._detect_favorite_location
-        ]
-        
-        candidates = []
-        detection_metadata = {
-            'methods_attempted': len(detection_methods),
-            'methods_successful': 0,
-            'enhancement_stages': []
-        }
-        
-        for method in detection_methods:
-            try:
-                result = method(user_input, user_profile, context)
-                if result and result.confidence >= require_confidence:
-                    candidates.append(result)
-                    detection_metadata['methods_successful'] += 1
-            except Exception as e:
-                self.logger.warning(f"Location detection method {method.__name__} failed: {e}")
-        
-        # If no candidates meet confidence threshold, try with lower threshold
-        if not candidates:
-            detection_metadata['fallback_attempted'] = True
-            for method in detection_methods:
-                try:
-                    result = method(user_input, user_profile, context)
-                    if result:
-                        candidates.append(result)
-                        detection_metadata['methods_successful'] += 1
-                except Exception as e:
-                    continue
-        
-        if not candidates:
-            return LocationDetectionResult(
-                location=None,
-                confidence=0.0,
-                detection_method='none',
-                fallback_locations=[],
-                metadata={
-                    'message': 'No location detected from any source',
-                    'detection_metadata': detection_metadata
-                }
-            )
-        
-        # Apply ML enhancements to candidates
-        original_candidate_count = len(candidates)
-        
-        # Stage 1: Apply semantic pattern matching
-        candidates = self._apply_semantic_pattern_matching(candidates, user_input)
-        detection_metadata['enhancement_stages'].append('semantic_patterns')
-        
-        # Stage 2: Apply temporal context
-        candidates = self._apply_temporal_context(candidates, user_input)
-        detection_metadata['enhancement_stages'].append('temporal_context')
-        
-        # Stage 3: Apply ML learning adjustments
-        candidates = self._apply_ml_learning_adjustments(candidates, user_input, context)
-        detection_metadata['enhancement_stages'].append('ml_learning')
-        
-        # Enhanced candidate selection with conflict resolution
-        best_candidate = self._select_best_candidate_with_conflict_resolution(candidates, user_input)
-        
-        # Enhance with fallback locations and alternative scores
-        fallback_locations = []
-        alternative_scores = {}
-        
-        for candidate in candidates:
-            if candidate.location != best_candidate.location:
-                fallback_locations.append(candidate.location)
-                alternative_scores[candidate.location] = candidate.confidence
-        
-        best_candidate.fallback_locations = fallback_locations[:3]  # Top 3 alternatives
-        best_candidate.alternative_scores = alternative_scores
-        
-        # Add detection metadata
-        best_candidate.metadata.update({
-            'detection_metadata': detection_metadata,
-            'original_candidates': original_candidate_count,
-            'final_candidates': len(candidates),
-            'enhancement_applied': len(detection_metadata['enhancement_stages']) > 0
-        })
-        
-        # Generate enhanced explanation
-        best_candidate.explanation = self._generate_enhanced_explanation(best_candidate)
-        
-        # Update learning models
-        self._update_learning_models(best_candidate)
-        
-        return best_candidate
+    def _semantic_similarity_detection(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Use sentence transformer for semantic similarity"""
+        try:
+            # Encode the user input
+            query_embedding = self.sentence_transformer.encode(user_input)
+            
+            # Compare with district descriptions
+            district_descriptions = self._get_district_descriptions()
+            best_district = None
+            best_similarity = 0.0
+            
+            for district, description in district_descriptions.items():
+                district_embedding = self.sentence_transformer.encode(description)
+                similarity = cosine_similarity([query_embedding], [district_embedding])[0][0]
+                
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_district = district
+            
+            if best_similarity > 0.3:  # Minimum similarity threshold
+                return LocationDetectionResult(
+                    location=best_district,
+                    confidence=min(best_similarity, 0.8),
+                    detection_method='semantic_similarity',
+                    fallback_locations=[],
+                    metadata={'similarity_score': best_similarity},
+                    explanation=f"Semantic similarity match (score: {best_similarity:.3f})"
+                )
+            
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Semantic similarity detection error: {e}")
+            return None
 
-    def _select_best_candidate_with_conflict_resolution(self, candidates: List[LocationDetectionResult], user_input: str) -> LocationDetectionResult:
-        """Enhanced candidate selection with conflict resolution"""
+    def _classical_ml_detection(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Use classical ML for location detection"""
+        # This would need training data - simplified implementation
+        return None
+
+    def _select_best_candidate(self, candidates: List[LocationDetectionResult]) -> LocationDetectionResult:
+        """Select the best candidate from multiple detection results"""
+        if not candidates:
+            return None
+        
         if len(candidates) == 1:
             return candidates[0]
         
-        # Sort by confidence first
-        candidates.sort(key=lambda x: x.confidence, reverse=True)
-        
-        # Check for conflicts between high-confidence candidates
-        top_candidate = candidates[0]
-        
-        # If there are multiple high-confidence candidates, apply tie-breaking rules
-        high_confidence_candidates = [c for c in candidates if c.confidence >= (top_candidate.confidence - 0.1)]
-        
-        if len(high_confidence_candidates) > 1:
-            # Tie-breaking rules in order of priority:
-            
-            # 1. Explicit mentions always win
-            explicit_candidates = [c for c in high_confidence_candidates if c.detection_method == 'explicit_query']
-            if explicit_candidates:
-                return explicit_candidates[0]
-            
-            # 2. GPS coordinates beat everything except explicit
-            gps_candidates = [c for c in high_confidence_candidates if c.detection_method == 'gps_coordinates']
-            if gps_candidates:
-                return gps_candidates[0]
-            
-            # 3. Recent proximity inference beats older methods
-            proximity_candidates = [c for c in high_confidence_candidates if c.detection_method == 'proximity_inference']
-            if proximity_candidates:
-                return proximity_candidates[0]
-            
-            # 4. Check for query context clues
-            query_boosted_candidate = self._apply_query_context_boost(high_confidence_candidates, user_input)
-            if query_boosted_candidate:
-                return query_boosted_candidate
-        
-        return top_candidate
-
-    def _apply_query_context_boost(self, candidates: List[LocationDetectionResult], user_input: str) -> Optional[LocationDetectionResult]:
-        """Apply query context to boost relevant candidates"""
-        user_input_lower = user_input.lower()
-        
-        # Context keywords that might favor certain districts
-        context_preferences = {
-            # Tourist-focused queries
-            'tourist': ['Sultanahmet', 'Taksim', 'Beyoğlu'],
-            'historic': ['Sultanahmet', 'Eminönü', 'Balat', 'Fener'],
-            'museum': ['Sultanahmet', 'Beyoğlu', 'Şişli'],
-            'palace': ['Sultanahmet', 'Beşiktaş'],
-            
-            # Nightlife and entertainment
-            'nightlife': ['Beyoğlu', 'Taksim', 'Kadıköy'],
-            'bar': ['Beyoğlu', 'Taksim', 'Kadıköy', 'Cihangir'],
-            'club': ['Beyoğlu', 'Taksim', 'Ortaköy'],
-            
-            # Shopping
-            'shopping': ['Beyoğlu', 'Şişli', 'Nişantaşı', 'Levent'],
-            'mall': ['Şişli', 'Levent', 'Beşiktaş'],
-            
-            # Food and dining
-            'seafood': ['Beşiktaş', 'Ortaköy', 'Arnavutköy', 'Bebek'],
-            'street food': ['Kadıköy', 'Eminönü', 'Beyoğlu'],
-            'fine dining': ['Nişantaşı', 'Beyoğlu', 'Beşiktaş'],
-            
-            # Local/authentic experiences
-            'local': ['Kadıköy', 'Balat', 'Fener', 'Cihangir'],
-            'authentic': ['Kadıköy', 'Balat', 'Fener'],
-            'neighborhood': ['Kadıköy', 'Cihangir', 'Moda']
+        # Sort by confidence and method priority
+        method_priority = {
+            'rule_based_explicit': 10,
+            'semantic_similarity': 8,
+            'backend_integration': 7,
+            'proximity_inference': 6,
+            'pattern_based': 5,
+            'classical_ml': 4
         }
         
-        # Check for context keywords in query
-        for keyword, preferred_districts in context_preferences.items():
-            if keyword in user_input_lower:
-                # Look for candidates in preferred districts
-                for candidate in candidates:
-                    if candidate.location in preferred_districts:
-                        # Boost confidence slightly
-                        candidate.confidence = min(0.95, candidate.confidence + 0.05)
-                        candidate.metadata['query_context_boost'] = keyword
-                        return candidate
+        def score_candidate(candidate):
+            method_score = method_priority.get(candidate.detection_method, 1)
+            return candidate.confidence * 0.7 + (method_score / 10) * 0.3
+        
+        best_candidate = max(candidates, key=score_candidate)
+        
+        # Combine information from other candidates
+        all_fallbacks = []
+        for candidate in candidates:
+            if candidate != best_candidate and candidate.location:
+                all_fallbacks.append(candidate.location)
+            all_fallbacks.extend(candidate.fallback_locations)
+        
+        # Remove duplicates and the main location
+        unique_fallbacks = []
+        for fallback in all_fallbacks:
+            if fallback != best_candidate.location and fallback not in unique_fallbacks:
+                unique_fallbacks.append(fallback)
+        
+        best_candidate.fallback_locations = unique_fallbacks[:3]  # Limit to top 3
+        return best_candidate
+
+    # Advanced ML/DL Detection Methods
+    
+    def detect_location_with_context(self, 
+                                   user_input: str, 
+                                   user_profile: UserProfile, 
+                                   context: ConversationContext,
+                                   gps_context: Optional[GPSContext] = None,
+                                   weather_context: Optional[WeatherContext] = None,
+                                   event_context: Optional[EventContext] = None) -> Optional[LocationDetectionResult]:
+        """
+        Advanced location detection with GPS, weather, and event awareness
+        """
+        try:
+            self.logger.info(f"🎯 Advanced context-aware location detection for: '{user_input[:50]}...'")
+            
+            # Apply typo correction first
+            corrected_input = self._apply_typo_corrections(user_input)
+            
+            # Multi-stage enhanced detection
+            candidates = []
+            
+            # Stage 1: GPS-aware detection
+            if gps_context and gps_context.user_location:
+                gps_result = self._gps_aware_detection(corrected_input, user_profile, context, gps_context)
+                if gps_result:
+                    candidates.append(gps_result)
+            
+            # Stage 2: Context-specific detection (restaurant, attraction, transportation)
+            context_result = self._context_specific_detection(corrected_input, user_profile, context)
+            if context_result:
+                candidates.append(context_result)
+            
+            # Stage 3: Weather-aware detection
+            if weather_context:
+                weather_result = self._weather_aware_detection(corrected_input, user_profile, context, weather_context)
+                if weather_result:
+                    candidates.append(weather_result)
+            
+            # Stage 4: Event-aware detection
+            if event_context:
+                event_result = self._event_aware_detection(corrected_input, user_profile, context, event_context)
+                if event_result:
+                    candidates.append(event_result)
+            
+            # Stage 5: Standard detection as fallback
+            standard_result = self.detect_location(corrected_input, user_profile, context)
+            if standard_result:
+                candidates.append(standard_result)
+            
+            # Select best candidate with enhanced scoring
+            if candidates:
+                best_result = self._select_best_candidate_enhanced(candidates, gps_context, weather_context, event_context)
+                self.logger.info(f"✅ Advanced location detected: {best_result.location} (confidence: {best_result.confidence:.3f})")
+                return best_result
+            else:
+                self.logger.info("❌ No location detected with advanced context")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"❌ Advanced location detection failed: {e}")
+            if self.ml_debug_mode:
+                import traceback
+                self.logger.debug(f"Advanced detection error traceback:\n{traceback.format_exc()}")
+            return None
+
+    def _apply_typo_corrections(self, user_input: str) -> str:
+        """Apply typo corrections to user input"""
+        corrected = user_input
+        user_input_lower = user_input.lower()
+        
+        for typo, correction in self.typo_corrections.items():
+            if typo in user_input_lower:
+                # Case-insensitive replacement
+                pattern = re.compile(re.escape(typo), re.IGNORECASE)
+                corrected = pattern.sub(correction, corrected)
+        
+        return corrected
+
+    def _gps_aware_detection(self, 
+                           user_input: str, 
+                           user_profile: UserProfile, 
+                           context: ConversationContext,
+                           gps_context: GPSContext) -> Optional[LocationDetectionResult]:
+        """GPS-aware location detection with proximity calculation"""
+        try:
+            user_lat, user_lng = gps_context.user_location
+            proximity_scores = {}
+            
+            # Calculate distances to all districts
+            for district, coords in self.district_coords.items():
+                try:
+                    # Use geopy for accurate distance calculation if available
+                    try:
+                        from geopy.distance import geodesic
+                        distance = geodesic((user_lat, user_lng), (coords['lat'], coords['lng'])).kilometers
+                    except ImportError:
+                        # Fallback to haversine calculation
+                        distance = self._calculate_haversine_distance(
+                            user_lat, user_lng, coords['lat'], coords['lng']
+                        )
+                    
+                    proximity_scores[district] = distance
+                except Exception as e:
+                    if self.ml_debug_mode:
+                        self.logger.debug(f"Distance calculation failed for {district}: {e}")
+                    continue
+            
+            # Find closest districts
+            if proximity_scores:
+                closest_district = min(proximity_scores.keys(), key=lambda x: proximity_scores[x])
+                closest_distance = proximity_scores[closest_district]
+                
+                # Determine proximity level
+                proximity_level = self._get_proximity_level(closest_distance)
+                
+                # Calculate confidence based on distance and GPS accuracy
+                base_confidence = max(0.1, 1.0 - (closest_distance / 10.0))  # Decreases with distance
+                gps_accuracy_factor = max(0.5, 1.0 - (gps_context.accuracy / 100.0)) if gps_context.accuracy else 0.8
+                confidence = base_confidence * gps_accuracy_factor
+                
+                # Check if user input mentions proximity
+                proximity_boost = self._check_proximity_keywords(user_input)
+                confidence = min(1.0, confidence + proximity_boost)
+                
+                if confidence > 0.3:  # Minimum threshold for GPS detection
+                    # Get nearby districts as fallbacks
+                    sorted_districts = sorted(proximity_scores.items(), key=lambda x: x[1])
+                    fallback_locations = [d[0] for d in sorted_districts[1:4]]  # Next 3 closest
+                    
+                    return LocationDetectionResult(
+                        location=closest_district,
+                        confidence=confidence,
+                        detection_method='gps_aware',
+                        fallback_locations=fallback_locations,
+                        metadata={
+                            'gps_location': gps_context.user_location,
+                            'proximity_scores': dict(sorted_districts[:5]),
+                            'proximity_level': proximity_level,
+                            'gps_accuracy': gps_context.accuracy
+                        },
+                        gps_distance=closest_distance,
+                        explanation=f"GPS location indicates {proximity_level} to {closest_district} ({closest_distance:.1f}km away)"
+                    )
+            
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"GPS-aware detection error: {e}")
+            return None
+
+    def _context_specific_detection(self, 
+                                  user_input: str, 
+                                  user_profile: UserProfile, 
+                                  context: ConversationContext) -> Optional[LocationDetectionResult]:
+        """Context-specific detection for restaurants, attractions, and transportation"""
+        try:
+            user_input_lower = user_input.lower()
+            
+            # Restaurant context detection
+            restaurant_result = self._detect_restaurant_context(user_input_lower)
+            if restaurant_result:
+                return restaurant_result
+            
+            # Attraction context detection
+            attraction_result = self._detect_attraction_context(user_input_lower)
+            if attraction_result:
+                return attraction_result
+            
+            # Transportation context detection
+            transportation_result = self._detect_transportation_context(user_input_lower)
+            if transportation_result:
+                return transportation_result
+            
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Context-specific detection error: {e}")
+            return None
+
+    def _detect_restaurant_context(self, user_input_lower: str) -> Optional[LocationDetectionResult]:
+        """Detect restaurant-related location context"""
+        best_match = None
+        best_score = 0.0
+        
+        # Check cuisine patterns
+        for cuisine, pattern in self.cuisine_patterns.items():
+            score = 0.0
+            matched_keywords = []
+            
+            for keyword in pattern['keywords']:
+                if keyword in user_input_lower:
+                    score += 1.0
+                    matched_keywords.append(keyword)
+            
+            # Check dietary restrictions
+            for restriction, keywords in self.dietary_restrictions.items():
+                for keyword in keywords:
+                    if keyword in user_input_lower:
+                        score += 0.5
+                        matched_keywords.append(f"{restriction}:{keyword}")
+            
+            if matched_keywords:
+                normalized_score = (score / len(pattern['keywords'])) * pattern['confidence_boost']
+                
+                if normalized_score > best_score:
+                    best_score = normalized_score
+                    best_match = {
+                        'cuisine': cuisine,
+                        'pattern': pattern,
+                        'score': normalized_score,
+                        'keywords': matched_keywords
+                    }
+        
+        if best_match and best_score > 0.1:
+            location = best_match['pattern']['districts'][0]
+            return LocationDetectionResult(
+                location=location,
+                confidence=min(best_score, 0.8),
+                detection_method='restaurant_context',
+                fallback_locations=best_match['pattern']['districts'][1:],
+                metadata={
+                    'cuisine_type': best_match['cuisine'],
+                    'matched_keywords': best_match['keywords'],
+                    'context_type': 'restaurant'
+                },
+                context_match={'restaurant': best_score},
+                explanation=f"Restaurant context detected for {best_match['cuisine']} cuisine"
+            )
         
         return None
 
-    def _detect_explicit_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Detect explicitly mentioned location in user input"""
-        entities = self.entity_recognizer.extract_entities(user_input)
-        districts = entities.get('districts', [])
+    def _detect_attraction_context(self, user_input_lower: str) -> Optional[LocationDetectionResult]:
+        """Detect attraction-related location context"""
+        best_match = None
+        best_score = 0.0
         
-        if districts:
-            location = districts[0]
-            confidence = 0.95  # Very high confidence for explicit mentions
+        for category, pattern in self.attraction_categories.items():
+            score = 0.0
+            matched_keywords = []
+            
+            for keyword in pattern['keywords']:
+                if keyword in user_input_lower:
+                    score += 1.0
+                    matched_keywords.append(keyword)
+            
+            if matched_keywords:
+                # Check for family-friendly, romantic, or budget-friendly keywords
+                context_boost = 0.0
+                if any(word in user_input_lower for word in ['family', 'children', 'kids']):
+                    context_boost += 0.1
+                if any(word in user_input_lower for word in ['romantic', 'couple', 'date']):
+                    context_boost += 0.1
+                if any(word in user_input_lower for word in ['free', 'budget', 'cheap']):
+                    context_boost += 0.1
+                
+                normalized_score = (score / len(pattern['keywords'])) + context_boost
+                
+                if normalized_score > best_score:
+                    best_score = normalized_score
+                    best_match = {
+                        'category': category,
+                        'pattern': pattern,
+                        'score': normalized_score,
+                        'keywords': matched_keywords
+                    }
+        
+        if best_match and best_score > 0.1:
+            location = best_match['pattern']['districts'][0]
+            return LocationDetectionResult(
+                location=location,
+                confidence=min(best_score, 0.8),
+                detection_method='attraction_context',
+                fallback_locations=best_match['pattern']['districts'][1:],
+                metadata={
+                    'attraction_category': best_match['category'],
+                    'matched_keywords': best_match['keywords'],
+                    'weather_preference': best_match['pattern']['weather_preference'],
+                    'context_type': 'attraction'
+                },
+                context_match={'attraction': best_score},
+                explanation=f"Attraction context detected for {best_match['category']}"
+            )
+        
+        return None
+
+    def _detect_transportation_context(self, user_input_lower: str) -> Optional[LocationDetectionResult]:
+        """Detect transportation-related location context"""
+        best_match = None
+        best_score = 0.0
+        
+        for mode, pattern in self.transportation_modes.items():
+            score = 0.0
+            matched_keywords = []
+            
+            # Check for keyword matches
+            for keyword in pattern['keywords']:
+                if keyword.lower() in user_input_lower:
+                    score += 1.0
+                    matched_keywords.append(keyword)
+            
+            # Special handling for airport-related queries
+            if mode == 'bus' and any(term in user_input_lower for term in ['airport', 'havalimanı', 'transfer']):
+                score += 2.0  # Boost score for airport transfers
+                matched_keywords.append('airport_transfer')
+            
+            if matched_keywords:
+                # Use raw score instead of normalized to avoid penalizing modes with more keywords
+                if score > best_score:
+                    best_score = score
+                    best_match = {
+                        'mode': mode,
+                        'pattern': pattern,
+                        'score': score,
+                        'keywords': matched_keywords
+                    }
+        
+        if best_match and best_score > 0.5:  # Lower threshold for better detection
+            # Select appropriate district based on transportation mode
+            if best_match['mode'] == 'metro':
+                districts = best_match['pattern'].get('stations', ['Taksim', 'Şişli', 'Kadıköy'])
+            elif best_match['mode'] == 'ferry':
+                districts = best_match['pattern'].get('terminals', ['Eminönü', 'Karaköy', 'Üsküdar'])
+            elif best_match['mode'] == 'tram':
+                districts = best_match['pattern'].get('routes', ['Sultanahmet', 'Eminönü', 'Karaköy'])
+            elif best_match['mode'] == 'bus':
+                # For bus, prioritize central transportation hubs
+                districts = ['Taksim', 'Beyoğlu', 'Kadıköy', 'Üsküdar']
+            else:
+                districts = ['Taksim', 'Beyoğlu', 'Kadıköy']  # Central locations
+            
+            location = districts[0] if districts else 'Taksim'
+            
+            # Calculate confidence based on score and mode
+            confidence = min(best_score * 0.2, 0.8)  # Scale score to confidence
             
             return LocationDetectionResult(
                 location=location,
                 confidence=confidence,
-                detection_method='explicit_query',
-                fallback_locations=[],
+                detection_method='transportation_context',
+                fallback_locations=districts[1:3] if len(districts) > 1 else [],
                 metadata={
-                    'all_mentioned_districts': districts,
-                    'extraction_method': 'entity_recognition'
-                }
+                    'transport_mode': best_match['mode'],
+                    'matched_keywords': best_match['keywords'],
+                    'context_type': 'transportation'
+                },
+                context_match={'transportation': best_score},
+                explanation=f"Transportation context detected for {best_match['mode']}"
             )
         
         return None
 
-    def _detect_proximity_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Enhanced proximity detection with multiple location sources"""
-        user_input_lower = user_input.lower()
-        
-        # Enhanced proximity keywords with scoring
-        proximity_indicators = {
-            'nearby': 0.9, 'close by': 0.9, 'around here': 0.95, 'near me': 0.9,
-            'in the area': 0.8, 'walking distance': 0.85, 'local': 0.7,
-            'around': 0.7, 'close': 0.6, 'vicinity': 0.8, 'neighborhood': 0.8
-        }
-        
-        location_context_indicators = {
-            'where i am': 0.95, 'my location': 0.9, 'current area': 0.85,
-            'this area': 0.8, 'this neighborhood': 0.8, 'here in': 0.7,
-            'around my hotel': 0.85, 'near my accommodation': 0.85
-        }
-        
-        # Find the strongest proximity indicator
-        best_proximity_score = 0
-        best_indicator = None
-        
-        for indicator, score in proximity_indicators.items():
-            if indicator in user_input_lower and score > best_proximity_score:
-                best_proximity_score = score
-                best_indicator = indicator
-        
-        for indicator, score in location_context_indicators.items():
-            if indicator in user_input_lower and score > best_proximity_score:
-                best_proximity_score = score
-                best_indicator = indicator
-        
-        if best_proximity_score > 0:
-            # Try multiple location sources in order of preference
-            location_sources = [
-                ('recent_context', self._get_most_recent_location_from_context(context)),
-                ('profile_current', user_profile.current_location),
-                ('stored_context', context.get_context('current_detected_location')),
-                ('gps_derived', self._get_gps_derived_location(user_profile)),
-                ('favorite_primary', user_profile.favorite_neighborhoods[0] if user_profile.favorite_neighborhoods else None)
-            ]
+    def _weather_aware_detection(self, 
+                               user_input: str, 
+                               user_profile: UserProfile, 
+                               context: ConversationContext,
+                               weather_context: WeatherContext) -> Optional[LocationDetectionResult]:
+        """Weather-aware location detection"""
+        try:
+            weather_type = weather_context.weather_type
             
-            for source_type, location in location_sources:
-                if location:
-                    # Adjust confidence based on proximity strength and source reliability
-                    base_confidence = best_proximity_score
-                    
-                    # Source reliability adjustments
-                    source_adjustments = {
-                        'recent_context': 0.0,  # No adjustment - best source
-                        'profile_current': -0.1,  # Slight reduction
-                        'stored_context': -0.15,  # More reduction
-                        'gps_derived': -0.05,  # GPS is quite reliable
-                        'favorite_primary': -0.25  # Least reliable for proximity
-                    }
-                    
-                    confidence = max(0.3, base_confidence + source_adjustments.get(source_type, -0.2))
+            if weather_type in self.weather_patterns:
+                pattern = self.weather_patterns[weather_type]
+                
+                # Check if user input relates to weather-appropriate activities
+                activity_match = False
+                for activity in pattern['recommended_activities']:
+                    if activity in user_input.lower():
+                        activity_match = True
+                        break
+                
+                if activity_match:
+                    location = pattern['districts'][0]
+                    confidence = pattern['confidence_boost'] + 0.3  # Base confidence for weather match
                     
                     return LocationDetectionResult(
                         location=location,
-                        confidence=confidence,
-                        detection_method='proximity_inference',
-                        fallback_locations=[],
+                        confidence=min(confidence, 0.8),
+                        detection_method='weather_aware',
+                        fallback_locations=pattern['districts'][1:],
                         metadata={
-                            'proximity_indicator': best_indicator,
-                            'proximity_score': best_proximity_score,
-                            'location_source': source_type,
-                            'all_indicators': [kw for kw, score in proximity_indicators.items() if kw in user_input_lower] +
-                                            [phrase for phrase, score in location_context_indicators.items() if phrase in user_input_lower]
-                        }
+                            'weather_type': weather_type,
+                            'temperature': weather_context.temperature,
+                            'precipitation': weather_context.precipitation,
+                            'recommended_activities': pattern['recommended_activities'],
+                            'context_type': 'weather'
+                        },
+                        context_match={'weather': confidence},
+                        explanation=f"Weather-appropriate recommendation for {weather_type} conditions"
                     )
-        
-        return None
-
-    def _get_gps_derived_location(self, user_profile: UserProfile) -> Optional[str]:
-        """Helper method to get GPS-derived location"""
-        if user_profile.gps_location:
-            return self._get_nearest_district_from_gps(user_profile.gps_location)
-        return None
-
-    def _detect_profile_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Detect location from user profile"""
-        if user_profile.current_location:
-            # Calculate confidence based on how recent the location update was
-            confidence = 0.7  # Base confidence for profile location
             
-            # Increase confidence if user hasn't moved recently
-            if hasattr(user_profile, 'location_last_updated'):
-                time_diff = datetime.now() - user_profile.location_last_updated
-                if time_diff < timedelta(hours=2):
-                    confidence = 0.8
-                elif time_diff < timedelta(hours=6):
-                    confidence = 0.7
-                else:
-                    confidence = 0.6
-            
-            return LocationDetectionResult(
-                location=user_profile.current_location,
-                confidence=confidence,
-                detection_method='user_profile',
-                fallback_locations=[],
-                metadata={
-                    'profile_location': user_profile.current_location,
-                    'location_source': 'current_location'
-                }
-            )
-        
-        return None
-
-    def _detect_context_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Enhanced context location detection with time decay and method tracking"""
-        stored_location = context.get_context('current_detected_location')
-        
-        if stored_location:
-            # Base confidence varies by original detection method
-            original_method = context.get_context('location_detection_method')
-            original_confidence = context.get_context('location_confidence', 0.6)
-            
-            # Base confidence from original detection method
-            method_confidence_map = {
-                'explicit_query': 0.8,  # High confidence for explicit mentions
-                'gps_coordinates': 0.75,  # High confidence for GPS
-                'proximity_inference': 0.65,  # Good confidence for proximity
-                'user_profile': 0.6,  # Medium confidence
-                'conversation_history': 0.55,  # Lower confidence
-                'favorite_neighborhood': 0.4,  # Lowest confidence
-                'context_memory': 0.5  # Recursive context
-            }
-            
-            base_confidence = method_confidence_map.get(original_method, 0.5)
-            
-            # Apply time decay if we can determine context age
-            context_age = len(context.conversation_history) - context.get_context('location_set_at_turn', len(context.conversation_history))
-            
-            if context_age > 0:
-                # Decay confidence over conversation turns
-                time_decay = max(0.3, 1.0 - (context_age * 0.1))  # 10% decay per turn, min 30%
-                base_confidence *= time_decay
-            
-            # Boost confidence if original was very reliable
-            if original_confidence and original_confidence > 0.8:
-                base_confidence *= 1.1
-            
-            confidence = min(0.85, base_confidence)  # Cap at 85%
-            
-            return LocationDetectionResult(
-                location=stored_location,
-                confidence=confidence,
-                detection_method='context_memory',
-                fallback_locations=[],
-                metadata={
-                    'context_location': stored_location,
-                    'original_method': original_method,
-                    'original_confidence': original_confidence,
-                    'context_age_turns': context_age,
-                    'time_decay_applied': context_age > 0
-                }
-            )
-        
-        return None
-
-    def _detect_history_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Detect location from conversation history with weighted analysis"""
-        weighted_locations = self._extract_locations_from_history_weighted(context.conversation_history)
-        
-        if weighted_locations:
-            best_location = self._select_best_location_from_history(weighted_locations)
-            if best_location:
-                # Confidence based on recency and frequency
-                confidence = min(0.65, len(weighted_locations) * 0.1 + 0.3)
-                
-                return LocationDetectionResult(
-                    location=best_location,
-                    confidence=confidence,
-                    detection_method='conversation_history',
-                    fallback_locations=[],
-                    metadata={
-                        'weighted_locations': weighted_locations,
-                        'selection_algorithm': 'frequency_recency_weighted'
-                    }
-                )
-        
-        return None
-
-    def _detect_favorite_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Detect location from user's favorite neighborhoods"""
-        if user_profile.favorite_neighborhoods:
-            selected_favorite = self._select_best_favorite_neighborhood(user_profile)
-            if selected_favorite:
-                confidence = 0.4  # Lower confidence for favorites
-                
-                return LocationDetectionResult(
-                    location=selected_favorite,
-                    confidence=confidence,
-                    detection_method='favorite_neighborhood',
-                    fallback_locations=user_profile.favorite_neighborhoods[1:3],  # Other favorites as fallbacks
-                    metadata={
-                        'all_favorites': user_profile.favorite_neighborhoods,
-                        'selection_criteria': 'user_type_aware'
-                    }
-                )
-        
-        return None
-
-    def _detect_gps_location(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> Optional[LocationDetectionResult]:
-        """Enhanced GPS location detection with automatic GPS and text parsing fallback"""
-        
-        # Method 1: Automatic GPS from user profile (most common)
-        if user_profile.gps_location:
-            lat, lng = user_profile.gps_location.get('lat'), user_profile.gps_location.get('lng')
-            accuracy = user_profile.gps_location.get('accuracy')  # GPS accuracy in meters
-            
-            if lat and lng:
-                return self._process_gps_coordinates(lat, lng, accuracy, 'automatic_gps', user_input)
-        
-        # Method 2: Parse coordinates from user text (fallback)
-        parsed_coords = self._extract_gps_coordinates_from_text(user_input)
-        if parsed_coords:
-            lat, lng = parsed_coords
-            return self._process_gps_coordinates(lat, lng, None, 'user_input_coordinates', user_input)
-        
-        # Method 3: Extract location from device/app mentions
-        device_location = self._extract_location_from_device_info(user_input)
-        if device_location:
-            return LocationDetectionResult(
-                location=device_location,
-                confidence=0.75,  # High confidence for device-reported locations
-                detection_method='device_location_service',
-                fallback_locations=[],
-                metadata={
-                    'source': 'device_location_service',
-                    'detection_text': user_input,
-                    'extraction_method': 'device_info_parsing'
-                }
-            )
-        
-        return None
-
-    def _extract_gps_coordinates_from_text(self, user_input: str) -> Optional[Tuple[float, float]]:
-        """Extract GPS coordinates from user text input"""
-        # Pattern for decimal coordinates
-        coord_patterns = [
-            r'(?:gps|coordinates?|location)[:\s]*([+-]?\d+\.?\d*)[,\s]+([+-]?\d+\.?\d*)',
-            r'([+-]?\d{1,3}\.\d+)[,\s]+([+-]?\d{1,3}\.\d+)',
-            r'lat[:\s]*([+-]?\d+\.?\d*)[,\s]*lng?[:\s]*([+-]?\d+\.?\d*)',
-            r'latitude[:\s]*([+-]?\d+\.?\d*)[,\s]*longitude[:\s]*([+-]?\d+\.?\d*)',
-        ]
-        
-        for pattern in coord_patterns:
-            matches = re.finditer(pattern, user_input, re.IGNORECASE)
-            for match in matches:
-                try:
-                    lat, lng = float(match.group(1)), float(match.group(2))
-                    
-                    # Validate coordinates are in Istanbul area
-                    if 40.8 <= lat <= 41.2 and 28.7 <= lng <= 29.3:
-                        return (lat, lng)
-                        
-                except (ValueError, IndexError):
-                    continue
-        
-        return None
-
-    def _extract_location_from_device_info(self, user_input: str) -> Optional[str]:
-        """Extract location from device/app mentions"""
-        user_input_lower = user_input.lower()
-        
-        # Device/app location patterns
-        device_patterns = [
-            r'google maps says?\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-            r'my phone shows?\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-            r'gps shows?\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-            r'location services?\s+(?:shows?|says?)\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-            r'according to my phone\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-            r'my device says?\s+(?:i\'?m\s+)?(?:in|at|near)\s+(\w+)',
-        ]
-        
-        for pattern in device_patterns:
-            matches = re.finditer(pattern, user_input_lower, re.IGNORECASE)
-            for match in matches:
-                potential_location = match.group(1).title()
-                validated_district = self._validate_and_normalize_district(potential_location)
-                if validated_district:
-                    return validated_district
-        
-        return None
-
-    def _get_most_recent_location_from_context(self, context: ConversationContext) -> Optional[str]:
-        """Get the most recently mentioned location from conversation context"""
-        # Check last 5 interactions for location mentions
-        recent_history = context.conversation_history[-5:] if len(context.conversation_history) > 5 else context.conversation_history
-        
-        for interaction in reversed(recent_history):  # Start from most recent
-            user_input = interaction.get('user_input', '')
-            system_response = interaction.get('system_response', '')
-            
-            # Check user input first
-            entities = self.entity_recognizer.extract_entities(user_input)
-            districts = entities.get('districts', [])
-            if districts:
-                return districts[0]
-            
-            # Check system response for location patterns
-            for district in self.district_coords.keys():
-                if district.lower() in system_response.lower():
-                    return district
-        
-        return None
-
-    def _extract_locations_from_history_weighted(self, conversation_history: List[Dict]) -> List[Dict]:
-        """Extract locations from history with enhanced recency and context weighting"""
-        weighted_locations = []
-        # Look at last 15 interactions with more sophisticated weighting
-        recent_history = conversation_history[-15:] if len(conversation_history) > 15 else conversation_history
-        
-        for i, interaction in enumerate(reversed(recent_history)):
-            # Enhanced recency weight - more aggressive decay for older interactions
-            base_weight = max(0.1, 1.0 - (i * 0.08))  # Slower decay, minimum weight
-            
-            # Boost weight for very recent interactions (last 3)
-            if i < 3:
-                base_weight *= 1.2
-            
-            user_input = interaction.get('user_input', '')
-            system_response = interaction.get('system_response', '')
-            
-            # Check for explicit user location mentions (higher weight)
-            entities = self.entity_recognizer.extract_entities(user_input)
-            districts = entities.get('districts', [])
-            for district in districts:
-                # Higher weight for explicit user mentions
-                explicit_weight = base_weight * 1.3
-                
-                # Extra boost if it's a location-focused query
-                if any(keyword in user_input.lower() for keyword in ['in', 'at', 'near', 'around', 'from']):
-                    explicit_weight *= 1.2
-                
-                weighted_locations.append({
-                    'location': district,
-                    'weight': explicit_weight,
-                    'source': 'user_explicit',
-                    'interaction_index': len(recent_history) - i - 1,
-                    'context_type': 'location_query' if any(word in user_input.lower() for word in ['where', 'restaurant', 'food', 'eat']) else 'general'
-                })
-            
-            # Check system response for location context (lower weight)
-            for district in self.district_coords.keys():
-                if district.lower() in system_response.lower():
-                    context_weight = base_weight * 0.7
-                    weighted_locations.append({
-                        'location': district,
-                        'weight': context_weight,
-                        'source': 'system_context',
-                        'interaction_index': len(recent_history) - i - 1,
-                        'context_type': 'recommendation_context' if any(word in system_response.lower() for word in ['recommend', 'suggest', 'try']) else 'general'
-                    })
-        
-        return weighted_locations
-
-    def _select_best_location_from_history(self, weighted_locations: List[Dict]) -> Optional[str]:
-        """Enhanced location selection with better scoring algorithm"""
-        if not weighted_locations:
             return None
-        
-        # Advanced scoring algorithm
-        location_scores = {}
-        
-        for loc_data in weighted_locations:
-            location = loc_data['location']
-            weight = loc_data['weight']
-            source = loc_data['source']
-            context_type = loc_data.get('context_type', 'general')
             
-            if location not in location_scores:
-                location_scores[location] = {
-                    'total_weight': 0,
-                    'explicit_mentions': 0,
-                    'system_mentions': 0,
-                    'most_recent_index': -1,
-                    'context_scores': [],
-                    'source_diversity': set()
-                }
-            
-            score_data = location_scores[location]
-            score_data['total_weight'] += weight
-            score_data['most_recent_index'] = max(score_data['most_recent_index'], loc_data['interaction_index'])
-            score_data['source_diversity'].add(source)
-            
-            # Track mention types
-            if source == 'user_explicit':
-                score_data['explicit_mentions'] += 1
-            elif source == 'system_context':
-                score_data['system_mentions'] += 1
-            
-            # Context type scoring
-            if context_type == 'location_query':
-                score_data['context_scores'].append(0.3)
-            elif context_type == 'recommendation_context':
-                score_data['context_scores'].append(0.2)
-            else:
-                score_data['context_scores'].append(0.1)
-        
-        # Calculate final scores with sophisticated algorithm
-        best_location = None
-        best_score = 0
-        
-        for location, score_data in location_scores.items():
-            # Base score from weighted mentions
-            base_score = score_data['total_weight']
-            
-            # Recency bonus (exponential decay)
-            recency_bonus = min(1.0, score_data['most_recent_index'] * 0.15)
-            
-            # Explicit mention bonus (user explicitly mentioned this location)
-            explicit_bonus = score_data['explicit_mentions'] * 0.3
-            
-            # Context relevance bonus
-            context_bonus = sum(score_data['context_scores']) * 0.1
-            
-            # Source diversity bonus (mentioned in different contexts)
-            diversity_bonus = len(score_data['source_diversity']) * 0.1
-            
-            # Frequency bonus with diminishing returns
-            frequency_bonus = min(0.5, (score_data['explicit_mentions'] + score_data['system_mentions']) * 0.15)
-            
-            combined_score = (
-                base_score +
-                recency_bonus +
-                explicit_bonus +
-                context_bonus +
-                diversity_bonus +
-                frequency_bonus
-            )
-            
-            if combined_score > best_score:
-                best_score = combined_score
-                best_location = location
-        
-        return best_location
-
-    def _select_best_favorite_neighborhood(self, user_profile: UserProfile) -> Optional[str]:
-        """Select the best favorite neighborhood based on user preferences"""
-        if not user_profile.favorite_neighborhoods:
-            return None
-        
-        primary_favorite = user_profile.favorite_neighborhoods[0]
-        
-        # Add intelligence based on user type if available
-        if hasattr(user_profile, 'user_type') and user_profile.user_type:
-            if user_profile.user_type == 'tourist' and primary_favorite in ['Kadıköy', 'Cihangir']:
-                # Tourists might prefer more central areas
-                tourist_preferred = ['Sultanahmet', 'Beyoğlu', 'Taksim']
-                for pref in user_profile.favorite_neighborhoods:
-                    if pref in tourist_preferred:
-                        return pref
-        
-        return primary_favorite
-
-    def _get_nearest_district_from_gps(self, gps_coords: Dict[str, float]) -> Optional[str]:
-        """Determine nearest district from GPS coordinates with improved accuracy and caching"""
-        lat, lng = gps_coords.get('lat'), gps_coords.get('lng')
-        if not lat or not lng:
-            return None
-        
-        # Create cache key for GPS coordinates (rounded to reduce cache size)
-        cache_key = f"gps:{round(lat, 6)}:{round(lng, 6)}"
-        
-        # Check cache first
-        if cache_key in self._distance_cache:
-            return self._distance_cache[cache_key]
-        
-        # Calculate distances to all districts
-        district_distances = self._calculate_all_district_distances(lat, lng, use_haversine=True)
-        
-        # Find nearest district
-        nearest_district = min(district_distances.items(), key=lambda x: x[1])[0] if district_distances else None
-        
-        # Cache the result with management
-        self._manage_distance_cache()
-        self._distance_cache[cache_key] = nearest_district
-        
-        return nearest_district
-
-    def _calculate_all_district_distances(self, lat: float, lng: float, use_haversine: bool = False) -> Dict[str, float]:
-        """Calculate distances from coordinates to all districts"""
-        distances = {}
-        
-        for district, coords in self.district_coords.items():
-            if use_haversine:
-                # More accurate distance calculation
-                distance = self._haversine_distance(
-                    lat, lng, coords['lat'], coords['lng']
-                )
-            else:
-                # Simple Euclidean distance
-                distance = ((lat - coords['lat'])**2 + (lng - coords['lng'])**2)**0.5
-            
-            distances[district] = distance
-        
-        return distances
-
-    def _haversine_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-        """Calculate the great circle distance between two points on earth"""
-        # Convert decimal degrees to radians
-        lat1, lng1, lat2, lng2 = map(math.radians, [lat1, lng1, lat2, lng2])
-        
-        # Haversine formula
-        dlat = lat2 - lat1
-        dlng = lng2 - lng1
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng/2)**2
-        c = 2 * math.asin(math.sqrt(a))
-        
-        # Radius of earth in kilometers
-        r = 6371
-        
-        return c * r
-
-    def _manage_distance_cache(self):
-        """Manage cache size to prevent memory issues"""
-        if len(self._distance_cache) >= self._cache_max_size:
-            # Remove oldest 20% of entries
-            cache_items = list(self._distance_cache.items())
-            keep_count = int(self._cache_max_size * 0.8)
-            self._distance_cache = dict(cache_items[-keep_count:])
-
-    # Additional ML/DL methods for continuous learning and model improvement
-    def update_user_feedback(self, result: LocationDetectionResult, is_correct: bool):
-        """Update models based on user feedback"""
-        if result.location:
-            # Update success rates
-            method_stats = self.method_success_rates[result.detection_method]
-            method_stats['total'] += 1
-            if is_correct:
-                method_stats['correct'] += 1
-            
-            # Update location frequency model
-            feedback_weight = 0.1 if is_correct else -0.05
-            self.location_frequency_model[result.location] += feedback_weight
-            
-            # Update learning models if ML is available
-            if ML_AVAILABLE:
-                self._update_neural_models_with_feedback(result, is_correct)
-
-    def _update_neural_models_with_feedback(self, result: LocationDetectionResult, is_correct: bool):
-        """Update neural network models with user feedback"""
-        try:
-            # This would involve retraining or fine-tuning the models
-            # For now, we'll just update the performance metrics
-            if 'ml_enhanced' in result.detection_method:
-                current_accuracy = self.model_performance_metrics['neural_network']['accuracy']
-                # Simple running average update
-                self.model_performance_metrics['neural_network']['accuracy'] = (
-                    current_accuracy * 0.9 + (1.0 if is_correct else 0.0) * 0.1
-                )
         except Exception as e:
-            self.logger.warning(f"Neural model feedback update failed: {e}")
+            if self.ml_debug_mode:
+                self.logger.debug(f"Weather-aware detection error: {e}")
+            return None
 
-    def get_model_performance_report(self) -> Dict[str, Any]:
-        """Get comprehensive performance report of all detection methods"""
-        report = {
-            'detection_methods': {},
-            'ml_performance': self.model_performance_metrics,
-            'location_statistics': {
-                'most_detected': dict(self.district_popularity_scores.most_common(5)),
-                'highest_confidence': {},
-                'detection_success_rates': {}
+    def _event_aware_detection(self, 
+                             user_input: str, 
+                             user_profile: UserProfile, 
+                             context: ConversationContext,
+                             event_context: EventContext) -> Optional[LocationDetectionResult]:
+        """Event-aware location detection"""
+        try:
+            # Simple event-based detection (can be enhanced with real event data)
+            event_keywords = ['event', 'festival', 'concert', 'exhibition', 'show', 'performance']
+            
+            if any(keyword in user_input.lower() for keyword in event_keywords):
+                # Check current events for location relevance
+                event_districts = []
+                
+                for event in event_context.current_events:
+                    if 'location' in event:
+                        event_districts.append(event['location'])
+                
+                if event_districts:
+                    location = event_districts[0]
+                    return LocationDetectionResult(
+                        location=location,
+                        confidence=0.7,
+                        detection_method='event_aware',
+                        fallback_locations=event_districts[1:3],
+                        metadata={
+                            'current_events': event_context.current_events[:3],
+                            'context_type': 'event'
+                        },
+                        context_match={'event': 0.7},
+                        explanation=f"Event-based recommendation for current activities"
+                    )
+            
+            return None
+            
+        except Exception as e:
+            if self.ml_debug_mode:
+                self.logger.debug(f"Event-aware detection error: {e}")
+            return None
+
+    def _calculate_haversine_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+        """Calculate distance between two GPS coordinates using Haversine formula"""
+        R = 6371  # Earth's radius in kilometers
+        
+        dlat = math.radians(lat2 - lat1)
+        dlng = math.radians(lng2 - lng1)
+        
+        a = (math.sin(dlat / 2) ** 2 + 
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
+             math.sin(dlng / 2) ** 2)
+        
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R * c
+        
+        return distance
+
+    def _get_proximity_level(self, distance: float) -> str:
+        """Determine proximity level based on distance"""
+        if distance <= self.gps_proximity_thresholds['very_close']:
+            return 'very close'
+        elif distance <= self.gps_proximity_thresholds['close']:
+            return 'close'
+        elif distance <= self.gps_proximity_thresholds['nearby']:
+            return 'nearby'
+        elif distance <= self.gps_proximity_thresholds['moderate']:
+            return 'moderate distance'
+        else:
+            return 'far'
+
+    def _check_proximity_keywords(self, user_input: str) -> float:
+        """Check for proximity keywords and return confidence boost"""
+        user_input_lower = user_input.lower()
+        boost = 0.0
+        
+        for keyword, props in self.proximity_keywords.items():
+            if keyword in user_input_lower:
+                boost = max(boost, props['score'] * 0.2)  # Max 20% boost from proximity keywords
+        
+        return boost
+
+    def _select_best_candidate_enhanced(self, 
+                                      candidates: List[LocationDetectionResult],
+                                      gps_context: Optional[GPSContext] = None,
+                                      weather_context: Optional[WeatherContext] = None,
+                                      event_context: Optional[EventContext] = None) -> LocationDetectionResult:
+        """Enhanced candidate selection with contextual scoring"""
+        if not candidates:
+            return None
+        
+        if len(candidates) == 1:
+            return candidates[0]
+        
+        # Enhanced method priority with context awareness
+        method_priority = {
+            'gps_aware': 12,
+            'restaurant_context': 10,
+            'attraction_context': 10,
+            'transportation_context': 9,
+            'weather_aware': 8,
+            'event_aware': 8,
+            'rule_based_explicit': 7,
+            'semantic_similarity': 6,
+            'backend_integration': 5,
+            'proximity_inference': 4,
+            'pattern_based': 3,
+            'classical_ml': 2
+        }
+        
+        def score_candidate_enhanced(candidate):
+            base_score = candidate.confidence * 0.6
+            method_score = (method_priority.get(candidate.detection_method, 1) / 12) * 0.3
+            
+            # Context bonuses
+            context_bonus = 0.0
+            if gps_context and candidate.gps_distance is not None:
+                # Bonus for GPS accuracy
+                distance_bonus = max(0, (5.0 - candidate.gps_distance) / 5.0) * 0.1
+                context_bonus += distance_bonus
+            
+            if weather_context and 'weather' in candidate.context_match:
+                context_bonus += candidate.context_match['weather'] * 0.05
+            
+            if event_context and 'event' in candidate.context_match:
+                context_bonus += candidate.context_match['event'] * 0.05
+            
+            return base_score + method_score + context_bonus
+        
+        best_candidate = max(candidates, key=score_candidate_enhanced)
+        
+        # Enhanced fallback combination
+        all_fallbacks = []
+        context_scores = {}
+        
+        for candidate in candidates:
+            if candidate != best_candidate and candidate.location:
+                all_fallbacks.append(candidate.location)
+                if candidate.context_match:
+                    context_scores.update(candidate.context_match)
+            all_fallbacks.extend(candidate.fallback_locations)
+        
+        # Remove duplicates while preserving order
+        unique_fallbacks = []
+        for fallback in all_fallbacks:
+            if fallback != best_candidate.location and fallback not in unique_fallbacks:
+                unique_fallbacks.append(fallback)
+        
+        best_candidate.fallback_locations = unique_fallbacks[:3]
+        
+        # Combine context matches
+        if context_scores:
+            best_candidate.context_match.update(context_scores)
+        
+        return best_candidate
+
+    def _initialize_advanced_patterns(self):
+        """Initialize advanced context-aware detection patterns"""
+        # Advanced context-aware detection patterns
+        self.cuisine_patterns = {
+            'turkish': {
+                'keywords': ['kebab', 'döner', 'baklava', 'turkish delight', 'meze', 'raki', 'köfte'],
+                'districts': ['Sultanahmet', 'Eminönü', 'Beyoğlu', 'Üsküdar'],
+                'confidence_boost': 0.15
+            },
+            'seafood': {
+                'keywords': ['fish', 'seafood', 'mussels', 'sea bass', 'anchovy', 'balık'],
+                'districts': ['Ortaköy', 'Bebek', 'Arnavutköy', 'Kadıköy', 'Bostancı'],
+                'confidence_boost': 0.12
+            },
+            'international': {
+                'keywords': ['italian', 'french', 'japanese', 'chinese', 'indian', 'mexican'],
+                'districts': ['Beyoğlu', 'Nişantaşı', 'Levent', 'Cihangir'],
+                'confidence_boost': 0.10
+            },
+            'vegetarian': {
+                'keywords': ['vegetarian', 'vegan', 'plant-based', 'healthy', 'organic'],
+                'districts': ['Kadıköy', 'Cihangir', 'Moda', 'Beyoğlu'],
+                'confidence_boost': 0.09
             }
         }
         
-        # Calculate success rates for each detection method
-        for method, stats in self.method_success_rates.items():
-            if stats['total'] > 0:
-                success_rate = stats['correct'] / stats['total']
-                report['detection_methods'][method] = {
-                    'success_rate': success_rate,
-                    'total_attempts': stats['total'],
-                    'correct_detections': stats['correct']
-                }
-        
-        # Calculate average confidence for each location
-        for location, confidences in self.location_confidence_history.items():
-            if confidences:
-                report['location_statistics']['highest_confidence'][location] = {
-                    'average': sum(confidences) / len(confidences),
-                    'max': max(confidences),
-                    'count': len(confidences)
-                }
-        
-        return report
-
-    def _integrate_with_backend_detector(self):
-        """Integrate with the backend location detector to avoid duplication"""
-        try:
-            # Import the backend detector
-            from backend.services.intelligent_location_detector import IntelligentLocationDetector as BackendDetector
-            self.backend_detector = BackendDetector()
-            self.logger.info("Backend location detector integrated successfully")
-        except ImportError as e:
-            self.logger.warning(f"Backend detector not available: {e}")
-            self.backend_detector = None
-
-    def _calculate_pattern_weights(self):
-        """Calculate pattern weights for location detection"""
-        # Initialize basic pattern weights
-        weights = {
-            'explicit_location': 1.0,
-            'neighborhood_mention': 0.8,
-            'landmark_mention': 0.7,
-            'user_history': 0.6,
-            'context_inference': 0.5,
-            'semantic_similarity': 0.4,
+        # Dietary restrictions mapping
+        self.dietary_restrictions = {
+            'vegetarian': ['vegetarian', 'veggie', 'no meat'],
+            'vegan': ['vegan', 'plant-based', 'no animal products'],
+            'halal': ['halal', 'islamic', 'no pork', 'no alcohol'],
+            'kosher': ['kosher', 'jewish', 'kosher food'],
+            'gluten-free': ['gluten-free', 'celiac', 'no gluten', 'gf'],
+            'dairy-free': ['dairy-free', 'lactose-free', 'no dairy'],
+            'nut-free': ['nut-free', 'no nuts', 'allergy']
         }
         
-        # Enhanced weights with ML if available
-        if ML_AVAILABLE:
-            weights.update({
-                'neural_network': 0.9,
-                'ensemble_prediction': 0.85,
-                'feature_engineering': 0.75,
-            })
+        # Attraction categories with ML-enhanced matching
+        self.attraction_categories = {
+            'museums': {
+                'keywords': ['museum', 'gallery', 'art', 'exhibition', 'collection'],
+                'districts': ['Sultanahmet', 'Beyoğlu', 'Beşiktaş', 'Karaköy'],
+                'weather_preference': 'indoor'
+            },
+            'monuments': {
+                'keywords': ['monument', 'historic', 'ancient', 'heritage', 'landmark'],
+                'districts': ['Sultanahmet', 'Eminönü', 'Galata', 'Balat'],
+                'weather_preference': 'outdoor'
+            },
+            'parks': {
+                'keywords': ['park', 'garden', 'green', 'nature', 'outdoor'],
+                'districts': ['Beşiktaş', 'Üsküdar', 'Kadıköy', 'Sultanahmet'],
+                'weather_preference': 'outdoor'
+            },
+            'religious': {
+                'keywords': ['mosque', 'church', 'synagogue', 'religious', 'spiritual'],
+                'districts': ['Sultanahmet', 'Eminönü', 'Üsküdar', 'Balat', 'Fener'],
+                'weather_preference': 'indoor'
+            }
+        }
         
-        return weights
+        # Transportation mode mapping with ML integration
+        self.transportation_modes = {
+            'metro': {
+                'keywords': ['metro', 'subway', 'underground', 'M1', 'M2', 'M3', 'M4'],
+                'stations': ['Taksim', 'Şişli', 'Levent', 'Kadıköy', 'Üsküdar'],
+                'accessibility': True
+            },
+            'bus': {
+                'keywords': ['bus', 'otobüs', 'public transport', 'city bus'],
+                'coverage': 'citywide',
+                'accessibility': 'limited'
+            },
+            'ferry': {
+                'keywords': ['ferry', 'boat', 'vapur', 'sea transport', 'maritime'],
+                'terminals': ['Eminönü', 'Karaköy', 'Üsküdar', 'Kadıköy', 'Beşiktaş'],
+                'scenic': True
+            },
+            'tram': {
+                'keywords': ['tram', 'tramvay', 'T1', 'light rail'],
+                'routes': ['Sultanahmet', 'Eminönü', 'Karaköy', 'Kabataş'],
+                'tourist_friendly': True
+            },
+            'walking': {
+                'keywords': ['walk', 'walking', 'on foot', 'pedestrian'],
+                'benefits': ['exercise', 'sightseeing', 'free'],
+                'weather_dependent': True
+            }
+        }
+        
+        # Weather-aware recommendation patterns
+        self.weather_patterns = {
+            'sunny': {
+                'recommended_activities': ['outdoor', 'walking', 'parks', 'waterfront'],
+                'districts': ['Ortaköy', 'Bebek', 'Sultanahmet', 'Kadıköy'],
+                'confidence_boost': 0.12
+            },
+            'rainy': {
+                'recommended_activities': ['indoor', 'museums', 'shopping', 'cafes'],
+                'districts': ['Beyoğlu', 'Nişantaşı', 'Şişli', 'Levent'],
+                'confidence_boost': 0.10
+            },
+            'cold': {
+                'recommended_activities': ['indoor', 'museums', 'shopping', 'warm food'],
+                'districts': ['Sultanahmet', 'Beyoğlu', 'Nişantaşı'],
+                'confidence_boost': 0.08
+            },
+            'hot': {
+                'recommended_activities': ['waterfront', 'parks', 'air-conditioned'],
+                'districts': ['Ortaköy', 'Bebek', 'Arnavutköy', 'Beşiktaş'],
+                'confidence_boost': 0.09
+            }
+        }
+        
+        # GPS-aware proximity calculations
+        self.gps_proximity_thresholds = {
+            'very_close': 0.5,  # km
+            'close': 1.0,       # km
+            'nearby': 2.0,      # km
+            'moderate': 5.0,    # km
+            'far': 10.0         # km
+        }
+        
+        # Typo correction patterns for common misspellings
+        self.typo_corrections = {
+            # Districts
+            'sultanhamet': 'Sultanahmet',
+            'beyolu': 'Beyoğlu',
+            'beyoglu': 'Beyoğlu',
+            'taksim': 'Taksim',
+            'kadikoy': 'Kadıköy',
+            'kadikoy': 'Kadıköy',
+            'besiktas': 'Beşiktaş',
+            'besiktas': 'Beşiktaş',
+            'nisantasi': 'Nişantaşı',
+            'nisantasi': 'Nişantaşı',
+            'ortakoy': 'Ortaköy',
+            'ortakoy': 'Ortaköy',
+            'uskudar': 'Üsküdar',
+            'uskudar': 'Üsküdar',
+            'eminonu': 'Eminönü',
+            'eminonu': 'Eminönü',
+            'sisli': 'Şişli',
+            'sisli': 'Şişli',
+            
+            # Food types
+            'kebab': 'kebap',
+            'doner': 'döner',
+            'baklava': 'baklava',
+            'turkish delight': 'lokum',
+            'raki': 'rakı',
+            'kofte': 'köfte',
+            'pide': 'pide',
+            'lahmacun': 'lahmacun',
+            
+            # Common terms
+            'bosphorus': 'Bosphorus',
+            'bosporus': 'Bosphorus',
+            'galata': 'Galata',
+            'hagia sophia': 'Hagia Sophia',
+            'blue mosque': 'Blue Mosque',
+            'grand bazaar': 'Grand Bazaar',
+            'spice bazaar': 'Spice Bazaar'
+        }

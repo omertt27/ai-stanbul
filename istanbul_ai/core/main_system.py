@@ -100,6 +100,17 @@ class IstanbulDailyTalkAI:
             self.location_detector = None
             self.gps_service = None
             self.advanced_services_available = False
+        
+        # Initialize multi-intent query handler
+        try:
+            from multi_intent_query_handler import MultiIntentQueryHandler
+            self.multi_intent_handler = MultiIntentQueryHandler()
+            self.multi_intent_available = True
+            logger.info("✅ Multi-Intent Query Handler loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ Multi-Intent Query Handler not available: {e}")
+            self.multi_intent_handler = None
+            self.multi_intent_available = False
 
     def get_or_create_user_profile(self, user_id: str) -> UserProfile:
         """Get or create user profile"""
@@ -119,7 +130,7 @@ class IstanbulDailyTalkAI:
 
     def process_message(self, user_input: str, user_id: str) -> str:
         """
-        Main message processing method - enhanced with better routing
+        Main message processing method - enhanced with multi-intent support
         """
         try:
             # Get user profile and context
@@ -127,17 +138,15 @@ class IstanbulDailyTalkAI:
             session_id = f"session_{user_id}"
             context = self.get_or_create_conversation_context(session_id, user_profile)
             
-            # Extract entities first
-            entities = self.entity_recognizer.extract_entities(user_input)
-            
-            # Use enhanced intent classification for better routing
-            primary_intent = self._enhance_intent_classification(user_input)
-            
-            # Process based on intent with improved routing
-            response = self._process_by_intent_enhanced(user_input, primary_intent, entities, user_profile)
+            # Use multi-intent handler if available for enhanced processing
+            if self.multi_intent_available and self.multi_intent_handler:
+                response = self._process_with_multi_intent(user_input, user_profile, context)
+            else:
+                # Fallback to traditional processing
+                response = self._process_traditional(user_input, user_profile, context)
             
             # Add to conversation history
-            context.add_interaction(user_input, response, primary_intent)
+            context.add_interaction(user_input, response, "processed")
             
             return response
             
@@ -1460,3 +1469,183 @@ What would you like to explore in Istanbul today?"""
                 nearest_district = district
         
         return nearest_district
+
+    def _process_with_multi_intent(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Process message using multi-intent handler with location detector integration"""
+        try:
+            # Create context for multi-intent handler
+            multi_intent_context = {
+                'user_id': user_profile.user_id,
+                'session_id': context.session_id,
+                'conversation_history': context.get_recent_interactions(5),
+                'user_preferences': user_profile.preferences,
+                'location': getattr(user_profile, 'current_location', None)
+            }
+            
+            # Analyze query with multi-intent handler
+            multi_intent_result = self.multi_intent_handler.analyze_query(user_input, multi_intent_context)
+            
+            logger.info(f"🎯 Multi-intent analysis: Primary={multi_intent_result.primary_intent.type.value}, "
+                       f"Secondary={[i.type.value for i in multi_intent_result.secondary_intents]}")
+            
+            # Process based on primary intent with location integration
+            if multi_intent_result.primary_intent.type.value in ['location_search', 'route_planning']:
+                return self._handle_location_intent(user_input, multi_intent_result, user_profile, context)
+            elif multi_intent_result.primary_intent.type.value == 'recommendation':
+                return self._handle_recommendation_intent(user_input, multi_intent_result, user_profile, context)
+            elif multi_intent_result.primary_intent.type.value == 'information_request':
+                return self._handle_information_intent(user_input, multi_intent_result, user_profile, context)
+            else:
+                # Handle other intents or use execution plan
+                return self._execute_multi_intent_plan(multi_intent_result, user_profile, context)
+            
+        except Exception as e:
+            logger.error(f"Multi-intent processing failed: {e}")
+            return self._process_traditional(user_input, user_profile, context)
+
+    def _handle_location_intent(self, user_input: str, multi_intent_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Handle location-related intents with intelligent location detection"""
+        
+        # Use intelligent location detector for enhanced location detection
+        if self.advanced_services_available and self.location_detector:
+            location_result = self.location_detector.detect_location(user_input, user_profile, context)
+            
+            if location_result:
+                # Update context with detected location
+                context.set_context('current_detected_location', location_result.location)
+                context.set_context('location_confidence', location_result.confidence)
+                context.set_context('detection_method', location_result.detection_method)
+                
+                # Check for transportation context
+                if hasattr(location_result, 'context_match') and location_result.context_match:
+                    if 'transportation' in location_result.context_match:
+                        return self._handle_transportation_query_enhanced(user_input, location_result, user_profile, context)
+                
+                # Handle regular location search
+                return self._handle_location_search_enhanced(user_input, location_result, user_profile, context)
+        
+        # Fallback to traditional location handling
+        entities = self.entity_recognizer.extract_entities(user_input)
+        return self._handle_restaurant_query(user_input, entities, user_profile, context)
+
+    def _handle_recommendation_intent(self, user_input: str, multi_intent_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Handle recommendation intents with location awareness"""
+        
+        # Detect location for recommendation context
+        detected_location = None
+        if self.advanced_services_available and self.location_detector:
+            location_result = self.location_detector.detect_location(user_input, user_profile, context)
+            if location_result:
+                detected_location = location_result.location
+        
+        # Extract entities for recommendation processing
+        entities = self.entity_recognizer.extract_entities(user_input)
+        
+        # Update entities with detected location if available
+        if detected_location and 'districts' not in entities:
+            entities['districts'] = [detected_location]
+        
+        # Process as enhanced restaurant query
+        return self._handle_restaurant_query(user_input, entities, user_profile, context)
+
+    def _handle_information_intent(self, user_input: str, multi_intent_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Handle information requests"""
+        
+        # Check if it's location-related information
+        if any(intent.type.value in ['location_search', 'route_planning'] for intent in multi_intent_result.secondary_intents):
+            return self._handle_location_intent(user_input, multi_intent_result, user_profile, context)
+        
+        # Handle general information requests
+        entities = self.entity_recognizer.extract_entities(user_input)
+        return self._handle_general_query(user_input, entities, user_profile)
+
+    def _execute_multi_intent_plan(self, multi_intent_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Execute the multi-intent execution plan"""
+        
+        # For now, return the generated response from multi-intent handler
+        if multi_intent_result.response_text:
+            return multi_intent_result.response_text
+        
+        # Fallback to processing primary intent
+        entities = self.entity_recognizer.extract_entities("")
+        return self._handle_general_query("", entities, user_profile)
+
+    def _handle_transportation_query_enhanced(self, user_input: str, location_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Enhanced transportation query handling with location context"""
+        
+        transportation_info = f"""🚇 **Transportation Information for {location_result.location}**
+
+📍 **Location**: {location_result.location}
+🎯 **Detection Method**: {location_result.detection_method}
+✨ **Confidence**: {location_result.confidence:.1%}
+
+🚊 **Transportation Options:**
+
+"""
+        
+        # Add transportation modes based on location
+        if location_result.location in ['Taksim', 'Şişli', 'Levent']:
+            transportation_info += """**Metro**: M2 Metro Line available
+**Bus**: Multiple bus routes
+**Taxi**: Readily available
+**Walking**: Central location, walkable to many areas
+
+"""
+        elif location_result.location in ['Sultanahmet', 'Eminönü']:
+            transportation_info += """**Tram**: T1 Tram Line
+**Ferry**: Ferry connections from Eminönü
+**Bus**: City bus connections
+**Walking**: Historic peninsula, many attractions walkable
+
+"""
+        elif location_result.location in ['Kadıköy', 'Üsküdar']:
+            transportation_info += """**Ferry**: Ferry connections to European side
+**Bus**: Extensive bus network
+**Metro**: Metro connections available
+**Taxi**: Available for cross-city travel
+
+"""
+        else:
+            transportation_info += """**Mixed Transportation**: Various options available
+**Bus**: City bus connections
+**Taxi**: Available throughout the city
+**Metro/Tram**: Check nearest stations
+
+"""
+        
+        transportation_info += """💡 **Tips:**
+• Use Istanbul transportation app for real-time schedules
+• Get an Istanbulkart for easy payment
+• Consider traffic when planning your route
+• Ferry connections offer scenic routes"""
+        
+        return transportation_info
+
+    def _handle_location_search_enhanced(self, user_input: str, location_result, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Enhanced location search with intelligent detection results"""
+        
+        # Build enhanced response with location detection metadata
+        entities = self.entity_recognizer.extract_entities(user_input)
+        entities['districts'] = [location_result.location]
+        
+        # Add location confidence to response
+        base_response = self._handle_restaurant_query(user_input, entities, user_profile, context)
+        
+        # Enhance with detection metadata
+        location_info = f"\n\n📍 **Location Detection**: {location_result.location} (confidence: {location_result.confidence:.1%})"
+        if location_result.fallback_locations:
+            location_info += f"\n🔄 **Alternative areas**: {', '.join(location_result.fallback_locations[:3])}"
+        
+        return base_response + location_info
+
+    def _process_traditional(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Traditional processing method as fallback"""
+        
+        # Extract entities first
+        entities = self.entity_recognizer.extract_entities(user_input)
+        
+        # Use enhanced intent classification for better routing
+        primary_intent = self._enhance_intent_classification(user_input)
+        
+        # Process based on intent with improved routing
+        return self._process_by_intent_enhanced(user_input, primary_intent, entities, user_profile)

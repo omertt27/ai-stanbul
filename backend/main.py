@@ -1962,26 +1962,47 @@ async def chat_with_istanbul_ai(
             intent = "general_conversation"
             confidence = 0.85
             suggestions = []
+            multi_intent_data = {}
             
             try:
-                # Use Istanbul Daily Talk AI's advanced intent classification
-                enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
-                intent = enhanced_intent
-                
-                # Generate contextual suggestions based on the AI's understanding
-                if enhanced_intent == 'events_query':
-                    suggestions = ["Show me tonight's events", "What cultural activities are available?", "Tell me about art exhibitions"]
-                elif enhanced_intent == 'restaurant_query':
-                    suggestions = ["Show me Turkish breakfast places", "What about seafood restaurants?", "Budget-friendly options nearby"]
-                elif enhanced_intent == 'attraction_query':
-                    suggestions = ["Plan a route to these places", "What are the opening hours?", "Transportation options"]
-                elif enhanced_intent == 'transportation_query':
-                    suggestions = ["How to get there by metro?", "What's the fastest route?", "Traffic conditions"]
+                # Use multi-intent handler if available for enhanced intent analysis
+                if ADVANCED_UNDERSTANDING_AVAILABLE and hasattr(istanbul_daily_talk_ai, 'multi_intent_handler') and istanbul_daily_talk_ai.multi_intent_handler:
+                    # Create context for multi-intent analysis
+                    multi_intent_context = {
+                        'user_id': user_id,
+                        'session_id': session_id,
+                        'detected_location': user_context.get('detected_location')
+                    }
+                    
+                    multi_intent_result = istanbul_daily_talk_ai.multi_intent_handler.analyze_query(user_input, multi_intent_context)
+                    
+                    # Extract primary intent
+                    intent = multi_intent_result.primary_intent.type.value
+                    confidence = multi_intent_result.primary_intent.confidence
+                    
+                    # Store multi-intent data for enhanced response
+                    multi_intent_data = {
+                        'primary_intent': intent,
+                        'secondary_intents': [i.type.value for i in multi_intent_result.secondary_intents],
+                        'query_complexity': multi_intent_result.query_complexity,
+                        'processing_strategy': multi_intent_result.processing_strategy
+                    }
+                    
+                    print(f"🎯 Multi-intent analysis: Primary={intent}, Secondary={multi_intent_data['secondary_intents']}, Confidence={confidence:.3f}")
+                    
+                    # Generate enhanced suggestions based on multi-intent analysis
+                    suggestions = self._generate_enhanced_suggestions(intent, multi_intent_result.secondary_intents, detected_location)
+                    
                 else:
-                    suggestions = ["Tell me about Istanbul attractions", "What events are happening?", "Recommend restaurants"]
+                    # Fallback to traditional intent classification
+                    enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
+                    intent = enhanced_intent
+                    suggestions = self._generate_traditional_suggestions(enhanced_intent)
                     
             except Exception as e:
                 print(f"⚠️ Intent classification error: {e}")
+                # Generate basic suggestions as fallback
+                suggestions = ["Tell me about Istanbul attractions", "What events are happening?", "Recommend restaurants"]
             
             # === PREPARE ENHANCED RESPONSE DATA ===
             nearby_events_data = []

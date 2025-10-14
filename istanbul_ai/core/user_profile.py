@@ -69,6 +69,9 @@ class UserProfile:
     recommendation_success_rate: float = 0.7
     profile_completeness: float = 0.3  # How much of the profile is filled out
 
+    # General preferences dictionary for compatibility
+    preferences: Dict[str, Any] = field(default_factory=dict)
+    
     def update_location(self, location: str, gps_coords: Optional[Dict[str, float]] = None, accuracy: Optional[float] = None):
         """Update user's current location"""
         self.current_location = location

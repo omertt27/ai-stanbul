@@ -43,6 +43,10 @@ class ConversationContext:
                 topics.append(interaction['detected_intent'])
         return topics
 
+    def get_recent_interactions(self, limit: int = 5) -> List[Dict]:
+        """Get recent conversation interactions"""
+        return self.conversation_history[-limit:] if self.conversation_history else []
+
     def set_context(self, key: str, value: Any):
         """Set context memory"""
         self.context_memory[key] = value
