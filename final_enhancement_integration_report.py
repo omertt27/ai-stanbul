@@ -66,7 +66,7 @@ def final_integration_validation():
             print(f"   Query: '{query}'")
             
             try:
-                response = daily_talk.process_message(f"validator_{i}", query)
+                response = daily_talk.process_message(query, f"validator_{i}")
                 
                 # Analyze enhancement features
                 features_found = []

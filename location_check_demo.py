@@ -49,7 +49,7 @@ def main():
             print("-" * 30)
             
             # Process location query without GPS
-            response = system.process_message(user_id, "Where am I?")
+            response = system.process_message("Where am I?", user_id)
             print("🤖 AI Response:")
             print(response)
             print()
@@ -99,7 +99,7 @@ def main():
                 
                 # Now check location with GPS
                 print("\n🤖 AI Response with GPS location:")
-                response = system.process_message(user_id, "Where am I now?")
+                response = system.process_message("Where am I now?", user_id)
                 print(response)
                 print()
             else:

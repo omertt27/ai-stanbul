@@ -1300,7 +1300,7 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
             print(f"🏛️ Using Istanbul Daily Talk AI (PRIMARY) with enhanced query detection for session: {session_id}")
             try:
                 # Process with Istanbul Daily Talk AI - it has its own query detection
-                ai_response = istanbul_daily_talk_ai.process_message(session_id, user_input)
+                ai_response = istanbul_daily_talk_ai.process_message(user_input, session_id)
                 
                 # Use Istanbul Daily Talk AI's internal query detection for restaurant enhancement
                 if RESTAURANT_SERVICE_ENABLED:
@@ -1629,7 +1629,7 @@ async def plan_route_from_gps_location(request: GPSRouteRequest):
             )
         else:
             # Fallback to regular message processing with location context
-            route_response = istanbul_daily_talk_ai.process_message(session_id, route_query)
+            route_response = istanbul_daily_talk_ai.process_message(route_query, session_id)
         
         # Extract nearby attractions (if route maker service is available)
         nearby_attractions = []
@@ -1715,7 +1715,7 @@ async def get_nearby_attractions(request: NearbyAttractionsRequest):
         
         if ISTANBUL_DAILY_TALK_AVAILABLE:
             # Get AI recommendations
-            ai_response = istanbul_daily_talk_ai.process_message(session_id, location_query)
+            ai_response = istanbul_daily_talk_ai.process_message(location_query, session_id)
             
             # Extract location information using entity recognizer
             entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(location_query)
@@ -1822,7 +1822,7 @@ async def optimize_route_from_gps(
         
         if ISTANBUL_DAILY_TALK_AVAILABLE:
             # Use Istanbul Daily Talk AI for route optimization
-            optimization_response = istanbul_daily_talk_ai.process_message(session_id, optimization_query)
+            optimization_response = istanbul_daily_talk_ai.process_message(optimization_query, session_id)
             
             # Try to extract optimized order from response
             optimized_waypoints = []
@@ -2281,7 +2281,7 @@ async def get_transportation_advice(request: TransportRequest):
                 transport_query = f"How to get from {request.from_location} to {request.to_location} using {request.transport_mode}"
                 
                 session_id = f"transport_{uuid.uuid4().hex[:8]}"
-                transport_response = istanbul_daily_talk_ai.process_message(session_id, transport_query)
+                transport_response = istanbul_daily_talk_ai.process_message(transport_query, session_id)
                 
                 # Parse response for structured data
                 recommendations = [
@@ -2383,7 +2383,7 @@ async def get_museum_recommendations(request: MuseumRequest):
                 
                 # Check if museum query handling is available
                 if istanbul_daily_talk_ai._is_museum_query(request.query):
-                    museum_response = istanbul_daily_talk_ai.process_message(session_id, request.query)
+                    museum_response = istanbul_daily_talk_ai.process_message(request.query, session_id)
                     
                     # Parse response for structured data
                     museums = [

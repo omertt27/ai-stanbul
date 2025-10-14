@@ -123,7 +123,7 @@ class EnhancedTransportationDemo:
         
         # Process the transportation query
         print("🧠 DEEP LEARNING ANALYSIS:")
-        response = self.ai_system.process_message(scenario['user_id'], scenario['query'])
+        response = self.ai_system.process_message(scenario['query'], scenario['user_id'])
         
         print(f"🤖 AI Response:")
         print(f"   {response}")

@@ -1,23 +1,22 @@
 """
 Istanbul AI System - Modular Architecture
-Refactored from the monolithic istanbul_daily_talk_system.py for better maintainability
+A comprehensive AI assistant for Istanbul tourism and local recommendations.
+Refactored from the monolithic istanbul_daily_talk_system.py for better maintainability.
 """
 
-# Maintain backward compatibility by importing the main class
-from .core.main_system import IstanbulDailyTalkAI
-from .core.user_profile import UserProfile
-from .core.conversation_context import ConversationContext
-from .core.entity_recognizer import IstanbulEntityRecognizer
-from .utils.constants import UserType, ConversationTone
+# Import main components from new modular structure
+from .main_system import IstanbulDailyTalkAI
+from .core.models import UserProfile, ConversationContext, ConversationTone, UserType
+from .core.entity_recognition import IstanbulEntityRecognizer
 
-# Export main classes for backward compatibility
+__version__ = "2.0.0"
 __all__ = [
-    'IstanbulDailyTalkAI',
-    'UserProfile', 
-    'UserType',
-    'ConversationContext',
-    'ConversationTone',
-    'IstanbulEntityRecognizer'
+    "IstanbulDailyTalkAI", 
+    "UserProfile", 
+    "ConversationContext", 
+    "ConversationTone", 
+    "UserType",
+    "IstanbulEntityRecognizer"
 ]
 
 __version__ = "2.0.0"

@@ -204,7 +204,7 @@ class IstanbulDistrictTestingSuite:
             # Measure response time
             start_time = time.time()
             try:
-                response = self.ai_system.process_message(user_id, query_data['query'])
+                response = self.ai_system.process_message(query_data['query'], user_id)
                 processing_time = time.time() - start_time
                 
                 # Analyze response

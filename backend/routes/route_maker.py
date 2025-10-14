@@ -187,10 +187,10 @@ async def generate_route(
             created_at=generated_route.created_at.isoformat() if generated_route.created_at else "",
             metadata={
                 "optimization_method": opt_method_used,
-                "districts_covered": getattr(route_maker, 'covered_districts', ['Unknown']),
+                "districts_covered": getattr(get_route_maker(), 'covered_districts', ['Unknown']),
                 "tsp_optimized": opt_method_used in ["tsp_exact", "tsp_heuristic"],
                 "num_attractions": num_attractions,
-                "primary_district": getattr(route_maker, 'primary_district', 'Unknown'),
+                "primary_district": getattr(get_route_maker(), 'primary_district', 'Unknown'),
                 "phase": "2_multi_stop_tsp"
             }
         )
@@ -863,8 +863,8 @@ async def get_districts_status():
     """Get current district coverage and routing capabilities"""
     try:
         status = {
-            "primary_district": getattr(route_maker, 'primary_district', 'Unknown'),
-            "available_districts": list(getattr(route_maker, 'available_districts', {}).keys()),
+            "primary_district": getattr(get_route_maker(), 'primary_district', 'Unknown'),
+            "available_districts": list(getattr(get_route_maker(), 'available_districts', {}).keys()),
             "graph_stats": {
                 "nodes": len(get_route_maker().graph.nodes) if get_route_maker().graph else 0,
                 "edges": len(get_route_maker().graph.edges) if get_route_maker().graph else 0
@@ -873,7 +873,7 @@ async def get_districts_status():
         }
         
         # Add stats for each available district
-        if hasattr(route_maker, 'available_districts'):
+        if hasattr(get_route_maker(), 'available_districts'):
             for name, graph in get_route_maker().available_districts.items():
                 status["district_stats"][name] = {
                     "nodes": len(graph.nodes),
@@ -905,7 +905,7 @@ async def switch_district(
                 }
             }
         else:
-            available = list(getattr(route_maker, 'available_districts', {}).keys())
+            available = list(getattr(get_route_maker(), 'available_districts', {}).keys())
             raise HTTPException(
                 status_code=400, 
                 detail=f"District '{district_name}' not available. Available: {available}"
