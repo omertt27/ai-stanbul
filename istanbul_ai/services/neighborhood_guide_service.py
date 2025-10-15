@@ -147,7 +147,7 @@ class NeighborhoodGuideService:
                 "nightlife": [
                     Recommendation(
                         name="Blackk",
-                        type="Night
+                        type="Nightclub",
                         description="Upscale nightclub with international DJs and sophisticated crowd",
                         address="Salhane Sk. No:1, Ortaköy",
                         opening_hours="23:00-06:00 (Thu-Sat)",
@@ -901,3 +901,113 @@ class NeighborhoodGuideService:
             "budget_estimate": district.budget_estimate,
             "safety_notes": district.safety_notes
         }
+    
+    def generate_comprehensive_guide(self, district_name: str, user_interests: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Generate a comprehensive guide tailored to user interests"""
+        district = self.get_district_guide(district_name)
+        if not district:
+            return {"error": f"District '{district_name}' not found"}
+        
+        guide = {
+            "district_name": district.name,
+            "character": {
+                "vibe": district.character.vibe,
+                "crowd": district.character.crowd,
+                "atmosphere": district.character.atmosphere,
+                "best_time": [time.value for time in district.character.best_time],
+                "local_saying": district.character.local_saying,
+                "insider_tip": district.character.insider_tip
+            },
+            "getting_there": district.getting_there,
+            "recommendations": {},
+            "walking_routes": district.walking_routes,
+            "local_customs": district.local_customs,
+            "practical_tips": district.practical_tips,
+            "avoid_when": district.avoid_when,
+            "budget_estimate": district.budget_estimate,
+            "safety_notes": district.safety_notes
+        }
+        
+        # Filter recommendations based on user interests if provided
+        if user_interests:
+            interest_keywords = [interest.lower() for interest in user_interests]
+            for category, recommendations in district.recommendations.items():
+                if any(keyword in category.lower() or 
+                      any(keyword in rec.type.lower() or keyword in rec.description.lower() 
+                          for rec in recommendations) 
+                      for keyword in interest_keywords):
+                    guide["recommendations"][category] = [
+                        {
+                            "name": rec.name,
+                            "type": rec.type,
+                            "description": rec.description,
+                            "address": rec.address,
+                            "opening_hours": rec.opening_hours,
+                            "insider_tip": rec.insider_tip,
+                            "local_favorite": rec.local_favorite,
+                            "tourist_friendly": rec.tourist_friendly
+                        } for rec in recommendations
+                    ]
+        else:
+            # Include all recommendations
+            for category, recommendations in district.recommendations.items():
+                guide["recommendations"][category] = [
+                    {
+                        "name": rec.name,
+                        "type": rec.type,
+                        "description": rec.description,
+                        "address": rec.address,
+                        "opening_hours": rec.opening_hours,
+                        "insider_tip": rec.insider_tip,
+                        "local_favorite": rec.local_favorite,
+                        "tourist_friendly": rec.tourist_friendly
+                    } for rec in recommendations
+                ]
+        
+        return guide
+    
+    def get_district_comparison(self, districts: List[str]) -> Dict[str, Any]:
+        """Compare multiple districts for decision making"""
+        comparison = {
+            "districts": {},
+            "summary": {
+                "best_for_nightlife": [],
+                "best_for_history": [],
+                "best_for_shopping": [],
+                "best_for_local_culture": [],
+                "most_tourist_friendly": [],
+                "budget_friendly": []
+            }
+        }
+        
+        for district_name in districts:
+            district = self.get_district_guide(district_name)
+            if district:
+                comparison["districts"][district.name] = {
+                    "type": district.district_type.value,
+                    "vibe": district.character.vibe,
+                    "best_time": [time.value for time in district.character.best_time],
+                    "crowd": district.character.crowd,
+                    "budget_estimate": district.budget_estimate,
+                    "categories": list(district.recommendations.keys())
+                }
+                
+                # Categorize for summary
+                if district.district_type in [DistrictType.NIGHTLIFE, DistrictType.TRENDY_CULTURAL]:
+                    comparison["summary"]["best_for_nightlife"].append(district.name)
+                if district.district_type == DistrictType.HISTORICAL:
+                    comparison["summary"]["best_for_history"].append(district.name)
+                if district.district_type == DistrictType.SHOPPING or "shopping" in district.recommendations:
+                    comparison["summary"]["best_for_shopping"].append(district.name)
+                if district.district_type in [DistrictType.LOCAL_AUTHENTIC, DistrictType.TRADITIONAL_RESIDENTIAL]:
+                    comparison["summary"]["best_for_local_culture"].append(district.name)
+                if any(rec.tourist_friendly for recs in district.recommendations.values() for rec in recs):
+                    comparison["summary"]["most_tourist_friendly"].append(district.name)
+                if "$30-60" in district.budget_estimate or "$40-80" in district.budget_estimate:
+                    comparison["summary"]["budget_friendly"].append(district.name)
+        
+        return comparison
+    
+    def get_all_districts(self) -> List[str]:
+        """Get list of all available districts"""
+        return [district.name for district in self.districts.values()]

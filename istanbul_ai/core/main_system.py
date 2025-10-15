@@ -90,14 +90,17 @@ class IstanbulDailyTalkAI:
         try:
             from ..services.intelligent_location_detector import IntelligentLocationDetector
             from ..services.gps_location_service import GPSLocationService
+            from ..services.neighborhood_guide_service import NeighborhoodGuideService
             
             self.location_detector = IntelligentLocationDetector()
             self.gps_service = GPSLocationService()
+            self.neighborhood_guide = NeighborhoodGuideService()
             self.advanced_services_available = True
-            logger.info("✅ Advanced location services loaded")
+            logger.info("✅ Advanced location and neighborhood guide services loaded")
         except ImportError as e:
             logger.warning(f"⚠️ Advanced services not available: {e}")
             self.location_detector = None
+            self.neighborhood_guide = None
             self.gps_service = None
             self.advanced_services_available = False
         
@@ -179,8 +182,40 @@ class IstanbulDailyTalkAI:
         session_id = f"session_{user_profile.user_id}"
         context = self.get_or_create_conversation_context(session_id, user_profile)
         
+        # Check for neighborhood/district-specific queries first (Priority #1)
+        user_input_lower = user_input.lower()
+        matched_districts = []
+        
+        if self.neighborhood_guide:
+            matched_districts = self.neighborhood_guide.find_districts_by_keywords(user_input)
+            
+            # Enhanced neighborhood detection keywords
+            neighborhood_keywords = [
+                'neighborhood', 'district', 'area', 'guide', 'vibe', 'atmosphere', 'character',
+                'compare', 'comparison', 'vs', 'versus', 'which is better',
+                'complete guide', 'comprehensive guide', 'everything about',
+                'besiktas', 'beşiktaş', 'kadikoy', 'kadıköy', 'sultanahmet', 
+                'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'
+            ]
+            
+            # Multi-intent neighborhood queries (e.g., "restaurants in Kadıköy", "nightlife in Beşiktaş")
+            district_context_keywords = [
+                f"{query_type} in" for query_type in ['restaurants', 'nightlife', 'attractions', 'shopping', 'food', 'bars', 'clubs', 'sights']
+            ]
+            
+            has_neighborhood_context = (
+                any(word in user_input_lower for word in neighborhood_keywords) or
+                any(phrase in user_input_lower for phrase in district_context_keywords) or
+                matched_districts or
+                # Check for specific district mentions with context
+                any(f"in {district}" in user_input_lower for district in ['kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'sultanahmet', 'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'])
+            )
+            
+            if has_neighborhood_context:
+                return self._handle_neighborhood_guide_query(user_input, entities, user_profile, context)
+        
         # Map different intent formats to consistent handlers
-        if intent in ["restaurant", "restaurant_query"] or self._is_restaurant_query(user_input):
+        elif intent in ["restaurant", "restaurant_query"] or self._is_restaurant_query(user_input):
             return self._handle_restaurant_query(user_input, entities, user_profile, context)
         elif intent in ["events", "events_query"] or any(word in user_input.lower() for word in ['event', 'happening', 'show', 'performance', 'exhibition']):
             return self._handle_events_query(user_input, entities, user_profile)
@@ -560,74 +595,437 @@ I can help you with:
 • 🎭 Current events and cultural activities  
 • 🚇 Transportation and directions
 • 🏛️ Attractions and sightseeing
+• 🏘️ Neighborhood guides and district information
 • 💡 Local tips and hidden gems
 
+**Examples**:
+• "Restaurants in Kadıköy"
+• "What's the vibe in Beşiktaş?"
+• "Complete guide to Sultanahmet"
+• "Compare Şişli and Üsküdar"
+
 What would you like to explore in Istanbul today?"""
 
-    def _generate_fallback_response(self, user_input: str) -> str:
-        """Generate meaningful fallback response when processing fails"""
+    def _handle_neighborhood_guide_query(self, user_input: str, entities: Dict, user_profile: UserProfile, context: Optional['ConversationContext'] = None) -> str:
+        """Handle neighborhood/district-specific queries with comprehensive guidance"""
+        
+        if not self.neighborhood_guide:
+            return f"""🏘️ **Neighborhood Guide Service**
+
+I'd love to help with neighborhood information, but the neighborhood guide service is currently not available.
+
+**I can still help you with:**
+• 🍽️ Restaurant recommendations by district
+• 🎭 Events and cultural activities
+• 🚇 Transportation information
+• 🏛️ Attractions and sightseeing
+
+Try asking: "Restaurants in [district name]" or "How to get to [location]" """
+        
         user_input_lower = user_input.lower()
         
-        # Try to provide contextual fallback based on keywords
-        if any(word in user_input_lower for word in ['restaurant', 'eat', 'food', 'meal', 'hungry']):
-            return """🍽️ **Restaurant Assistance**
-
-I'd be happy to help you find great restaurants in Istanbul! 
-
-Try asking me:
-• "Show me Turkish restaurants in Sultanahmet"
-• "Where can I find vegetarian food in Beyoğlu?"
-• "I need budget-friendly places near Taksim"
-
-What type of cuisine or area interests you?"""
-
-        elif any(word in user_input_lower for word in ['event', 'show', 'performance', 'exhibition', 'concert']):
-            return """🎭 **Events & Cultural Activities**
-
-I can help you discover what's happening in Istanbul!
-
-Try asking:
-• "What cultural events are happening today?"
-• "Show me art exhibitions in the city"
-• "Are there any concerts this weekend?"
-
-What type of cultural activity are you looking for?"""
-
-        elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'taxi', 'how to get']):
-            return """🚇 **Transportation Help**
-
-I can assist with getting around Istanbul!
-
-Ask me about:
-• "How do I get from Sultanahmet to Taksim?"
-• "What's the best metro route to Kadıköy?"
-• "Transportation options to the airport"
-
-Where would you like to go?"""
-
-        elif any(word in user_input_lower for word in ['attraction', 'visit', 'see', 'museum', 'palace']):
-            return """🏛️ **Istanbul Attractions**
-
-I'd love to help you explore Istanbul's amazing sights!
-
-Try asking:
-• "What are the must-see attractions in Sultanahmet?"
-• "Show me museums in Beyoğlu"
-• "I want to visit historical sites"
-
-What type of attractions interest you most?"""
-
+        # Find districts mentioned in the query
+        matched_districts = self.neighborhood_guide.find_districts_by_keywords(user_input)
+        
+        # Enhanced district detection - try alternative spellings and patterns
+        if not matched_districts:
+            # Manual district detection for common variations
+            district_patterns = {
+                'kadıköy': ['kadikoy', 'kadıköy', 'kadiköy'],
+                'beşiktaş': ['besiktas', 'beşiktaş', 'besiktaş'],
+                'sultanahmet': ['sultanahmet'],
+                'şişli': ['sisli', 'şişli', 'sisli'],
+                'üsküdar': ['uskudar', 'üsküdar', 'uskudar'],
+                'fatih': ['fatih'],
+                'sarıyer': ['sariyer', 'sarıyer', 'sariyer']
+            }
+            
+            for standard_name, variations in district_patterns.items():
+                if any(variation in user_input_lower for variation in variations):
+                    matched_districts = [standard_name]
+                    break
+        
+        # Check for specific query types
+        if any(word in user_input_lower for word in ['compare', 'difference', 'versus', 'vs', 'which is better']):
+            return self._handle_district_comparison_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['character', 'vibe', 'atmosphere', 'feel', 'what is like']):
+            return self._handle_district_character_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['how to get', 'transport', 'travel to', 'go to']):
+            return self._handle_district_transport_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['restaurants', 'eat', 'food', 'dining']):
+            return self._handle_district_dining_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['nightlife', 'bars', 'clubs', 'night']):
+            return self._handle_district_nightlife_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['attractions', 'sights', 'visit', 'see']):
+            return self._handle_district_attractions_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['shopping', 'shop', 'buy', 'mall']):
+            return self._handle_district_shopping_query(user_input, matched_districts, user_profile)
+        
+        elif any(word in user_input_lower for word in ['guide', 'comprehensive', 'everything', 'complete']):
+            return self._handle_comprehensive_district_guide(user_input, matched_districts, user_profile, context)
+        
         else:
-            return f"""Hello! 🌟 Welcome to Istanbul!
+            # General district information
+            return self._handle_general_district_info(user_input, matched_districts, user_profile)
+    
+    def _handle_district_comparison_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle district comparison queries"""
+        if len(districts) < 2:
+            return """🏘️ **District Comparison**
 
-I can help you with:
-• 🍽️ **Restaurants** - Find great places to eat
-• 🎭 **Events** - Discover cultural activities and shows
-• 🚇 **Transportation** - Navigate the city efficiently
-• 🏛️ **Attractions** - Explore Istanbul's amazing sights
-• 💡 **Local Tips** - Get insider knowledge
+To compare neighborhoods, please mention at least two districts. For example:
+• "Compare Beşiktaş and Kadıköy"
+• "What's the difference between Sultanahmet and Fatih?"
+• "Which is better for nightlife: Beşiktaş vs Şişli?"
 
-What would you like to explore in Istanbul today?"""
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        comparison = self.neighborhood_guide.get_district_comparison(districts)
+        
+        response = "🏘️ **District Comparison**\n\n"
+        
+        for district_name, info in comparison["districts"].items():
+            response += f"**{district_name}**\n"
+            response += f"• **Type**: {info['type'].replace('_', ' ').title()}\n"
+            response += f"• **Vibe**: {info['vibe']}\n"
+            response += f"• **Best Time**: {', '.join(info['best_time'])}\n"
+            response += f"• **Budget**: {info['budget_estimate']}\n"
+            response += f"• **Categories**: {', '.join(info['categories'])}\n\n"
+        
+        if comparison["summary"]:
+            response += "**Quick Summary:**\n"
+            for category, district_list in comparison["summary"].items():
+                if district_list:
+                    response += f"• **{category.replace('_', ' ').title()}**: {', '.join(district_list)}\n"
+        
+        return response
+    
+    def _handle_district_character_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle queries about district character and atmosphere"""
+        if not districts:
+            return """🏘️ **Neighborhood Character Guide**
+
+Please specify a district to learn about its character. For example:
+• "What's the vibe in Kadıköy?"
+• "Tell me about Beşiktaş atmosphere"
+• "What is Sultanahmet like?"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🏘️ **Neighborhood Character**\n\n"
+        
+        for district_key in districts:
+            character = self.neighborhood_guide.get_neighborhood_character(district_key)
+            if character:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                response += f"**{district.name}**\n"
+                response += f"🎭 **Vibe**: {character.vibe}\n"
+                response += f"👥 **Crowd**: {character.crowd}\n"
+                response += f"🌟 **Atmosphere**: {character.atmosphere}\n"
+                response += f"⏰ **Best Time**: {', '.join([t.value for t in character.best_time])}\n"
+                
+                if character.local_saying:
+                    response += f"💬 **Local Saying**: {character.local_saying}\n"
+                
+                if character.insider_tip:
+                    response += f"💡 **Insider Tip**: {character.insider_tip}\n"
+                
+                response += "\n"
+        
+        return response
+    
+    def _handle_district_transport_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle transportation queries for districts"""
+        if not districts:
+            return """🚇 **District Transportation Guide**
+
+Please specify a district for transportation information. For example:
+• "How to get to Beşiktaş?"
+• "Transportation to Kadıköy"
+• "Best way to reach Sultanahmet"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🚇 **Transportation Guide**\n\n"
+        
+        for district_key in districts:
+            district = self.neighborhood_guide.get_district_guide(district_key)
+            if district:
+                response += f"**Getting to {district.name}:**\n"
+                for transport_type, details in district.getting_there.items():
+                    response += f"• **{transport_type.title()}**: {details}\n"
+                response += "\n"
+        
+        return response
+    
+    def _handle_district_dining_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle dining queries for specific districts"""
+        if not districts:
+            return """🍽️ **District Dining Guide**
+
+Please specify a district for restaurant recommendations. For example:
+• "Restaurants in Kadıköy"
+• "Where to eat in Beşiktaş?"
+• "Best food in Sultanahmet"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🍽️ **District Dining Guide**\n\n"
+        
+        for district_key in districts:
+            restaurants = self.neighborhood_guide.get_recommendations_by_category(district_key, "restaurants")
+            if restaurants:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                response += f"**{district.name} Restaurants:**\n\n"
+                
+                for rest in restaurants:
+                    response += f"**{rest.name}** ({rest.type})\n"
+                    response += f"📍 {rest.address}\n"
+                    response += f"📝 {rest.description}\n"
+                    
+                    if rest.opening_hours:
+                        response += f"🕐 {rest.opening_hours}\n"
+                    
+                    if rest.insider_tip:
+                        response += f"💡 **Tip**: {rest.insider_tip}\n"
+                    
+                    response += f"🏆 Local Favorite: {'Yes' if rest.local_favorite else 'No'}\n"
+                    response += f"🌍 Tourist Friendly: {'Yes' if rest.tourist_friendly else 'No'}\n\n"
+        
+        return response
+    
+    def _handle_district_nightlife_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle nightlife queries for specific districts"""
+        if not districts:
+            return """🌙 **District Nightlife Guide**
+
+Please specify a district for nightlife recommendations. For example:
+• "Nightlife in Beşiktaş"
+• "Bars in Kadıköy"
+• "Clubs in Şişli"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🌙 **District Nightlife Guide**\n\n"
+        
+        for district_key in districts:
+            nightlife = self.neighborhood_guide.get_recommendations_by_category(district_key, "nightlife")
+            if nightlife:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                response += f"**{district.name} Nightlife:**\n\n"
+                
+                for venue in nightlife:
+                    response += f"**{venue.name}** ({venue.type})\n"
+                    response += f"📍 {venue.address}\n"
+                    response += f"📝 {venue.description}\n"
+                    
+                    if venue.opening_hours:
+                        response += f"🕐 {venue.opening_hours}\n"
+                    
+                    if venue.insider_tip:
+                        response += f"💡 **Tip**: {venue.insider_tip}\n"
+                    
+                    response += f"🏆 Local Favorite: {'Yes' if venue.local_favorite else 'No'}\n\n"
+            else:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                if district:
+                    response += f"**{district.name}**: Limited nightlife options, more family-oriented district.\n\n"
+        
+        return response
+    
+    def _handle_district_attractions_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle attraction queries for specific districts"""
+        if not districts:
+            return """🏛️ **District Attractions Guide**
+
+Please specify a district for attraction recommendations. For example:
+• "Attractions in Sultanahmet"
+• "What to see in Fatih?"
+• "Sights in Üsküdar"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🏛️ **District Attractions Guide**\n\n"
+        
+        for district_key in districts:
+            attractions = self.neighborhood_guide.get_recommendations_by_category(district_key, "attractions")
+            if attractions:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                response += f"**{district.name} Attractions:**\n\n"
+                
+                for attr in attractions:
+                    response += f"**{attr.name}** ({attr.type})\n"
+                    response += f"📍 {attr.address}\n"
+                    response += f"📝 {attr.description}\n"
+                    
+                    if attr.opening_hours:
+                        response += f"🕐 {attr.opening_hours}\n"
+                    
+                    if attr.insider_tip:
+                        response += f"💡 **Tip**: {attr.insider_tip}\n"
+                    
+                    response += f"🏆 Local Favorite: {'Yes' if attr.local_favorite else 'No'}\n\n"
+        
+        return response
+    
+    def _handle_district_shopping_query(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle shopping queries for specific districts"""
+        if not districts:
+            return """🛍️ **District Shopping Guide**
+
+Please specify a district for shopping recommendations. For example:
+• "Shopping in Şişli"
+• "Where to shop in Fatih?"
+• "Malls in Beşiktaş"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        response = "🛍️ **District Shopping Guide**\n\n"
+        
+        for district_key in districts:
+            shopping = self.neighborhood_guide.get_recommendations_by_category(district_key, "shopping")
+            if shopping:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                response += f"**{district.name} Shopping:**\n\n"
+                
+                for shop in shopping:
+                    response += f"**{shop.name}** ({shop.type})\n"
+                    response += f"📍 {shop.address}\n"
+                    response += f"📝 {shop.description}\n"
+                    
+                    if shop.opening_hours:
+                        response += f"🕐 {shop.opening_hours}\n"
+                    
+                    if shop.insider_tip:
+                        response += f"💡 **Tip**: {shop.insider_tip}\n"
+                    
+                    response += f"🏆 Local Favorite: {'Yes' if shop.local_favorite else 'No'}\n\n"
+            else:
+                district = self.neighborhood_guide.get_district_guide(district_key)
+                if district:
+                    response += f"**{district.name}**: Limited shopping options, more focused on other activities.\n\n"
+        
+        return response
+    
+    def _handle_comprehensive_district_guide(self, user_input: str, districts: List[str], user_profile: UserProfile, context: Optional['ConversationContext'] = None) -> str:
+        """Handle comprehensive district guide requests"""
+        if not districts:
+            return """📖 **Comprehensive District Guide**
+
+Please specify a district for a complete guide. For example:
+• "Complete guide to Kadıköy"
+• "Everything about Beşiktaş"
+• "Comprehensive Sultanahmet guide"
+
+Available districts: Beşiktaş, Şişli, Üsküdar, Kadıköy, Fatih, Sultanahmet, Sarıyer"""
+        
+        # Use first district for comprehensive guide
+        district_key = districts[0]
+        
+        # Get user interests from profile if available
+        user_interests = None
+        if hasattr(user_profile, 'preferences') and user_profile.preferences:
+            user_interests = user_profile.preferences.get('interests', [])
+        
+        guide = self.neighborhood_guide.generate_comprehensive_guide(district_key, user_interests)
+        
+        if "error" in guide:
+            return f"❌ {guide['error']}"
+        
+        response = f"📖 **Comprehensive Guide to {guide['district_name']}**\n\n"
+        
+        # Character
+        character = guide['character']
+        response += "🎭 **Character & Atmosphere**\n"
+        response += f"• **Vibe**: {character['vibe']}\n"
+        response += f"• **Crowd**: {character['crowd']}\n"
+        response += f"• **Atmosphere**: {character['atmosphere']}\n"
+        response += f"• **Best Time**: {', '.join(character['best_time'])}\n"
+        
+        if character['local_saying']:
+            response += f"• **Local Saying**: {character['local_saying']}\n"
+        
+        if character['insider_tip']:
+            response += f"• **Insider Tip**: {character['insider_tip']}\n"
+        
+        response += "\n"
+        
+        # Transportation
+        response += "🚇 **Getting There**\n"
+        for transport_type, details in guide['getting_there'].items():
+            response += f"• **{transport_type.title()}**: {details}\n"
+        response += "\n"
+        
+        # Recommendations (top picks)
+        if guide['recommendations']:
+            response += "🌟 **Top Recommendations**\n"
+            for category, recs in guide['recommendations'].items():
+                if recs:  # Only show categories with recommendations
+                    response += f"\n**{category.title()}:**\n"
+                    for rec in recs[:2]:  # Show top 2 per category
+                        response += f"• **{rec['name']}**: {rec['description']}\n"
+        
+        # Practical information
+        response += f"\n💰 **Budget Estimate**: {guide['budget_estimate']}\n"
+        response += f"🛡️ **Safety**: {guide['safety_notes']}\n\n"
+        
+        # Quick tips
+        if guide['practical_tips']:
+            response += "💡 **Quick Tips**:\n"
+            for tip in guide['practical_tips'][:3]:
+                response += f"• {tip}\n"
+        
+        response += "\n🗺️ *For walking routes, local customs, and detailed recommendations, ask for specific categories!*"
+        
+        return response
+    
+    def _handle_general_district_info(self, user_input: str, districts: List[str], user_profile: UserProfile) -> str:
+        """Handle general district information requests"""
+        if not districts:
+            available_districts = ", ".join(self.neighborhood_guide.get_all_districts())
+            return f"""🏘️ **Istanbul Neighborhood Guide**
+
+I can provide detailed information about Istanbul's neighborhoods!
+
+**Available Districts**: {available_districts}
+
+**Ask me about**:
+• Character and atmosphere
+• Transportation options  
+• Restaurants and dining
+• Nightlife and bars
+• Attractions and sights
+• Shopping areas
+• Comprehensive guides
+• District comparisons
+
+**Examples**:
+• "What's the vibe in Kadıköy?"
+• "Restaurants in Beşiktaş"
+• "Complete guide to Sultanahmet"
+• "Compare Şişli and Üsküdar"
+
+What would you like to know about Istanbul's neighborhoods?"""
+        
+        response = "🏘️ **District Information**\n\n"
+        
+        for district_key in districts:
+            district = self.neighborhood_guide.get_district_guide(district_key)
+            if district:
+                response += f"**{district.name}** ({district.district_type.value.replace('_', ' ').title()})\n"
+                response += f"🎭 {district.character.vibe}\n"
+                response += f"💰 Budget: {district.budget_estimate}\n"
+                response += f"📍 Categories: {', '.join(district.recommendations.keys())}\n\n"
+        
+        response += "💡 *Ask for specific information like 'restaurants in [district]' or 'nightlife in [district]' for detailed recommendations!*"
+        
+        return response
 
     def _enhance_multi_intent_response(self, user_input: str, intents: List[str], entities: Dict, user_profile: UserProfile) -> str:
         """Handle multi-intent queries with enhanced responses"""
@@ -1473,6 +1871,38 @@ What would you like to explore in Istanbul today?"""
     def _process_with_multi_intent(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> str:
         """Process message using multi-intent handler with location detector integration"""
         try:
+            # PRIORITY CHECK: Neighborhood guide queries should be handled first
+            user_input_lower = user_input.lower()
+            entities = self.entity_recognizer.extract_entities(user_input)
+            matched_districts = []
+            
+            if self.neighborhood_guide:
+                matched_districts = self.neighborhood_guide.find_districts_by_keywords(user_input)
+                
+                # Enhanced neighborhood detection
+                neighborhood_keywords = [
+                    'neighborhood', 'district', 'area', 'guide', 'vibe', 'atmosphere', 'character',
+                    'compare', 'comparison', 'vs', 'versus', 'which is better',
+                    'complete guide', 'comprehensive guide', 'everything about',
+                    'besiktas', 'beşiktaş', 'kadikoy', 'kadıköy', 'sultanahmet', 
+                    'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'
+                ]
+                
+                district_context_keywords = [
+                    f"{query_type} in" for query_type in ['restaurants', 'nightlife', 'attractions', 'shopping', 'food', 'bars', 'clubs', 'sights']
+                ]
+                
+                has_neighborhood_context = (
+                    any(word in user_input_lower for word in neighborhood_keywords) or
+                    any(phrase in user_input_lower for phrase in district_context_keywords) or
+                    matched_districts or
+                    any(f"in {district}" in user_input_lower for district in ['kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'sultanahmet', 'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'])
+                )
+                
+                if has_neighborhood_context:
+                    logger.info(f"🏘️ Priority routing to neighborhood guide for query with districts: {matched_districts}")
+                    return self._handle_neighborhood_guide_query(user_input, entities, user_profile, context)
+            
             # Create context for multi-intent handler
             multi_intent_context = {
                 'user_id': user_profile.user_id,
@@ -1649,3 +2079,23 @@ What would you like to explore in Istanbul today?"""
         
         # Process based on intent with improved routing
         return self._process_by_intent_enhanced(user_input, primary_intent, entities, user_profile)
+
+    def _generate_fallback_response(self, user_input: str) -> str:
+        """Generate fallback response when processing fails"""
+        return """🤔 I'm having trouble understanding your request right now.
+
+🌟 **I can help you with:**
+• 🍽️ Restaurant recommendations ("restaurants in Kadıköy")
+• 🏘️ Neighborhood guides ("what's Beşiktaş like?")
+• 🎭 Events and cultural activities
+• 🚇 Transportation and directions
+• 🏛️ Attractions and sightseeing
+• 💡 Local tips and hidden gems
+
+**Try asking:**
+• "Best restaurants in [neighborhood]"
+• "What's the vibe in [district]?"
+• "How to get to [location]?"
+• "What to see in Istanbul?"
+
+Please rephrase your question, and I'll do my best to help! 😊"""
