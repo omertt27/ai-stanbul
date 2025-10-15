@@ -396,7 +396,7 @@ class EnhancedTransportationSystem:
                     'airport_to_sultanahmet': {
                         'description': 'M1A to Zeytinburnu + T1 to Sultanahmet',
                         'total_time': '50-60 minutes',
-                        'cost': '7.67 TL with İstanbulkart',
+                        'fare_info': 'Standard public transport fare with İstanbulkart',
                         'alternative': 'Havaist bus to Taksim + M2 = 45-75min depending on traffic'
                     },
                     'kadikoy_to_galata_tower': {
@@ -421,47 +421,36 @@ class EnhancedTransportationSystem:
         """Comprehensive cost information for all transportation modes"""
         return {
             'istanbulkart_costs': {
-                'card_purchase': '13 TL (6 TL refundable)',
-                'single_ride_metro': '7.67 TL',
-                'single_ride_bus': '7.67 TL',
-                'single_ride_ferry': '7.67 TL',
+                'card_purchase': 'Initial card fee plus refundable deposit',
+                'single_ride_public_transport': 'Standard İstanbulkart fare',
                 'transfers': {
                     'metro_to_metro': 'Free within 2 hours',
-                    'metro_to_bus': '1.40 TL discount',
-                    'bus_to_ferry': '1.40 TL discount',
+                    'metro_to_bus': 'Discounted transfer rate',
+                    'bus_to_ferry': 'Discounted transfer rate',
                     'any_to_any': 'Maximum 2 transfers with discounts'
                 },
                 'daily_caps': 'No daily cap, pay per ride with transfer discounts',
                 'student_discount': '50% off all rides with valid student ID'
             },
-            'alternative_costs': {
-                'single_journey_tokens': {
-                    'metro': '15 TL (no transfer discounts)',
-                    'bus': '15 TL (no transfer discounts)',
-                    'tram': '15 TL (no transfer discounts)',
-                    'recommendation': 'Only for single rides, İstanbulkart much cheaper'
-                },
-                'taxi_estimates': {
-                    'airport_to_sultanahmet': '150-200 TL',
-                    'taksim_to_sultanahmet': '40-60 TL',
-                    'galata_to_sultanahmet': '35-50 TL',
-                    'short_rides_city': '25-40 TL minimum'
-                },
-                'tourist_transport': {
-                    'hop_on_hop_off_bus': '120-150 TL per day',
-                    'bosphorus_cruise_tour': '80-120 TL',
-                    'private_guide_transport': '300-500 TL per day'
-                }
+            'payment_methods': {
+                'istanbulkart': 'Recommended - includes transfer discounts',
+                'contactless_cards': 'Accepted on most transport',
+                'mobile_payment': 'Available on newer vehicles/stations',
+                'single_journey_tokens': 'Higher cost, no transfer discounts - not recommended'
+            },
+            'cost_comparison': {
+                'istanbulkart_vs_tokens': 'İstanbulkart saves approximately 50% vs single tickets',
+                'transfer_benefits': 'İstanbulkart users get discounted transfers',
+                'tourist_recommendation': 'İstanbulkart essential for multiple trips'
             },
             'budget_strategies': {
-                'daily_budget_transport': '50-70 TL covers all public transport needs',
-                'weekly_transport': '200-300 TL for comprehensive access',
                 'money_saving_tips': [
-                    'Always use İstanbulkart - saves 50% vs single tickets',
+                    'Always use İstanbulkart - significant savings vs single tickets',
                     'Plan routes to maximize transfer discounts',
                     'Walk short distances rather than take transport',
                     'Use ferries instead of tourist cruises for Bosphorus views',
-                    'Student ID gives 50% discount on everything'
+                    'Student ID gives 50% discount on everything',
+                    'Check for tourist transport passes for longer stays'
                 ]
             }
         }
@@ -517,7 +506,7 @@ class EnhancedTransportationSystem:
             'taksim': {
                 'recommended_route': 'M2 Taksim → Vezneciler + 10-minute walk to Sultanahmet',
                 'total_time': '20-25 minutes',
-                'cost': '7.67 TL with İstanbulkart',
+                'fare_info': 'Standard public transport fare with İstanbulkart',
                 'steps': [
                     '1. Take M2 metro from Taksim towards Yenikapı',
                     '2. Get off at Vezneciler station (3 stops, 12 minutes)',
@@ -534,7 +523,7 @@ class EnhancedTransportationSystem:
             'airport_ist': {
                 'recommended_route': 'M11 metro to Gayrettepe → M2 to Vezneciler → walk to Sultanahmet',
                 'total_time': '60-75 minutes',
-                'cost': '15.34 TL with İstanbulkart',
+                'fare_info': 'Standard public transport fare with İstanbulkart',
                 'steps': [
                     '1. Take M11 from IST Airport to Gayrettepe (35 minutes)',
                     '2. Transfer to M2 at Gayrettepe',
@@ -547,7 +536,7 @@ class EnhancedTransportationSystem:
             'kadikoy': {
                 'recommended_route': 'Ferry to Eminönü → T1 tram to Sultanahmet',
                 'total_time': '35-40 minutes',
-                'cost': '15.34 TL with İstanbulkart',
+                'fare_info': 'Standard public transport fare with İstanbulkart',
                 'steps': [
                     '1. Take ferry from Kadıköy to Eminönü (20 minutes)',
                     '2. Walk 3 minutes to T1 tram stop at Eminönü',
@@ -560,7 +549,7 @@ class EnhancedTransportationSystem:
             'galata_tower': {
                 'recommended_route': 'Walk to Karaköy → T1 tram to Sultanahmet',
                 'total_time': '20-25 minutes',
-                'cost': '7.67 TL with İstanbulkart',
+                'fare_info': 'Standard public transport fare with İstanbulkart',
                 'steps': [
                     '1. Walk downhill from Galata Tower to Karaköy (8 minutes)',
                     '2. Take T1 tram from Karaköy to Sultanahmet (8 minutes)',

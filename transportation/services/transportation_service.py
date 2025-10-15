@@ -219,28 +219,32 @@ class EnhancedTransportationSystem:
     def _load_cost_data(self) -> Dict[str, Any]:
         """Load cost and payment information"""
         return {
-            'istanbulkart_prices': {
-                'full_fare': 7.67,
-                'student': 2.05,
-                'senior': 3.84,
-                'transfer_discount': True
+            'fare_types': {
+                'istanbulkart': 'Discounted fare (recommended)',
+                'student': 'Student discount available',
+                'senior': 'Senior citizen discount available',
+                'transfer_discount': 'Transfer discounts apply'
             },
-            'single_use_tickets': {
-                'metro_tram': 15.0,
-                'bus': 15.0,
-                'ferry': 25.0
+            'ticket_options': {
+                'metro_tram': 'Single-use tickets available',
+                'bus': 'Single-use tickets available',
+                'ferry': 'Single-use tickets available'
             },
-            'daily_passes': {
-                '1_day': 50.0,
-                '3_day': 130.0,
-                '5_day': 200.0
+            'pass_options': {
+                'daily_passes': 'Daily passes available (1, 3, 5 days)',
+                'tourist_passes': 'Tourist cards with unlimited travel'
             },
             'payment_methods': [
-                'İstanbulkart (recommended)',
+                'İstanbulkart (recommended - lowest fares)',
                 'Contactless credit/debit card',
                 'Mobile payment apps',
-                'Single-use tickets'
-            ]
+                'Single-use tickets (higher cost)'
+            ],
+            'cost_guidance': {
+                'cheapest': 'İstanbulkart offers the lowest fares',
+                'convenience': 'Contactless cards accepted on all transport',
+                'tourist_tips': 'Daily passes cost-effective for multiple trips'
+            }
         }
     
     def _load_accessibility_info(self) -> Dict[str, Any]:
@@ -298,7 +302,7 @@ class EnhancedTransportationSystem:
                 'line': origin.line,
                 'duration_minutes': abs(hash(origin.name) - hash(destination.name)) % 30 + 10,
                 'transfers': 0,
-                'cost_tl': 7.67,
+                'fare_info': 'Standard public transport fare with İstanbulkart',
                 'accessibility': 'Fully accessible'
             })
         else:
@@ -308,7 +312,7 @@ class EnhancedTransportationSystem:
                 'route': [origin.line, destination.line],
                 'duration_minutes': abs(hash(origin.name) - hash(destination.name)) % 45 + 20,
                 'transfers': 1,
-                'cost_tl': 7.67,  # Same price with İstanbulkart
+                'fare_info': 'Standard fare - same price with İstanbulkart transfer discount',
                 'accessibility': 'Fully accessible'
             })
         

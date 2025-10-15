@@ -183,50 +183,57 @@ class MultiModalJourneyPlanner:
             ]
         }
     
-    def _initialize_cost_matrix(self) -> Dict[TransportMode, Dict[str, float]]:
+    def _initialize_cost_matrix(self) -> Dict[TransportMode, Dict[str, Any]]:
         """Initialize cost information for different transport modes"""
         return {
             TransportMode.METRO: {
-                'base_cost': 7.67,
-                'cost_per_km': 0,  # Flat rate
+                'cost_category': 'public_transport',
+                'cost_level': 'low',  # Standard public transport fare
                 'comfort_score': 0.9,
-                'co2_per_km': 0.04  # kg CO2 per km
+                'co2_per_km': 0.04,  # kg CO2 per km
+                'payment_info': 'İstanbulkart recommended for best fares'
             },
             TransportMode.TRAM: {
-                'base_cost': 7.67,
-                'cost_per_km': 0,
+                'cost_category': 'public_transport',
+                'cost_level': 'low',
                 'comfort_score': 0.8,
-                'co2_per_km': 0.05
+                'co2_per_km': 0.05,
+                'payment_info': 'Same fare system as metro'
             },
             TransportMode.BUS: {
-                'base_cost': 7.67,
-                'cost_per_km': 0,
+                'cost_category': 'public_transport',
+                'cost_level': 'low',
                 'comfort_score': 0.6,
-                'co2_per_km': 0.08
+                'co2_per_km': 0.08,
+                'payment_info': 'Same fare system as metro/tram'
             },
             TransportMode.FERRY: {
-                'base_cost': 7.67,
-                'cost_per_km': 0,
+                'cost_category': 'public_transport',
+                'cost_level': 'low',
                 'comfort_score': 0.95,
-                'co2_per_km': 0.03
+                'co2_per_km': 0.03,
+                'payment_info': 'Same fare system, scenic route'
             },
             TransportMode.TAXI: {
-                'base_cost': 11.20,
-                'cost_per_km': 3.45,
+                'cost_category': 'private_transport',
+                'cost_level': 'high',
                 'comfort_score': 0.95,
-                'co2_per_km': 0.15
+                'co2_per_km': 0.15,
+                'payment_info': 'Metered fare, cash or card accepted'
             },
             TransportMode.RIDESHARE: {
-                'base_cost': 8.50,
-                'cost_per_km': 2.80,
+                'cost_category': 'private_transport',
+                'cost_level': 'medium-high',
                 'comfort_score': 0.90,
-                'co2_per_km': 0.12
+                'co2_per_km': 0.12,
+                'payment_info': 'App-based pricing, varies by demand'
             },
             TransportMode.WALKING: {
-                'base_cost': 0,
-                'cost_per_km': 0,
+                'cost_category': 'free',
+                'cost_level': 'free',
                 'comfort_score': 0.7,
-                'co2_per_km': 0
+                'co2_per_km': 0,
+                'payment_info': 'No cost'
             }
         }
     
@@ -505,10 +512,18 @@ class MultiModalJourneyPlanner:
                 schedule_info = self.schedule_service.get_real_time_schedule(line_id)
                 real_time_delay = schedule_info.estimated_delay
         
-        # Calculate cost
+        # Get cost information (now using cost categories instead of specific amounts)
         cost_info = self.cost_matrix.get(mode, self.cost_matrix[TransportMode.WALKING])
         distance_km = segment_data.get('distance', 1000) / 1000
-        cost = cost_info['base_cost'] + (cost_info['cost_per_km'] * distance_km)
+        
+        # Assign cost category scores for internal calculations (0-10 scale)
+        cost_category_scores = {
+            'free': 0,
+            'low': 2,
+            'medium-high': 6,
+            'high': 8
+        }
+        cost = cost_category_scores.get(cost_info['cost_level'], 2)
         
         # Calculate CO2 impact
         co2_impact = cost_info['co2_per_km'] * distance_km
@@ -590,8 +605,8 @@ class MultiModalJourneyPlanner:
                 score += max(0, 1 - (total_duration / 120))  # Normalized against 2 hours
             
             elif preference == TravelPreference.CHEAPEST:
-                # Score based on cost (lower is better)
-                score += max(0, 1 - (total_cost / 50))  # Normalized against 50 TL
+                # Score based on cost level (lower is better, normalized 0-10 scale)
+                score += max(0, 1 - (total_cost / 10))  # Normalized against max cost level of 10
             
             elif preference == TravelPreference.MOST_COMFORTABLE:
                 score += avg_comfort
