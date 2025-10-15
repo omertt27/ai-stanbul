@@ -26,7 +26,7 @@ try:
     if parent_dir not in sys.path:
         sys.path.append(parent_dir)
     
-    from transportation_integration_helper import TransportationQueryProcessor
+    from enhanced_transportation_system import TransportationQueryProcessor
     from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
     ADVANCED_TRANSPORT_AVAILABLE = True
     logger.info("✅ Advanced transportation system loaded successfully")
@@ -302,7 +302,7 @@ class IstanbulDailyTalkAI:
                 logger.info("🚇 Using advanced transportation system with IBB API")
                 
                 # Process query through advanced system using the actual message
-                enhanced_response = self.transport_processor.process_transportation_query(
+                enhanced_response = self.transport_processor.process_transportation_query_sync(
                     message, entities, user_profile
                 )
                 

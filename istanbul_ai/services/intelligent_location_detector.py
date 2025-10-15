@@ -111,6 +111,11 @@ class GPSContext:
     movement_pattern: Optional[str]  # stationary, walking, driving
     nearby_landmarks: List[str]
     district_proximity: Dict[str, float]  # district -> distance mapping
+    
+    @property
+    def coordinates(self) -> Optional[Tuple[float, float]]:
+        """Alias for user_location for backward compatibility"""
+        return self.user_location
 
 @dataclass
 class LocationPattern:

@@ -11,7 +11,7 @@ Comprehensive transportation knowledge enhancement to address test findings:
 - Accessibility details for disabled travelers
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 import math
 import asyncio
@@ -20,7 +20,34 @@ import logging
 import time
 import aiohttp
 import requests
+import sys
+import os
 from datetime import datetime, timedelta
+
+# Import intelligent location detector and related classes
+if TYPE_CHECKING:
+    # Import for type checking only
+    from istanbul_ai.services.intelligent_location_detector import (
+        IntelligentLocationDetector, 
+        GPSContext,
+        LocationDetectionResult
+    )
+    from istanbul_ai.core.user_profile import UserProfile
+    from istanbul_ai.core.conversation_context import ConversationContext
+
+# Runtime imports with fallback
+try:
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from istanbul_ai.services.intelligent_location_detector import (
+        IntelligentLocationDetector, 
+        GPSContext,
+        LocationDetectionResult
+    )
+    from istanbul_ai.core.user_profile import UserProfile
+    from istanbul_ai.core.conversation_context import ConversationContext
+    LOCATION_DETECTOR_AVAILABLE = True
+except ImportError:
+    LOCATION_DETECTOR_AVAILABLE = False
 
 @dataclass
 class MetroStation:
@@ -654,7 +681,7 @@ class ComprehensiveTransportProcessor:
                         }
                     },
                     'M1B': {
-                        'name': 'Yenikapı - Kirazlı Metro Line',
+                        'name': 'M1B Yenikapı - Kirazlı Metro Line',
                         'stations': [
                             'Yenikapı', 'Vezneciler', 'Beyazıt-Kapalıçarşı', 'Eminönü', 
                             'Şişhane', 'Taksim', 'Osmanbey', 'Şişli-Mecidiyeköy', 
@@ -1229,621 +1256,666 @@ class ComprehensiveTransportProcessor:
             'fallback': True
         }
 
-# Add comprehensive response generator
-async def generate_comprehensive_transportation_response(
-    query: str, 
-    entities: Dict[str, Any], 
-    user_profile: Any = None
-) -> str:
-    """Generate comprehensive transportation response with all enhancements"""
-    
-    processor = ComprehensiveTransportProcessor()
-    
-    # Determine query focus
-    query_lower = query.lower()
-    
-    if 'metro' in query_lower or any(line in query_lower for line in ['m1', 'm2', 'm3', 'm4', 'm11']):
-        metro_data = await processor.get_live_ibb_metro_data()
-        return _format_metro_response(metro_data, query, entities)
-    
-    elif 'bus' in query_lower or 'iett' in query_lower:
-        bus_data = await processor.get_live_iett_bus_schedules()
-        return _format_bus_response(bus_data, query, entities)
-    
-    elif 'ferry' in query_lower or 'boat' in query_lower:
-        ferry_data = await processor.get_enhanced_ferry_information()
-        return _format_ferry_response(ferry_data, query, entities)
-    
-    elif 'walk' in query_lower or 'walking' in query_lower:
-        # Extract locations for walking directions
-        locations = entities.get('districts', [])
-        if len(locations) >= 2:
-            walking_data = await processor.get_detailed_walking_routes(locations[0], locations[1])
-            return _format_walking_response(walking_data, locations[0], locations[1])
-        else:
-            return _format_general_walking_response()
-    
-    else:
-        # General transportation overview
-        return await _format_general_transportation_response(processor)
+# Add GPS Location Support Classes and Integration
+@dataclass
+class GPSLocation:
+    """GPS location with coordinates and metadata"""
+    latitude: float
+    longitude: float
+    address: Optional[str] = None
+    district: Optional[str] = None
+    landmark: Optional[str] = None
+    accuracy_meters: Optional[int] = None
+    timestamp: Optional[datetime] = None
 
-def _format_metro_response(metro_data: Dict[str, Any], query: str, entities: Dict[str, Any]) -> str:
-    """Format comprehensive metro response"""
-    response = "🚇 **Istanbul Metro System - Live Information**\n\n"
+class GPSLocationProcessor:
+    """Process GPS locations and integrate with intelligent location detector"""
     
-    if metro_data.get('fallback'):
-        response += "⚠️ *Using cached data - live updates temporarily unavailable*\n\n"
-    else:
-        update_time = metro_data.get('real_time_updates', {}).get('last_updated', 'Unknown')
-        response += f"📊 **Live Status** (Updated: {update_time[:16]})\n\n"
-    
-    # Show key metro lines with details
-    lines = metro_data.get('lines', {})
-    for line_id, line_info in lines.items():
-        response += f"**{line_id} - {line_info.get('name', 'Metro Line')}**\n"
-        response += f"• Operating: {line_info.get('operating_hours', '06:00-00:30')}\n"
-        response += f"• Frequency: {line_info.get('frequency_peak', '3-5 min')} (peak)\n"
-        response += f"• Accessibility: {line_info.get('accessibility', 'Wheelchair accessible')}\n"
+    def __init__(self):
+        self.istanbul_bounds = {
+            'lat_min': 40.8,
+            'lat_max': 41.3,
+            'lng_min': 28.6,
+            'lng_max': 29.3
+        }
         
-        # Show current delays if any
-        delays = line_info.get('current_delays', [])
-        if delays:
-            response += f"• ⚠️ Current delays: "
-            for delay in delays:
-                response += f"{delay.get('station')} ({delay.get('delay_minutes')}min), "
-            response = response.rstrip(', ') + "\n"
+        # Major transportation hubs with GPS coordinates
+        self.transport_hubs = {
+            'taksim': GPSLocation(41.0363, 28.9851, 'Taksim Square', 'Beyoğlu', 'Taksim Metro/Bus Hub'),
+            'sultanahmet': GPSLocation(41.0086, 28.9802, 'Sultanahmet Square', 'Fatih', 'Historic Peninsula'),
+            'kadikoy': GPSLocation(40.9969, 29.0264, 'Kadıköy Center', 'Kadıköy', 'Ferry Terminal'),
+            'eminonu': GPSLocation(41.0176, 28.9706, 'Eminönü', 'Fatih', 'Ferry Terminal'),
+            'galata_tower': GPSLocation(41.0256, 28.9744, 'Galata Tower', 'Beyoğlu', 'Historic Tower'),
+            'ist_airport': GPSLocation(41.2753, 28.7519, 'Istanbul Airport', 'Arnavutköy', 'IST Airport'),
+            'sabiha_gokcen': GPSLocation(40.8986, 29.3092, 'Sabiha Gökçen Airport', 'Pendik', 'SAW Airport'),
+            'besiktas': GPSLocation(41.0422, 29.0094, 'Beşiktaş', 'Beşiktaş', 'Ferry Terminal'),
+            'ortakoy': GPSLocation(41.0553, 29.0265, 'Ortaköy', 'Beşiktaş', 'Bosphorus Waterfront'),
+            'karakoy': GPSLocation(41.0201, 28.9744, 'Karaköy', 'Beyoğlu', 'Ferry Terminal'),
+            'uskudar': GPSLocation(41.0214, 29.0106, 'Üsküdar', 'Üsküdar', 'Ferry Terminal'),
+            'levent': GPSLocation(41.0815, 28.9978, 'Levent', 'Beşiktaş', 'Business District'),
+            'maslak': GPSLocation(41.1086, 29.0247, 'Maslak', 'Sarıyer', 'Business District')
+        }
         
-        # Show tourist-relevant stops
-        tourist_info = line_info.get('tourist_info', {})
-        key_stops = tourist_info.get('key_stops', [])
-        if key_stops:
-            response += f"• Key stops: {', '.join(key_stops)}\n"
+        self.logger = logging.getLogger(__name__)
+    
+    def is_in_istanbul(self, location: GPSLocation) -> bool:
+        """Check if GPS coordinates are within Istanbul bounds"""
+        return (self.istanbul_bounds['lat_min'] <= location.latitude <= self.istanbul_bounds['lat_max'] and
+                self.istanbul_bounds['lng_min'] <= location.longitude <= self.istanbul_bounds['lng_max'])
+    
+    def find_nearest_transport_hub(self, location: GPSLocation) -> Tuple[str, GPSLocation, float]:
+        """Find the nearest major transport hub to given GPS location"""
+        if not self.is_in_istanbul(location):
+            return None, None, float('inf')
         
-        response += "\n"
-    
-    # Add transfer information
-    response += "🔄 **Major Transfer Points:**\n"
-    response += "• Yenikapı: M1A ↔ M1B ↔ Marmaray ↔ Ferry\n"
-    response += "• Vezneciler: M1B ↔ M2\n"
-    response += "• Şişhane: M2 ↔ M7\n"
-    response += "• Gayrettepe: M2 ↔ M11 (Airport)\n\n"
-    
-    # Add accessibility information
-    response += "♿ **Accessibility Features:**\n"
-    response += "• All stations wheelchair accessible\n"
-    response += "• Audio announcements (Turkish/English)\n"
-    response += "• Tactile guidance for visually impaired\n"
-    response += "• Priority seating areas\n\n"
-    
-    response += "💳 **Payment**: İstanbulkart required\n"
-    response += "💡 **Tip**: Download 'Metro İstanbul' app for live updates"
-    
-    return response
-
-def _format_bus_response(bus_data: Dict[str, Any], query: str, entities: Dict[str, Any]) -> str:
-    """Format comprehensive bus response"""
-    response = "🚌 **İETT Bus Network - Live Schedules**\n\n"
-    
-    network_info = bus_data.get('network_info', {})
-    response += f"🏢 **{network_info.get('operator', 'İETT')}**\n"
-    response += f"• Daily passengers: {network_info.get('daily_passengers', '4.5M')}\n"
-    response += f"• Fleet size: {network_info.get('fleet_size', '2,800')} buses\n"
-    response += f"• Accessibility: {network_info.get('accessibility', '90% wheelchair accessible')}\n\n"
-    
-    # Show live tracking info if available
-    live_tracking = bus_data.get('live_tracking', {})
-    if live_tracking.get('gps_enabled'):
-        response += f"📍 **Live GPS Tracking**: {live_tracking.get('real_time_accuracy', '95%')} accuracy\n"
-        response += f"🔄 **Updates**: Every {live_tracking.get('update_frequency', '30 seconds')}\n\n"
-    
-    # Show sample routes with live arrivals
-    routes = bus_data.get('routes', {})
-    sample_routes = list(routes.keys())[:5]  # Show first 5 routes
-    
-    response += "🚌 **Live Arrivals (Sample Routes):**\n\n"
-    for route_num in sample_routes:
-        route_info = routes[route_num]
-        response += f"**Route {route_num}**\n"
+        nearest_hub = None
+        nearest_location = None
+        min_distance = float('inf')
         
-        live_arrivals = route_info.get('live_arrivals', [])
-        for arrival in live_arrivals[:2]:  # Show next 2 arrivals
-            response += f"• {arrival.get('stop_name', 'Stop')}: {arrival.get('arrival_minutes', 'N/A')}min "
-            crowding = arrival.get('crowding_level', 0.5)
-            if crowding > 0.7:
-                response += "(🔴 Crowded)"
-            elif crowding > 0.4:
-                response += "(🟡 Moderate)"
-            else:
-                response += "(🟢 Available space)"
-            response += "\n"
+        for hub_name, hub_location in self.transport_hubs.items():
+            distance = self._calculate_distance(location, hub_location)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_hub = hub_name
+                nearest_location = hub_location
         
-        route_details = route_info.get('route_details', {})
-        response += f"  Operating: {route_details.get('operating_hours', '05:30-00:30')}\n"
-        response += f"  Frequency: {route_details.get('frequency_peak', '8-15min')}\n\n"
+        return nearest_hub, nearest_location, min_distance
     
-    # Add payment information
-    payment_info = bus_data.get('payment_info', {})
-    response += "💳 **Payment Methods:**\n"
-    for method in payment_info.get('accepted_methods', ['İstanbulkart']):
-        response += f"• {method}\n"
-    response += f"• Transfer discounts: {payment_info.get('transfer_discounts', 'Available with İstanbulkart')}\n\n"
-    
-    response += "📱 **Apps**: İETT Mobil, Moovit, Citymapper\n"
-    response += "💡 **Tip**: Use İstanbulkart for seamless transfers between bus, metro, and tram"
-    
-    return response
-
-def _format_ferry_response(ferry_data: Dict[str, Any], query: str, entities: Dict[str, Any]) -> str:
-    """Format comprehensive ferry response"""
-    response = "⛴️ **Istanbul Ferry Services - Complete Guide**\n\n"
-    
-    # Current weather conditions
-    conditions = ferry_data.get('current_conditions', {})
-    response += f"🌤️ **Current Conditions**: {conditions.get('weather', 'Clear')}, "
-    response += f"{conditions.get('temperature_c', 18)}°C, Wind: {conditions.get('wind_speed_kmh', 12)} km/h\n"
-    response += f"🌊 **Service Status**: {conditions.get('service_impact', 'Normal operations')}\n\n"
-    
-    # Regular routes
-    regular_routes = ferry_data.get('regular_routes', {})
-    response += "🚢 **Regular Ferry Routes:**\n\n"
-    
-    for route_name, route_info in regular_routes.items():
-        response += f"**{route_name}**\n"
-        response += f"• Duration: {route_info.get('duration_minutes', 15)} minutes\n"
-        response += f"• Frequency: Every {route_info.get('frequency_minutes', 20)} minutes\n"
-        response += f"• Price: {route_info.get('price_tl', 5.0)} TL\n"
+    def _calculate_distance(self, loc1: GPSLocation, loc2: GPSLocation) -> float:
+        """Calculate distance between two GPS locations in meters"""
+        from math import radians, cos, sin, asin, sqrt
         
-        # Next departures
-        next_departures = route_info.get('next_departures', [])
-        if next_departures:
-            response += f"• Next departures: {', '.join(next_departures[:3])}\n"
+        # Convert decimal degrees to radians
+        lat1, lon1, lat2, lon2 = map(radians, [loc1.latitude, loc1.longitude, 
+                                              loc2.latitude, loc2.longitude])
         
-        # Scenic highlights
-        scenic = route_info.get('scenic_highlights', [])
-        if scenic:
-            response += f"• 🎨 Highlights: {', '.join(scenic[:2])}\n"
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
         
-        # Accessibility
-        accessibility = route_info.get('accessibility', {})
-        if accessibility.get('wheelchair_access'):
-            response += f"• ♿ Fully wheelchair accessible\n"
-        
-        response += "\n"
+        # Radius of earth in meters
+        r = 6371000
+        return c * r
     
-    # Tourist ferries
-    tourist_ferries = ferry_data.get('tourist_ferries', {})
-    if tourist_ferries:
-        response += "🎭 **Tourist Ferry Tours:**\n\n"
+    def get_location_context(self, location: GPSLocation) -> Dict[str, Any]:
+        """Get context information about a GPS location"""
+        nearest_hub, hub_location, distance = self.find_nearest_transport_hub(location)
         
-        for tour_name, tour_info in tourist_ferries.items():
-            response += f"**{tour_name.replace('_', ' ').title()}**\n"
-            if 'duration_hours' in tour_info:
-                response += f"• Duration: {tour_info['duration_hours']} hours\n"
-            elif 'duration_minutes' in tour_info:
-                response += f"• Duration: {tour_info['duration_minutes']} minutes\n"
-            response += f"• Price: {tour_info.get('price_tl', 25)} TL\n"
+        context = {
+            'coordinates': {
+                'latitude': location.latitude,
+                'longitude': location.longitude
+            },
+            'in_istanbul': self.is_in_istanbul(location),
+            'nearest_transport_hub': {
+                'name': nearest_hub,
+                'distance_meters': round(distance) if distance != float('inf') else None,
+                'walking_time_minutes': max(1, round(distance / 80)) if distance != float('inf') else None,
+                'location': hub_location
+            }
+        }
+        
+        # Add district information if available
+        if location.district:
+            context['district'] = location.district
+        if location.address:
+            context['address'] = location.address
+        if location.landmark:
+            context['landmark'] = location.landmark
             
-            highlights = tour_info.get('highlights', [])
-            if highlights:
-                response += f"• Highlights: {', '.join(highlights[:3])}\n"
-            
-            departure_times = tour_info.get('departure_times', [])
-            if departure_times:
-                response += f"• Departures: {', '.join(departure_times)}\n"
-            
-            response += "\n"
+        return context
     
-    # Practical information
-    practical = ferry_data.get('practical_info', {})
-    response += "ℹ️ **Practical Information:**\n"
-    payment_methods = practical.get('payment_methods', ['İstanbulkart'])
-    response += f"• Payment: {', '.join(payment_methods)}\n"
-    
-    facilities = practical.get('onboard_facilities', [])
-    if facilities:
-        response += f"• Onboard: {', '.join(facilities[:4])}\n"
-    
-    response += f"• Pets: {practical.get('pet_policy', 'Small pets in carriers')}\n"
-    response += f"• Bicycles: {practical.get('bicycle_policy', 'Folding bikes allowed')}\n\n"
-    
-    response += "🌅 **Best Times**: Sunset ferries offer spectacular views\n"
-    response += "📱 **Apps**: Vapur Saatleri, İstanbul Ulaşım\n"
-    response += "💡 **Tip**: Ferry rides are one of the most scenic ways to see Istanbul!"
-    
-    return response
+    def suggest_transport_options_from_gps(self, location: GPSLocation) -> Dict[str, Any]:
+        """Suggest transportation options from a GPS location"""
+        context = self.get_location_context(location)
+        
+        if not context['in_istanbul']:
+            return {
+                'error': 'Location is outside Istanbul',
+                'suggestion': 'Please provide a location within Istanbul city limits'
+            }
+        
+        nearest_hub = context['nearest_transport_hub']
+        suggestions = {
+            'current_location': {
+                'coordinates': context['coordinates'],
+                'description': location.address or f"Location near {nearest_hub['name']}"
+            },
+            'nearest_transport_hub': nearest_hub,
+            'transport_options': []
+        }
+        
+        # Add walking option to nearest hub
+        if nearest_hub['distance_meters'] <= 2000:  # Within 2km
+            suggestions['transport_options'].append({
+                'type': 'walking',
+                'description': f"Walk to {nearest_hub['name']}",
+                'duration_minutes': nearest_hub['walking_time_minutes'],
+                'distance_meters': nearest_hub['distance_meters'],
+                'cost': 'Free',
+                'recommendation': 'Good option for short distances'
+            })
+        
+        # Add taxi/rideshare option
+        suggestions['transport_options'].append({
+            'type': 'taxi',
+            'description': f"Taxi to {nearest_hub['name']} or any destination",
+            'duration_minutes': max(5, nearest_hub['distance_meters'] // 200),  # ~200m/min in traffic
+            'apps': ['BiTaksi', 'Uber', 'Taxi'],
+            'cost_estimate': f"{max(20, nearest_hub['distance_meters'] * 0.01):.0f}-{max(30, nearest_hub['distance_meters'] * 0.015):.0f} TL",
+            'recommendation': 'Best for direct routes or heavy luggage'
+        })
+        
+        return suggestions
 
-def _format_walking_response(walking_data: Dict[str, Any], start: str, end: str) -> str:
-    """Format detailed walking response"""
-    basic_info = walking_data.get('basic_info', {})
-    
-    response = f"🚶‍♂️ **Walking Directions: {start} → {end}**\n\n"
-    
-    # Basic information
-    response += f"📏 **Distance**: {basic_info.get('distance_meters', 0)}m\n"
-    response += f"⏱️ **Duration**: {basic_info.get('duration_minutes', 10)} minutes\n"
-    response += f"📈 **Elevation**: {basic_info.get('elevation_change_meters', 0)}m change\n"
-    response += f"🎯 **Difficulty**: {basic_info.get('difficulty', 'Moderate')}\n\n"
-    
-    # Step-by-step directions
-    steps = walking_data.get('step_by_step', [])
-    if steps:
-        response += "🗺️ **Step-by-Step Directions:**\n\n"
-        for step_info in steps:
-            step_num = step_info.get('step', 1)
-            instruction = step_info.get('instruction', '')
-            landmark = step_info.get('landmark', '')
-            
-            response += f"**Step {step_num}**: {instruction}\n"
-            if landmark:
-                response += f"   *Landmark*: {landmark}\n"
-            response += "\n"
-    
-    # Accessibility information
-    accessibility = walking_data.get('accessibility', {})
-    response += "♿ **Accessibility:**\n"
-    response += f"• Wheelchair friendly: {'Yes' if accessibility.get('wheelchair_friendly') else 'No'}\n"
-    response += f"• Surface: {accessibility.get('surface_type', 'Mixed surfaces')}\n"
-    
-    obstacles = accessibility.get('obstacles')
-    if obstacles and obstacles != 'None':
-        response += f"• Obstacles: {obstacles}\n"
-    
-    rest_points = accessibility.get('rest_points', [])
-    if rest_points:
-        response += f"• Rest points: {', '.join(rest_points)}\n"
-    
-    toilets = accessibility.get('public_toilets')
-    if toilets:
-        response += f"• Toilets: {toilets}\n"
-    
-    response += "\n"
-    
-    # Safety information
-    safety = walking_data.get('safety_info', {})
-    if safety:
-        response += "🛡️ **Safety Information:**\n"
-        response += f"• Lighting: {safety.get('lighting', 'Variable')}\n"
-        response += f"• Pedestrian traffic: {safety.get('pedestrian_traffic', 'Moderate')}\n"
-        if safety.get('security_presence'):
-            response += f"• Security: {safety['security_presence']}\n"
-        response += "\n"
-    
-    # Points of interest
-    poi = walking_data.get('points_of_interest', [])
-    if poi:
-        response += "🎯 **Points of Interest:**\n"
-        for point in poi[:5]:  # Show up to 5 points
-            response += f"• {point}\n"
-        response += "\n"
-    
-    # Photo opportunities
-    photo_ops = walking_data.get('photo_opportunities', [])
-    if photo_ops:
-        response += "📸 **Photo Opportunities:**\n"
-        for photo in photo_ops[:4]:  # Show up to 4 photo spots
-            response += f"• {photo}\n"
-        response += "\n"
-    
-    # Weather considerations
-    weather = walking_data.get('weather_considerations', {})
-    if weather:
-        response += "🌤️ **Weather Tips:**\n"
-        if weather.get('rain_impact'):
-            response += f"• Rain: {weather['rain_impact']}\n"
-        if weather.get('summer_shade'):
-            response += f"• Summer: {weather['summer_shade']}\n"
-        response += "\n"
-    
-    response += "💡 **Tip**: Download offline maps before starting your walk!"
-    
-    return response
-
-def _format_general_walking_response() -> str:
-    """Format general walking information response"""
-    return """🚶‍♂️ **Walking in Istanbul - Complete Guide**
-
-🗺️ **Popular Walking Routes:**
-• Sultanahmet Circuit: Blue Mosque → Hagia Sophia → Topkapi → Grand Bazaar (2 hours)
-• Galata Area: Galata Tower → Galata Bridge → Spice Bazaar (45 minutes)
-• Bosphorus Walk: Ortaköy → Bebek → Arnavutköy (1.5 hours)
-• İstiklal Street: Taksim → Galatasaray → Tünel (30 minutes)
-
-♿ **Accessibility Notes:**
-• Historic areas: Mixed surfaces, some cobblestones
-• Modern districts: Generally wheelchair accessible
-• Hills: Istanbul has many steep areas - plan accordingly
-• Public toilets: Available at major attractions and transport hubs
-
-🛡️ **Safety Tips:**
-• Use main pedestrian areas, especially at night
-• Carry water, especially in summer
-• Wear comfortable walking shoes
-• Keep valuables secure in crowded areas
-
-📱 **Helpful Apps:**
-• Google Maps (offline maps available)
-• Citymapper Istanbul
-• Maps.me (detailed offline maps)
-
-💡 **Best Walking Times:**
-• Morning: 8-10 AM (cooler, fewer crowds)
-• Evening: 4-6 PM (good light, pleasant temperatures)
-• Avoid: Midday summer heat, rush hours"""
-
-async def _format_general_transportation_response(processor: ComprehensiveTransportProcessor) -> str:
-    """Format comprehensive general transportation response"""
-    
-    # Get data from all systems
-    metro_data = await processor.get_live_ibb_metro_data()
-    bus_data = await processor.get_live_iett_bus_schedules([])
-    ferry_data = await processor.get_enhanced_ferry_information()
-    
-    response = "🚇 **Istanbul Transportation System - Complete Overview**\n\n"
-    
-    # Current time and status
-    current_time = datetime.now().strftime("%H:%M")
-    response += f"📍 **Live Status** (Updated: {current_time})\n\n"
-    
-    # Metro summary
-    response += "🚇 **Metro Lines:**\n"
-    lines = metro_data.get('lines', {})
-    for line_id, line_info in list(lines.items())[:4]:  # Show main lines
-        response += f"• **{line_id}**: {line_info.get('name', 'Metro Line')}\n"
-        response += f"  Frequency: {line_info.get('frequency_peak', '3-5 min')} | "
-        response += f"Hours: {line_info.get('operating_hours', '06:00-00:30')}\n"
-    response += "\n"
-    
-    # Bus summary
-    network = bus_data.get('network_info', {})
-    response += f"🚌 **{network.get('operator', 'İETT Bus Network')}:**\n"
-    response += f"• {network.get('total_routes', '800+')} routes serving entire city\n"
-    response += f"• {network.get('daily_passengers', '4.5M')} daily passengers\n"
-    response += f"• {network.get('accessibility', '90%')} wheelchair accessible\n\n"
-    
-    # Ferry summary
-    conditions = ferry_data.get('current_conditions', {})
-    response += f"⛴️ **Ferry Services**: {conditions.get('service_impact', 'Operating normally')}\n"
-    regular_routes = ferry_data.get('regular_routes', {})
-    response += f"• {len(regular_routes)} regular routes across Bosphorus and Golden Horn\n"
-    response += f"• Weather: {conditions.get('weather', 'Clear')}, {conditions.get('temperature_c', 18)}°C\n\n"
-    
-    # Payment and practical information
-    response += "💳 **Payment & Cards:**\n"
-    response += "• İstanbulkart: Universal transport card (recommended)\n"
-    response += "• Contactless payment: Available on most transport\n"
-    response += "• Transfer discounts: Up to 60% with İstanbulkart\n\n"
-    
-    # Accessibility
-    response += "♿ **Accessibility:**\n"
-    response += "• All metro stations wheelchair accessible\n"
-    response += "• Most buses have wheelchair ramps\n"
-    response += "• Ferries have dedicated accessible areas\n"
-    response += "• Audio announcements in Turkish and English\n\n"
-    
-    # Apps and tools
-    response += "📱 **Recommended Apps:**\n"
-    response += "• İstanbul Ulaşım (official transport app)\n"
-    response += "• Moovit (multi-modal journey planning)\n"
-    response += "• Citymapper (comprehensive city navigation)\n"
-    response += "• Metro İstanbul (metro-specific information)\n\n"
-    
-    response += "🎯 **For specific routes, ask**: 'How to get from [A] to [B]?'\n"
-    response += "💡 **Pro tip**: Combine metro + tram + ferry for the full Istanbul experience!"
-    
-    return response
-
-
-# Export the main function for integration
-__all__ = ['generate_comprehensive_transportation_response', 'ComprehensiveTransportProcessor', 'get_enhanced_transportation_system']
-
-# Add comprehensive query processor for main integration
-class TransportationQueryProcessor:
-    """
-    Main transportation query processor that integrates all enhanced features:
-    - Real-time IBB API data
-    - Comprehensive route planning
-    - Accessibility information
-    - Cost analysis
-    - Weather considerations
-    - Live schedules
-    """
+class GPSTransportationQueryProcessor:
+    """Enhanced transportation processor with GPS location support and intelligent location detector integration"""
     
     def __init__(self):
         self.enhanced_system = EnhancedTransportationSystem()
         self.comprehensive_processor = ComprehensiveTransportProcessor()
+        self.gps_processor = GPSLocationProcessor()
         self.logger = logging.getLogger(__name__)
         
-    async def process_transportation_query(
+        # Initialize intelligent location detector if available
+        if LOCATION_DETECTOR_AVAILABLE:
+            try:
+                self.location_detector = IntelligentLocationDetector()
+                self.has_location_detector = True
+                self.logger.info("📍 Integrated with IntelligentLocationDetector for GPS enhancement")
+            except Exception as e:
+                self.location_detector = None
+                self.has_location_detector = False
+                self.logger.warning(f"⚠️ Failed to initialize IntelligentLocationDetector: {e}")
+        else:
+            self.location_detector = None
+            self.has_location_detector = False
+            self.logger.warning("⚠️ IntelligentLocationDetector not available")
+    
+    async def process_gps_transportation_query(
         self, 
-        query: str, 
-        entities: Dict[str, Any] = None, 
+        user_input: str, 
+        user_gps: Optional[GPSLocation] = None,
+        destination: Optional[str] = None,
+        entities: Dict[str, Any] = None,
         user_profile: Any = None
     ) -> str:
-        """
-        Process any transportation query with comprehensive response
-        """
+        """Process transportation query with GPS location support and intelligent detection"""
+        
         if entities is None:
             entities = {}
-            
-        try:
-            # Log the query for monitoring
-            self.logger.info(f"Processing transportation query: {query}")
-            
-            # Use the comprehensive response generator
-            response = await generate_comprehensive_transportation_response(
-                query, entities, user_profile
-            )
-            
-            # Add system signature for verification
-            response += f"\n\n🔧 *Enhanced Transportation System v2.0 - Live Data Enabled*"
-            
-            return response
-            
-        except Exception as e:
-            self.logger.error(f"Error processing transportation query: {e}")
-            return self._get_fallback_response(query, entities)
-    
-    def _get_fallback_response(self, query: str, entities: Dict[str, Any]) -> str:
-        """Fallback response when main processing fails"""
-        return """🚇 **Istanbul Transportation System**
-
-I apologize, but I'm experiencing technical difficulties accessing live transportation data. Here's basic information:
-
-**Metro Lines:**
-• M1A: Yenikapı - Halkalı
-• M1B: Yenikapı - Kirazlı  
-• M2: Vezneciler - Hacıosman
-• M11: Gayrettepe - Istanbul Airport
-
-**Key Connections:**
-• Sultanahmet: Use T1 tram or M2 to Vezneciler + walk
-• Airport: M11 to Gayrettepe, then M2
-• Taksim: M2 direct connection
-
-**Payment:** İstanbulkart recommended (7.67 TL per ride)
-
-For live updates, please check the İstanbul Ulaşım app or ask me to try again.
-
-🔧 *Fallback mode - Enhanced system temporarily unavailable*"""
-
-    async def get_route_recommendations(
-        self, 
-        start_location: str, 
-        end_location: str, 
-        preferences: Dict[str, Any] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get multiple route recommendations with different options
-        """
-        if preferences is None:
-            preferences = {}
-            
-        recommendations = []
         
         try:
-            # Get comprehensive route data
-            if 'sultanahmet' in end_location.lower():
-                sultanahmet_routes = self.enhanced_system.get_route_to_sultanahmet(start_location)
+            # Handle GPS location input with intelligent location detector enhancement
+            if user_gps:
+                self.logger.info(f"Processing GPS transportation query: {user_gps.latitude}, {user_gps.longitude}")
                 
-                if 'recommended_route' in sultanahmet_routes:
-                    recommendations.append({
-                        'route_type': 'fastest',
-                        'description': sultanahmet_routes['recommended_route'],
-                        'duration': sultanahmet_routes.get('total_time', 'Unknown'),
-                        'cost': sultanahmet_routes.get('cost', 'Unknown'),
-                        'steps': sultanahmet_routes.get('steps', []),
-                        'accessibility': sultanahmet_routes.get('accessibility', 'Standard')
-                    })
+                # First, check if GPS location is within Istanbul bounds
+                if not self.gps_processor.is_in_istanbul(user_gps):
+                    return """📍 **Location Outside Istanbul**
+                    
+Your current location appears to be outside Istanbul city limits. 
+
+🚗 **Getting to Istanbul:**
+• **From Airports**: Use airport shuttles or metro connections
+• **From Other Cities**: Check intercity bus or train services
+• **From Nearby Areas**: Consider taxi or ride-sharing services
+
+Once you're in Istanbul, I can provide detailed public transport directions!"""
                 
-                if 'alternative_route' in sultanahmet_routes:
-                    recommendations.append({
-                        'route_type': 'scenic',
-                        'description': sultanahmet_routes['alternative_route'],
-                        'duration': sultanahmet_routes.get('alternative_time', 'Unknown'),
-                        'cost': sultanahmet_routes.get('cost', 'Unknown'),
-                        'accessibility': sultanahmet_routes.get('accessibility', 'Standard')
-                    })
-            
-            # Get walking option if locations are close
-            walking_data = await self.comprehensive_processor.get_detailed_walking_routes(
-                start_location, end_location
-            )
-            
-            basic_info = walking_data.get('basic_info', {})
-            if basic_info.get('distance_meters', 0) < 2000:  # Less than 2km
-                recommendations.append({
-                    'route_type': 'walking',
-                    'description': f"Walk from {start_location} to {end_location}",
-                    'duration': f"{basic_info.get('duration_minutes', 15)} minutes",
-                    'cost': 'Free',
-                    'accessibility': walking_data.get('accessibility', {}),
-                    'difficulty': basic_info.get('difficulty', 'Moderate'),
-                    'highlights': walking_data.get('points_of_interest', [])
-                })
-            
-            return recommendations
-            
-        except Exception as e:
-            self.logger.error(f"Error getting route recommendations: {e}")
-            return [{
-                'route_type': 'fallback',
-                'description': f"Please use İstanbul Ulaşım app for route from {start_location} to {end_location}",
-                'duration': 'Unknown',
-                'cost': 'Check app'
-            }]
-    
-    async def get_live_transport_status(self) -> Dict[str, Any]:
-        """Get current status of all transport systems"""
-        try:
-            metro_data = await self.comprehensive_processor.get_live_ibb_metro_data()
-            bus_data = await self.comprehensive_processor.get_live_iett_bus_schedules([])
-            ferry_data = await self.comprehensive_processor.get_enhanced_ferry_information()
-            
-            return {
-                'metro_status': self._extract_status(metro_data, 'metro'),
-                'bus_status': self._extract_status(bus_data, 'bus'),
-                'ferry_status': self._extract_status(ferry_data, 'ferry'),
-                'last_updated': datetime.now().isoformat(),
-                'overall_status': 'operational'
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error getting live transport status: {e}")
-            return {
-                'status': 'error',
-                'message': 'Unable to retrieve live transport status',
-                'fallback': True
-            }
-    
-    def _extract_status(self, data: Dict[str, Any], transport_type: str) -> Dict[str, Any]:
-        """Extract status information from transport data"""
-        if data.get('fallback'):
-            return {'status': 'fallback', 'details': 'Using cached data'}
-        
-        if transport_type == 'metro':
-            lines = data.get('lines', {})
-            operational_lines = [line for line, info in lines.items() 
-                               if info.get('status') == 'operational']
-            return {
-                'status': 'operational',
-                'operational_lines': len(operational_lines),
-                'total_lines': len(lines)
-            }
-        
-        elif transport_type == 'bus':
-            network = data.get('network_info', {})
-            return {
-                'status': 'operational',
-                'daily_passengers': network.get('daily_passengers', 'Unknown'),
-                'fleet_size': network.get('fleet_size', 'Unknown')
-            }
-        
-        elif transport_type == 'ferry':
-            conditions = data.get('current_conditions', {})
-            return {
-                'status': 'operational',
-                'weather_impact': conditions.get('service_impact', 'Normal'),
-                'conditions': conditions.get('weather', 'Unknown')
-            }
-        
-        return {'status': 'unknown'}
-    
-    def process_transportation_query_sync(self, user_input: str, entities: Dict[str, Any], user_profile: Any = None) -> str:
-        """
-        Synchronous wrapper for transportation query processing
-        This method can be called directly from the main AI system
-        """
-        try:
-            # Run the async method in an event loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(
-                    self.process_transportation_query(user_input, entities, user_profile)
+                # Enhanced GPS processing with intelligent location detection
+                if self.has_location_detector:
+                    # Create GPS context for advanced location detection
+                    gps_context = self._create_gps_context(user_gps)
+                    
+                    # Use intelligent location detector with GPS context
+                    location_result = await self._detect_location_with_gps_context(
+                        user_input, user_gps, gps_context, user_profile
+                    )
+                    
+                    if location_result:
+                        # Generate enhanced response using intelligent location detection
+                        return await self._generate_gps_context_enhanced_response(
+                            user_input, user_gps, location_result, destination, entities, user_profile
+                        )
+                
+                # Fallback: Get location context using GPS processor
+                location_context = self.gps_processor.get_location_context(user_gps)
+                
+                # Enhanced response with GPS context
+                response = await self._generate_gps_enhanced_response(
+                    user_input, user_gps, location_context, destination, entities, user_profile
                 )
-                return result
-            finally:
-                loop.close()
+                
+                return response
+            
+            else:
+                # No GPS provided - try to detect location from text using intelligent location detector
+                if self.has_location_detector:
+                    try:
+                        if not user_profile:
+                            user_profile = UserProfile(user_id="gps_text_user")
+                        conversation_context = ConversationContext(
+                            session_id="gps_text_session", 
+                            user_profile=user_profile
+                        )
+                        
+                        location_result = self.location_detector.detect_location(
+                            user_input=user_input,
+                            user_profile=user_profile,
+                            context=conversation_context
+                        )
+                        
+                        if location_result and location_result.location:
+                            return await self._generate_text_location_enhanced_response(
+                                user_input, location_result, destination, entities, user_profile
+                            )
+                    except Exception as e:
+                        self.logger.warning(f"Text-based location detection failed: {e}")
+                
+                # Fall back to standard processing
+                return await self._format_general_transportation_response(user_input)
+                
         except Exception as e:
-            self.logger.error(f"Error in synchronous transportation query: {e}")
-            return self._get_fallback_response(user_input, entities)
+            self.logger.error(f"Error in GPS transportation query: {e}")
+            return self._get_gps_fallback_response(user_input, user_gps)
+    
+    def _create_gps_context(self, user_gps: GPSLocation) -> 'GPSContext':
+        """Create GPS context for intelligent location detection"""
+        try:
+            if not LOCATION_DETECTOR_AVAILABLE:
+                return None
+            
+            # Calculate proximity to major districts (simplified)
+            district_proximities = {}
+            for district_name, hub_location in self.gps_processor.transport_hubs.items():
+                distance = self.gps_processor._calculate_distance(user_gps, hub_location)
+                district_proximities[district_name] = distance
+            
+            # Find nearest district
+            nearest_district = min(district_proximities.items(), key=lambda x: x[1])
+            
+            # Create GPS context object with required parameters
+            gps_context = GPSContext(
+                user_location=(user_gps.latitude, user_gps.longitude),
+                accuracy=user_gps.accuracy_meters or 50,
+                movement_pattern="stationary",  # Assume stationary for single reading
+                nearby_landmarks=[],
+                district_proximity=dict(list(district_proximities.items())[:5])  # Top 5 nearest
+            )
+            
+            return gps_context
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to create GPS context: {e}")
+            return None
+    
+    async def _detect_location_with_gps_context(
+        self, 
+        user_input: str, 
+        user_gps: GPSLocation, 
+        gps_context: 'GPSContext',
+        user_profile: Any
+    ) -> Optional['LocationDetectionResult']:
+        """Use intelligent location detector with GPS context"""
+        if not self.has_location_detector or not gps_context:
+            return None
+        
+        try:
+            # Create user profile and conversation context if not provided
+            if not user_profile:
+                user_profile = UserProfile(user_id="gps_user")
+            
+            conversation_context = ConversationContext(
+                session_id="gps_session",
+                user_profile=user_profile
+            )
+            
+            # Use the intelligent location detector with GPS context
+            result = self.location_detector.detect_location_with_context(
+                user_input=user_input,
+                user_profile=user_profile,
+                context=conversation_context,
+                gps_context=gps_context
+            )
+            
+            if result and result.location:
+                self.logger.info(f"📍 Location detected: {result.location} "
+                               f"(method: {result.detection_method}, confidence: {result.confidence:.2f})")
+                return result
+            
+            return None
+            
+        except Exception as e:
+            self.logger.warning(f"GPS context location detection failed: {e}")
+            return None
+    
+    async def _generate_gps_context_enhanced_response(
+        self, 
+        user_input: str,
+        user_gps: GPSLocation,
+        location_result: 'LocationDetectionResult',
+        destination: Optional[str],
+        entities: Dict[str, Any],
+        user_profile: Any
+    ) -> str:
+        """Generate enhanced response using GPS context and intelligent location detection"""
+        
+        detected_location = location_result.location
+        confidence = location_result.confidence
+        detection_method = location_result.detection_method
+        gps_distance = getattr(location_result, 'gps_distance', None)
+        
+        response = f"📍 **Enhanced GPS Location Detection**\n"
+        response += f"• **GPS Coordinates**: {user_gps.latitude:.4f}, {user_gps.longitude:.4f}\n"
+        
+        if user_gps.address:
+            response += f"• **Address**: {user_gps.address}\n"
+        
+        response += f"• **Detected Area**: {detected_location}\n"
+        response += f"• **Detection Method**: {detection_method.replace('_', ' ').title()}\n"
+        response += f"• **AI Confidence**: {confidence:.1%}\n"
+        
+        if gps_distance is not None:
+            response += f"• **Distance to Area Center**: {gps_distance:.1f}km\n"
+        
+        if hasattr(location_result, 'explanation') and location_result.explanation:
+            response += f"• **AI Analysis**: {location_result.explanation}\n"
+        
+        response += "\n"
+        
+        # Add context-specific insights
+        if hasattr(location_result, 'context_match') and location_result.context_match:
+            response += "🧠 **Context Analysis**:\n"
+            for context_type, score in location_result.context_match.items():
+                response += f"• {context_type.title()}: {score:.1%} match\n"
+            response += "\n"
+        
+        # Add nearby landmarks from GPS context
+        if hasattr(location_result, 'metadata') and location_result.metadata.get('nearby_landmarks'):
+            response += "🗺️ **Nearby Landmarks**:\n"
+            for landmark in location_result.metadata['nearby_landmarks'][:3]:
+                response += f"• {landmark}\n"
+            response += "\n"
+        
+        # Get enhanced transportation suggestions
+        location_context = self.gps_processor.get_location_context(user_gps)
+        nearest_hub = location_context.get('nearest_transport_hub', {})
+        
+        response += f"🚇 **Nearest Transport Hub**: {nearest_hub.get('name', 'Unknown')} "
+        response += f"({nearest_hub.get('distance_meters', 0)}m away)\n\n"
+        
+        # Add intelligent transport recommendations based on detected location
+        response += await self._get_context_aware_transport_recommendations(
+            detected_location, user_gps, location_result, destination
+        )
+        
+        # Add fallback locations if available
+        if hasattr(location_result, 'fallback_locations') and location_result.fallback_locations:
+            response += "\n🔄 **Alternative Areas**:\n"
+            for alt_location in location_result.fallback_locations[:3]:
+                response += f"• {alt_location}\n"
+        
+        response += f"\n\n🤖 *GPS-Enhanced AI Transportation System*"
+        response += f" (Method: {detection_method}, Confidence: {confidence:.1%})"
+        
+        return response
+    
+    async def _generate_gps_enhanced_response(
+        self, 
+        user_input: str,
+        user_gps: GPSLocation,
+        location_context: Dict[str, Any],
+        destination: Optional[str],
+        entities: Dict[str, Any],
+        user_profile: Any
+    ) -> str:
+        """Generate enhanced response with GPS location context (fallback method)"""
+        
+        nearest_hub = location_context['nearest_transport_hub']
+        current_coords = location_context['coordinates']
+        
+        response = f"📍 **Your GPS Location**: {current_coords['latitude']:.4f}, {current_coords['longitude']:.4f}\n"
+        
+        if user_gps.address:
+            response += f"📍 **Address**: {user_gps.address}\n"
+        
+        response += f"🚇 **Nearest Transport Hub**: {nearest_hub.get('name', 'Unknown')} "
+        response += f"({nearest_hub.get('distance_meters', 0)}m away)\n\n"
+        
+        # Get transport suggestions from current location
+        transport_suggestions = self.gps_processor.suggest_transport_options_from_gps(user_gps)
+        
+        response += "🚶‍♂️ **Getting to Public Transport:**\n\n"
+        
+        for option in transport_suggestions.get('transport_options', []):
+            if option['type'] == 'walking':
+                response += f"**Walk to {nearest_hub['name']}**\n"
+                response += f"• Distance: {option['distance_meters']}m\n"
+                response += f"• Time: ~{option['duration_minutes']} minutes\n"
+                response += f"• Cost: {option['cost']}\n"
+                response += f"• 💡 {option['recommendation']}\n\n"
+            
+            elif option['type'] == 'taxi':
+                response += f"**Taxi/Rideshare**\n"
+                response += f"• Apps: {', '.join(option['apps'])}\n"
+                response += f"• Estimated cost: {option['cost_estimate']}\n"
+                response += f"• Time to transport hub: ~{option['duration_minutes']} minutes\n"
+                response += f"• 💡 {option['recommendation']}\n\n"
+        
+        # If destination is provided, give specific route
+        if destination:
+            response += await self._get_route_from_gps_to_destination(
+                user_gps, nearest_hub, destination, entities
+            )
+        else:
+            # General transportation overview from this location
+            response += await self._get_general_transport_from_location(nearest_hub)
+        
+        response += f"\n\n🔧 *GPS-Enhanced Transportation System - Location: {nearest_hub['name']}*"
+        
+        return response
+    
+    async def _get_context_aware_transport_recommendations(
+        self, 
+        detected_location: str,
+        user_gps: GPSLocation,
+        location_result: 'LocationDetectionResult',
+        destination: Optional[str]
+    ) -> str:
+        """Get context-aware transportation recommendations based on intelligent detection"""
+        
+        recommendations = "🚀 **Smart Transport Recommendations**:\n\n"
+        
+        # Get basic route information for detected location
+        if destination:
+            if destination.lower() == 'sultanahmet':
+                route_info = self.enhanced_system.get_route_to_sultanahmet(detected_location.lower())
+                
+                if 'recommended_route' in route_info:
+                    recommendations += f"**Route to {destination}:**\n"
+                    recommendations += f"• {route_info['recommended_route']}\n"
+                    recommendations += f"• Time: {route_info.get('total_time', '25-35 minutes')}\n"
+                    recommendations += f"• Cost: {route_info.get('cost', '7.67 TL')}\n\n"
+                    
+                    if route_info.get('steps'):
+                        recommendations += "**Step-by-step:**\n"
+                        for i, step in enumerate(route_info['steps'][:3], 1):
+                            recommendations += f"{i}. {step}\n"
+                        recommendations += "\n"
+        
+        # Add context-specific recommendations based on detection method
+        detection_method = getattr(location_result, 'detection_method', 'unknown')
+        
+        if detection_method == 'gps_aware':
+            recommendations += "📍 **GPS-Based Recommendations**:\n"
+            recommendations += "• Real-time location provides accurate routing\n"
+            recommendations += "• Consider walking routes for short distances\n"
+            recommendations += "• Use GPS navigation for optimal paths\n\n"
+        
+        elif detection_method == 'restaurant_context':
+            recommendations += "🍽️ **Restaurant District Recommendations**:\n"
+            recommendations += "• Many restaurants are walking distance from transport hubs\n"
+            recommendations += "• Evening hours may have different transport schedules\n"
+            recommendations += "• Consider taxi for late-night dining\n\n"
+        
+        elif detection_method == 'attraction_context':
+            recommendations += "🏛️ **Tourist Area Recommendations**:\n"
+            recommendations += "• Tourist areas have frequent public transport\n"
+            recommendations += "• Walking tours between nearby attractions\n"
+            recommendations += "• Museum Pass includes some transport discounts\n\n"
+        
+        elif detection_method == 'transportation_context':
+            recommendations += "🚇 **Transport Hub Recommendations**:\n"
+            recommendations += "• You're near major transportation connections\n"
+            recommendations += "• Multiple route options available\n"
+            recommendations += "• Check real-time schedules for best timing\n\n"
+        
+        # Add distance-based recommendations
+        gps_distance = getattr(location_result, 'gps_distance', None)
+        if gps_distance is not None:
+            if gps_distance < 1.0:
+                recommendations += "🚶‍♂️ **Walking Distance**: You're very close to the area center - walking is recommended!\n"
+            elif gps_distance < 3.0:
+                recommendations += "🚶‍♂️ **Short Distance**: Consider walking or short taxi ride to transport hub\n"
+            else:
+                recommendations += "🚗 **Medium Distance**: Public transport or taxi recommended\n"
+        
+        return recommendations
+    
+    def _get_gps_fallback_response(self, user_input: str, user_gps: Optional[GPSLocation] = None) -> str:
+        """Fallback response when GPS processing fails"""
+        if user_gps:
+            return f"""📍 **GPS Location Processing**
+            
+Your location: {user_gps.latitude:.4f}, {user_gps.longitude:.4f}
+
+🚧 **Temporary Processing Issue**
+I'm having trouble processing your GPS location right now, but I can still help!
+
+🚇 **General Istanbul Transport Tips:**
+• Use T1 tram for historic attractions (Sultanahmet, Galata Tower)
+• Use M2 metro for modern city areas (Taksim, business districts)
+• İstanbulkart saves money on all public transport
+• Ferries offer scenic routes across the Bosphorus
+
+💡 **What you can do:**
+1. Tell me your nearest landmark or district
+2. Specify your destination for route planning
+3. Ask about specific transport lines or stations
+
+Please let me know where you'd like to go!"""
+        else:
+            return """🚇 **Istanbul Transportation System**
+            
+I can help you navigate Istanbul's extensive public transport network!
+
+**Popular Routes:**
+• **To Sultanahmet**: T1 tram or M2 metro to Vezneciler + walk
+• **To Taksim**: M2 metro direct or various bus lines
+• **To Grand Bazaar**: T1 tram to Beyazıt-Kapalıçarşı
+• **Airport Connections**: M1A metro line or shuttle buses
+
+**Tips:**
+• Get an Istanbul Card for easy payment
+• Check real-time schedules via mobile apps
+• Consider ferries for scenic Bosphorus crossings
+
+💡 **Pro tip**: Share your location or describe landmarks nearby for personalized directions!"""
+
+    async def _get_route_from_gps_to_destination(
+        self, 
+        user_gps: GPSLocation, 
+        nearest_hub: Dict[str, Any], 
+        destination: str,
+        entities: Dict[str, Any]
+    ) -> str:
+        """Get specific route from GPS location to destination"""
+        
+        response = f"🎯 **Route to {destination}:**\n\n"
+        
+        # Get route from nearest hub to destination
+        hub_name = nearest_hub['name']
+        
+        if destination.lower() == 'sultanahmet':
+            route_info = self.enhanced_system.get_route_to_sultanahmet(hub_name)
+            
+            if 'recommended_route' in route_info:
+                response += f"**From your location to {destination}:**\n"
+                response += f"1. Walk to {hub_name} ({nearest_hub['walking_time_minutes']} min)\n"
+                response += f"2. {route_info['recommended_route']}\n"
+                response += f"3. Total time: ~{route_info.get('total_time', '25-35 minutes')}\n"
+                response += f"4. Total cost: {route_info.get('cost', '7.67 TL')}\n\n"
+        
+        else:
+            # General route planning
+            response += f"**From your location to {destination}:**\n"
+            response += f"1. Walk to {hub_name} ({nearest_hub['walking_time_minutes']} min)\n"
+            response += f"2. Use public transport from {hub_name}\n"
+            response += f"3. Check İstanbul Ulaşım app for specific routes\n\n"
+        
+        return response
+    
+    async def _get_general_transport_from_location(self, nearest_hub: Dict[str, Any]) -> str:
+        """Get general transport information from current location"""
+        
+        hub_name = nearest_hub['name']
+        
+        transport_info = {
+            'taksim': {
+                'lines': ['M2 Metro', 'Various bus routes', 'Funicular to Kabataş'],
+                'destinations': ['Sultanahmet (via M2)', 'Airport (M2→M11)', 'Asian side (M2→Ferry)']
+            },
+            'sultanahmet': {
+                'lines': ['T1 Tram', 'Various bus routes'],
+                'destinations': ['Taksim (T1→M2)', 'Galata Tower (T1)', 'Grand Bazaar (walk)']
+            },
+            'kadikoy': {
+                'lines': ['Ferry services', 'M4 Metro', 'Bus routes'],
+                'destinations': ['European side (Ferry)', 'Airport SAW (M4)', 'Üsküdar (Ferry)']
+            },
+            'eminonu': {
+                'lines': ['Ferry services', 'T1 Tram', 'Various buses'],
+                'destinations': ['Asian side (Ferry)', 'Sultanahmet (T1)', 'Galata (T1)']
+            }
+        }
+        
+        hub_info = transport_info.get(hub_name, {
+            'lines': ['Public transport available'],
+            'destinations': ['Various destinations accessible']
+        })
+        
+        response = f"🚇 **From {hub_name} Transport Hub:**\n\n"
+        response += f"**Available Transport:**\n"
+        for line in hub_info['lines']:
+            response += f"• {line}\n"
+        
+        response += f"\n**Popular Destinations:**\n"
+        for dest in hub_info['destinations']:
+            response += f"• {dest}\n"
+        
+        response += f"\n💡 **Next Steps**: Tell me your destination for detailed route planning!"
+        
+        return response
+
+    async def _get_general_transport_from_detected_location(self, location: str) -> str:
+        """Get general transportation information from a detected location"""
+        try:
+            # Use the comprehensive processor to get transportation info
+            response = await self.comprehensive_processor.process_query(f"Transportation options from {location}")
+            return response
+        except Exception as e:
+            self.logger.error(f"Error getting transport info from {location}: {e}")
+            return f"**Transportation from {location}:**\n\nGeneral Istanbul transportation options are available. Please specify your destination for detailed route planning."
+
+    async def _get_route_from_location_to_destination(self, origin: str, destination: str, entities: Dict[str, Any]) -> str:
+        """Get route information from detected location to destination"""
+        try:
+            # Use the comprehensive processor to get route info
+            response = await self.comprehensive_processor.process_query(f"How to get from {origin} to {destination}")
+            return response
+        except Exception as e:
+            self.logger.error(f"Error getting route from {origin} to {destination}: {e}")
+            return f"**Route from {origin} to {destination}:**\n\nPlease use transportation apps like Moovit or Citymapper for detailed route planning."

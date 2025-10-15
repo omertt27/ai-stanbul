@@ -11,6 +11,9 @@ from ..core.conversation_context import ConversationContext
 from ..core.entity_recognizer import IstanbulEntityRecognizer
 from ..utils.constants import ConversationTone, DEFAULT_RESPONSES
 
+# Configure logger first
+logger = logging.getLogger(__name__)
+
 # Import advanced transportation system
 try:
     import sys
@@ -20,15 +23,13 @@ try:
     if parent_dir not in sys.path:
         sys.path.append(parent_dir)
     
-    from transportation_integration_helper import TransportationQueryProcessor
+    from enhanced_transportation_system import TransportationQueryProcessor
     from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
     ADVANCED_TRANSPORT_AVAILABLE = True
     logger.info("✅ Advanced transportation system loaded successfully")
 except ImportError as e:
     logger.warning(f"⚠️ Advanced transportation system not available: {e}")
     ADVANCED_TRANSPORT_AVAILABLE = False
-
-logger = logging.getLogger(__name__)
 
 
 class IstanbulDailyTalkAI:
@@ -570,7 +571,7 @@ class IstanbulDailyTalkAI:
                 logger.info("🚇 Using advanced transportation system with IBB API")
                 
                 # Process query through enhanced system
-                enhanced_response = self.transport_processor.process_transportation_query(
+                enhanced_response = self.transport_processor.process_transportation_query_sync(
                     user_input, entities, user_profile
                 )
                 
