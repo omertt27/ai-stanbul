@@ -32,6 +32,9 @@ import random
 # Import the hidden gems system
 from hidden_gems_local_tips import HiddenGemsLocalTips
 
+# Import ML-enhanced daily talks bridge
+from ml_enhanced_daily_talks_bridge import MLEnhancedDailyTalksBridge
+
 # Configure advanced logging
 logging.basicConfig(
     level=logging.INFO,
@@ -114,9 +117,6 @@ class DialogueContext:
     turn_count: int = 0
     current_topic: Optional[str] = None
     mentioned_entities: List[EntityMention] = field(default_factory=list)
-    user_goals: List[str] = field(default_factory=list)
-    conversation_flow: List[str] = field(default_factory=list)
-    emotional_state: str = "neutral"
     urgency_level: float = 0.0
     context_history: deque = field(default_factory=lambda: deque(maxlen=10))
 

@@ -1470,11 +1470,11 @@ try:
         get_daily_conversation, get_weather_aware_daily_greeting, 
         get_advanced_daily_conversation
     )
-    DAILY_TALK_AVAILABLE = True
-    logger.info("🗣️ Daily Talk Enhancement System available")
+    LEGACY_DAILY_TALK_AVAILABLE = True
+    logger.info("🗣️ Legacy Daily Talk Enhancement System available")
 except ImportError as e:
-    DAILY_TALK_AVAILABLE = False
-    logger.warning(f"🗣️ Daily Talk Enhancement not available: {e}")
+    LEGACY_DAILY_TALK_AVAILABLE = False
+    logger.warning(f"🗣️ Legacy Daily Talk Enhancement not available: {e}")
 
 # Advanced Daily Talk AI
 try:
@@ -1484,6 +1484,20 @@ try:
 except ImportError as e:
     ADVANCED_DAILY_TALK_AVAILABLE = False
     logger.warning(f"🧠 Advanced Daily Talk AI not available: {e}")
+
+# Comprehensive Daily Talks System (NEW!)
+try:
+    from daily_talks_integration_wrapper import DailyTalksIntegrationWrapper
+    daily_talks_wrapper = DailyTalksIntegrationWrapper()
+    COMPREHENSIVE_DAILY_TALKS_AVAILABLE = True
+    logger.info("🚀 Comprehensive Daily Talks System available - Full featured!")
+except ImportError as e:
+    COMPREHENSIVE_DAILY_TALKS_AVAILABLE = False
+    daily_talks_wrapper = None
+    logger.warning(f"🚀 Comprehensive Daily Talks System not available: {e}")
+
+# Set main daily talk availability flag
+DAILY_TALK_AVAILABLE = COMPREHENSIVE_DAILY_TALKS_AVAILABLE or LEGACY_DAILY_TALK_AVAILABLE
 
 @app.get("/api/v1/daily-greeting")
 @limiter.limit("20/minute")
@@ -1528,9 +1542,13 @@ async def get_daily_greeting(
 async def get_daily_conversation_endpoint(
     request: Request,
     location: str = "Istanbul",
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    mood: Optional[str] = None,
+    include_weather: bool = True,
+    include_events: bool = True,
+    conversation_style: str = "friendly"
 ):
-    """Get full daily conversation with recommendations and tips"""
+    """Get full daily conversation with recommendations and tips using comprehensive system"""
     try:
         if not DAILY_TALK_AVAILABLE:
             return {
@@ -1542,33 +1560,81 @@ async def get_daily_conversation_endpoint(
         if not user_id:
             user_id = f"anonymous_{int(time.time())}"
         
-        conversation = get_daily_conversation(user_id, location)
+        # Try comprehensive system first
+        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE and daily_talks_wrapper:
+            try:
+                conversation_data = daily_talks_wrapper.get_full_conversation_data(
+                    user_id=user_id,
+                    location=location,
+                    user_mood=mood,
+                    include_weather=include_weather,
+                    include_events=include_events,
+                    conversation_style=conversation_style
+                )
+                
+                return {
+                    "success": True,
+                    "system_used": "comprehensive",
+                    "data": conversation_data,
+                    "location": location,
+                    "timestamp": datetime.now().isoformat(),
+                    "features": {
+                        "advanced_intent_recognition": True,
+                        "context_memory": True,
+                        "weather_integration": include_weather,
+                        "events_integration": include_events,
+                        "mood_suggestions": True,
+                        "multi_modal_responses": True
+                    }
+                }
+            except Exception as comp_error:
+                logger.warning(f"Comprehensive system error, falling back: {comp_error}")
         
-        # Format context for API response
-        context_data = {
-            "time_of_day": conversation["context"].time_of_day.value,
-            "weather_condition": conversation["context"].weather_condition,
-            "temperature": conversation["context"].temperature,
-            "user_location": conversation["context"].user_location,
-            "user_mood": conversation["context"].user_mood.value,
-            "is_weekday": conversation["context"].is_weekday
-        }
+        # Fallback to legacy system
+        if LEGACY_DAILY_TALK_AVAILABLE:
+            try:
+                conversation = get_daily_conversation(user_id, location)
+                
+                # Format context for API response
+                context_data = {
+                    "time_of_day": conversation["context"].time_of_day.value,
+                    "weather_condition": conversation["context"].weather_condition,
+                    "temperature": conversation["context"].temperature,
+                    "user_location": conversation["context"].user_location,
+                    "user_mood": conversation["context"].user_mood.value,
+                    "is_weekday": conversation["context"].is_weekday
+                }
+                
+                return {
+                    "success": True,
+                    "system_used": "legacy",
+                    "greeting": conversation["greeting"],
+                    "recommendations": conversation["recommendations"],
+                    "conversation_flow": conversation["conversation_flow"],
+                    "mood_suggestions": conversation["mood_suggestions"],
+                    "local_tips": conversation["local_tips"],
+                    "context": context_data,
+                    "location": location,
+                    "timestamp": datetime.now().isoformat(),
+                    "weather_aware": getattr(conversation.get("context"), "weather_condition", None) is not None
+                }
+            except Exception as legacy_error:
+                logger.error(f"Legacy system also failed: {legacy_error}")
         
+        # Final fallback
         return {
-            "success": True,
-            "greeting": conversation["greeting"],
-            "recommendations": conversation["recommendations"],
-            "conversation_flow": conversation["conversation_flow"],
-            "mood_suggestions": conversation["mood_suggestions"],
-            "local_tips": conversation["local_tips"],
-            "context": context_data,
-            "location": location,
-            "timestamp": datetime.now().isoformat(),
-            "weather_aware": WEATHER_SERVICES_AVAILABLE
+            "success": False,
+            "error": "All daily talk systems unavailable",
+            "fallback_data": {
+                "greeting": "Merhaba! Welcome to Istanbul! 🏙️",
+                "recommendations": [{"type": "activity", "title": "Explore Istanbul", "description": "Discover the magic where Europe meets Asia!"}],
+                "conversation_flow": ["What would you like to explore today?"],
+                "local_tips": ["Istanbul is a city of endless discoveries!"]
+            }
         }
         
     except Exception as e:
-        logger.error(f"Daily conversation error: {e}")
+        logger.error(f"Daily conversation endpoint error: {e}")
         return {
             "success": False,
             "error": str(e),
@@ -1580,6 +1646,59 @@ async def get_daily_conversation_endpoint(
             }
         }
 
+@app.post("/api/v1/daily-conversation/interactive")
+@limiter.limit("20/minute")
+async def interactive_daily_conversation(
+    request: Request,
+    data: Dict[str, Any]
+):
+    """Interactive daily conversation with the comprehensive system"""
+    try:
+        if not COMPREHENSIVE_DAILY_TALKS_AVAILABLE or not daily_talks_wrapper:
+            return {
+                "success": False,
+                "error": "Comprehensive daily talks system not available"
+            }
+        
+        user_message = data.get("message", "")
+        user_id = data.get("user_id", f"anonymous_{int(time.time())}")
+        location = data.get("location", "Istanbul")
+        context = data.get("context", {})
+        
+        if not user_message:
+            return {
+                "success": False,
+                "error": "Message is required"
+            }
+        
+        # Process the interactive conversation
+        response = daily_talks_wrapper.process_user_input(
+            user_input=user_message,
+            user_id=user_id,
+            location=location,
+            additional_context=context
+        )
+        
+        return {
+            "success": True,
+            "response": response,
+            "user_id": user_id,
+            "location": location,
+            "timestamp": datetime.now().isoformat(),
+            "system_used": "comprehensive_interactive"
+        }
+        
+    except Exception as e:
+        logger.error(f"Interactive daily conversation error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "fallback_response": {
+                "text": "I'm sorry, I'm having trouble understanding right now. Could you try again?",
+                "suggestions": ["Tell me about Istanbul weather", "What should I do today?", "Recommend some local food"]
+            }
+        }
+
 @app.get("/api/v1/daily-mood-activities")
 @limiter.limit("10/minute")
 async def get_mood_based_activities(
@@ -1588,7 +1707,7 @@ async def get_mood_based_activities(
     location: str = "Istanbul",
     user_id: Optional[str] = None
 ):
-    """Get mood-based activity recommendations"""
+    """Get mood-based activity recommendations using comprehensive system"""
     try:
         if not DAILY_TALK_AVAILABLE:
             return {
@@ -1600,15 +1719,45 @@ async def get_mood_based_activities(
         if not user_id:
             user_id = f"anonymous_{int(time.time())}"
         
-        conversation = get_daily_conversation(user_id, location)
+        # Try comprehensive system first
+        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE and daily_talks_wrapper:
+            try:
+                mood_data = daily_talks_wrapper.get_mood_based_suggestions(
+                    user_id=user_id,
+                    location=location,
+                    mood=mood
+                )
+                
+                return {
+                    "success": True,
+                    "system_used": "comprehensive",
+                    "mood": mood,
+                    "data": mood_data,
+                    "location": location,
+                    "timestamp": datetime.now().isoformat()
+                }
+            except Exception as comp_error:
+                logger.warning(f"Comprehensive mood system error, falling back: {comp_error}")
         
+        # Fallback to legacy system
+        if LEGACY_DAILY_TALK_AVAILABLE:
+            conversation = get_daily_conversation(user_id, location)
+            
+            return {
+                "success": True,
+                "system_used": "legacy",
+                "mood": mood,
+                "activities": conversation["mood_suggestions"],
+                "local_tips": conversation["local_tips"],
+                "location": location,
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        # Final fallback
         return {
-            "success": True,
-            "mood": mood,
-            "activities": conversation["mood_suggestions"],
-            "local_tips": conversation["local_tips"],
-            "location": location,
-            "timestamp": datetime.now().isoformat()
+            "success": False,
+            "error": "All daily talk systems unavailable",
+            "fallback_activities": ["Explore the beautiful streets of Istanbul!", "Visit a traditional Turkish cafe", "Take a walk along the Bosphorus"]
         }
         
     except Exception as e:
@@ -1627,17 +1776,54 @@ async def advanced_daily_talk(
     user_id: Optional[str] = None,
     location: str = "Istanbul"
 ):
-    """Advanced GPT-level daily talk conversation"""
+    """Advanced GPT-level daily talk conversation with comprehensive system"""
     try:
+        # Use user_id or generate anonymous one
+        if not user_id:
+            user_id = f"advanced_{int(time.time())}"
+        
+        # Try comprehensive system first (it has advanced capabilities built-in)
+        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE and daily_talks_wrapper:
+            try:
+                response = daily_talks_wrapper.process_user_input(
+                    user_input=message,
+                    user_id=user_id,
+                    location=location,
+                    additional_context={"advanced_mode": True}
+                )
+                
+                return {
+                    "success": True,
+                    "response": response["response_text"],
+                    "user_id": user_id,
+                    "analysis": {
+                        "intent": response.get("detected_intent", "general"),
+                        "emotional_tone": response.get("mood_analysis", {}).get("detected_mood", "neutral"),
+                        "entities": response.get("entities", []),
+                        "topics": response.get("topics", []),
+                        "confidence": response.get("confidence", 0.8)
+                    },
+                    "suggestions": response.get("suggestions", []),
+                    "ai_level": "comprehensive_advanced",
+                    "weather_aware": response.get("includes_weather", False),
+                    "events_aware": response.get("includes_events", False),
+                    "timestamp": datetime.now().isoformat(),
+                    "system_used": "comprehensive"
+                }
+            except Exception as comp_error:
+                logger.warning(f"Comprehensive advanced system error, falling back: {comp_error}")
+        
+        # Fallback to original advanced system
         if not ADVANCED_DAILY_TALK_AVAILABLE:
-            # Fallback to regular daily talk
-            if DAILY_TALK_AVAILABLE:
+            # Further fallback to regular daily talk
+            if LEGACY_DAILY_TALK_AVAILABLE:
                 conversation = get_daily_conversation(user_id or f"fallback_{int(time.time())}", location)
                 return {
                     "success": True,
                     "response": conversation["greeting"],
                     "fallback_mode": True,
-                    "ai_level": "traditional"
+                    "ai_level": "traditional",
+                    "system_used": "legacy"
                 }
             else:
                 return {
@@ -1645,10 +1831,6 @@ async def advanced_daily_talk(
                     "error": "Advanced daily talk system not available",
                     "fallback_response": "Merhaba! I'm here to help you explore Istanbul! What would you like to discover?"
                 }
-        
-        # Use user_id or generate anonymous one
-        if not user_id:
-            user_id = f"advanced_{int(time.time())}"
         
         # Get weather context
         weather_context = None
@@ -1694,6 +1876,77 @@ async def advanced_daily_talk(
             "success": False,
             "error": str(e),
             "fallback_response": "I'm here to help you explore Istanbul! What interests you most about the city?"
+        }
+
+@app.get("/api/v1/daily-talks/system-status")
+@limiter.limit("5/minute")
+async def get_daily_talks_system_status(request: Request):
+    """Get status and capabilities of all daily talk systems"""
+    try:
+        status = {
+            "comprehensive_system": {
+                "available": COMPREHENSIVE_DAILY_TALKS_AVAILABLE,
+                "features": []
+            },
+            "legacy_system": {
+                "available": LEGACY_DAILY_TALK_AVAILABLE,
+                "features": []
+            },
+            "advanced_system": {
+                "available": ADVANCED_DAILY_TALK_AVAILABLE,
+                "features": []
+            }
+        }
+        
+        if COMPREHENSIVE_DAILY_TALKS_AVAILABLE and daily_talks_wrapper:
+            status["comprehensive_system"]["features"] = [
+                "Advanced intent recognition",
+                "Context memory",
+                "Weather integration",
+                "Events integration", 
+                "News integration",
+                "Mood-based suggestions",
+                "Multi-modal responses",
+                "Conversation flow management",
+                "Personalized recommendations"
+            ]
+            
+            # Get system info from wrapper
+            try:
+                system_info = daily_talks_wrapper.get_system_info()
+                status["comprehensive_system"]["system_info"] = system_info
+            except:
+                pass
+        
+        if LEGACY_DAILY_TALK_AVAILABLE:
+            status["legacy_system"]["features"] = [
+                "Basic daily conversation",
+                "Weather awareness",
+                "Location-based tips",
+                "Mood suggestions"
+            ]
+        
+        if ADVANCED_DAILY_TALK_AVAILABLE:
+            status["advanced_system"]["features"] = [
+                "GPT-level intelligence",
+                "Advanced analysis",
+                "Emotional state tracking",
+                "Complex conversation handling"
+            ]
+        
+        return {
+            "success": True,
+            "overall_status": DAILY_TALK_AVAILABLE,
+            "systems": status,
+            "primary_system": "comprehensive" if COMPREHENSIVE_DAILY_TALKS_AVAILABLE else ("legacy" if LEGACY_DAILY_TALK_AVAILABLE else "none"),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"System status error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
         }
 
 @app.get("/api/v1/conversation-summary/{user_id}")

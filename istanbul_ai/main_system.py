@@ -33,6 +33,15 @@ except ImportError as e:
     logger.warning(f"⚠️ Advanced transportation system not available: {e}")
     ADVANCED_TRANSPORT_AVAILABLE = False
 
+# Import ML-Enhanced Daily Talks Bridge
+try:
+    from ml_enhanced_daily_talks_bridge import MLEnhancedDailyTalksBridge, process_enhanced_daily_talk
+    ML_DAILY_TALKS_AVAILABLE = True
+    logger.info("✅ ML-Enhanced Daily Talks Bridge loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ ML-Enhanced Daily Talks Bridge not available: {e}")
+    ML_DAILY_TALKS_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -72,6 +81,17 @@ class IstanbulDailyTalkAI:
         else:
             self.transport_processor = None
             self.ml_transport_system = None
+
+        # Initialize ML-Enhanced Daily Talks Bridge
+        if ML_DAILY_TALKS_AVAILABLE:
+            try:
+                self.daily_talks_bridge = MLEnhancedDailyTalksBridge()
+                logger.info("🤖 ML-Enhanced Daily Talks Bridge initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize daily talks bridge: {e}")
+                self.daily_talks_bridge = None
+        else:
+            self.daily_talks_bridge = None
 
         # Initialize museum system with location integration
         try:
@@ -137,6 +157,10 @@ class IstanbulDailyTalkAI:
             
             context = self.user_manager.get_conversation_context(session_id)
             
+            # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
+            if self._is_daily_talk_query(message):
+                return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context)
+            
             # Extract entities from message
             entities = self.entity_recognizer.extract_entities(message)
             
@@ -168,6 +192,168 @@ class IstanbulDailyTalkAI:
             except Exception as fallback_error:
                 logger.error(f"Error in fallback response: {fallback_error}")
                 return "🌟 Welcome to Istanbul! I'm your AI guide ready to help you discover this amazing city. How can I assist you today?"
+
+    def _is_daily_talk_query(self, message: str) -> bool:
+        """Detect if the message is a daily talk query (casual conversation, greetings, weather, etc.)"""
+        
+        message_lower = message.lower().strip()
+        
+        # Greeting patterns
+        greeting_patterns = [
+            'hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening',
+            'how are you', 'how r u', 'whats up', "what's up", 'merhaba', 'selam'
+        ]
+        
+        # Weather patterns
+        weather_patterns = [
+            'weather', 'temperature', 'rain', 'sunny', 'cloudy', 'hot', 'cold',
+            'warm', 'cool', 'forecast', 'climate', 'degrees'
+        ]
+        
+        # Casual conversation patterns
+        casual_patterns = [
+            'how is your day', 'nice day', 'beautiful day', 'lovely weather',
+            'what a day', 'nice weather', 'good day', 'having a good time',
+            'nice to meet', 'pleasure to meet', 'thanks', 'thank you', 'bye', 'goodbye'
+        ]
+        
+        # Time-based patterns
+        time_patterns = [
+            'good morning', 'good afternoon', 'good evening', 'good night'
+        ]
+        
+        # Simple questions about the day
+        daily_life_patterns = [
+            'how is the day', 'what should i do today', 'any suggestions for today',
+            'whats happening today', "what's happening today", 'today', 'this morning',
+            'this afternoon', 'this evening', 'tonight'
+        ]
+        
+        # Cultural and local tips
+        cultural_patterns = [
+            'local tip', 'cultural tip', 'local advice', 'what locals do',
+            'like a local', 'authentic experience', 'local culture'
+        ]
+        
+        all_patterns = (greeting_patterns + weather_patterns + casual_patterns + 
+                       time_patterns + daily_life_patterns + cultural_patterns)
+        
+        # Check if message contains daily talk patterns
+        for pattern in all_patterns:
+            if pattern in message_lower:
+                return True
+        
+        # Check for short casual messages (likely daily talk)
+        if len(message.split()) <= 3 and any(word in message_lower for word in 
+                                            ['hi', 'hello', 'hey', 'thanks', 'bye', 'yes', 'no', 'ok', 'okay']):
+            return True
+        
+        return False
+
+    def _handle_daily_talk_query(self, message: str, user_id: str, session_id: str, 
+                                user_profile: UserProfile, context: ConversationContext) -> str:
+        """Handle daily talk queries through ML-enhanced bridge"""
+        
+        if not ML_DAILY_TALKS_AVAILABLE or not self.daily_talks_bridge:
+            # Fallback to basic daily talk response
+            return self._generate_basic_daily_talk_response(message, user_profile, context)
+        
+        try:
+            # Prepare context data for the ML bridge
+            context_data = {
+                'location': getattr(user_profile, 'current_location', None),
+                'preferences': {
+                    'interests': getattr(user_profile, 'interests', []),
+                    'user_type': getattr(user_profile, 'user_type', {}).get('value', 'first_time_visitor') if hasattr(user_profile.user_type, 'value') else str(user_profile.user_type),
+                    'language_preference': getattr(user_profile, 'language_preference', 'english')
+                },
+                'mood': getattr(context, 'current_mood', None),
+                'weather': None,  # Could be enhanced with real weather data
+                'time_of_day': datetime.now().strftime('%H:%M')
+            }
+            
+            # Process through ML-enhanced daily talks bridge using asyncio
+            import asyncio
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is already running, create a task but don't await it directly
+                    # Instead, use the comprehensive daily talks system synchronously
+                    bridge_result = asyncio.create_task(
+                        self.daily_talks_bridge.process_daily_talk_request(
+                            message, user_id, session_id, context_data
+                        )
+                    )
+                    # For now, fall back to basic response to avoid blocking
+                    return self._generate_basic_daily_talk_response(message, user_profile, context)
+                else:
+                    # No loop running, we can use run_until_complete
+                    bridge_result = loop.run_until_complete(
+                        self.daily_talks_bridge.process_daily_talk_request(
+                            message, user_id, session_id, context_data
+                        )
+                    )
+            except RuntimeError:
+                # No event loop, create one
+                bridge_result = asyncio.run(
+                    self.daily_talks_bridge.process_daily_talk_request(
+                        message, user_id, session_id, context_data
+                    )
+                )
+            
+            # Extract response from bridge result
+            if isinstance(bridge_result, dict) and 'response' in bridge_result:
+                response_data = bridge_result['response']
+                if isinstance(response_data, dict) and 'message' in response_data:
+                    response = response_data['message']
+                elif isinstance(response_data, str):
+                    response = response_data
+                else:
+                    response = str(response_data)
+            else:
+                response = str(bridge_result)
+            
+            # Record interaction
+            context.add_interaction(message, response, 'daily_talk')
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in ML daily talks bridge: {e}")
+            # Fallback to basic response
+            return self._generate_basic_daily_talk_response(message, user_profile, context)
+    
+    def _generate_basic_daily_talk_response(self, message: str, user_profile: UserProfile, 
+                                          context: ConversationContext) -> str:
+        """Generate basic daily talk response as fallback"""
+        
+        message_lower = message.lower()
+        current_hour = datetime.now().hour
+        
+        # Greeting responses
+        if any(greeting in message_lower for greeting in ['hi', 'hello', 'hey', 'merhaba']):
+            if current_hour < 12:
+                return "🌅 Good morning! What a beautiful day to explore Istanbul! How can I help you discover something amazing today?"
+            elif current_hour < 17:
+                return "☀️ Good afternoon! Perfect time to explore Istanbul! What would you like to discover today?"
+            else:
+                return "🌆 Good evening! Istanbul's evening magic awaits! How can I help you experience the city tonight?"
+        
+        # Weather responses
+        if any(weather in message_lower for weather in ['weather', 'temperature', 'rain', 'sunny']):
+            return "🌤️ I don't have real-time weather data, but Istanbul weather can be quite pleasant! Check the local weather and I can suggest activities that match the conditions. What kind of experience are you looking for?"
+        
+        # Thank you responses
+        if any(thanks in message_lower for thanks in ['thank', 'thanks']):
+            return "🙏 You're very welcome! I'm here to help you discover the best of Istanbul. Anything else you'd like to know?"
+        
+        # Goodbye responses
+        if any(bye in message_lower for bye in ['bye', 'goodbye', 'see you']):
+            return "👋 Güle güle! (Goodbye in Turkish) Have a wonderful time in Istanbul! Feel free to ask me anything anytime!"
+        
+        # Default casual response
+        return "😊 I'm your Istanbul AI guide, always ready to help! Whether you want restaurant recommendations, cultural insights, or help getting around the city, just let me know. What interests you most about Istanbul?"
     
     def _generate_personalized_greeting(self, user_profile: UserProfile, context: ConversationContext) -> str:
         """Generate personalized greeting based on user profile"""
@@ -659,151 +845,3 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 return location
         
         return None
-    
-    def _generate_location_specific_museum_info(self, location: str, query: str) -> str:
-        """Generate location-specific museum information"""
-        
-        location_lower = location.lower()
-        
-        # Location-specific museum recommendations
-        location_museums = {
-            'sultanahmet': {
-                'nearby': ['Hagia Sophia', 'Topkapi Palace Museum', 'Istanbul Archaeological Museums', 
-                          'Turkish and Islamic Arts Museum', 'Great Palace Mosaics Museum'],
-                'walking_time': '2-5 minutes walk between major museums',
-                'tips': 'Perfect area for a full museum day - all major historical sites are within walking distance!'
-            },
-            'beyoğlu': {
-                'nearby': ['Galata Tower Museum', 'Pera Museum', 'Istanbul Modern', 'SALT Galata'],
-                'walking_time': '5-15 minutes walk between venues',
-                'tips': 'Great for contemporary art and culture - mix museums with trendy cafes!'
-            },
-            'galata': {
-                'nearby': ['Galata Tower Museum', 'Galata Mevlevi House Museum', 'SALT Galata'],
-                'walking_time': '3-8 minutes walk',
-                'tips': 'Historic district with stunning Bosphorus views from museum locations!'
-            },
-            'eminönü': {
-                'nearby': ['Spice Bazaar area museums', 'New Mosque area'],
-                'walking_time': 'Short walk to Sultanahmet museums (10 minutes)',
-                'tips': 'Great starting point - easy tram access to all major museum areas!'
-            }
-        }
-        
-        if location_lower in location_museums:
-            museum_info = location_museums[location_lower]
-            
-            enhancement = f"""
-🌍 **Perfect! Since you're in {location.title()}:**
-
-📍 **Museums nearby** ({museum_info['walking_time']}):
-{chr(10).join(f'• {museum}' for museum in museum_info['nearby'])}
-
-💡 **Local tip**: {museum_info['tips']}
-
-🚶‍♀️ **Walking distances**: {museum_info['walking_time']}
-"""
-            return enhancement
-        
-        return None
-    
-    def _add_current_museum_hours(self, query: str) -> str:
-        """Add current museum hours using Google Maps data"""
-        
-        if not self.hours_checker:
-            return None
-        
-        # Detect which museums are mentioned in the query
-        mentioned_museums = []
-        query_lower = query.lower()
-        
-        museum_keywords = {
-            'hagia sophia': 'Hagia Sophia',
-            'topkapi': 'Topkapi Palace Museum',
-            'archaeological': 'Istanbul Archaeological Museums',
-            'islamic arts': 'Museum of Turkish and Islamic Arts',
-            'galata tower': 'Galata Tower Museum',
-            'mevlevi': 'Galata Mevlevi House Museum'
-        }
-        
-        for keyword, museum_name in museum_keywords.items():
-            if keyword in query_lower:
-                mentioned_museums.append(museum_name)
-        
-        if not mentioned_museums:
-            # If no specific museums mentioned, provide general hours info
-            return """
-🕐 **Museum Hours Quick Reference** (Always verify on-site):
-• Most museums: Tuesday-Sunday 9:00-17:00 (Closed Mondays)
-• Hagia Sophia: 24/7 (Prayer times may restrict access)
-• Topkapi Palace: 9:00-16:45 (Closed Tuesdays)
-• Galata Tower: 8:30-22:00 daily
-
-💡 **Pro tip**: Hours may vary during holidays and seasons - always check at the entrance!
-"""
-        
-        # Provide specific hours for mentioned museums
-        hours_info = "🕐 **Current Opening Hours**:\n"
-        for museum in mentioned_museums:
-            hours_data = self.hours_checker.get_formatted_hours(museum)
-            if hours_data:
-                hours_info += f"• **{museum}**: {hours_data.get('daily_summary', 'Check on-site')}\n"
-                if hours_data.get('winter_summer'):
-                    hours_info += f"  ⚠️ {hours_data['winter_summer']}\n"
-        
-        return hours_info
-    
-    # Public interface methods
-    def handle_preference_update(self, message: str, user_id: str) -> str:
-        """Handle user preference updates"""
-        user_profile = self.user_manager.get_or_create_user_profile(user_id)
-        # Extract preferences from message and update profile
-        return "Preferences updated successfully! This will help me provide better recommendations."
-    
-    def handle_recommendation_feedback(self, message: str, user_id: str) -> str:
-        """Handle recommendation feedback"""
-        # Process feedback and update user profile
-        return "Thank you for your feedback! This helps me improve future recommendations."
-    
-    def get_personalization_insights(self, user_id: str) -> str:
-        """Get personalization insights for user"""
-        user_data = self.user_manager.show_user_data(user_id)
-        return f"Your profile is {user_data.get('profile_completeness', '0%')} complete with {user_data.get('total_interactions', 0)} interactions."
-    
-    def show_privacy_settings(self, user_id: str) -> str:
-        """Show privacy settings"""
-        return """🔒 **Privacy Settings**
-
-Your data is protected and used only to improve your Istanbul experience:
-• Personal preferences are stored locally
-• No sensitive information is shared
-• You can clear your data anytime
-• Location data is optional and helps with recommendations
-
-Commands: 'clear my data', 'show my data', 'privacy help'"""
-    
-    def clear_user_data(self, user_id: str) -> str:
-        """Clear user data"""
-        success = self.user_manager.clear_user_data(user_id)
-        if success:
-            return "✅ All your data has been cleared successfully. You can start fresh anytime!"
-        else:
-            return "ℹ️ No user data found to clear."
-        
-    def show_user_data(self, user_id: str) -> str:
-        """Show user data summary"""
-        user_data = self.user_manager.show_user_data(user_id)
-        if not user_data:
-            return "No user data found."
-        
-        return f"""👤 **Your Istanbul AI Profile**
-
-**Profile Completeness**: {user_data.get('profile_completeness', '0%')}
-**Interests**: {', '.join(user_data.get('interests', [])) or 'Not specified'}
-**Travel Style**: {user_data.get('travel_style', 'Not specified')}  
-**Favorite Areas**: {', '.join(user_data.get('favorite_neighborhoods', [])) or 'None yet'}
-**Total Interactions**: {user_data.get('total_interactions', 0)}
-**Satisfaction Score**: {user_data.get('satisfaction_score', 'N/A')}
-**Last Interaction**: {user_data.get('last_interaction', 'Never')}
-
-This data helps me provide personalized Istanbul recommendations!"""
