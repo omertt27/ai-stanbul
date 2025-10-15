@@ -570,6 +570,212 @@ class IntelligentLocationDetector:
         
         return location
 
+    async def fetch_iksv_events(self) -> List[IstanbulEvent]:
+        """Fetch events from İKSV using the MonthlyEventsScheduler"""
+        events = []
+        
+        try:
+            # Import and use the MonthlyEventsScheduler
+            from monthly_events_scheduler import MonthlyEventsScheduler
+            
+            scheduler = MonthlyEventsScheduler()
+            
+            # Try to get cached events first
+            cached_events = scheduler.load_cached_events()
+            
+            if cached_events and not scheduler.is_fetch_needed():
+                self.logger.info(f"📚 Using {len(cached_events)} cached İKSV events")
+                raw_events = cached_events
+            else:
+                # Fetch fresh events if no cache or cache is old
+                self.logger.info("🌐 Fetching fresh İKSV events...")
+                raw_events = await scheduler.fetch_iksv_events()
+                
+                # Cache the events for future use
+                if raw_events:
+                    await scheduler.save_events_to_cache(raw_events)
+                    self.logger.info(f"💾 Cached {len(raw_events)} İKSV events")
+            
+            # Convert raw events to IstanbulEvent objects
+            for raw_event in raw_events:
+                try:
+                    # Parse date from date_str if available
+                    start_date = None
+                    if 'date_str' in raw_event:
+                        start_date = self._parse_event_date(raw_event['date_str'])
+                    
+                    # Get venue coordinates
+                    venue_name = raw_event.get('venue', '')
+                    venue_lat, venue_lng = self._get_venue_coordinates(venue_name)
+                    
+                    # Determine category
+                    category = self._categorize_iksv_event(raw_event.get('category', ''))
+                    
+                    event = IstanbulEvent(
+                        title=raw_event.get('title', 'İKSV Event'),
+                        description=raw_event.get('description', f"An event at {venue_name}"),
+                        start_date=start_date,
+                        venue=venue_name,
+                        district=raw_event.get('district', self._get_district_for_venue(venue_name)),
+                        category=category,
+                        organizer='İKSV',
+                        url=raw_event.get('url', 'https://www.iksv.org'),
+                        is_free=raw_event.get('is_free', False),
+                        venue_lat=venue_lat,
+                        venue_lng=venue_lng
+                    )
+                    
+                    events.append(event)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Error processing İKSV event: {e}")
+                    continue
+            
+            self.logger.info(f"🎭 Processed {len(events)} İKSV events")
+            
+        except ImportError:
+            self.logger.warning("MonthlyEventsScheduler not available, using fallback İKSV events")
+            events = self._get_fallback_iksv_events()
+        except Exception as e:
+            self.logger.error(f"Error fetching İKSV events: {e}")
+            events = self._get_fallback_iksv_events()
+        
+        return events
+
+    def _parse_event_date(self, date_str: str) -> Optional[datetime]:
+        """Parse event date from various formats"""
+        try:
+            # Handle formats like "20 October Monday 19.00"
+            import re
+            from datetime import datetime
+            
+            # Extract date and time components
+            date_patterns = [
+                r'(\d{1,2})\s+(\w+)\s+\w+\s+(\d{1,2})[:\.](\d{2})',  # "20 October Monday 19.00"
+                r'(\d{1,2})\s+(\w+)\s+(\d{1,2})[:\.](\d{2})',        # "20 October 19.00"
+                r'(\d{1,2})/(\d{1,2})/(\d{4})',                      # "20/10/2024"
+                r'(\d{4})-(\d{2})-(\d{2})',                          # "2024-10-20"
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, date_str)
+                if match:
+                    try:
+                        current_year = datetime.now().year
+                        if len(match.groups()) == 4:
+                            day, month_name, hour, minute = match.groups()
+                            # Convert month name to number
+                            month_names = {
+                                'january': 1, 'february': 2, 'march': 3, 'april': 4,
+                                'may': 5, 'june': 6, 'july': 7, 'august': 8,
+                                'september': 9, 'october': 10, 'november': 11, 'december': 12,
+                                'ocak': 1, 'şubat': 2, 'mart': 3, 'nisan': 4, 'mayıs': 5,
+                                'haziran': 6, 'temmuz': 7, 'ağustos': 8, 'eylül': 9,
+                                'ekim': 10, 'kasım': 11, 'aralık': 12
+                            }
+                            month = month_names.get(month_name.lower(), 1)
+                            return datetime(current_year, month, int(day), int(hour), int(minute))
+                    except ValueError:
+                        continue
+            
+            return None
+        except Exception:
+            return None
+
+    def _get_venue_coordinates(self, venue_name: str) -> tuple:
+        """Get coordinates for a venue"""
+        venue_coords = {
+            # İKSV Venues
+            'zorlu psm': (41.0677, 29.0197),
+            'zorlu psm turkcell stage': (41.0677, 29.0197),
+            'zorlu psm turkcell platinum stage': (41.0677, 29.0197),
+            'salon iksv': (41.0369, 28.9850),
+            'salon İKSV': (41.0369, 28.9850),
+            'harbiye muhsin ertuğrul stage': (41.0458, 28.9881),
+            'cemal reşit rey concert hall': (41.0458, 28.9881),
+            'lütfi kırdar convention center': (41.0458, 28.9881),
+            'atatürk cultural center': (41.0369, 28.9850),
+            'akm': (41.0369, 28.9850),
+        }
+        
+        venue_key = venue_name.lower().strip()
+        return venue_coords.get(venue_key, (None, None))
+
+    def _categorize_iksv_event(self, category_str: str) -> EventCategory:
+        """Categorize İKSV events"""
+        category_lower = category_str.lower()
+        
+        if any(word in category_lower for word in ['music', 'concert', 'jazz', 'salon']):
+            return EventCategory.MUSIC
+        elif any(word in category_lower for word in ['theater', 'theatre', 'drama', 'play']):
+            return EventCategory.THEATER
+        elif any(word in category_lower for word in ['dance', 'ballet', 'choreography']):
+            return EventCategory.DANCE
+        elif any(word in category_lower for word in ['art', 'exhibition', 'gallery', 'visual']):
+            return EventCategory.ART
+        elif any(word in category_lower for word in ['film', 'cinema', 'movie', 'screening']):
+            return EventCategory.FILM
+        else:
+            return EventCategory.CULTURAL
+
+    def _get_district_for_venue(self, venue_name: str) -> str:
+        """Get district for venue"""
+        venue_districts = {
+            'zorlu psm': 'Beşiktaş',
+            'salon iksv': 'Beyoğlu',
+            'salon İKSV': 'Beyoğlu', 
+            'harbiye muhsin ertuğrul stage': 'Şişli',
+            'cemal reşit rey concert hall': 'Şişli',
+            'atatürk cultural center': 'Beyoğlu',
+            'akm': 'Beyoğlu',
+        }
+        
+        venue_key = venue_name.lower().strip()
+        return venue_districts.get(venue_key, 'İstanbul')
+
+    def _get_fallback_iksv_events(self) -> List[IstanbulEvent]:
+        """Provide fallback İKSV events when the main system is unavailable"""
+        fallback_events = [
+            IstanbulEvent(
+                title="İstanbul Jazz Festival",
+                description="Annual international jazz festival featuring world-class musicians",
+                venue="Salon İKSV",
+                district="Beyoğlu",
+                category=EventCategory.MUSIC,
+                organizer="İKSV",
+                url="https://www.iksv.org/en/jazz",
+                is_free=False,
+                venue_lat=41.0369,
+                venue_lng=28.9850
+            ),
+            IstanbulEvent(
+                title="İstanbul Theatre Festival",
+                description="International theatre festival showcasing contemporary performances",
+                venue="Zorlu PSM",
+                district="Beşiktaş", 
+                category=EventCategory.THEATER,
+                organizer="İKSV",
+                url="https://www.iksv.org/en/theatre",
+                is_free=False,
+                venue_lat=41.0677,
+                venue_lng=29.0197
+            ),
+            IstanbulEvent(
+                title="İstanbul Biennial",
+                description="Contemporary art biennial featuring international artists",
+                venue="Various İKSV Venues",
+                district="İstanbul",
+                category=EventCategory.ART,
+                organizer="İKSV",
+                url="https://www.iksv.org/en/biennial",
+                is_free=False,
+                venue_lat=41.0369,
+                venue_lng=28.9850
+            )
+        ]
+        
+        return fallback_events
+
     async def find_nearby_events(self, location: DetectedLocation, radius_km: float = 5.0) -> List[IstanbulEvent]:
         """Find events near the detected location"""
         if not location.latitude or not location.longitude:

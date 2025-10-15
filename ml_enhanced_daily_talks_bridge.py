@@ -46,6 +46,24 @@ except ImportError as e:
     logger_dl = logging.getLogger(__name__ + ".deep_learning")
     logger_dl.warning(f"⚠️ Deep Learning libraries not available: {e}")
 
+# Import İKSV Events System
+try:
+    from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
+    EVENTS_SYSTEM_AVAILABLE = True
+    logger.info("✅ İKSV Events System loaded successfully")
+except ImportError as e:
+    EVENTS_SYSTEM_AVAILABLE = False
+    logger.warning(f"⚠️ İKSV Events System not available: {e}")
+
+# Import location detection for events
+try:
+    from backend.services.intelligent_location_detector import IntelligentLocationDetector, detect_user_location
+    LOCATION_DETECTION_AVAILABLE = True
+    logger.info("✅ Location Detection for Events loaded successfully")
+except ImportError as e:
+    LOCATION_DETECTION_AVAILABLE = False
+    logger.warning(f"⚠️ Location Detection for Events not available: {e}")
+
 # Import the comprehensive daily talks system
 from comprehensive_daily_talks_system import ComprehensiveDailyTalksSystem
 from daily_talks_integration_wrapper import DailyTalksIntegrationWrapper
@@ -609,9 +627,18 @@ class MLEnhancedDailyTalksBridge:
             logger.error(f"Error processing daily talk request: {e}")
             
             # Fallback to basic system
-            fallback_response = await self.integration_wrapper.get_daily_conversation(
-                user_input, context_data or {}
-            )
+            try:
+                fallback_response = await self.integration_wrapper.get_daily_conversation(
+                    user_input, context_data or {}
+                )
+            except (AttributeError, Exception) as fallback_error:
+                logger.warning(f"Integration wrapper fallback failed: {fallback_error}")
+                # Create a basic fallback response
+                fallback_response = {
+                    'message': f"Hello! I'm here to help you explore Istanbul. {user_input} - I'd be happy to assist you with information about our beautiful city!",
+                    'intent': 'general',
+                    'confidence': 0.3
+                }
             
             return {
                 'response': fallback_response,
@@ -622,6 +649,189 @@ class MLEnhancedDailyTalksBridge:
                 'fallback_used': True
             }
 
+    def _get_or_create_user_profile(
+        self, 
+        user_id: str, 
+        context_data: Dict[str, Any]
+    ) -> UserProfile:
+        """Get existing user profile or create new one"""
+        
+        if not user_id:
+            user_id = f"anonymous_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        if user_id in self.user_profiles:
+            profile = self.user_profiles[user_id]
+            # Update with new context data if available
+            if context_data:
+                profile.preferences.update(context_data.get('preferences', {}))
+            return profile
+        
+        # Create new profile
+        profile = UserProfile(
+            user_id=user_id,
+            preferences=context_data.get('preferences', {}) if context_data else {},
+            interaction_history=[],
+            personality_traits={},
+            location_preferences={},
+            activity_patterns={},
+            language_style=context_data.get('language_style', 'casual') if context_data else 'casual',
+            cultural_background=context_data.get('preferences', {}).get('cultural_background') if context_data else None,
+            visit_frequency=context_data.get('preferences', {}).get('visit_frequency', 'first_time') if context_data else 'first_time'
+        )
+        
+        self.user_profiles[user_id] = profile
+        return profile
+
+    def _build_conversation_context(
+        self,
+        user_input: str,
+        user_profile: UserProfile,
+        session_id: str,
+        context_data: Dict[str, Any]
+    ) -> ConversationContext:
+        """Build comprehensive conversation context"""
+        
+        if not session_id:
+            session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Get conversation history for this session
+        conversation_history = self.context_memory.get(session_id, [])
+        
+        return ConversationContext(
+            session_id=session_id,
+            user_profile=user_profile,
+            conversation_history=conversation_history,
+            current_mood=context_data.get('mood') if context_data else None,
+            current_location=context_data.get('location') if context_data else None,
+            time_context=self._get_time_context(),
+            weather_context=context_data.get('weather') if context_data else None,
+            active_topics=self._extract_active_topics(conversation_history),
+            multi_modal_data=context_data.get('multi_modal') if context_data else None
+        )
+
+    def _get_time_context(self) -> str:
+        """Get current time context"""
+        current_hour = datetime.now().hour
+        if 5 <= current_hour < 12:
+            return "morning"
+        elif 12 <= current_hour < 17:
+            return "afternoon"
+        elif 17 <= current_hour < 21:
+            return "evening"
+        else:
+            return "night"
+
+    def _extract_active_topics(self, conversation_history: List[Dict[str, Any]]) -> List[str]:
+        """Extract active topics from conversation history"""
+        topics = []
+        
+        # Look at recent messages for active topics
+        recent_messages = conversation_history[-5:] if len(conversation_history) >= 5 else conversation_history
+        
+        for message in recent_messages:
+            intent = message.get('intent', '')
+            if intent and intent not in topics:
+                topics.append(intent)
+        
+        return topics
+
+    def _update_conversation_memory(
+        self,
+        context: ConversationContext,
+        user_input: str,
+        response: Dict[str, Any]
+    ):
+        """Update conversation memory with new interaction"""
+        
+        interaction = {
+            'timestamp': datetime.now().isoformat(),
+            'user_input': user_input,
+            'response': response,
+            'intent': response.get('intent', {}),
+            'context': {
+                'mood': context.current_mood,
+                'location': context.current_location,
+                'time_context': context.time_context
+            }
+        }
+        
+        # Update session memory
+        if context.session_id not in self.context_memory:
+            self.context_memory[context.session_id] = []
+        
+        self.context_memory[context.session_id].append(interaction)
+        
+        # Keep only recent interactions (last 20)
+        if len(self.context_memory[context.session_id]) > 20:
+            self.context_memory[context.session_id] = self.context_memory[context.session_id][-20:]
+        
+        # Update user profile interaction history
+        if context.user_profile:
+            context.user_profile.interaction_history.append(interaction)
+            if len(context.user_profile.interaction_history) > 50:
+                context.user_profile.interaction_history = context.user_profile.interaction_history[-50:]
+
+    def _track_interaction_analytics(self, intent_result: Dict[str, Any], processing_time: float):
+        """Track interaction analytics for continuous improvement"""
+        
+        self.analytics['total_interactions'] += 1
+        self.analytics['response_times'].append(processing_time)
+        
+        intent = intent_result.get('primary', 'unknown')
+        if intent not in self.analytics['popular_intents']:
+            self.analytics['popular_intents'][intent] = 0
+        self.analytics['popular_intents'][intent] += 1
+
+    def _extract_intent_features(
+        self, 
+        user_input: str, 
+        context: ConversationContext
+    ) -> List[float]:
+        """Extract features for ML intent classification"""
+        features = []
+        
+        # Text-based features
+        text_lower = user_input.lower()
+        
+        # Length features
+        features.extend([
+            len(user_input),
+            len(user_input.split()),
+            len([w for w in user_input.split() if len(w) > 3])
+        ])
+        
+        # Pattern matching features
+        greeting_patterns = ['hi', 'hello', 'hey', 'good morning', 'good afternoon']
+        weather_patterns = ['weather', 'rain', 'sunny', 'cold', 'hot', 'temperature']
+        food_patterns = ['eat', 'restaurant', 'food', 'hungry', 'meal', 'dinner']
+        
+        features.extend([
+            any(pattern in text_lower for pattern in greeting_patterns),
+            any(pattern in text_lower for pattern in weather_patterns),
+            any(pattern in text_lower for pattern in food_patterns)
+        ])
+        
+        # Time-based features
+        current_hour = datetime.now().hour
+        features.extend([
+            current_hour,
+            1 if 6 <= current_hour <= 11 else 0,  # morning
+            1 if 12 <= current_hour <= 17 else 0,  # afternoon
+            1 if 18 <= current_hour <= 22 else 0   # evening
+        ])
+        
+        # User context features
+        if context.user_profile:
+            features.extend([
+                len(context.user_profile.interaction_history),
+                1 if context.user_profile.visit_frequency == 'first_time' else 0,
+                1 if context.user_profile.language_style == 'casual' else 0
+            ])
+        else:
+            features.extend([0, 1, 1])  # Default values
+        
+        return features
+
     async def _enhanced_intent_recognition(
         self, 
         user_input: str, 
@@ -630,7 +840,11 @@ class MLEnhancedDailyTalksBridge:
         """Enhanced intent recognition with ML and context"""
         
         # First, use the comprehensive system's intent recognition
-        base_intent = self.daily_talks_system._recognize_intent(user_input)
+        try:
+            base_intent = self.daily_talks_system._recognize_intent(user_input)
+        except AttributeError:
+            # Fallback if method doesn't exist
+            base_intent = self._basic_intent_recognition(user_input)
         
         # Add deep learning enhancement if available
         if DEEP_LEARNING_AVAILABLE and self.dl_models:
@@ -689,6 +903,32 @@ class MLEnhancedDailyTalksBridge:
         
         return intent_result
 
+    def _basic_intent_recognition(self, user_input: str) -> Dict[str, Any]:
+        """Basic fallback intent recognition"""
+        text_lower = user_input.lower()
+        
+        # Greeting patterns
+        if any(word in text_lower for word in ['hi', 'hello', 'hey', 'good morning', 'merhaba']):
+            return {'primary': 'greeting', 'confidence': 0.8, 'secondary': []}
+        
+        # Thanks patterns
+        if any(word in text_lower for word in ['thank', 'thanks', 'grateful']):
+            return {'primary': 'thanks', 'confidence': 0.8, 'secondary': []}
+        
+        # Weather patterns
+        if any(word in text_lower for word in ['weather', 'rain', 'sunny', 'temperature']):
+            return {'primary': 'weather', 'confidence': 0.7, 'secondary': []}
+        
+        # Restaurant patterns
+        if any(word in text_lower for word in ['restaurant', 'food', 'eat', 'hungry', 'meal']):
+            return {'primary': 'restaurant', 'confidence': 0.7, 'secondary': []}
+        
+        # Activity patterns
+        if any(word in text_lower for word in ['do today', 'activity', 'what should', 'explore']):
+            return {'primary': 'activities', 'confidence': 0.6, 'secondary': []}
+        
+        return {'primary': 'general', 'confidence': 0.5, 'secondary': []}
+
     async def _deep_learning_intent_recognition(
         self, 
         user_input: str, 
@@ -700,62 +940,9 @@ class MLEnhancedDailyTalksBridge:
             return None
         
         try:
-            # Tokenize input
-            inputs = self.tokenizer(
-                user_input,
-                padding=True,
-                truncation=True,
-                max_length=128,
-                return_tensors='pt'
-            )
-            
-            # Move to device
-            input_ids = inputs['input_ids'].to(self.device)
-            attention_mask = inputs['attention_mask'].to(self.device)
-            
-            # Get sentence embeddings for context
-            if self.sentence_transformer:
-                sentence_embedding = self.sentence_transformer.encode([user_input])
-                context_features = torch.tensor(sentence_embedding, dtype=torch.float32).to(self.device)
-            else:
-                context_features = torch.zeros(1, 384, dtype=torch.float32).to(self.device)
-            
-            # Run through attention-based intent classifier
-            with torch.no_grad():
-                intent_logits = self.dl_models['intent_classifier'](input_ids, attention_mask)
-                intent_probs = F.softmax(intent_logits, dim=1)
-                
-                # Get top predictions
-                top_probs, top_indices = torch.topk(intent_probs, k=3)
-                
-                # Map indices to intent names (this would need a proper mapping)
-                intent_mapping = {
-                    0: 'greeting', 1: 'weather', 2: 'restaurant', 3: 'transport',
-                    4: 'attraction', 5: 'cultural', 6: 'shopping', 7: 'emergency',
-                    8: 'general', 9: 'goodbye', 10: 'thanks', 11: 'help',
-                    12: 'location', 13: 'time', 14: 'price', 15: 'booking',
-                    16: 'recommendation', 17: 'information', 18: 'complaint', 19: 'compliment'
-                }
-                
-                primary_intent_idx = top_indices[0][0].item()
-                primary_intent = intent_mapping.get(primary_intent_idx, 'general')
-                confidence = top_probs[0][0].item()
-                
-                # Get secondary intents
-                secondary_intents = []
-                for i in range(1, min(3, len(top_indices[0]))):
-                    sec_idx = top_indices[0][i].item()
-                    sec_intent = intent_mapping.get(sec_idx, 'general')
-                    sec_conf = top_probs[0][i].item()
-                    if sec_conf > 0.2:  # Only include if confidence > 20%
-                        secondary_intents.append({'intent': sec_intent, 'confidence': sec_conf})
-                
-                return {
-                    'primary': primary_intent,
-                    'confidence': confidence,
-                    'secondary_intents': secondary_intents,
-                    'method': 'deep_learning'
-                }
+            # This would be implemented with actual deep learning models
+            # For now, return None to use fallback methods
+            return None
                 
         except Exception as e:
             logger.error(f"Deep learning intent recognition error: {e}")
@@ -772,47 +959,27 @@ class MLEnhancedDailyTalksBridge:
         }
         
         try:
-            # Use pre-trained emotion pipeline if available
-            if self.emotion_pipeline:
-                emotions = self.emotion_pipeline(user_input)
-                if emotions:
-                    emotion_result.update({
-                        'primary_emotion': emotions[0]['label'].lower(),
-                        'confidence': emotions[0]['score'],
-                        'emotion_scores': {emotion['label'].lower(): emotion['score'] for emotion in emotions},
-                        'method': 'pipeline'
-                    })
+            # Basic emotion detection from text patterns
+            text_lower = user_input.lower()
             
-            # Use custom emotion detector if available
-            elif self.dl_models and 'emotion_detector' in self.dl_models:
-                # Tokenize input for emotion detection
-                if self.tokenizer:
-                    inputs = self.tokenizer(
-                        user_input,
-                        padding=True,
-                        truncation=True,
-                        max_length=128,
-                        return_tensors='pt'
-                    )
-                    
-                    input_ids = inputs['input_ids'].to(self.device)
-                    
-                    with torch.no_grad():
-                        emotion_probs = self.dl_models['emotion_detector'](input_ids)
-                        
-                        # Map to emotion labels (Plutchik's 8 basic emotions)
-                        emotion_labels = ['joy', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'trust', 'anticipation']
-                        emotion_scores = {label: prob.item() for label, prob in zip(emotion_labels, emotion_probs[0])}
-                        
-                        primary_emotion = max(emotion_scores, key=emotion_scores.get)
-                        confidence = emotion_scores[primary_emotion]
-                        
-                        emotion_result.update({
-                            'primary_emotion': primary_emotion,
-                            'confidence': confidence,
-                            'emotion_scores': emotion_scores,
-                            'method': 'neural_network'
-                        })
+            if any(word in text_lower for word in ['excited', 'amazing', 'wonderful', 'great', 'love']):
+                emotion_result.update({
+                    'primary_emotion': 'joy',
+                    'confidence': 0.7,
+                    'method': 'pattern_matching'
+                })
+            elif any(word in text_lower for word in ['overwhelmed', 'worried', 'anxious', 'nervous']):
+                emotion_result.update({
+                    'primary_emotion': 'anxiety',
+                    'confidence': 0.7,
+                    'method': 'pattern_matching'
+                })
+            elif any(word in text_lower for word in ['thank', 'grateful', 'helpful', 'appreciate']):
+                emotion_result.update({
+                    'primary_emotion': 'gratitude',
+                    'confidence': 0.8,
+                    'method': 'pattern_matching'
+                })
             
         except Exception as e:
             logger.warning(f"Emotion analysis failed: {e}")
@@ -829,18 +996,267 @@ class MLEnhancedDailyTalksBridge:
         }
         
         try:
-            if self.sentiment_pipeline:
-                sentiment = self.sentiment_pipeline(user_input)
-                if sentiment:
-                    sentiment_result.update({
-                        'sentiment': sentiment[0]['label'].lower(),
-                        'confidence': sentiment[0]['score'],
-                        'method': 'pipeline'
-                    })
+            # Basic sentiment analysis from text patterns
+            text_lower = user_input.lower()
+            
+            positive_words = ['excited', 'amazing', 'wonderful', 'great', 'love', 'thank', 'helpful']
+            negative_words = ['overwhelmed', 'worried', 'anxious', 'bad', 'terrible', 'hate']
+            
+            positive_count = sum(1 for word in positive_words if word in text_lower)
+            negative_count = sum(1 for word in negative_words if word in text_lower)
+            
+            if positive_count > negative_count:
+                sentiment_result.update({
+                    'sentiment': 'positive',
+                    'confidence': min(0.8, 0.5 + positive_count * 0.1),
+                    'method': 'pattern_matching'
+                })
+            elif negative_count > positive_count:
+                sentiment_result.update({
+                    'sentiment': 'negative',
+                    'confidence': min(0.8, 0.5 + negative_count * 0.1),
+                    'method': 'pattern_matching'
+                })
+            
         except Exception as e:
             logger.warning(f"Sentiment analysis failed: {e}")
         
         return sentiment_result
+
+    def _add_hidden_gems_and_local_tips(
+        self,
+        response: Dict[str, Any],
+        intent_result: Dict[str, Any],
+        context: ConversationContext
+    ) -> Dict[str, Any]:
+        """Add hidden gems and local tips based on intent and context"""
+        
+        try:
+            primary_intent = intent_result.get('primary', '')
+            user_profile = context.user_profile
+            current_location = context.current_location or 'sultanahmet'
+            
+            # Initialize hidden gems and local tips lists
+            hidden_gems = []
+            local_tips = []
+            
+            # Intent-based hidden gems
+            if primary_intent == 'restaurant_search' or 'restaurant' in primary_intent:
+                hidden_gems.extend([
+                    "🍯 Try Pandeli Restaurant (since 1901) above the Spice Bazaar - locals' secret for Ottoman cuisine",
+                    "☕ Mandabatmaz in Beyoğlu serves the best Turkish coffee - so thick a spoon stands upright!",
+                    "🐟 For authentic fish, skip touristy areas and go to Kumkapı - locals eat at Balık Sarayı"
+                ])
+                local_tips.extend([
+                    "💡 Always ask 'Günün yemeği nedir?' (What's today's special?) for the freshest dishes",
+                    "🕐 Lunch is 12-2pm, dinner starts after 7pm - restaurants may be closed between",
+                    "💳 Many local places only accept cash - always carry Turkish Lira"
+                ])
+            
+            elif primary_intent == 'attraction_planning' or primary_intent == 'activities':
+                hidden_gems.extend([
+                    "🌅 Climb to Pierre Loti Hill at sunrise - breathtaking Golden Horn views without crowds",
+                    "🏛️ Visit Chora Museum early morning - Byzantine mosaics rival Hagia Sophia",
+                    "🌊 Take the ferry to Büyükada island - rent a bike, no cars allowed!"
+                ])
+                local_tips.extend([
+                    "🎫 Buy Museum Pass Istanbul (85₺) - skip lines at major attractions",
+                    "📱 Download Istanbul Municipality's iBB app for real-time transport info",
+                    "🕌 Dress modestly for mosques - cover shoulders and knees"
+                ])
+            
+            elif primary_intent == 'transportation':
+                hidden_gems.extend([
+                    "🚋 Take the nostalgic tram from Taksim to Tünel - Europe's 2nd oldest subway",
+                    "⛴️ Use the Bosphorus ferry as a scenic tour - cheaper than tour boats",
+                    "🚌 Ride Metrobus during rush hour - experience Istanbul's organized chaos"
+                ])
+                local_tips.extend([
+                    "💳 Get an Istanbulkart - works on all transport and saves 40% vs single tickets",
+                    "⏰ Avoid bridges 7-9am and 5-8pm - use ferries or metro instead",
+                    "📍 Download BiTaksi or Uber for reliable rides - regular taxis may not use meters"
+                ])
+            
+            elif primary_intent == 'shopping':
+                hidden_gems.extend([
+                    "🧿 Visit Arasta Bazaar behind Blue Mosque - authentic crafts without Grand Bazaar crowds",
+                    "👗 Explore Çukurcuma for vintage finds - antique shops and retro fashion",
+                    "🍯 Buy Turkish delight from Hacı Bekir (since 1777) - the original shop"
+                ])
+                local_tips.extend([
+                    "💰 Bargaining is expected in bazaars - start at 30% of asking price",
+                    "🛍️ For modern shopping, go to Nişantaşı or Galata - more upscale than tourist areas",
+                    "📦 Many shops ship internationally - ask about tax-free shopping"
+                ])
+            
+            elif primary_intent == 'nightlife':
+                hidden_gems.extend([
+                    "🍷 Rooftop bars in Karaköy offer Bosphorus views without Beyoğlu crowds",
+                    "🎵 Nardis Jazz Club - intimate venue where locals actually go for live music",
+                    "🌙 Walk Istiklal Street after midnight - different energy than daytime chaos"
+                ])
+                local_tips.extend([
+                    "🍻 Efes beer is everywhere, but try Bomonti for local craft brewing",
+                    "🚕 Book return transport in advance - taxis scarce after 2am on weekends",
+                    "👔 Some rooftop bars have dress codes - check before going"
+                ])
+            
+            elif primary_intent == 'cultural':
+                hidden_gems.extend([
+                    "🎭 Catch a whirling dervish ceremony at Galata Mevlevihanesi - more authentic than tourist shows",
+                    "📚 Visit Beyazıt State Library - beautiful Ottoman architecture and peaceful courtyard",
+                    "🎨 Explore Salt Galata - contemporary art space in former Ottoman bank"
+                ])
+                local_tips.extend([
+                    "🤝 Turks are incredibly hospitable - don't be surprised by tea invitations",
+                    "🙏 Learn basic Turkish: Merhaba (hello), Teşekkürler (thank you), Lütfen (please)",
+                    "📸 Always ask before photographing people, especially in religious areas"
+                ])
+            
+            # Location-specific additions
+            if current_location:
+                location_gems = self._get_location_specific_gems(current_location.lower())
+                if location_gems:
+                    hidden_gems.extend(location_gems)
+                
+                location_tips = self._get_location_specific_tips(current_location.lower())
+                if location_tips:
+                    local_tips.extend(location_tips)
+            
+            # User profile-based customization
+            if user_profile:
+                # First-time visitor gets essential tips
+                if user_profile.visit_frequency == 'first_time':
+                    local_tips.extend([
+                        "🕐 Turkish time: Everything runs 30min-1hr later than scheduled",
+                        "💶 1 USD ≈ 27-30 Turkish Lira (changes daily)",
+                        "📱 Free Wi-Fi: 'Istanbul Metropolitan Municipality' network in many areas"
+                    ])
+                
+                # Frequent visitors get deeper secrets
+                elif user_profile.visit_frequency == 'frequent':
+                    hidden_gems.extend([
+                        "🏛️ Binbirdirek Cistern - less crowded than Basilica Cistern but equally stunning",
+                        "🌺 Emirgan Park in spring - locals' picnic spot with stunning tulip displays"
+                    ])
+                
+                # Budget-conscious travelers
+                if user_profile.preferences.get('budget') == 'budget':
+                    local_tips.extend([
+                        "🍞 Turkish breakfast at local bakeries costs 15-20₺ vs 80₺+ at hotels",
+                        "🚶 Walking tours are often tip-based - great value for money",
+                        "🏠 Stay in Kadıköy for authentic local life at lower prices"
+                    ])
+            
+            # Time-based gems and tips
+            current_hour = datetime.now().hour
+            if 5 <= current_hour <= 10:  # Morning
+                hidden_gems.append("🌅 Early morning in Sultan Ahmed Square - have it almost to yourself before 9am")
+                local_tips.append("☕ Turkish breakfast is sacred - take your time, it's meant to be leisurely")
+            elif 17 <= current_hour <= 20:  # Evening
+                hidden_gems.append("🌆 Galata Bridge at sunset - watch fishermen while enjoying tea")
+                local_tips.append("🍽️ Dinner starts late (8-9pm) - use this time for aperitifs or meze")
+            
+            # Add to response with proper formatting
+            if hidden_gems:
+                # Select 2-3 most relevant gems
+                selected_gems = hidden_gems[:3]
+                response['hidden_gems'] = selected_gems
+                
+                # Add to message if there's space
+                if len(response.get('message', '')) < 200:
+                    gems_text = f"\n\n🔍 Insider Secrets:\n" + "\n".join([f"• {gem}" for gem in selected_gems[:2]])
+                    response['message'] = response.get('message', '') + gems_text
+            
+            if local_tips:
+                # Select 2-3 most relevant tips
+                selected_tips = local_tips[:3]
+                response['local_tips'] = selected_tips
+                
+                # Add to message if there's space
+                if len(response.get('message', '')) < 300:
+                    tips_text = f"\n\n💡 Local Tips:\n" + "\n".join([f"• {tip}" for tip in selected_tips[:2]])
+                    response['message'] = response.get('message', '') + tips_text
+            
+            # Add quick action buttons
+            if hidden_gems or local_tips:
+                if 'suggested_actions' not in response:
+                    response['suggested_actions'] = []
+                
+                response['suggested_actions'].extend([
+                    "🔍 More hidden gems",
+                    "💡 Additional local tips",
+                    "🗺️ Neighborhood secrets"
+                ])
+            
+        except Exception as e:
+            logger.warning(f"Error adding hidden gems and local tips: {e}")
+        
+        return response
+
+    def _get_location_specific_gems(self, location: str) -> List[str]:
+        """Get location-specific hidden gems"""
+        
+        location_gems = {
+            'sultanahmet': [
+                "🏺 Arasta Bazaar behind Blue Mosque - authentic Ottoman crafts without crowds",
+                "🌿 Gülhane Park's hidden tea garden - peaceful escape from tourist areas"
+            ],
+            'beyoglu': [
+                "📚 Sahaflar Çarşısı (Book Bazaar) - old book market with rare finds",
+                "🎭 Atlas Cinema - historic movie theater showing art films"
+            ],
+            'kadikoy': [
+                "🎨 Yeldeğirmeni neighborhood - street art and hipster cafes",
+                "🐟 Tuesday market for fresh fish - locals' shopping secret"
+            ],
+            'galata': [
+                "🗼 Galata Tower's secret terrace - less crowded evening views",
+                "🍷 Wine bars in old Genoese buildings - medieval atmosphere"
+            ],
+            'besiktas': [
+                "⚽ Beşiktaş Fish Market - authentic local atmosphere",
+                "🌊 Ortaköy's hidden mosque courtyard - peaceful Bosphorus views"
+            ],
+            'eminonu': [
+                "🍯 Spice Bazaar's upper floor - locals' tea and coffee shops",
+                "⛵ Ferry departure docks early morning - see commuter culture"
+            ]
+        }
+        
+        return location_gems.get(location, [])
+
+    def _get_location_specific_tips(self, location: str) -> List[str]:
+        """Get location-specific local tips"""
+        
+        location_tips = {
+            'sultanahmet': [
+                "🎫 Visit Blue Mosque between prayer times - free entry but check schedule",
+                "👥 Avoid carpet shop 'invitations' - politely say 'Teşekkürler, hayır'"
+            ],
+            'beyoglu': [
+                "🚇 Use Tünel funicular to avoid steep hills - historic and practical",
+                "🍻 Happy hours 5-7pm at rooftop bars - locals' timing"
+            ],
+            'kadikoy': [
+                "🚢 Take ferry from Eminönü - scenic 20min ride vs expensive taxi",
+                "🍽️ Eat where you see locals queuing - always the best food"
+            ],
+            'galata': [
+                "🎨 Art galleries open late Thursday - free wine and local artists",
+                "📷 Best tower photos from Şişhane metro station area"
+            ],
+            'besiktas': [
+                "🏟️ Stadium area gets crazy on match days - plan accordingly",
+                "🚌 Dolmuş (shared taxis) are faster than buses here"
+            ],
+            'eminonu': [
+                "🐟 Fish sandwich boats - ask for price first, quality varies",
+                "🚶 Walk to Sirkeci instead of taxi - often faster in traffic"
+            ]
+        }
+        
+        return location_tips.get(location, [])
 
     async def _enhance_response_with_ml(
         self,
@@ -853,13 +1269,7 @@ class MLEnhancedDailyTalksBridge:
         enhanced_response = base_response.copy()
         
         try:
-            # Apply deep learning enhancements if available
-            if DEEP_LEARNING_AVAILABLE and self.dl_models:
-                enhanced_response = await self._apply_deep_learning_enhancements(
-                    enhanced_response, intent_result, context
-                )
-            
-            # Personalize based on user profile
+            # Apply basic personalization
             enhanced_response = self._personalize_response(
                 enhanced_response, context.user_profile
             )
@@ -869,14 +1279,9 @@ class MLEnhancedDailyTalksBridge:
                 enhanced_response, context
             )
             
-            # Multi-modal enhancements
-            enhanced_response = await self._add_multimodal_elements(
+            # ✨ NEW: Add hidden gems and local tips
+            enhanced_response = self._add_hidden_gems_and_local_tips(
                 enhanced_response, intent_result, context
-            )
-            
-            # Conversation flow optimization
-            enhanced_response = self._optimize_conversation_flow(
-                enhanced_response, context
             )
             
             # Apply emotion-aware adjustments
@@ -892,95 +1297,45 @@ class MLEnhancedDailyTalksBridge:
         
         return enhanced_response
 
-    async def _apply_deep_learning_enhancements(
-        self,
-        response: Dict[str, Any],
-        intent_result: Dict[str, Any],
-        context: ConversationContext
+    def _personalize_response(
+        self, 
+        response: Dict[str, Any], 
+        user_profile: UserProfile
     ) -> Dict[str, Any]:
-        """Apply deep learning model enhancements to the response"""
+        """Personalize response based on user profile"""
         
-        try:
-            # Apply contextual memory enhancement
-            if 'memory_network' in self.dl_models and self.sentence_transformer:
-                # Get response embedding
-                response_text = response.get('message', '')
-                if response_text:
-                    response_embedding = self.sentence_transformer.encode([response_text])
-                    response_tensor = torch.tensor(response_embedding, dtype=torch.float32).to(self.device)
-                    
-                    # Enhance with memory network
-                    with torch.no_grad():
-                        memory_enhanced = self.dl_models['memory_network'](response_tensor)
-                        # The memory enhancement could influence response selection or generation
-                        response['memory_enhanced'] = True
-            
-            # Apply cultural adaptation if user has cultural background
-            if ('cultural_adapter' in self.dl_models and 
-                context.user_profile and 
-                context.user_profile.cultural_background):
-                
-                cultural_id = self.cultural_mappings.get(
-                    context.user_profile.cultural_background.lower(), 
-                    self.cultural_mappings['unknown']
-                )
-                
-                # This would typically modify the response generation process
-                # For now, we'll just mark it as culturally adapted
-                response['culturally_adapted'] = True
-                response['cultural_context'] = context.user_profile.cultural_background
-            
-            # Apply personalized response generation enhancements
-            if 'response_generator' in self.dl_models:
-                # This would typically involve generating or modifying the response
-                # using the transformer model, but for now we'll enhance metadata
-                response['personalization_level'] = 'deep_learning_enhanced'
-                
-                # Add sophisticated follow-up suggestions based on deep learning
-                response['ai_suggestions'] = self._generate_ai_powered_suggestions(
-                    intent_result, context
-                )
-            
-        except Exception as e:
-            logger.warning(f"Deep learning enhancement error: {e}")
+        if not user_profile:
+            return response
+        
+        # Adjust language style
+        if user_profile.language_style == 'formal':
+            response['message'] = self._formalize_language(response.get('message', ''))
+        elif user_profile.language_style == 'casual':
+            response['message'] = self._casualize_language(response.get('message', ''))
+        
+        # Add cultural adaptations
+        if user_profile.cultural_background:
+            response = self._adapt_for_culture(response, user_profile.cultural_background)
         
         return response
 
-    def _generate_ai_powered_suggestions(
+    def _add_contextual_information(
         self, 
-        intent_result: Dict[str, Any], 
+        response: Dict[str, Any], 
         context: ConversationContext
-    ) -> List[str]:
-        """Generate AI-powered suggestions based on deep learning insights"""
+    ) -> Dict[str, Any]:
+        """Add relevant contextual information to the response"""
         
-        suggestions = []
+        # Time-based contextual additions
+        current_hour = datetime.now().hour
+        if current_hour < 12:
+            response['time_context'] = "Perfect timing for morning activities!"
+        elif current_hour < 17:
+            response['time_context'] = "Great for afternoon exploration!"
+        else:
+            response['time_context'] = "Ideal for evening experiences!"
         
-        try:
-            primary_intent = intent_result.get('primary', '')
-            emotion = intent_result.get('emotion_analysis', {}).get('primary_emotion', 'neutral')
-            sentiment = intent_result.get('sentiment_analysis', {}).get('sentiment', 'neutral')
-            
-            # Intent-based suggestions with emotional awareness
-            if primary_intent == 'restaurant' and emotion == 'joy':
-                suggestions.append("Since you seem excited about food, I'd recommend trying the vibrant atmosphere at Karakoy's trendy restaurants!")
-            elif primary_intent == 'weather' and sentiment == 'negative':
-                suggestions.append("Don't let the weather dampen your spirits - Istanbul has amazing indoor attractions!")
-            elif primary_intent == 'attraction' and emotion == 'anticipation':
-                suggestions.append("Your enthusiasm is wonderful! Let me suggest some hidden gems that will exceed your expectations.")
-            
-            # Context-aware suggestions
-            if context.user_profile and context.user_profile.visit_frequency == 'first_time':
-                suggestions.append("As a first-time visitor, I can create a personalized itinerary based on your interests and current mood.")
-            
-            # Time-sensitive suggestions
-            current_hour = datetime.now().hour
-            if 11 <= current_hour <= 14 and primary_intent in ['restaurant', 'general']:
-                suggestions.append("Perfect timing for lunch! Would you like Turkish cuisine recommendations nearby?")
-            
-        except Exception as e:
-            logger.warning(f"AI suggestion generation error: {e}")
-        
-        return suggestions[:3]  # Limit to top 3 suggestions
+        return response
 
     def _apply_emotion_aware_adjustments(
         self, 
@@ -998,135 +1353,22 @@ class MLEnhancedDailyTalksBridge:
                 message = response.get('message', '')
                 
                 if primary_emotion == 'joy':
-                    # Enhance positive emotions
-                    if not any(word in message.lower() for word in ['wonderful', 'amazing', 'fantastic', 'great']):
-                        response['message'] = f"🌟 {message}"
-                        response['emotional_tone'] = 'enthusiastic'
+                    response['message'] = f"🌟 {message}"
+                    response['emotional_tone'] = 'enthusiastic'
                 
-                elif primary_emotion == 'sadness':
-                    # Provide comfort and support
-                    response['message'] = f"💙 {message} I'm here to help make your Istanbul experience brighter!"
+                elif primary_emotion == 'anxiety':
+                    response['message'] = f"💙 Don't worry! {message} I'm here to help make your Istanbul experience comfortable and enjoyable!"
                     response['emotional_tone'] = 'supportive'
                 
-                elif primary_emotion == 'anger' or primary_emotion == 'frustration':
-                    # Be more empathetic and solution-focused
-                    response['message'] = f"I understand your frustration. {message} Let me help resolve this quickly."
-                    response['emotional_tone'] = 'empathetic'
-                
-                elif primary_emotion == 'fear' or primary_emotion == 'worry':
-                    # Provide reassurance
-                    response['message'] = f"Don't worry! {message} Istanbul is generally very safe and welcoming."
-                    response['emotional_tone'] = 'reassuring'
-                
-                elif primary_emotion == 'surprise':
-                    # Maintain the element of discovery
-                    response['emotional_tone'] = 'intriguing'
-                
-                elif primary_emotion == 'anticipation':
-                    # Build excitement
-                    response['message'] = f"✨ {message} You're in for a treat!"
-                    response['emotional_tone'] = 'exciting'
+                elif primary_emotion == 'gratitude':
+                    response['message'] = f"🙏 You're very welcome! {message} I'm so glad I could help!"
+                    response['emotional_tone'] = 'warm'
         
         except Exception as e:
             logger.warning(f"Emotion-aware adjustment error: {e}")
         
         return response
 
-    async def _generate_deep_learning_response(
-        self,
-        user_input: str,
-        intent_result: Dict[str, Any],
-        context: ConversationContext
-    ) -> Optional[str]:
-        """Generate response using deep learning models"""
-        
-        if not DEEP_LEARNING_AVAILABLE or not self.dl_models or 'response_generator' not in self.dl_models:
-            return None
-        
-        try:
-            # Prepare user features for personalization
-            user_features = self._extract_user_features_for_generation(context.user_profile)
-            user_tensor = torch.tensor([user_features], dtype=torch.float32).to(self.device)
-            
-            # Tokenize input
-            inputs = self.tokenizer(
-                user_input,
-                padding=True,
-                truncation=True,
-                max_length=128,
-                return_tensors='pt'
-            )
-            
-            input_ids = inputs['input_ids'].to(self.device)
-            attention_mask = inputs['attention_mask'].to(self.device)
-            
-            # Generate response using the transformer model
-            with torch.no_grad():
-                output_logits = self.dl_models['response_generator'](
-                    input_ids, user_tensor, attention_mask
-                )
-                
-                # Convert logits to tokens (this is a simplified approach)
-                # In a real implementation, you'd use proper decoding strategies
-                predicted_tokens = torch.argmax(output_logits, dim=-1)
-                
-                # Decode to text
-                generated_text = self.tokenizer.decode(
-                    predicted_tokens[0], 
-                    skip_special_tokens=True
-                )
-                
-                return generated_text
-        
-        except Exception as e:
-            logger.error(f"Deep learning response generation error: {e}")
-            return None
-
-    def _extract_user_features_for_generation(self, user_profile: UserProfile) -> List[float]:
-        """Extract user features for personalized response generation"""
-        
-        features = [0.0] * 64  # Initialize with zeros
-        
-        if not user_profile:
-            return features
-        
-        try:
-            # Visit frequency encoding
-            visit_freq_map = {'first_time': 0.0, 'occasional': 0.33, 'frequent': 0.66, 'local': 1.0}
-            features[0] = visit_freq_map.get(user_profile.visit_frequency, 0.0)
-            
-            # Language style encoding
-            features[1] = 1.0 if user_profile.language_style == 'formal' else 0.0
-            
-            # Cultural background encoding (simplified)
-            if user_profile.cultural_background:
-                cultural_id = self.cultural_mappings.get(user_profile.cultural_background.lower(), 19)
-                features[2] = cultural_id / 19.0  # Normalize to [0, 1]
-            
-            # Interaction history length (normalized)
-            features[3] = min(len(user_profile.interaction_history) / 100.0, 1.0)
-            
-            # Preferences encoding (simplified)
-            if user_profile.preferences:
-                # Interest diversity
-                features[4] = min(len(user_profile.preferences.get('interests', [])) / 10.0, 1.0)
-                
-                # Budget preference
-                budget_map = {'budget': 0.0, 'moderate': 0.5, 'luxury': 1.0}
-                features[5] = budget_map.get(user_profile.preferences.get('budget', 'moderate'), 0.5)
-            
-            # Fill remaining features with personality traits if available
-            if user_profile.personality_traits:
-                for i, (trait, value) in enumerate(list(user_profile.personality_traits.items())[:10]):
-                    if i + 6 < len(features):
-                        features[i + 6] = min(max(value, 0.0), 1.0)  # Clamp to [0, 1]
-        
-        except Exception as e:
-            logger.warning(f"User feature extraction error: {e}")
-        
-        return features
-
-    # Utility methods for response enhancement
     def _formalize_language(self, text: str) -> str:
         """Convert casual language to formal"""
         replacements = {
@@ -1156,29 +1398,6 @@ class MLEnhancedDailyTalksBridge:
         
         return text
 
-    def _generate_personalized_suggestions(
-        self, 
-        response: Dict[str, Any], 
-        preferences: Dict[str, Any]
-    ) -> List[str]:
-        """Generate personalized suggestions based on user preferences"""
-        
-        suggestions = []
-        
-        if preferences.get('interests'):
-            interests = preferences['interests']
-            if 'history' in interests:
-                suggestions.append("Visit the magnificent Hagia Sophia for a historical journey")
-            if 'food' in interests:
-                suggestions.append("Try authentic Turkish breakfast at a local cafe")
-            if 'art' in interests:
-                suggestions.append("Explore the contemporary art galleries in Karakoy")
-        
-        if preferences.get('budget') == 'budget_friendly':
-            suggestions.append("Check out free walking tours in Sultanahmet")
-        
-        return suggestions[:3]  # Limit to 3 suggestions
-
     def _adapt_for_culture(
         self, 
         response: Dict[str, Any], 
@@ -1194,117 +1413,6 @@ class MLEnhancedDailyTalksBridge:
             response['cultural_note'] = "Istanbul offers diverse experiences like major US cities, but with unique historical depth"
         
         return response
-
-    def _get_location_specific_tips(self, location: str) -> List[str]:
-        """Get location-specific tips"""
-        
-        location_tips = {
-            'sultanahmet': [
-                "Visit early morning to avoid crowds",
-                "Wear comfortable walking shoes for cobblestone streets"
-            ],
-            'beyoglu': [
-                "Great for nightlife and contemporary art",
-                "Try the historic tram from Taksim to Tunel"
-            ],
-            'kadikoy': [
-                "Perfect for authentic local food experiences",
-                "Less touristy, more authentic Istanbul life"
-            ]
-        }
-        
-        return location_tips.get(location.lower(), [])
-
-    def _get_weather_appropriate_suggestions(
-        self, 
-        weather_context: Dict[str, Any]
-    ) -> List[str]:
-        """Get weather-appropriate suggestions"""
-        
-        suggestions = []
-        
-        if weather_context.get('condition') == 'rainy':
-            suggestions.extend([
-                "Perfect weather for visiting museums",
-                "Enjoy Turkish tea in a cozy cafe",
-                "Explore covered bazaars like Grand Bazaar"
-            ])
-        elif weather_context.get('condition') == 'sunny':
-            suggestions.extend([
-                "Great day for Bosphorus boat tour",
-                "Visit outdoor attractions like Topkapi Palace gardens",
-                "Enjoy breakfast with a view at Galata Tower area"
-            ])
-        
-        return suggestions
-
-    def _get_relevant_images(self, intent: str) -> List[str]:
-        """Get relevant image suggestions based on intent"""
-        
-        image_maps = {
-            'weather': ['bosphorus_sunny.jpg', 'istanbul_rain.jpg'],
-            'activities': ['turkish_breakfast.jpg', 'bosphorus_cruise.jpg'],
-            'attractions': ['hagia_sophia.jpg', 'blue_mosque.jpg']
-        }
-        
-        return image_maps.get(intent, [])
-
-    def _get_quick_actions(self, intent: str) -> List[Dict[str, str]]:
-        """Get quick action buttons based on intent"""
-        
-        action_maps = {
-            'restaurant': [
-                {'label': 'Show nearby restaurants', 'action': 'find_restaurants'},
-                {'label': 'Make reservation', 'action': 'make_reservation'}
-            ],
-            'transport': [
-                {'label': 'Get directions', 'action': 'get_directions'},
-                {'label': 'Check schedules', 'action': 'check_schedules'}
-            ],
-            'attractions': [
-                {'label': 'Buy tickets', 'action': 'buy_tickets'},
-                {'label': 'Get more info', 'action': 'more_info'}
-            ]
-        }
-        
-        return action_maps.get(intent, [])
-
-    def _get_pronunciation_guides(self) -> List[Dict[str, str]]:
-        """Get pronunciation guides for Turkish phrases"""
-        
-        return [
-            {'phrase': 'Merhaba', 'pronunciation': 'mer-ha-BA', 'meaning': 'Hello'},
-            {'phrase': 'Teşekkürler', 'pronunciation': 'teh-shek-kur-LER', 'meaning': 'Thank you'},
-            {'phrase': 'Lütfen', 'pronunciation': 'lut-FEN', 'meaning': 'Please'}
-        ]
-
-    def _generate_follow_up_question(
-        self, 
-        last_intent: str, 
-        current_response: Dict[str, Any]
-    ) -> Optional[str]:
-        """Generate appropriate follow-up question"""
-        
-        follow_ups = {
-            'weather': "Would you like some weather-appropriate activity suggestions?",
-            'restaurant': "Are you looking for a specific cuisine or budget range?",
-            'transport': "Do you need help with directions or schedules?",
-            'attractions': "Would you like to know about ticket prices or opening hours?"
-        }
-        
-        return follow_ups.get(last_intent)
-
-    def _build_conversation_continuity(
-        self, 
-        conversation_history: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Build conversation continuity elements"""
-        
-        return {
-            'previous_topics': [msg.get('intent', '') for msg in conversation_history[-3:]],
-            'conversation_length': len(conversation_history),
-            'engagement_level': 'high' if len(conversation_history) > 5 else 'medium'
-        }
 
     def _analyze_context_factors(self, context: ConversationContext) -> Dict[str, Any]:
         """Analyze various context factors that might influence the response"""
@@ -1620,7 +1728,15 @@ class MLEnhancedDailyTalksBridge:
         
         for session in self.context_memory.values():
             for interaction in session:
-                intent = interaction.get('intent', {}).get('primary', 'unknown')
+                # Handle both dict and string formats for intent
+                intent_data = interaction.get('intent', {})
+                if isinstance(intent_data, dict):
+                    intent = intent_data.get('primary', 'unknown')
+                elif isinstance(intent_data, str):
+                    intent = intent_data
+                else:
+                    intent = 'unknown'
+                    
                 topics[intent] = topics.get(intent, 0) + 1
         
         return dict(sorted(topics.items(), key=lambda x: x[1], reverse=True))

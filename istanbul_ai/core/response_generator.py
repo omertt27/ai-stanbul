@@ -481,8 +481,14 @@ What specifically interests you most? I can provide detailed recommendations bas
         
         return '\n'.join(enhancement_parts)
     
-    def _get_meal_context(self, hour: int) -> str:
+    def _get_meal_context(self, current_time) -> str:
         """Get appropriate meal context based on time"""
+        # Handle both datetime objects and integers
+        if isinstance(current_time, datetime):
+            hour = current_time.hour
+        else:
+            hour = current_time
+            
         if hour < 11:
             return "Turkish breakfast"
         elif hour < 15:

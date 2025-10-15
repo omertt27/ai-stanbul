@@ -785,7 +785,7 @@ class IntelligentLocationDetector:
         # Model performance metrics
         self.model_performance_metrics = {
             'neural_network': {'accuracy': 0.0, 'confidence_correlation': 0.0},
-            'ensemble': {'accuracy': 0.0, 'feature_importance': {}},
+            'ensemble': {'accuracy': 0.0, 'feature_importance': 0.0},
             'semantic': {'similarity_accuracy': 0.0, 'embedding_quality': 0.0}
         }
 
@@ -1954,3 +1954,78 @@ class IntelligentLocationDetector:
             'grand bazaar': 'Grand Bazaar',
             'spice bazaar': 'Spice Bazaar'
         }
+    
+    async def fetch_iksv_events(self) -> List:
+        """Fetch events from İKSV using the MonthlyEventsScheduler"""
+        events = []
+        
+        try:
+            # Import and use the MonthlyEventsScheduler
+            from monthly_events_scheduler import MonthlyEventsScheduler
+            
+            scheduler = MonthlyEventsScheduler()
+            
+            # Try to get cached events first
+            cached_events = scheduler.load_cached_events()
+            
+            if cached_events and not scheduler.is_fetch_needed():
+                self.logger.info(f"📚 Using {len(cached_events)} cached İKSV events")
+                raw_events = cached_events
+            else:
+                # Fetch fresh events if no cache or cache is old
+                self.logger.info("🌐 Fetching fresh İKSV events...")
+                raw_events = await scheduler.fetch_iksv_events()
+                
+                # Cache the events for future use
+                if raw_events:
+                    await scheduler.save_events_to_cache(raw_events)
+                    self.logger.info(f"💾 Cached {len(raw_events)} İKSV events")
+            
+            # Return raw events for compatibility (can be converted later)
+            events = raw_events
+            
+            self.logger.info(f"🎭 Retrieved {len(events)} İKSV events")
+            
+        except ImportError:
+            self.logger.warning("MonthlyEventsScheduler not available, using fallback İKSV events")
+            events = self._get_fallback_iksv_events_dict()
+        except Exception as e:
+            self.logger.error(f"Error fetching İKSV events: {e}")
+            events = self._get_fallback_iksv_events_dict()
+        
+        return events
+
+    def _get_fallback_iksv_events_dict(self) -> List[dict]:
+        """Provide fallback İKSV events as dictionaries"""
+        return [
+            {
+                'title': 'İstanbul Jazz Festival',
+                'description': 'Annual international jazz festival featuring world-class musicians',
+                'venue': 'Salon İKSV',
+                'district': 'Beyoğlu',
+                'category': 'Music',
+                'organizer': 'İKSV',
+                'url': 'https://www.iksv.org/en/jazz',
+                'is_free': False
+            },
+            {
+                'title': 'İstanbul Theatre Festival',
+                'description': 'International theatre festival showcasing contemporary performances',
+                'venue': 'Zorlu PSM',
+                'district': 'Beşiktaş',
+                'category': 'Theatre',
+                'organizer': 'İKSV',
+                'url': 'https://www.iksv.org/en/theatre',
+                'is_free': False
+            },
+            {
+                'title': 'İstanbul Biennial',
+                'description': 'Contemporary art biennial featuring international artists',
+                'venue': 'Various İKSV Venues',
+                'district': 'İstanbul',
+                'category': 'Art',
+                'organizer': 'İKSV',
+                'url': 'https://www.iksv.org/en/biennial',
+                'is_free': False
+            }
+        ]

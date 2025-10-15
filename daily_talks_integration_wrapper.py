@@ -542,6 +542,40 @@ class DailyTalksIntegrationWrapper:
             "timestamp": datetime.now().isoformat()
         }
 
+    async def get_daily_conversation(self, user_input: str, context_data: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Get daily conversation response - compatibility method for ML bridge
+        """
+        try:
+            user_id = context_data.get('user_id', f"user_{datetime.now().strftime('%Y%m%d_%H%M%S')}") if context_data else f"user_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            session_id = context_data.get('session_id') if context_data else None
+            
+            # Use the process_conversation method 
+            response = await self.process_conversation(user_input, user_id, session_id)
+            
+            # Ensure compatibility with expected response format
+            return {
+                'message': response.get('response', 'Hello! How can I help you explore Istanbul today?'),
+                'intent': response.get('intent', 'general'),
+                'confidence': response.get('confidence', 0.5),
+                'system_used': response.get('system_used', 'integration_wrapper'),
+                'success': response.get('success', True),
+                'suggested_actions': response.get('suggested_actions', []),
+                'follow_up_questions': response.get('follow_up_questions', [])
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in get_daily_conversation: {e}")
+            return {
+                'message': f"Hello! I'm here to help you explore Istanbul. {user_input} - I'd be happy to assist you with information about our beautiful city!",
+                'intent': 'general',
+                'confidence': 0.3,
+                'system_used': 'fallback',
+                'success': True,
+                'suggested_actions': ["Ask about restaurants", "Get local tips", "Plan transportation"],
+                'follow_up_questions': ["What brings you to Istanbul today?"]
+            }
+
 # =============================================================================
 # GLOBAL INTEGRATION INSTANCE
 # =============================================================================

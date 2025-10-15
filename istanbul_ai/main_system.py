@@ -260,11 +260,20 @@ class IstanbulDailyTalkAI:
         
         try:
             # Prepare context data for the ML bridge
+            user_type_value = 'first_time_visitor'  # default
+            if hasattr(user_profile, 'user_type'):
+                if hasattr(user_profile.user_type, 'value'):
+                    user_type_value = user_profile.user_type.value
+                elif isinstance(user_profile.user_type, dict):
+                    user_type_value = user_profile.user_type.get('value', 'first_time_visitor')
+                else:
+                    user_type_value = str(user_profile.user_type)
+            
             context_data = {
                 'location': getattr(user_profile, 'current_location', None),
                 'preferences': {
                     'interests': getattr(user_profile, 'interests', []),
-                    'user_type': getattr(user_profile, 'user_type', {}).get('value', 'first_time_visitor') if hasattr(user_profile.user_type, 'value') else str(user_profile.user_type),
+                    'user_type': user_type_value,
                     'language_preference': getattr(user_profile, 'language_preference', 'english')
                 },
                 'mood': getattr(context, 'current_mood', None),
@@ -340,9 +349,9 @@ class IstanbulDailyTalkAI:
             else:
                 return "🌆 Good evening! Istanbul's evening magic awaits! How can I help you experience the city tonight?"
         
-        # Weather responses
-        if any(weather in message_lower for weather in ['weather', 'temperature', 'rain', 'sunny']):
-            return "🌤️ I don't have real-time weather data, but Istanbul weather can be quite pleasant! Check the local weather and I can suggest activities that match the conditions. What kind of experience are you looking for?"
+        # Enhanced weather responses
+        if any(weather in message_lower for weather in ['weather', 'temperature', 'rain', 'sunny', 'cold', 'hot']):
+            return self._generate_weather_aware_response(message, user_profile, context)
         
         # Thank you responses
         if any(thanks in message_lower for thanks in ['thank', 'thanks']):
@@ -845,3 +854,167 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 return location
         
         return None
+
+    def _generate_weather_aware_response(self, message: str, user_profile: UserProfile, context: ConversationContext) -> str:
+        """Generate weather-aware responses using integrated AI components"""
+        
+        message_lower = message.lower()
+        current_time = datetime.now()
+        
+        # Get seasonal weather context from response generator
+        seasonal_context = self.response_generator._get_weather_context(current_time)
+        meal_context = self.response_generator._get_meal_context(current_time)
+        
+        # Detect specific weather conditions mentioned
+        weather_conditions = {
+            'rainy': any(word in message_lower for word in ['rain', 'raining', 'wet', 'storm']),
+            'sunny': any(word in message_lower for word in ['sunny', 'sun', 'bright', 'clear']),
+            'hot': any(word in message_lower for word in ['hot', 'warm', 'heat']),
+            'cold': any(word in message_lower for word in ['cold', 'chilly', 'cool', 'winter'])
+        }
+        
+        # Build weather-aware response
+        response_parts = []
+        
+        # Specific weather condition responses
+        if weather_conditions['rainy']:
+            response_parts.append("🌧️ Perfect rainy day in Istanbul! Here are my weather-smart recommendations:")
+            response_parts.append("""
+🏛️ **Indoor Cultural Experiences:**
+• Hagia Sophia & Blue Mosque - covered and magnificent
+• Grand Bazaar - 4,000 shops under one historic roof
+• Istanbul Archaeological Museums - world-class collections
+
+☕ **Cozy Rainy Day Spots:**
+• Historic Beyoğlu cafes with Bosphorus views  
+• Traditional tea houses in Sultanahmet
+• Covered passages in Galata for shopping
+
+🚇 **Weather-Smart Transport:**
+• Use metro/tram to stay dry between locations
+• Ferry rides with covered seating areas""")
+        
+        elif weather_conditions['sunny']:
+            response_parts.append("☀️ Beautiful sunny day in Istanbul! Perfect for outdoor exploration:")
+            response_parts.append("""
+🌊 **Outdoor Bosphorus Activities:**
+• Ferry cruise between Europe and Asia
+• Waterfront walks in Ortaköy and Bebek
+• Outdoor dining with Bosphorus views
+
+🏛️ **Sunny Day Sightseeing:**
+• Sultanahmet Square and historic peninsula  
+• Galata Tower area with panoramic views
+• Prince Islands ferry trip and bike tours
+
+🌳 **Parks & Gardens:**
+• Gülhane Park for peaceful walks
+• Emirgan Park with tulip gardens (spring)""")
+        
+        elif weather_conditions['hot']:
+            response_parts.append("🌡️ Hot day in Istanbul! Here are cool, comfortable options:")
+            response_parts.append("""
+❄️ **Air-Conditioned Comfort:**
+• Underground Basilica Cistern - naturally cool
+• Modern shopping malls in Nişantaşı and Levent  
+• Museums with climate control
+
+🌊 **Waterside Cooling:**
+• Bosphorus ferry with sea breeze
+• Shaded waterfront cafes in Bebek
+• Traditional Turkish baths (hammam) for cooling ritual
+
+🍨 **Cool Treats & Drinks:**  
+• Turkish ice cream (dondurma) in Sultanahmet
+• Rooftop bars with Bosphorus breeze
+• Traditional Turkish coffee in air-conditioned cafes""")
+        
+        elif weather_conditions['cold']:
+            response_parts.append("🧥 Cold day in Istanbul! Here are warm, cozy recommendations:")
+            response_parts.append("""
+🔥 **Warm Indoor Experiences:**
+• Traditional Turkish baths (hammam) - perfect warmth
+• Cozy tea houses with Turkish tea and simit
+• Historic covered markets (Grand Bazaar, Spice Bazaar)
+
+☕ **Warming Food & Drinks:**
+• Hot Turkish breakfast in traditional restaurants
+• Warming soups like lentil (mercimek çorbası)
+• Turkish coffee or tea in historic cafes
+
+🏛️ **Indoor Cultural Warmth:**
+• Heated museums and palaces
+• Historic mosques with beautiful interiors
+• Underground cisterns (naturally temperature stable)""")
+        
+        else:
+            # General weather inquiry
+            response_parts.append("🌤️ Istanbul's weather offers great opportunities year-round!")
+            response_parts.append(f"📅 **Current Season Suggestion:** {seasonal_context}")
+            response_parts.append(f"🍽️ **Perfect Time for:** {meal_context}")
+        
+        # Add seasonal context
+        response_parts.append(f"\n💡 **Seasonal Tip:** {seasonal_context}")
+        
+        # Add time-based suggestions
+        hour = current_time.hour
+        if 6 <= hour <= 11:
+            response_parts.append("🌅 **Morning Perfect For:** Turkish breakfast and early sightseeing")
+        elif 12 <= hour <= 17:
+            response_parts.append("☀️ **Afternoon Ideal For:** Museum visits and lunch exploration")  
+        elif 18 <= hour <= 22:
+            response_parts.append("🌆 **Evening Great For:** Bosphorus views and dinner")
+        else:
+            response_parts.append("🌙 **Late Hour:** Consider 24/7 areas like Taksim or night ferries")
+        
+        # Try to get location-based recommendations if available
+        if self.location_detector:
+            try:
+                from istanbul_ai.services.intelligent_location_detector import WeatherContext
+                
+                # Create weather context based on detected conditions
+                weather_type = 'sunny'
+                if weather_conditions['rainy']:
+                    weather_type = 'rainy'
+                elif weather_conditions['hot']:
+                    weather_type = 'hot'  
+                elif weather_conditions['cold']:
+                    weather_type = 'cold'
+                
+                weather_context = WeatherContext(
+                    current_weather={'condition': weather_type},
+                    forecast=[],
+                    temperature=20,  # Default temperature
+                    precipitation=80 if weather_conditions['rainy'] else 0,
+                    wind_speed=5,
+                    weather_type=weather_type
+                )
+                
+                # Get weather-appropriate location recommendations
+                activity_query = "activities"
+                if weather_conditions['rainy']:
+                    activity_query = "indoor activities"
+                elif weather_conditions['sunny']:
+                    activity_query = "outdoor activities"
+                
+                location_result = self.location_detector.detect_location_with_context(
+                    activity_query,
+                    user_profile=user_profile,
+                    context=context,
+                    weather_context=weather_context
+                )
+                
+                if location_result and location_result.explanation:
+                    response_parts.append(f"\n🎯 **Smart Recommendation:** {location_result.explanation}")
+                    
+            except Exception as e:
+                logger.debug(f"Location detector weather integration error: {e}")
+        
+        response_parts.append("""
+🤖 What specific area interests you most? I can provide detailed recommendations for:
+• Restaurants & dining  
+• Historic sites & museums
+• Transportation & getting around  
+• Shopping & entertainment""")
+        
+        return '\n'.join(response_parts)
