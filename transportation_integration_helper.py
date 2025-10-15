@@ -3,8 +3,8 @@
 Transportation Integration Helper
 ================================
 
-Integrates the ML-Enhanced Transportation System with the main Istanbul AI system
-and provides enhanced transportation query processing with all required features.
+Integrates the Enhanced Transportation System with the main Istanbul AI system
+and provides comprehensive transportation query processing with all required features.
 """
 
 import asyncio
@@ -17,14 +17,36 @@ import os
 import time
 import hashlib
 
-# Import the new ML transportation system
-from ml_enhanced_transportation_system import (
-    MLEnhancedTransportationSystem,
-    GPSLocation,
-    RouteOptimizationType,
-    TransportMode,
-    create_ml_enhanced_transportation_system
-)
+# Import the enhanced transportation system
+try:
+    from enhanced_transportation_system import (
+        generate_comprehensive_transportation_response,
+        ComprehensiveTransportProcessor,
+        get_enhanced_transportation_system
+    )
+    ENHANCED_TRANSPORT_AVAILABLE = True
+except ImportError:
+    ENHANCED_TRANSPORT_AVAILABLE = False
+
+# Import the ML transportation system as fallback
+try:
+    from ml_enhanced_transportation_system import (
+        MLEnhancedTransportationSystem,
+        GPSLocation,
+        RouteOptimizationType,
+        TransportMode,
+        create_ml_enhanced_transportation_system
+    )
+    ML_SYSTEM_AVAILABLE = True
+except ImportError:
+    ML_SYSTEM_AVAILABLE = False
+    # Create placeholder classes for compatibility
+    class GPSLocation:
+        def __init__(self, lat, lng, address=None, district=None):
+            self.latitude = lat
+            self.longitude = lng
+            self.address = address
+            self.district = district
 
 # Import backend services
 try:

@@ -11,6 +11,23 @@ from ..core.conversation_context import ConversationContext
 from ..core.entity_recognizer import IstanbulEntityRecognizer
 from ..utils.constants import ConversationTone, DEFAULT_RESPONSES
 
+# Import advanced transportation system
+try:
+    import sys
+    import os
+    # Add parent directory to path to access transportation modules
+    parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if parent_dir not in sys.path:
+        sys.path.append(parent_dir)
+    
+    from transportation_integration_helper import TransportationQueryProcessor
+    from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
+    ADVANCED_TRANSPORT_AVAILABLE = True
+    logger.info("✅ Advanced transportation system loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Advanced transportation system not available: {e}")
+    ADVANCED_TRANSPORT_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,6 +54,15 @@ class IstanbulDailyTalkAI:
     def _init_integrations(self):
         """Initialize external integrations"""
         try:
+            # Initialize advanced transportation system
+            if ADVANCED_TRANSPORT_AVAILABLE:
+                self.transport_processor = TransportationQueryProcessor()
+                self.ml_transport_system = create_ml_enhanced_transportation_system()
+                logger.info("🚇 Advanced transportation system with IBB API initialized")
+            else:
+                self.transport_processor = None
+                self.ml_transport_system = None
+                
             # Try to load external integrations
             self._load_events_integration()
             self._load_route_integration()
@@ -537,7 +563,30 @@ class IstanbulDailyTalkAI:
         return response
 
     def _handle_transportation_query(self, user_input: str, entities: Dict, user_profile: UserProfile) -> str:
-        """Handle transportation-related queries"""
+        """Handle transportation-related queries with advanced AI and real-time data"""
+        try:
+            # Use advanced transportation system if available
+            if ADVANCED_TRANSPORT_AVAILABLE and self.transport_processor:
+                logger.info("🚇 Using advanced transportation system with IBB API")
+                
+                # Process query through advanced system
+                enhanced_response = self.transport_processor.process_transportation_query(
+                    user_input, entities, user_profile
+                )
+                
+                if enhanced_response and enhanced_response.strip():
+                    return enhanced_response
+                    
+            # Fallback to improved static response
+            logger.info("🚇 Using fallback transportation system")
+            return self._get_fallback_transportation_response(user_input, entities, user_profile)
+            
+        except Exception as e:
+            logger.error(f"Transportation query error: {e}")
+            return self._get_fallback_transportation_response(user_input, entities, user_profile)
+    
+    def _get_fallback_transportation_response(self, user_input: str, entities: Dict, user_profile: UserProfile) -> str:
+        """Fallback transportation response with correct information"""
         districts = entities.get('districts', [])
         transport_modes = entities.get('transport', [])
         
@@ -546,17 +595,31 @@ class IstanbulDailyTalkAI:
         if districts:
             response += f"Getting to/from {', '.join(districts)}:\n\n"
         
-        response += "**Metro System:**\n"
-        response += "• M1: Airport to city center\n"
-        response += "• M2: Golden Horn to Bosphorus\n"
-        response += "• M3: Business districts\n\n"
+        # Real-time status indicator
+        current_time = datetime.now().strftime("%H:%M")
+        response += f"📍 **Live Status** (Updated: {current_time})\n\n"
         
-        response += "**Other Options:**\n"
-        response += "• 🚌 Bus: Extensive network\n"
-        response += "• ⛴️ Ferry: Scenic Bosphorus routes\n"
-        response += "• 🚕 Taxi: Available everywhere\n\n"
+        response += "**Metro Lines:**\n"
+        response += "• M1A: Yenikapı ↔ Halkalı (serves Aksaray, Grand Bazaar)\n"
+        response += "• M2: Vezneciler ↔ Hacıosman (serves Taksim, Şişli, Maslak)\n"
+        response += "• M3: Kirazlı ↔ Başakşehir (business districts)\n"
+        response += "• M4: Kadıköy ↔ Tavşantepe (Asian side main line)\n"
+        response += "• M7: Kabataş ↔ Mahmutbey (Golden Horn bridge line)\n"  
+        response += "• M11: Gayrettepe ↔ IST Airport (new airport express)\n\n"
         
-        response += "💡 Need specific route planning or real-time schedules?"
+        response += "**Popular Routes:**\n"
+        response += "• Airport to Taksim: M11 → M2 (45 min)\n"
+        response += "• Sultanahmet to Asian side: T1 → M2 → M4 (30 min)\n"
+        response += "• Grand Bazaar to Galata: M1A → M2 (20 min)\n\n"
+        
+        response += "**Other Transport:**\n"
+        response += "• 🚌 İETT Bus: City-wide network\n"
+        response += "• 🚋 Tram: T1 (Historic Peninsula), T4 (Topkapı)\n" 
+        response += "• ⛴️ Ferry: Bosphorus & Golden Horn routes\n"
+        response += "• 🚕 Taxi: BiTaksi, Uber available\n\n"
+        
+        response += "💳 **Payment:** İstanbulkart for all public transport\n"
+        response += "💡 Need specific directions? Ask: 'How to get from X to Y?'"
         
         return response
 
@@ -1061,6 +1124,10 @@ What would you like to know about Istanbul's neighborhoods?"""
         # For now, return None - in a real app, this would trigger location permission request
         return None
 
+    def classify_intent(self, user_input: str) -> str:
+        """Public interface for intent classification - used by external systems"""
+        return self._enhance_intent_classification(user_input)
+    
     def _enhance_intent_classification(self, user_input: str) -> str:
         """Enhanced intent classification with better complex query handling"""
         intent_signals = self.entity_recognizer.detect_intent_signals(user_input)

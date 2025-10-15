@@ -22,6 +22,21 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
+# Add parent directory for accessing advanced transportation modules
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+# Import advanced transportation system
+try:
+    from transportation_integration_helper import TransportationQueryProcessor
+    from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
+    ADVANCED_TRANSPORT_AVAILABLE = True
+    logger.info("✅ Advanced transportation system with IBB API loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Advanced transportation system not available: {e}")
+    ADVANCED_TRANSPORT_AVAILABLE = False
+
 # Test for python-multipart availability early
 try:
     import multipart
@@ -165,6 +180,21 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# Initialize advanced transportation system
+if ADVANCED_TRANSPORT_AVAILABLE:
+    try:
+        transport_processor = TransportationQueryProcessor()
+        ml_transport_system = create_ml_enhanced_transportation_system()
+        logger.info("🚇 Advanced transportation system with IBB API initialized in backend")
+    except Exception as e:
+        logger.error(f"Failed to initialize advanced transportation: {e}")
+        transport_processor = None
+        ml_transport_system = None
+        ADVANCED_TRANSPORT_AVAILABLE = False
+else:
+    transport_processor = None
+    ml_transport_system = None
+
 # CORS configuration
 origins = [
     "http://localhost:3000",
@@ -226,6 +256,40 @@ def simple_fuzzy_match(query: str, choices: List[str], threshold: int = 60) -> O
         if query_words & choice_words:  # If there's any common word
             return choice
     
+    return None
+
+def get_advanced_transportation_response(query: str) -> str:
+    """Get advanced transportation response using IBB API and ML system"""
+    try:
+        if ADVANCED_TRANSPORT_AVAILABLE and transport_processor:
+            logger.info("🚇 Using advanced transportation system with IBB API")
+            
+            # Create dummy entities and user profile for processing
+            entities = {}
+            from datetime import datetime
+            from dataclasses import dataclass
+            from typing import Optional
+            
+            @dataclass
+            class DummyUserProfile:
+                user_id: str = "default"
+                language: str = "en"
+                gps_location: Optional[tuple] = None
+                
+            user_profile = DummyUserProfile()
+            
+            # Process query through advanced system
+            enhanced_response = transport_processor.process_transportation_query(
+                query, entities, user_profile
+            )
+            
+            if enhanced_response and enhanced_response.strip():
+                return enhanced_response
+                
+    except Exception as e:
+        logger.error(f"Advanced transportation system error: {e}")
+    
+    # Return None to use fallback
     return None
 
 def get_default_response(query: str) -> str:
@@ -384,6 +448,12 @@ Popular dishes to try: Kebabs, Meze, Baklava, Turkish Breakfast, and fresh seafo
 • Combine multiple nearby attractions in one day"""
 
     elif any(word in query_lower for word in ['transport', 'metro', 'bus', 'travel', 'get around']):
+        # Try advanced transportation system first
+        advanced_response = get_advanced_transportation_response(query)
+        if advanced_response:
+            return advanced_response
+            
+        # Fallback to static response
         return """🚇 **Istanbul Transportation Guide:**
 
 **1. Istanbulkart** 💳
@@ -392,7 +462,7 @@ Popular dishes to try: Kebabs, Meze, Baklava, Turkish Breakfast, and fresh seafo
 
 **2. Metro System** 🚇
 ⭐ Rating: 4.4/5 • Fast & Clean
-ℹ️ Modern subway system covering major areas. M1 (Airport), M2 (Taksim-Şişli), M3 (Kirazlı-Olimpiyatkoy).
+ℹ️ Modern subway system covering major areas. M11 (IST Airport), M2 (Taksim-Şişli), M1A (Grand Bazaar area).
 
 **3. Metrobus** 🚌
 ⭐ Rating: 4.2/5 • Rapid Transit

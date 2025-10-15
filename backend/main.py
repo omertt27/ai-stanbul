@@ -58,6 +58,82 @@ if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
         print(f"⚠️ Failed to initialize Enhanced Understanding System: {e}")
         ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
 
+def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
+    """Generate enhanced suggestions based on multi-intent analysis"""
+    suggestions = []
+    
+    # Primary intent suggestions
+    if intent == "recommendation":
+        suggestions.extend([
+            "Show me more restaurant recommendations",
+            "What about attractions in this area?",
+            "Any events happening nearby?"
+        ])
+    elif intent == "route_planning":
+        suggestions.extend([
+            "How long does it take to get there?",
+            "What's the best time to travel?",
+            "Are there alternative routes?"
+        ])
+    elif intent == "information_request":
+        suggestions.extend([
+            "Tell me more about this area",
+            "What's the history of this place?",
+            "Any local customs I should know?"
+        ])
+    else:
+        suggestions.extend([
+            "Tell me about Istanbul attractions",
+            "Recommend some restaurants",
+            "What events are happening?"
+        ])
+    
+    # Add location-specific suggestions if available
+    if detected_location:
+        suggestions.append(f"More recommendations for {detected_location}")
+    
+    # Add secondary intent suggestions
+    for secondary_intent in secondary_intents[:2]:  # Limit to 2 secondary intents
+        if secondary_intent == "transportation":
+            suggestions.append("How do I get there?")
+        elif secondary_intent == "price_query":
+            suggestions.append("What about budget options?")
+        elif secondary_intent == "time_query":
+            suggestions.append("What are the opening hours?")
+    
+    return suggestions[:5]  # Limit to 5 suggestions
+
+def generate_traditional_suggestions(intent: str) -> List[str]:
+    """Generate traditional suggestions based on single intent"""
+    intent_suggestions = {
+        "restaurant_query": [
+            "Show me more restaurants",
+            "What about vegetarian options?",
+            "Any fine dining recommendations?"
+        ],
+        "events_query": [
+            "What events are happening today?",
+            "Any cultural performances?",
+            "Where can I find live music?"
+        ],
+        "transportation_query": [
+            "How do I use public transport?",
+            "What about taxi options?",
+            "Are there bike rentals?"
+        ],
+        "attraction_query": [
+            "What other attractions are nearby?",
+            "Any hidden gems?",
+            "What are the must-see places?"
+        ]
+    }
+    
+    return intent_suggestions.get(intent, [
+        "Tell me about Istanbul attractions",
+        "Recommend some restaurants", 
+        "What events are happening?"
+    ])
+
 def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
     """Process query using Enhanced Understanding System"""
     if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
@@ -1991,13 +2067,13 @@ async def chat_with_istanbul_ai(
                     print(f"🎯 Multi-intent analysis: Primary={intent}, Secondary={multi_intent_data['secondary_intents']}, Confidence={confidence:.3f}")
                     
                     # Generate enhanced suggestions based on multi-intent analysis
-                    suggestions = self._generate_enhanced_suggestions(intent, multi_intent_result.secondary_intents, detected_location)
+                    suggestions = generate_enhanced_suggestions(intent, multi_intent_result.secondary_intents, detected_location)
                     
                 else:
                     # Fallback to traditional intent classification
                     enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
                     intent = enhanced_intent
-                    suggestions = self._generate_traditional_suggestions(enhanced_intent)
+                    suggestions = generate_traditional_suggestions(enhanced_intent)
                     
             except Exception as e:
                 print(f"⚠️ Intent classification error: {e}")
@@ -2199,10 +2275,10 @@ async def plan_route_with_istanbul_ai(request: RouteRequest):
                 return RouteResponse(
                     route=route_data,
                     total_duration="4-6 hours",
-                    total_distance="15-25 km",
+                    total_distance="10-20 km",
                     waypoints=waypoints,
                     suggestions=[
-                        "Consider starting early morning",
+                        "Consider starting early in the morning",
                         "Bring comfortable walking shoes",
                         "Check museum opening hours"
                     ]

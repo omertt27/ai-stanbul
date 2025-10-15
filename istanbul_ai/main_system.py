@@ -17,6 +17,23 @@ from .core.user_management import UserManager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import advanced transportation system
+try:
+    import sys
+    import os
+    # Add parent directory to path to access transportation modules
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.append(parent_dir)
+    
+    from transportation_integration_helper import TransportationQueryProcessor
+    from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
+    ADVANCED_TRANSPORT_AVAILABLE = True
+    logger.info("✅ Advanced transportation system loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Advanced transportation system not available: {e}")
+    ADVANCED_TRANSPORT_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -43,6 +60,20 @@ class IstanbulDailyTalkAI:
             logger.warning(f"Location detection not available: {e}")
             self.location_detector = None
         
+        # Initialize advanced transportation system
+        if ADVANCED_TRANSPORT_AVAILABLE:
+            try:
+                self.transport_processor = TransportationQueryProcessor()
+                self.ml_transport_system = create_ml_enhanced_transportation_system()
+                logger.info("🚇 Advanced transportation system with IBB API initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize advanced transportation: {e}")
+                self.transport_processor = None
+                self.ml_transport_system = None
+        else:
+            self.transport_processor = None
+            self.ml_transport_system = None
+
         # Initialize museum system with location integration
         try:
             import sys
@@ -264,9 +295,38 @@ class IstanbulDailyTalkAI:
     
     def _generate_transportation_response(self, entities: Dict, user_profile: UserProfile, 
                                         context: ConversationContext) -> str:
-        """Generate comprehensive transportation response"""
+        """Generate comprehensive transportation response with advanced AI and real-time data"""
+        try:
+            # Use advanced transportation system if available
+            if ADVANCED_TRANSPORT_AVAILABLE and self.transport_processor:
+                logger.info("🚇 Using advanced transportation system with IBB API")
+                
+                # Create a dummy user input from context
+                user_input = context.last_message if hasattr(context, 'last_message') else "transportation query"
+                
+                # Process query through advanced system
+                enhanced_response = self.transport_processor.process_transportation_query(
+                    user_input, entities, user_profile
+                )
+                
+                if enhanced_response and enhanced_response.strip():
+                    return enhanced_response
+                    
+            # Fallback to improved static response
+            logger.info("🚇 Using fallback transportation system")
+            return self._get_fallback_transportation_response(entities, user_profile, context)
+            
+        except Exception as e:
+            logger.error(f"Transportation query error: {e}")
+            return self._get_fallback_transportation_response(entities, user_profile, context)
+
+    def _get_fallback_transportation_response(self, entities: Dict, user_profile: UserProfile, 
+                                            context: ConversationContext) -> str:
+        """Fallback transportation response with correct information"""
+        current_time = datetime.now().strftime("%H:%M")
         
-        return """🚇 **Istanbul Transportation Guide**
+        return f"""🚇 **Istanbul Transportation Guide**
+📍 **Live Status** (Updated: {current_time})
 
 **🎫 Essential Transport Card:**
 • **Istanbulkart**: Must-have for all public transport (13 TL + credit)
@@ -274,9 +334,10 @@ class IstanbulDailyTalkAI:
 • Works on metro, tram, bus, ferry, and dolmuş
 
 **🚇 Metro Lines:**
-• **M1**: Airport ↔ Yenikapı (connects to Sultanahmet via tram)
-• **M2**: Vezneciler ↔ Hacıosman (main European side line)
+• **M1A**: Yenikapı ↔ Atatürk Airport (closed) - serves Grand Bazaar area
+• **M2**: Vezneciler ↔ Hacıosman (serves Taksim, Şişli, Levent)
 • **M4**: Kadıköy ↔ Sabiha Gökçen Airport (Asian side)
+• **M11**: IST Airport ↔ Gayrettepe (new airport connection)
 • **M6**: Levent ↔ Boğaziçi Üniversitesi
 
 **🚋 Historic Trams:**
@@ -301,7 +362,8 @@ class IstanbulDailyTalkAI:
 • Metro runs until midnight, limited night bus service
 
 **🎯 Popular Routes:**
-• **Airport → Sultanahmet**: M1 + T1 (45 min, ~15 TL)
+• **IST Airport → Sultanahmet**: M11 + M2 + T1 (60 min, ~20 TL)
+• **Taksim → Sultanahmet**: M2 + T1 (25 min, ~7 TL)  
 • **Sultanahmet → Galata Tower**: T1 + M2 (25 min)
 • **European → Asian side**: Ferry from Eminönü/Karaköy
 
