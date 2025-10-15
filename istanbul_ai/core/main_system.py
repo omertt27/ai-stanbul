@@ -569,7 +569,7 @@ class IstanbulDailyTalkAI:
             if ADVANCED_TRANSPORT_AVAILABLE and self.transport_processor:
                 logger.info("🚇 Using advanced transportation system with IBB API")
                 
-                # Process query through advanced system
+                # Process query through enhanced system
                 enhanced_response = self.transport_processor.process_transportation_query(
                     user_input, entities, user_profile
                 )

@@ -1632,5 +1632,218 @@ async def _format_general_transportation_response(processor: ComprehensiveTransp
     
     return response
 
+
 # Export the main function for integration
 __all__ = ['generate_comprehensive_transportation_response', 'ComprehensiveTransportProcessor', 'get_enhanced_transportation_system']
+
+# Add comprehensive query processor for main integration
+class TransportationQueryProcessor:
+    """
+    Main transportation query processor that integrates all enhanced features:
+    - Real-time IBB API data
+    - Comprehensive route planning
+    - Accessibility information
+    - Cost analysis
+    - Weather considerations
+    - Live schedules
+    """
+    
+    def __init__(self):
+        self.enhanced_system = EnhancedTransportationSystem()
+        self.comprehensive_processor = ComprehensiveTransportProcessor()
+        self.logger = logging.getLogger(__name__)
+        
+    async def process_transportation_query(
+        self, 
+        query: str, 
+        entities: Dict[str, Any] = None, 
+        user_profile: Any = None
+    ) -> str:
+        """
+        Process any transportation query with comprehensive response
+        """
+        if entities is None:
+            entities = {}
+            
+        try:
+            # Log the query for monitoring
+            self.logger.info(f"Processing transportation query: {query}")
+            
+            # Use the comprehensive response generator
+            response = await generate_comprehensive_transportation_response(
+                query, entities, user_profile
+            )
+            
+            # Add system signature for verification
+            response += f"\n\n🔧 *Enhanced Transportation System v2.0 - Live Data Enabled*"
+            
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Error processing transportation query: {e}")
+            return self._get_fallback_response(query, entities)
+    
+    def _get_fallback_response(self, query: str, entities: Dict[str, Any]) -> str:
+        """Fallback response when main processing fails"""
+        return """🚇 **Istanbul Transportation System**
+
+I apologize, but I'm experiencing technical difficulties accessing live transportation data. Here's basic information:
+
+**Metro Lines:**
+• M1A: Yenikapı - Halkalı
+• M1B: Yenikapı - Kirazlı  
+• M2: Vezneciler - Hacıosman
+• M11: Gayrettepe - Istanbul Airport
+
+**Key Connections:**
+• Sultanahmet: Use T1 tram or M2 to Vezneciler + walk
+• Airport: M11 to Gayrettepe, then M2
+• Taksim: M2 direct connection
+
+**Payment:** İstanbulkart recommended (7.67 TL per ride)
+
+For live updates, please check the İstanbul Ulaşım app or ask me to try again.
+
+🔧 *Fallback mode - Enhanced system temporarily unavailable*"""
+
+    async def get_route_recommendations(
+        self, 
+        start_location: str, 
+        end_location: str, 
+        preferences: Dict[str, Any] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get multiple route recommendations with different options
+        """
+        if preferences is None:
+            preferences = {}
+            
+        recommendations = []
+        
+        try:
+            # Get comprehensive route data
+            if 'sultanahmet' in end_location.lower():
+                sultanahmet_routes = self.enhanced_system.get_route_to_sultanahmet(start_location)
+                
+                if 'recommended_route' in sultanahmet_routes:
+                    recommendations.append({
+                        'route_type': 'fastest',
+                        'description': sultanahmet_routes['recommended_route'],
+                        'duration': sultanahmet_routes.get('total_time', 'Unknown'),
+                        'cost': sultanahmet_routes.get('cost', 'Unknown'),
+                        'steps': sultanahmet_routes.get('steps', []),
+                        'accessibility': sultanahmet_routes.get('accessibility', 'Standard')
+                    })
+                
+                if 'alternative_route' in sultanahmet_routes:
+                    recommendations.append({
+                        'route_type': 'scenic',
+                        'description': sultanahmet_routes['alternative_route'],
+                        'duration': sultanahmet_routes.get('alternative_time', 'Unknown'),
+                        'cost': sultanahmet_routes.get('cost', 'Unknown'),
+                        'accessibility': sultanahmet_routes.get('accessibility', 'Standard')
+                    })
+            
+            # Get walking option if locations are close
+            walking_data = await self.comprehensive_processor.get_detailed_walking_routes(
+                start_location, end_location
+            )
+            
+            basic_info = walking_data.get('basic_info', {})
+            if basic_info.get('distance_meters', 0) < 2000:  # Less than 2km
+                recommendations.append({
+                    'route_type': 'walking',
+                    'description': f"Walk from {start_location} to {end_location}",
+                    'duration': f"{basic_info.get('duration_minutes', 15)} minutes",
+                    'cost': 'Free',
+                    'accessibility': walking_data.get('accessibility', {}),
+                    'difficulty': basic_info.get('difficulty', 'Moderate'),
+                    'highlights': walking_data.get('points_of_interest', [])
+                })
+            
+            return recommendations
+            
+        except Exception as e:
+            self.logger.error(f"Error getting route recommendations: {e}")
+            return [{
+                'route_type': 'fallback',
+                'description': f"Please use İstanbul Ulaşım app for route from {start_location} to {end_location}",
+                'duration': 'Unknown',
+                'cost': 'Check app'
+            }]
+    
+    async def get_live_transport_status(self) -> Dict[str, Any]:
+        """Get current status of all transport systems"""
+        try:
+            metro_data = await self.comprehensive_processor.get_live_ibb_metro_data()
+            bus_data = await self.comprehensive_processor.get_live_iett_bus_schedules([])
+            ferry_data = await self.comprehensive_processor.get_enhanced_ferry_information()
+            
+            return {
+                'metro_status': self._extract_status(metro_data, 'metro'),
+                'bus_status': self._extract_status(bus_data, 'bus'),
+                'ferry_status': self._extract_status(ferry_data, 'ferry'),
+                'last_updated': datetime.now().isoformat(),
+                'overall_status': 'operational'
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting live transport status: {e}")
+            return {
+                'status': 'error',
+                'message': 'Unable to retrieve live transport status',
+                'fallback': True
+            }
+    
+    def _extract_status(self, data: Dict[str, Any], transport_type: str) -> Dict[str, Any]:
+        """Extract status information from transport data"""
+        if data.get('fallback'):
+            return {'status': 'fallback', 'details': 'Using cached data'}
+        
+        if transport_type == 'metro':
+            lines = data.get('lines', {})
+            operational_lines = [line for line, info in lines.items() 
+                               if info.get('status') == 'operational']
+            return {
+                'status': 'operational',
+                'operational_lines': len(operational_lines),
+                'total_lines': len(lines)
+            }
+        
+        elif transport_type == 'bus':
+            network = data.get('network_info', {})
+            return {
+                'status': 'operational',
+                'daily_passengers': network.get('daily_passengers', 'Unknown'),
+                'fleet_size': network.get('fleet_size', 'Unknown')
+            }
+        
+        elif transport_type == 'ferry':
+            conditions = data.get('current_conditions', {})
+            return {
+                'status': 'operational',
+                'weather_impact': conditions.get('service_impact', 'Normal'),
+                'conditions': conditions.get('weather', 'Unknown')
+            }
+        
+        return {'status': 'unknown'}
+    
+    def process_transportation_query_sync(self, user_input: str, entities: Dict[str, Any], user_profile: Any = None) -> str:
+        """
+        Synchronous wrapper for transportation query processing
+        This method can be called directly from the main AI system
+        """
+        try:
+            # Run the async method in an event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(
+                    self.process_transportation_query(user_input, entities, user_profile)
+                )
+                return result
+            finally:
+                loop.close()
+        except Exception as e:
+            self.logger.error(f"Error in synchronous transportation query: {e}")
+            return self._get_fallback_response(user_input, entities)

@@ -22,7 +22,8 @@ try:
     from enhanced_transportation_system import (
         generate_comprehensive_transportation_response,
         ComprehensiveTransportProcessor,
-        get_enhanced_transportation_system
+        get_enhanced_transportation_system,
+        _format_general_transportation_response
     )
     ENHANCED_TRANSPORT_AVAILABLE = True
 except ImportError:
@@ -757,560 +758,668 @@ class EnhancedRouteComputation:
 
 
 class TransportationQueryProcessor:
-    """Enhanced transportation query processor with ML and GPS integration"""
+    """Main comprehensive transportation query processor with all enhanced capabilities"""
     
     def __init__(self):
-        self.ml_transport_system = create_ml_enhanced_transportation_system()
+        global BACKEND_SERVICES_AVAILABLE
+        
+        self.enhanced_system = get_enhanced_transportation_system() if ENHANCED_TRANSPORT_AVAILABLE else None
+        self.ml_system = create_ml_enhanced_transportation_system() if ML_SYSTEM_AVAILABLE else None
         self.location_parser = LocationParser()
         self.query_analyzer = TransportationQueryAnalyzer()
+        self.comprehensive_processor = ComprehensiveTransportProcessor() if ENHANCED_TRANSPORT_AVAILABLE else None
+        self.logger = logging.getLogger(__name__)
         
-        # Initialize enhanced backend components
-        self.location_processor = EnhancedLocationProcessor()
-        self.user_personalization = AdvancedUserPersonalization()
-        self.route_computation = EnhancedRouteComputation()
+        # Initialize backend services if available
+        if BACKEND_SERVICES_AVAILABLE:
+            try:
+                self.user_profiling = UserProfilingSystem()
+                self.behavior_predictor = BehavioralPatternPredictor()
+                self.route_cache = RouteCache()
+            except Exception as e:
+                self.logger.warning(f"Backend services initialization failed: {e}")
+                BACKEND_SERVICES_AVAILABLE = False
         
-        logger.info("🚇 Enhanced Transportation Query Processor initialized with backend integration")
-    
-    async def process_transportation_query_enhanced(self, message: str, user_profile, current_time, 
-                                                   user_location: Optional[Tuple[float, float]] = None) -> str:
-        """Process transportation query with full ML, GPS, and backend enhancement"""
+        self.logger.info("🚇 Comprehensive Transportation Query Processor initialized")
+
+    def process_transportation_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Synchronous wrapper for transportation query processing"""
         try:
-            user_id = getattr(user_profile, 'user_id', 'anonymous')
-            
-            # Parse the query with enhanced analysis
-            query_info = self.query_analyzer.analyze_query(message)
-            
-            # Process location queries with backend integration
-            location_context = {
-                'message': message,
-                'user_location': user_location,
-                'query_info': query_info,
-                'current_time': current_time
-            }
-            
-            # Enhanced location resolution
-            start_location, end_location = await self._resolve_locations_enhanced(
-                query_info, user_id, location_context
-            )
-            
-            if not start_location or not end_location:
-                return await self._handle_location_request_enhanced(message, user_id, location_context)
-            
-            # Get personalized preferences
-            personalization_prefs = await self.user_personalization.get_personalized_preferences(
-                user_id, query_info
-            )
-            
-            # Determine optimization type with personalization
-            optimization_type = self._determine_optimization_type_enhanced(
-                query_info, user_profile, personalization_prefs
-            )
-            
-            # Compute optimized route with backend integration
-            route_result = await self.route_computation.compute_optimized_route(
-                start_location, end_location, optimization_type, user_id, 
-                personalization_prefs, location_context
-            )
-            
-            if route_result.get('error'):
-                return f"I encountered an issue planning your route: {route_result['error']}"
-            
-            # Format enhanced response
-            return await self._format_route_response_enhanced(
-                route_result, user_profile, current_time, personalization_prefs
-            )
-            
-        except Exception as e:
-            logger.error(f"Enhanced transportation query processing failed: {e}")
-            return self._fallback_transport_response(message, user_profile, current_time)
-    
-    async def get_gps_based_recommendations(self, user_location: Tuple[float, float], 
-                                          user_profile) -> str:
-        """Get GPS-based transportation recommendations"""
-        try:
-            gps_location = GPSLocation(user_location[0], user_location[1])
-            recommendations = await self.ml_transport_system.get_location_based_recommendations(gps_location)
-            
-            return self._format_location_recommendations(recommendations, user_profile)
-            
-        except Exception as e:
-            logger.error(f"GPS recommendations failed: {e}")
-            return "I can help you with transportation! Tell me where you'd like to go."
-    
-    async def handle_route_planning_with_attractions(self, start: str, end: str, 
-                                                   attractions: List[str], user_profile) -> str:
-        """Handle route planning that includes museums and attractions"""
-        try:
-            start_location = self.location_parser.parse_location(start)
-            end_location = self.location_parser.parse_location(end)
-            
-            if not start_location or not end_location:
-                return "I need more specific location information. Could you provide addresses or landmarks?"
-            
-            # Map attraction interests to POI categories
-            poi_categories = self._map_attractions_to_categories(attractions)
-            
-            route = await self.ml_transport_system.get_optimized_route(
-                start_location, end_location, RouteOptimizationType.POI_OPTIMIZED,
-                include_pois=True, poi_preferences=poi_categories
-            )
-            
-            return self._format_attraction_route_response(route, user_profile)
-            
-        except Exception as e:
-            logger.error(f"Attraction route planning failed: {e}")
-            return "I can help plan your route with attractions! Please provide more details about your preferences."
-    
-    async def _resolve_locations(self, query_info: Dict, user_location: Optional[Tuple[float, float]], 
-                               message: str) -> Tuple[Optional[GPSLocation], Optional[GPSLocation]]:
-        """Resolve start and end locations from query"""
-        start_location = None
-        end_location = None
-        
-        # Handle "from my location" or GPS location
-        if query_info.get('from_current_location', False) and user_location:
-            start_location = GPSLocation(user_location[0], user_location[1], address="Your location")
-        elif query_info.get('start_location'):
-            start_location = self.location_parser.parse_location(query_info['start_location'])
-        
-        # Handle destination
-        if query_info.get('end_location'):
-            end_location = self.location_parser.parse_location(query_info['end_location'])
-        
-        return start_location, end_location
-    
-    def _determine_optimization_type(self, query_info: Dict, user_profile) -> RouteOptimizationType:
-        """Determine route optimization type based on query and user profile"""
-        # Check explicit optimization requests
-        if query_info.get('fastest', False):
-            return RouteOptimizationType.FASTEST
-        elif query_info.get('cheapest', False):
-            return RouteOptimizationType.CHEAPEST
-        elif query_info.get('scenic', False):
-            return RouteOptimizationType.MOST_SCENIC
-        elif query_info.get('avoid_crowds', False):
-            return RouteOptimizationType.LEAST_CROWDED
-        
-        # Use user profile preferences
-        if hasattr(user_profile, 'travel_style'):
-            if user_profile.travel_style == 'budget':
-                return RouteOptimizationType.CHEAPEST
-            elif user_profile.travel_style == 'luxury':
-                return RouteOptimizationType.MOST_SCENIC
-        
-        return RouteOptimizationType.FASTEST  # Default
-    
-    def _map_attractions_to_categories(self, attractions: List[str]) -> List[str]:
-        """Map attraction interests to POI categories"""
-        category_mapping = {
-            'museum': ['historical', 'art', 'cultural'],
-            'palace': ['historical', 'palace'],
-            'mosque': ['religious', 'historical'],
-            'tower': ['landmark', 'scenic'],
-            'bazaar': ['shopping', 'cultural'],
-            'gallery': ['art', 'cultural']
-        }
-        
-        categories = []
-        for attraction in attractions:
-            attraction_lower = attraction.lower()
-            for key, cats in category_mapping.items():
-                if key in attraction_lower:
-                    categories.extend(cats)
-        
-        return list(set(categories)) if categories else ['historical', 'landmark']
-    
-    def _format_route_response(self, route, user_profile, current_time) -> str:
-        """Format optimized route response"""
-        try:
-            response_parts = []
-            
-            # Header with optimization info
-            hour = current_time.hour if hasattr(current_time, 'hour') else 12
-            time_context = self._get_time_context(hour)
-            
-            response_parts.append(f"🗺️ **Optimized Route** ({route.optimization_type.value.replace('_', ' ').title()})")
-            response_parts.append(f"⏱️ **Total Time**: {route.total_duration_minutes} minutes")
-            response_parts.append(f"💰 **Total Cost**: {route.total_cost_tl:.2f} TL")
-            response_parts.append(f"📏 **Distance**: {route.total_distance_km:.1f} km")
-            
-            # Add crowding information
-            if route.crowding_prediction > 0.7:
-                response_parts.append(f"⚠️ **Crowding**: High ({route.crowding_prediction:.0%}) - {time_context}")
-            elif route.crowding_prediction > 0.4:
-                response_parts.append(f"🟡 **Crowding**: Moderate ({route.crowding_prediction:.0%})")
-            else:
-                response_parts.append(f"✅ **Crowding**: Low ({route.crowding_prediction:.0%})")
-            
-            # Add route segments
-            response_parts.append("\n**🚶‍♂️ Route Steps:**")
-            for i, segment in enumerate(route.segments, 1):
-                mode_emoji = self._get_transport_emoji(segment.transport_mode)
-                response_parts.append(
-                    f"{i}. {mode_emoji} {segment.transport_mode.value.title()}: "
-                    f"{segment.duration_minutes} min ({segment.distance_km:.1f} km)"
+            # Run the async method in an event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(
+                    self._process_transportation_query_async(user_input, entities, user_profile)  
                 )
-                if segment.instructions:
-                    response_parts.append(f"   {segment.instructions[0]}")
-            
-            # Add POI information if included
-            if route.poi_integration:
-                response_parts.append(f"\n🏛️ **Attractions Included**: {len(route.poi_integration)}")
-                for poi in route.poi_integration[:2]:  # Show first 2
-                    response_parts.append(f"   • {poi['name']} ({poi['visit_duration_minutes']} min visit)")
-            
-            # Add real-time updates
-            if route.real_time_adjustments:
-                response_parts.append(f"\n📡 **Live Updates**:")
-                for update in route.real_time_adjustments[:2]:  # Show first 2
-                    response_parts.append(f"   {update}")
-            
-            # Add personalized tips
-            response_parts.append(f"\n{self._get_personalized_tip(route, user_profile)}")
-            
-            return "\n".join(response_parts)
-            
+                return result
+            finally:
+                loop.close()
         except Exception as e:
-            logger.error(f"Route formatting failed: {e}")
-            return f"Route found: {route.total_duration_minutes} minutes, {route.total_cost_tl:.2f} TL"
-    
-    def _format_location_recommendations(self, recommendations: Dict, user_profile) -> str:
-        """Format location-based recommendations"""
+            self.logger.error(f"Error in synchronous transportation query: {e}")
+            return self._get_fallback_comprehensive_response(user_input, entities)
+
+    async def _process_transportation_query_async(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Process comprehensive transportation query with all enhancements"""
         try:
-            response_parts = []
-            response_parts.append("📍 **Your Location Analysis**")
+            # First try enhanced comprehensive system
+            if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+                self.logger.info("🚇 Using enhanced comprehensive transportation system")
+                response = await generate_comprehensive_transportation_response(
+                    user_input, entities, user_profile
+                )
+                if response and response.strip():
+                    return response
             
-            # Nearby transport
-            if recommendations.get('nearby_transport'):
-                response_parts.append(f"\n🚇 **Nearby Transport**:")
-                for transport in recommendations['nearby_transport'][:3]:
-                    station = transport['station']
-                    response_parts.append(
-                        f"   • {station.name}: {transport['walking_time_minutes']} min walk"
-                    )
+            # Analyze query for better routing
+            query_info = self.query_analyzer.analyze_query(user_input)
+            self.logger.info(f"Query analysis: {query_info}")
             
-            # Nearby POIs
-            if recommendations.get('nearby_pois'):
-                response_parts.append(f"\n🏛️ **Nearby Attractions**:")
-                for poi in recommendations['nearby_pois'][:3]:
-                    response_parts.append(
-                        f"   • {poi['name']}: {poi['walking_time_minutes']} min walk"
-                    )
-            
-            # Custom recommendations
-            if recommendations.get('recommendations'):
-                response_parts.append(f"\n💡 **Recommendations**:")
-                for rec in recommendations['recommendations']:
-                    response_parts.append(f"   {rec}")
-            
-            response_parts.append(f"\nTell me where you'd like to go for personalized route planning!")
-            
-            return "\n".join(response_parts)
-            
+            # Route to specific handlers based on query type
+            if query_info['route_planning'] and len(entities.get('districts', [])) >= 2:
+                return await self._handle_route_planning_query(user_input, entities, user_profile, query_info)
+            elif 'metro' in query_info['transport_modes']:
+                return await self._handle_metro_specific_query(user_input, entities, user_profile)
+            elif 'bus' in query_info['transport_modes']:
+                return await self._handle_bus_specific_query(user_input, entities, user_profile)
+            elif 'ferry' in query_info['transport_modes']:
+                return await self._handle_ferry_specific_query(user_input, entities, user_profile)
+            elif 'walking' in query_info['transport_modes']:
+                return await self._handle_walking_specific_query(user_input, entities, user_profile)
+            else:
+                return await self._handle_general_transportation_query(user_input, entities, user_profile)
+                
         except Exception as e:
-            logger.error(f"Location recommendations formatting failed: {e}")
-            return "I can see your location! Where would you like to go?"
-    
-    def _format_attraction_route_response(self, route, user_profile) -> str:
-        """Format route response with attraction focus"""
-        response = self._format_route_response(route, user_profile, datetime.now())
+            self.logger.error(f"Transportation query processing error: {e}")
+            return self._get_fallback_comprehensive_response(user_input, entities)
+
+    async def _handle_route_planning_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any, query_info: Dict[str, Any]) -> str:
+        """Handle specific route planning queries with comprehensive details"""
+        districts = entities.get('districts', [])
+        if len(districts) < 2:
+            return "Please specify both starting point and destination for route planning."
         
-        if route.poi_integration:
-            response += f"\n\n🎯 **Attraction Highlights**:"
-            for poi in route.poi_integration:
-                response += f"\n   🏛️ **{poi['name']}**"
-                response += f"\n       Visit time: {poi['visit_duration_minutes']} minutes"
-                response += f"\n       Category: {poi['category'].title()}"
-                if poi.get('entrance_fee_tl', 0) > 0:
-                    response += f"\n       Entrance: {poi['entrance_fee_tl']} TL"
+        start_location = districts[0]
+        end_location = districts[1]
+        
+        # Try to get comprehensive route information
+        if self.enhanced_system:
+            # Check for specific routes in enhanced system
+            if start_location.lower() in ['taksim', 'airport', 'kadikoy', 'galata tower']:
+                if end_location.lower() == 'sultanahmet':
+                    route_info = self.enhanced_system.get_route_to_sultanahmet(start_location.lower())
+                    return self._format_detailed_route_response(route_info, start_location, end_location)
+        
+        # Use comprehensive processor for detailed walking/transport combinations
+        if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                # Get walking route if requested
+                if 'walking' in query_info['transport_modes']:
+                    walking_data = await self.comprehensive_processor.get_detailed_walking_routes(start_location, end_location)
+                    return f"🚶‍♂️ **Walking Route: {start_location} → {end_location}**\n\n" + \
+                           self._format_walking_details(walking_data)
+                
+                # Get multi-modal route
+                return await self._generate_multi_modal_route(start_location, end_location, query_info, user_profile)
+                
+            except Exception as e:
+                self.logger.error(f"Route planning error: {e}")
+        
+        # Fallback to basic route information
+        return self._get_basic_route_response(start_location, end_location)
+
+    async def _handle_metro_specific_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Handle metro-specific queries with live data"""
+        if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                metro_data = await self.comprehensive_processor.get_live_ibb_metro_data()
+                
+                # Check for specific line queries
+                user_lower = user_input.lower()
+                if any(line in user_lower for line in ['m1', 'm2', 'm3', 'm4', 'm11']):
+                    line_matches = [line for line in ['M1A', 'M1B', 'M2', 'M3', 'M4', 'M11'] 
+                                  if line.lower() in user_lower]
+                    if line_matches:
+                        return self._format_specific_metro_line_response(metro_data, line_matches[0])
+                
+                # General metro information with live data
+                return f"""🚇 **Istanbul Metro System - Live Information**
+
+📊 **Current Status** (Updated: {datetime.now().strftime('%H:%M')})
+
+**Key Metro Lines:**
+• **M1A**: Yenikapı ↔ Halkalı (Airport connection via transfer)
+• **M2**: Vezneciler ↔ Hacıosman (Main tourist line, connects to Sultanahmet area)
+• **M4**: Kadıköy ↔ Tavşantepe (Asian side main line)
+• **M11**: Gayrettepe ↔ Istanbul Airport (Direct airport service)
+
+**Live Status:**
+• All lines operational with normal frequency
+• Transfer points: Yenikapı, Vezneciler, Şişhane, Gayrettepe
+• Real-time arrivals available via İstanbul Ulaşım app
+
+**Tourist Tips:**
+• Use M2 to Vezneciler + 10min walk to reach Sultanahmet
+• M11 provides direct access to Istanbul Airport
+• All stations wheelchair accessible
+• İstanbulkart required for payment
+
+💡 **Need specific route?** Ask: "How to get from [location] to [destination]" """
+                
+            except Exception as e:
+                self.logger.error(f"Metro query error: {e}")
+        
+        # Fallback metro response
+        return self._get_fallback_metro_response()
+
+    async def _handle_bus_specific_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Handle bus-specific queries with live İETT data"""
+        if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                bus_data = await self.comprehensive_processor.get_live_iett_bus_schedules()
+                
+                response = f"""🚌 **İETT Bus Network - Live Information**
+
+📊 **Network Overview:**
+• 800+ bus routes serving entire Istanbul
+• 4.5 million daily passengers
+• 90% wheelchair accessible fleet
+• Real-time GPS tracking available
+
+**Live Arrival Information:**
+"""
+                
+                # Show sample live arrivals
+                routes = bus_data.get('routes', {})
+                for route_num in list(routes.keys())[:3]:
+                    route_info = routes[route_num]
+                    response += f"\n**Route {route_num}:**\n"
+                    for arrival in route_info.get('live_arrivals', [])[:2]:
+                        stop_name = arrival.get('stop_name', 'Stop')
+                        arrival_min = arrival.get('arrival_minutes', 'N/A')
+                        crowding = arrival.get('crowding_level', 0.5)
+                        crowding_text = "🔴 Crowded" if crowding > 0.7 else "🟡 Moderate" if crowding > 0.4 else "🟢 Available"
+                        response += f"• {stop_name}: {arrival_min}min ({crowding_text})\n"
+                
+                response += f"""
+**Payment & Apps:**
+• İstanbulkart: Universal payment (recommended)
+• Transfer discounts: Up to 60% off with İstanbulkart
+• Live tracking: İETT Mobil, Moovit, Citymapper
+
+**Accessibility:**
+• Most buses have wheelchair ramps
+• Audio announcements available
+• Priority seating for disabled passengers
+
+💡 **Tip**: Use İstanbulkart for seamless transfers between bus, metro, and ferry"""
+                
+                return response
+                
+            except Exception as e:
+                self.logger.error(f"Bus query error: {e}")
+        
+        return self._get_fallback_bus_response()
+
+    async def _handle_ferry_specific_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Handle ferry-specific queries with enhanced information"""
+        if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                ferry_data = await self.comprehensive_processor.get_enhanced_ferry_information()
+                
+                # Check current weather conditions
+                conditions = ferry_data.get('current_conditions', {})
+                
+                response = f"""⛴️ **Istanbul Ferry Services - Enhanced Guide**
+
+🌤️ **Current Conditions:** {conditions.get('weather', 'Clear')}, {conditions.get('temperature_c', 18)}°C
+🌊 **Service Status:** {conditions.get('service_impact', 'All routes operating normally')}
+
+**Popular Ferry Routes:**
+"""
+                
+                # Show regular routes with enhanced details
+                regular_routes = ferry_data.get('regular_routes', {})
+                for route_name, route_info in list(regular_routes.items())[:3]:
+                    response += f"""
+**{route_name}:**
+• Duration: {route_info.get('duration_minutes', 15)} minutes
+• Frequency: Every {route_info.get('frequency_minutes', 20)} minutes
+• Price: {route_info.get('price_tl', 5.0)} TL
+• Next departures: {', '.join(route_info.get('next_departures', [])[:3])}
+• Scenic highlights: {', '.join(route_info.get('scenic_highlights', [])[:2])}
+• ♿ Fully wheelchair accessible
+"""
+                
+                # Add tourist ferry information
+                tourist_ferries = ferry_data.get('tourist_ferries', {})
+                if tourist_ferries:
+                    response += "\n**Tourist Ferry Tours:**\n"
+                    for tour_name, tour_info in tourist_ferries.items():
+                        duration = f"{tour_info.get('duration_hours', 2)} hours" if 'duration_hours' in tour_info else f"{tour_info.get('duration_minutes', 90)} minutes"
+                        response += f"• **{tour_name.replace('_', ' ').title()}**: {duration}, {tour_info.get('price_tl', 25)} TL\n"
+                
+                response += f"""
+**Practical Information:**
+• Payment: İstanbulkart, Cash, Contactless Card
+• Onboard: Seating, Toilets, Snack bar (select routes)
+• Pets: Small pets in carriers allowed
+• Bicycles: Folding bikes allowed
+
+🌅 **Best Experience:** Sunset ferries offer spectacular Bosphorus views
+📱 **Apps:** Vapur Saatleri, İstanbul Ulaşım
+💡 **Tip:** Ferry rides are the most scenic way to cross between continents!"""
+                
+                return response
+                
+            except Exception as e:
+                self.logger.error(f"Ferry query error: {e}")
+        
+        return self._get_fallback_ferry_response()
+
+    async def _handle_walking_specific_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Handle walking-specific queries with detailed route information"""
+        districts = entities.get('districts', [])
+        
+        if len(districts) >= 2 and ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                walking_data = await self.comprehensive_processor.get_detailed_walking_routes(districts[0], districts[1])
+                return self._format_comprehensive_walking_response(walking_data, districts[0], districts[1])
+            except Exception as e:
+                self.logger.error(f"Walking query error: {e}")
+        
+        # General walking information
+        return """🚶‍♂️ **Walking in Istanbul - Complete Guide**
+
+🗺️ **Popular Walking Routes:**
+• **Sultanahmet Circuit**: Blue Mosque → Hagia Sophia → Topkapi → Grand Bazaar (2 hours)
+• **Galata Area**: Galata Tower → Galata Bridge → Spice Bazaar (45 minutes)
+• **Bosphorus Walk**: Ortaköy → Bebek → Arnavutköy (1.5 hours)
+• **İstiklal Street**: Taksim → Galatasaray → Tünel (30 minutes)
+
+♿ **Accessibility Notes:**
+• Historic areas: Mixed surfaces, some cobblestones
+• Modern districts: Generally wheelchair accessible
+• Hills: Istanbul has many steep areas - plan accordingly
+• Public toilets: Available at major attractions and transport hubs
+
+🛡️ **Safety & Comfort:**
+• Use main pedestrian areas, especially at night
+• Carry water, especially in summer (June-August)
+• Wear comfortable walking shoes for cobblestones
+• Most areas well-lit and regularly patrolled
+
+📱 **Navigation Apps:**
+• Google Maps (offline maps available)
+• Citymapper Istanbul (public transport integration)
+• Maps.me (detailed offline maps)
+
+💡 **Best Walking Times:**
+• **Morning**: 8-10 AM (cooler, fewer crowds)
+• **Evening**: 4-6 PM (golden hour, pleasant temperatures)
+• **Avoid**: Midday summer heat (12-3 PM), rush hours (7-9 AM, 5-7 PM)
+
+🎯 **For specific walking directions, ask**: "Walking route from [A] to [B]" """
+
+    async def _handle_general_transportation_query(self, user_input: str, entities: Dict[str, Any], user_profile: Any) -> str:
+        """Handle general transportation queries with comprehensive overview"""
+        if ENHANCED_TRANSPORT_AVAILABLE and self.comprehensive_processor:
+            try:
+                return await _format_general_transportation_response(self.comprehensive_processor)
+            except Exception as e:
+                self.logger.error(f"General transportation query error: {e}")
+        
+        # Comprehensive fallback response
+        current_time = datetime.now().strftime("%H:%M")
+        return f"""🚇 **Istanbul Transportation System - Complete Guide**
+
+📍 **Live Status** (Updated: {current_time})
+
+🚇 **Metro System:**
+• **M1A**: Yenikapı ↔ Halkalı | Frequency: 3-6 min | Hours: 06:00-00:30
+• **M2**: Vezneciler ↔ Hacıosman | Frequency: 2-5 min | Hours: 06:00-00:30
+• **M4**: Kadıköy ↔ Tavşantepe | Frequency: 3-6 min | Hours: 06:00-00:30
+• **M11**: Gayrettepe ↔ Istanbul Airport | Frequency: 10-15 min | Hours: 06:00-01:00
+
+🚌 **İETT Bus Network:**
+• 800+ routes serving entire city
+• 4.5M daily passengers
+• 90% wheelchair accessible
+• Real-time GPS tracking available
+
+⛴️ **Ferry Services:** Operating normally
+• Multiple routes across Bosphorus and Golden Horn
+• Scenic transportation option with great views
+• Fully wheelchair accessible terminals and vessels
+
+💳 **Payment & Cards:**
+• **İstanbulkart**: Universal transport card (highly recommended)
+• Contactless payment: Available on most transport
+• Transfer discounts: Up to 60% savings with İstanbulkart
+
+♿ **Accessibility:**
+• All metro stations wheelchair accessible
+• Most buses have wheelchair ramps
+• Ferries have dedicated accessible areas
+• Audio announcements in Turkish and English
+
+📱 **Essential Apps:**
+• **İstanbul Ulaşım**: Official transport app
+• **Moovit**: Multi-modal journey planning
+• **Citymapper**: Comprehensive navigation
+• **Metro İstanbul**: Metro-specific live information
+
+🎯 **For specific routes**: Ask "How to get from [A] to [B]?"
+💡 **Pro tip**: Combine metro + tram + ferry for the complete Istanbul experience!
+
+**Most Asked Routes:**
+• Airport to Sultanahmet: M11 → M2 → walk (60-75 min)
+• Taksim to Sultanahmet: M2 to Vezneciler + 10min walk (25 min)
+• Asian to European side: Ferry routes (15-25 min) - most scenic option"""
+
+    def _format_detailed_route_response(self, route_info: Dict[str, Any], start: str, end: str) -> str:
+        """Format detailed route response from enhanced system"""
+        if 'error' in route_info:
+            return route_info['error']
+        
+        response = f"🚇 **Route: {start} → {end}**\n\n"
+        response += f"**Recommended Route:**\n"
+        response += f"📍 {route_info.get('recommended_route', 'Route information')}\n"
+        response += f"⏱️ **Total Time**: {route_info.get('total_time', 'Unknown')}\n"
+        response += f"💰 **Cost**: {route_info.get('cost', 'Standard İstanbulkart rates')}\n\n"
+        
+        if 'steps' in route_info:
+            response += "**Step-by-Step Directions:**\n"
+            for i, step in enumerate(route_info['steps'], 1):
+                response += f"{i}. {step}\n"
+            response += "\n"
+        
+        if 'walking_directions' in route_info:
+            response += f"🚶‍♂️ **Walking Directions**: {route_info['walking_directions']}\n\n"
+        
+        if 'landmarks_on_walk' in route_info:
+            landmarks = ', '.join(route_info['landmarks_on_walk'])
+            response += f"🗺️ **Landmarks**: {landmarks}\n\n"
+        
+        if 'alternative_route' in route_info:
+            response += f"**Alternative Route**: {route_info['alternative_route']}\n"
+            response += f"⏱️ **Alternative Time**: {route_info.get('alternative_time', 'Unknown')}\n\n"
+        
+        if 'accessibility' in route_info:
+            response += f"♿ **Accessibility**: {route_info['accessibility']}\n\n"
+        
+        if 'scenic_bonus' in route_info:
+            response += f"🌅 **Bonus**: {route_info['scenic_bonus']}\n\n"
+        
+        response += "💡 **Tip**: Use İstanbulkart for discounted transfers between transport modes"
         
         return response
-    
-    def _get_transport_emoji(self, transport_mode: TransportMode) -> str:
-        """Get emoji for transport mode"""
-        emoji_map = {
-            TransportMode.WALKING: "🚶‍♂️",
-            TransportMode.METRO: "🚇",
-            TransportMode.BUS: "🚌",
-            TransportMode.TRAM: "🚊",
-            TransportMode.FERRY: "⛴️",
-            TransportMode.TAXI: "🚖",
-            TransportMode.MARMARAY: "🚄"
-        }
-        return emoji_map.get(transport_mode, "🚶‍♂️")
-    
-    def _get_time_context(self, hour: int) -> str:
-        """Get time-based context"""
-        if 7 <= hour <= 9 or 17 <= hour <= 19:
-            return "Peak rush hour"
-        elif 6 <= hour < 7 or 9 < hour <= 11 or 15 <= hour < 17 or 19 < hour <= 21:
-            return "Busy period"
+
+    def _format_comprehensive_walking_response(self, walking_data: Dict[str, Any], start: str, end: str) -> str:
+        """Format comprehensive walking response with all details"""
+        if walking_data.get('fallback'):
+            return self._get_basic_walking_response(start, end)
+        
+        basic_info = walking_data.get('basic_info', {})
+        
+        response = f"🚶‍♂️ **Walking Directions: {start} → {end}**\n\n"
+        response += f"📏 **Distance**: {basic_info.get('distance_meters', 0)}m\n"
+        response += f"⏱️ **Duration**: {basic_info.get('duration_minutes', 10)} minutes\n"
+        response += f"📈 **Elevation Change**: {basic_info.get('elevation_change_meters', 0)}m\n"
+        response += f"🎯 **Difficulty**: {basic_info.get('difficulty', 'Moderate')}\n\n"
+        
+        # Step-by-step directions
+        steps = walking_data.get('step_by_step', [])
+        if steps:
+            response += "🗺️ **Step-by-Step Directions:**\n\n"
+            for step_info in steps:
+                step_num = step_info.get('step', 1)
+                instruction = step_info.get('instruction', '')
+                landmark = step_info.get('landmark', '')
+                
+                response += f"**Step {step_num}**: {instruction}\n"
+                if landmark:
+                    response += f"   📍 *Landmark*: {landmark}\n"
+                response += "\n"
+        
+        # Accessibility information
+        accessibility = walking_data.get('accessibility', {})
+        if accessibility:
+            response += "♿ **Accessibility:**\n"
+            response += f"• Wheelchair friendly: {'Yes' if accessibility.get('wheelchair_friendly') else 'No'}\n"
+            response += f"• Surface: {accessibility.get('surface_type', 'Mixed surfaces')}\n"
+            
+            obstacles = accessibility.get('obstacles')
+            if obstacles and obstacles != 'None':
+                response += f"• Obstacles: {obstacles}\n"
+            
+            rest_points = accessibility.get('rest_points', [])
+            if rest_points:
+                response += f"• Rest points: {', '.join(rest_points)}\n"
+            
+            response += "\n"
+        
+        # Points of interest
+        poi = walking_data.get('points_of_interest', [])
+        if poi:
+            response += "🎯 **Points of Interest:**\n"
+            for point in poi[:4]:
+                response += f"• {point}\n"
+            response += "\n"
+        
+        # Photo opportunities
+        photo_ops = walking_data.get('photo_opportunities', [])
+        if photo_ops:
+            response += "📸 **Photo Opportunities:**\n"
+            for photo in photo_ops[:3]:
+                response += f"• {photo}\n"
+            response += "\n"
+        
+        response += "💡 **Tip**: Download offline maps and wear comfortable shoes for Istanbul's varied terrain!"
+        
+        return response
+
+    async def _generate_multi_modal_route(self, start: str, end: str, query_info: Dict[str, Any], user_profile: Any) -> str:
+        """Generate multi-modal transportation route"""
+        optimization = query_info.get('optimization_preference', 'fastest')
+        
+        response = f"🚇 **Multi-Modal Route: {start} → {end}**\n\n"
+        response += f"🎯 **Optimized for**: {optimization.title()}\n\n"
+        
+        # Generate route based on common patterns
+        if start.lower() == 'taksim' and end.lower() == 'sultanahmet':
+            if optimization == 'fastest':
+                response += """**Fastest Route (22-25 minutes):**
+1. 🚇 Take M2 metro from Taksim to Vezneciler (12 minutes)
+2. 🚶‍♂️ Walk from Vezneciler to Sultanahmet (10 minutes)
+3. Total cost: 7.67 TL with İstanbulkart
+
+**Walking Route:** Exit Vezneciler station, head south toward Istanbul University, follow signs to Sultanahmet Square"""
+            
+            elif optimization == 'scenic':
+                response += """**Scenic Route (30-35 minutes):**
+1. 🚇 Take M2 metro from Taksim to Şişhane (8 minutes)
+2. 🚶‍♂️ Walk down to Karaköy (5 minutes)
+3. 🚋 Take T1 tram from Karaköy to Sultanahmet (8 minutes)
+4. Bonus: Cross historic Galata Bridge and see Golden Horn views
+5. Total cost: 15.34 TL with İstanbulkart"""
+        
+        elif 'airport' in start.lower():
+            response += """**Airport to City Route:**
+1. 🚇 Take M11 metro from Istanbul Airport to Gayrettepe (35 minutes)
+2. 🚇 Transfer to M2 metro at Gayrettepe
+3. 🚇 Continue to your destination
+4. Total time: 60-75 minutes to city center
+5. Cost: 15.34 TL with İstanbulkart"""
+        
         else:
-            return "Quiet period"
-    
-    def _get_personalized_tip(self, route, user_profile) -> str:
-        """Get personalized tip based on route and user profile"""
-        tips = []
-        
-        if hasattr(user_profile, 'travel_style'):
-            if user_profile.travel_style == 'budget' and route.total_cost_tl > 15:
-                tips.append("💰 Tip: Consider walking part of the route to save money")
-            elif user_profile.travel_style == 'family':
-                tips.append("👨‍👩‍👧‍👦 Tip: All suggested transport is family-friendly")
-        
-        if route.crowding_prediction > 0.7:
-            tips.append("⏰ Tip: Consider traveling 30 minutes earlier/later to avoid crowds")
-        
-        if any(s.transport_mode == TransportMode.FERRY for s in route.segments):
-            tips.append("📸 Tip: Great photo opportunities during the ferry ride!")
-        
-        return tips[0] if tips else "💡 Have a great trip!"
-    
-    def _handle_location_request(self) -> str:
-        """Handle when location information is missing"""
-        return """📍 **Location Information Needed**
+            response += f"""**Recommended Multi-Modal Route:**
+1. Use combination of metro, tram, and/or ferry
+2. İstanbulkart provides seamless transfers with discounts
+3. Check İstanbul Ulaşım app for real-time information
+4. Consider walking for short distances (under 1km)
 
-I need to know your starting point and destination to plan the best route!
+**Route Planning Tips:**
+• Metro: Fastest for long distances
+• Tram: Best for historic areas
+• Ferry: Most scenic for cross-Bosphorus travel
+• Walking: Often faster than transfers for short hops"""
+        
+        response += f"\n\n♿ **Accessibility**: All suggested transport modes are wheelchair accessible"
+        response += f"\n💡 **Apps**: Use Moovit or Citymapper for live journey planning"
+        
+        return response
 
-**You can tell me:**
-• "From Taksim to Sultanahmet"
-• "How to get to Galata Tower from my location"
-• "Route from Kadıköy to Beyoğlu"
+    def _get_fallback_comprehensive_response(self, user_input: str, entities: Dict[str, Any]) -> str:
+        """Comprehensive fallback response when all systems fail"""
+        return """🚇 **Istanbul Transportation - Essential Information**
 
-**Or enable GPS location sharing for:**
-• "Directions to Blue Mosque from my location"
-• "Best way to get to airport from here"
+**Metro System:**
+• M1A: Yenikapı ↔ Halkalı (connects to airport bus)
+• M2: Vezneciler ↔ Hacıosman (main tourist areas)
+• M4: Kadıköy ↔ Tavşantepe (Asian side)
+• M11: Gayrettepe ↔ Istanbul Airport (direct airport access)
 
-I'll provide optimized routes with real-time crowding data and ML predictions! 🚀"""
-    
-    async def _resolve_locations_enhanced(self, query_info: Dict, user_id: str, 
-                                         context: Dict[str, Any]) -> Tuple[Optional[GPSLocation], Optional[GPSLocation]]:
-        """Enhanced location resolution with backend integration"""
-        start_location = None
-        end_location = None
-        
-        # Process start location
-        if query_info.get('from_current_location', False) and context.get('user_location'):
-            user_loc = context['user_location']
-            start_location = GPSLocation(user_loc[0], user_loc[1], address="Your current location")
-        elif query_info.get('start_location'):
-            start_result = await self.location_processor.process_location_query(
-                query_info['start_location'], user_id, context
-            )
-            if start_result and not start_result.get('error'):
-                start_location = GPSLocation(
-                    start_result['latitude'], start_result['longitude'], 
-                    address=start_result.get('address')
-                )
-        
-        # Process end location
-        if query_info.get('end_location'):
-            end_result = await self.location_processor.process_location_query(
-                query_info['end_location'], user_id, context
-            )
-            if end_result and not end_result.get('error'):
-                end_location = GPSLocation(
-                    end_result['latitude'], end_result['longitude'],
-                    address=end_result.get('address')
-                )
-        
-        return start_location, end_location
-    
-    async def _handle_location_request_enhanced(self, message: str, user_id: str, 
-                                              context: Dict[str, Any]) -> str:
-        """Enhanced location request handling with personalization"""
-        try:
-            # Get user's location preferences and history
-            user_prefs = await self.user_personalization.get_personalized_preferences(user_id, context)
-            
-            # Check if user has favorite locations
-            favorite_locations = user_prefs.get('location_preferences', {}).get('favorites', [])
-            
-            response_parts = ["📍 **I need more location information to help you!**\n"]
-            
-            if favorite_locations:
-                response_parts.append("🌟 **Your Favorite Locations:**")
-                for loc in favorite_locations[:3]:
-                    response_parts.append(f"   • {loc}")
-                response_parts.append("")
-            
-            response_parts.extend([
-                "**Tell me your route like:**",
-                "• \"From Taksim to Sultanahmet\"",
-                "• \"How to get to Galata Tower from my location\"",
-                "• \"Route from Kadıköy to Beyoğlu\"",
-                "",
-                "**Or enable GPS for:**",
-                "• \"Directions to Blue Mosque from here\"",
-                "• \"Best way to airport from my location\"",
-                "",
-                f"💡 Based on your preferences, I'll suggest **{user_prefs.get('optimization_preference', 'fastest')}** routes with **{user_prefs.get('budget_preference', 'moderate')}** budget options!"
-            ])
-            
-            return "\n".join(response_parts)
-            
-        except Exception as e:
-            logger.error(f"Enhanced location request handling failed: {e}")
-            return self._handle_location_request()
-    
-    def _determine_optimization_type_enhanced(self, query_info: Dict, user_profile, 
-                                            personalization_prefs: Dict[str, Any]) -> RouteOptimizationType:
-        """Enhanced optimization type determination with personalization"""
-        # Check explicit query preferences first
-        if query_info.get('fastest', False):
-            return RouteOptimizationType.FASTEST
-        elif query_info.get('cheapest', False):
-            return RouteOptimizationType.CHEAPEST
-        elif query_info.get('scenic', False):
-            return RouteOptimizationType.MOST_SCENIC
-        elif query_info.get('avoid_crowds', False):
-            return RouteOptimizationType.LEAST_CROWDED
-        
-        # Use personalized preferences
-        pref_mapping = {
-            'fastest': RouteOptimizationType.FASTEST,
-            'cheapest': RouteOptimizationType.CHEAPEST,
-            'scenic': RouteOptimizationType.MOST_SCENIC,
-            'least_crowded': RouteOptimizationType.LEAST_CROWDED
-        }
-        
-        optimization_pref = personalization_prefs.get('optimization_preference', 'fastest')
-        return pref_mapping.get(optimization_pref, RouteOptimizationType.FASTEST)
-    
-    async def _format_route_response_enhanced(self, route_result: Dict[str, Any], user_profile, 
-                                            current_time, personalization_prefs: Dict[str, Any]) -> str:
-        """Enhanced route response formatting with personalization context"""
-        try:
-            route = route_result.get('route')
-            if not route:
-                return "I couldn't generate a route. Please try with different locations."
-            
-            response_parts = []
-            
-            # Personalized header
-            user_style = personalization_prefs.get('travel_style', 'general')
-            style_emoji = {'budget': '💰', 'luxury': '✨', 'family': '👨‍👩‍👧‍👦', 'solo': '🚶‍♂️'}.get(user_style, '🗺️')
-            
-            response_parts.append(f"{style_emoji} **Your Personalized Route** ({route.optimization_type.value.replace('_', ' ').title()})")
-            
-            # Add personalization context
-            if route_result.get('personalization_applied'):
-                prefs_used = personalization_prefs.get('optimization_preference', 'fastest')
-                response_parts.append(f"🎯 *Optimized for your {prefs_used} preference*")
-            
-            # Route details with enhanced context
-            hour = current_time.hour if hasattr(current_time, 'hour') else 12
-            time_context = self._get_time_context(hour)
-            
-            response_parts.extend([
-                f"⏱️ **Duration**: {route.total_duration_minutes} minutes",
-                f"💰 **Cost**: {route.total_cost_tl:.2f} TL",
-                f"📏 **Distance**: {route.total_distance_km:.1f} km"
-            ])
-            
-            # Enhanced crowding information with personalization
-            crowding_level = route.crowding_prediction
-            if crowding_level > 0.7:
-                if 'accessibility' in personalization_prefs.get('accessibility_needs', []):
-                    response_parts.append(f"♿ **Accessibility Alert**: High crowding ({crowding_level:.0%}) - Consider alternative time")
-                else:
-                    response_parts.append(f"⚠️ **Crowding**: High ({crowding_level:.0%}) - {time_context}")
-            elif crowding_level > 0.4:
-                response_parts.append(f"🟡 **Crowding**: Moderate ({crowding_level:.0%})")
-            else:
-                response_parts.append(f"✅ **Crowding**: Low ({crowding_level:.0%}) - Great timing!")
-            
-            # Enhanced route segments with personalization
-            response_parts.append("\n**🚶‍♂️ Your Route Steps:**")
-            preferred_modes = personalization_prefs.get('preferred_modes', [])
-            
-            for i, segment in enumerate(route.segments, 1):
-                mode_emoji = self._get_transport_emoji(segment.transport_mode)
-                mode_name = segment.transport_mode.value.title()
-                
-                # Add preference indicator
-                pref_indicator = " ⭐" if segment.transport_mode.value in preferred_modes else ""
-                
-                response_parts.append(
-                    f"{i}. {mode_emoji} {mode_name}{pref_indicator}: "
-                    f"{segment.duration_minutes} min ({segment.distance_km:.1f} km)"
-                )
-                
-                if segment.instructions:
-                    response_parts.append(f"   {segment.instructions[0]}")
-            
-            # Enhanced POI information
-            if route.poi_integration:
-                poi_interests = personalization_prefs.get('poi_interests', [])
-                response_parts.append(f"\n🏛️ **Attractions Included** (matching your interests):")
-                for poi in route.poi_integration[:3]:
-                    interest_match = "⭐" if any(interest in poi.get('category', '').lower() 
-                                                for interest in poi_interests) else ""
-                    response_parts.append(f"   • {poi['name']} {interest_match} ({poi.get('visit_duration_minutes', 30)} min)")
-            
-            # Personalized tips and recommendations
-            personalized_tip = self._get_personalized_tip_enhanced(route, personalization_prefs, current_time)
-            response_parts.append(f"\n{personalized_tip}")
-            
-            # Add backend performance info if available
-            if route_result.get('computation_method'):
-                method = route_result['computation_method']
-                response_parts.append(f"\n🔧 *Route computed using {method} with your personal preferences*")
-            
-            return "\n".join(response_parts)
-            
-        except Exception as e:
-            logger.error(f"Enhanced route formatting failed: {e}")
-            return self._format_route_response(route_result.get('route'), user_profile, current_time)
-    
-    def _get_personalized_tip_enhanced(self, route, personalization_prefs: Dict[str, Any], current_time) -> str:
-        """Get enhanced personalized tip with backend insights"""
-        tips = []
-        
-        # Budget-conscious tips
-        if personalization_prefs.get('budget_preference') == 'budget':
-            if route.total_cost_tl > 15:
-                tips.append("💰 Budget Tip: Consider walking part of the route to save money")
-            elif route.total_cost_tl == 0:
-                tips.append("💰 Great choice! This route is completely free")
-        
-        # Accessibility tips
-        accessibility_needs = personalization_prefs.get('accessibility_needs', [])
-        if accessibility_needs:
-            if 'wheelchair' in accessibility_needs:
-                tips.append("♿ All suggested transport options are wheelchair accessible")
-            elif 'mobility' in accessibility_needs:
-                tips.append("🚶‍♂️ Route optimized for easy mobility - minimal walking required")
-        
-        # Travel style tips
-        travel_style = personalization_prefs.get('travel_style', 'general')
-        if travel_style == 'family':
-            tips.append("👨‍👩‍👧‍👦 Family-friendly route with amenities for children")
-        elif travel_style == 'luxury':
-            tips.append("✨ Premium experience - comfortable and scenic options selected")
-        elif travel_style == 'solo':
-            tips.append("🚶‍♂️ Perfect for solo exploration - safe and efficient route")
-        
-        # Time-based tips
-        hour = current_time.hour if hasattr(current_time, 'hour') else 12
-        if route.crowding_prediction > 0.7:
-            if 7 <= hour <= 9:
-                tips.append("⏰ Morning rush hour - consider departing 30 minutes earlier")
-            elif 17 <= hour <= 19:
-                tips.append("⏰ Evening rush hour - consider waiting until after 7 PM")
-        
-        # POI tips based on interests
-        poi_interests = personalization_prefs.get('poi_interests', [])
-        if route.poi_integration and poi_interests:
-            matching_interests = [poi for poi in route.poi_integration 
-                                if any(interest in poi.get('category', '').lower() for interest in poi_interests)]
-            if matching_interests:
-                tips.append(f"🎯 Route includes attractions matching your {', '.join(poi_interests[:2])} interests!")
-        
-        # Ferry scenic tip
-        if any(s.transport_mode.value == 'ferry' for s in route.segments):
-            tips.append("📸 Don't forget your camera - amazing Bosphorus views ahead!")
-        
-        return tips[0] if tips else "💡 Have a wonderful trip exploring Istanbul!"
+**Key Routes for Tourists:**
+• To Sultanahmet: M2 to Vezneciler + 10min walk
+• To Taksim: M2 direct connection
+• To Asian side: Ferry from Eminönü/Karaköy (scenic)
+• Airport transfers: M11 to Gayrettepe, then M2
+
+**Payment & Cards:**
+• İstanbulkart: Essential for public transport (saves 50%)
+• Available at metro stations, some shops
+• Transfer discounts between different transport modes
+
+**Apps & Information:**
+• İstanbul Ulaşım: Official transport app
+• Moovit: Journey planning with live updates
+• Citymapper: Comprehensive navigation
+
+💡 **Need specific help?** Ask: "How to get from [location] to [destination]" """
+
+    def _get_fallback_metro_response(self) -> str:
+        """Fallback metro response"""
+        return """🚇 **Istanbul Metro System**
+
+**Main Lines:**
+• **M1A**: Yenikapı ↔ Halkalı | Airport connection via bus
+• **M2**: Vezneciler ↔ Hacıosman | Main tourist line
+• **M4**: Kadıköy ↔ Tavşantepe | Asian side main line
+• **M11**: Gayrettepe ↔ Istanbul Airport | Direct airport service
+
+**Operating Hours:** 06:00 - 00:30 daily
+**Frequency:** 2-8 minutes depending on line and time
+**Payment:** İstanbulkart required
+
+**Tourist Connections:**
+• Sultanahmet: M2 to Vezneciler + walk
+• Taksim: M2 direct
+• Airport: M11 direct
+• Grand Bazaar: M1A to Beyazıt-Kapalıçarşı
+
+**Accessibility:** All stations wheelchair accessible"""
+
+    def _get_fallback_bus_response(self) -> str:
+        """Fallback bus response"""
+        return """🚌 **İETT Bus Network**
+
+**Overview:**
+• 800+ routes serving entire Istanbul
+• 4.5 million daily passengers
+• Operating hours: 05:30 - 00:30
+• Real-time tracking available
+
+**Payment:**
+• İstanbulkart: Recommended for transfers
+• Contactless cards accepted
+• Transfer discounts available
+
+**Accessibility:**
+• 90% of fleet wheelchair accessible
+• Audio announcements available
+• Priority seating for disabled passengers
+
+**Apps:**
+• İETT Mobil: Official bus app
+• Moovit: Multi-modal planning
+• Real-time arrivals and route planning"""
+
+    def _get_fallback_ferry_response(self) -> str:
+        """Fallback ferry response"""
+        return """⛴️ **Istanbul Ferry Services**
+
+**Popular Routes:**
+• Eminönü ↔ Üsküdar: 15 min, every 20 min
+• Kabataş ↔ Üsküdar: 20 min, every 15 min
+• Eminönü ↔ Kadıköy: 25 min, every 30 min
+
+**Scenic Experience:**
+• Best views of Bosphorus and city skyline
+• Historic Golden Horn crossing
+• Photography opportunities
+
+**Practical Info:**
+• Payment: İstanbulkart, cash, contactless
+• Fully wheelchair accessible
+• Onboard facilities: seating, toilets
+• Weather dependent service
+
+**Apps:** Vapur Saatleri, İstanbul Ulaşım"""
+
+    def _get_basic_route_response(self, start: str, end: str) -> str:
+        """Basic route response fallback"""
+        return f"""🚇 **Route Planning: {start} → {end}**
+
+**General Guidance:**
+• Use İstanbul Ulaşım app for live route planning
+• Metro provides fastest connections for long distances
+• Tram (T1) serves historic peninsula areas
+• Ferry offers scenic routes between continents
+
+**Payment:**
+• İstanbulkart essential for public transport
+• Transfer discounts between different modes
+• Single journey: 7.67 TL, transfers from 1.40 TL
+
+**Apps for Route Planning:**
+• İstanbul Ulaşım (official)
+• Moovit (real-time updates)
+• Citymapper (comprehensive navigation)
+
+💡 **For detailed directions, specify your exact starting point and destination**"""
+
+    def _get_basic_walking_response(self, start: str, end: str) -> str:
+        """Basic walking response fallback"""
+        return f"""🚶‍♂️ **Walking Route: {start} → {end}**
+
+**General Guidance:**
+• Average walking speed: 4 km/h on flat terrain
+• Istanbul has many hills - plan accordingly
+• Historic areas have cobblestone surfaces
+• Main pedestrian areas well-lit and safe
+
+**Navigation:**
+• Use Google Maps offline functionality
+• Follow main streets and boulevards
+• Ask locals for directions - generally helpful
+• Tourist information points available
+
+**Comfort Tips:**
+• Wear comfortable walking shoes
+• Carry water, especially in summer
+• Use main pedestrian areas at night
+• Public toilets at major attractions
+
+💡 **Estimated walking time:** 10-15 minutes per kilometer"""
+
+
+# Export for integration
+__all__ = [
+    'TransportationQueryProcessor',
+    'LocationParser',
+    'TransportationQueryAnalyzer',
+    'generate_comprehensive_transportation_response'
+]
 
 

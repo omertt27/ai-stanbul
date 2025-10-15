@@ -266,7 +266,7 @@ class IstanbulDailyTalkAI:
         
         # Handle specific intents
         elif intent == 'transportation':
-            return self._generate_transportation_response(entities, user_profile, context)
+            return self._generate_transportation_response(message, entities, user_profile, context)
         
         elif intent == 'shopping':
             return self._generate_shopping_response(entities, user_profile, context)
@@ -293,7 +293,7 @@ class IstanbulDailyTalkAI:
             else:
                 return self.response_generator._generate_fallback_response(context, user_profile)
     
-    def _generate_transportation_response(self, entities: Dict, user_profile: UserProfile, 
+    def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
                                         context: ConversationContext) -> str:
         """Generate comprehensive transportation response with advanced AI and real-time data"""
         try:
@@ -301,12 +301,9 @@ class IstanbulDailyTalkAI:
             if ADVANCED_TRANSPORT_AVAILABLE and self.transport_processor:
                 logger.info("🚇 Using advanced transportation system with IBB API")
                 
-                # Create a dummy user input from context
-                user_input = context.last_message if hasattr(context, 'last_message') else "transportation query"
-                
-                # Process query through advanced system
+                # Process query through advanced system using the actual message
                 enhanced_response = self.transport_processor.process_transportation_query(
-                    user_input, entities, user_profile
+                    message, entities, user_profile
                 )
                 
                 if enhanced_response and enhanced_response.strip():
