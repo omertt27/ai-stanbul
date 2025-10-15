@@ -26,8 +26,7 @@ try:
     if parent_dir not in sys.path:
         sys.path.append(parent_dir)
     
-    from enhanced_transportation_system import TransportationQueryProcessor
-    from ml_enhanced_transportation_system import create_ml_enhanced_transportation_system, GPSLocation
+    from enhanced_transportation_integration import TransportationQueryProcessor, create_ml_enhanced_transportation_system, GPSLocation
     ADVANCED_TRANSPORT_AVAILABLE = True
     logger.info("✅ Advanced transportation system loaded successfully")
 except ImportError as e:
