@@ -111,6 +111,15 @@ class IstanbulDailyTalkAI:
             self.museum_generator = None
             self.hours_checker = None
             self.museum_db = None
+
+        # Initialize enhanced museum route planner
+        try:
+            from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
+            self.museum_route_planner = EnhancedMuseumRoutePlanner()
+            logger.info("🗺️ Enhanced Museum Route Planner loaded successfully!")
+        except ImportError as e:
+            logger.warning(f"Enhanced Museum Route Planner not available: {e}")
+            self.museum_route_planner = None
         
         # System status
         self.system_ready = True
@@ -429,6 +438,12 @@ class IstanbulDailyTalkAI:
         if any(keyword in message_lower for keyword in route_keywords):
             return 'route_planning'
         
+        # Museum route planning intent (more specific)
+        museum_route_keywords = ['museum route', 'museum tour', 'museum plan', 'museum itinerary', 'museums near', 'museum walk']
+        if any(keyword in message_lower for keyword in museum_route_keywords) or \
+           ('museum' in message_lower and any(rk in message_lower for rk in ['route', 'plan', 'tour', 'visit'])):
+            return 'museum_route_planning'
+        
         # Greeting/general intent
         greeting_keywords = ['hello', 'hi', 'merhaba', 'help', 'start']
         if any(keyword in message_lower for keyword in greeting_keywords):
@@ -470,6 +485,9 @@ class IstanbulDailyTalkAI:
         
         elif intent == 'route_planning':
             return self._generate_route_planning_response(message, user_profile, context)
+        
+        elif intent == 'museum_route_planning':
+            return self._generate_museum_route_response(message, entities, user_profile, context)
         
         elif intent == 'greeting':
             return self._generate_greeting_response(user_profile, context)
@@ -1047,3 +1065,213 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         
         # General conversation
         return 'general_conversation'
+    
+    def _generate_museum_route_response(self, message: str, entities: Dict, 
+                                       user_profile: UserProfile, context: ConversationContext) -> str:
+        """Generate museum-focused route planning response with local tips"""
+        
+        try:
+            if not self.museum_route_planner:
+                logger.warning("Enhanced Museum Route Planner not available, using fallback")
+                return self._generate_fallback_museum_route_response(message, entities, user_profile)
+            
+            # Extract parameters from message and entities
+            duration_hours = self._extract_duration_from_message(message)
+            starting_location = entities.get('neighborhoods', ['Sultanahmet'])[0] if entities.get('neighborhoods') else None
+            interests = self._extract_museum_interests_from_message(message)
+            
+            # Get user preferences
+            budget_level = getattr(user_profile, 'budget_preference', 'medium')
+            accessibility_needs = getattr(user_profile, 'accessibility_needs', False)
+            
+            # Generate route using enhanced planner
+            route_result = self.museum_route_planner.plan_museum_route(
+                duration_hours=duration_hours,
+                starting_location=starting_location,
+                interests=interests,
+                budget_level=budget_level,
+                accessibility_needs=accessibility_needs
+            )
+            
+            if route_result:
+                # Format the response nicely
+                response = f"""🏛️ **Personalized Museum Route for Istanbul**
+
+**📍 Starting Point:** {route_result.get('starting_location', 'Sultanahmet')}
+**⏰ Duration:** {route_result.get('total_duration', duration_hours)} hours
+**🎯 Focus:** {', '.join(route_result.get('interests', interests))}
+
+**🗺️ YOUR OPTIMIZED ROUTE:**
+
+{self._format_museum_route_stops(route_result.get('route', []))}
+
+**💡 LOCAL INSIDER TIPS:**
+{self._format_local_tips(route_result.get('local_tips', []))}
+
+**🚇 TRANSPORTATION GUIDE:**
+{route_result.get('transportation_guide', 'Use Istanbulkart for all public transport. T1 tram connects most museum areas.')}
+
+**💰 BUDGET BREAKDOWN:**
+• **Museum entries:** {route_result.get('total_cost', '200-400')} TL
+• **Transportation:** 20-40 TL
+• **Food/drinks:** {route_result.get('estimated_food_cost', '150-300')} TL
+
+**⚠️ IMPORTANT NOTES:**
+• Book Topkapi Palace tickets online to skip queues
+• Many museums closed on Mondays - plan accordingly  
+• Carry cash for smaller museums and refreshments
+• Download Google Translate for Turkish descriptions
+
+**🎁 BONUS RECOMMENDATIONS:**
+{route_result.get('bonus_recommendations', 'Stop by local cafes between museums for authentic Turkish tea and people-watching!')}
+
+Need me to adjust the route or provide more details about any specific museum? Just ask!"""
+                
+                return response
+            else:
+                return self._generate_fallback_museum_route_response(message, entities, user_profile)
+                
+        except Exception as e:
+            logger.error(f"Error generating museum route response: {e}")
+            return self._generate_fallback_museum_route_response(message, entities, user_profile)
+    
+    def _extract_duration_from_message(self, message: str) -> int:
+        """Extract duration from user message"""
+        import re
+        
+        # Look for patterns like "3 hours", "half day", "full day"
+        message_lower = message.lower()
+        
+        if 'half day' in message_lower or '4 hour' in message_lower:
+            return 4
+        elif 'full day' in message_lower or '8 hour' in message_lower:
+            return 8
+        elif 'morning' in message_lower or '3 hour' in message_lower:
+            return 3
+        elif 'afternoon' in message_lower or '5 hour' in message_lower:
+            return 5
+        
+        # Try to extract numeric hours
+        hour_match = re.search(r'(\d+)\s*hour', message_lower)
+        if hour_match:
+            return int(hour_match.group(1))
+        
+        # Default to 5 hours (typical museum day)
+        return 5
+    
+    def _extract_museum_interests_from_message(self, message: str) -> List[str]:
+        """Extract specific museum interests from message"""
+        message_lower = message.lower()
+        interests = []
+        
+        interest_keywords = {
+            'byzantine': ['byzantine', 'hagia sophia', 'christian', 'basilica'],
+            'ottoman': ['ottoman', 'topkapi', 'palace', 'sultan'],
+            'art': ['art', 'painting', 'modern', 'contemporary'],
+            'archaeology': ['archaeology', 'ancient', 'artifacts', 'historical'],
+            'islamic': ['islamic', 'muslim', 'mosque', 'religion'],
+            'cultural': ['culture', 'traditional', 'folk', 'turkish']
+        }
+        
+        for interest, keywords in interest_keywords.items():
+            if any(keyword in message_lower for keyword in keywords):
+                interests.append(interest)
+        
+        # Default interests if none detected
+        if not interests:
+            interests = ['byzantine', 'ottoman', 'art']
+        
+        return interests
+    
+    def _format_museum_route_stops(self, stops: List[Dict]) -> str:
+        """Format route stops for display"""
+        if not stops:
+            return "No specific route available"
+        
+        formatted_stops = []
+        for i, stop in enumerate(stops, 1):
+            duration = stop.get('duration', '1-2 hours')
+            description = stop.get('description', '')
+            formatted_stops.append(f"**{i}. {stop.get('name', 'Museum')}** ({duration})\n   {description}")
+        
+        return '\n\n'.join(formatted_stops)
+    
+    def _format_local_tips(self, tips: List[str]) -> str:
+        """Format local tips for display"""
+        if not tips:
+            return "• Visit early morning (9-10 AM) to avoid crowds\n• Many museums offer audio guides in multiple languages"
+        
+        return '\n'.join(f"• {tip}" for tip in tips)
+    
+    def _generate_fallback_museum_route_response(self, message: str, entities: Dict, 
+                                               user_profile: UserProfile) -> str:
+        """Fallback museum route response when enhanced planner not available"""
+        
+        duration = self._extract_duration_from_message(message)
+        
+        if duration <= 4:
+            route = """**HALF-DAY MUSEUM ROUTE (4 hours):**
+
+**1. Hagia Sophia** (1.5 hours)
+   Byzantine masterpiece, former church and mosque, stunning mosaics
+
+**2. Basilica Cistern** (45 minutes)  
+   Underground marvel with mysterious Medusa columns
+
+**3. Topkapi Palace** (1.5 hours)
+   Ottoman sultans' palace, treasury, and imperial collections
+
+**Local Tips:**
+• Start at 9 AM to beat crowds
+• Buy skip-the-line tickets online
+• Wear comfortable shoes for palace courtyards"""
+
+        else:
+            route = """**FULL-DAY MUSEUM ROUTE (6-8 hours):**
+
+**Morning (9 AM - 12 PM):**
+**1. Topkapi Palace** (2.5 hours)
+   Ottoman palace complex, treasury, harem, and gardens
+
+**2. Hagia Sophia** (1 hour)
+   Architectural wonder spanning Byzantine and Ottoman eras
+
+**Lunch Break:** Traditional Ottoman cuisine at Pandeli Restaurant
+
+**Afternoon (1:30 PM - 5:30 PM):**
+**3. Istanbul Archaeology Museum** (1.5 hours)
+   Ancient artifacts, sarcophagi, and Mesopotamian collections
+
+**4. Basilica Cistern** (45 minutes)
+   Atmospheric underground cistern with ancient columns
+
+**5. Turkish & Islamic Arts Museum** (1.5 hours)
+   Carpets, calligraphy, and traditional crafts
+
+**Local Insider Tips:**
+• Museum Pass (325 TL) saves money and time
+• Many museums closed Mondays
+• Best photos in Hagia Sophia: upper gallery
+• Cistern is cooler - good for hot afternoons
+• Try Turkish delight at Hacı Bekir near Spice Bazaar"""
+
+        return f"""🏛️ **Istanbul Museum Route Planning**
+
+{route}
+
+**🚇 Transportation:**
+• T1 Tram connects all major museum areas
+• Walk between Sultanahmet attractions (5-10 minutes)
+• Use Istanbulkart for all public transport
+
+**💰 Budget Estimate:**
+• Museum entries: 200-400 TL
+• Transportation: 20-40 TL  
+• Food: 150-300 TL
+
+**📱 Helpful Apps:**
+• Museum Istanbul (official app)
+• Google Translate for descriptions
+• Citymapper for navigation
+
+Need specific details about any museum or want me to customize this route further? Just ask! 🎯"""
