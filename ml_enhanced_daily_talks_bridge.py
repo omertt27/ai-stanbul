@@ -46,6 +46,15 @@ except ImportError as e:
     logger_dl = logging.getLogger(__name__ + ".deep_learning")
     logger_dl.warning(f"⚠️ Deep Learning libraries not available: {e}")
 
+# Import the comprehensive daily talks system
+from comprehensive_daily_talks_system import ComprehensiveDailyTalksSystem
+from daily_talks_integration_wrapper import DailyTalksIntegrationWrapper
+
+# Configure logging
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Import İKSV Events System
 try:
     from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
@@ -63,14 +72,6 @@ try:
 except ImportError as e:
     LOCATION_DETECTION_AVAILABLE = False
     logger.warning(f"⚠️ Location Detection for Events not available: {e}")
-
-# Import the comprehensive daily talks system
-from comprehensive_daily_talks_system import ComprehensiveDailyTalksSystem
-from daily_talks_integration_wrapper import DailyTalksIntegrationWrapper
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @dataclass
 class UserProfile:
@@ -603,7 +604,7 @@ class MLEnhancedDailyTalksBridge:
             
             # Enhance response with ML personalization
             enhanced_response = await self._enhance_response_with_ml(
-                base_response, intent_result, conversation_context
+                base_response, intent_result, conversation_context, user_input
             )
             
             # Update conversation memory
@@ -903,6 +904,162 @@ class MLEnhancedDailyTalksBridge:
         
         return intent_result
 
+    async def _add_iksv_events_to_response(
+        self,
+        response: Dict[str, Any],
+        intent_result: Dict[str, Any],
+        context: ConversationContext,
+        user_input: str = ""
+    ) -> Dict[str, Any]:
+        """Add İKSV events to response when relevant"""
+        
+        try:
+            primary_intent = intent_result.get('primary', '')
+            
+            # Try to get user input from multiple sources
+            if not user_input:
+                user_input = context.conversation_history[-1].get('user_input', '') if context.conversation_history else ''
+            
+            # Also check if the user_input is in the context metadata
+            if not user_input and hasattr(context, 'multi_modal_data') and context.multi_modal_data:
+                user_input = context.multi_modal_data.get('user_input', '')
+            
+            # Check if user is asking about events, culture, or activities
+            event_related_intents = [
+                'events', 'activities', 'cultural', 'entertainment', 
+                'nightlife', 'music', 'theater', 'art', 'what_to_do'
+            ]
+            
+            event_keywords = ['event', 'show', 'concert', 'performance', 'exhibition', 'festival', 'iksv', 'İKSV']
+            
+            is_event_query = (
+                any(intent in primary_intent.lower() for intent in event_related_intents) or
+                any(keyword in user_input.lower() for keyword in event_keywords)
+            )
+            
+            # Log for debugging
+            logger.info(f"İKSV Events Check - Intent: {primary_intent}, Input: '{user_input[:50]}...', Is Event Query: {is_event_query}")
+            
+            if not is_event_query:
+                return response
+            
+            # Get İKSV events if system is available
+            if EVENTS_SYSTEM_AVAILABLE:
+                iksv_events = await self._fetch_relevant_iksv_events(context)
+                
+                if iksv_events:
+                    # Add events to response
+                    response['iksv_events'] = iksv_events[:3]  # Limit to 3 most relevant
+                    
+                    # Add events summary to message
+                    events_text = f"\n\n🎭 **Current İKSV Events:**\n"
+                    for event in iksv_events[:2]:  # Show 2 in message
+                        events_text += f"• **{event['title']}** at {event.get('venue', 'İKSV Venue')}\n"
+                        if event.get('date_str'):
+                            events_text += f"  📅 {event['date_str']}\n"
+                    
+                    # Update the message with events
+                    current_message = response.get('message', '')
+                    if 'İKSV' not in current_message and 'event' not in current_message.lower():
+                        response['message'] = current_message + events_text
+                    
+                    # Add event-related suggestions
+                    if 'suggested_actions' not in response:
+                        response['suggested_actions'] = []
+                    
+                    response['suggested_actions'].extend([
+                        "🎭 More İKSV events",
+                        "🎫 Event booking info",
+                        "📍 Venue directions"
+                    ])
+            
+        except Exception as e:
+            logger.warning(f"Error adding İKSV events to response: {e}")
+        
+        return response
+
+    async def _fetch_relevant_iksv_events(self, context: ConversationContext) -> List[Dict[str, Any]]:
+        """Fetch relevant İKSV events based on context"""
+        
+        try:
+            if not EVENTS_SYSTEM_AVAILABLE:
+                return []
+            
+            # Get cached events
+            cached_events = get_cached_events()
+            
+            if not cached_events and check_if_fetch_needed():
+                # Try to fetch fresh events if needed
+                fresh_events = await fetch_monthly_events()
+                if fresh_events:
+                    cached_events = fresh_events
+            
+            if not cached_events:
+                return []
+            
+            # Filter events based on user location and preferences
+            relevant_events = []
+            user_location = context.current_location
+            user_profile = context.user_profile
+            
+            for event in cached_events:
+                # Basic relevance scoring
+                relevance_score = 0.1  # Base score
+                
+                # Location-based relevance
+                if user_location and event.get('venue'):
+                    venue_location = self._get_venue_district(event['venue'])
+                    if venue_location and venue_location.lower() == user_location.lower():
+                        relevance_score += 0.3
+                
+                # User preference-based relevance
+                if user_profile and user_profile.preferences:
+                    interests = user_profile.preferences.get('interests', [])
+                    if isinstance(interests, list):
+                        event_category = event.get('category', '').lower()
+                        if any(interest.lower() in event_category for interest in interests):
+                            relevance_score += 0.4
+                
+                # Time-based relevance (upcoming events)
+                if event.get('date_str'):
+                    # Simple check for current/upcoming events
+                    relevance_score += 0.2
+                
+                # Add to relevant events
+                event['relevance_score'] = relevance_score
+                relevant_events.append(event)
+            
+            # Sort by relevance and return top events
+            relevant_events.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
+            
+            return relevant_events[:5]  # Return top 5 relevant events
+            
+        except Exception as e:
+            logger.warning(f"Error fetching relevant İKSV events: {e}")
+            return []
+
+    def _get_venue_district(self, venue_name: str) -> Optional[str]:
+        """Get district for a venue name"""
+        
+        venue_districts = {
+            'zorlu psm': 'Beşiktaş',
+            'zorlu psm turkcell stage': 'Beşiktaş',
+            'zorlu psm turkcell platinum stage': 'Beşiktaş',
+            'salon iksv': 'Beyoğlu',
+            'salon İKSV': 'Beyoğlu',
+            'harbiye muhsin ertuğrul stage': 'Şişli',
+            'cemal reşit rey concert hall': 'Şişli',
+            'lütfi kırdar convention center': 'Şişli',
+            'atatürk cultural center': 'Beyoğlu',
+            'akm': 'Beyoğlu',
+            '29th istanbul theatre festival': 'İstanbul',
+            'iksv venue': 'İstanbul',
+            'multiple venues': 'İstanbul'
+        }
+        
+        venue_key = venue_name.lower().strip()
+        return venue_districts.get(venue_key)
+
     def _basic_intent_recognition(self, user_input: str) -> Dict[str, Any]:
         """Basic fallback intent recognition"""
         text_lower = user_input.lower()
@@ -922,6 +1079,10 @@ class MLEnhancedDailyTalksBridge:
         # Restaurant patterns
         if any(word in text_lower for word in ['restaurant', 'food', 'eat', 'hungry', 'meal']):
             return {'primary': 'restaurant', 'confidence': 0.7, 'secondary': []}
+        
+        # ✨ NEW: Events patterns
+        if any(word in text_lower for word in ['event', 'show', 'concert', 'performance', 'exhibition', 'festival', 'iksv', 'cultural']):
+            return {'primary': 'events', 'confidence': 0.8, 'secondary': []}
         
         # Activity patterns
         if any(word in text_lower for word in ['do today', 'activity', 'what should', 'explore']):
@@ -1262,7 +1423,8 @@ class MLEnhancedDailyTalksBridge:
         self,
         base_response: Dict[str, Any],
         intent_result: Dict[str, Any],
-        context: ConversationContext
+        context: ConversationContext,
+        user_input: str = ""
     ) -> Dict[str, Any]:
         """Enhance the base response with ML personalization"""
         
@@ -1282,6 +1444,11 @@ class MLEnhancedDailyTalksBridge:
             # ✨ NEW: Add hidden gems and local tips
             enhanced_response = self._add_hidden_gems_and_local_tips(
                 enhanced_response, intent_result, context
+            )
+            
+            # Add İKSV events information
+            enhanced_response = await self._add_iksv_events_to_response(
+                enhanced_response, intent_result, context, user_input
             )
             
             # Apply emotion-aware adjustments

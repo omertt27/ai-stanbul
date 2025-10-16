@@ -41,6 +41,15 @@ except ImportError as e:
     logger.warning(f"Istanbul Attractions System not available: {e}")
     ATTRACTIONS_AVAILABLE = False
 
+# Import İKSV Events System for cultural event recommendations
+try:
+    from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
+    IKSV_EVENTS_AVAILABLE = True
+    logger.info("🎭 İKSV Events System integrated successfully!")
+except ImportError as e:
+    logger.warning(f"İKSV Events System not available: {e}")
+    IKSV_EVENTS_AVAILABLE = False
+
 class IntentType(Enum):
     """Different types of intents that can be detected"""
     LOCATION_SEARCH = "location_search"
@@ -58,7 +67,10 @@ class IntentType(Enum):
     FAMILY_ACTIVITY = "family_activity"
     ROMANTIC_SPOT = "romantic_spot"
     HIDDEN_GEM = "hidden_gem"
+    EVENTS_QUERY = "events_query"
+    CULTURAL_EVENTS = "cultural_events"
 
+@dataclass
 @dataclass
 class Intent:
     """Individual intent with confidence and parameters"""
@@ -69,8 +81,6 @@ class Intent:
     priority: int = 1  # 1=high, 2=medium, 3=low
     dependencies: List[str] = None  # Other intent IDs this depends on
     priority_score: float = 0.0  # Boosted score for prioritization (can exceed 1.0)
-
-@dataclass
 class MultiIntentResult:
     """Result of multi-intent analysis"""
     primary_intent: Intent
@@ -81,6 +91,7 @@ class MultiIntentResult:
     processing_strategy: str
     detected_language: str = 'english'
     response_text: str = ""
+    original_query: str = ""  # Store original query for intent handlers
 
 class MultiIntentQueryHandler:
     """
@@ -109,6 +120,17 @@ class MultiIntentQueryHandler:
             except Exception as e:
                 logger.error(f"Failed to initialize attractions system: {e}")
                 ATTRACTIONS_AVAILABLE = False
+        
+        # Initialize İKSV Events System for cultural event recommendations
+        global IKSV_EVENTS_AVAILABLE
+        self.events_system = None
+        if IKSV_EVENTS_AVAILABLE:
+            try:
+                self.events_system = MonthlyEventsScheduler()
+                logger.info("🎭 İKSV Events System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize İKSV Events System: {e}")
+                IKSV_EVENTS_AVAILABLE = False
         
         # Intent detection patterns with priorities
         self.intent_patterns = {
@@ -381,6 +403,35 @@ class MultiIntentQueryHandler:
                 ],
                 'keywords': ['hidden', 'gems', 'off-the-beaten-path', 'places', 'secret', 'spots', 'local', 'favorites', 'insider', 'tips', 'unique', 'experiences'],
                 'priority': 1
+            },
+            IntentType.EVENTS_QUERY: {
+                'patterns': [
+                    r'\b(events?\s+(in|at|happening|today|tonight|this\s+week|this\s+month))\b',
+                    r'\b(what\'s\s+(on|happening|going\s+on)\s+(today|tonight|this\s+week))\b',
+                    r'\b(concerts?|shows?|performances?|exhibitions?|festivals?)\b',
+                    r'\b(cultural\s+(events?|activities?|programs?))\b',
+                    r'\b(theatre|theater|ballet|opera|dance\s+performances?)\b',
+                    r'\b(art\s+(exhibitions?|shows?|galleries?))\b',
+                    r'\b(what\'s\s+(happening|on)\s+(at|in)\s+(zorlu|İKSV|iksv))\b',
+                    r'\b(İKSV|iksv)\b'
+                ],
+                'keywords': ['events', 'concerts', 'shows', 'performances', 'exhibitions', 'festivals', 
+                           'cultural', 'theatre', 'theater', 'ballet', 'opera', 'dance', 'art', 
+                           'happening', 'zorlu', 'İKSV', 'iksv', 'what\'s', 'on', 'today', 'tonight'],
+                'priority': 1
+            },
+            IntentType.CULTURAL_EVENTS: {
+                'patterns': [
+                    r'\b(cultural\s+(events?|shows?|performances?|exhibitions?))\b',
+                    r'\b(arts?\s+(events?|shows?|exhibitions?|festivals?))\b',
+                    r'\b(İKSV\s+(events?|shows?|concerts?|performances?))\b',
+                    r'\b(zorlu\s+(psm|center|events?|shows?))\b',
+                    r'\b(istanbul\s+(theatre|theater|festival|cultural\s+center))\b',
+                    r'\b(akm|atatürk\s+cultural\s+center)\b'
+                ],
+                'keywords': ['cultural', 'arts', 'İKSV', 'iksv', 'zorlu', 'psm', 'istanbul', 
+                           'theatre', 'theater', 'festival', 'akm', 'atatürk', 'cultural', 'center'],
+                'priority': 1
             }
         }
         
@@ -454,6 +505,9 @@ class MultiIntentQueryHandler:
             processing_strategy=strategy,
             detected_language=detected_language
         )
+        
+        # Store original query for intent handlers
+        result.original_query = query
         
         # Generate response in detected language
         result.response_text = self.generate_response(result, detected_language)
@@ -809,7 +863,7 @@ class MultiIntentQueryHandler:
         return min(1.0, complexity)
     
     def _prioritize_intents(self, intents: List[Intent]) -> Tuple[Intent, List[Intent]]:
-        """Prioritize intents and identify primary vs secondary"""
+        """Prioritize intents and separate primary from secondary"""
         
         if not intents:
             # Create a default general intent
@@ -818,50 +872,15 @@ class MultiIntentQueryHandler:
                 confidence=0.5,
                 parameters={},
                 text_span=(0, 0),
-                priority=2
+                priority=1
             )
             return default_intent, []
         
-        # Enhanced multi-intent prioritization using priority_score
-        # Sort by priority_score first (this includes all boosts), then by priority, then by confidence
-        sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
-        
-        # Special handling for Price/Hours multi-intent scenarios
-        price_intent = next((i for i in sorted_intents if i.type == IntentType.PRICE_QUERY), None)
-        time_intent = next((i for i in sorted_intents if i.type == IntentType.TIME_QUERY), None)
-        recommendation_intent = next((i for i in sorted_intents if i.type == IntentType.RECOMMENDATION), None)
-        
-        # If we have price + time + recommendation, recommendation should be primary
-        if price_intent and time_intent and recommendation_intent:
-            # Boost recommendation intent for combined price/time/recommendation queries
-            recommendation_intent.priority_score += 0.3
-            sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
-        
-        # If we have time + recommendation, check for specific timing patterns
-        elif time_intent and recommendation_intent:
-            # Check for immediate availability queries - time should be primary
-            query_text = ' '.join([str(i.parameters) for i in intents]).lower()
-            if re.search(r'\b(right\s+now|open\s+now|currently\s+open)\b', query_text):
-                time_intent.priority_score += 0.4
-                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
-            # Check for meal-specific timing - should favor time query for "breakfast places"
-            elif re.search(r'\b((breakfast|lunch|dinner|brunch)\s+(places|spots|options))\b', query_text):
-                time_intent.priority_score += 0.4
-                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
-            # Check for meal period queries - evaluate context
-            elif any(param in str(time_intent.parameters).lower() 
-                     for param in ['breakfast', 'lunch', 'dinner', 'brunch']):
-                # If query mentions "places/spots open for meal", time should be primary
-                meal_query = ' '.join([str(i.parameters) for i in intents]).lower()
-                if re.search(r'\b(places?\s+open\s+for|spots?\s+open)', meal_query):
-                    time_intent.priority_score += 0.3
-                else:
-                    # Otherwise, recommendation primary for meal-time queries
-                    recommendation_intent.priority_score += 0.2
-                sorted_intents = sorted(intents, key=lambda x: (-x.priority_score, x.priority, -x.confidence))
+        # Sort by priority (lower number = higher priority) and confidence
+        sorted_intents = sorted(intents, key=lambda x: (x.priority, -x.confidence))
         
         primary_intent = sorted_intents[0]
-        secondary_intents = sorted_intents[1:]
+        secondary_intents = sorted_intents[1:5]  # Limit to top 5 secondary intents
         
         return primary_intent, secondary_intents
     
@@ -926,61 +945,40 @@ class MultiIntentQueryHandler:
             IntentType.CULTURAL_QUERY: "provide_cultural_info",
             IntentType.FAMILY_ACTIVITY: "suggest_family_activities",
             IntentType.ROMANTIC_SPOT: "suggest_romantic_spots",
-            IntentType.HIDDEN_GEM: "suggest_hidden_gems"
+            IntentType.HIDDEN_GEM: "suggest_hidden_gems",
+            # Events-specific actions
+            IntentType.EVENTS_QUERY: "search_events",
+            IntentType.CULTURAL_EVENTS: "search_cultural_events"
         }
         
         return actions.get(intent.type, "general_response")
     
     def _calculate_overall_confidence(self, intents: List[Intent]) -> float:
-        """Calculate enhanced overall confidence score with boosters"""
+        """Calculate overall confidence score for the analysis"""
         
         if not intents:
-            return 0.5
+            return 0.0
         
-        # Base weighted average of intent confidences
-        total_weight = sum(1.0 / intent.priority for intent in intents)
-        weighted_sum = sum(intent.confidence / intent.priority for intent in intents)
-        base_confidence = weighted_sum / total_weight
+        # Weight the confidence by intent priority
+        total_weighted_confidence = 0
+        total_weight = 0
         
-        # Apply confidence boosters for better accuracy
-        boosters = 0.0
+        for intent in intents:
+            weight = 1.0 / intent.priority  # Higher priority = higher weight
+            total_weighted_confidence += intent.confidence * weight
+            total_weight += weight
         
-        # Multiple intents detected (shows sophisticated understanding)
-        if len(intents) > 1:
-            boosters += 0.25
-        
-        # High-priority intents boost confidence
-        if any(intent.priority == 1 for intent in intents):
-            boosters += 0.15
-        
-        # High individual intent confidence
-        max_individual_confidence = max(intent.confidence for intent in intents)
-        if max_individual_confidence > 0.8:
-            boosters += 0.2
-        elif max_individual_confidence > 0.6:
-            boosters += 0.1
-        
-        # Istanbul-specific intents get bonus (domain expertise)
-        istanbul_intents = ['restaurant_search', 'restaurant_info', 'attraction_search', 'attraction_info']
-        if any(intent.type.value in istanbul_intents for intent in intents):
-            boosters += 0.15
-        
-        # Apply boosters with cap at 1.0
-        enhanced_confidence = min(1.0, base_confidence + boosters)
-        
-        return enhanced_confidence
+        return total_weighted_confidence / total_weight if total_weight > 0 else 0.0
     
-    def _determine_processing_strategy(self, complexity: float, num_intents: int) -> str:
-        """Determine the best processing strategy"""
+    def _determine_processing_strategy(self, complexity: float, intent_count: int) -> str:
+        """Determine the processing strategy based on complexity and intent count"""
         
-        if complexity < 0.3 and num_intents == 1:
-            return "simple_single_intent"
-        elif complexity < 0.5 and num_intents <= 2:
-            return "sequential_processing"
-        elif complexity < 0.7:
-            return "parallel_processing"
+        if complexity > 0.8 or intent_count > 3:
+            return "complex_multi_step"
+        elif complexity > 0.5 or intent_count > 1:
+            return "standard_multi_intent"
         else:
-            return "complex_orchestration"
+            return "simple_single_intent"
     
     def execute_multi_intent_plan(self, result: MultiIntentResult, 
                                 context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1052,13 +1050,16 @@ class MultiIntentQueryHandler:
             'cultural_query': "🎭 Istanbul is rich in culture and history. Here are some cultural sites and museums you may find interesting:",
             'family_activity': "👨‍👩‍👧‍👦 Family time in Istanbul can be fun and exciting! Here are some family-friendly activities and places:",
             'romantic_spot': "❤️ Looking for a romantic spot? Here are some lovely restaurants and places perfect for couples:",
-            'hidden_gem': "💎 Everyone loves a hidden gem! Here are some lesser-known but amazing places to check out in Istanbul:"
+            'hidden_gem': "💎 Everyone loves a hidden gem! Here are some lesser-known but amazing places to check out in Istanbul:",
+            # Events-specific templates  
+            'events_query': "🎭 There's always something exciting happening in Istanbul! Here are current events and cultural activities:",
+            'cultural_events': "🎨 Istanbul's cultural scene is vibrant! Here are current İKSV and cultural events you might enjoy:"
         }
         
         return templates
     
     def generate_response(self, result: MultiIntentResult, language: str = 'english') -> str:
-        """Generate a friendly, contextual response"""
+        """Generate a friendly, contextual response with real data execution"""
         
         templates = self._get_response_templates(language)
         primary_intent = result.primary_intent.type.value
@@ -1068,6 +1069,11 @@ class MultiIntentQueryHandler:
             response = templates[primary_intent]
         else:
             response = templates.get('information_request', templates['greeting'])
+        
+        # ✨ NEW: Execute actual handlers for specific intents to get real data
+        real_data_response = self._execute_intent_handlers(result)
+        if real_data_response:
+            response = real_data_response
         
         # Add contextual information based on detected parameters
         context_additions = self._generate_context_additions(result)
@@ -1137,7 +1143,10 @@ class MultiIntentQueryHandler:
             IntentType.CULTURAL_QUERY: "Istanbul has a rich cultural heritage. Don't miss the chance to visit its famous museums and historical sites.",
             IntentType.FAMILY_ACTIVITY: "Istanbul offers many family-friendly activities. Would you like suggestions for indoor or outdoor activities?",
             IntentType.ROMANTIC_SPOT: "For a romantic outing, consider a dinner with a view or a stroll in one of Istanbul's beautiful parks.",
-            IntentType.HIDDEN_GEM: "Istanbul is full of hidden gems. Be sure to explore some lesser-known spots for a unique experience."
+            IntentType.HIDDEN_GEM: "Istanbul is full of hidden gems. Be sure to explore some lesser-known spots for a unique experience.",
+            # Events-specific tips
+            IntentType.EVENTS_QUERY: "Events in Istanbul are always changing! Check venue websites for the latest schedules and booking information.",
+            IntentType.CULTURAL_EVENTS: "İKSV events are very popular - I recommend booking tickets in advance, especially for weekend performances."
         }
         
         return tips.get(primary_intent, "Feel free to ask me anything else about Istanbul's amazing food scene!")
@@ -1290,6 +1299,12 @@ class MultiIntentQueryHandler:
             elif intent.type == IntentType.HIDDEN_GEM:
                 return self._handle_hidden_gem_query(query_lower)
             
+            elif intent.type == IntentType.EVENTS_QUERY:
+                return self._handle_events_query(query_lower)
+            
+            elif intent.type == IntentType.CULTURAL_EVENTS:
+                return self._handle_cultural_events_query(query_lower)
+            
             else:
                 # General attraction search
                 return self._handle_general_attraction_search(query_lower)
@@ -1406,165 +1421,429 @@ class MultiIntentQueryHandler:
             'total_count': len(all_hidden)
         }
     
-    def _format_attraction_response(self, attraction) -> Dict[str, Any]:
-        """Format attraction data for response"""
+    def _handle_events_query(self, query: str) -> Dict[str, Any]:
+        """Handle general events queries"""
+        
+        if not IKSV_EVENTS_AVAILABLE or not self.events_system:
+            return {
+                'status': 'error',
+                'message': 'İKSV Events system not available',
+                'events': []
+            }
+        
+        try:
+            # Get cached events
+            cached_events = get_cached_events()
+            
+            if not cached_events and check_if_fetch_needed():
+                # Try to fetch fresh events if needed
+                try:
+                    import asyncio
+                    fresh_events = asyncio.run(fetch_monthly_events())
+                    if fresh_events:
+                        cached_events = fresh_events
+                except Exception as e:
+                    logger.warning(f"Failed to fetch fresh events: {e}")
+            
+            if not cached_events:
+                return {
+                    'status': 'no_events',
+                    'message': 'No current İKSV events available',
+                    'events': []
+                }
+            
+            # Filter events based on query keywords
+            relevant_events = self._filter_events_by_query(cached_events, query)
+            
+            return {
+
+                'status': 'success',
+                'message': f'Found {len(relevant_events)} İKSV events',
+                'events': [self._format_event_response(event) for event in relevant_events[:5]],
+                'total_count': len(relevant_events),
+                'source': 'İKSV Monthly Events'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error handling events query: {e}")
+            return {
+                'status': 'error',
+                'message': f'Error processing events: {str(e)}',
+                'events': []
+            }
+    
+    def _handle_cultural_events_query(self, query: str) -> Dict[str, Any]:
+        """Handle cultural events specific queries"""
+        
+        if not IKSV_EVENTS_AVAILABLE or not self.events_system:
+            return {
+                'status': 'error',
+                'message': 'İKSV Events system not available',
+                'events': []
+            }
+        
+        try:
+            # Get cached events
+            cached_events = get_cached_events()
+            
+            if not cached_events:
+                return {
+                    'status': 'no_events',
+                    'message': 'No current İKSV cultural events available',
+                    'events': []
+                }
+            
+            # Filter for cultural events (theater, concerts, exhibitions, etc.)
+            cultural_keywords = ['concert', 'theatre', 'theater', 'ballet', 'opera', 'dance', 
+                               'exhibition', 'art', 'cultural', 'festival', 'performance', 'show']
+            
+            cultural_events = []
+            for event in cached_events:
+                event_text = (event.get('title', '') + ' ' + event.get('description', '')).lower()
+                if any(keyword in event_text for keyword in cultural_keywords):
+                    cultural_events.append(event)
+            
+            return {
+                'status': 'success',
+                'message': f'Found {len(cultural_events)} İKSV cultural events',
+                'events': [self._format_event_response(event) for event in cultural_events[:5]],
+                'total_count': len(cultural_events),
+                'source': 'İKSV Cultural Events'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error handling cultural events query: {e}")
+            return {
+                'status': 'error',  
+                'message': f'Error processing cultural events: {str(e)}',
+                'events': []
+            }
+    
+    def _filter_events_by_query(self, events: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
+        """Filter events based on query keywords"""
+        
+        query_lower = query.lower()
+        relevant_events = []
+        
+        # Extract keywords from query
+        event_keywords = ['concert', 'show', 'performance', 'exhibition', 'festival', 
+                         'theatre', 'theater', 'ballet', 'opera', 'dance', 'art', 'music']
+        
+        venue_keywords = ['zorlu', 'psm', 'akm', 'atatürk', 'cultural', 'center', 'salon']
+        
+        for event in events:
+            relevance_score = 0
+            event_text = (event.get('title', '') + ' ' + event.get('description', '') + 
+                         ' ' + event.get('venue', '')).lower()
+            
+            # Check for event type keywords
+            for keyword in event_keywords:
+                if keyword in query_lower and keyword in event_text:
+                    relevance_score += 2
+            
+            # Check for venue keywords
+            for keyword in venue_keywords:
+                if keyword in query_lower and keyword in event_text:
+                    relevance_score += 1
+            
+            # Check for general event terms
+            if any(term in event_text for term in ['event', 'show', 'performance']):
+                relevance_score += 1
+            
+            # Include events with relevance score > 0 or if query is very general
+            if relevance_score > 0 or len(query_lower.split()) <= 3:
+                event['relevance_score'] = relevance_score
+                relevant_events.append(event)
+        
+        # Sort by relevance score
+        relevant_events.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
+        
+        return relevant_events
+    
+    def _format_event_response(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Format event data for response"""
         
         return {
-            'id': attraction.id,
-            'name': attraction.name,
-            'turkish_name': attraction.turkish_name,
-            'district': attraction.district,
-            'category': attraction.category.value if hasattr(attraction.category, 'value') else str(attraction.category),
-            'description': attraction.description,
-            'opening_hours': attraction.opening_hours,
-            'entrance_fee': attraction.entrance_fee.value if hasattr(attraction.entrance_fee, 'value') else str(attraction.entrance_fee),
-            'estimated_cost': attraction.estimated_cost,
-            'duration': attraction.duration,
-            'transportation': attraction.transportation,
-            'best_time': attraction.best_time,
-            'is_family_friendly': attraction.is_family_friendly,
-            'is_romantic': attraction.is_romantic,
-            'is_hidden_gem': attraction.is_hidden_gem,
-            'cultural_significance': attraction.cultural_significance,
-            'practical_tips': attraction.practical_tips,
-            'coordinates': attraction.coordinates,
-            'nearby_attractions': attraction.nearby_attractions[:3] if attraction.nearby_attractions else []
+            'title': event.get('title', 'Untitled Event'),
+            'venue': event.get('venue', 'İKSV Venue'),
+            'date_str': event.get('date_str', 'Date TBA'),
+            'description': event.get('description', ''),
+            'category': event.get('category', 'Cultural Event'),
+            'price': event.get('price', 'Price varies'),
+            'booking_info': event.get('booking_info', 'Contact venue for booking'),
+            'venue_district': self._get_venue_district(event.get('venue', '')),
+            'event_type': self._classify_event_type(event),
+            'relevance_score': event.get('relevance_score', 0)
         }
     
-    def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> 'LearningContext':
-        """Create learning context for deep learning system"""
-        if not DEEP_LEARNING_AVAILABLE:
-            return None
+    def _get_venue_district(self, venue_name: str) -> str:
+        """Get district for a venue name"""
         
-        # Extract user information from context
-        user_id = "anonymous"
-        session_id = "default_session"
-        conversation_history = []
-        user_preferences = {}
-        location_context = None
-        
-        if context:
-            user_id = context.get('user_id', user_id)
-            session_id = context.get('session_id', session_id)
-            conversation_history = context.get('conversation_history', [])
-            user_preferences = context.get('user_preferences', {})
-            
-            # Extract location if available
-            location = context.get('location')
-            if location and isinstance(location, (tuple, list)) and len(location) >= 2:
-                location_context = (float(location[0]), float(location[1]))
-        
-        return LearningContext(
-            user_id=user_id,
-            session_id=session_id,
-            conversation_history=conversation_history,
-            user_preferences=user_preferences,
-            location_context=location_context,
-            interaction_count=len(conversation_history)
-        )
-
-    def _detect_intents_enhanced(self, query: str, learning_context) -> List[Intent]:
-        """Enhanced intent detection using deep learning + rule-based hybrid approach"""
-        
-        # Start with rule-based detection (existing logic)
-        rule_based_intents = self._detect_intents_rule_based(query)
-        
-        # If deep learning system is available, enhance with ML predictions
-        if self.deep_learning_system and learning_context:
-            try:
-                # Get ML-based intent classification
-                ml_prediction = self.deep_learning_system.intent_classifier.classify_intent(
-                    query, learning_context
-                )
-                
-                logger.info(f"🧠 ML Intent Prediction: {ml_prediction.prediction} (confidence: {ml_prediction.confidence:.3f})")
-                
-                # Convert ML prediction to Intent object
-                ml_intent = self._convert_ml_prediction_to_intent(ml_prediction, query)
-                
-                # Combine rule-based and ML results
-                enhanced_intents = self._combine_rule_and_ml_intents(
-                    rule_based_intents, [ml_intent], query
-                )
-                
-                logger.info(f"✨ Enhanced intent detection: {len(enhanced_intents)} intents detected")
-                return enhanced_intents
-                
-            except Exception as e:
-                logger.warning(f"ML intent classification failed, using rule-based fallback: {e}")
-        
-        # Fallback to rule-based only
-        return rule_based_intents
-
-    def _convert_ml_prediction_to_intent(self, ml_prediction, query: str) -> Intent:
-        """Convert ML prediction to Intent object"""
-        
-        # Map ML intent predictions to IntentType enum
-        intent_mapping = {
-            'restaurant': IntentType.RECOMMENDATION,
-            'museum': IntentType.ATTRACTION_SEARCH,
-            'district': IntentType.LOCATION_SEARCH,
-            'transportation': IntentType.ROUTE_PLANNING,
-            'attraction': IntentType.ATTRACTION_SEARCH,
-            'recommendation': IntentType.RECOMMENDATION,
-            'information': IntentType.INFORMATION_REQUEST
+        venue_districts = {
+            'zorlu psm': 'Beşiktaş',
+            'zorlu psm turkcell stage': 'Beşiktaş', 
+            'zorlu psm turkcell platinum stage': 'Beşiktaş',
+            'salon iksv': 'Beyoğlu',
+            'salon İKSV': 'Beyoğlu',
+            'harbiye muhsin ertuğrul stage': 'Şişli',
+            'cemal reşit rey concert hall': 'Şişli',
+            'lütfi kırdar convention center': 'Şişli',
+            'atatürk cultural center': 'Beyoğlu',
+            'akm': 'Beyoğlu',
+            '29th istanbul theatre festival': 'İstanbul',
+            'iksv venue': 'İstanbul',
+            'multiple venues': 'İstanbul'
         }
         
-        intent_type = intent_mapping.get(ml_prediction.prediction, IntentType.INFORMATION_REQUEST)
+        venue_key = venue_name.lower().strip()
+        return venue_districts.get(venue_key, 'İstanbul')
+    
+    def _classify_event_type(self, event: Dict[str, Any]) -> str:
+        """Classify event type based on title and description"""
         
-        return Intent(
-            type=intent_type,
-            confidence=ml_prediction.confidence,
-            parameters={'ml_reasoning': ml_prediction.reasoning},
-            text_span=(0, len(query)),
-            priority=1 if ml_prediction.confidence > 0.7 else 2,
-            priority_score=ml_prediction.confidence
-        )
-
-    def _combine_rule_and_ml_intents(self, rule_intents: List[Intent], ml_intents: List[Intent], query: str) -> List[Intent]:
-        """Combine rule-based and ML-based intent predictions intelligently"""
+        event_text = (event.get('title', '') + ' ' + event.get('description', '')).lower()
         
-        if not ml_intents:
-            return rule_intents
-        
-        combined_intents = []
-        ml_intent = ml_intents[0]  # Take primary ML prediction
-        
-        # Find if rule-based system detected the same intent type
-        matching_rule_intent = None
-        for rule_intent in rule_intents:
-            if rule_intent.type == ml_intent.type:
-                matching_rule_intent = rule_intent
-                break
-        
-        if matching_rule_intent:
-            # Both systems agree - boost confidence
-            boosted_confidence = min(
-                0.7 * matching_rule_intent.confidence + 0.3 * ml_intent.confidence, 
-                1.0
-            )
-            matching_rule_intent.confidence = boosted_confidence
-            matching_rule_intent.priority_score = boosted_confidence
-            matching_rule_intent.parameters.update(ml_intent.parameters)
-            combined_intents.append(matching_rule_intent)
-            
-            # Add other rule-based intents with slightly reduced confidence
-            for rule_intent in rule_intents:
-                if rule_intent.type != ml_intent.type:
-                    rule_intent.confidence *= 0.9  # Slight reduction
-                    combined_intents.append(rule_intent)
+        if any(term in event_text for term in ['concert', 'music', 'symphony', 'orchestra']):
+            return 'Concert'
+        elif any(term in event_text for term in ['theatre', 'theater', 'play', 'drama']):
+            return 'Theatre'
+        elif any(term in event_text for term in ['ballet', 'dance', 'choreography']):
+            return 'Dance'
+        elif any(term in event_text for term in ['opera', 'operetta']):
+            return 'Opera'
+        elif any(term in event_text for term in ['exhibition', 'gallery', 'art', 'painting']):
+            return 'Exhibition'
+        elif any(term in event_text for term in ['festival', 'celebration']):
+            return 'Festival'
         else:
-            # Systems disagree - use ML if high confidence, otherwise use rule-based
-            if ml_intent.confidence > 0.8:
-                combined_intents.append(ml_intent)
-                # Add rule-based intents with reduced confidence
-                for rule_intent in rule_intents:
-                    rule_intent.confidence *= 0.8
-                    combined_intents.append(rule_intent)
-            else:
-                # Use rule-based as primary, add ML as secondary
-                combined_intents.extend(rule_intents)
-                ml_intent.priority = 3  # Lower priority
-                combined_intents.append(ml_intent)
+            return 'Cultural Event'
+    
+    def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> Optional[Any]:
+        """Create learning context for deep learning system"""
+        if not DEEP_LEARNING_AVAILABLE or not self.deep_learning_system:
+            return None
         
-        return combined_intents
+        try:
+            # This would create a learning context for the deep learning system
+            # For now, return None to use fallback methods
+            return None
+        except Exception as e:
+            logger.error(f"Error creating learning context: {e}")
+            return None
+    
+    def _detect_intents_enhanced(self, query: str, learning_context) -> List[Intent]:
+        """Detect intents with enhanced deep learning if available"""
+        
+        # Use rule-based detection as primary method
+        rule_based_intents = self._detect_intents_rule_based(query)
+        
+        # Enhance with deep learning if available
+        if DEEP_LEARNING_AVAILABLE and self.deep_learning_system and learning_context:
+            try:
+                # This would use deep learning enhancement
+                # For now, just return the rule-based results
+                return rule_based_intents
+            except Exception as e:
+                logger.warning(f"Deep learning enhancement failed: {e}")
+                return rule_based_intents
+        
+        return rule_based_intents
+    
+    def _prioritize_intents(self, intents: List[Intent]) -> Tuple[Intent, List[Intent]]:
+        """Prioritize intents and separate primary from secondary"""
+        
+        if not intents:
+            # Create a default general intent
+            default_intent = Intent(
+                type=IntentType.INFORMATION_REQUEST,
+                confidence=0.5,
+                parameters={},
+                text_span=(0, 0),
+                priority=1
+            )
+            return default_intent, []
+        
+        # Sort by priority (lower number = higher priority) and confidence
+        sorted_intents = sorted(intents, key=lambda x: (x.priority, -x.confidence))
+        
+        primary_intent = sorted_intents[0]
+        secondary_intents = sorted_intents[1:5]  # Limit to top 5 secondary intents
+        
+        return primary_intent, secondary_intents
+    
+    def _calculate_overall_confidence(self, intents: List[Intent]) -> float:
+        """Calculate overall confidence score for the analysis"""
+        
+        if not intents:
+            return 0.0
+        
+        # Weight the confidence by intent priority
+        total_weighted_confidence = 0
+        total_weight = 0
+        
+        for intent in intents:
+            weight = 1.0 / intent.priority  # Higher priority = higher weight
+            total_weighted_confidence += intent.confidence * weight
+            total_weight += weight
+        
+        return total_weighted_confidence / total_weight if total_weight > 0 else 0.0
+    
+    def _determine_processing_strategy(self, complexity: float, intent_count: int) -> str:
+        """Determine the processing strategy based on complexity and intent count"""
+        
+        if complexity > 0.8 or intent_count > 3:
+            return "complex_multi_step"
+        elif complexity > 0.5 or intent_count > 1:
+            return "standard_multi_intent"
+        else:
+            return "simple_single_intent"
+    
+    def _execute_intent_handlers(self, result: MultiIntentResult) -> Optional[str]:
+        """Execute actual intent handlers to get real data and format response"""
+        
+        primary_intent = result.primary_intent
+        intent_type = primary_intent.type
+        
+        try:
+            # Handle events-related intents with actual data
+            if intent_type == IntentType.EVENTS_QUERY:
+                events_data = self._handle_events_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_events_response(events_data, "🎭 Here are the current events happening in Istanbul:")
+            
+            elif intent_type == IntentType.CULTURAL_EVENTS:
+                cultural_events_data = self._handle_cultural_events_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_events_response(cultural_events_data, "🎨 Here are the current İKSV cultural events you might enjoy:")
+            
+            # Handle attraction-related intents with actual data
+            elif intent_type == IntentType.ATTRACTION_SEARCH:
+                attraction_data = self._handle_general_attraction_search(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_attraction_response_text(attraction_data, "🏛️ Here are some amazing Istanbul attractions for you:")
+            
+            elif intent_type == IntentType.CULTURAL_QUERY:
+                cultural_data = self._handle_cultural_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_attraction_response_text(cultural_data, "🎭 Here are Istanbul's rich cultural and historical sites:")
+            
+            elif intent_type == IntentType.FAMILY_ACTIVITY:
+                family_data = self._handle_family_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_attraction_response_text(family_data, "👨‍👩‍👧‍👦 Here are some fantastic family-friendly activities in Istanbul:")
+            
+            elif intent_type == IntentType.ROMANTIC_SPOT:
+                romantic_data = self._handle_romantic_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_attraction_response_text(romantic_data, "❤️ Here are some romantic spots perfect for couples:")
+            
+            elif intent_type == IntentType.HIDDEN_GEM:
+                gem_data = self._handle_hidden_gem_query(result.original_query if hasattr(result, 'original_query') else "")
+                return self._format_attraction_response_text(gem_data, "💎 Here are some hidden gems you'll love discovering:")
+            
+            # For other intents, return None to use template-based responses
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error executing intent handlers: {e}")
+            return None
+
+    def _format_events_response(self, events_data: Dict[str, Any], intro_text: str) -> str:
+        """Format events data into a readable response"""
+        
+        if events_data.get('status') == 'error':
+            return f"{intro_text}\n\n❌ Sorry, I'm having trouble accessing event information right now. Please try again later."
+        
+        if events_data.get('status') == 'no_events' or not events_data.get('events'):
+            return f"{intro_text}\n\n📅 I don't see any current events available at the moment. Events are updated regularly, so please check back soon!"
+        
+        events = events_data.get('events', [])
+        response = intro_text
+        
+        # Add events information
+        response += f"\n\n📋 **{len(events)} Events Found:**\n"
+        
+        for i, event in enumerate(events[:5], 1):  # Show top 5 events
+            title = event.get('title', 'Untitled Event')
+            venue = event.get('venue', 'İKSV Venue')
+            date_str = event.get('date_str', 'Date TBA')
+            description = event.get('description', '')
+            
+            response += f"\n**{i}. {title}**\n"
+            response += f"   📍 **Venue:** {venue}\n"
+            response += f"   📅 **Date:** {date_str}\n"
+            
+            if description and len(description) > 10:
+                # Truncate long descriptions
+                desc_preview = description[:100] + "..." if len(description) > 100 else description
+                response += f"   📝 **About:** {desc_preview}\n"
+        
+        # Add helpful information
+        response += f"\n\n💡 **Tips:**"
+        response += f"\n• Book tickets early as İKSV events are very popular"
+        response += f"\n• Check venue websites for the latest schedules"
+        response += f"\n• Consider arriving early for better seating"
+        
+        if len(events) > 5:
+            response += f"\n\n📝 *Showing 5 of {len(events)} total events*"
+        
+        return response
+
+    def _format_attraction_response(self, attraction) -> Dict[str, Any]:
+        """Format individual attraction data for response"""
+        
+        return {
+            'name': getattr(attraction, 'name', 'Unknown Attraction'),
+            'district': getattr(attraction, 'district', 'Istanbul'),
+            'category': getattr(attraction, 'category', 'Attraction').value if hasattr(getattr(attraction, 'category', None), 'value') else str(getattr(attraction, 'category', 'Attraction')),
+            'rating': getattr(attraction, 'user_rating', 0),
+            'description': getattr(attraction, 'description', ''),
+            'cultural_significance': getattr(attraction, 'cultural_significance', []),
+            'visiting_hours': getattr(attraction, 'visiting_hours', {}),
+            'location': {
+                'latitude': getattr(attraction, 'latitude', 0),
+                'longitude': getattr(attraction, 'longitude', 0)
+            },
+            'accessibility': getattr(attraction, 'accessibility_features', []),
+            'entrance_fee': getattr(attraction, 'entrance_fee', 'Varies')
+        }
+    
+    def _format_attraction_response_text(self, attraction_data: Dict[str, Any], intro_text: str) -> str:
+        """Format attraction data into a readable response"""
+        
+        if attraction_data.get('status') == 'error':
+            return f"{intro_text}\n\n❌ Sorry, I'm having trouble accessing attraction information right now. Please try again later."
+        
+        attractions = attraction_data.get('attractions', [])
+        if not attractions:
+            return f"{intro_text}\n\n🔍 I couldn't find specific attractions matching your request, but I'd be happy to help you explore Istanbul's amazing sights!"
+        
+        response = intro_text
+        response += f"\n\n📋 **{len(attractions)} Great Options:**\n"
+        
+        for i, attraction in enumerate(attractions[:5], 1):  # Show top 5 attractions
+            name = attraction.get('name', 'Unknown Attraction')
+            district = attraction.get('district', 'Istanbul')
+            category = attraction.get('category', '')
+            rating = attraction.get('rating', 0)
+            
+            response += f"\n**{i}. {name}**\n"
+            response += f"   📍 **Location:** {district}\n"
+            
+            if category:
+                response += f"   🏷️ **Type:** {category}\n"
+            
+            if rating and rating > 0:
+                stars = "⭐" * min(5, int(rating))
+                response += f"   {stars} **Rating:** {rating}/5\n"
+            
+            # Add brief description if available
+            description = attraction.get('description', '')
+            if description and len(description) > 10:
+                desc_preview = description[:80] + "..." if len(description) > 80 else description
+                response += f"   📝 {desc_preview}\n"
+        
+        # Add helpful tips
+        response += f"\n\n💡 **Tips:**"
+        response += f"\n• Check opening hours before visiting"
+        response += f"\n• Consider getting the Museum Pass Istanbul for discounts"
+        response += f"\n• Visit early in the day to avoid crowds"
+        
+        if len(attractions) > 5:
+            response += f"\n\n📝 *Showing 5 of {len(attractions)} total attractions*"
+        
+        return response
