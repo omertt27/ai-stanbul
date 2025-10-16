@@ -474,6 +474,10 @@ class EnhancedMuseumRoutePlanner:
         budget_tl = preferences.get("budget_tl", 1000)
         accessibility_needed = preferences.get("accessibility_needed", False)
         
+        # District/Neighborhood filtering
+        preferred_districts = preferences.get("districts", [])
+        preferred_neighborhoods = preferences.get("neighborhoods", [])
+        
         # Interest-based filtering
         interest_mapping = {
             "history": [MuseumCategory.ARCHAEOLOGICAL, MuseumCategory.HISTORY, MuseumCategory.PALACE],
@@ -490,6 +494,20 @@ class EnhancedMuseumRoutePlanner:
         candidates = []
         for museum in self.museums.values():
             score = 0
+            
+            # District/Neighborhood preference (high priority)
+            district_match = not preferred_districts or museum.district.lower() in [d.lower() for d in preferred_districts]
+            neighborhood_match = not preferred_neighborhoods or museum.neighborhood.lower() in [n.lower() for n in preferred_neighborhoods]
+            
+            if not district_match and preferred_districts:
+                continue  # Skip museums not in preferred districts
+            if not neighborhood_match and preferred_neighborhoods:
+                continue  # Skip museums not in preferred neighborhoods
+                
+            if district_match and preferred_districts:
+                score += 5  # Bonus for district match
+            if neighborhood_match and preferred_neighborhoods:
+                score += 3  # Bonus for neighborhood match
             
             # Interest match
             if museum.category in target_categories:
@@ -517,7 +535,13 @@ class EnhancedMuseumRoutePlanner:
         candidates.sort(key=lambda x: x[1], reverse=True)
         selected = [museum for museum, score in candidates[:max_museums]]
         
+        districts_selected = list(set(m.district for m in selected))
+        neighborhoods_selected = list(set(m.neighborhood for m in selected))
+        
         logger.info(f"📍 Selected {len(selected)} museums based on preferences")
+        logger.info(f"🏛️ Districts covered: {', '.join(districts_selected)}")
+        logger.info(f"🏘️ Neighborhoods covered: {', '.join(neighborhoods_selected)}")
+        
         return selected
     
     def _optimize_museum_route(
@@ -672,6 +696,138 @@ class EnhancedMuseumRoutePlanner:
             return "spring"
         else:
             return "autumn"
+    
+    def get_available_districts(self) -> List[Dict[str, Any]]:
+        """Get all available districts with museum counts"""
+        district_info = {}
+        
+        for museum in self.museums.values():
+            district = museum.district
+            if district not in district_info:
+                district_info[district] = {
+                    "name": district,
+                    "museum_count": 0,
+                    "neighborhoods": set(),
+                    "categories": set()
+                }
+            
+            district_info[district]["museum_count"] += 1
+            district_info[district]["neighborhoods"].add(museum.neighborhood)
+            district_info[district]["categories"].add(museum.category.value)
+        
+        # Convert sets to lists for JSON serialization
+        districts = []
+        for district_data in district_info.values():
+            districts.append({
+                "name": district_data["name"],
+                "museum_count": district_data["museum_count"],
+                "neighborhoods": list(district_data["neighborhoods"]),
+                "categories": list(district_data["categories"])
+            })
+        
+        return sorted(districts, key=lambda x: x["museum_count"], reverse=True)
+    
+    def get_available_neighborhoods(self, district: str = None) -> List[Dict[str, Any]]:
+        """Get all available neighborhoods, optionally filtered by district"""
+        neighborhood_info = {}
+        
+        for museum in self.museums.values():
+            if district and museum.district.lower() != district.lower():
+                continue
+                
+            neighborhood = museum.neighborhood
+            key = f"{museum.district}_{neighborhood}"
+            
+            if key not in neighborhood_info:
+                neighborhood_info[key] = {
+                    "name": neighborhood,
+                    "district": museum.district,
+                    "museum_count": 0,
+                    "categories": set()
+                }
+            
+            neighborhood_info[key]["museum_count"] += 1
+            neighborhood_info[key]["categories"].add(museum.category.value)
+        
+        # Convert sets to lists for JSON serialization
+        neighborhoods = []
+        for neighborhood_data in neighborhood_info.values():
+            neighborhoods.append({
+                "name": neighborhood_data["name"],
+                "district": neighborhood_data["district"],
+                "museum_count": neighborhood_data["museum_count"],
+                "categories": list(neighborhood_data["categories"])
+            })
+        
+        return sorted(neighborhoods, key=lambda x: x["museum_count"], reverse=True)
+    
+    def get_museums_by_district(self, district: str) -> List[Dict[str, Any]]:
+        """Get all museums in a specific district"""
+        district_museums = []
+        
+        for museum in self.museums.values():
+            if museum.district.lower() == district.lower():
+                district_museums.append({
+                    "id": museum.id,
+                    "name": museum.name,
+                    "neighborhood": museum.neighborhood,
+                    "category": museum.category.value,
+                    "coordinates": museum.coordinates,
+                    "visit_duration_minutes": museum.visit_duration_minutes,
+                    "entry_fee_tl": museum.entry_fee_tl,
+                    "tourist_rating": museum.tourist_rating,
+                    "local_rating": museum.local_rating,
+                    "cultural_significance": museum.cultural_significance
+                })
+        
+        return sorted(district_museums, key=lambda x: x["cultural_significance"], reverse=True)
+    
+    async def create_district_focused_route(
+        self,
+        district: str,
+        preferences: Dict[str, Any] = None,
+        duration_hours: float = 4.0
+    ) -> Dict[str, Any]:
+        """Create a route focused on a specific district"""
+        
+        if preferences is None:
+            preferences = {}
+        
+        # Add district constraint to preferences
+        preferences["districts"] = [district]
+        
+        logger.info(f"🏛️ Creating district-focused route for {district}")
+        
+        # Get district-specific museums
+        district_museums = [
+            museum for museum in self.museums.values() 
+            if museum.district.lower() == district.lower()
+        ]
+        
+        if not district_museums:
+            return {
+                "error": f"No museums found in district: {district}",
+                "available_districts": [d["name"] for d in self.get_available_districts()]
+            }
+        
+        # Create route using standard method with district constraint
+        route = await self.create_museum_route(preferences, duration_hours=duration_hours)
+        
+        # Add district-specific information
+        route["district_focus"] = district
+        route["district_coverage"] = {
+            "total_museums_in_district": len(district_museums),
+            "museums_in_route": len(route.get("museums", [])),
+            "coverage_percentage": (len(route.get("museums", [])) / len(district_museums)) * 100
+        }
+        
+        # Add district-specific transportation tips
+        district_transport_tips = self.local_knowledge.get("transportation_tips", {})
+        district_key = f"{district.lower()}_area"
+        if district_key in district_transport_tips:
+            route["district_transport_tips"] = district_transport_tips[district_key]
+        
+        return route
 
 # Usage example
 async def main():

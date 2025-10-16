@@ -69,6 +69,8 @@ class IntentType(Enum):
     HIDDEN_GEM = "hidden_gem"
     EVENTS_QUERY = "events_query"
     CULTURAL_EVENTS = "cultural_events"
+    # Museum route planning specific intent
+    MUSEUM_ROUTE_PLANNING = "museum_route_planning"
 
 @dataclass
 @dataclass
@@ -449,7 +451,8 @@ class MultiIntentQueryHandler:
         # Intent relationships and dependencies
         self.intent_dependencies = {
             IntentType.ROUTE_PLANNING: [IntentType.LOCATION_SEARCH],
-            IntentType.COMPARISON: [IntentType.RECOMMENDATION, IntentType.INFORMATION_REQUEST]
+            IntentType.COMPARISON: [IntentType.RECOMMENDATION, IntentType.INFORMATION_REQUEST],
+            IntentType.MUSEUM_ROUTE_PLANNING: [IntentType.LOCATION_SEARCH, IntentType.RECOMMENDATION]
         }
         
         # Query complexity indicators
@@ -950,7 +953,9 @@ class MultiIntentQueryHandler:
             IntentType.HIDDEN_GEM: "suggest_hidden_gems",
             # Events-specific actions
             IntentType.EVENTS_QUERY: "search_events",
-            IntentType.CULTURAL_EVENTS: "search_cultural_events"
+            IntentType.CULTURAL_EVENTS: "search_cultural_events",
+            # Museum route planning action
+            IntentType.MUSEUM_ROUTE_PLANNING: "plan_museum_route"
         }
         
         return actions.get(intent.type, "general_response")
@@ -1055,7 +1060,9 @@ class MultiIntentQueryHandler:
             'hidden_gem': "💎 Everyone loves a hidden gem! Here are some lesser-known but amazing places to check out in Istanbul:",
             # Events-specific templates  
             'events_query': "🎭 There's always something exciting happening in Istanbul! Here are current events and cultural activities:",
-            'cultural_events': "🎨 Istanbul's cultural scene is vibrant! Here are current İKSV and cultural events you might enjoy:"
+            'cultural_events': "🎨 Istanbul's cultural scene is vibrant! Here are current İKSV and cultural events you might enjoy:",
+            # Museum route planning template
+            'museum_route_planning': "🏛️ Let me create the perfect museum tour for you! Here's an optimized route based on your preferences:"
         }
         
         return templates
@@ -1148,7 +1155,9 @@ class MultiIntentQueryHandler:
             IntentType.HIDDEN_GEM: "Istanbul is full of hidden gems. Be sure to explore some lesser-known spots for a unique experience.",
             # Events-specific tips
             IntentType.EVENTS_QUERY: "Events in Istanbul are always changing! Check venue websites for the latest schedules and booking information.",
-            IntentType.CULTURAL_EVENTS: "İKSV events are very popular - I recommend booking tickets in advance, especially for weekend performances."
+            IntentType.CULTURAL_EVENTS: "İKSV events are very popular - I recommend booking tickets in advance, especially for weekend performances.",
+            # Museum route planning tip
+            IntentType.MUSEUM_ROUTE_PLANNING: "For the best museum experience, start early in the day and consider getting the Museum Pass Istanbul for discounts and skip-the-line access!"
         }
         
         return tips.get(primary_intent, "Feel free to ask me anything else about Istanbul's amazing food scene!")
@@ -1423,202 +1432,229 @@ class MultiIntentQueryHandler:
             'total_count': len(all_hidden)
         }
     
-    def _handle_events_query(self, query: str) -> Dict[str, Any]:
-        """Handle general events queries"""
+    def _handle_museum_route_planning(self, query: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle museum route planning queries with enhanced planner"""
         
-        if not IKSV_EVENTS_AVAILABLE or not self.events_system:
+        if not MUSEUM_ROUTE_PLANNER_AVAILABLE or not self.museum_route_planner:
             return {
                 'status': 'error',
-                'message': 'İKSV Events system not available',
-                'events': []
+                'message': 'Museum Route Planner system not available',
+                'route': None,
+                'museums': []
             }
         
         try:
-            # Get cached events
-            cached_events = get_cached_events()
+            # Extract parameters from query and intent parameters
+            district = parameters.get('district')
+            neighborhood = parameters.get('neighborhood')
+            duration_hours = parameters.get('duration_hours', 4)  # Default 4 hours
+            interests = parameters.get('interests', [])
+            accessibility_required = parameters.get('accessibility_required', False)
+            budget_level = parameters.get('budget_level', 'medium')
             
-            if not cached_events and check_if_fetch_needed():
-                # Try to fetch fresh events if needed
-                try:
-                    import asyncio
-                    fresh_events = asyncio.run(fetch_monthly_events())
-                    if fresh_events:
-                        cached_events = fresh_events
-                except Exception as e:
-                    logger.warning(f"Failed to fetch fresh events: {e}")
+            # Parse additional parameters from query text
+            extracted_params = self._extract_museum_route_parameters(query)
             
-            if not cached_events:
+            # Merge extracted parameters (query-derived takes precedence)
+            district = extracted_params.get('district', district)
+            neighborhood = extracted_params.get('neighborhood', neighborhood)
+            duration_hours = extracted_params.get('duration_hours', duration_hours)
+            interests.extend(extracted_params.get('interests', []))
+            accessibility_required = extracted_params.get('accessibility_required', accessibility_required)
+            budget_level = extracted_params.get('budget_level', budget_level)
+            
+            # Remove duplicates from interests
+            interests = list(set(interests)) if interests else []
+            
+            # Create route using enhanced planner
+            if district or neighborhood:
+                # District/neighborhood-specific routing
+                route_result = self.museum_route_planner.create_district_route(
+                    district=district,
+                    neighborhood=neighborhood,
+                    duration_hours=duration_hours,
+                    interests=interests,
+                    accessibility_required=accessibility_required,
+                    budget_level=budget_level
+                )
+            else:
+                # General route planning
+                route_result = self.museum_route_planner.create_optimized_route(
+                    duration_hours=duration_hours,
+                    interests=interests,
+                    accessibility_required=accessibility_required,
+                    budget_level=budget_level
+                )
+            
+            if route_result and route_result.get('success', False):
                 return {
-                    'status': 'no_events',
-                    'message': 'No current İKSV events available',
-                    'events': []
+                    'status': 'success',
+                    'message': f'Created {duration_hours}-hour museum route with {len(route_result.get("museums", []))} museums',
+                    'route': route_result,
+                    'museums': route_result.get('museums', []),
+                    'parameters': {
+                        'district': district,
+                        'neighborhood': neighborhood,
+                        'duration_hours': duration_hours,
+                        'interests': interests,
+                        'accessibility_required': accessibility_required,
+                        'budget_level': budget_level
+                    }
                 }
-            
-            # Filter events based on query keywords
-            relevant_events = self._filter_events_by_query(cached_events, query)
-            
-            return {
-
-                'status': 'success',
-                'message': f'Found {len(relevant_events)} İKSV events',
-                'events': [self._format_event_response(event) for event in relevant_events[:5]],
-                'total_count': len(relevant_events),
-                'source': 'İKSV Monthly Events'
-            }
-            
+            else:
+                error_msg = route_result.get('message', 'Unable to create route') if route_result else 'Route planning failed'
+                return {
+                    'status': 'error',
+                    'message': error_msg,
+                    'route': None,
+                    'museums': []
+                }
+                
         except Exception as e:
-            logger.error(f"Error handling events query: {e}")
+            logger.error(f"Error in museum route planning: {e}")
             return {
                 'status': 'error',
-                'message': f'Error processing events: {str(e)}',
-                'events': []
+                'message': f'Museum route planning error: {str(e)}',
+                'route': None,
+                'museums': []
             }
     
-    def _handle_cultural_events_query(self, query: str) -> Dict[str, Any]:
-        """Handle cultural events specific queries"""
+    def _extract_museum_route_parameters(self, query: str) -> Dict[str, Any]:
+        """Extract museum route planning parameters from query text"""
         
-        if not IKSV_EVENTS_AVAILABLE or not self.events_system:
-            return {
-                'status': 'error',
-                'message': 'İKSV Events system not available',
-                'events': []
-            }
-        
-        try:
-            # Get cached events
-            cached_events = get_cached_events()
-            
-            if not cached_events:
-                return {
-                    'status': 'no_events',
-                    'message': 'No current İKSV cultural events available',
-                    'events': []
-                }
-            
-            # Filter for cultural events (theater, concerts, exhibitions, etc.)
-            cultural_keywords = ['concert', 'theatre', 'theater', 'ballet', 'opera', 'dance', 
-                               'exhibition', 'art', 'cultural', 'festival', 'performance', 'show']
-            
-            cultural_events = []
-            for event in cached_events:
-                event_text = (event.get('title', '') + ' ' + event.get('description', '')).lower()
-                if any(keyword in event_text for keyword in cultural_keywords):
-                    cultural_events.append(event)
-            
-            return {
-                'status': 'success',
-                'message': f'Found {len(cultural_events)} İKSV cultural events',
-                'events': [self._format_event_response(event) for event in cultural_events[:5]],
-                'total_count': len(cultural_events),
-                'source': 'İKSV Cultural Events'
-            }
-            
-        except Exception as e:
-            logger.error(f"Error handling cultural events query: {e}")
-            return {
-                'status': 'error',  
-                'message': f'Error processing cultural events: {str(e)}',
-                'events': []
-            }
-    
-    def _filter_events_by_query(self, events: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
-        """Filter events based on query keywords"""
-        
+        parameters = {}
         query_lower = query.lower()
-        relevant_events = []
         
-        # Extract keywords from query
-        event_keywords = ['concert', 'show', 'performance', 'exhibition', 'festival', 
-                         'theatre', 'theater', 'ballet', 'opera', 'dance', 'art', 'music']
+        # Extract duration information
+        duration_patterns = [
+            (r'(\d+)\s*hours?', lambda m: int(m.group(1))),
+            (r'(\d+)\s*hrs?', lambda m: int(m.group(1))),
+            (r'half\s+day', lambda m: 4),
+            (r'full\s+day', lambda m: 8),
+            (r'morning', lambda m: 3),
+            (r'afternoon', lambda m: 4),
+            (r'all\s+day', lambda m: 8),
+            (r'whole\s+day', lambda m: 8)
+        ]
         
-        venue_keywords = ['zorlu', 'psm', 'akm', 'atatürk', 'cultural', 'center', 'salon']
+        for pattern, extractor in duration_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                try:
+                    parameters['duration_hours'] = extractor(match)
+                    break
+                except (ValueError, AttributeError):
+                    continue
         
-        for event in events:
-            relevance_score = 0
-            event_text = (event.get('title', '') + ' ' + event.get('description', '') + 
-                         ' ' + event.get('venue', '')).lower()
-            
-            # Check for event type keywords
-            for keyword in event_keywords:
-                if keyword in query_lower and keyword in event_text:
-                    relevance_score += 2
-            
-            # Check for venue keywords
-            for keyword in venue_keywords:
-                if keyword in query_lower and keyword in event_text:
-                    relevance_score += 1
-            
-            # Check for general event terms
-            if any(term in event_text for term in ['event', 'show', 'performance']):
-                relevance_score += 1
-            
-            # Include events with relevance score > 0 or if query is very general
-            if relevance_score > 0 or len(query_lower.split()) <= 3:
-                event['relevance_score'] = relevance_score
-                relevant_events.append(event)
+        # Extract district/neighborhood information
+        district_patterns = [
+            r'\b(fatih|beyoğlu|sultanahmet|karaköy|galata|eminönü|beşiktaş|kadıköy|üsküdar)\b',
+            r'\bin\s+(\w+)\s+(district|neighborhood|area)\b'
+        ]
         
-        # Sort by relevance score
-        relevant_events.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
+        for pattern in district_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                district_name = match.group(1).title()
+                if district_name.lower() in ['fatih', 'beyoğlu', 'sultanahmet', 'karaköy', 'galata', 'eminönü']:
+                    parameters['district'] = district_name
+                    break
         
-        return relevant_events
-    
-    def _format_event_response(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """Format event data for response"""
-        
-        return {
-            'title': event.get('title', 'Untitled Event'),
-            'venue': event.get('venue', 'İKSV Venue'),
-            'date_str': event.get('date_str', 'Date TBA'),
-            'description': event.get('description', ''),
-            'category': event.get('category', 'Cultural Event'),
-            'price': event.get('price', 'Price varies'),
-            'booking_info': event.get('booking_info', 'Contact venue for booking'),
-            'venue_district': self._get_venue_district(event.get('venue', '')),
-            'event_type': self._classify_event_type(event),
-            'relevance_score': event.get('relevance_score', 0)
-        }
-    
-    def _get_venue_district(self, venue_name: str) -> str:
-        """Get district for a venue name"""
-        
-        venue_districts = {
-            'zorlu psm': 'Beşiktaş',
-            'zorlu psm turkcell stage': 'Beşiktaş', 
-            'zorlu psm turkcell platinum stage': 'Beşiktaş',
-            'salon iksv': 'Beyoğlu',
-            'salon İKSV': 'Beyoğlu',
-            'harbiye muhsin ertuğrul stage': 'Şişli',
-            'cemal reşit rey concert hall': 'Şişli',
-            'lütfi kırdar convention center': 'Şişli',
-            'atatürk cultural center': 'Beyoğlu',
-            'akm': 'Beyoğlu',
-            '29th istanbul theatre festival': 'İstanbul',
-            'iksv venue': 'İstanbul',
-            'multiple venues': 'İstanbul'
+        # Extract interests/categories
+        interest_keywords = {
+            'art': ['art', 'artistic', 'contemporary', 'modern', 'painting', 'sculpture'],
+            'history': ['history', 'historical', 'historic', 'ancient', 'past'],
+            'archaeology': ['archaeological', 'archaeology', 'ancient', 'excavation', 'artifacts'],
+            'byzantine': ['byzantine', 'byzantium', 'christian', 'orthodox'],
+            'ottoman': ['ottoman', 'imperial', 'palace', 'sultan'],
+            'turkish': ['turkish', 'turkey', 'anatolian', 'cultural'],
+            'religious': ['religious', 'mosque', 'church', 'sacred', 'spiritual'],
+            'palace': ['palace', 'royal', 'imperial', 'residence']
         }
         
-        venue_key = venue_name.lower().strip()
-        return venue_districts.get(venue_key, 'İstanbul')
-    
-    def _classify_event_type(self, event: Dict[str, Any]) -> str:
-        """Classify event type based on title and description"""
+        interests = []
+        for interest, keywords in interest_keywords.items():
+            if any(keyword in query_lower for keyword in keywords):
+                interests.append(interest)
         
-        event_text = (event.get('title', '') + ' ' + event.get('description', '')).lower()
+        if interests:
+            parameters['interests'] = interests
         
-        if any(term in event_text for term in ['concert', 'music', 'symphony', 'orchestra']):
-            return 'Concert'
-        elif any(term in event_text for term in ['theatre', 'theater', 'play', 'drama']):
-            return 'Theatre'
-        elif any(term in event_text for term in ['ballet', 'dance', 'choreography']):
-            return 'Dance'
-        elif any(term in event_text for term in ['opera', 'operetta']):
-            return 'Opera'
-        elif any(term in event_text for term in ['exhibition', 'gallery', 'art', 'painting']):
-            return 'Exhibition'
-        elif any(term in event_text for term in ['festival', 'celebration']):
-            return 'Festival'
+        # Extract accessibility requirements
+        accessibility_keywords = ['wheelchair', 'accessible', 'disability', 'mobility', 'handicap']
+        if any(keyword in query_lower for keyword in accessibility_keywords):
+            parameters['accessibility_required'] = True
+        
+        # Extract budget preferences
+        if any(word in query_lower for word in ['cheap', 'budget', 'free', 'low cost']):
+            parameters['budget_level'] = 'low'
+        elif any(word in query_lower for word in ['expensive', 'luxury', 'premium', 'high end']):
+            parameters['budget_level'] = 'high'
         else:
-            return 'Cultural Event'
+            parameters['budget_level'] = 'medium'  # Default
+        
+        return parameters
+    
+    def _format_museum_route_response(self, route_data: Dict[str, Any], intro_text: str) -> str:
+        """Format museum route planning response"""
+        
+        if route_data.get('status') == 'error':
+            return f"{intro_text}\n\n❌ Sorry, I'm having trouble creating your museum route right now. {route_data.get('message', 'Please try again later.')}"
+        
+        route = route_data.get('route', {})
+        museums = route_data.get('museums', [])
+        parameters = route_data.get('parameters', {})
+        
+        if not museums:
+            return f"{intro_text}\n\n🔍 I couldn't create a museum route with your current criteria. Try adjusting your preferences or duration."
+        
+        response = intro_text
+        response += f"\n\n🎯 **Route Summary:**"
+        response += f"\n• **Duration:** {parameters.get('duration_hours', 4)} hours"
+        response += f"\n• **Museums:** {len(museums)} selected"
+        
+        if parameters.get('district'):
+            response += f"\n• **District:** {parameters.get('district')}"
+        if parameters.get('interests'):
+            response += f"\n• **Interests:** {', '.join(parameters.get('interests', []))}"
+        
+        response += f"\n\n📋 **Your Museum Route:**\n"
+        
+        for i, museum in enumerate(museums[:8], 1):  # Show up to 8 museums
+            name = museum.get('name', 'Unknown Museum')
+            district = museum.get('district', 'Istanbul')
+            visit_duration = museum.get('recommended_duration', 60)
+            
+            response += f"\n**{i}. {name}**\n"
+            response += f"   📍 **Location:** {district}\n"
+            response += f"   ⏱️ **Visit Time:** {visit_duration} minutes\n"
+            
+            # Add brief description if available
+            description = museum.get('description', '')
+            if description and len(description) > 10:
+                desc_preview = description[:80] + "..." if len(description) > 80 else description
+                response += f"   📝 {desc_preview}\n"
+        
+        # Add route information if available
+        if route.get('total_travel_time'):
+            response += f"\n\n🚶 **Route Details:**"
+            response += f"\n• **Total Travel Time:** {route.get('total_travel_time', 'N/A')}"
+            response += f"\n• **Transportation:** {route.get('transportation_method', 'Walking + Public Transport')}"
+        
+        # Add helpful tips
+        response += f"\n\n💡 **Tips for Your Museum Tour:**"
+        response += f"\n• Start early to make the most of your time"
+        response += f"\n• Consider getting the Museum Pass Istanbul for discounts"
+        response += f"\n• Check opening hours before visiting each museum"
+        response += f"\n• Allow extra time for popular museums during peak season"
+        
+        if route.get('estimated_cost'):
+            response += f"\n• **Estimated Total Cost:** {route.get('estimated_cost')}"
+        
+        if len(museums) > 8:
+            response += f"\n\n📝 *Showing 8 of {len(museums)} museums in your route*"
+        
+        return response
     
     def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> Optional[Any]:
         """Create learning context for deep learning system"""
@@ -1650,55 +1686,6 @@ class MultiIntentQueryHandler:
                 return rule_based_intents
         
         return rule_based_intents
-    
-    def _prioritize_intents(self, intents: List[Intent]) -> Tuple[Intent, List[Intent]]:
-        """Prioritize intents and separate primary from secondary"""
-        
-        if not intents:
-            # Create a default general intent
-            default_intent = Intent(
-                type=IntentType.INFORMATION_REQUEST,
-                confidence=0.5,
-                parameters={},
-                text_span=(0, 0),
-                priority=1
-            )
-            return default_intent, []
-        
-        # Sort by priority (lower number = higher priority) and confidence
-        sorted_intents = sorted(intents, key=lambda x: (x.priority, -x.confidence))
-        
-        primary_intent = sorted_intents[0]
-        secondary_intents = sorted_intents[1:5]  # Limit to top 5 secondary intents
-        
-        return primary_intent, secondary_intents
-    
-    def _calculate_overall_confidence(self, intents: List[Intent]) -> float:
-        """Calculate overall confidence score for the analysis"""
-        
-        if not intents:
-            return 0.0
-        
-        # Weight the confidence by intent priority
-        total_weighted_confidence = 0
-        total_weight = 0
-        
-        for intent in intents:
-            weight = 1.0 / intent.priority  # Higher priority = higher weight
-            total_weighted_confidence += intent.confidence * weight
-            total_weight += weight
-        
-        return total_weighted_confidence / total_weight if total_weight > 0 else 0.0
-    
-    def _determine_processing_strategy(self, complexity: float, intent_count: int) -> str:
-        """Determine the processing strategy based on complexity and intent count"""
-        
-        if complexity > 0.8 or intent_count > 3:
-            return "complex_multi_step"
-        elif complexity > 0.5 or intent_count > 1:
-            return "standard_multi_intent"
-        else:
-            return "simple_single_intent"
     
     def _execute_intent_handlers(self, result: MultiIntentResult) -> Optional[str]:
         """Execute actual intent handlers to get real data and format response"""
@@ -1737,115 +1724,14 @@ class MultiIntentQueryHandler:
                 gem_data = self._handle_hidden_gem_query(result.original_query if hasattr(result, 'original_query') else "")
                 return self._format_attraction_response_text(gem_data, "💎 Here are some hidden gems you'll love discovering:")
             
+            # Handle museum route planning intent with enhanced planner
+            elif intent_type == IntentType.MUSEUM_ROUTE_PLANNING:
+                route_data = self._handle_museum_route_planning(result.original_query if hasattr(result, 'original_query') else "", primary_intent.parameters)
+                return self._format_museum_route_response(route_data, "🏛️ Here's your optimized museum route plan:")
+            
             # For other intents, return None to use template-based responses
             return None
             
         except Exception as e:
             logger.error(f"Error executing intent handlers: {e}")
             return None
-
-    def _format_events_response(self, events_data: Dict[str, Any], intro_text: str) -> str:
-        """Format events data into a readable response"""
-        
-        if events_data.get('status') == 'error':
-            return f"{intro_text}\n\n❌ Sorry, I'm having trouble accessing event information right now. Please try again later."
-        
-        if events_data.get('status') == 'no_events' or not events_data.get('events'):
-            return f"{intro_text}\n\n📅 I don't see any current events available at the moment. Events are updated regularly, so please check back soon!"
-        
-        events = events_data.get('events', [])
-        response = intro_text
-        
-        # Add events information
-        response += f"\n\n📋 **{len(events)} Events Found:**\n"
-        
-        for i, event in enumerate(events[:5], 1):  # Show top 5 events
-            title = event.get('title', 'Untitled Event')
-            venue = event.get('venue', 'İKSV Venue')
-            date_str = event.get('date_str', 'Date TBA')
-            description = event.get('description', '')
-            
-            response += f"\n**{i}. {title}**\n"
-            response += f"   📍 **Venue:** {venue}\n"
-            response += f"   📅 **Date:** {date_str}\n"
-            
-            if description and len(description) > 10:
-                # Truncate long descriptions
-                desc_preview = description[:100] + "..." if len(description) > 100 else description
-                response += f"   📝 **About:** {desc_preview}\n"
-        
-        # Add helpful information
-        response += f"\n\n💡 **Tips:**"
-        response += f"\n• Book tickets early as İKSV events are very popular"
-        response += f"\n• Check venue websites for the latest schedules"
-        response += f"\n• Consider arriving early for better seating"
-        
-        if len(events) > 5:
-            response += f"\n\n📝 *Showing 5 of {len(events)} total events*"
-        
-        return response
-
-    def _format_attraction_response(self, attraction) -> Dict[str, Any]:
-        """Format individual attraction data for response"""
-        
-        return {
-            'name': getattr(attraction, 'name', 'Unknown Attraction'),
-            'district': getattr(attraction, 'district', 'Istanbul'),
-            'category': getattr(attraction, 'category', 'Attraction').value if hasattr(getattr(attraction, 'category', None), 'value') else str(getattr(attraction, 'category', 'Attraction')),
-            'rating': getattr(attraction, 'user_rating', 0),
-            'description': getattr(attraction, 'description', ''),
-            'cultural_significance': getattr(attraction, 'cultural_significance', []),
-            'visiting_hours': getattr(attraction, 'visiting_hours', {}),
-            'location': {
-                'latitude': getattr(attraction, 'latitude', 0),
-                'longitude': getattr(attraction, 'longitude', 0)
-            },
-            'accessibility': getattr(attraction, 'accessibility_features', []),
-            'entrance_fee': getattr(attraction, 'entrance_fee', 'Varies')
-        }
-    
-    def _format_attraction_response_text(self, attraction_data: Dict[str, Any], intro_text: str) -> str:
-        """Format attraction data into a readable response"""
-        
-        if attraction_data.get('status') == 'error':
-            return f"{intro_text}\n\n❌ Sorry, I'm having trouble accessing attraction information right now. Please try again later."
-        
-        attractions = attraction_data.get('attractions', [])
-        if not attractions:
-            return f"{intro_text}\n\n🔍 I couldn't find specific attractions matching your request, but I'd be happy to help you explore Istanbul's amazing sights!"
-        
-        response = intro_text
-        response += f"\n\n📋 **{len(attractions)} Great Options:**\n"
-        
-        for i, attraction in enumerate(attractions[:5], 1):  # Show top 5 attractions
-            name = attraction.get('name', 'Unknown Attraction')
-            district = attraction.get('district', 'Istanbul')
-            category = attraction.get('category', '')
-            rating = attraction.get('rating', 0)
-            
-            response += f"\n**{i}. {name}**\n"
-            response += f"   📍 **Location:** {district}\n"
-            
-            if category:
-                response += f"   🏷️ **Type:** {category}\n"
-            
-            if rating and rating > 0:
-                stars = "⭐" * min(5, int(rating))
-                response += f"   {stars} **Rating:** {rating}/5\n"
-            
-            # Add brief description if available
-            description = attraction.get('description', '')
-            if description and len(description) > 10:
-                desc_preview = description[:80] + "..." if len(description) > 80 else description
-                response += f"   📝 {desc_preview}\n"
-        
-        # Add helpful tips
-        response += f"\n\n💡 **Tips:**"
-        response += f"\n• Check opening hours before visiting"
-        response += f"\n• Consider getting the Museum Pass Istanbul for discounts"
-        response += f"\n• Visit early in the day to avoid crowds"
-        
-        if len(attractions) > 5:
-            response += f"\n\n📝 *Showing 5 of {len(attractions)} total attractions*"
-        
-        return response
