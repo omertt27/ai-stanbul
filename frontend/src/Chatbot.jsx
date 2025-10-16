@@ -6,6 +6,7 @@ import NavBar from './components/NavBar';
 import SearchBar from './components/SearchBar';
 import MobileOptimizer from './components/MobileOptimizer';
 import LocationPermissionModal from './components/LocationPermissionModal';
+import GPSLocationStatus from './components/GPSLocationStatus';
 import { 
   TypingSimulator, 
   StreamingText, 
@@ -1482,18 +1483,27 @@ function Chatbot() {
       }`} style={{
         background: isMobile ? '#1a1a1a' : undefined,
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        height: '100vh',
+        maxHeight: '100vh'
       }}>
         <div className="chatbot-purple-box" style={{
           background: isMobile ? '#1a1a1a' : undefined,
           border: isMobile ? 'none' : undefined,
-          paddingTop: isMobile ? '3rem' : '0'
+          paddingTop: isMobile ? '3rem' : '0',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          maxHeight: '100vh'
         }}>
 
-          {/* Chat Messages Area - Simple on mobile */}
+          {/* Chat Messages Area - Fixed height with scroll */}
           <div className="chatbot-messages chatbot-scrollable" style={{
             background: isMobile ? '#1a1a1a' : undefined,
-            padding: isMobile ? '0.5rem' : undefined
+            padding: isMobile ? '0.5rem' : undefined,
+            flex: 1,
+            overflowY: 'auto',
+            paddingBottom: '20px'
           }}>
           
           {/* Welcome Screen - Simple on mobile */}
@@ -1526,6 +1536,11 @@ function Chatbot() {
                   Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
                 </p>
               )}
+              
+              {/* GPS Location Status */}
+              <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', maxWidth: '600px', width: '100%' }}>
+                <GPSLocationStatus />
+              </div>
               
               {/* Quick suggestions - simplified for mobile */}
               {!isMobile && (
@@ -1740,8 +1755,18 @@ function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
           
-          {/* Redesigned Input Area - Modern and Elegant */}
-          <div className="chatbot-input-area">
+          {/* Fixed Input Area at Bottom - ChatGPT Style */}
+          <div className="chatbot-input-area" style={{
+            position: 'sticky',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: isMobile ? '#1a1a1a' : undefined,
+            borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : undefined,
+            padding: isMobile ? '12px' : '16px 20px',
+            zIndex: 10,
+            flexShrink: 0
+          }}>
           
           {/* Error message with improved styling */}
           {inputError && (

@@ -169,6 +169,24 @@ const LocationPermissionModal = ({ isOpen, onClose, onLocationSet }) => {
           {t('location.description', 'We need your location to provide better recommendations about Istanbul attractions, restaurants, and routes.')}
         </p>
         
+        {/* Error Display */}
+        {error && (
+          <div style={{
+            margin: '0 0 16px 0',
+            padding: '12px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            color: '#dc2626',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            {error.includes('permissions policy') 
+              ? 'Location access is restricted. Please enable location services in your browser settings or enter your location manually.'
+              : error}
+          </div>
+        )}
+        
         {!showManualEntry ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button

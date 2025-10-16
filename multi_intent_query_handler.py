@@ -81,6 +81,8 @@ class Intent:
     priority: int = 1  # 1=high, 2=medium, 3=low
     dependencies: List[str] = None  # Other intent IDs this depends on
     priority_score: float = 0.0  # Boosted score for prioritization (can exceed 1.0)
+
+@dataclass
 class MultiIntentResult:
     """Result of multi-intent analysis"""
     primary_intent: Intent

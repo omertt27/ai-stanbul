@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from './contexts/LocationContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+
 import SearchBar from './components/SearchBar';
 import ResultCard from './components/ResultCard';
 import InteractiveMainPage from './components/InteractiveMainPage';
@@ -12,12 +12,8 @@ import NavBar from './components/NavBar';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import MainPageMobileNavbar from './components/MainPageMobileNavbar';
 import LocationPermissionModal from './components/LocationPermissionModal';
-import LocationBasedButtons from './components/LocationBasedButtons';
-import GPSLocationStatus from './components/GPSLocationStatus';
-import { LocationResultsContainer, RestaurantCard, RouteCard } from './components/LocationResults';
 import RoutePlanningForm from './components/RoutePlanningForm';
-import NotificationPanel from './components/NotificationPanel';
-import NotificationTestPanel from './components/NotificationTestPanel';
+
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
@@ -77,8 +73,6 @@ const App = () => {
   // Location-based features state
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showRoutePlanning, setShowRoutePlanning] = useState(false);
-  const [locationResults, setLocationResults] = useState(null);
-  const [activeLocationFeature, setActiveLocationFeature] = useState(null);
 
   // Mobile utilities hook
   const { 
@@ -180,94 +174,10 @@ const App = () => {
     }
   };
 
-  const handleLocationFeature = async (featureType, userProvidedLocation) => {
-    setActiveLocationFeature(featureType);
-    
-    // Use current location from context or provided location
-    const locationToUse = userProvidedLocation || currentLocation;
-    
-    if (!locationToUse && featureType !== 'route') {
-      setShowLocationModal(true);
-      return;
-    }
-    
-    try {
-      if (featureType === 'restaurants') {
-        // Simulate restaurant search
-        const mockRestaurants = [
-          {
-            name: 'Pandeli Restaurant',
-            type: 'Ottoman Cuisine',
-            description: 'Historic restaurant serving traditional Ottoman dishes since 1901',
-            rating: 4.5,
-            distance: '0.3 km'
-          },
-          {
-            name: 'Hamdi Restaurant',
-            type: 'Turkish Kebab',
-            description: 'Famous for its lamb kebabs with views of the Golden Horn',
-            rating: 4.7,
-            distance: '0.5 km'
-          },
-          {
-            name: 'Balıkçı Sabahattin',
-            type: 'Seafood',
-            description: 'Traditional seafood restaurant in historic Ottoman house',
-            rating: 4.4,
-            distance: '0.7 km'
-          }
-        ];
-        setLocationResults({ type: 'restaurants', data: mockRestaurants });
-      } else if (featureType === 'route') {
-        setShowRoutePlanning(true);
-      } else if (featureType === 'attractions') {
-        // Simulate attractions search
-        const mockAttractions = [
-          {
-            name: 'Hagia Sophia',
-            type: 'Historic Site',
-            description: 'Byzantine cathedral and Ottoman mosque, now a museum',
-            rating: 4.8,
-            distance: '0.2 km'
-          },
-          {
-            name: 'Blue Mosque',
-            type: 'Religious Site',
-            description: 'Historic mosque known for its blue tiles and six minarets',
-            rating: 4.6,
-            distance: '0.4 km'
-          },
-          {
-            name: 'Topkapı Palace',
-            type: 'Palace Museum',
-            description: 'Former royal residence of Ottoman sultans',
-            rating: 4.5,
-            distance: '0.6 km'
-          }
-        ];
-        setLocationResults({ type: 'attractions', data: mockAttractions });
-      }
-    } catch (error) {
-      console.error('Location feature error:', error);
-    }
-  };
-
   const handleRouteRequest = async (routeData) => {
     try {
-      // Simulate route planning
-      const mockRoute = {
-        distance: '1.2 km',
-        duration: '15 min walk',
-        steps: [
-          'Head northeast on Alemdar Caddesi toward Babıhümayun Caddesi',
-          'Turn right onto Babıhümayun Caddesi',
-          'Continue straight for 400m',
-          'Turn left onto Galata Bridge',
-          'Destination will be on your right'
-        ]
-      };
-      setLocationResults({ type: 'route', data: [mockRoute] });
-      setActiveLocationFeature('route');
+      // Simulate route planning - route planning functionality moved to chat page
+      console.log('Route request:', routeData);
     } catch (error) {
       console.error('Route planning error:', error);
     }
@@ -327,17 +237,7 @@ const App = () => {
           paddingRight: isMobile || window.innerWidth <= 768 ? '1rem' : '2rem'
         }}>
           
-          {/* Desktop notification panel - fixed position top-right */}
-          {!(isMobile || window.innerWidth <= 768) && (
-            <div style={{
-              position: 'fixed',
-              top: '2rem',
-              right: '2rem',
-              zIndex: 1001
-            }}>
-              <NotificationPanel />
-            </div>
-          )}
+
 
           {/* Centered logo - Only show on desktop, mobile has navbar logo */}
           {!(isMobile || window.innerWidth <= 768) && (
@@ -391,67 +291,9 @@ const App = () => {
           
 
 
-          {/* GPS Location Status */}
-          {!expanded && (
-            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
-              <GPSLocationStatus />
-            </div>
-          )}
 
-          {/* Location-based Features */}
-          {!expanded && hasLocation && (
-            <div style={{ marginBottom: '2rem' }}>
-              <LocationBasedButtons onFeatureSelect={handleLocationFeature} />
-            </div>
-          )}
 
-          {/* Destination Input for Route Planning - Testing */}
-          {!expanded && hasLocation && (
-            <div style={{
-              padding: '0 20px',
-              marginBottom: '1rem'
-            }}>
-              <input
-                type="text"
-                placeholder="Where do you want to go?"
-                data-testid="destination-input"
-                style={{
-                  width: '100%',
-                  maxWidth: '400px',
-                  margin: '0 auto',
-                  display: 'block',
-                  padding: '12px 16px',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  outline: 'none',
-                  backdropFilter: 'blur(10px)',
-                  boxSizing: 'border-box'
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && e.target.value.trim()) {
-                    handleRouteRequest({
-                      from: userLocation,
-                      to: e.target.value,
-                      source: 'manual'
-                    });
-                    e.target.value = '';
-                  }
-                }}
-              />
-            </div>
-          )}
 
-          {/* Location Results */}
-          {locationResults && (
-            <LocationResultsContainer 
-              results={locationResults.data}
-              type={locationResults.type}
-              userLocation={currentLocation}
-            />
-          )}
 
           {/* Interactive Main Page Content - Show on all devices including mobile */}
           <div>
@@ -483,8 +325,7 @@ const App = () => {
         {/* PWA Install Button */}
         <InstallPWAButton />
 
-        {/* Notification Test Panel - Development Only */}
-        <NotificationTestPanel />
+
       </div>
     </WeatherThemeProvider>
   );

@@ -8,7 +8,8 @@ export default defineConfig({
     host: '0.0.0.0',
     strictPort: false,
     headers: {
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
+      'Permissions-Policy': 'geolocation=(self)'
     }
   },
   esbuild: {

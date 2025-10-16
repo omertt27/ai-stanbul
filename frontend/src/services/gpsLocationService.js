@@ -31,27 +31,36 @@ class GPSLocationService {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          this.currentPosition = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: new Date()
-          };
-          
-          this.lastKnownPosition = { ...this.currentPosition };
-          this.saveLastKnownPosition();
-          this.notifyLocationCallbacks(this.currentPosition);
-          
-          resolve(this.currentPosition);
-        },
-        (error) => {
-          this.notifyErrorCallbacks(error);
-          reject(this.handleGeolocationError(error));
-        },
-        this.options
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            this.currentPosition = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              timestamp: new Date()
+            };
+            
+            this.lastKnownPosition = { ...this.currentPosition };
+            this.saveLastKnownPosition();
+            this.notifyLocationCallbacks(this.currentPosition);
+            
+            resolve(this.currentPosition);
+          },
+          (error) => {
+            this.notifyErrorCallbacks(error);
+            reject(this.handleGeolocationError(error));
+          },
+          this.options
+        );
+      } catch (error) {
+        // Catch permissions policy errors that are thrown synchronously
+        if (error.message && error.message.includes('permissions policy')) {
+          reject(new Error('Geolocation has been disabled by permissions policy. Please enable location services or use manual location entry.'));
+        } else {
+          reject(error);
+        }
+      }
     });
   }
 
@@ -276,6 +285,11 @@ class GPSLocationService {
       2: 'Location information unavailable',
       3: 'Location request timeout'
     };
+
+    // Check for permissions policy error
+    if (error.message && error.message.includes('permissions policy')) {
+      return new Error('Geolocation has been disabled by permissions policy. Please enable location services or use manual location entry.');
+    }
 
     return new Error(errorMessages[error.code] || 'Unknown location error');
   }

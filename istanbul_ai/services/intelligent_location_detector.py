@@ -2029,3 +2029,43 @@ class IntelligentLocationDetector:
                 'is_free': False
             }
         ]
+    
+    def _find_nearest_osm_node(self, latitude: float, longitude: float) -> dict:
+        """Find the nearest OSM node to given coordinates"""
+        try:
+            # Simple implementation - in a real system this would query OSM data
+            # For now, return a mock node with the provided coordinates
+            return {
+                'id': f'node_{int(latitude * 1000000)}_{int(longitude * 1000000)}',
+                'lat': latitude,
+                'lon': longitude,
+                'distance': 0.0,
+                'tags': {}
+            }
+        except Exception as e:
+            self.logger.warning(f"Failed to find nearest OSM node: {e}")
+            return {
+                'id': 'unknown',
+                'lat': latitude,
+                'lon': longitude,
+                'distance': 0.0,
+                'tags': {}
+            }
+
+# Global detector instance
+intelligent_location_detector = IntelligentLocationDetector()
+
+async def detect_user_location(text: str, user_context: Optional[Dict] = None) -> LocationDetectionResult:
+    """
+    Detect user location from text input - main interface function
+    """
+    return await intelligent_location_detector.detect_location_from_text(text, user_context)
+        
+# Global detector instance
+intelligent_location_detector = IntelligentLocationDetector()
+
+async def detect_user_location(text: str, user_context: Optional[Dict] = None) -> LocationDetectionResult:
+    """
+    Detect user location from text input - main interface function
+    """
+    return await intelligent_location_detector.detect_location_from_text(text, user_context)

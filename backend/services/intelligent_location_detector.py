@@ -911,37 +911,85 @@ class IntelligentLocationDetector:
             
         return static_events
 
-    # Global instance
+    def _find_nearest_osm_node(self, latitude: float, longitude: float) -> dict:
+        """Find the nearest OSM node to given coordinates"""
+        try:
+            if ROUTE_MAKER_AVAILABLE:
+                # Try to use route maker service to find actual OSM data
+                route_maker = get_route_maker()
+                if hasattr(route_maker, 'available_districts'):
+                    min_distance = float('inf')
+                    nearest_node = None
+                    nearest_district = None
+                    
+                    for district_name, district_graph in route_maker.available_districts.items():
+                        nodes = list(district_graph.nodes(data=True))
+                        for node_id, node_data in nodes:
+                            if 'y' in node_data and 'x' in node_data:
+                                node_lat = node_data['y']
+                                node_lng = node_data['x']
+                                distance = self._calculate_distance(latitude, longitude, node_lat, node_lng)
+                                
+                                if distance < min_distance:
+                                    min_distance = distance
+                                    nearest_node = {
+                                        'id': str(node_id),
+                                        'lat': node_lat,
+                                        'lon': node_lng,
+                                        'distance_km': distance,
+                                        'district': district_name,
+                                        'tags': node_data.get('tags', {})
+                                    }
+                                    nearest_district = district_name
+                    
+                    if nearest_node:
+                        return nearest_node
+            
+            # Fallback: return a mock node with the provided coordinates
+            return {
+                'id': f'node_{int(latitude * 1000000)}_{int(longitude * 1000000)}',
+                'lat': latitude,
+                'lon': longitude,
+                'distance_km': 0.0,
+                'district': None,
+                'tags': {}
+            }
+        except Exception as e:
+            self.logger.warning(f"Failed to find nearest OSM node: {e}")
+            return {
+                'id': 'unknown',
+                'lat': latitude,
+                'lon': longitude,
+                'distance_km': 0.0,
+                'district': None,
+                'tags': {}
+            }
+
+    def _calculate_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """Calculate distance between two points using Haversine formula (in kilometers)"""
+        import math
+        
+        # Convert latitude and longitude from degrees to radians
+        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+        
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        c = 2 * math.asin(math.sqrt(a))
+        
+        # Radius of earth in kilometers
+        r = 6371
+        return c * r
+
+# Global detector instance
 intelligent_location_detector = IntelligentLocationDetector()
 
-async def detect_user_location(text: str, user_context: Optional[Dict] = None, ip_address: Optional[str] = None, include_events: bool = True) -> DetectedLocation:
+async def detect_user_location(text: str, user_context: Optional[Dict] = None) -> DetectedLocation:
     """
-    Main function to detect user location from various sources and nearby events
+    Detect user location from text input - main interface function
     """
-    detector = intelligent_location_detector
-    
-    # Try text-based detection first
-    location = await detector.detect_location_from_text(text, user_context)
-    
-    # If text detection failed and we have IP, try IP geolocation
-    if location.confidence == LocationConfidence.UNKNOWN and ip_address:
-        location = await detector.get_location_from_ip(ip_address)
-    
-    # Enhance location with nearby information
-    if location.latitude and location.longitude:
-        location = detector.enhance_location_with_nearby_info(location)
-        
-        # Find nearby events if requested
-        if include_events:
-            try:
-                nearby_events = await detector.find_nearby_events(location)
-                location.nearby_events = nearby_events
-                if nearby_events:
-                    detector.logger.info(f"🎭 Added {len(nearby_events)} nearby events to location")
-            except Exception as e:
-                detector.logger.warning(f"Error finding events: {e}")
-    
-    return location
+    return await intelligent_location_detector.detect_location_from_text(text, user_context)
 
 async def get_events_for_location(latitude: float, longitude: float, radius_km: float = 5.0) -> List[IstanbulEvent]:
     """

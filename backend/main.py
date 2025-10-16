@@ -907,6 +907,11 @@ if ADVANCED_UNDERSTANDING_AVAILABLE:
         print("  🧠 Semantic Similarity Engine: Ready")
         print("  🧠 Enhanced Context Memory: Ready")
         print("  🎯 Multi-Intent Query Handler: Ready")
+        
+        # Integrate with Istanbul Daily Talk AI System
+        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
+            istanbul_daily_talk_ai.multi_intent_handler = advanced_understanding.multi_intent_handler
+            print("✅ Multi-Intent Query Handler integrated with Istanbul Daily Talk AI")
     except Exception as e:
         print(f"⚠️ Failed to initialize Advanced Understanding System: {e}")
         ADVANCED_UNDERSTANDING_AVAILABLE = False

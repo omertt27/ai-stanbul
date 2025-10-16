@@ -1018,3 +1018,32 @@ What would you like to explore first? I'm here to make your Istanbul experience 
 • Shopping & entertainment""")
         
         return '\n'.join(response_parts)
+
+    def _enhance_intent_classification(self, user_input: str) -> str:
+        """Enhanced intent classification using ML-Enhanced Daily Talks Bridge"""
+        if self.daily_talks_bridge:
+            try:
+                # Use ML-Enhanced Daily Talks Bridge for intent classification
+                enhanced_result = self.daily_talks_bridge.enhance_query_understanding(user_input)
+                if enhanced_result and enhanced_result.get('intent'):
+                    return enhanced_result['intent']
+            except Exception as e:
+                logger.warning(f"ML-Enhanced intent classification failed: {e}")
+        
+        # Fallback to basic intent classification
+        user_input_lower = user_input.lower()
+        
+        # Restaurant/food related
+        if any(word in user_input_lower for word in ['restaurant', 'food', 'eat', 'meal', 'dinner', 'lunch', 'breakfast', 'hungry', 'cuisine']):
+            return 'restaurant_query'
+        
+        # Attraction/sightseeing related
+        if any(word in user_input_lower for word in ['visit', 'see', 'attraction', 'museum', 'mosque', 'palace', 'tower', 'bridge', 'sight']):
+            return 'attraction_query'
+        
+        # Transportation related
+        if any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'taxi', 'ferry', 'tram', 'get to', 'how to reach']):
+            return 'transportation_query'
+        
+        # General conversation
+        return 'general_conversation'

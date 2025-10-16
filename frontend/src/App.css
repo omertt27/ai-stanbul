@@ -1190,3 +1190,52 @@ body::before,
 .main-page-background::before {
   display: none !important;
 }
+
+/* ChatGPT-style fixed input layout */
+.chatbot-main-container {
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+.chatbot-purple-box {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.chatbot-messages {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding-bottom: 20px !important;
+}
+
+.chatbot-input-area {
+  position: sticky !important;
+  bottom: 0 !important;
+  background: inherit !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 16px 20px !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+}
+
+.chatbot-input-area .kam-input-wrapper {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  .chatbot-purple-box {
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+  
+  .chatbot-input-area {
+    padding: 12px !important;
+    background: #1a1a1a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
