@@ -894,16 +894,29 @@ except ImportError as e:
     ULTRA_ISTANBUL_AI_AVAILABLE = False
 
 # --- NEW: Enhanced Istanbul Daily Talk AI System (with Attractions) ---
-# Import our new modular integrated system with attractions support
+# Import our new MAIN SYSTEM from istanbul_ai folder with full integration
 try:
-    from istanbul_daily_talk_system_modular import IstanbulDailyTalkAI
+    from istanbul_ai.main_system import IstanbulDailyTalkAI
     istanbul_daily_talk_ai = IstanbulDailyTalkAI()
     ISTANBUL_DAILY_TALK_AVAILABLE = True
-    print("✅ Istanbul Daily Talk AI System (Modular) with 50+ Attractions loaded successfully!")
+    print("✅ Istanbul Daily Talk AI MAIN SYSTEM loaded successfully!")
+    print("   📍 Intelligent Location Detection: ACTIVE")
+    print("   🗺️ Enhanced GPS Route Planner: ACTIVE")
+    print("   🚇 Advanced Transportation System: ACTIVE")
+    print("   🏛️ Museum System with Route Planning: ACTIVE")
+    print("   🤖 ML-Enhanced Daily Talks Bridge: ACTIVE")
 except ImportError as e:
-    print(f"⚠️ Istanbul Daily Talk AI (Modular) import failed: {e}")
-    istanbul_daily_talk_ai = None
-    ISTANBUL_DAILY_TALK_AVAILABLE = False
+    print(f"⚠️ Istanbul Daily Talk AI (Main System) import failed: {e}")
+    print(f"   Attempting fallback to modular system...")
+    try:
+        from istanbul_daily_talk_system_modular import IstanbulDailyTalkAI
+        istanbul_daily_talk_ai = IstanbulDailyTalkAI()
+        ISTANBUL_DAILY_TALK_AVAILABLE = True
+        print("✅ Istanbul Daily Talk AI System (Modular Fallback) loaded successfully!")
+    except ImportError as e2:
+        print(f"⚠️ Istanbul Daily Talk AI (Modular Fallback) import failed: {e2}")
+        istanbul_daily_talk_ai = None
+        ISTANBUL_DAILY_TALK_AVAILABLE = False
 
 # Istanbul Daily Talk AI is now the primary system, Ultra-Specialized is fallback
 CUSTOM_AI_AVAILABLE = ISTANBUL_DAILY_TALK_AVAILABLE or ULTRA_ISTANBUL_AI_AVAILABLE
@@ -1834,14 +1847,48 @@ async def plan_route_from_gps_location(request: GPSRouteRequest):
             "route_style": request.route_style
         }
         
-        # Use Istanbul Daily Talk AI for GPS-aware route planning
-        if hasattr(istanbul_daily_talk_ai, 'handle_route_planning_query'):
-            route_response = istanbul_daily_talk_ai.handle_route_planning_query(
-                route_query, user_profile, context, datetime.now()
-            )
-        else:
-            # Fallback to regular message processing with location context
-            route_response = istanbul_daily_talk_ai.process_message(route_query, session_id)
+        # === USE ENHANCED GPS ROUTE PLANNER FROM MAIN SYSTEM ===
+        route_result = None
+        if hasattr(istanbul_daily_talk_ai, 'gps_route_planner') and istanbul_daily_talk_ai.gps_route_planner:
+            print("🗺️ Using Enhanced GPS Route Planner from Main System...")
+            try:
+                # Use the enhanced GPS route planner with fallback location detection
+                route_result = istanbul_daily_talk_ai.gps_route_planner.plan_route(
+                    user_location=request.user_location,
+                    user_preferences={
+                        'interests': request.interests or [],
+                        'duration_hours': request.duration_hours,
+                        'radius_km': request.radius_km,
+                        'transport_mode': request.transport_mode,
+                        'route_style': request.route_style
+                    },
+                    user_context={
+                        'session_id': session_id,
+                        'user_profile': user_profile.__dict__ if hasattr(user_profile, '__dict__') else {}
+                    }
+                )
+                
+                if route_result and route_result.get('success', True):
+                    print(f"✅ Enhanced GPS route plan generated with {len(route_result.get('waypoints', []))} waypoints")
+                    route_response = route_result.get('formatted_plan', route_result.get('description', ''))
+                else:
+                    print(f"⚠️ Enhanced GPS planner returned error, falling back...")
+                    route_response = None
+                    
+            except Exception as e:
+                print(f"⚠️ Enhanced GPS planner error: {e}, falling back...")
+                route_result = None
+                route_response = None
+        
+        # Fallback to traditional route planning if enhanced planner not available or failed
+        if not route_result:
+            if hasattr(istanbul_daily_talk_ai, 'handle_route_planning_query'):
+                route_response = istanbul_daily_talk_ai.handle_route_planning_query(
+                    route_query, user_profile, context, datetime.now()
+                )
+            else:
+                # Final fallback to regular message processing with location context
+                route_response = istanbul_daily_talk_ai.process_message(route_query, session_id)
         
         # Extract nearby attractions (if route maker service is available)
         nearby_attractions = []
@@ -1857,9 +1904,29 @@ async def plan_route_from_gps_location(request: GPSRouteRequest):
             except Exception as e:
                 print(f"⚠️ Could not get nearby attractions: {e}")
         
-        # Create GPS-aware waypoints
+        # Create GPS-aware waypoints from enhanced route result or fallback parsing
         waypoints = []
-        if "→" in route_response:
+        estimated_distance = 0
+        estimated_duration = 0
+        
+        if route_result and route_result.get('waypoints'):
+            # Use waypoints from enhanced GPS route planner
+            for waypoint in route_result['waypoints']:
+                waypoints.append({
+                    "order": waypoint.get('order', len(waypoints) + 1),
+                    "name": waypoint.get('name', 'Unknown Location'),
+                    "description": waypoint.get('description', ''),
+                    "estimated_time": waypoint.get('estimated_time', '45-90 minutes'),
+                    "distance_from_start": waypoint.get('distance_from_start', f"{len(waypoints) * 0.8:.1f} km"),
+                    "lat": waypoint.get('lat'),
+                    "lng": waypoint.get('lng')
+                })
+            
+            estimated_distance = route_result.get('total_distance_km', len(waypoints) * 1.2)
+            estimated_duration = route_result.get('total_duration_hours', request.duration_hours or min(len(waypoints) * 1.5, 8))
+            
+        elif route_response and "→" in route_response:
+            # Fallback: Parse waypoints from text response
             places = [place.strip() for place in route_response.split("→")]
             for i, place in enumerate(places):
                 waypoints.append({
@@ -1869,33 +1936,47 @@ async def plan_route_from_gps_location(request: GPSRouteRequest):
                     "estimated_time": "45-90 minutes",
                     "distance_from_start": f"{i * 0.8:.1f} km"  # Estimated
                 })
+            
+            estimated_distance = len(waypoints) * 1.2  # Rough estimate
+            estimated_duration = request.duration_hours or min(len(waypoints) * 1.5, 8)
+        else:
+            # No waypoints could be extracted
+            estimated_distance = 0
+            estimated_duration = request.duration_hours or 4
         
-        # Calculate estimated totals based on GPS location
-        estimated_distance = len(waypoints) * 1.2  # Rough estimate
-        estimated_duration = request.duration_hours or min(len(waypoints) * 1.5, 8)
-        
+        # Build comprehensive route data from enhanced result or fallback
         route_data = {
-            "description": route_response,
+            "description": route_response or route_result.get('description', 'Custom GPS-based route created'),
             "optimized": True,
-            "algorithm": "GPS-aware TSP with local optimization",
+            "algorithm": route_result.get('algorithm', "GPS-aware TSP with local optimization"),
             "start_point": request.user_location,
             "gps_based": True,
             "radius_km": request.radius_km or 5.0,
             "interests_considered": request.interests or [],
-            "transport_mode": request.transport_mode
+            "transport_mode": request.transport_mode,
+            "nearby_museums": route_result.get('nearby_museums', []) if route_result else [],
+            "local_tips": route_result.get('local_tips', []) if route_result else [],
+            "district_transport_tips": route_result.get('district_transport_tips', []) if route_result else []
         }
+        
+        # Generate suggestions from enhanced result or create defaults
+        suggestions = []
+        if route_result and route_result.get('local_tips'):
+            suggestions = route_result['local_tips'][:4]
+        else:
+            suggestions = [
+                f"Route optimized for {request.radius_km or 5.0}km radius from your location",
+                f"Estimated total time: {estimated_duration:.1f} hours",
+                "Consider traffic and opening hours",
+                "Download offline maps for better navigation"
+            ]
         
         return RouteResponse(
             route=route_data,
             total_duration=f"{estimated_duration:.1f} hours",
             total_distance=f"{estimated_distance:.1f} km",
             waypoints=waypoints,
-            suggestions=[
-                f"Route optimized for {request.radius_km or 5.0}km radius from your location",
-                f"Estimated total time: {estimated_duration:.1f} hours",
-                "Consider traffic and opening hours",
-                "Download offline maps for better navigation"
-            ]
+            suggestions=suggestions
         )
         
     except HTTPException:
@@ -2129,6 +2210,9 @@ async def chat_with_istanbul_ai(
         
         try:
             # === OPTIONAL: ENHANCE WITH LOCATION DETECTION ===
+            # NOTE: Main system (istanbul_ai.main_system) has its own IntelligentLocationDetector
+            # that is used internally during message processing. This external detection
+            # is used to pre-populate user context when GPS or IP location is available.
             detected_location = None
             user_context = {}
             
@@ -2143,7 +2227,8 @@ async def chat_with_istanbul_ai(
                     
                     if detected_location and detected_location.latitude:
                         # Update user profile with location data
-                        user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(user_id)
+                        # This will be used by main_system's location detector and route planners
+                        user_profile = istanbul_daily_talk_ai.user_manager.get_or_create_user_profile(user_id)
                         user_profile.gps_location = {
                             'lat': detected_location.latitude,
                             'lng': detected_location.longitude
@@ -2157,13 +2242,14 @@ async def chat_with_istanbul_ai(
                             'lat': detected_location.latitude,
                             'lng': detected_location.longitude,
                             'name': detected_location.name or detected_location.neighborhood,
-                            'confidence': detected_location.confidence.value
+                            'confidence': detected_location.confidence.value if hasattr(detected_location.confidence, 'value') else str(detected_location.confidence)
                         }
                         
-                        print(f"📍 Location detected: {detected_location.name or detected_location.neighborhood}")
+                        print(f"📍 Location detected via API: {detected_location.name or detected_location.neighborhood}")
+                        print(f"   → Location context will be used by main_system's intelligent detection")
                         
                 except Exception as e:
-                    print(f"⚠️ Location detection failed: {e}")
+                    print(f"⚠️ External location detection failed (main_system will use fallback): {e}")
             
             # === DELEGATE TO ISTANBUL DAILY TALK AI ===
             # Let the advanced AI system handle all the intelligence
@@ -2659,10 +2745,10 @@ async def get_museum_recommendations(request: MuseumRequest):
                             "Topkapi Palace requires 2-3 hours minimum",
                             "Archaeological Museum is perfect for history enthusiasts"
                         ],
-                        opening_hours={
-                            "Hagia Sophia": "09:00 - 19:00",
-                            "Topkapi Palace": "09:00 - 18:00 (Closed Tuesdays)",
-                            "Archaeological Museum": "09:00 - 17:00 (Closed Mondays)"
+    text = re.sub(r'(?:around|about|approximately|roughly)\s+\d+\s*(?:lira|euro|euros|dollar|dollars)', '', text, flags=re.IGNORECASE)
+    
+    # PHASE 3: Remove cost-related phrases with amounts - ENHANCED
+    cost_patterns = [
                         },
                         ticket_info={
                             "museum_pass": "₺325 for 5 days",

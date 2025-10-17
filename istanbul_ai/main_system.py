@@ -132,6 +132,15 @@ class IstanbulDailyTalkAI:
             logger.warning(f"Enhanced GPS Route Planner not available: {e}")
             self.gps_route_planner = None
         
+        # Initialize Enhanced Route Planner V2 (advanced multi-feature planner)
+        try:
+            from enhanced_route_planner_v2 import EnhancedRoutePlannerV2
+            self.advanced_route_planner = EnhancedRoutePlannerV2()
+            logger.info("🧭 Enhanced Route Planner V2 loaded successfully!")
+        except ImportError as e:
+            logger.warning(f"Enhanced Route Planner V2 not available: {e}")
+            self.advanced_route_planner = None
+
         # System status
         self.system_ready = True
         logger.info("✅ Istanbul Daily Talk AI System initialized successfully!")
@@ -1310,8 +1319,14 @@ Need specific details about any museum or want me to customize this route furthe
     
     def _generate_gps_route_response(self, message: str, entities: Dict, user_profile: UserProfile, 
                                    context: ConversationContext) -> str:
-        """Generate GPS-based route planning response using intelligent location detector"""
+        """Generate GPS-based route planning response using advanced route planner V2"""
         try:
+            # Prefer advanced route planner V2 if available
+            if self.advanced_route_planner:
+                logger.info("🧭 Using Enhanced Route Planner V2 for advanced route planning")
+                return self._generate_advanced_route_response(message, entities, user_profile, context)
+            
+            # Fallback to GPS route planner
             if not self.gps_route_planner:
                 return self._generate_fallback_route_response(message, entities, user_profile, context)
             
@@ -1584,194 +1599,310 @@ Need specific details about any museum or want me to customize this route furthe
             logger.error(f"Basic GPS route creation failed: {e}")
             return None
     
+    def _generate_advanced_route_response(self, message: str, entities: Dict, 
+                                         user_profile: UserProfile, context: ConversationContext) -> str:
+        """Generate advanced route response using EnhancedRoutePlannerV2 with all features"""
+        try:
+            if not self.advanced_route_planner:
+                return self._generate_fallback_route_response(message, entities, user_profile, context)
+            
+            logger.info("🧭 Using Enhanced Route Planner V2 with advanced features")
+            
+            # Extract route parameters from message
+            from_location = self._extract_location_from_message(message, 'from')
+            to_location = self._extract_location_from_message(message, 'to')
+            waypoints = self._extract_waypoints_from_message(message)
+            
+            # Extract preferences
+            transport_modes = self._extract_transport_preferences(message)
+            time_constraint = self._extract_time_constraint(message)
+            
+            # Build user preferences for advanced planner
+            user_preferences = {
+                'interests': getattr(user_profile, 'interests', []),
+                'budget': getattr(user_profile, 'budget_preference', 'medium'),
+                'accessibility_needs': getattr(user_profile, 'accessibility_needs', False),
+                'pace': self._extract_pace_preference(message),
+                'avoid_crowds': 'crowded' in message.lower() or 'quiet' in message.lower()
+            }
+            
+            # Get current weather context if available
+            weather_context = None
+            try:
+                from backend.api_clients.enhanced_weather import get_current_weather
+                weather_data = get_current_weather("Istanbul")
+                if weather_data:
+                    weather_context = {
+                        'condition': weather_data.get('condition', 'clear'),
+                        'temperature': weather_data.get('temperature', 20),
+                        'precipitation': weather_data.get('precipitation', 0)
+                    }
+            except Exception as e:
+                logger.debug(f"Weather context not available: {e}")
+            
+            # Generate route using advanced planner
+            route_result = self.advanced_route_planner.plan_route(
+                start_location=from_location or "Current location",
+                end_location=to_location or "Recommended destination",
+                waypoints=waypoints,
+                transport_modes=transport_modes,
+                user_preferences=user_preferences,
+                time_constraint=time_constraint,
+                weather_context=weather_context
+            )
+            
+            if route_result:
+                return self._format_advanced_route_response(route_result, message, user_profile)
+            else:
+                return self._generate_fallback_route_response(message, entities, user_profile, context)
+            
+        except Exception as e:
+            logger.error(f"Advanced route planning failed: {e}")
+            return self._generate_fallback_route_response(message, entities, user_profile, context)
+    
+    def _extract_location_from_message(self, message: str, location_type: str = 'from') -> Optional[str]:
+        """Extract 'from' or 'to' location from message"""
+        message_lower = message.lower()
+        
+        if location_type == 'from':
+            # Look for "from X" patterns
+            from_match = re.search(r'from\s+([a-zA-ZğüşıöçĞÜŞİÖÇ\s]+?)(?:\s+to|\s+via|$)', message_lower)
+            if from_match:
+                return from_match.group(1).strip()
+        
+        elif location_type == 'to':
+            # Look for "to X" patterns
+            to_match = re.search(r'to\s+([a-zA-ZğüşıöçĞÜŞİÖÇ\s]+?)(?:\s+via|\s+from|$)', message_lower)
+            if to_match:
+                return to_match.group(1).strip()
+        
+        return None
+    
+    def _extract_waypoints_from_message(self, message: str) -> List[str]:
+        """Extract intermediate waypoints/stops from message"""
+        message_lower = message.lower()
+        waypoints = []
+        
+        # Look for patterns like "via", "through", "stopping at"
+        via_keywords = ['via', 'through', 'stopping at', 'stop at', 'including']
+        
+        for keyword in via_keywords:
+            if keyword in message_lower:
+                # Extract text after keyword
+                parts = message_lower.split(keyword)
+                if len(parts) > 1:
+                    # Extract location name (up to next keyword or end)
+                    location_text = parts[1].split('and')[0].split(',')[0].strip()
+                    if location_text and len(location_text) > 2:
+                        waypoints.append(location_text)
+        
+        return waypoints
+    
+    def _extract_time_constraint(self, message: str) -> Optional[Dict]:
+        """Extract time constraints from message"""
+        message_lower = message.lower()
+        
+        # Duration patterns
+        duration_match = re.search(r'(\d+)\s*(hour|hr|minute|min)', message_lower)
+        if duration_match:
+            value = int(duration_match.group(1))
+            unit = duration_match.group(2)
+            
+            # Convert to minutes
+            if 'hour' in unit or 'hr' in unit:
+                minutes = value * 60
+            else:
+                minutes = value
+            
+            return {
+                'type': 'duration',
+                'minutes': minutes,
+                'description': f"{value} {unit}"
+            }
+        
+        # Specific time patterns (e.g., "by 3pm", "before 5")
+        time_match = re.search(r'(?:by|before|until)\s*(\d+)\s*(?:pm|am|o\'clock)?', message_lower)
+        if time_match:
+            hour = int(time_match.group(1))
+            return {
+                'type': 'deadline',
+                'hour': hour,
+               
+                'description': f"by {hour}:00"
+            }
+        
+        return None
+    
+    def _extract_pace_preference(self, message: str) -> str:
+        """Extract pace preference from message"""
+        message_lower = message.lower()
+        
+        if any(word in message_lower for word in ['quick', 'fast', 'hurry', 'rushed']):
+            return 'fast'
+        elif any(word in message_lower for word in ['slow', 'leisurely', 'relaxed', 'easy']):
+            return 'leisurely'
+        else:
+            return 'moderate'
+    
+    def _format_advanced_route_response(self, route_result: Dict, message: str, 
+                                       user_profile: UserProfile) -> str:
+        """Format the advanced route planner response for display"""
+        
+        response_parts = []
+        
+        # Header with route summary
+        response_parts.append(f"""🧭 **Advanced Route Plan for Istanbul**
+        
+**📍 Route Summary:**
+• **From:** {route_result.get('start_location', 'Current location')}
+• **To:** {route_result.get('end_location', 'Destination')}
+• **Distance:** {route_result.get('total_distance', 'Calculating...')}
+• **Estimated Time:** {route_result.get('total_duration', 'Calculating...')}
+• **Transport Modes:** {', '.join(route_result.get('transport_modes', ['walking', 'public_transport']))}
+""")
+        
+        # Weather-aware recommendations
+        if route_result.get('weather_recommendations'):
+            response_parts.append(f"\n🌤️ **Weather-Aware Tips:**\n{route_result['weather_recommendations']}")
+        
+        # Step-by-step route
+        if route_result.get('route_steps'):
+            response_parts.append("\n🗺️ **Turn-by-Turn Directions:**")
+            for i, step in enumerate(route_result['route_steps'], 1):
+                response_parts.append(f"\n**Step {i}:** {step.get('instruction', '')}")
+                if step.get('duration'):
+                    response_parts.append(f"   ⏱️ {step['duration']}")
+                if step.get('notes'):
+                    response_parts.append(f"   💡 {step['notes']}")
+        
+        # AI recommendations along the route
+        if route_result.get('ai_recommendations'):
+            response_parts.append(f"\n🤖 **AI-Powered Recommendations:**")
+            for rec in route_result['ai_recommendations']:
+                response_parts.append(f"• {rec}")
+        
+        # Points of interest along the route
+        if route_result.get('points_of_interest'):
+            response_parts.append(f"\n🎯 **Points of Interest Along Your Route:**")
+            for poi in route_result['points_of_interest']:
+                response_parts.append(f"• **{poi.get('name', '')}** - {poi.get('description', '')}")
+        
+        # Transportation details
+        if route_result.get('transport_details'):
+            response_parts.append(f"\n🚇 **Transportation Details:**")
+            for detail in route_result['transport_details']:
+                response_parts.append(f"• {detail}")
+        
+        # Cost estimate
+        if route_result.get('estimated_cost'):
+            response_parts.append(f"\n💰 **Estimated Cost:** {route_result['estimated_cost']} TL")
+        
+        # Real-time updates
+        if route_result.get('real_time_updates'):
+            response_parts.append(f"\n⚠️ **Live Updates:**\n{route_result['real_time_updates']}")
+        
+        # Local insider tips
+        if route_result.get('local_tips'):
+            response_parts.append(f"\n💡 **Local Insider Tips:**")
+            for tip in route_result['local_tips']:
+                response_parts.append(f"• {tip}")
+        
+        # Accessibility information
+        if route_result.get('accessibility_info'):
+            response_parts.append(f"\n♿ **Accessibility:** {route_result['accessibility_info']}")
+        
+        # Alternative routes
+        if route_result.get('alternative_routes'):
+            response_parts.append(f"\n🔄 **Alternative Routes Available:**")
+            for alt in route_result['alternative_routes'][:2]:  # Show top 2 alternatives
+                response_parts.append(f"• {alt.get('description', '')} ({alt.get('duration', '')})")
+        
+        response_parts.append("""\n📱 **Pro Tips:**
+• Save this route in Google Maps for offline access
+• Download Moovit app for real-time public transport updates
+• Keep your Istanbulkart charged and ready
+• Screenshots of directions recommended for areas with poor signal
+
+Need me to adjust this route or provide more details? Just ask! 🎯""")
+        
+        return '\n'.join(response_parts)
+    
+    def _generate_fallback_route_response(self, message: str, entities: Dict,
+                                         user_profile: UserProfile, context: ConversationContext) -> str:
+        """Fallback route response when advanced planning not available"""
+        return """🗺️ **Route Planning Assistance**
+
+I can help you plan a route in Istanbul! To provide the best directions, please tell me:
+
+**📍 Location Details:**
+• Where are you starting from? (e.g., "Sultanahmet", "Taksim Square")
+• Where do you want to go?
+• Any specific places you want to visit along the way?
+
+**🚶 Preferences:**
+• Preferred transport: walking, metro, tram, ferry, or taxi?
+• How much time do you have?
+• Any accessibility needs?
+
+**Example requests:**
+• "Route from Sultanahmet to Galata Tower by walking"
+• "How to get from Taksim to Kadıköy using public transport"
+• "Plan a 4-hour route visiting Blue Mosque, Grand Bazaar, and Spice Bazaar"
+
+Once you provide these details, I'll create a detailed, personalized route for you! 🧭"""
+    
     def _get_nearby_attractions(self, district: str) -> List[str]:
         """Get nearby attractions for a district"""
-        district_attractions = {
-            'sultanahmet': [
-                'Hagia Sophia (5 min walk)',
-                'Blue Mosque (7 min walk)',
-                'Topkapi Palace (10 min walk)',
-                'Basilica Cistern (8 min walk)',
-                'Grand Bazaar (15 min walk)'
-            ],
-            'beyoglu': [
-                'Galata Tower (10 min walk)',
-                'Istiklal Street (5 min walk)',
-                'Pera Museum (12 min walk)',
-                'Galata Bridge (15 min walk)',
-                'Karakoy district (10 min walk)'
-            ],
-            'besiktas': [
-                'Dolmabahçe Palace (8 min walk)',
-                'Naval Museum (10 min walk)',
-                'Bosphorus waterfront (5 min walk)',
-                'Ortakoy Mosque (20 min walk)',
-                'Besiktas Fish Market (5 min walk)'
-            ],
-            'kadikoy': [
-                'Kadikoy Market (5 min walk)',
-                'Moda seaside (15 min walk)',
-                'Historic Kadikoy Mosque (8 min walk)',
-                'Bagdat Street shopping (20 min walk)',
-                'Ferry terminal (10 min walk)'
-            ]
+        attractions_by_district = {
+            'sultanahmet': ['Hagia Sophia', 'Blue Mosque', 'Topkapi Palace', 'Basilica Cistern', 'Grand Bazaar'],
+            'beyoglu': ['Galata Tower', 'Istiklal Street', 'Pera Museum', 'Taksim Square'],
+            'besiktas': ['Dolmabahce Palace', 'Ortaköy Mosque', 'Bosphorus waterfront'],
+            'kadikoy': ['Kadıköy Market', 'Moda', 'Bagdat Street'],
+            'eminonu': ['Spice Bazaar', 'Galata Bridge', 'New Mosque', 'Ferry terminals'],
+            'galata': ['Galata Tower', 'Karaköy', 'Modern art galleries']
         }
         
-        return district_attractions.get(district.lower(), [
-            'Local attractions nearby',
-            'Traditional Turkish restaurants',
-            'Historic sites',
-            'Local markets'
-        ])
+        return attractions_by_district.get(district.lower(), ['Historic sites', 'Local restaurants', 'Traditional cafes'])
     
     def _get_local_tips_for_district(self, district: str) -> List[str]:
-        """Get local tips for a specific district"""
-        if hasattr(self.gps_route_planner, 'district_tips'):
-            return self.gps_route_planner.district_tips.get(district.lower(), [
-                'Ask locals for hidden gems',
-                'Try traditional Turkish tea at local cafes',
-                'Use Istanbulkart for efficient transport'
-            ])
-        
-        # Fallback tips by district
-        district_tips = {
+        """Get local tips for a district"""
+        tips_by_district = {
             'sultanahmet': [
-                'Visit early morning to avoid crowds',
+                'Visit early morning to avoid tourist crowds',
                 'Wear comfortable shoes for cobblestone streets',
-                'Many museums closed on Mondays',
-                'Keep cash handy for small vendors'
+                'Many museums closed on Mondays'
             ],
             'beyoglu': [
-                'Istiklal Street is pedestrian-only',
-                'Take the historic tram for authentic experience',
-                'Evening visits offer great city lights',
-                'Many art galleries are free to visit'
+                'Best nightlife area in Istanbul',
+                'Try fish sandwich at Karaköy',
+                'Walk Istiklal Street in the evening'
             ],
             'besiktas': [
-                'Book Dolmabahçe Palace tickets in advance',
-                'Waterfront perfect for jogging',
-                'Ferry connections offer scenic Bosphorus views',
-                'Great fish restaurants along the coast'
+                'Great Bosphorus views',
+                'Try traditional Turkish breakfast',
+                'Ferry connections to Asian side'
             ],
             'kadikoy': [
-                'Take ferry from European side for scenic journey',
-                'More local, less touristy experience',
-                'Tuesday and Saturday markets are excellent',
-                'Great fish restaurants with Bosphorus views'
+                'Authentic local experience on Asian side',
+                'Amazing street food scene',
+                'Less touristy than European side'
             ]
         }
         
-        return district_tips.get(district.lower(), [
-            'Explore local neighborhoods',
-            'Try authentic Turkish cuisine',
-            'Use public transport like locals'
+        return tips_by_district.get(district.lower(), [
+            'Ask locals for recommendations',
+            'Try traditional Turkish tea',
+            'Use Istanbulkart for transport'
         ])
     
     def _get_transport_options_for_district(self, district: str) -> List[str]:
-        """Get transportation options for a district"""
-        transport_options = {
-            'sultanahmet': [
-                'T1 Tram connects all major historic sites',
-                'Walking is often faster than transport',
-                'Ferry to Asian side from Eminonu (15 min walk)',
-                'Metro M2 accessible via Vezneciler (10 min walk)'
-            ],
-            'beyoglu': [
-                'M2 Metro from Sishane or Vezneciler',
-                'Historic tram along Istiklal Street',
-                'Funicular from Karakoy to Tünel',
-                'Walking distance to Galata Bridge'
-            ],
-            'besiktas': [
-                'Ferry connections to all Bosphorus destinations',
-                'Metro M6 to Levent and beyond',
-                'Bus connections throughout the city',
-                'Walking along Bosphorus waterfront'
-            ],
-            'kadikoy': [
-                'Ferry terminal with European side connections',
-                'M4 Metro to Sabiha Gokcen Airport',
-                'Extensive bus network',
-                'Dolmus (shared taxis) for local areas'
-            ]
-        }
-        
-        return transport_options.get(district.lower(), [
-            'Public transport with Istanbulkart',
-            'Walking for local exploration',
-            'Taxi or ride-sharing apps',
-            'Ferry for scenic Bosphorus crossings'
-        ])
-    
-    def _format_gps_route_response(self, route_result: Dict, detected_location=None) -> str:
-        """Format GPS route planning result into user-friendly response"""
-        try:
-            if not route_result:
-                return "I couldn't generate a route for your request. Please try with more specific locations."
-            
-            response = "🗺️ **Smart Route Planning with GPS & Location Intelligence**\n\n"
-            
-            # Add location confirmation if detected
-            if detected_location:
-                response += f"📍 **Detected Location**: {getattr(detected_location, 'location_name', 'Current location')}\n"
-                if hasattr(detected_location, 'district') and detected_location.district:
-                    response += f"🏘️ **District**: {detected_location.district}\n"
-                response += f"🎯 **Confidence**: {getattr(detected_location, 'confidence', 0.8):.1%}\n\n"
-            
-            # Add starting location info
-            if route_result.get('starting_location'):
-                start_loc = route_result['starting_location']
-                response += f"🚀 **Starting Point**: {start_loc.get('name', 'Current location')}\n"
-                if start_loc.get('district'):
-                    response += f"📍 **District**: {start_loc['district']}\n\n"
-            
-            # Add route information
-            if route_result.get('route_summary'):
-                response += f"**🎯 Route Overview**\n{route_result['route_summary']}\n\n"
-            
-            # Add nearby attractions
-            if route_result.get('nearby_attractions'):
-                response += "**🏛️ Nearby Attractions:**\n"
-                for attraction in route_result['nearby_attractions'][:5]:  # Limit to top 5
-                    response += f"• {attraction}\n"
-                response += "\n"
-            
-            # Add transportation options
-            if route_result.get('transportation_options'):
-                response += "**🚇 Transportation Options:**\n"
-                for option in route_result['transportation_options'][:4]:  # Limit to top 4
-                    response += f"• {option}\n"
-                response += "\n"
-            
-            # Add time and cost estimates
-            if route_result.get('estimated_time'):
-                response += f"⏱️ **Estimated Time**: {route_result['estimated_time']}\n"
-            
-            if route_result.get('estimated_cost'):
-                response += f"💰 **Estimated Cost**: {route_result['estimated_cost']}\n\n"
-            
-            # Add local tips if available
-            if route_result.get('local_tips'):
-                response += "💡 **Local Insider Tips:**\n"
-                for tip in route_result['local_tips'][:4]:  # Limit to top 4
-                    response += f"• {tip}\n"
-                response += "\n"
-            
-            # Add optimization info
-            if route_result.get('route_optimization'):
-                response += f"🤖 **Route Intelligence**: {route_result['route_optimization']}\n\n"
-            
-            response += "**🎯 Need More Help?**\n"
-            response += "• Want specific walking directions? Just ask!\n"
-            response += "• Need real-time transport updates? I can help!\n"
-            response += "• Looking for restaurant recommendations along the way? Let me know!\n"
-            response += "• Want to adjust the route? Tell me your preferences!"
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error formatting GPS route response: {e}")
-            return "I generated a route but had trouble formatting it. Please try again with your request."
+        """Get transport options for a district"""
+        return [
+            'Metro/Tram connections available',
+            'Ferry terminals nearby',
+            'Taxi/Uber readily available',
+            'Walking distance to major attractions'
+        ]
     
     def _prompt_for_location_input(self, message: str, entities: Dict, user_profile: UserProfile, 
                                  context: ConversationContext) -> str:
@@ -1808,154 +1939,3 @@ Need specific details about any museum or want me to customize this route furthe
         response += "**📱 Pro Tip:** If location detection is available on your device, I can use that to help plan your route more accurately!"
         
         return response
-    
-    def _generate_fallback_route_response(self, message: str, entities: Dict, user_profile: UserProfile, 
-                                        context: ConversationContext) -> str:
-        """Fallback route response when GPS route planner is not available"""
-        
-        return """🗺️ **Istanbul Navigation Guide**
-
-**🚇 Quick Route Solutions:**
-
-**🏛️ Historic Area (Sultanahmet):**
-• **Tram T1**: Connects all major historic sites
-• **Walking distances**: Most sites within 10-15 minutes
-• **Key stops**: Sultanahmet, Eminönü, Beyazıt-Kapalıçarşı
-
-**🌉 Cross-Bosphorus:**
-• **Ferry**: Eminönü ↔ Kadıköy (20 min, most scenic)
-• **Metro + Ferry**: Faster connections via Karaköy
-• **Bridge options**: Walking on Galata Bridge
-
-**🎯 Popular Routes:**
-• **Airport → City**: IST Airport Express (M11) + Metro (M2)
-• **Taksim → Sultanahmet**: Metro M2 + Tram T1 (25 min)
-• **Galata Tower → Blue Mosque**: Metro M2 + Tram T1 (20 min)
-• **Grand Bazaar → Spice Bazaar**: Short walk or Tram T1
-
-**📱 Recommended Apps:**
-• **Citymapper**: Real-time public transport
-• **Moovit**: Alternative route planning
-• **BiTaksi**: Local taxi app with fixed prices
-
-**💡 Navigation Tips:**
-• Download offline maps before exploring
-• Keep Istanbulkart ready for all public transport
-• Ferry routes often faster than road transport
-• Ask locals - Istanbulites are very helpful!
-
-**🗣️ Key Turkish Phrases:**
-• "Nerede?" = Where is?
-• "Nasıl giderim?" = How do I get there?
-• "Teşekkürler" = Thank you
-
-Tell me your specific starting point and destination, and I'll give you detailed step-by-step directions!"""
-    
-    def _generate_location_specific_museum_info(self, detected_location: str, message: str) -> Optional[str]:
-        """Generate location-specific museum information"""
-        try:
-            location_lower = detected_location.lower()
-            
-            location_museum_info = {
-                'sultanahmet': """
-📍 **Sultanahmet District Museum Tips:**
-• This area has the highest concentration of world-class museums
-• Walking distance between all major sites (5-15 minutes)
-• Buy Museum Pass Istanbul (325 TL) to save money and skip lines
-• Start early (9 AM) - this area gets very crowded after 11 AM
-• Many museums here close on Mondays""",
-                
-                'beyoglu': """
-📍 **Beyoğlu District Museum Tips:**
-• Focus on modern art and contemporary culture
-• Galata Tower area offers great views between museum visits
-• Many smaller galleries here have free admission
-• Easy metro access via M2 line
-• Perfect for evening museum visits as area is lively at night""",
-                
-                'besiktas': """
-📍 **Beşiktaş District Museum Tips:**
-• Dolmabahçe Palace requires advance booking
-• Naval Museum showcases Turkey's maritime history
-• Beautiful Bosphorus views between museum visits
-• Good ferry connections to other districts
-• Combine with waterfront dining""",
-                
-                'kadikoy': """
-📍 **Kadıköy District Museum Tips:**
-• More local, less touristy museum experience
-• Great for understanding everyday Turkish culture
-• Take ferry from European side for scenic journey
-• Combine with local market visits
-• Authentic neighborhood feel"""
-            }
-            
-            return location_museum_info.get(location_lower)
-            
-        except Exception as e:
-            logger.error(f"Error generating location-specific museum info: {e}")
-            return None
-    
-    def _add_current_museum_hours(self, message: str) -> Optional[str]:
-        """Add current museum hours information"""
-        try:
-            current_time = datetime.now()
-            current_hour = current_time.hour
-            day_of_week = current_time.weekday()  # 0 = Monday
-            
-            # General museum hours info
-            hours_info = "\n⏰ **Current Museum Status:**\n"
-            
-            if day_of_week == 0:  # Monday
-                hours_info += "• ⚠️ Many major museums closed on Mondays (Topkapi, Hagia Sophia open)\n"
-            
-            if 9 <= current_hour <= 17:
-                hours_info += "• ✅ Most museums currently open (close around 17:00-18:00)\n"
-            elif 17 <= current_hour <= 19:
-                hours_info += "• ⚠️ Many museums closing soon or already closed\n"
-            else:
-                hours_info += "• ❌ Most museums closed (open 9:00-17:00 typically)\n"
-            
-            hours_info += "• 💡 Hagia Sophia: Open 24/7 (free entry)\n"
-            hours_info += "• 💡 Blue Mosque: Open all day (prayer times affect visits)\n"
-            
-            if self.hours_checker:
-                try:
-                    # If we have Google Maps hours checker, add real-time info
-                    hours_info += "• 📱 Real-time hours available via our enhanced system\n"
-                except Exception:
-                    pass
-            
-            return hours_info
-            
-        except Exception as e:
-            logger.error(f"Error adding museum hours: {e}")
-            return None
-
-# Global instance for easy access
-_ai_system_instance = None
-
-def get_ai_system() -> IstanbulDailyTalkAI:
-    """Get the global AI system instance, creating it if needed"""
-    global _ai_system_instance
-    if _ai_system_instance is None:
-        _ai_system_instance = IstanbulDailyTalkAI()
-    return _ai_system_instance
-
-def reset_ai_system():
-    """Reset the global AI system instance (useful for testing)"""
-    global _ai_system_instance
-    _ai_system_instance = None
-
-if __name__ == "__main__":
-    # Example usage
-    ai_system = get_ai_system()
-    print("AI Istanbul system initialized successfully!")
-    
-    # Example user interaction
-    user_profile = UserProfile(user_id="test_user")
-    context = ConversationContext()
-    
-    test_message = "I'm in Sultanahmet and want to visit museums nearby"
-    response = ai_system.process_user_request(test_message, user_profile, context)
-    print(f"\nResponse: {response}")
