@@ -1668,6 +1668,7 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
     except Exception as e:
         print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
        
+
         import traceback
         traceback.print_exc()
         return None
@@ -1764,21 +1765,7 @@ class TransportRequest(BaseModel):
 class MuseumRequest(BaseModel):
     query: str = Field(..., description="Museum query")
     location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lng}")
-    preferences: Optional[List[str]] = Field(None, description="Museum preferences")
-    session_id: Optional[str] = Field(None, description="Session ID")
-
-class RouteResponse(BaseModel):
-    route: Dict[str, Any] = Field(..., description="Generated route")
-    total_duration: str = Field(..., description="Total route duration")
-    total_distance: str = Field(..., description="Total route distance")
-    waypoints: List[Dict[str, Any]] = Field(..., description="Route waypoints")
-    suggestions: Optional[List[str]] = Field(None, description="Additional suggestions")
-
-class TransportResponse(BaseModel):
-    recommendations: List[Dict[str, Any]] = Field(..., description="Transport recommendations")
-    fastest_option: Dict[str, Any] = Field(..., description="Fastest transport option")
-    cheapest_option: Dict[str, Any] = Field(..., description="Cheapest transport option")
-    weather_advice: Optional[str] = Field(None, description="Weather-related advice")
+    interests: Optional[List[str]] = Field(None, description="User interests")
 
 class MuseumResponse(BaseModel):
     museums: List[Dict[str, Any]] = Field(..., description="Museum recommendations")
@@ -2589,3 +2576,199 @@ async def advanced_route_planning_v2(request: AdvancedRouteRequest):
         print(f"❌ Advanced route planning V2 system error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Advanced route planning system error")
+
+
+# =============================================================================
+# OFFLINE MAP SERVICE INTEGRATION
+# =============================================================================
+
+# Initialize Offline Map Service
+offline_map_service = None
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
+    from offline_map_service import OfflineMapService, get_offline_map_service
+    
+    offline_map_service = get_offline_map_service()
+    print("✅ Offline Map Service initialized successfully")
+    print(f"   📍 {len(offline_map_service.metro_lines)} Metro lines loaded")
+    print(f"   📍 {len(offline_map_service.tram_lines)} Tram lines loaded")
+    print(f"   📍 {len(offline_map_service.ferry_routes)} Ferry routes loaded")
+except Exception as e:
+    print(f"⚠️ Offline Map Service not available: {e}")
+    offline_map_service = None
+
+
+@app.get("/api/map/routes", tags=["Offline Maps"])
+async def get_all_transit_routes(
+    route_type: Optional[str] = Query(None, description="Filter by type: metro, tram, ferry, bus")
+):
+    """
+    Get all transit routes as GeoJSON for offline map display
+    
+    - **route_type**: Optional filter (metro, tram, ferry, bus)
+    - Returns: GeoJSON FeatureCollection with routes and stops
+    """
+    if not offline_map_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Offline map service not available"
+        )
+    
+    try:
+        if route_type:
+            data = offline_map_service.get_routes_by_type(route_type)
+        else:
+            data = offline_map_service.get_all_routes_geojson()
+        
+        return data
+    except Exception as e:
+        logger.error(f"Error getting transit routes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/route/{route_id}", tags=["Offline Maps"])
+async def get_specific_route(route_id: str):
+    """
+    Get specific transit route by ID
+    
+    - **route_id**: Route ID (e.g., M2, T1, F_KAD_EMI)
+    - Returns: GeoJSON FeatureCollection with route line and stops
+    """
+    if not offline_map_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Offline map service not available"
+        )
+    
+    try:
+        data = offline_map_service.get_route_by_id(route_id)
+        
+        if not data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Route '{route_id}' not found"
+            )
+        
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting route {route_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/nearby-stops", tags=["Offline Maps"])
+async def find_nearby_stops(
+    lat: float = Query(..., description="Latitude", ge=-90, le=90),
+    lon: float = Query(..., description="Longitude", ge=-180, le=180),
+    max_distance_km: float = Query(1.0, description="Maximum search radius in km", ge=0.1, le=10)
+):
+    """
+    Find nearest transit stops to a location
+    
+    - **lat**: Latitude coordinate
+    - **lon**: Longitude coordinate
+    - **max_distance_km**: Search radius (default: 1.0 km)
+    - Returns: List of nearby stops with distances
+    """
+    if not offline_map_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Offline map service not available"
+        )
+    
+    try:
+        nearby_stops = offline_map_service.find_nearest_stop(lat, lon, max_distance_km)
+        
+        return {
+            "location": {"lat": lat, "lon": lon},
+            "max_distance_km": max_distance_km,
+            "stops": nearby_stops,
+            "count": len(nearby_stops),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error finding nearby stops: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/metro", tags=["Offline Maps"])
+async def get_metro_map():
+    """Get all metro lines as GeoJSON"""
+    if not offline_map_service:
+        raise HTTPException(status_code=503, detail="Offline map service not available")
+    
+    try:
+        return offline_map_service.get_routes_by_type("metro")
+    except Exception as e:
+        logger.error(f"Error getting metro map: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/tram", tags=["Offline Maps"])
+async def get_tram_map():
+    """Get all tram lines as GeoJSON"""
+    if not offline_map_service:
+        raise HTTPException(status_code=503, detail="Offline map service not available")
+    
+    try:
+        return offline_map_service.get_routes_by_type("tram")
+    except Exception as e:
+        logger.error(f"Error getting tram map: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/ferry", tags=["Offline Maps"])
+async def get_ferry_map():
+    """Get all ferry routes as GeoJSON"""
+    if not offline_map_service:
+        raise HTTPException(status_code=503, detail="Offline map service not available")
+    
+    try:
+        return offline_map_service.get_routes_by_type("ferry")
+    except Exception as e:
+        logger.error(f"Error getting ferry map: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/map/stats", tags=["Offline Maps"])
+async def get_map_statistics():
+    """Get statistics about available offline map data"""
+    if not offline_map_service:
+        raise HTTPException(status_code=503, detail="Offline map service not available")
+    
+    try:
+        # Count all stops
+        total_stops = 0
+        for route in {**offline_map_service.metro_lines, 
+                     **offline_map_service.tram_lines, 
+                     **offline_map_service.ferry_routes,
+                     **offline_map_service.bus_routes}.values():
+            total_stops += len(route.stops)
+        
+        return {
+            "status": "available",
+            "metro_lines": len(offline_map_service.metro_lines),
+            "tram_lines": len(offline_map_service.tram_lines),
+            "ferry_routes": len(offline_map_service.ferry_routes),
+            "bus_routes": len(offline_map_service.bus_routes),
+            "total_stops": total_stops,
+            "metro_lines_list": list(offline_map_service.metro_lines.keys()),
+            "tram_lines_list": list(offline_map_service.tram_lines.keys()),
+            "ferry_routes_list": list(offline_map_service.ferry_routes.keys()),
+            "last_updated": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error getting map statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Health check endpoint for offline map service
+@app.get("/api/map/health", tags=["Offline Maps"])
+async def map_service_health():
+    """Check offline map service health"""
+    return {
+        "service": "offline_map",
+        "status": "available" if offline_map_service else "unavailable",
+        "timestamp": datetime.now().isoformat()
+    }

@@ -123,6 +123,10 @@ class TransportAPIResilience:
         self.gtfs_service = None
         self._init_gtfs_service()
         
+        # Offline map service for geographic data
+        self.offline_map_service = None
+        self._init_offline_map_service()
+        
         logger.info("✅ Transport API resilience layer initialized")
         
     def _init_cache(self):
@@ -189,9 +193,20 @@ class TransportAPIResilience:
         try:
             from backend.services.gtfs_service import GTFSDataService
             self.gtfs_service = GTFSDataService()
-            logger.info("✅ GTFS service loaded for fallback")
+            logger.info(f"✅ GTFS service loaded for fallback (instance id: {id(self.gtfs_service)})")
         except Exception as e:
             logger.error(f"Failed to load GTFS service: {e}")
+            self.gtfs_service = None
+    
+    def _init_offline_map_service(self):
+        """Initialize offline map service for geographic data"""
+        try:
+            from services.offline_map_service import OfflineMapService
+            self.offline_map_service = OfflineMapService()
+            logger.info("✅ Offline map service loaded with static route data")
+        except Exception as e:
+            logger.error(f"Failed to load offline map service: {e}")
+            self.offline_map_service = None
             
     def get_circuit_breaker(self, endpoint: str) -> CircuitBreaker:
         """Get or create circuit breaker for endpoint"""
@@ -381,7 +396,9 @@ class TransportAPIResilience:
                 
     def get_gtfs_bus_data(self, route_id: Optional[str] = None, stop_id: Optional[str] = None) -> Dict[str, Any]:
         """Get bus data from GTFS feed"""
+        logger.debug(f"get_gtfs_bus_data called: gtfs_service={self.gtfs_service is not None}, route_id={route_id}")
         if not self.gtfs_service:
+            logger.warning("GTFS service not available for bus data fallback")
             return {
                 'error': 'GTFS service not available',
                 'timestamp': datetime.now().isoformat(),
@@ -452,8 +469,14 @@ class TransportAPIResilience:
             
     def get_gtfs_metro_data(self, line_id: Optional[str] = None) -> Dict[str, Any]:
         """Get metro data from GTFS feed"""
+        logger.debug(f"get_gtfs_metro_data called: gtfs_service={self.gtfs_service is not None}, line_id={line_id}")
         if not self.gtfs_service:
-            return {'error': 'GTFS service not available'}
+            logger.warning("GTFS service not available for metro data fallback")
+            return {
+                'error': 'GTFS service not available',
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'gtfs_fallback'
+            }
             
         try:
             result = {
@@ -492,6 +515,86 @@ class TransportAPIResilience:
         except Exception as e:
             logger.error(f"Failed to get GTFS metro data: {e}")
             return {'error': str(e), 'data_source': 'gtfs'}
+    
+    def get_offline_map_data(
+        self, 
+        route_type: Optional[str] = None, 
+        route_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get offline map data (GeoJSON) for routes
+        
+        Args:
+            route_type: Filter by type (metro, tram, ferry, bus)
+            route_id: Get specific route by ID
+        """
+        if not self.offline_map_service:
+            return {
+                'error': 'Offline map service not available',
+                'data_source': 'offline_map'
+            }
+        
+        try:
+            if route_id:
+                result = self.offline_map_service.get_route_by_id(route_id)
+                if result:
+                    result['data_source'] = 'offline_map'
+                    return result
+                else:
+                    return {
+                        'error': f'Route {route_id} not found',
+                        'data_source': 'offline_map'
+                    }
+            elif route_type:
+                result = self.offline_map_service.get_routes_by_type(route_type)
+                result['data_source'] = 'offline_map'
+                return result
+            else:
+                result = self.offline_map_service.get_all_routes_geojson()
+                result['data_source'] = 'offline_map'
+                return result
+                
+        except Exception as e:
+            logger.error(f"Failed to get offline map data: {e}")
+            return {'error': str(e), 'data_source': 'offline_map'}
+    
+    def find_nearest_stops(
+        self, 
+        lat: float, 
+        lon: float, 
+        max_distance_km: float = 1.0
+    ) -> Dict[str, Any]:
+        """
+        Find nearest transport stops to a location
+        
+        Args:
+            lat: Latitude
+            lon: Longitude
+            max_distance_km: Maximum search radius in kilometers
+        """
+        if not self.offline_map_service:
+            return {
+                'error': 'Offline map service not available',
+                'data_source': 'offline_map'
+            }
+        
+        try:
+            nearby_stops = self.offline_map_service.find_nearest_stop(
+                lat, lon, max_distance_km
+            )
+            
+            return {
+                'location': {'lat': lat, 'lon': lon},
+                'max_distance_km': max_distance_km,
+                'stops': nearby_stops,
+                'count': len(nearby_stops),
+                'data_source': 'offline_map',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to find nearest stops: {e}")
+            return {'error': str(e), 'data_source': 'offline_map'}
             
     def close(self):
         """Clean up resources"""

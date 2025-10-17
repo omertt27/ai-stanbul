@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul AI - Offline Transit Map Preview</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .map-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 700px;
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .controls h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .filter-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .legend {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .legend h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        .legend-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 4px;
+            border-radius: 2px;
+            margin-right: 10px;
+        }
+        
+        .legend-label {
+            font-size: 0.9rem;
+            color: #333;
+        }
+        
+        .search-box {
+            margin-top: 15px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .leaflet-popup-content {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .popup-title {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .popup-type {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            #map {
+                height: 500px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Istanbul AI - Offline Transit Map</h1>
+        <p>Interactive map showing metro, tram, ferry, and bus routes with offline support</p>
+    </div>
+    
+    <div class="container">
+        <div class="controls">
+            <h2>🎛️ Map Controls</h2>
+            <p style="color: #666; margin-bottom: 15px;">Filter routes by transport type:</p>
+            <div class="filter-group">
+                <button class="filter-btn active" data-type="all">🌐 All Routes</button>
+                <button class="filter-btn" data-type="metro">🚇 Metro Lines</button>
+                <button class="filter-btn" data-type="tram">🚊 Tram Lines</button>
+                <button class="filter-btn" data-type="ferry">⛴️ Ferry Routes</button>
+                <button class="filter-btn" data-type="bus">🚌 Bus Routes</button>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search for a station or route...">
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="metroCount">7</h3>
+                    <p>Metro Lines</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="tramCount">3</h3>
+                    <p>Tram Lines</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="ferryCount">5</h3>
+                    <p>Ferry Routes</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stopCount">-</h3>
+                    <p>Total Stops</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <div class="legend">
+            <h2>📍 Route Legend</h2>
+            <div id="legendContent"></div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map centered on Istanbul
+        const map = L.map('map').setView([41.0082, 28.9784], 11);
+        
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Store layers for filtering
+        let layers = {
+            metro: L.layerGroup().addTo(map),
+            tram: L.layerGroup().addTo(map),
+            ferry: L.layerGroup().addTo(map),
+            bus: L.layerGroup().addTo(map)
+        };
+        
+        let allFeatures = [];
+        let routeColors = {};
+        
+        // Load and display transit data
+        fetch('./data/istanbul_transit_map.geojson')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Loaded transit data:', data);
+                
+                // Update stats
+                document.getElementById('metroCount').textContent = data.metadata.metro_lines;
+                document.getElementById('tramCount').textContent = data.metadata.tram_lines;
+                document.getElementById('ferryCount').textContent = data.metadata.ferry_routes;
+                
+                // Count stops (Points)
+                const stopCount = data.features.filter(f => f.geometry.type === 'Point').length;
+                document.getElementById('stopCount').textContent = stopCount;
+                
+                allFeatures = data.features;
+                
+                // Process features
+                data.features.forEach(feature => {
+                    const props = feature.properties;
+                    const geom = feature.geometry;
+                    
+                    if (geom.type === 'LineString') {
+                        // Route line
+                        const routeType = props.route_type;
+                        const color = props.color ? '#' + props.color : getDefaultColor(routeType);
+                        
+                        // Store color for legend
+                        routeColors[props.route_id] = {
+                            color: color,
+                            name: props.name,
+                            name_en: props.name_en,
+                            type: routeType
+                        };
+                        
+                        const line = L.polyline(
+                            geom.coordinates.map(coord => [coord[1], coord[0]]),
+                            {
+                                color: color,
+                                weight: 4,
+                                opacity: 0.8
+                            }
+                        );
+                        
+                        line.bindPopup(`
+                            <div class="popup-title">${props.name}</div>
+                            <div class="popup-type">${props.route_type.toUpperCase()}</div>
+                            <p><strong>Route ID:</strong> ${props.route_id}</p>
+                            <p><strong>Status:</strong> ${props.operational ? '✅ Operational' : '⚠️ Offline'}</p>
+                        `);
+                        
+                        layers[routeType].addLayer(line);
+                        
+                    } else if (geom.type === 'Point') {
+                        // Stop/Station
+                        const stopType = props.stop_type;
+                        const icon = getStopIcon(stopType);
+                        
+                        const marker = L.circleMarker(
+                            [geom.coordinates[1], geom.coordinates[0]],
+                            {
+                                radius: 6,
+                                fillColor: getStopColor(stopType),
+                                color: '#fff',
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.9
+                            }
+                        );
+                        
+                        marker.bindPopup(`
+                            <div class="popup-title">${icon} ${props.name}</div>
+                            <div class="popup-type">${props.stop_type.toUpperCase()}</div>
+                            ${props.name_en ? `<p><em>${props.name_en}</em></p>` : ''}
+                            <p><strong>Stop ID:</strong> ${props.stop_id}</p>
+                            ${props.accessible ? '<p>♿ Accessible</p>' : ''}
+                            ${props.facilities && props.facilities.length > 0 ? 
+                                `<p><strong>Facilities:</strong> ${props.facilities.join(', ')}</p>` : ''}
+                        `);
+                        
+                        layers[stopType].addLayer(marker);
+                    }
+                });
+                
+                // Build legend
+                buildLegend();
+                
+            })
+            .catch(error => {
+                console.error('Error loading transit data:', error);
+                alert('Failed to load transit map data. Make sure the GeoJSON files are generated.');
+            });
+        
+        // Helper functions
+        function getDefaultColor(type) {
+            const colors = {
+                metro: '#00A651',
+                tram: '#FF9800',
+                ferry: '#2196F3',
+                bus: '#FF6600'
+            };
+            return colors[type] || '#666';
+        }
+        
+        function getStopColor(type) {
+            const colors = {
+                metro: '#00A651',
+                tram: '#FF9800',
+                ferry: '#2196F3',
+                bus: '#FF6600'
+            };
+            return colors[type] || '#666';
+        }
+        
+        function getStopIcon(type) {
+            const icons = {
+                metro: '🚇',
+                tram: '🚊',
+                ferry: '⛴️',
+                bus: '🚌'
+            };
+            return icons[type] || '📍';
+        }
+        
+        function buildLegend() {
+            const legendContent = document.getElementById('legendContent');
+            legendContent.innerHTML = '';
+            
+            // Group by type
+            const grouped = {};
+            Object.entries(routeColors).forEach(([id, info]) => {
+                if (!grouped[info.type]) {
+                    grouped[info.type] = [];
+                }
+                grouped[info.type].push({ id, ...info });
+            });
+            
+            // Sort types
+            const typeOrder = ['metro', 'tram', 'ferry', 'bus'];
+            typeOrder.forEach(type => {
+                if (grouped[type]) {
+                    const typeHeader = document.createElement('h3');
+                    typeHeader.style.marginTop = '15px';
+                    typeHeader.style.marginBottom = '10px';
+                    typeHeader.style.color = '#667eea';
+                    typeHeader.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' Lines';
+                    legendContent.appendChild(typeHeader);
+                    
+                    grouped[type].forEach(route => {
+                        const item = document.createElement('div');
+                        item.className = 'legend-item';
+                        item.innerHTML = `
+                            <div class="legend-color" style="background-color: ${route.color}"></div>
+                            <span class="legend-label">${route.id}: ${route.name}</span>
+                        `;
+                        legendContent.appendChild(item);
+                    });
+                }
+            });
+        }
+        
+        // Filter controls
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active state
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const type = btn.dataset.type;
+                
+                if (type === 'all') {
+                    Object.values(layers).forEach(layer => map.addLayer(layer));
+                } else {
+                    Object.entries(layers).forEach(([key, layer]) => {
+                        if (key === type) {
+                            map.addLayer(layer);
+                        } else {
+                            map.removeLayer(layer);
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm.length < 2) {
+                return;
+            }
+            
+            // Search through features
+            allFeatures.forEach(feature => {
+                if (feature.geometry.type === 'Point') {
+                    const props = feature.properties;
+                    const name = props.name.toLowerCase();
+                    const nameEn = (props.name_en || '').toLowerCase();
+                    
+                    if (name.includes(searchTerm) || nameEn.includes(searchTerm)) {
+                        const coords = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]];
+                        map.setView(coords, 15);
+                        
+                        // Highlight the stop
+                        const marker = L.circleMarker(coords, {
+                            radius: 15,
+                            fillColor: '#FFD700',
+                            color: '#FF6600',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 0.5
+                        }).addTo(map);
+                        
+                        setTimeout(() => marker.remove(), 3000);
+                        return;
+                    }
+                }
+            });
+        });
+        
+        // Add scale control
+        L.control.scale({imperial: false}).addTo(map);
+    </script>
+</body>
+</html>

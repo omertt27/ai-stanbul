@@ -1,0 +1,576 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9889,
+            41.0363
+          ],
+          [
+            28.9867,
+            41.0334
+          ],
+          [
+            28.9823,
+            41.0267
+          ],
+          [
+            28.9756,
+            41.0234
+          ],
+          [
+            28.9723,
+            41.0178
+          ],
+          [
+            28.9801,
+            41.0134
+          ],
+          [
+            28.9769,
+            41.0056
+          ],
+          [
+            28.9645,
+            41.0108
+          ],
+          [
+            28.9589,
+            41.0089
+          ],
+          [
+            28.9574,
+            41.0017
+          ],
+          [
+            28.9456,
+            40.9978
+          ],
+          [
+            28.9041,
+            40.9906
+          ],
+          [
+            28.8756,
+            40.9845
+          ],
+          [
+            28.8345,
+            40.9756
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "T1",
+        "name": "Kabataş - Bağcılar",
+        "name_en": "Kabatas - Bagcilar",
+        "route_type": "tram",
+        "color": "#FF9800",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9889,
+          41.0363
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_01",
+        "name": "Kabataş",
+        "name_en": "Kabatas",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9867,
+          41.0334
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_02",
+        "name": "Fındıklı",
+        "name_en": "Findikli",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9823,
+          41.0267
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_03",
+        "name": "Tophane",
+        "name_en": "Tophane",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9756,
+          41.0234
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_04",
+        "name": "Karaköy",
+        "name_en": "Karakoy",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9723,
+          41.0178
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_05",
+        "name": "Eminönü",
+        "name_en": "Eminonu",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "ferry_connection"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9801,
+          41.0134
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_06",
+        "name": "Gülhane",
+        "name_en": "Gulhane",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9769,
+          41.0056
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_07",
+        "name": "Sultanahmet",
+        "name_en": "Sultanahmet",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9645,
+          41.0108
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_08",
+        "name": "Beyazıt",
+        "name_en": "Beyazit",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9589,
+          41.0089
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_09",
+        "name": "Laleli",
+        "name_en": "Laleli",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9574,
+          41.0017
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_10",
+        "name": "Aksaray",
+        "name_en": "Aksaray",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9456,
+          40.9978
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_11",
+        "name": "Yusufpaşa",
+        "name_en": "Yusufpasa",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9041,
+          40.9906
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_12",
+        "name": "Zeytinburnu",
+        "name_en": "Zeytinburnu",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8756,
+          40.9845
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_13",
+        "name": "Cevizlibağ",
+        "name_en": "Cevizlibag",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8345,
+          40.9756
+        ]
+      },
+      "properties": {
+        "stop_id": "T1_14",
+        "name": "Bağcılar",
+        "name_en": "Bagcilar",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9226,
+            41.0148
+          ],
+          [
+            28.9234,
+            41.0234
+          ],
+          [
+            28.9156,
+            41.0389
+          ],
+          [
+            28.9078,
+            41.0489
+          ],
+          [
+            28.8967,
+            41.0567
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "T4",
+        "name": "Topkapı - Mescid-i Selam",
+        "name_en": "Topkapi - Mescid-i Selam",
+        "route_type": "tram",
+        "color": "#FFC107",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9226,
+          41.0148
+        ]
+      },
+      "properties": {
+        "stop_id": "T4_01",
+        "name": "Topkapı",
+        "name_en": "Topkapi",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9234,
+          41.0234
+        ]
+      },
+      "properties": {
+        "stop_id": "T4_02",
+        "name": "Edirnekapı",
+        "name_en": "Edirnekapi",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9156,
+          41.0389
+        ]
+      },
+      "properties": {
+        "stop_id": "T4_03",
+        "name": "Sultan Çiftliği",
+        "name_en": "Sultan Ciftligi",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9078,
+          41.0489
+        ]
+      },
+      "properties": {
+        "stop_id": "T4_04",
+        "name": "Alibeyköy",
+        "name_en": "Alibeykoy",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8967,
+          41.0567
+        ]
+      },
+      "properties": {
+        "stop_id": "T4_05",
+        "name": "Mescid-i Selam",
+        "name_en": "Mescid-i Selam",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9723,
+            41.0178
+          ],
+          [
+            28.9756,
+            41.0234
+          ],
+          [
+            28.9534,
+            41.0345
+          ],
+          [
+            28.9078,
+            41.0489
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "T5",
+        "name": "Eminönü - Alibeyköy",
+        "name_en": "Eminonu - Alibeykoy",
+        "route_type": "tram",
+        "color": "#FFEB3B",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9723,
+          41.0178
+        ]
+      },
+      "properties": {
+        "stop_id": "T5_01",
+        "name": "Eminönü",
+        "name_en": "Eminonu",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9756,
+          41.0234
+        ]
+      },
+      "properties": {
+        "stop_id": "T5_02",
+        "name": "Karaköy",
+        "name_en": "Karakoy",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9534,
+          41.0345
+        ]
+      },
+      "properties": {
+        "stop_id": "T5_03",
+        "name": "Cibali",
+        "name_en": "Cibali",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9078,
+          41.0489
+        ]
+      },
+      "properties": {
+        "stop_id": "T5_04",
+        "name": "Alibeyköy",
+        "name_en": "Alibeykoy",
+        "stop_type": "tram",
+        "accessible": true,
+        "facilities": []
+      }
+    }
+  ],
+  "metadata": {
+    "route_type": "tram",
+    "count": 3,
+    "generated_at": "2025-10-17T21:24:18.285370"
+  }
+}

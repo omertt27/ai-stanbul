@@ -1,0 +1,1324 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9518,
+            41.0036
+          ],
+          [
+            28.9574,
+            41.0017
+          ],
+          [
+            28.9651,
+            41.0039
+          ],
+          [
+            28.932,
+            41.0089
+          ],
+          [
+            28.8997,
+            41.0386
+          ],
+          [
+            28.9041,
+            40.9906
+          ],
+          [
+            28.8709,
+            40.9813
+          ],
+          [
+            28.8152,
+            40.9765
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M1A",
+        "name": "Yenikapı - Atatürk Havalimanı",
+        "name_en": "Yenikapi - Ataturk Airport",
+        "route_type": "metro",
+        "color": "#E53E3E",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9518,
+          41.0036
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_01",
+        "name": "Yenikapı",
+        "name_en": "Yenikapi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9574,
+          41.0017
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_02",
+        "name": "Aksaray",
+        "name_en": "Aksaray",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9651,
+          41.0039
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_03",
+        "name": "Emniyet-Fatih",
+        "name_en": "Emniyet-Fatih",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.932,
+          41.0089
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_04",
+        "name": "Ulubatlı",
+        "name_en": "Ulubatli",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8997,
+          41.0386
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_05",
+        "name": "Bayrampaşa-Maltepe",
+        "name_en": "Bayrampasa-Maltepe",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9041,
+          40.9906
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_06",
+        "name": "Zeytinburnu",
+        "name_en": "Zeytinburnu",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8709,
+          40.9813
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_07",
+        "name": "Bakırköy-İncirli",
+        "name_en": "Bakirkoy-Incirli",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8152,
+          40.9765
+        ]
+      },
+      "properties": {
+        "stop_id": "M1A_08",
+        "name": "Atatürk Havalimanı",
+        "name_en": "Ataturk Airport",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9518,
+            41.0036
+          ],
+          [
+            28.9574,
+            41.0017
+          ],
+          [
+            28.9651,
+            41.0039
+          ],
+          [
+            28.9226,
+            41.0148
+          ],
+          [
+            28.8956,
+            41.0455
+          ],
+          [
+            28.8789,
+            41.0556
+          ],
+          [
+            28.7891,
+            41.0103
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M1B",
+        "name": "Yenikapı - Kirazlı",
+        "name_en": "Yenikapi - Kirazli",
+        "route_type": "metro",
+        "color": "#FF6B9D",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9518,
+          41.0036
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_01",
+        "name": "Yenikapı",
+        "name_en": "Yenikapi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9574,
+          41.0017
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_02",
+        "name": "Aksaray",
+        "name_en": "Aksaray",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9651,
+          41.0039
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_03",
+        "name": "Emniyet-Fatih",
+        "name_en": "Emniyet-Fatih",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9226,
+          41.0148
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_04",
+        "name": "Topkapı-Ulubatlı",
+        "name_en": "Topkapi-Ulubatli",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8956,
+          41.0455
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_05",
+        "name": "Bayrampaşa",
+        "name_en": "Bayrampasa",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8789,
+          41.0556
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_06",
+        "name": "Esenler",
+        "name_en": "Esenler",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.7891,
+          41.0103
+        ]
+      },
+      "properties": {
+        "stop_id": "M1B_07",
+        "name": "Kirazlı",
+        "name_en": "Kirazli",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9541,
+            41.0158
+          ],
+          [
+            28.9467,
+            41.0217
+          ],
+          [
+            28.9742,
+            41.0256
+          ],
+          [
+            28.985,
+            41.0369
+          ],
+          [
+            28.9885,
+            41.0489
+          ],
+          [
+            29.0084,
+            41.0634
+          ],
+          [
+            29.0159,
+            41.0679
+          ],
+          [
+            29.0138,
+            41.0822
+          ],
+          [
+            29.0157,
+            41.0876
+          ],
+          [
+            29.0185,
+            41.0928
+          ],
+          [
+            29.0218,
+            41.1037
+          ],
+          [
+            29.0256,
+            41.1078
+          ],
+          [
+            29.0301,
+            41.1108
+          ],
+          [
+            29.0343,
+            41.1187
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M2",
+        "name": "Vezneciler - Hacıosman",
+        "name_en": "Vezneciler - Haciosman",
+        "route_type": "metro",
+        "color": "#00A651",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9541,
+          41.0158
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_01",
+        "name": "Vezneciler",
+        "name_en": "Vezneciler",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9467,
+          41.0217
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_02",
+        "name": "Haliç",
+        "name_en": "Halic (Golden Horn)",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9742,
+          41.0256
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_03",
+        "name": "Şişhane",
+        "name_en": "Sishane",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.985,
+          41.0369
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_04",
+        "name": "Taksim",
+        "name_en": "Taksim",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9885,
+          41.0489
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_05",
+        "name": "Osmanbey",
+        "name_en": "Osmanbey",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0084,
+          41.0634
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_06",
+        "name": "Şişli-Mecidiyeköy",
+        "name_en": "Sisli-Mecidiyekoy",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0159,
+          41.0679
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_07",
+        "name": "Gayrettepe",
+        "name_en": "Gayrettepe",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0138,
+          41.0822
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_08",
+        "name": "Levent",
+        "name_en": "Levent",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0157,
+          41.0876
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_09",
+        "name": "4.Levent",
+        "name_en": "4.Levent",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0185,
+          41.0928
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_10",
+        "name": "Sanayi Mahallesi",
+        "name_en": "Sanayi Mahallesi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0218,
+          41.1037
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_11",
+        "name": "İTÜ-Ayazağa",
+        "name_en": "ITU-Ayazaga",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0256,
+          41.1078
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_12",
+        "name": "Atatürk Oto Sanayi",
+        "name_en": "Ataturk Oto Sanayi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0301,
+          41.1108
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_13",
+        "name": "Darüşşafaka",
+        "name_en": "Darussafaka",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0343,
+          41.1187
+        ]
+      },
+      "properties": {
+        "stop_id": "M2_14",
+        "name": "Hacıosman",
+        "name_en": "Haciiosman",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.7891,
+            41.0103
+          ],
+          [
+            28.7812,
+            41.0345
+          ],
+          [
+            28.789,
+            41.0456
+          ],
+          [
+            28.7923,
+            41.0489
+          ],
+          [
+            28.7967,
+            41.0534
+          ],
+          [
+            28.8012,
+            41.0678
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M3",
+        "name": "Kirazlı - Olimpiyat",
+        "name_en": "Kirazli - Olimpiyat",
+        "route_type": "metro",
+        "color": "#0078C8",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.7891,
+          41.0103
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_01",
+        "name": "Kirazlı",
+        "name_en": "Kirazli",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.7812,
+          41.0345
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_02",
+        "name": "Başak Konutları",
+        "name_en": "Basak Konutlari",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.789,
+          41.0456
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_03",
+        "name": "Siteler",
+        "name_en": "Siteler",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.7923,
+          41.0489
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_04",
+        "name": "Turgut Özal",
+        "name_en": "Turgut Ozal",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.7967,
+          41.0534
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_05",
+        "name": "İkitelli Sanayi",
+        "name_en": "Ikitelli Sanayi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8012,
+          41.0678
+        ]
+      },
+      "properties": {
+        "stop_id": "M3_06",
+        "name": "Olimpiyat",
+        "name_en": "Olimpiyat",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0265,
+            40.9907
+          ],
+          [
+            29.0312,
+            40.9956
+          ],
+          [
+            29.0389,
+            40.9989
+          ],
+          [
+            29.0456,
+            41.0023
+          ],
+          [
+            29.0567,
+            41.0089
+          ],
+          [
+            29.0878,
+            40.9645
+          ],
+          [
+            29.1234,
+            40.9234
+          ],
+          [
+            29.3092,
+            40.8989
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M4",
+        "name": "Kadıköy - Sabiha Gökçen",
+        "name_en": "Kadikoy - Sabiha Gokcen Airport",
+        "route_type": "metro",
+        "color": "#E91E63",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0265,
+          40.9907
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_01",
+        "name": "Kadıköy",
+        "name_en": "Kadikoy",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0312,
+          40.9956
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_02",
+        "name": "Ayrılık Çeşmesi",
+        "name_en": "Ayrilik Cesmesi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0389,
+          40.9989
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_03",
+        "name": "Acıbadem",
+        "name_en": "Acibadem",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0456,
+          41.0023
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_04",
+        "name": "Ünalan",
+        "name_en": "Unalan",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0567,
+          41.0089
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_05",
+        "name": "Göztepe",
+        "name_en": "Goztepe",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0878,
+          40.9645
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_06",
+        "name": "Bostancı",
+        "name_en": "Bostanci",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.1234,
+          40.9234
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_07",
+        "name": "Küçükyalı",
+        "name_en": "Kucukyali",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.3092,
+          40.8989
+        ]
+      },
+      "properties": {
+        "stop_id": "M4_08",
+        "name": "Sabiha Gökçen Havalimanı",
+        "name_en": "Sabiha Gokcen Airport",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0152,
+            41.024
+          ],
+          [
+            29.0234,
+            41.0289
+          ],
+          [
+            29.0345,
+            41.0345
+          ],
+          [
+            29.0456,
+            41.0389
+          ],
+          [
+            29.0589,
+            41.0456
+          ],
+          [
+            29.1256,
+            41.0323
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M5",
+        "name": "Üsküdar - Çekmeköy",
+        "name_en": "Uskudar - Cekmekoy",
+        "route_type": "metro",
+        "color": "#9C27B0",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0152,
+          41.024
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_01",
+        "name": "Üsküdar",
+        "name_en": "Uskudar",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0234,
+          41.0289
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_02",
+        "name": "Fıstıkağacı",
+        "name_en": "Fistikagaci",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0345,
+          41.0345
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_03",
+        "name": "Bağlarbaşı",
+        "name_en": "Baglarbasi",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0456,
+          41.0389
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_04",
+        "name": "Altunizade",
+        "name_en": "Altunizade",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0589,
+          41.0456
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_05",
+        "name": "Çamlıca",
+        "name_en": "Camlica",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.1256,
+          41.0323
+        ]
+      },
+      "properties": {
+        "stop_id": "M5_06",
+        "name": "Çekmeköy",
+        "name_en": "Cekmekoy",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0084,
+            41.0634
+          ],
+          [
+            28.9934,
+            41.0689
+          ],
+          [
+            28.9823,
+            41.0756
+          ],
+          [
+            28.9645,
+            41.0823
+          ],
+          [
+            28.8234,
+            41.0556
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "M7",
+        "name": "Mecidiyeköy - Mahmutbey",
+        "name_en": "Mecidiyekoy - Mahmutbey",
+        "route_type": "metro",
+        "color": "#FF69B4",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0084,
+          41.0634
+        ]
+      },
+      "properties": {
+        "stop_id": "M7_01",
+        "name": "Mecidiyeköy",
+        "name_en": "Mecidiyekoy",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": [
+          "transfer"
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9934,
+          41.0689
+        ]
+      },
+      "properties": {
+        "stop_id": "M7_02",
+        "name": "Çağlayan",
+        "name_en": "Caglayan",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9823,
+          41.0756
+        ]
+      },
+      "properties": {
+        "stop_id": "M7_03",
+        "name": "Kağıthane",
+        "name_en": "Kagithane",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9645,
+          41.0823
+        ]
+      },
+      "properties": {
+        "stop_id": "M7_04",
+        "name": "Yıldız",
+        "name_en": "Yildiz",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.8234,
+          41.0556
+        ]
+      },
+      "properties": {
+        "stop_id": "M7_05",
+        "name": "Mahmutbey",
+        "name_en": "Mahmutbey",
+        "stop_type": "metro",
+        "accessible": true,
+        "facilities": []
+      }
+    }
+  ],
+  "metadata": {
+    "route_type": "metro",
+    "count": 7,
+    "generated_at": "2025-10-17T21:24:18.284469"
+  }
+}

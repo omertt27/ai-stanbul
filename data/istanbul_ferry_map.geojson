@@ -1,0 +1,420 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0265,
+            40.9907
+          ],
+          [
+            28.9723,
+            41.0178
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "F_KAD_EMI",
+        "name": "Kadıköy - Eminönü",
+        "name_en": "Kadikoy - Eminonu",
+        "route_type": "ferry",
+        "color": "#2196F3",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0265,
+          40.9907
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KAD",
+        "name": "Kadıköy İskelesi",
+        "name_en": "Kadikoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9723,
+          41.0178
+        ]
+      },
+      "properties": {
+        "stop_id": "F_EMI",
+        "name": "Eminönü İskelesi",
+        "name_en": "Eminonu Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0265,
+            40.9907
+          ],
+          [
+            28.9756,
+            41.0234
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "F_KAD_KRY",
+        "name": "Kadıköy - Karaköy",
+        "name_en": "Kadikoy - Karakoy",
+        "route_type": "ferry",
+        "color": "#2196F3",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0265,
+          40.9907
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KAD",
+        "name": "Kadıköy İskelesi",
+        "name_en": "Kadikoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9756,
+          41.0234
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KRY",
+        "name": "Karaköy İskelesi",
+        "name_en": "Karakoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0152,
+            41.024
+          ],
+          [
+            28.9723,
+            41.0178
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "F_USK_EMI",
+        "name": "Üsküdar - Eminönü",
+        "name_en": "Uskudar - Eminonu",
+        "route_type": "ferry",
+        "color": "#2196F3",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0152,
+          41.024
+        ]
+      },
+      "properties": {
+        "stop_id": "F_USK",
+        "name": "Üsküdar İskelesi",
+        "name_en": "Uskudar Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9723,
+          41.0178
+        ]
+      },
+      "properties": {
+        "stop_id": "F_EMI",
+        "name": "Eminönü İskelesi",
+        "name_en": "Eminonu Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            29.0067,
+            41.0422
+          ],
+          [
+            29.0265,
+            40.9907
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "F_BES_KAD",
+        "name": "Beşiktaş - Kadıköy",
+        "name_en": "Besiktas - Kadikoy",
+        "route_type": "ferry",
+        "color": "#2196F3",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0067,
+          41.0422
+        ]
+      },
+      "properties": {
+        "stop_id": "F_BES",
+        "name": "Beşiktaş İskelesi",
+        "name_en": "Besiktas Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0265,
+          40.9907
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KAD",
+        "name": "Kadıköy İskelesi",
+        "name_en": "Kadikoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            28.9723,
+            41.0178
+          ],
+          [
+            28.9756,
+            41.0234
+          ],
+          [
+            29.0067,
+            41.0422
+          ],
+          [
+            29.0267,
+            41.0556
+          ],
+          [
+            29.0423,
+            41.0756
+          ],
+          [
+            29.0634,
+            41.0734
+          ],
+          [
+            29.0823,
+            41.1856
+          ]
+        ]
+      },
+      "properties": {
+        "route_id": "F_BOSPHORUS",
+        "name": "Boğaz Turu",
+        "name_en": "Bosphorus Tour",
+        "route_type": "ferry",
+        "color": "#03A9F4",
+        "operational": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9723,
+          41.0178
+        ]
+      },
+      "properties": {
+        "stop_id": "F_EMI",
+        "name": "Eminönü İskelesi",
+        "name_en": "Eminonu Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9756,
+          41.0234
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KRY",
+        "name": "Karaköy İskelesi",
+        "name_en": "Karakoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0067,
+          41.0422
+        ]
+      },
+      "properties": {
+        "stop_id": "F_BES",
+        "name": "Beşiktaş İskelesi",
+        "name_en": "Besiktas Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0267,
+          41.0556
+        ]
+      },
+      "properties": {
+        "stop_id": "F_ORT",
+        "name": "Ortaköy İskelesi",
+        "name_en": "Ortakoy Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0423,
+          41.0756
+        ]
+      },
+      "properties": {
+        "stop_id": "F_BEB",
+        "name": "Bebek İskelesi",
+        "name_en": "Bebek Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0634,
+          41.0734
+        ]
+      },
+      "properties": {
+        "stop_id": "F_KAN",
+        "name": "Kanlıca İskelesi",
+        "name_en": "Kanlica Pier",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.0823,
+          41.1856
+        ]
+      },
+      "properties": {
+        "stop_id": "F_ANV",
+        "name": "Anadolu Kavağı",
+        "name_en": "Anadolu Kavagi",
+        "stop_type": "ferry",
+        "accessible": true,
+        "facilities": []
+      }
+    }
+  ],
+  "metadata": {
+    "route_type": "ferry",
+    "count": 5,
+    "generated_at": "2025-10-17T21:24:18.285811"
+  }
+}
