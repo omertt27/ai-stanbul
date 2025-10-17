@@ -1667,7 +1667,6 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
             
     except Exception as e:
         print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
-       
 
         import traceback
         traceback.print_exc()
@@ -2597,6 +2596,17 @@ except Exception as e:
     print(f"⚠️ Offline Map Service not available: {e}")
     offline_map_service = None
 
+# Initialize POI Route Integration
+poi_route_integration = None
+try:
+    from services.poi_route_integration import POIRouteIntegration, get_poi_route_integration
+    
+    poi_route_integration = get_poi_route_integration()
+    print("✅ POI Route Integration initialized successfully")
+except Exception as e:
+    print(f"⚠️ POI Route Integration not available: {e}")
+    poi_route_integration = None
+
 
 @app.get("/api/map/routes", tags=["Offline Maps"])
 async def get_all_transit_routes(
@@ -2661,16 +2671,6 @@ async def get_specific_route(route_id: str):
 async def find_nearby_stops(
     lat: float = Query(..., description="Latitude", ge=-90, le=90),
     lon: float = Query(..., description="Longitude", ge=-180, le=180),
-    max_distance_km: float = Query(1.0, description="Maximum search radius in km", ge=0.1, le=10)
-):
-    """
-    Find nearest transit stops to a location
-    
-    - **lat**: Latitude coordinate
-    - **lon**: Longitude coordinate
-    - **max_distance_km**: Search radius (default: 1.0 km)
-    - Returns: List of nearby stops with distances
-    """
     if not offline_map_service:
         raise HTTPException(
             status_code=503,
