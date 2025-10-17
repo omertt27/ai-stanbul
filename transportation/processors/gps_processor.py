@@ -187,12 +187,20 @@ class GPSTransportationQueryProcessor:
     
     def __init__(self):
         from ..services.transportation_service import EnhancedTransportationSystem
-        from ..processors.comprehensive_processor import ComprehensiveTransportProcessor
         
         self.enhanced_system = EnhancedTransportationSystem()
-        self.comprehensive_processor = ComprehensiveTransportProcessor()
+        # Lazy import to avoid circular dependency
+        self._comprehensive_processor = None
         self.gps_processor = GPSLocationProcessor()
         self.logger = logging.getLogger(__name__)
+    
+    @property
+    def comprehensive_processor(self):
+        """Lazy load comprehensive processor to avoid circular import"""
+        if self._comprehensive_processor is None:
+            from ..processors.comprehensive_processor import ComprehensiveTransportProcessor
+            self._comprehensive_processor = ComprehensiveTransportProcessor()
+        return self._comprehensive_processor
         
         # Initialize intelligent location detector if available
         if LOCATION_DETECTOR_AVAILABLE:

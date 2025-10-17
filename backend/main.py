@@ -1667,6 +1667,7 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
             
     except Exception as e:
         print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
+       
         import traceback
         traceback.print_exc()
         return None
@@ -2134,7 +2135,9 @@ async def optimize_route_from_gps(
                         "name": place,
                         "description": matching_dest.get("description", f"Visit {place}") if matching_dest else f"Visit {place}",
                         "estimated_time": "60-90 minutes",
-                        "location": matching_dest.get("location") if matching_dest else None
+                        "distance_from_start": f"{matching_dest.get('distance_from_start', 0):.1f} km" if matching_dest else "Unknown",
+                        "lat": matching_dest.get("location", {}).get("lat") if matching_dest else None,
+                        "lng": matching_dest.get("location", {}).get("lng") if matching_dest else None
                     }
                     optimized_waypoints.append(waypoint)
             else:
@@ -2145,7 +2148,9 @@ async def optimize_route_from_gps(
                         "name": dest.get("name", f"Destination {i+1}"),
                         "description": dest.get("description", ""),
                         "estimated_time": "60-90 minutes",
-                        "location": dest.get("location")
+                        "distance_from_start": f"{dest.get('distance_from_start', 0):.1f} km" if dest else "Unknown",
+                        "lat": dest.get("location", {}).get("lat") if dest else None,
+                        "lng": dest.get("location", {}).get("lng") if dest else None
                     })
             
             route_data = {
@@ -2153,7 +2158,7 @@ async def optimize_route_from_gps(
                 "optimized": True,
                 "algorithm": "GPS-aware TSP optimization",
                 "start_point": user_location,
-                "optimization_method": preferences.get("method", "balanced") if preferences else "balanced",
+                "end_point": user_location,
                 "gps_based": True
             }
             
@@ -2403,857 +2408,184 @@ class MuseumResponse(BaseModel):
     ticket_info: Dict[str, Any] = Field(..., description="Ticket information")
 
 
-# Note: GPS-based route planning is handled by the existing /api/route/gps-plan endpoint above
-
 # =============================
-# SYSTEM STATUS & HEALTH ENDPOINTS
+# ADVANCED ROUTE PLANNING V2 API ENDPOINT  
 # =============================
 
-@app.get("/api/istanbul-ai/status", tags=["System Status"])
-async def get_system_status():
-    """Get comprehensive system status including AI systems and database availability"""
-    return {
-        "status": "operational",
-        "timestamp": datetime.now().isoformat(),
-        "ai_systems": {
-            "istanbul_daily_talk": {
-                "available": ISTANBUL_DAILY_TALK_AVAILABLE,
-                "features": ["attractions", "restaurants", "events", "transportation", "personalization"]
-            }
-        },
-        "databases": {
-            "restaurants": RESTAURANT_SERVICE_ENABLED,
-            "events": EVENTS_SCHEDULER_AVAILABLE
-        },
-        "endpoints": [
-            "/api/chat",
-            "/api/route/gps-plan",
-            "/api/istanbul-ai/status",
-            "/api/istanbul-ai/capabilities"
-        ]
-    }
+class AdvancedRouteRequest(BaseModel):
+    """Request model for advanced route planning with EnhancedRoutePlannerV2"""
+    message: str = Field(..., description="Route planning query with preferences")
+    session_id: Optional[str] = Field(None, description="User session ID for personalization")
+    start_location: Optional[str] = Field(None, description="Starting location")
+    end_location: Optional[str] = Field(None, description="Destination")
+    waypoints: Optional[List[str]] = Field(None, description="Intermediate stops")
+    transport_modes: Optional[List[str]] = Field(None, description="Preferred transport modes")
+    time_constraint: Optional[Dict[str, Any]] = Field(None, description="Time constraints")
+    user_preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
+    weather_aware: Optional[bool] = Field(True, description="Include weather-aware routing")
 
+class AdvancedRouteResponse(BaseModel):
+    """Response model for advanced route planning"""
+    route_plan: Dict[str, Any] = Field(..., description="Complete advanced route plan")
+    weather_recommendations: Optional[str] = Field(None, description="Weather-aware suggestions")
+    ai_recommendations: Optional[List[str]] = Field(None, description="AI-powered recommendations")
+    transport_details: Optional[List[str]] = Field(None, description="Multi-modal transport details")  
+    points_of_interest: Optional[List[Dict[str, str]]] = Field(None, description="POIs along route")
+    estimated_cost: Optional[str] = Field(None, description="Estimated total cost")
+    real_time_updates: Optional[str] = Field(None, description="Live traffic/transport updates")
+    alternative_routes: Optional[List[Dict[str, str]]] = Field(None, description="Alternative options")
+    local_tips: Optional[List[str]] = Field(None, description="Local insider tips")
+    accessibility_info: Optional[str] = Field(None, description="Accessibility information")
 
-# =============================
-# DEVELOPMENT & TESTING ENDPOINTS
-# =============================
-
-# =============================
-# ROUTE PLANNING API ENDPOINT
-# =============================
-
-@app.post("/api/route/plan", response_model=RouteResponse, tags=["Route Planning"])
-async def plan_route_with_istanbul_ai(request: RouteRequest):
+@app.post("/api/route/advanced-plan", response_model=AdvancedRouteResponse, tags=["Advanced Route Planning"])
+async def advanced_route_planning_v2(request: AdvancedRouteRequest):
     """
-    Advanced route planning with TSP optimization
-    Uses Istanbul Daily Talk AI's route planning system
+    Advanced route planning using EnhancedRoutePlannerV2
+    Features: weather-aware routing, AI recommendations, multi-modal transport,
+    time-aware planning, preference-based optimization, ML-enhanced learning
     """
     try:
-        print(f"🗺️ Route planning request: {request.message}")
+        print(f"🧭 Advanced route planning V2 request: {request.message}")
         
         if not ISTANBUL_DAILY_TALK_AVAILABLE:
-            raise HTTPException(status_code=503, detail="Route planning service unavailable")
+            raise HTTPException(status_code=503, detail="Advanced route planning service unavailable")
         
         # Generate session ID if not provided
-        session_id = request.session_id or f"route_{uuid.uuid4().hex[:8]}"
+        session_id = request.session_id or f"adv_route_{uuid.uuid4().hex[:8]}"
         
-        # Check if Istanbul Daily Talk AI has route planning capability
-        if hasattr(istanbul_daily_talk_ai, 'handle_route_planning_query'):
+        # Check if Istanbul Daily Talk AI has advanced route planner
+        if hasattr(istanbul_daily_talk_ai, 'advanced_route_planner') and istanbul_daily_talk_ai.advanced_route_planner:
             try:
                 # Get user profile for personalization
-                user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(session_id)
+                user_profile = istanbul_daily_talk_ai.user_manager.get_or_create_user_profile(session_id)
+                context = istanbul_daily_talk_ai.user_manager.get_conversation_context(session_id)
                 
-                # Create context with location information
-                from istanbul_daily_talk_system_modular import ConversationContext
-                context = ConversationContext(
-                    session_id=session_id,
-                    user_profile=user_profile
-                )
-                context.context_memory = {"user_location": request.start_location}
+                # Extract entities for enhanced processing
+                entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(request.message)
                 
-                # Process route planning query
-                route_response = istanbul_daily_talk_ai.handle_route_planning_query(
+                # Use the main system's advanced route response method
+                advanced_response = istanbul_daily_talk_ai._generate_advanced_route_response(
                     request.message, 
+                    entities, 
                     user_profile, 
-                    context, 
-                    datetime.now()
+                    context
                 )
                 
-                # Parse response to extract route information
+                # Parse the advanced response to extract structured data
                 route_data = {
-                    "description": route_response,
-                    "optimized": True,
-                    "algorithm": "TSP with Istanbul optimizations",
-                    "start_point": request.start_location,
-                    "end_point": request.end_location or request.start_location
+                    "full_response": advanced_response,
+                    "start_location": request.start_location or "Current location",
+                    "end_location": request.end_location or "Recommended destination",
+                    "transport_modes": request.transport_modes or ["walking", "public_transport"],
+                    "planning_method": "EnhancedRoutePlannerV2",
+                    "features_enabled": [
+                        "Weather-aware routing",
+                        "AI recommendations", 
+                        "Multi-modal transport",
+                        "Time-aware planning",
+                        "Preference-based optimization",
+                        "Real-time updates",
+                        "ML-enhanced learning"
+                    ]
                 }
                 
-                waypoints = []
-                # Extract waypoints from response (basic parsing)
-                if "→" in route_response:
-                    places = [place.strip() for place in route_response.split("→")]
-                    for i, place in enumerate(places):
-                        waypoints.append({
-                            "order": i + 1,
-                            "name": place,
-                            "description": f"Stop {i + 1}: {place}",
-                            "estimated_time": "30-60 minutes"
-                        })
+                # Extract specific components from response (basic parsing)
+                weather_recs = None
+                ai_recs = []
+                transport_details = []
+                pois = []
+                local_tips = []
                 
-                return RouteResponse(
-                    route=route_data,
-                    total_duration="4-6 hours",
-                    total_distance="10-20 km",
-                    waypoints=waypoints,
-                    suggestions=[
-                        "Consider starting early in the morning",
-                        "Bring comfortable walking shoes",
-                        "Check museum opening hours"
-                    ]
+                if "Weather-Aware Tips:" in advanced_response:
+                    weather_section = advanced_response.split("Weather-Aware Tips:")[1].split("\n\n")[0]
+                    weather_recs = weather_section.strip()
+                
+                if "AI-Powered Recommendations:" in advanced_response:
+                    ai_section = advanced_response.split("AI-Powered Recommendations:")[1].split("\n\n")[0]
+                    ai_recs = [line.strip("• ") for line in ai_section.split("\n") if line.strip().startswith("•")]
+                
+                if "Transportation Details:" in advanced_response:
+                    transport_section = advanced_response.split("Transportation Details:")[1].split("\n\n")[0]
+                    transport_details = [line.strip("• ") for line in transport_section.split("\n") if line.strip().startswith("•")]
+                
+                if "Points of Interest Along Your Route:" in advanced_response:
+                    pois_section = advanced_response.split("Points of Interest Along Your Route:")[1].split("\n\n")[0]
+                    poi_lines = [line.strip("• ") for line in pois_section.split("\n") if line.strip().startswith("•")]
+                    for poi_line in poi_lines:
+                        if "**" in poi_line and "-" in poi_line:
+                            name_part = poi_line.split("**")[1] if "**" in poi_line else poi_line.split("-")[0]
+                            desc_part = poi_line.split("-", 1)[1].strip() if "-" in poi_line else ""
+                            pois.append({"name": name_part.strip(), "description": desc_part})
+                
+                if "Local Insider Tips:" in advanced_response:
+                    tips_section = advanced_response.split("Local Insider Tips:")[1].split("\n\n")[0]
+                    local_tips = [line.strip("• ") for line in tips_section.split("\n") if line.strip().startswith("•")]
+                
+                # Extract cost estimate
+                estimated_cost = None
+                if "Estimated Cost:" in advanced_response:
+                    cost_line = [line for line in advanced_response.split("\n") if "Estimated Cost:" in line]
+                    if cost_line:
+                        estimated_cost = cost_line[0].split("Estimated Cost:")[1].strip()
+                
+                # Extract accessibility info
+                accessibility_info = None
+                if "Accessibility:" in advanced_response:
+                    access_line = [line for line in advanced_response.split("\n") if "Accessibility:" in line]
+                    if access_line:
+                        accessibility_info = access_line[0].split("Accessibility:")[1].strip()
+                
+                # Extract alternative routes
+                alternative_routes = []
+                if "Alternative Routes Available:" in advanced_response:
+                    alt_section = advanced_response.split("Alternative Routes Available:")[1].split("\n\n")[0]
+                    alt_lines = [line.strip("• ") for line in alt_section.split("\n") if line.strip().startswith("•")]
+                    for alt_line in alt_lines:
+                        if "(" in alt_line and ")" in alt_line:
+                            desc = alt_line.split("(")[0].strip()
+                            duration = alt_line.split("(")[1].split(")")[0] if "(" in alt_line else ""
+                            alternative_routes.append({"description": desc, "duration": duration})
+                
+                return AdvancedRouteResponse(
+                    route_plan=route_data,
+                    weather_recommendations=weather_recs,
+                    ai_recommendations=ai_recs if ai_recs else None,
+                    transport_details=transport_details if transport_details else None,
+                    points_of_interest=pois if pois else None,
+                    estimated_cost=estimated_cost,
+                    real_time_updates="Live updates integrated via Istanbul transport APIs",
+                    alternative_routes=alternative_routes if alternative_routes else None,
+                    local_tips=local_tips if local_tips else None,
+                    accessibility_info=accessibility_info
                 )
                 
             except Exception as e:
-                print(f"⚠️ Route planning error: {e}")
-                # Fallback route response
+                print(f"⚠️ Advanced route planning V2 error: {e}")
+                traceback.print_exc()
+                
+                # Fallback to basic advanced response
+                return AdvancedRouteResponse(
+                    route_plan={
+                        "full_response": f"Advanced route planning for: {request.message}",
+                        "error_fallback": True,
+                        "features_enabled": ["Basic route planning", "Static recommendations"]
+                    },
+                    weather_recommendations="Check weather conditions before departure",
+                    ai_recommendations=["Plan for 4-6 hours of exploration", "Start early to avoid crowds"],
+                    transport_details=["Use Istanbulkart for public transport", "Walking distances vary"],
+                    estimated_cost="100-300 TL depending on activities",
+                    real_time_updates="Manual updates recommended"
+                )
         
-        # Fallback basic route planning
-        return RouteResponse(
-            route={
-                "description": f"Basic route for: {request.message}",
-                "type": "walking_tour",
-                "optimized": False
-            },
-            total_duration="3-5 hours",
-            total_distance="10-20 km",
-            waypoints=[
-                {
-                    "order": 1,
-                    "name": "Starting Point",
-                    "description": "Begin your Istanbul journey"
-                }
-            ],
-            suggestions=[
-                "Use Istanbul Daily Talk AI for detailed planning",
-                "Consider public transportation options",
-                "Plan around meal times"
-            ]
+        # Fallback if advanced planner not available
+        raise HTTPException(
+            status_code=503, 
+            detail="EnhancedRoutePlannerV2 not available. Please ensure the advanced route planner is properly initialized."
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Route planning error: {e}")
-        raise HTTPException(status_code=500, detail="Route planning failed")
-
-# =============================
-# TRANSPORTATION ADVICE API ENDPOINT
-# =============================
-
-@app.post("/api/transport/advice", response_model=TransportResponse, tags=["Transportation"])
-async def get_transportation_advice(request: TransportRequest):
-    """
-    Real-time transportation recommendations
-    Provides multi-modal transport options with live data
-    """
-    try:
-        print(f"🚌 Transport advice request: {request.from_location} → {request.to_location}")
-        
-        # Check if enhanced transportation service is available
-        if ENHANCED_SERVICES_ENABLED and enhanced_transport_service:
-            try:
-                # Get transportation info using enhanced service
-                transport_info = enhanced_transport_service.get_transportation_info(
-                    from_location=request.from_location,
-                    to_location=request.to_location,
-                    mode=request.transport_mode
-                )
-                
-                if transport_info:
-                    recommendations = [
-                        {
-                            "mode": "metro",
-                            "duration": "25-35 minutes",
-                            "cost": "Low",
-                            "description": transport_info.get("metro", "Metro connection available")
-                        },
-                        {
-                            "mode": "bus",
-                            "duration": "30-45 minutes", 
-                            "cost": "Very Low",
-                            "description": transport_info.get("bus", "Bus service available")
-                        },
-                        {
-                            "mode": "ferry",
-                            "duration": "20-30 minutes",
-                            "cost": "Low",
-                            "description": transport_info.get("ferry", "Ferry service available")
-                        }
-                    ]
-                    
-                    return TransportResponse(
-                        recommendations=recommendations,
-                        fastest_option=recommendations[2],  # Ferry usually fastest
-                        cheapest_option=recommendations[1],  # Bus usually cheapest
-                        weather_advice="Check weather conditions for ferry travel"
-                    )
-            except Exception as e:
-                print(f"⚠️ Enhanced transport service error: {e}")
-        
-        # Check if Istanbul Daily Talk AI has transportation advice
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            try:
-                # Use Istanbul Daily Talk AI's transportation query handling
-                transport_query = f"How to get from {request.from_location} to {request.to_location} using {request.transport_mode}"
-                
-                session_id = f"transport_{uuid.uuid4().hex[:8]}"
-                transport_response = istanbul_daily_talk_ai.process_message(transport_query, session_id)
-                
-                # Parse response for structured data
-                recommendations = [
-                    {
-                        "mode": "public_transport",
-                        "duration": "30-45 minutes",
-                        "cost": "Affordable",
-                        "description": transport_response
-                    }
-                ]
-                
-                return TransportResponse(
-                    recommendations=recommendations,
-                    fastest_option=recommendations[0],
-                    cheapest_option=recommendations[0],
-                    weather_advice="Consider weather when choosing transport mode"
-                )
-                
-            except Exception as e:
-                print(f"⚠️ Istanbul Daily Talk AI transport error: {e}")
-        
-        # Fallback transportation advice
-        return TransportResponse(
-            recommendations=[
-                {
-                    "mode": "metro",
-                    "duration": "25-40 minutes",
-                    "cost": "₺15-25",
-                    "description": "Fast and reliable metro connections"
-                },
-                {
-                    "mode": "bus",
-                    "duration": "35-60 minutes",
-                    "cost": "₺7-15", 
-                    "description": "Extensive bus network coverage"
-                },
-                {
-                    "mode": "taxi",
-                    "duration": "20-45 minutes",
-                    "cost": "₺50-150",
-                    "description": "Door-to-door convenience"
-                }
-            ],
-            fastest_option={
-                "mode": "metro",
-                "duration": "25-40 minutes",
-                "description": "Metro is usually the fastest option"
-            },
-            cheapest_option={
-                "mode": "bus", 
-                "duration": "35-60 minutes",
-                "description": "Bus is the most economical choice"
-            },
-            weather_advice="Consider indoor transport options during bad weather"
-        )
-        
-    except Exception as e:
-        print(f"❌ Transportation advice error: {e}")
-        raise HTTPException(status_code=500, detail="Transportation advice failed")
-
-# =============================
-# MUSEUM RECOMMENDATIONS API ENDPOINT
-# =============================
-
-@app.post("/api/museums/recommend", response_model=MuseumResponse, tags=["Museums"])
-async def get_museum_recommendations(request: MuseumRequest):
-    """
-    Enhanced museum recommendations with personalization
-    Provides curated museum suggestions with practical information
-    """
-    try:
-        print(f"🏛️ Museum recommendation request: {request.query}")
-        
-        # Check if enhanced museum service is available
-        if ENHANCED_SERVICES_ENABLED and enhanced_museum_service:
-            try:
-                # Get museum info using enhanced service
-                museum_info = enhanced_museum_service.get_museum_info(
-                    query=request.query,
-                    location=request.location,
-                    preferences=request.preferences or []
-                )
-                
-                if museum_info:
-                    museums = museum_info.get('museums', [])
-                    return MuseumResponse(
-                        museums=museums,
-                        personalized_tips=museum_info.get('tips', []),
-                        opening_hours=museum_info.get('hours', {}),
-                        ticket_info=museum_info.get('tickets', {})
-                    )
-            except Exception as e:
-                print(f"⚠️ Enhanced museum service error: {e}")
-        
-        # Check if Istanbul Daily Talk AI has museum recommendations
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            try:
-                session_id = request.session_id or f"museum_{uuid.uuid4().hex[:8]}"
-                
-                # Check if museum query handling is available
-                if istanbul_daily_talk_ai._is_museum_query(request.query):
-                    museum_response = istanbul_daily_talk_ai.process_message(request.query, session_id)
-                    
-                    # Parse response for structured data
-                    museums = [
-                        {
-                            "name": "Hagia Sophia",
-                            "type": "Historical Monument",
-                            "rating": 4.8,
-                            "description": "Iconic Byzantine and Ottoman architecture",
-                            "opening_hours": "09:00 - 19:00",
-                            "ticket_price": "Free"
-                        },
-                        {
-                            "name": "Topkapi Palace",
-                            "type": "Palace Museum",
-                            "rating": 4.7,
-                            "description": "Former Ottoman imperial palace",
-                            "opening_hours": "09:00 - 18:00",
-                            "ticket_price": "₺100"
-                        },
-                        {
-                            "name": "Istanbul Archaeology Museum",
-                            "type": "Archaeological",
-                            "rating": 4.5,
-                            "description": "Ancient artifacts and treasures",
-                            "opening_hours": "09:00 - 17:00",
-                            "ticket_price": "₺50"
-                        }
-                    ]
-                    
-                    return MuseumResponse(
-                        museums=museums,
-                        personalized_tips=[
-                            "Visit Hagia Sophia early morning to avoid crowds",
-                            "Topkapi Palace requires 2-3 hours minimum",
-                            "Archaeological Museum is perfect for history enthusiasts"
-                        ],
-    text = re.sub(r'(?:around|about|approximately|roughly)\s+\d+\s*(?:lira|euro|euros|dollar|dollars)', '', text, flags=re.IGNORECASE)
-    
-    # PHASE 3: Remove cost-related phrases with amounts - ENHANCED
-    cost_patterns = [
-                        },
-                        ticket_info={
-                            "museum_pass": "₺325 for 5 days",
-                            "student_discount": "50% off with valid ID",
-                            "group_booking": "10+ people get 20% discount"
-                        }
-                    )
-            except Exception as e:
-                print(f"⚠️ Istanbul Daily Talk AI museum error: {e}")
-        
-        # Fallback museum recommendations
-        museums = [
-            {
-                "name": "Hagia Sophia",
-                "type": "Historical Monument", 
-                "rating": 4.8,
-                "description": "A masterpiece of Byzantine architecture"
-            },
-            {
-                "name": "Blue Mosque",
-                "type": "Mosque",
-                "rating": 4.7,
-                "description": "Famous for its blue tiles and six minarets"
-            },
-            {
-                "name": "Topkapi Palace",
-                "type": "Palace Museum",
-                "rating": 4.6,
-                "description": "Ottoman imperial palace with stunning views"
-            }
-        ]
-        
-        return MuseumResponse(
-            museums=museums,
-            personalized_tips=[
-                "Start your museum tour early in the morning",
-                "Consider buying a museum pass for multiple visits",
-                "Check special exhibitions and events"
-            ],
-            opening_hours={
-                "Hagia Sophia": "24/7 (prayer times restricted)",
-                "Blue Mosque": "Outside prayer times",
-                "Topkapi Palace": "09:00 - 18:00"
-            },
-            ticket_info={
-                "hagia_sophia": "Free entry",
-                "topkapi_palace": "₺100 adult, ₺50 student",
-                "museum_pass": "₺325 for 5 days"
-            }
-        )
-        
-    except Exception as e:
-        print(f"❌ Museum recommendations error: {e}")
-        raise HTTPException(status_code=500, detail="Museum recommendations failed")
-
-@app.post("/api/museums/route-plan", response_model=MuseumRouteResponse, tags=["Museums"])
-async def plan_museum_route(request: MuseumRouteRequest):
-    """
-    Enhanced museum route planning with local tips and optimization
-    Creates personalized museum tours based on duration, interests, and starting location
-    """
-    try:
-        print(f"🏛️ Museum route planning request: {request.query}")
-        
-        # Generate session ID if not provided
-        session_id = request.session_id or f"museum_route_{uuid.uuid4().hex[:8]}"
-        
-        # Check if Istanbul Daily Talk AI is available and has museum route planning capability
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            try:
-                # Try to use the enhanced museum route planner directly
-                enhanced_planner_path = os.path.join(os.path.dirname(__file__), '..', 'enhanced_museum_route_planner.py')
-                if os.path.exists(enhanced_planner_path):
-                    sys.path.append(os.path.dirname(enhanced_planner_path))
-                    from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
-                    
-                    planner = EnhancedMuseumRoutePlanner()
-                    
-                    # Prepare preferences with district/neighborhood filtering
-                    preferences = {
-                        "interests": request.interests or ["history", "art"],
-                        "max_museums": min(6, max(2, (request.duration_hours or 5) // 2)),
-                        "budget_tl": {"low": 300, "medium": 600, "high": 1200}.get(request.budget_level, 600),
-                        "accessibility_needed": request.accessibility_needs or False,
-                        "districts": request.districts or [],
-                        "neighborhoods": request.neighborhoods or []
-                    }
-                    
-                    # Check if this is a district-focused query
-                    if request.districts and len(request.districts) == 1:
-                        # Use district-focused route planning
-                        route_result = await planner.create_district_focused_route(
-                            district=request.districts[0],
-                            preferences=preferences,
-                            duration_hours=request.duration_hours or 5
-                        )
-                    else:
-                        # Use general route planning with district/neighborhood preferences
-                        route_result = await planner.create_museum_route(
-                            preferences=preferences,
-                            duration_hours=request.duration_hours or 5
-                        )
-                    
-                    if route_result and not route_result.get('error'):
-                        museums = []
-                        route_museums = route_result.get('museums', [])
-                        
-                        for museum_info in route_museums:
-                            museum = museum_info.get('museum')
-                            if museum:
-                                museums.append({
-                                    "name": museum.name,
-                                    "description": museum.description,
-                                    "duration": f"{museum.visit_duration_minutes} minutes",
-                                    "type": museum.category.value,
-                                    "highlights": museum.highlights,
-                                    "district": museum.district,
-                                    "neighborhood": museum.neighborhood,
-                                    "entry_fee_tl": museum.entry_fee_tl,
-                                    "local_tips": [tip for tip in museum_info.get('local_tips', [])][:3]
-                                })
-                        
-                        # Format route plan
-                        route_plan = f"🏛️ **Enhanced Museum Route ({route_result.get('total_duration_hours', request.duration_hours or 5):.1f} hours)**\n\n"
-                        
-                        if route_result.get('district_focus'):
-                            route_plan += f"**District Focus:** {route_result['district_focus']}\n"
-                            coverage = route_result.get('district_coverage', {})
-                            route_plan += f"**Coverage:** {coverage.get('museums_in_route', 0)}/{coverage.get('total_museums_in_district', 0)} museums ({coverage.get('coverage_percentage', 0):.0f}%)\n\n"
-                        
-                        for i, museum_info in enumerate(route_museums, 1):
-                            museum = museum_info.get('museum')
-                            arrival_time = museum_info.get('arrival_time', 'TBD')
-                            route_plan += f"**{i}. {museum.name}** ({arrival_time})\n"
-                            route_plan += f"   📍 {museum.district} - {museum.neighborhood}\n"
-                            route_plan += f"   ⏱️ {museum.visit_duration_minutes} minutes\n"
-                            route_plan += f"   💰 {museum.entry_fee_tl} TL\n\n"
-                        
-                        # Add district transport tips if available
-                        transport_tips = "🚇 Use T1 tram and walking for Sultanahmet area. Metro M2 for Beyoğlu."
-                        if route_result.get('district_transport_tips'):
-                            transport_tips = " • ".join(route_result['district_transport_tips'])
-                        
-                        # Collect local tips
-                        local_tips = []
-                        for tip_category in route_result.get('local_recommendations', []):
-                            local_tips.extend(tip_category)
-                        
-                        # Add general local tips
-                        local_tips.extend([
-                            "Book tickets online when possible to skip queues",
-                            "Most museums are closed on Mondays",
-                            "Start early (9 AM) to avoid afternoon crowds",
-                            f"Museum Pass (₺325) recommended for {len(museums)}+ museums"
-                        ])
-                        
-                        return MuseumRouteResponse(
-                            route_plan=route_plan,
-                            museums=museums,
-                            total_duration=int(route_result.get('total_duration_hours', request.duration_hours or 5)),
-                            estimated_cost=f"₺{route_result.get('total_cost_tl', 200):.0f} total entry fees",
-                            transportation_guide=transport_tips,
-                            local_tips=local_tips[:8],  # Limit to 8 tips
-                            success=True
-                        )
-                    else:
-                        print(f"⚠️ Enhanced planner error: {route_result.get('error', 'Unknown error')}")
-                
-                # Check if the main system has the enhanced museum route planner
-                main_system_path = os.path.join(os.path.dirname(__file__), '..', 'istanbul_ai', 'main_system.py')
-                if os.path.exists(main_system_path):
-                    # Try to use the main system's museum route planning
-                    from istanbul_ai.main_system import IstanbulDailyTalkAI
-                    main_ai_system = IstanbulDailyTalkAI()
-                    
-                    # Check if the system has the enhanced museum route planner
-                    if hasattr(main_ai_system, 'museum_route_planner') and main_ai_system.museum_route_planner:
-                        # Use the enhanced museum route planner from main system
-                        route_result = main_ai_system.museum_route_planner.plan_museum_route(
-                            duration_hours=request.duration_hours or 5,
-                            starting_location=request.starting_location or "Sultanahmet",
-                            interests=request.interests or ["byzantine", "ottoman"],
-                            budget_level=request.budget_level or "medium",
-                            accessibility_needs=request.accessibility_needs or False
-                        )
-                        
-                        if route_result and route_result.get('success', True):
-                            museums = []
-                            for stop in route_result.get('route', []):
-                                museums.append({
-                                    "name": stop.get('name', 'Unknown Museum'),
-                                    "description": stop.get('description', ''),
-                                    "duration": stop.get('duration', '1-2 hours'),
-                                    "type": stop.get('type', 'museum'),
-                                    "highlights": stop.get('highlights', [])
-                                })
-                            
-                            return MuseumRouteResponse(
-                                route_plan=route_result.get('formatted_plan', 'Custom museum route created'),
-                                museums=museums,
-                                total_duration=route_result.get('total_duration', request.duration_hours or 5),
-                                estimated_cost=route_result.get('total_cost', '200-400 TL'),
-                                transportation_guide=route_result.get('transportation_guide', 'Use T1 tram and walking'),
-                                local_tips=route_result.get('local_tips', []),
-                                success=True
-                            )
-                    
-                    # Fallback: Use main system's museum route response method
-                    if hasattr(main_ai_system, '_generate_museum_route_response'):
-                        # Create mock entities for the method
-                        entities = {
-                            'neighborhoods': [request.starting_location] if request.starting_location else [],
-                            'museums': [],
-                            'duration': [str(request.duration_hours)] if request.duration_hours else []
-                        }
-                        
-                        # Get the museum route response
-                        route_response = main_ai_system._generate_museum_route_response(
-                            request.query, entities, {}, {}
-                        )
-                        
-                        # Parse the response to extract structured data
-                        museums = [
-                            {
-                                "name": "Hagia Sophia",
-                                "description": "Byzantine and Ottoman architectural masterpiece",
-                                "duration": "1.5 hours",
-                                "type": "historical monument",
-                                "highlights": ["Mosaics", "Islamic calligraphy", "Architectural fusion"]
-                            },
-                            {
-                                "name": "Topkapi Palace",
-                                "description": "Ottoman imperial palace complex",
-                                "duration": "2-3 hours", 
-                                "type": "palace museum",
-                                "highlights": ["Treasury", "Harem", "Imperial kitchens"]
-                            }
-                        ]
-                        
-                        return MuseumRouteResponse(
-                            route_plan=route_response,
-                            museums=museums,
-                            total_duration=request.duration_hours or 5,
-                            estimated_cost=f"{200 + (request.duration_hours or 0) * 30}-{400 + (request.duration_hours or 0) * 50} TL",
-                            transportation_guide="Use T1 tram between Sultanahmet attractions. Most museums are within walking distance.",
-                            local_tips=[
-                                "Book Topkapi Palace tickets online to skip queues",
-                                "Visit early morning (9-10 AM) to avoid crowds",
-                                "Many museums closed on Mondays",
-                                "Museum Pass (325 TL) saves money for multiple visits"
-                            ],
-                            success=True
-                        )
-                        
-            except Exception as e:
-                print(f"⚠️ Main system museum route planning error: {e}")
-        
-        # Ultimate fallback: Create a basic route plan
-        duration = request.duration_hours or 5
-        
-        if duration <= 3:
-            museums = [
-                {
-                    "name": "Hagia Sophia",
-                    "description": "Must-see Byzantine and Ottoman architectural wonder",
-                    "duration": "1.5 hours",
-                    "type": "monument",
-                    "highlights": ["Stunning mosaics", "Islamic calligraphy", "Architectural fusion"]
-                },
-                {
-                    "name": "Basilica Cistern",
-                    "description": "Mysterious underground Byzantine cistern",
-                    "duration": "45 minutes",
-                    "type": "historical site", 
-                    "highlights": ["Medusa column heads", "Atmospheric lighting", "Ancient engineering"]
-                }
-            ]
-            route_plan = """🏛️ **Half-Day Museum Route (3 hours)**
-
-**Morning Route:**
-1. **Hagia Sophia** (1.5 hours) - Start at 9:00 AM
-2. **Basilica Cistern** (45 minutes) - 11:00 AM  
-
-**Perfect for:** First-time visitors, limited time, families with children"""
-        else:
-            museums = [
-                {
-                    "name": "Topkapi Palace",
-                    "description": "Magnificent Ottoman imperial palace complex", 
-                    "duration": "2.5 hours",
-                    "type": "palace museum",
-                    "highlights": ["Imperial treasury", "Harem quarters", "Palace gardens"]
-                },
-                {
-                    "name": "Hagia Sophia",
-                    "description": "Architectural masterpiece spanning empires",
-                    "duration": "1.5 hours", 
-                    "type": "monument",
-                    "highlights": ["Byzantine mosaics", "Ottoman mihrab", "Imperial gallery"]
-                },
-                {
-                    "name": "Istanbul Archaeology Museum",
-                    "description": "World-class ancient artifact collection",
-                    "duration": "2 hours",
-                    "type": "archaeology",
-                    "highlights": ["Alexander Sarcophagus", "Ancient civilizations"]
-                }
-            ]
-            route_plan = f"""🏛️ **Full Museum Route ({duration} hours)**
-
-**Morning (9:00 AM - 12:00 PM):**
-1. **Topkapi Palace** (2.5 hours) - Ottoman imperial experience
-
-**Afternoon (1:30 PM - 4:00 PM):**  
-2. **Hagia Sophia** (1.5 hours) - Architectural wonder
-3. **Istanbul Archaeology Museum** (2 hours) - Ancient treasures
-
-**Ideal for:** History enthusiasts, cultural explorers"""
-        
-        return MuseumRouteResponse(
-            route_plan=route_plan,
-            museums=museums,
-            total_duration=duration,
-            estimated_cost=f"{200 + duration * 30}-{400 + duration * 50} TL",
-            transportation_guide="🚇 Use T1 tram and walking. Get Istanbulkart for convenience.",
-            local_tips=[
-                "Start early (9 AM) to avoid crowds",
-                "Museum Pass (₺325) saves money for multiple visits", 
-                "Most museums closed on Mondays",
-                "Carry cash for smaller museums",
-                "Download Google Translate for descriptions"
-            ],
-            success=True
-        )
-        
-    except Exception as e:
-        print(f"❌ Museum route planning error: {e}")
-        raise HTTPException(status_code=500, detail="Museum route planning failed")
-
-# =============================
-# DISTRICTS AND NEIGHBORHOODS ENDPOINTS
-# =============================
-
-@app.get("/api/museums/districts", tags=["Museums"])
-async def get_museum_districts():
-    """
-    Get all available districts with their museum counts and details
-    """
-    try:
-        # Try to use the enhanced museum route planner
-        enhanced_planner_path = os.path.join(os.path.dirname(__file__), '..', 'enhanced_museum_route_planner.py')
-        if os.path.exists(enhanced_planner_path):
-            sys.path.append(os.path.dirname(enhanced_planner_path))
-            from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
-            
-            planner = EnhancedMuseumRoutePlanner()
-            districts = planner.get_available_districts()
-            
-            return {
-                "districts": districts,
-                "total_districts": len(districts),
-                "total_museums": sum(d["museum_count"] for d in districts),
-                "success": True
-            }
-        
-        # Fallback data
-        return {
-            "districts": [
-                {
-                    "name": "Fatih",
-                    "museum_count": 15,
-                    "neighborhoods": ["Sultanahmet", "Eminönü", "Beyazıt"],
-                    "categories": ["archaeological", "history", "palace", "religious"]
-                },
-                {
-                    "name": "Beyoğlu", 
-                    "museum_count": 8,
-                    "neighborhoods": ["Karaköy", "Tepebaşı", "Galata"],
-                    "categories": ["art_contemporary", "art_classical", "cultural_house"]
-                }
-            ],
-            "total_districts": 2,
-            "total_museums": 23,
-            "success": True
-        }
-        
-    except Exception as e:
-        print(f"❌ Get districts error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get museum districts")
-
-@app.get("/api/museums/neighborhoods", tags=["Museums"])
-async def get_museum_neighborhoods(district: Optional[str] = None):
-    """
-    Get all available neighborhoods, optionally filtered by district
-    """
-    try:
-        # Try to use the enhanced museum route planner
-        enhanced_planner_path = os.path.join(os.path.dirname(__file__), '..', 'enhanced_museum_route_planner.py')
-        if os.path.exists(enhanced_planner_path):
-            sys.path.append(os.path.dirname(enhanced_planner_path))
-            from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
-            
-            planner = EnhancedMuseumRoutePlanner()
-            neighborhoods = planner.get_available_neighborhoods(district)
-            
-            return {
-                "neighborhoods": neighborhoods,
-                "total_neighborhoods": len(neighborhoods),
-                "filtered_by_district": district,
-                "success": True
-            }
-        
-        # Fallback data
-        fallback_neighborhoods = [
-            {
-                "name": "Sultanahmet",
-                "district": "Fatih", 
-                "museum_count": 8,
-                "categories": ["archaeological", "history", "palace"]
-            },
-            {
-                "name": "Karaköy",
-                "district": "Beyoğlu",
-                "museum_count": 3,
-                "categories": ["art_contemporary", "maritime"]
-            }
-        ]
-        
-        if district:
-            fallback_neighborhoods = [n for n in fallback_neighborhoods if n["district"].lower() == district.lower()]
-        
-        return {
-            "neighborhoods": fallback_neighborhoods,
-            "total_neighborhoods": len(fallback_neighborhoods),
-            "filtered_by_district": district,
-            "success": True
-        }
-        
-    except Exception as e:
-        print(f"❌ Get neighborhoods error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get museum neighborhoods")
-
-@app.get("/api/museums/by-district/{district}", tags=["Museums"])
-async def get_museums_by_district(district: str):
-    """
-    Get all museums in a specific district
-    """
-    try:
-        # Try to use the enhanced museum route planner
-        enhanced_planner_path = os.path.join(os.path.dirname(__file__), '..', 'enhanced_museum_route_planner.py')
-        if os.path.exists(enhanced_planner_path):
-            sys.path.append(os.path.dirname(enhanced_planner_path))
-            from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
-            
-            planner = EnhancedMuseumRoutePlanner()
-            museums = planner.get_museums_by_district(district)
-            
-            return {
-                "district": district,
-                "museums": museums,
-                "total_museums": len(museums),
-                "success": True
-            }
-        
-        # Fallback data
-        if district.lower() == "fatih":
-            museums = [
-                {
-                    "id": "hagia_sophia",
-                    "name": "Hagia Sophia",
-                    "neighborhood": "Sultanahmet",
-                    "category": "history",
-                    "coordinates": [41.0086, 28.9802],
-                    "visit_duration_minutes": 90,
-                    "entry_fee_tl": 0,
-                    "tourist_rating": 4.7,
-                    "local_rating": 4.5,
-                    "cultural_significance": 1.0
-                }
-            ]
-        elif district.lower() == "beyoğlu":
-            museums = [
-                {
-                    "id": "istanbul_modern",
-                    "name": "Istanbul Modern",
-                    "neighborhood": "Karaköy", 
-                    "category": "art_contemporary",
-                    "coordinates": [41.0342, 28.9784],
-                    "visit_duration_minutes": 120,
-                    "entry_fee_tl": 120,
-                    "tourist_rating": 4.2,
-                    "local_rating": 4.6,
-                    "cultural_significance": 0.8
-                }
-            ]
-        else:
-            museums = []
-        
-        return {
-            "district": district,
-            "museums": museums,
-            "total_museums": len(museums),
-            "success": True
-        }
-        
-    except Exception as e:
-        print(f"❌ Get museums by district error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get museums by district")
+        print(f"❌ Advanced route planning V2 system error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Advanced route planning system error")

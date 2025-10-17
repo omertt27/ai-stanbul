@@ -697,6 +697,7 @@ def get_weather_for_ai() -> Dict[str, Any]:
 # Export for use in other modules
 __all__ = [
     'WeatherCache',
+    'WeatherCacheService',  # Add alias for backward compatibility
     'WeatherData', 
     'HourlyForecast',
     'WeatherAlert',
@@ -705,3 +706,9 @@ __all__ = [
     'get_current_weather',
     'get_weather_for_ai'
 ]
+
+
+# Backward compatibility alias
+class WeatherCacheService(WeatherCache):
+    """Alias for WeatherCache for backward compatibility with ml_enhanced_transportation_system.py"""
+    pass
