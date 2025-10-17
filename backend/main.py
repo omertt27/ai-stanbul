@@ -36,6 +36,46 @@ except ImportError as e:
     ADVANCED_UNDERSTANDING_AVAILABLE = False
     print(f"⚠️ Advanced Understanding System not available: {e}")
 
+# Add Comprehensive ML/DL Integration System import
+try:
+    from comprehensive_ml_dl_integration import (
+        ComprehensiveMLDLIntegration, 
+        MLSystemType, 
+        UserContext, 
+        MLEnhancementResult
+    )
+    COMPREHENSIVE_ML_AVAILABLE = True
+    print("✅ Comprehensive ML/DL Integration System loaded successfully")
+except ImportError as e:
+    COMPREHENSIVE_ML_AVAILABLE = False
+    print(f"⚠️ Comprehensive ML/DL Integration System not available: {e}")
+
+# Add Lightweight Deep Learning System import
+try:
+    from lightweight_deep_learning import (
+        DeepLearningMultiIntentIntegration, 
+        LearningContext, 
+        LearningMode,
+        create_lightweight_deep_learning_system
+    )
+    DEEP_LEARNING_AVAILABLE = True
+    print("✅ Lightweight Deep Learning System loaded successfully")
+except ImportError as e:
+    DEEP_LEARNING_AVAILABLE = False
+    print(f"⚠️ Lightweight Deep Learning System not available: {e}")
+
+# Add Caching Systems import
+try:
+    from ml_result_cache import get_ml_cache
+    from edge_cache_system import get_edge_cache
+    ML_CACHE_AVAILABLE = True
+    EDGE_CACHE_AVAILABLE = True
+    print("✅ Caching Systems loaded successfully")
+except ImportError as e:
+    ML_CACHE_AVAILABLE = False
+    EDGE_CACHE_AVAILABLE = False
+    print(f"⚠️ Caching Systems not available: {e}")
+
 # Add Monthly Events Scheduler import
 try:
     from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
@@ -938,6 +978,75 @@ if ADVANCED_UNDERSTANDING_AVAILABLE:
         print(f"⚠️ Failed to initialize Advanced Understanding System: {e}")
         ADVANCED_UNDERSTANDING_AVAILABLE = False
         advanced_understanding = None
+
+# Initialize Comprehensive ML/DL Integration System
+comprehensive_ml_system = None
+if COMPREHENSIVE_ML_AVAILABLE:
+    try:
+        comprehensive_ml_system = ComprehensiveMLDLIntegration()
+        print("✅ Comprehensive ML/DL Integration System initialized successfully")
+        print("  🚀 ML Enhancement Systems: Ready")
+        print("  🧠 Typo Correction: Ready")
+        print("  ☀️ Weather Advisor: Ready")
+        print("  🗺️ Route Optimizer: Ready")
+        print("  🎭 Event Predictor: Ready")
+        print("  🏘️ Neighborhood Matcher: Ready")
+        
+        # Integrate with Advanced Understanding System if available
+        if advanced_understanding and hasattr(advanced_understanding, 'multi_intent_handler'):
+            # The multi_intent_handler already has comprehensive_ml_system initialized
+            print("✅ Comprehensive ML/DL Integration connected to Multi-Intent Handler")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Comprehensive ML/DL Integration System: {e}")
+        COMPREHENSIVE_ML_AVAILABLE = False
+        comprehensive_ml_system = None
+
+# Initialize Lightweight Deep Learning System
+deep_learning_system = None
+if DEEP_LEARNING_AVAILABLE:
+    try:
+        deep_learning_system = create_lightweight_deep_learning_system()
+        print("✅ Lightweight Deep Learning System initialized successfully")
+        print("  🧠 Intent Classification: Ready")
+        print("  📈 Learning Enhancement: Ready")
+        
+        # Integrate with Advanced Understanding System if available
+        if advanced_understanding and hasattr(advanced_understanding, 'multi_intent_handler'):
+            # The multi_intent_handler already has deep_learning_system initialized
+            print("✅ Deep Learning System connected to Multi-Intent Handler")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Lightweight Deep Learning System: {e}")
+        DEEP_LEARNING_AVAILABLE = False
+        deep_learning_system = None
+
+# Initialize Caching Systems
+ml_cache = None
+edge_cache = None
+
+if ML_CACHE_AVAILABLE:
+    try:
+        ml_cache = get_ml_cache()
+        print("✅ ML Result Cache initialized successfully")
+        print(f"  📊 Cache entries: {len(ml_cache.memory_cache)}")
+        print(f"  💾 Cache size: {ml_cache._get_cache_size_mb():.2f} MB")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize ML Result Cache: {e}")
+        ML_CACHE_AVAILABLE = False
+
+if EDGE_CACHE_AVAILABLE:
+    try:
+        edge_cache = get_edge_cache()
+        print("✅ Edge Cache Manager initialized successfully")
+        print(f"  🌐 Cache entries: {len(edge_cache.cache_entries)}")
+        
+        # Refresh static data caches
+        refresh_results = edge_cache.refresh_all_static_data()
+        successful_refreshes = sum(1 for result in refresh_results.values() if result)
+        print(f"  🔄 Refreshed {successful_refreshes}/{len(refresh_results)} static data caches")
+        
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Edge Cache Manager: {e}")
+        EDGE_CACHE_AVAILABLE = False
 
 # Integration with Enhanced AI System
 try:
@@ -2088,10 +2197,16 @@ async def chat_with_istanbul_ai(
                         'primary_intent': intent,
                         'secondary_intents': [i.type.value for i in multi_intent_result.secondary_intents],
                         'query_complexity': multi_intent_result.query_complexity,
-                        'processing_strategy': multi_intent_result.processing_strategy
+                        'processing_strategy': multi_intent_result.processing_strategy,
+                        'ml_enhanced': multi_intent_result.ml_enhanced,
+                        'ml_enhancements': multi_intent_result.ml_enhancements or {}
                     }
                     
                     print(f"🎯 Multi-intent analysis: Primary={intent}, Secondary={multi_intent_data['secondary_intents']}, Confidence={confidence:.3f}")
+                    if multi_intent_result.ml_enhanced:
+                        print(f"🚀 ML Enhancement Applied: {len(multi_intent_result.ml_enhancements)} systems enhanced")
+                        for system_type, enhancement in multi_intent_result.ml_enhancements.items():
+                            print(f"  - {system_type}: {enhancement.get('enhancement_level', 'unknown')} level, {enhancement.get('confidence', 0):.2f} confidence")
                     
                     # Generate enhanced suggestions based on multi-intent analysis
                     suggestions = generate_enhanced_suggestions(intent, multi_intent_result.secondary_intents, detected_location)

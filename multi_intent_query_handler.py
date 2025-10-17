@@ -50,6 +50,29 @@ except ImportError as e:
     logger.warning(f"İKSV Events System not available: {e}")
     IKSV_EVENTS_AVAILABLE = False
 
+# Import Enhanced Museum Route Planner for intelligent museum touring
+try:
+    from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
+    MUSEUM_ROUTE_PLANNER_AVAILABLE = True
+    logger.info("🏛️ Enhanced Museum Route Planner integrated successfully!")
+except ImportError as e:
+    logger.warning(f"Enhanced Museum Route Planner not available: {e}")
+    MUSEUM_ROUTE_PLANNER_AVAILABLE = False
+
+# Import comprehensive ML/DL integration system
+try:
+    from comprehensive_ml_dl_integration import (
+        ComprehensiveMLDLIntegration, 
+        MLSystemType, 
+        UserContext, 
+        MLEnhancementResult
+    )
+    COMPREHENSIVE_ML_AVAILABLE = True
+    logger.info("🚀 Comprehensive ML/DL Integration System available!")
+except ImportError as e:
+    logger.warning(f"Comprehensive ML/DL Integration not available: {e}")
+    COMPREHENSIVE_ML_AVAILABLE = False
+
 class IntentType(Enum):
     """Different types of intents that can be detected"""
     LOCATION_SEARCH = "location_search"
@@ -96,6 +119,8 @@ class MultiIntentResult:
     detected_language: str = 'english'
     response_text: str = ""
     original_query: str = ""  # Store original query for intent handlers
+    ml_enhanced: bool = False  # Flag indicating if ML/DL was used for intent detection
+    ml_enhancements: Optional[Dict[str, Any]] = None  # Detailed ML enhancement summaries (system -> summary)
 
 class MultiIntentQueryHandler:
     """
@@ -135,6 +160,29 @@ class MultiIntentQueryHandler:
             except Exception as e:
                 logger.error(f"Failed to initialize İKSV Events System: {e}")
                 IKSV_EVENTS_AVAILABLE = False
+        
+        # Initialize Enhanced Museum Route Planner for intelligent museum routing
+        global MUSEUM_ROUTE_PLANNER_AVAILABLE
+        self.museum_route_planner = None
+        if MUSEUM_ROUTE_PLANNER_AVAILABLE:
+            try:
+                self.museum_route_planner = EnhancedMuseumRoutePlanner()
+                logger.info("🏛️ Enhanced Museum Route Planner initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize Enhanced Museum Route Planner: {e}")
+                MUSEUM_ROUTE_PLANNER_AVAILABLE = False
+        
+        # Initialize comprehensive ML/DL integration system
+        global COMPREHENSIVE_ML_AVAILABLE
+        self.comprehensive_ml_system = None
+        if COMPREHENSIVE_ML_AVAILABLE:
+            try:
+                self.comprehensive_ml_system = ComprehensiveMLDLIntegration()
+                logger.info("🚀 Comprehensive ML/DL Integration System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize Comprehensive ML/DL Integration: {e}")
+                self.comprehensive_ml_system = None
+                COMPREHENSIVE_ML_AVAILABLE = False
         
         # Intent detection patterns with priorities
         self.intent_patterns = {
@@ -436,6 +484,49 @@ class MultiIntentQueryHandler:
                 'keywords': ['cultural', 'arts', 'İKSV', 'iksv', 'zorlu', 'psm', 'istanbul', 
                            'theatre', 'theater', 'festival', 'akm', 'atatürk', 'cultural', 'center'],
                 'priority': 1
+            },
+            IntentType.MUSEUM_ROUTE_PLANNING: {
+                'patterns': [
+                    # Museum tour planning patterns
+                    r'\b(plan.*museum\s+(tour|route|visit|trip|itinerary))\b',
+                    r'\b(museum\s+(tour|route|plan|itinerary|trip))\b',
+                    r'\b(create.*museum\s+(route|tour|plan))\b',
+                    r'\b(organize.*museum\s+(visit|tour|trip))\b',
+                    # Duration-based museum planning
+                    r'\b(museum.*for\s+\d+\s+(hours?|days?))\b',
+                    r'\b(\d+\s+(hours?|days?)\s+.*museums?)\b',
+                    r'\b(half\s+day|full\s+day|morning|afternoon).*museums?\b',
+                    # District/neighborhood-specific museum planning
+                    r'\b(museums?\s+in\s+(fatih|beyoğlu|sultanahmet|karaköy|galata))\b',
+                    r'\b(museum\s+(route|tour)\s+in\s+\w+)\b',
+                    # Interest-based museum routing
+                    r'\b(art\s+museums?\s+(route|tour))\b',
+                    r'\b(history\s+museums?\s+(route|tour))\b',
+                    r'\b(archaeological\s+museums?\s+(route|tour))\b',
+                    r'\b(byzantine|ottoman|turkish).*museums?\s+(route|tour|plan)\b',
+                    # Route optimization patterns
+                    r'\b(best\s+(order|sequence)\s+.*museums?)\b',
+                    r'\b(optimize.*museum\s+(route|visit))\b',
+                    r'\b(efficient.*museum\s+(tour|route))\b',
+                    # Combined interests patterns
+                    r'\b(museums?\s+and\s+(transportation|travel|route))\b',
+                    r'\b(how\s+to\s+visit.*museums?)\b'
+                ],
+                'keywords': ['museum', 'museums', 'tour', 'route', 'plan', 'itinerary', 'visit', 'trip',
+                           'organize', 'create', 'hours', 'days', 'half', 'full', 'morning', 'afternoon',
+                           'fatih', 'beyoğlu', 'sultanahmet', 'karaköy', 'galata', 'eminönü', 'art', 'history',
+                           'archaeological', 'byzantine', 'ottoman', 'turkish', 'best', 'order', 
+                           'sequence', 'optimize', 'efficient', 'transportation', 'travel'],
+                'priority': 1,
+                # Museum-specific parameters
+                'parameters': {
+                    'duration_keywords': ['hours', 'days', 'half', 'full', 'morning', 'afternoon', 'evening'],
+                    'district_keywords': ['fatih', 'beyoğlu', 'sultanahmet', 'karaköy', 'galata', 'eminönü'],
+                    'interest_keywords': ['art', 'history', 'archaeological', 'byzantine', 'ottoman', 
+                                        'turkish', 'contemporary', 'classical', 'religious', 'palace'],
+                    'accessibility_keywords': ['wheelchair', 'accessible', 'disability', 'mobility'],
+                    'budget_keywords': ['cheap', 'expensive', 'budget', 'free', 'low', 'medium', 'high']
+                }
             }
         }
         
@@ -475,7 +566,7 @@ class MultiIntentQueryHandler:
         learning_context = self._create_learning_context(query, context)
         
         # Detect all intents with deep learning enhancement
-        detected_intents = self._detect_intents_enhanced(query, learning_context)
+        detected_intents, ml_was_used = self._detect_intents_enhanced(query, learning_context)
         
         # Validate context alignment
         detected_intents = self._validate_context_alignment(query, detected_intents)
@@ -501,6 +592,14 @@ class MultiIntentQueryHandler:
         # Determine processing strategy
         strategy = self._determine_processing_strategy(complexity, len(detected_intents))
         
+        # Invoke comprehensive ML enhancement for detected intents
+        ml_enhancements = {}
+        if self.comprehensive_ml_system and detected_intents:
+            ml_enhancements = self._invoke_comprehensive_ml_enhancement(query, detected_intents, context)
+            # Update ml_was_used flag if ML enhancements were applied
+            if ml_enhancements:
+                ml_was_used = True
+        
         result = MultiIntentResult(
             primary_intent=primary_intent,
             secondary_intents=secondary_intents,
@@ -508,7 +607,9 @@ class MultiIntentQueryHandler:
             execution_plan=execution_plan,
             confidence_score=confidence,
             processing_strategy=strategy,
-            detected_language=detected_language
+            detected_language=detected_language,
+            ml_enhanced=ml_was_used,
+            ml_enhancements=ml_enhancements
         )
         
         # Store original query for intent handlers
@@ -525,6 +626,92 @@ class MultiIntentQueryHandler:
         
         # Use hybrid approach for better intent classification
         return self._hybrid_intent_classification(query)
+    
+    def _detect_intents_enhanced(self, query: str, learning_context) -> Tuple[List[Intent], bool]:
+        """Detect intents with enhanced deep learning if available
+        
+        Returns:
+            Tuple[List[Intent], bool]: (detected_intents, ml_was_used)
+        """
+        # Start with rule-based intents
+        rule_based_intents = self._detect_intents_rule_based(query)
+        ml_was_used = False
+
+        # If no deep learning available, return rule-based results
+        if not DEEP_LEARNING_AVAILABLE or not self.deep_learning_system or not learning_context:
+            return rule_based_intents, ml_was_used
+
+        try:
+            # Attempt to call a variety of possible DL API methods (defensive)
+            dl_preds = None
+            if hasattr(self.deep_learning_system, 'predict_intents'):
+                dl_preds = self.deep_learning_system.predict_intents(query, learning_context)
+            elif hasattr(self.deep_learning_system, 'classify'):
+                dl_preds = self.deep_learning_system.classify(query, learning_context)
+            elif hasattr(self.deep_learning_system, 'predict'):
+                dl_preds = self.deep_learning_system.predict(query)
+            elif hasattr(self.deep_learning_system, 'infer'):
+                dl_preds = self.deep_learning_system.infer(query, learning_context)
+
+            # Normalize predictions into a list of (label, score)
+            normalized = []
+            if dl_preds:
+                # If returns a dict-like mapping label->score
+                if isinstance(dl_preds, dict):
+                    for label, score in dl_preds.items():
+                        normalized.append((label, float(score)))
+                # If returns a list of tuples
+                elif isinstance(dl_preds, list):
+                    for item in dl_preds:
+                        if isinstance(item, tuple) and len(item) >= 2:
+                            normalized.append((str(item[0]), float(item[1])))
+                        elif isinstance(item, dict) and 'label' in item and 'score' in item:
+                            normalized.append((str(item['label']), float(item['score'])))
+                        else:
+                            # Fallback: treat element as label with default score
+                            normalized.append((str(item), 0.6))
+                # If single string label returned
+                elif isinstance(dl_preds, str):
+                    normalized.append((dl_preds, 0.75))
+
+            # Map DL predictions into Intent objects and merge with rule-based
+            if normalized:
+                ml_was_used = True
+                # Build a quick lookup of existing intents by type
+                existing_by_type = {intent.type: intent for intent in rule_based_intents}
+
+                for label, score in normalized:
+                    mapped = self._map_ml_prediction_to_intent_type(label)
+                    if not mapped:
+                        continue
+
+                    confidence = max(0.0, min(1.0, float(score)))
+
+                    if mapped in existing_by_type:
+                        # Boost existing intent confidence (but cap at 1.0)
+                        existing_intent = existing_by_type[mapped]
+                        existing_intent.confidence = min(1.0, max(existing_intent.confidence, confidence))
+                        # store priority_score if available
+                        existing_intent.priority_score = max(getattr(existing_intent, 'priority_score', 0.0), confidence)
+                    else:
+                        # Create a new Intent from DL prediction
+                        priority = self.intent_patterns.get(mapped, {}).get('priority', 2)
+                        new_intent = Intent(
+                            type=mapped,
+                            confidence=confidence,
+                            parameters={},
+                            text_span=(0, len(query)),
+                            priority=priority,
+                            priority_score=confidence
+                        )
+                        rule_based_intents.append(new_intent)
+
+        except Exception as e:
+            logger.warning(f"Deep learning enhancement failed or unavailable: {e}")
+            # Fall back to rule-based intents
+            ml_was_used = False
+
+        return rule_based_intents, ml_was_used
     
     def _detect_intents_rule_based(self, query: str) -> List[Intent]:
         """Rule-based intent detection (original method)"""
@@ -1040,6 +1227,34 @@ class MultiIntentQueryHandler:
         # Always return English since we've removed multilingual support
         return 'english'
     
+    def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> Optional[Any]:
+        """Create learning context for deep learning system"""
+        if not DEEP_LEARNING_AVAILABLE or not self.deep_learning_system:
+            return None
+        
+        try:
+            from lightweight_deep_learning import LearningContext
+            from datetime import datetime
+            
+            # Create proper learning context for DL system
+            learning_context = LearningContext(
+                user_id=context.get('user_id', 'anonymous') if context else 'anonymous',
+                session_id=context.get('session_id', f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}") if context else f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                conversation_history=context.get('conversation_history', [query]) if context else [query],
+                user_preferences=context.get('user_preferences', {}) if context else {},
+                location_context=context.get('location_context', (41.0082, 28.9784)) if context else (41.0082, 28.9784),  # Default to Istanbul
+                temporal_context=datetime.now(),
+                emotional_state=context.get('emotional_state', 'neutral') if context else 'neutral',
+                interaction_count=context.get('interaction_count', 1) if context else 1
+            )
+            
+            logger.debug(f"🧠 Created learning context for query: {query[:50]}...")
+            return learning_context
+            
+        except Exception as e:
+            logger.error(f"Error creating learning context: {e}")
+            return None
+    
     def _get_response_templates(self, language: str) -> Dict[str, str]:
         """Get response templates (English only)"""
         
@@ -1168,76 +1383,6 @@ class MultiIntentQueryHandler:
         sub_intents = []
         query_lower = query.lower()
         
-        # Get sub-intent patterns for this intent type
-        config = self.intent_patterns.get(intent_type, {})
-        sub_intent_patterns = config.get('sub_intents', {})
-        
-        for sub_intent_name, pattern in sub_intent_patterns.items():
-            if re.search(pattern, query_lower):
-                sub_intents.append(sub_intent_name)
-        
-        return sub_intents
-    
-    def _apply_rule_based_corrections(self, query: str, detected_intents: List[Intent]) -> List[Intent]:
-        """Apply rule-based corrections for time/route logic and other patterns"""
-        
-        corrected_intents = []
-        query_lower = query.lower()
-        
-        for intent in detected_intents:
-            intent_type = intent.type
-            config = self.intent_patterns.get(intent_type, {})
-            correction_rules = config.get('correction_rules', {})
-            
-            # Create a copy to modify
-            corrected_intent = deepcopy(intent)
-            
-            # Apply temporal keyword corrections for TIME_QUERY
-            if intent_type == IntentType.TIME_QUERY:
-                temporal_keywords = correction_rules.get('temporal_keywords', [])
-                has_temporal = any(keyword in query_lower for keyword in temporal_keywords)
-                
-                if has_temporal:
-                    # Boost confidence for queries with clear temporal indicators
-                    corrected_intent.confidence = min(1.0, intent.confidence + 0.2)
-                    corrected_intent.parameters['temporal_context'] = True
-                
-                # Check for time formats
-                time_formats = correction_rules.get('time_formats', [])
-                for time_pattern in time_formats:
-                    if re.search(time_pattern, query_lower):
-                        corrected_intent.confidence = min(1.0, intent.confidence + 0.15)
-                        corrected_intent.parameters['specific_time'] = True
-                        break
-            
-            # Apply location keyword corrections for ROUTE_PLANNING
-            elif intent_type == IntentType.ROUTE_PLANNING:
-                location_keywords = correction_rules.get('location_keywords', [])
-                transport_modes = correction_rules.get('transport_modes', [])
-                
-                has_location = any(keyword in query_lower for keyword in location_keywords)
-                has_transport = any(mode in query_lower for mode in transport_modes)
-                
-                if has_location:
-                    corrected_intent.confidence = min(1.0, intent.confidence + 0.25)
-                    corrected_intent.parameters['location_context'] = True
-                
-                if has_transport:
-                    corrected_intent.confidence = min(1.0, intent.confidence + 0.15)
-                    corrected_intent.parameters['transport_specified'] = True
-            
-            # Apply comparison corrections
-            elif intent_type == IntentType.COMPARISON:
-                # Detect sub-intents for comparison
-                sub_intents = self._detect_sub_intents(query, intent_type)
-                corrected_intent.parameters['comparison_aspects'] = sub_intents
-                
-                # Boost confidence if multiple comparison aspects detected
-                if len(sub_intents) > 1:
-                    corrected_intent.confidence = min(1.0, intent.confidence + 0.2)
-            
-            corrected_intents.append(corrected_intent)
-        
         return corrected_intents
     
     def _hybrid_intent_classification(self, query: str) -> List[Intent]:
@@ -1285,7 +1430,8 @@ class MultiIntentQueryHandler:
         
         if not self.attractions_system:
             return {
-                'status': 'error',
+                              
+                               'status': 'error',
                 'message': 'Attractions system not available',
                 'attractions': []
             }
@@ -1302,7 +1448,7 @@ class MultiIntentQueryHandler:
                 return self._handle_cultural_attraction_query(query_lower)
             
             elif intent.type == IntentType.FAMILY_ACTIVITY:
-                return self._handle_family_attraction_query(query_lower)
+                               return self._handle_family_attraction_query(query_lower)
             
             elif intent.type == IntentType.ROMANTIC_SPOT:
                 return self._handle_romantic_attraction_query(query_lower)
@@ -1415,323 +1561,439 @@ class MultiIntentQueryHandler:
     
     def _handle_hidden_gem_query(self, query: str) -> Dict[str, Any]:
         """Handle hidden gem queries"""
-        
-        # Get hidden gems
-        hidden_gems = self.attractions_system.get_hidden_gems()
-        
-        # Also get attractions from hidden gem category
-        hidden_category = self.attractions_system.get_attractions_by_category(AttractionCategory.HIDDEN_GEM)
-        
-        # Combine and deduplicate
-        all_hidden = hidden_gems + [attr for attr in hidden_category if attr not in hidden_gems]
+        try:
+            hidden = []
+            if self.attractions_system and hasattr(self.attractions_system, 'get_hidden_gems'):
+                hidden = self.attractions_system.get_hidden_gems()
+            elif self.attractions_system and hasattr(self.attractions_system, 'get_attractions_by_tag'):
+                hidden = self.attractions_system.get_attractions_by_tag('hidden_gem')
+            # Fallback: try to sample the attractions list if available
+            elif self.attractions_system and hasattr(self.attractions_system, 'list_all_attractions'):
+                all_attrs = self.attractions_system.list_all_attractions()
+                hidden = [a for a in all_attrs if getattr(a, 'is_hidden_gem', False)][:20]
+
+            if not hidden:
+                return {'status': 'success', 'message': 'No hidden gems found', 'attractions': [], 'total_count': 0}
+
+            formatted = [self._format_attraction_response(attr) for attr in hidden[:10]]
+            return {'status': 'success', 'message': f'Found {len(formatted)} hidden gems', 'attractions': formatted, 'total_count': len(hidden)}
+        except Exception as e:
+            logger.error(f"Error in _handle_hidden_gem_query: {e}")
+            return {'status': 'error', 'message': str(e), 'attractions': [], 'total_count': 0}
+
+    def _handle_events_query(self, query: str) -> Dict[str, Any]:
+        """Handle generic events queries using events system or fallbacks"""
+        try:
+            events = []
+            # If a dedicated events system is available, ask it
+            if self.events_system and hasattr(self.events_system, 'search_events'):
+                events = self.events_system.search_events(query)
+            elif self.events_system and hasattr(self.events_system, 'get_upcoming_events'):
+                events = self.events_system.get_upcoming_events()
+            else:
+                # Try to use module-level helpers if available
+                try:
+                    from monthly_events_scheduler import get_cached_events, fetch_monthly_events
+                    events = get_cached_events() or fetch_monthly_events()
+                except Exception:
+                    events = []
+
+            # Normalize event dicts
+            normalized = []
+            for ev in events:
+                if isinstance(ev, dict):
+                    normalized.append(ev)
+                else:
+                    # Try to extract common attributes from object-like events
+                    normalized.append({
+                        'title': getattr(ev, 'title', str(ev)),
+                        'venue': getattr(ev, 'venue', ''),
+                        'time': getattr(ev, 'time', ''),
+                        'price': getattr(ev, 'price', ''),
+                        'description': getattr(ev, 'description', '')
+                    })
+
+            if not normalized:
+                return {'status': 'success', 'message': 'No events found matching your query', 'events': [], 'total_count': 0}
+
+            return {'status': 'success', 'message': f'Found {len(normalized)} events', 'events': normalized, 'total_count': len(normalized)}
+        except Exception as e:
+            logger.error(f"Error in _handle_events_query: {e}")
+            return {'status': 'error', 'message': str(e), 'events': [], 'total_count': 0}
+
+    def _handle_cultural_events_query(self, query: str) -> Dict[str, Any]:
+        """Handle cultural / İKSV-style events queries"""
+        try:
+            events = []
+            # Prefer specialized cultural events API
+            if self.events_system and hasattr(self.events_system, 'search_cultural_events'):
+                events = self.events_system.search_cultural_events(query)
+            else:
+                # Fallback to general event search and filter
+                raw = self._handle_events_query(query).get('events', [])
+                for ev in raw:
+                    title = (ev.get('title') or '').lower()
+                    desc = (ev.get('description') or '').lower()
+                    if any(k in title or k in desc for k in ['iksv', 'zorlu', 'cultural', 'exhibition', 'theatre', 'opera', 'ballet', 'concert', 'festival']):
+                        events.append(ev)
+
+            if not events:
+                return {'status': 'success', 'message': 'No cultural events found', 'events': [], 'total_count': 0}
+
+            return {'status': 'success', 'message': f'Found {len(events)} cultural events', 'events': events, 'total_count': len(events)}
+        except Exception as e:
+            logger.error(f"Error in _handle_cultural_events_query: {e}")
+            return {'status': 'error', 'message': str(e), 'events': [], 'total_count': 0}
+    
+    def _format_event_response(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Format event response for consistent output"""
         
         return {
-            'status': 'success',
-            'message': f'Found {len(all_hidden)} hidden gems',
-            'attractions': [self._format_attraction_response(attr) for attr in all_hidden[:8]],
-            'total_count': len(all_hidden)
+            'title': event.get('title', 'Event'),
+            'date': event.get('date', 'Date TBA'),
+            'time': event.get('time', 'Time TBA'),
+            'venue': event.get('venue', 'Venue TBA'),
+            'description': event.get('description', ''),
+            'price': event.get('price', 'Price TBA'),
+            'category': event.get('category', 'Cultural'),
+            'booking_url': event.get('booking_url', ''),
+            'image_url': event.get('image_url', '')
         }
     
-    def _handle_museum_route_planning(self, query: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle museum route planning queries with enhanced planner"""
+    def _map_ml_prediction_to_intent_type(self, ml_prediction: str) -> Optional[IntentType]:
+        """Map ML prediction string to our IntentType enum"""
         
-        if not MUSEUM_ROUTE_PLANNER_AVAILABLE or not self.museum_route_planner:
-            return {
-                'status': 'error',
-                'message': 'Museum Route Planner system not available',
-                'route': None,
-                'museums': []
-            }
+        if not ml_prediction:
+            return None
+        
+        prediction_lower = str(ml_prediction).lower()
+        
+        # Simple mapping based on prediction content
+        intent_mappings = {
+            'recommendation': IntentType.RECOMMENDATION,
+            'location': IntentType.LOCATION_SEARCH,
+            'search': IntentType.LOCATION_SEARCH,
+            'route': IntentType.ROUTE_PLANNING,
+            'time': IntentType.TIME_QUERY,
+            'price': IntentType.PRICE_QUERY,
+            'compare': IntentType.COMPARISON,
+            'comparison': IntentType.COMPARISON,
+            'information': IntentType.INFORMATION_REQUEST,
+            'attraction': IntentType.ATTRACTION_SEARCH,
+            'cultural': IntentType.CULTURAL_QUERY,
+            'family': IntentType.FAMILY_ACTIVITY,
+            'romantic': IntentType.ROMANTIC_SPOT,
+            'hidden': IntentType.HIDDEN_GEM,
+            'gem': IntentType.HIDDEN_GEM,
+            'event': IntentType.EVENTS_QUERY,
+            'events': IntentType.EVENTS_QUERY,
+            'museum': IntentType.MUSEUM_ROUTE_PLANNING,
+            'activity': IntentType.ACTIVITY_PLANNING
+        }
+        
+        for keyword, intent_type in intent_mappings.items():
+            if keyword in prediction_lower:
+                return intent_type
+        
+        return None
+    
+    def _execute_intent_handlers(self, result: MultiIntentResult) -> Optional[str]:
+        """Execute actual intent handlers to get real data responses"""
+        
+        primary_intent = result.primary_intent
+        query = result.original_query
         
         try:
-            # Extract parameters from query and intent parameters
-            district = parameters.get('district')
-            neighborhood = parameters.get('neighborhood')
-            duration_hours = parameters.get('duration_hours', 4)  # Default 4 hours
-            interests = parameters.get('interests', [])
-            accessibility_required = parameters.get('accessibility_required', False)
-            budget_level = parameters.get('budget_level', 'medium')
+            # Handle different intent types with real data
+            if primary_intent.type == IntentType.ATTRACTION_SEARCH:
+                handler_result = self.handle_attraction_query(primary_intent, query)
+                return self._format_attraction_handler_response(handler_result, query)
             
-            # Parse additional parameters from query text
-            extracted_params = self._extract_museum_route_parameters(query)
+            elif primary_intent.type in [IntentType.CULTURAL_QUERY, IntentType.FAMILY_ACTIVITY, 
+                                       IntentType.ROMANTIC_SPOT, IntentType.HIDDEN_GEM]:
+                handler_result = self.handle_attraction_query(primary_intent, query)
+                return self._format_attraction_handler_response(handler_result, query)
             
-            # Merge extracted parameters (query-derived takes precedence)
-            district = extracted_params.get('district', district)
-            neighborhood = extracted_params.get('neighborhood', neighborhood)
-            duration_hours = extracted_params.get('duration_hours', duration_hours)
-            interests.extend(extracted_params.get('interests', []))
-            accessibility_required = extracted_params.get('accessibility_required', accessibility_required)
-            budget_level = extracted_params.get('budget_level', budget_level)
+            elif primary_intent.type == IntentType.EVENTS_QUERY:
+                handler_result = self._handle_events_query(query)
+                return self._format_events_handler_response(handler_result, query)
             
-            # Remove duplicates from interests
-            interests = list(set(interests)) if interests else []
+            elif primary_intent.type == IntentType.CULTURAL_EVENTS:
+                handler_result = self._handle_cultural_events_query(query)
+                return self._format_events_handler_response(handler_result, query)
             
-            # Create route using enhanced planner
-            if district or neighborhood:
-                # District/neighborhood-specific routing
-                route_result = self.museum_route_planner.create_district_route(
-                    district=district,
-                    neighborhood=neighborhood,
-                    duration_hours=duration_hours,
-                    interests=interests,
-                    accessibility_required=accessibility_required,
-                    budget_level=budget_level
-                )
-            else:
-                # General route planning
-                route_result = self.museum_route_planner.create_optimized_route(
-                    duration_hours=duration_hours,
-                    interests=interests,
-                    accessibility_required=accessibility_required,
-                    budget_level=budget_level
-                )
+            elif primary_intent.type == IntentType.MUSEUM_ROUTE_PLANNING:
+                handler_result = self._handle_museum_route_planning(query, primary_intent.parameters)
+                if handler_result.get('status') == 'success':
+                    templates = self._get_response_templates('english')
+                    intro = templates.get('museum_route_planning', '🏛️ Let me create a museum route for you!')
+                    return self._format_museum_route_response(handler_result, intro)
             
-            if route_result and route_result.get('success', False):
-                return {
-                    'status': 'success',
-                    'message': f'Created {duration_hours}-hour museum route with {len(route_result.get("museums", []))} museums',
-                    'route': route_result,
-                    'museums': route_result.get('museums', []),
-                    'parameters': {
-                        'district': district,
-                        'neighborhood': neighborhood,
-                        'duration_hours': duration_hours,
-                        'interests': interests,
-                        'accessibility_required': accessibility_required,
-                        'budget_level': budget_level
-                    }
-                }
-            else:
-                error_msg = route_result.get('message', 'Unable to create route') if route_result else 'Route planning failed'
-                return {
-                    'status': 'error',
-                    'message': error_msg,
-                    'route': None,
-                    'museums': []
-                }
-                
+            # Add more handlers as needed
+            return None
+            
         except Exception as e:
-            logger.error(f"Error in museum route planning: {e}")
-            return {
-                'status': 'error',
-                'message': f'Museum route planning error: {str(e)}',
-                'route': None,
-                'museums': []
-            }
+            logger.error(f"Error executing intent handler for {primary_intent.type.value}: {e}")
+            return None
     
-    def _extract_museum_route_parameters(self, query: str) -> Dict[str, Any]:
-        """Extract museum route planning parameters from query text"""
+    def _format_attraction_handler_response(self, handler_result: Dict[str, Any], query: str) -> str:
+        """Format attraction handler response"""
         
-        parameters = {}
-        query_lower = query.lower()
+        if handler_result.get('status') == 'error':
+            return f"❌ {handler_result.get('message', 'Sorry, I encountered an error while searching for attractions.')}"
         
-        # Extract duration information
-        duration_patterns = [
-            (r'(\d+)\s*hours?', lambda m: int(m.group(1))),
-            (r'(\d+)\s*hrs?', lambda m: int(m.group(1))),
-            (r'half\s+day', lambda m: 4),
-            (r'full\s+day', lambda m: 8),
-            (r'morning', lambda m: 3),
-            (r'afternoon', lambda m: 4),
-            (r'all\s+day', lambda m: 8),
-            (r'whole\s+day', lambda m: 8)
-        ]
+        attractions = handler_result.get('attractions', [])
+        if not attractions:
+            return "🔍 I couldn't find specific attractions matching your criteria, but let me help you with some general recommendations!"
         
-        for pattern, extractor in duration_patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                try:
-                    parameters['duration_hours'] = extractor(match)
-                    break
-                except (ValueError, AttributeError):
-                    continue
+        response = f"🏛️ Great! I found {len(attractions)} attractions that match what you're looking for:\n\n"
         
-        # Extract district/neighborhood information
-        district_patterns = [
-            r'\b(fatih|beyoğlu|sultanahmet|karaköy|galata|eminönü|beşiktaş|kadıköy|üsküdar)\b',
-            r'\bin\s+(\w+)\s+(district|neighborhood|area)\b'
-        ]
-        
-        for pattern in district_patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                district_name = match.group(1).title()
-                if district_name.lower() in ['fatih', 'beyoğlu', 'sultanahmet', 'karaköy', 'galata', 'eminönü']:
-                    parameters['district'] = district_name
-                    break
-        
-        # Extract interests/categories
-        interest_keywords = {
-            'art': ['art', 'artistic', 'contemporary', 'modern', 'painting', 'sculpture'],
-            'history': ['history', 'historical', 'historic', 'ancient', 'past'],
-            'archaeology': ['archaeological', 'archaeology', 'ancient', 'excavation', 'artifacts'],
-            'byzantine': ['byzantine', 'byzantium', 'christian', 'orthodox'],
-            'ottoman': ['ottoman', 'imperial', 'palace', 'sultan'],
-            'turkish': ['turkish', 'turkey', 'anatolian', 'cultural'],
-            'religious': ['religious', 'mosque', 'church', 'sacred', 'spiritual'],
-            'palace': ['palace', 'royal', 'imperial', 'residence']
-        }
-        
-        interests = []
-        for interest, keywords in interest_keywords.items():
-            if any(keyword in query_lower for keyword in keywords):
-                interests.append(interest)
-        
-        if interests:
-            parameters['interests'] = interests
-        
-        # Extract accessibility requirements
-        accessibility_keywords = ['wheelchair', 'accessible', 'disability', 'mobility', 'handicap']
-        if any(keyword in query_lower for keyword in accessibility_keywords):
-            parameters['accessibility_required'] = True
-        
-        # Extract budget preferences
-        if any(word in query_lower for word in ['cheap', 'budget', 'free', 'low cost']):
-            parameters['budget_level'] = 'low'
-        elif any(word in query_lower for word in ['expensive', 'luxury', 'premium', 'high end']):
-            parameters['budget_level'] = 'high'
-        else:
-            parameters['budget_level'] = 'medium'  # Default
-        
-        return parameters
-    
-    def _format_museum_route_response(self, route_data: Dict[str, Any], intro_text: str) -> str:
-        """Format museum route planning response"""
-        
-        if route_data.get('status') == 'error':
-            return f"{intro_text}\n\n❌ Sorry, I'm having trouble creating your museum route right now. {route_data.get('message', 'Please try again later.')}"
-        
-        route = route_data.get('route', {})
-        museums = route_data.get('museums', [])
-        parameters = route_data.get('parameters', {})
-        
-        if not museums:
-            return f"{intro_text}\n\n🔍 I couldn't create a museum route with your current criteria. Try adjusting your preferences or duration."
-        
-        response = intro_text
-        response += f"\n\n🎯 **Route Summary:**"
-        response += f"\n• **Duration:** {parameters.get('duration_hours', 4)} hours"
-        response += f"\n• **Museums:** {len(museums)} selected"
-        
-        if parameters.get('district'):
-            response += f"\n• **District:** {parameters.get('district')}"
-        if parameters.get('interests'):
-            response += f"\n• **Interests:** {', '.join(parameters.get('interests', []))}"
-        
-        response += f"\n\n📋 **Your Museum Route:**\n"
-        
-        for i, museum in enumerate(museums[:8], 1):  # Show up to 8 museums
-            name = museum.get('name', 'Unknown Museum')
-            district = museum.get('district', 'Istanbul')
-            visit_duration = museum.get('recommended_duration', 60)
+        for i, attraction in enumerate(attractions[:5], 1):  # Show top 5
+            name = attraction.get('name', 'Unknown Attraction')
+            district = attraction.get('district', 'Istanbul')
+            category = attraction.get('category', 'Attraction')
             
-            response += f"\n**{i}. {name}**\n"
+            response += f"**{i}. {name}**\n"
             response += f"   📍 **Location:** {district}\n"
-            response += f"   ⏱️ **Visit Time:** {visit_duration} minutes\n"
+            response += f"   🏷️ **Category:** {category}\n"
             
-            # Add brief description if available
-            description = museum.get('description', '')
+            # Add description if available
+            description = attraction.get('description', '')
             if description and len(description) > 10:
-                desc_preview = description[:80] + "..." if len(description) > 80 else description
+                desc_preview = description[:100] + "..." if len(description) > 100 else description
                 response += f"   📝 {desc_preview}\n"
+            
+            response += "\n"
         
-        # Add route information if available
-        if route.get('total_travel_time'):
-            response += f"\n\n🚶 **Route Details:**"
-            response += f"\n• **Total Travel Time:** {route.get('total_travel_time', 'N/A')}"
-            response += f"\n• **Transportation:** {route.get('transportation_method', 'Walking + Public Transport')}"
+        if len(attractions) > 5:
+            response += f"📝 *Showing 5 of {len(attractions)} attractions found*\n"
         
-        # Add helpful tips
-        response += f"\n\n💡 **Tips for Your Museum Tour:**"
-        response += f"\n• Start early to make the most of your time"
-        response += f"\n• Consider getting the Museum Pass Istanbul for discounts"
-        response += f"\n• Check opening hours before visiting each museum"
-        response += f"\n• Allow extra time for popular museums during peak season"
-        
-        if route.get('estimated_cost'):
-            response += f"\n• **Estimated Total Cost:** {route.get('estimated_cost')}"
-        
-        if len(museums) > 8:
-            response += f"\n\n📝 *Showing 8 of {len(museums)} museums in your route*"
+        response += "\n💡 Would you like more details about any of these attractions, or directions to visit them?"
         
         return response
     
-    def _create_learning_context(self, query: str, context: Optional[Dict[str, Any]] = None) -> Optional[Any]:
-        """Create learning context for deep learning system"""
-        if not DEEP_LEARNING_AVAILABLE or not self.deep_learning_system:
-            return None
+    def _format_events_handler_response(self, handler_result: Dict[str, Any], query: str) -> str:
+        """Format events handler response"""
+        
+        if handler_result.get('status') == 'error':
+            return f"❌ {handler_result.get('message', 'Sorry, I encountered an error while searching for events.')}"
+        
+        events = handler_result.get('events', [])
+        if not events:
+            return "📅 I couldn't find specific events right now, but Istanbul always has something exciting happening! Try checking İKSV, Zorlu Center, or Akbank Sanat websites for the latest events."
+        
+        response = f"🎭 Excellent! I found {len(events)} events that might interest you:\n\n"
+        
+        for i, event in enumerate(events[:5], 1):  # Show top 5
+            title = event.get('title', 'Event')
+            date = event.get('date', 'Date TBA')
+            venue = event.get('venue', 'Venue TBA')
+            
+            response += f"**{i}. {title}**\n"
+            response += f"   📅 **Date:** {date}\n"
+            response += f"   📍 **Venue:** {venue}\n"
+            
+            # Add time if available
+            time = event.get('time', '')
+            if time:
+                response += f"   ⏰ **Time:** {time}\n"
+            
+            # Add price if available
+            price = event.get('price', '')
+            if price:
+                response += f"   💰 **Price:** {price}\n"
+            
+            response += "\n"
+        
+        if len(events) > 5:
+            response += f"📝 *Showing 5 of {len(events)} events found*\n"
+        
+        response += "\n💡 I recommend booking tickets in advance for popular events. Check the venue websites for the latest information!"
+        
+        return response
+
+    def _invoke_comprehensive_ml_enhancement(self, query: str, detected_intents: List[Intent], context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Invoke comprehensive ML enhancement for detected intents with caching"""
+        
+        ml_enhancements = {}
+        
+        if not self.comprehensive_ml_system:
+            return ml_enhancements
         
         try:
-            # This would create a learning context for the deep learning system
-            # For now, return None to use fallback methods
-            return None
-        except Exception as e:
-            logger.error(f"Error creating learning context: {e}")
-            return None
-    
-    def _detect_intents_enhanced(self, query: str, learning_context) -> List[Intent]:
-        """Detect intents with enhanced deep learning if available"""
-        
-        # Use rule-based detection as primary method
-        rule_based_intents = self._detect_intents_rule_based(query)
-        
-        # Enhance with deep learning if available
-        if DEEP_LEARNING_AVAILABLE and self.deep_learning_system and learning_context:
+            # Import ML cache
+            from ml_result_cache import get_ml_cache
+            ml_cache = get_ml_cache()
+            
+            # Determine which ML systems to invoke based on detected intents
+            requested_systems = self._determine_ml_systems_for_intents(detected_intents)
+            
+            # Always include typo correction as pre-processing
+            if MLSystemType.TYPO_CORRECTOR not in requested_systems:
+                requested_systems.insert(0, MLSystemType.TYPO_CORRECTOR)
+            
+            # Check cache first
+            system_names = [sys.value for sys in requested_systems]
+            cached_result = ml_cache.get(query, context, system_names)
+            
+            if cached_result:
+                logger.info(f"🎯 ML Cache HIT: Using cached results for {len(system_names)} systems")
+                return cached_result
+            
+            # Cache miss - invoke ML systems
+            logger.debug(f"❌ ML Cache MISS: Computing ML results for {len(system_names)} systems")
+            
+            # Create user context for ML enhancement
+            user_context = self._create_user_context(query, detected_intents, context)
+            
+            # Invoke comprehensive ML enhancement
+            import asyncio
+            
+            # Run the async ML enhancement in a synchronous context
             try:
-                # This would use deep learning enhancement
-                # For now, just return the rule-based results
-                return rule_based_intents
-            except Exception as e:
-                logger.warning(f"Deep learning enhancement failed: {e}")
-                return rule_based_intents
-        
-        return rule_based_intents
-    
-    def _execute_intent_handlers(self, result: MultiIntentResult) -> Optional[str]:
-        """Execute actual intent handlers to get real data and format response"""
-        
-        primary_intent = result.primary_intent
-        intent_type = primary_intent.type
-        
-        try:
-            # Handle events-related intents with actual data
-            if intent_type == IntentType.EVENTS_QUERY:
-                events_data = self._handle_events_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_events_response(events_data, "🎭 Here are the current events happening in Istanbul:")
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If we're already in an async context, we need to handle this differently
+                    # For now, just skip the ML enhancement to avoid blocking
+                    logger.warning("Cannot run async ML enhancement in already running event loop")
+                    return ml_enhancements
+                else:
+                    enhancement_results = loop.run_until_complete(
+                        self.comprehensive_ml_system.comprehensive_ml_enhancement(query, user_context, requested_systems)
+                    )
+            except RuntimeError:
+                # No event loop running, create a new one
+                enhancement_results = asyncio.run(
+                    self.comprehensive_ml_system.comprehensive_ml_enhancement(query, user_context, requested_systems)
+                )
             
-            elif intent_type == IntentType.CULTURAL_EVENTS:
-                cultural_events_data = self._handle_cultural_events_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_events_response(cultural_events_data, "🎨 Here are the current İKSV cultural events you might enjoy:")
+            # Convert ML enhancement results to serializable format
+            for system_type, result in enhancement_results.items():
+                ml_enhancements[system_type.value] = {
+                    'enhancement_level': result.enhancement_level.value,
+                    'confidence': result.confidence,
+                    'enhanced_data': result.enhanced_data,
+                    'ml_insights': result.ml_insights,
+                    'personalization_applied': result.personalization_applied,
+                    'context_awareness': result.context_awareness,
+                    'predictive_suggestions': result.predictive_suggestions
+                }
             
-            # Handle attraction-related intents with actual data
-            elif intent_type == IntentType.ATTRACTION_SEARCH:
-                attraction_data = self._handle_general_attraction_search(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_attraction_response_text(attraction_data, "🏛️ Here are some amazing Istanbul attractions for you:")
+            # Cache the results for future use
+            if ml_enhancements:
+                overall_confidence = sum(
+                    enh.get('confidence', 0) for enh in ml_enhancements.values()
+                ) / len(ml_enhancements)
+                
+                ml_cache.set(
+                    query=query,
+                    result_data=ml_enhancements,
+                    confidence_score=overall_confidence,
+                    enhancement_systems=system_names,
+                    context=context
+                )
+                
+                logger.info(f"💾 ML results cached for future use (confidence: {overall_confidence:.2f})")
             
-            elif intent_type == IntentType.CULTURAL_QUERY:
-                cultural_data = self._handle_cultural_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_attraction_response_text(cultural_data, "🎭 Here are Istanbul's rich cultural and historical sites:")
-            
-            elif intent_type == IntentType.FAMILY_ACTIVITY:
-                family_data = self._handle_family_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_attraction_response_text(family_data, "👨‍👩‍👧‍👦 Here are some fantastic family-friendly activities in Istanbul:")
-            
-            elif intent_type == IntentType.ROMANTIC_SPOT:
-                romantic_data = self._handle_romantic_attraction_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_attraction_response_text(romantic_data, "❤️ Here are some romantic spots perfect for couples:")
-            
-            elif intent_type == IntentType.HIDDEN_GEM:
-                gem_data = self._handle_hidden_gem_query(result.original_query if hasattr(result, 'original_query') else "")
-                return self._format_attraction_response_text(gem_data, "💎 Here are some hidden gems you'll love discovering:")
-            
-            # Handle museum route planning intent with enhanced planner
-            elif intent_type == IntentType.MUSEUM_ROUTE_PLANNING:
-                route_data = self._handle_museum_route_planning(result.original_query if hasattr(result, 'original_query') else "", primary_intent.parameters)
-                return self._format_museum_route_response(route_data, "🏛️ Here's your optimized museum route plan:")
-            
-            # For other intents, return None to use template-based responses
-            return None
+            logger.info(f"🚀 ML Enhancement completed: {len(ml_enhancements)} systems applied")
             
         except Exception as e:
-            logger.error(f"Error executing intent handlers: {e}")
-            return None
+            logger.error(f"ML Enhancement failed: {e}")
+            
+        return ml_enhancements
+    
+    def _create_user_context(self, query: str, detected_intents: List[Intent], context: Optional[Dict[str, Any]] = None) -> 'UserContext':
+        """Create user context for ML enhancement"""
+        
+        try:
+            from comprehensive_ml_dl_integration import UserContext
+            from datetime import datetime
+            
+            # Extract user information from context
+            user_id = context.get('user_id', 'anonymous') if context else 'anonymous'
+            session_id = context.get('session_id', f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}") if context else f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Extract location if available
+            location = None
+            if context and 'detected_location' in context:
+                location_data = context['detected_location']
+                location = (location_data.get('lat'), location_data.get('lng'))
+            
+            # Infer interests from detected intents
+            interests = []
+            for intent in detected_intents:
+                if intent.type == IntentType.CULTURAL_QUERY:
+                    interests.extend(['culture', 'history', 'art'])
+                elif intent.type == IntentType.FAMILY_ACTIVITY:
+                    interests.append('family')
+                elif intent.type == IntentType.ROMANTIC_SPOT:
+                    interests.append('romantic')
+                elif intent.type == IntentType.EVENTS_QUERY:
+                    interests.extend(['events', 'entertainment'])
+                elif intent.type == IntentType.MUSEUM_ROUTE_PLANNING:
+                    interests.extend(['museums', 'culture', 'art'])
+            
+            # Remove duplicates
+            interests = list(set(interests))
+            
+            # Create user context
+            user_context = UserContext(
+                user_id=user_id,
+                session_id=session_id,
+                location=location,
+                current_time=datetime.now(),
+                weather_conditions=context.get('weather', {}) if context else {},
+                user_preferences=context.get('user_preferences', {}) if context else {},
+                conversation_history=[query],
+                interests=interests,
+                language_preference='english'
+            )
+            
+            return user_context
+            
+        except Exception as e:
+            logger.error(f"Error creating user context: {e}")
+            # Return a minimal user context
+            from comprehensive_ml_dl_integration import UserContext
+            return UserContext()
+    
+    def _determine_ml_systems_for_intents(self, detected_intents: List[Intent]) -> List['MLSystemType']:
+        """Determine which ML systems to invoke based on detected intents"""
+        
+        try:
+            from comprehensive_ml_dl_integration import MLSystemType
+            
+            requested_systems = []
+            
+            for intent in detected_intents:
+                if intent.type == IntentType.RECOMMENDATION:
+                    requested_systems.append(MLSystemType.RESTAURANT_DISCOVERY)
+                elif intent.type in [IntentType.ATTRACTION_SEARCH, IntentType.CULTURAL_QUERY, IntentType.FAMILY_ACTIVITY, IntentType.ROMANTIC_SPOT, IntentType.HIDDEN_GEM]:
+                    requested_systems.append(MLSystemType.ATTRACTION_RECOMMENDATION)
+                elif intent.type == IntentType.ROUTE_PLANNING:
+                    requested_systems.extend([MLSystemType.TRANSPORTATION_OPTIMIZATION, MLSystemType.ROUTE_OPTIMIZER])
+                elif intent.type == IntentType.LOCATION_SEARCH:
+                    requested_systems.append(MLSystemType.NEIGHBORHOOD_MATCHING)
+                elif intent.type == IntentType.MUSEUM_ROUTE_PLANNING:
+                    requested_systems.append(MLSystemType.MUSEUM_ROUTE_PLANNING)
+                elif intent.type in [IntentType.EVENTS_QUERY, IntentType.CULTURAL_EVENTS]:
+                    requested_systems.extend([MLSystemType.EVENTS_PERSONALIZATION, MLSystemType.EVENT_PREDICTOR])
+            
+            # Always add weather advisor for outdoor activities
+            weather_relevant_intents = [IntentType.ATTRACTION_SEARCH, IntentType.ROUTE_PLANNING, IntentType.ACTIVITY_PLANNING]
+            if any(intent.type in weather_relevant_intents for intent in detected_intents):
+                requested_systems.append(MLSystemType.WEATHER_ADVISOR)
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_systems = []
+            for system in requested_systems:
+                if system not in seen:
+                    seen.add(system)
+                    unique_systems.append(system)
+            
+            return unique_systems
+            
+        except Exception as e:
+            logger.error(f"Error determining ML systems: {e}")
+            return []
