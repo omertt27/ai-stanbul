@@ -382,7 +382,11 @@ class TransportAPIResilience:
     def get_gtfs_bus_data(self, route_id: Optional[str] = None, stop_id: Optional[str] = None) -> Dict[str, Any]:
         """Get bus data from GTFS feed"""
         if not self.gtfs_service:
-            return {'error': 'GTFS service not available'}
+            return {
+                'error': 'GTFS service not available',
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'gtfs_fallback'
+            }
             
         try:
             result = {

@@ -153,6 +153,32 @@ class GTFSDataService:
         self.route_stops["M1A"] = [stop[0] for stop in m1a_stops]
         self._add_metro_schedule("M1A", "06:00", "24:00", 6)  # Every 6 minutes
     
+    def _add_metro_line_m3(self):
+        """Add M3 Metro Line (Blue Line) - Kirazlı to Başakşehir"""
+        route = GTFSRoute(
+            route_id="M3",
+            route_short_name="M3",
+            route_long_name="Kirazlı - Olimpiyat - Başakşehir Metro",
+            route_type=1,  # Metro
+            route_color="0078C8"
+        )
+        self.routes["M3"] = route
+        
+        # M3 Key Stops
+        m3_stops = [
+            ("M3_01", "Kirazlı", 41.0103, 28.7891),
+            ("M3_02", "Başak Konutları", 41.0345, 28.7812),
+            ("M3_03", "Siteler", 41.0456, 28.7890),
+            ("M3_04", "Olimpiyat", 41.0512, 28.7956),
+            ("M3_05", "Başakşehir", 41.0678, 28.8012)
+        ]
+        
+        for stop_id, name, lat, lon in m3_stops:
+            self.stops[stop_id] = GTFSStop(stop_id, name, lat, lon)
+        
+        self.route_stops["M3"] = [stop[0] for stop in m3_stops]
+        self._add_metro_schedule("M3", "06:00", "24:00", 5)  # Every 5 minutes
+
     def _add_ferry_routes(self):
         """Add Istanbul Ferry Routes"""
         # Kadıköy-Eminönü Ferry
@@ -305,9 +331,24 @@ class GTFSDataService:
                 trip_counter += 1
     
     def _parse_time(self, time_str: str) -> datetime:
-        """Parse HH:MM time string to datetime object"""
+        """
+        Parse HH:MM time string to datetime object
+        Handles GTFS times that can be >= 24:00 (e.g., 24:00 = midnight, 25:30 = 1:30 AM next day)
+        """
         hour, minute = map(int, time_str.split(':'))
+        
+        # Handle GTFS times that are >= 24:00
+        days_offset = 0
+        if hour >= 24:
+            days_offset = hour // 24
+            hour = hour % 24
+        
         base_date = datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
+        
+        # Add days offset if needed
+        if days_offset > 0:
+            base_date += timedelta(days=days_offset)
+        
         return base_date
     
     def find_routes_between_stops(self, origin_name: str, destination_name: str) -> List[Dict[str, Any]]:
