@@ -24,6 +24,15 @@ from enum import Enum
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import ML Prediction Cache Service
+try:
+    from ml_prediction_cache_service import get_ml_cache, MLPredictionCache
+    ML_CACHE_AVAILABLE = True
+    logger.info("✅ ML Prediction Cache Service integrated successfully!")
+except ImportError as e:
+    ML_CACHE_AVAILABLE = False
+    logger.warning(f"⚠️ ML Prediction Cache Service not available: {e}")
+
 # Try to import ML libraries
 try:
     import xgboost as xgb
@@ -198,6 +207,12 @@ class POICrowdingPredictor:
         self.model = None
         self.scaler = None
         self.is_trained = False
+        
+        # Initialize ML prediction cache
+        self.cache = get_ml_cache() if ML_CACHE_AVAILABLE else None
+        if self.cache:
+            logger.info("✅ ML Prediction Cache initialized for POI crowding predictions")
+        
         self._initialize_model()
     
     def _initialize_model(self):
@@ -352,6 +367,18 @@ class POICrowdingPredictor:
             CrowdingPrediction with level, wait time, and recommendations
         """
         try:
+            # Check cache first
+            if self.cache:
+                cache_key = f"poi_crowding_{poi_id}_{target_datetime.strftime('%Y%m%d_%H')}"
+                cached_result = self.cache.get(
+                    cache_key=cache_key,
+                    context={'poi_id': poi_id, 'hour': target_datetime.hour},
+                    prediction_types=['poi_scoring', 'crowding_prediction']
+                )
+                if cached_result:
+                    logger.debug(f"🎯 Cache hit for POI crowding: {poi_id}")
+                    return cached_result
+            
             hour = target_datetime.hour
             day_of_week = target_datetime.weekday()
             month = target_datetime.month
@@ -404,7 +431,7 @@ class POICrowdingPredictor:
                 'season': self._get_season(month),
             }
             
-            return CrowdingPrediction(
+            prediction = CrowdingPrediction(
                 poi_id=poi_id,
                 datetime=target_datetime,
                 crowding_level=crowding_level,
@@ -414,6 +441,20 @@ class POICrowdingPredictor:
                 confidence=confidence,
                 factors=factors
             )
+            
+            # Cache the result
+            if self.cache:
+                cache_key = f"poi_crowding_{poi_id}_{target_datetime.strftime('%Y%m%d_%H')}"
+                self.cache.set(
+                    cache_key=cache_key,
+                    prediction=prediction,
+                    confidence_score=confidence,
+                    prediction_types=['poi_scoring', 'crowding_prediction'],
+                    context={'poi_id': poi_id, 'hour': target_datetime.hour}
+                )
+                logger.debug(f"💾 Cached POI crowding prediction: {poi_id}")
+            
+            return prediction
             
         except Exception as e:
             logger.error(f"Error predicting POI crowding: {e}")
@@ -538,6 +579,12 @@ class TravelTimePredictor:
     
     def __init__(self, transit_crowding_predictor=None):
         self.transit_predictor = transit_crowding_predictor
+        
+        # Initialize ML prediction cache
+        self.cache = get_ml_cache() if ML_CACHE_AVAILABLE else None
+        if self.cache:
+            logger.info("✅ ML Prediction Cache initialized for travel time predictions")
+        
         logger.info("✅ Travel Time Predictor initialized")
     
     def predict_travel_time(self, from_location: str, to_location: str,
@@ -559,6 +606,18 @@ class TravelTimePredictor:
             TravelTimePrediction with adjusted time and factors
         """
         try:
+            # Check cache first
+            if self.cache:
+                cache_key = f"travel_time_{from_location}_{to_location}_{transport_mode}_{target_datetime.strftime('%Y%m%d_%H')}"
+                cached_result = self.cache.get(
+                    cache_key=cache_key,
+                    context={'transport_mode': transport_mode, 'hour': target_datetime.hour},
+                    prediction_types=['transport_optimization']
+                )
+                if cached_result:
+                    logger.debug(f"🎯 Cache hit for travel time prediction")
+                    return cached_result
+            
             # Get crowding multiplier
             crowding_mult = self._get_crowding_multiplier(
                 transport_mode, target_datetime
@@ -588,7 +647,7 @@ class TravelTimePredictor:
                 crowding_mult, weather_mult, time_mult, wait_time
             )
             
-            return TravelTimePrediction(
+            prediction = TravelTimePrediction(
                 segment_id=f"{from_location}_{to_location}_{transport_mode}",
                 base_time_minutes=base_time_minutes,
                 predicted_time_minutes=total_time,
@@ -602,6 +661,20 @@ class TravelTimePredictor:
                 },
                 alternative_suggestions=suggestions
             )
+            
+            # Cache the result
+            if self.cache:
+                cache_key = f"travel_time_{from_location}_{to_location}_{transport_mode}_{target_datetime.strftime('%Y%m%d_%H')}"
+                self.cache.set(
+                    cache_key=cache_key,
+                    prediction=prediction,
+                    confidence_score=0.8,
+                    prediction_types=['transport_optimization'],
+                    context={'transport_mode': transport_mode, 'hour': target_datetime.hour}
+                )
+                logger.debug(f"💾 Cached travel time prediction")
+            
+            return prediction
             
         except Exception as e:
             logger.error(f"Error predicting travel time: {e}")
@@ -746,8 +819,15 @@ class MLPredictionService:
     """
     
     def __init__(self):
+        # Initialize cache first
+        self.cache = get_ml_cache() if ML_CACHE_AVAILABLE else None
+        if self.cache:
+            logger.info("✅ ML Prediction Cache initialized for unified service")
+        
+        # Initialize predictors (they will use their own cache instances)
         self.poi_predictor = POICrowdingPredictor()
         self.travel_predictor = TravelTimePredictor()
+        
         logger.info("✅ ML Prediction Service initialized")
     
     def predict_poi_crowding(self, poi_id: str, target_datetime: datetime,

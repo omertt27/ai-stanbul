@@ -319,21 +319,24 @@ class EnhancedGPSRoutePlanner:
     def _initialize_ml_cache(self):
         """Initialize ML cache for route optimization"""
         try:
-            from ml_result_cache import get_ml_cache
+            # Use new ML Prediction Cache Service
+            sys.path.insert(0, str(Path(__file__).parent / 'services'))
+            from ml_prediction_cache_service import get_ml_cache
             cache = get_ml_cache()
             
-            # Add GPS-specific cache TTL
-            cache.cache_ttl.update({
-                'gps_route_planning': timedelta(minutes=30),  # GPS routes change frequently
-                'real_time_updates': timedelta(minutes=5),    # Real-time data is very volatile
-                'transport_optimization': timedelta(hours=2), # Transport conditions change
-                'location_recommendations': timedelta(hours=4) # Location-based suggestions
-            })
-            
+            logger.info("✅ ML Prediction Cache Service integrated into route planner")
             return cache
         except Exception as e:
-            logger.warning(f"ML cache not available: {e}")
-            return None
+            logger.warning(f"⚠️ ML Prediction Cache not available, trying fallback: {e}")
+            try:
+                # Fallback to old cache if new one not available
+                from ml_result_cache import get_ml_cache
+                cache = get_ml_cache()
+                logger.info("⚠️ Using legacy ML cache (consider upgrading)")
+                return cache
+            except Exception as e2:
+                logger.warning(f"❌ No ML cache available: {e2}")
+                return None
     
     def _load_istanbul_districts(self) -> Dict[str, Any]:
         """Load Istanbul district data with GPS boundaries"""
@@ -497,12 +500,17 @@ class EnhancedGPSRoutePlanner:
             serializable_preferences = self._make_json_serializable(preferences)
             
             cached_route = self.ml_cache.get(
-                cache_key,
-                serializable_preferences,
-                ['gps_route_planning', 'location_recommendations']
+                cache_key=cache_key,
+                context={
+                    'user_id': user_id,
+                    'location': (current_location.latitude, current_location.longitude),
+                    'hour': datetime.now().hour,
+                    'preferences': serializable_preferences
+                },
+                prediction_types=['route_recommendation', 'poi_scoring']
             )
             if cached_route:
-                logger.info("🎯 Using cached personalized route")
+                logger.info("🎯 Cache hit - Using cached personalized route")
                 return self._deserialize_route(cached_route)
         
         # Get or create user profile
@@ -577,12 +585,18 @@ class EnhancedGPSRoutePlanner:
         if self.ml_cache:
             serializable_preferences = self._make_json_serializable(preferences)
             self.ml_cache.set(
-                cache_key,
-                self._serialize_route(route),
-                route.personalization_score,
-                ['gps_route_planning', 'location_recommendations'],
-                serializable_preferences
+                cache_key=cache_key,
+                prediction=self._serialize_route(route),
+                confidence_score=route.personalization_score,
+                prediction_types=['route_recommendation', 'poi_scoring'],
+                context={
+                    'user_id': user_id,
+                    'location': (current_location.latitude, current_location.longitude),
+                    'hour': datetime.now().hour,
+                    'preferences': serializable_preferences
+                }
             )
+            logger.debug(f"💾 Cached route for user {user_id}")
         
         # Store active route for real-time updates
         self.active_routes[route.route_id] = route
@@ -1475,27 +1489,23 @@ class EnhancedGPSRoutePlanner:
             # 6. ML prediction boost (0-10 points)
             if self.ml_cache:
                 try:
-                    # Create prediction context
-                    ml_context = {
-                        'poi_id': poi.poi_id,
-                        'poi_name': poi.name,
-                        'categories': poi_categories,
-                        'user_interests': user_interests,
-                        'time_of_day': hour,
-                        'day_of_week': current_time.weekday(),
-                        'distance_km': distance_km
-                    }
-                    
-                    # Try to get ML prediction from cache
+                    # Try to get ML prediction from cache with new API
                     ml_prediction = self.ml_cache.get(
-                        f"poi_recommendation_{poi.poi_id}",
-                        ml_context,
-                        ['poi_recommendation', 'user_preference_matching']
+                        cache_key=f"poi_recommendation_{poi.poi_id}",
+                        context={
+                            'poi_id': poi.poi_id,
+                            'user_id': user_preferences.get('user_id', 'anonymous'),
+                            'location': (user_location.latitude, user_location.longitude),
+                            'hour': hour,
+                            'preferences': user_interests
+                        },
+                        prediction_types=['poi_scoring', 'ml_personalization']
                     )
                     
                     if ml_prediction and isinstance(ml_prediction, (int, float)):
                         ml_score = float(ml_prediction) * 10.0
                         score += ml_score
+                        logger.debug(f"✅ ML cache hit for {poi.name}: +{ml_score:.1f} points")
                     else:
                         score += 5.0  # Neutral ML score
                 except Exception as e:

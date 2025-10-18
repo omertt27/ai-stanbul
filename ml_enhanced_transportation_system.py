@@ -29,6 +29,26 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import ML Prediction Cache Service
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'services'))
+    from ml_prediction_cache_service import get_ml_cache, MLPredictionCache
+    ML_CACHE_AVAILABLE = True
+    logger.info("✅ ML Prediction Cache Service integrated successfully!")
+except ImportError as e:
+    ML_CACHE_AVAILABLE = False
+    logger.warning(f"⚠️ ML Prediction Cache Service not available: {e}")
+
+# Import ML Prediction Cache Service
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'services'))
+    from ml_prediction_cache_service import MLPredictionCacheService
+    ML_CACHE_AVAILABLE = True
+    logger.info("✅ ML Prediction Cache Service integrated successfully!")
+except ImportError as e:
+    ML_CACHE_AVAILABLE = False
+    logger.warning(f"⚠️ ML Prediction Cache Service not available: {e}")
+
 # Try to import ML libraries with graceful fallbacks
 try:
     import torch
@@ -158,8 +178,17 @@ class IBBAPIClient:
     def __init__(self):
         self.api_base = "https://data.ibb.gov.tr/api/3/action/"
         self.api_key = self._get_api_key()
-        self.cache = {}
-        self.cache_duration = 300  # 5 minutes
+        
+        # Initialize ML Prediction Cache
+        if ML_CACHE_AVAILABLE:
+            self.ml_cache = get_ml_cache()
+            logger.info("✅ ML Cache integrated into IBB API Client")
+        else:
+            # Fallback to basic dict cache
+            self.ml_cache = None
+            self.cache = {}
+            self.cache_duration = 300  # 5 minutes
+            logger.warning("⚠️ Using fallback dict cache")
         
     def _get_api_key(self) -> str:
         """Get İBB API key from environment or config"""
@@ -171,19 +200,35 @@ class IBBAPIClient:
         """Get real-time metro data from İBB API"""
         try:
             cache_key = "metro_real_time"
-            if self._is_cached(cache_key):
+            
+            # Check ML cache first
+            if self.ml_cache:
+                cached_data = self.ml_cache.get(
+                    cache_key=cache_key,
+                    context={'type': 'metro', 'hour': datetime.now().hour},
+                    prediction_types=['transport_optimization']
+                )
+                if cached_data:
+                    logger.debug("🎯 Cache hit for metro real-time data")
+                    return cached_data
+            elif self._is_cached(cache_key):
                 return self.cache[cache_key]
             
-            # Use real İBB API integration
+            # Fetch fresh data (rest of the method continues...)
             try:
-                from real_ibb_api_integration import RealIBBAPIClient
-                
-                async with RealIBBAPIClient() as ibb_client:
-                    real_time_data = await ibb_client.get_metro_real_time_data()
-                    
                 if real_time_data and real_time_data.get('source') != 'fallback':
                     logger.info("✅ Using real İBB metro data")
-                    self._cache_data(cache_key, real_time_data)
+                    # Cache with ML cache service
+                    if self.ml_cache:
+                        self.ml_cache.set(
+                            cache_key=cache_key,
+                            prediction=real_time_data,
+                            confidence_score=0.9,
+                            prediction_types=['transport_optimization'],
+                            context={'type': 'metro', 'hour': datetime.now().hour}
+                        )
+                    else:
+                        self._cache_data(cache_key, real_time_data)
                     return real_time_data
                 else:
                     logger.warning("İBB API unavailable, using enhanced fallback")
@@ -207,7 +252,17 @@ class IBBAPIClient:
                 'source': 'enhanced_fallback'
             }
             
-            self._cache_data(cache_key, real_time_data)
+            # Cache fallback data
+            if self.ml_cache:
+                self.ml_cache.set(
+                    cache_key=cache_key,
+                    prediction=real_time_data,
+                    confidence_score=0.7,
+                    prediction_types=['transport_optimization'],
+                    context={'type': 'metro', 'hour': datetime.now().hour}
+                )
+            else:
+                self._cache_data(cache_key, real_time_data)
             return real_time_data
             
         except Exception as e:
@@ -218,7 +273,18 @@ class IBBAPIClient:
         """Get real-time bus data from İBB API"""
         try:
             cache_key = "bus_real_time"
-            if self._is_cached(cache_key):
+            
+            # Check ML cache first
+            if self.ml_cache:
+                cached_data = self.ml_cache.get(
+                    cache_key=cache_key,
+                    context={'type': 'bus', 'hour': datetime.now().hour},
+                    prediction_types=['transport_optimization']
+                )
+                if cached_data:
+                    logger.debug("🎯 Cache hit for bus real-time data")
+                    return cached_data
+            elif self._is_cached(cache_key):
                 return self.cache[cache_key]
             
             # Mock real-time bus data
@@ -231,7 +297,17 @@ class IBBAPIClient:
                 'timestamp': datetime.now().isoformat()
             }
             
-            self._cache_data(cache_key, bus_data)
+            # Cache the data
+            if self.ml_cache:
+                self.ml_cache.set(
+                    cache_key=cache_key,
+                    prediction=bus_data,
+                    confidence_score=0.85,
+                    prediction_types=['transport_optimization'],
+                    context={'type': 'bus', 'hour': datetime.now().hour}
+                )
+            else:
+                self._cache_data(cache_key, bus_data)
             return bus_data
             
         except Exception as e:
@@ -242,7 +318,18 @@ class IBBAPIClient:
         """Get ferry schedule and real-time data"""
         try:
             cache_key = "ferry_schedule"
-            if self._is_cached(cache_key):
+            
+            # Check ML cache first
+            if self.ml_cache:
+                cached_data = self.ml_cache.get(
+                    cache_key=cache_key,
+                    context={'type': 'ferry', 'hour': datetime.now().hour},
+                    prediction_types=['transport_optimization']
+                )
+                if cached_data:
+                    logger.debug("🎯 Cache hit for ferry schedule")
+                    return cached_data
+            elif self._is_cached(cache_key):
                 return self.cache[cache_key]
             
             # Mock ferry data
@@ -264,7 +351,17 @@ class IBBAPIClient:
                 'timestamp': datetime.now().isoformat()
             }
             
-            self._cache_data(cache_key, ferry_data)
+            # Cache the data
+            if self.ml_cache:
+                self.ml_cache.set(
+                    cache_key=cache_key,
+                    prediction=ferry_data,
+                    confidence_score=0.9,
+                    prediction_types=['transport_optimization'],
+                    context={'type': 'ferry', 'hour': datetime.now().hour}
+                )
+            else:
+                self._cache_data(cache_key, ferry_data)
             return ferry_data
             
         except Exception as e:
@@ -336,6 +433,43 @@ class IBBAPIClient:
             'fallback': True,
             'timestamp': datetime.now().isoformat()
         }
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """
+        Get cache performance statistics
+        
+        Returns:
+            Dictionary with cache metrics (hit rate, size, etc.)
+        """
+        if self.ml_cache:
+            stats = self.ml_cache.get_stats()
+            logger.info(f"📊 Cache Stats - Hit Rate: {stats['hit_rate']:.2%}, Size: {stats['size']}/{stats['max_size']}")
+            return stats
+        else:
+            # Return basic stats for fallback cache
+            return {
+                'size': len(self.cache),
+                'type': 'fallback_dict_cache',
+                'hit_rate': 0.0,
+                'message': 'ML Cache not available, using fallback'
+            }
+    
+    def invalidate_cache(self, pattern: Optional[str] = None) -> None:
+        """
+        Invalidate cache entries
+        
+        Args:
+            pattern: Optional pattern to match (e.g., 'metro', 'bus')
+        """
+        if self.ml_cache and pattern:
+            self.ml_cache.invalidate_pattern(pattern)
+            logger.info(f"🗑️ Invalidated cache entries matching pattern: {pattern}")
+        elif self.ml_cache and not pattern:
+            self.ml_cache.clear()
+            logger.info("🗑️ Cleared all cache entries")
+        else:
+            self.cache.clear()
+            logger.info("🗑️ Cleared fallback cache")
 
 @dataclass
 class WeatherImpact:
@@ -1724,50 +1858,3 @@ class MLEnhancedTransportationSystem:
             ]
         
         return recommendations
-
-# Factory function for easy integration
-def create_ml_enhanced_transportation_system() -> MLEnhancedTransportationSystem:
-    """Factory function to create the ML-enhanced transportation system"""
-    return MLEnhancedTransportationSystem()
-
-# Test function
-async def test_ml_transportation_system():
-    """Test the ML-enhanced transportation system"""
-    print("🚀 Testing ML-Enhanced Transportation System")
-    print("=" * 60)
-    
-    # Create system
-    transport_system = create_ml_enhanced_transportation_system()
-    
-    # Test locations
-    sultanahmet = GPSLocation(41.0056, 28.9769, address="Sultanahmet")
-    taksim = GPSLocation(41.0370, 28.9857, address="Taksim")
-    
-    # Test 1: Basic route optimization
-    print("\n🗺️ Testing Route Optimization:")
-    route = await transport_system.get_optimized_route(
-        sultanahmet, taksim, RouteOptimizationType.FASTEST
-    )
-    print(f"   Route: {route.total_duration_minutes} min, {route.total_cost_tl:.2f} TL")
-    print(f"   Segments: {len(route.segments)}")
-    print(f"   Crowding: {route.crowding_prediction:.2f}")
-    
-    # Test 2: POI-integrated route
-    print("\n🏛️ Testing POI Integration:")
-    poi_route = await transport_system.get_optimized_route(
-        sultanahmet, taksim, RouteOptimizationType.POI_OPTIMIZED,
-        include_pois=True, poi_preferences=['historical', 'landmark']
-    )
-    print(f"   POI Route: {poi_route.total_duration_minutes} min")
-    print(f"   POIs included: {len(poi_route.poi_integration)}")
-    
-    # Test 3: Location-based recommendations
-    print("\n📍 Testing Location Recommendations:")
-    recommendations = await transport_system.get_location_based_recommendations(sultanahmet)
-    print(f"   Nearby transport: {len(recommendations['nearby_transport'])}")
-    print(f"   Nearby POIs: {len(recommendations['nearby_pois'])}")
-    
-    # Test 4: ML predictions
-    print("\n🧠 Testing ML Predictions:")
-    ml_predictor = transport_system.ml_predictor
-    crowding = ml_predictor.predict_crowding(8, 1, TransportMode.METRO, 5.0)  # 8 AM, Monday

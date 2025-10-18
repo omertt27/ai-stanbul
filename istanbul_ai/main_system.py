@@ -144,6 +144,99 @@ class IstanbulDailyTalkAI:
         # System status
         self.system_ready = True
         logger.info("✅ Istanbul Daily Talk AI System initialized successfully!")
+        
+        # Log cache integration status
+        self._log_cache_status()
+    
+    def _log_cache_status(self):
+        """Log ML cache integration status"""
+        if hasattr(self, 'gps_route_planner') and self.gps_route_planner:
+            if hasattr(self.gps_route_planner, 'ml_cache') and self.gps_route_planner.ml_cache:
+                logger.info("✅ ML Prediction Cache integrated into GPS Route Planner")
+            else:
+                logger.warning("⚠️ ML Prediction Cache not available in GPS Route Planner")
+        
+        if hasattr(self, 'ml_transport_system') and self.ml_transport_system:
+            if hasattr(self.ml_transport_system, 'ibb_client'):
+                ibb_client = self.ml_transport_system.ibb_client
+                if hasattr(ibb_client, 'ml_cache') and ibb_client.ml_cache:
+                    logger.info("✅ ML Prediction Cache integrated into Transportation System")
+                else:
+                    logger.warning("⚠️ ML Prediction Cache not available in Transportation System")
+    
+    def get_cache_statistics(self) -> Dict[str, Any]:
+        """
+        Get ML cache statistics from all integrated systems
+        
+        Returns:
+            Dictionary with cache stats from route planner and transportation system
+        """
+        stats = {
+            'route_planner_cache': None,
+            'transportation_cache': None,
+            'overall_status': 'unavailable'
+        }
+        
+        try:
+            # Get route planner cache stats
+            if hasattr(self, 'gps_route_planner') and self.gps_route_planner:
+                if hasattr(self.gps_route_planner, 'ml_cache') and self.gps_route_planner.ml_cache:
+                    stats['route_planner_cache'] = self.gps_route_planner.ml_cache.get_stats()
+                    logger.info("📊 Route Planner Cache Stats retrieved")
+            
+            # Get transportation system cache stats
+            if hasattr(self, 'ml_transport_system') and self.ml_transport_system:
+                if hasattr(self.ml_transport_system, 'ibb_client'):
+                    ibb_client = self.ml_transport_system.ibb_client
+                    if hasattr(ibb_client, 'get_cache_stats'):
+                        stats['transportation_cache'] = ibb_client.get_cache_stats()
+                        logger.info("📊 Transportation Cache Stats retrieved")
+            
+            # Determine overall status
+            if stats['route_planner_cache'] or stats['transportation_cache']:
+                stats['overall_status'] = 'active'
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting cache statistics: {e}")
+            stats['error'] = str(e)
+            return stats
+    
+    def invalidate_user_cache(self, user_id: str) -> Dict[str, bool]:
+        """
+        Invalidate all cached data for a specific user
+        
+        Use when user preferences change or profile updates
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            Dictionary showing which caches were invalidated
+        """
+        result = {
+            'route_planner': False,
+            'transportation': False
+        }
+        
+        try:
+            # Invalidate route planner cache
+            if hasattr(self, 'gps_route_planner') and self.gps_route_planner:
+                if hasattr(self.gps_route_planner, 'ml_cache') and self.gps_route_planner.ml_cache:
+                    self.gps_route_planner.ml_cache.invalidate_user(user_id)
+                    result['route_planner'] = True
+                    logger.info(f"🗑️ Invalidated route planner cache for user {user_id}")
+            
+            # Note: Transportation cache is typically not user-specific
+            # but we could invalidate patterns if needed
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error invalidating user cache: {e}")
+            result['error'] = str(e)
+            return result
     
     def start_conversation(self, user_id: str) -> str:
         """Start a new conversation with personalized greeting"""
