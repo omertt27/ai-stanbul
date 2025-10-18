@@ -780,64 +780,11 @@ class EnhancedGPSRoutePlanner:
             'confidence': best_option.confidence,
             'detected_location': best_option.user_friendly_name,
             'district': best_option.district,
-            'neighborhood': best_option.neighborhood,
-            'alternative_options_available': len(location_options) > 1
-        }
-        
-        # Add recommendation summary
-        enhanced_response['recommendation_summary'] = {
-            'total_museums_available': len(enhanced_response['museums_in_route']),
-            'districts_with_tips': len(enhanced_response['local_tips_by_district']),
-            'personalization_level': 'medium',  # Fallback locations get medium personalization
-            'route_optimization': f'Location-optimized using {best_option.method.value}',
-            'location_accuracy': 'high' if best_option.confidence > 0.8 else 'medium' if best_option.confidence > 0.6 else 'estimated'
+            'neighborhood': best_option.neighborhood
         }
         
         return enhanced_response
-    
-    async def confirm_location_and_create_route(
-        self,
-        user_id: str,
-        confirmed_location: GPSLocation,
-        preferences: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Create route after user confirms the detected location
-        
-        Args:
-            user_id: Unique user identifier
-            confirmed_location: User-confirmed GPS location
-            preferences: User preferences for the route
-            
-        Returns:
-            Enhanced route response with museums and local tips
-        """
-        # Create route using confirmed location
-        route = await self.create_personalized_route(
-            user_id, 
-            confirmed_location, 
-            preferences or {}
-        )
-        
-        # Enhance response with museums and local tips
-        enhanced_response = self.enhance_route_with_museums_and_tips(route)
-        
-        # Add confirmation info
-        enhanced_response['location_detection'] = {
-            'method': 'user_confirmed',
-            'confidence': 1.0,
-            'detected_location': f"Confirmed location in {confirmed_location.district}",
-            'district': confirmed_location.district
-        }
-        
-        enhanced_response['recommendation_summary'] = {
-            'total_museums_available': len(enhanced_response['museums_in_route']),
-            'districts_with_tips': len(enhanced_response['local_tips_by_district']),
-            'personalization_level': 'high',  # Confirmed locations get high personalization
-            'route_optimization': 'User-confirmed location with GPS optimization'
-        }
-        
-        return enhanced_response
+
     
     def _get_user_location_prompts(self) -> List[Dict[str, Any]]:
         """Get user-friendly location input prompts"""
@@ -1696,14 +1643,368 @@ class EnhancedGPSRoutePlanner:
         # This would be implemented as a background task in production
         # For now, we'll just log the setup
         logger.info(f"✅ Real-time monitoring active for route {route.route_id}")
+    
+    def _format_optimized_route_response(
+        self,
+        optimized_route,  # POIEnhancedRoute object
+        user_id: str
+    ) -> Dict[str, Any]:
+        """
+        Format POIEnhancedRoute from optimizer into standard response structure
+        
+        Args:
+            optimized_route: POIEnhancedRoute object from Phase 4 optimizer
+            user_id: User identifier for personalization
+            
+        Returns:
+            Formatted response dictionary with base_route, enhanced_route, POIs, etc.
+        """
+        from poi_database_service import POI
+        
+        # Convert POI objects to dictionaries for JSON serialization
+        pois_included = []
+        for poi in optimized_route.pois_included:
+            try:
+                # Handle both POI object variations (poi_id vs id)
+                poi_id = poi.poi_id if hasattr(poi, 'poi_id') else (poi.id if hasattr(poi, 'id') else 'unknown')
+                visit_duration = poi.visit_duration_min if hasattr(poi, 'visit_duration_min') else (poi.visit_duration_minutes if hasattr(poi, 'visit_duration_minutes') else 30)
+                ticket_price = poi.ticket_price if hasattr(poi, 'ticket_price') else (poi.entrance_fee if hasattr(poi, 'entrance_fee') else 0)
+                
+                poi_dict = {
+                    'id': poi_id,
+                    'name': poi.name,
+                    'category': poi.category,
+                    'coordinates': {
+                        'latitude': poi.location.lat,
+                        'longitude': poi.location.lon
+                    },
+                    'rating': poi.rating,
+                    'visit_duration_minutes': visit_duration,
+                    'entrance_fee': ticket_price,
+                    'opening_hours': getattr(poi, 'opening_hours', {}),
+                    'description': getattr(poi, 'description', ''),
+                    'district': getattr(poi, 'district', '')
+                }
+                pois_included.append(poi_dict)
+            except Exception as e:
+                logger.warning(f"Error formatting POI: {e}. POI type: {type(poi)}")
+                continue
+        
+        # Format segments
+        segments = []
+        for seg in optimized_route.segments:
+            try:
+                segment_dict = {
+                    'segment_type': getattr(seg, 'segment_type', 'transit'),
+                    'from_location': getattr(seg, 'from_location', ''),
+                    'to_location': getattr(seg, 'to_location', ''),
+                    'transport_mode': getattr(seg, 'transport_mode', 'walk'),
+                    'distance_km': getattr(seg, 'distance_km', 0.0),
+                    'time_minutes': getattr(seg, 'scheduled_time_minutes', getattr(seg, 'time_minutes', 0)),
+                    'predicted_time_minutes': getattr(seg, 'predicted_time_minutes', 0),
+                    'cost': getattr(seg, 'cost', 0.0),
+                    'scenic_score': getattr(seg, 'scenic_score', 0.5)
+                }
+                segments.append(segment_dict)
+            except Exception as e:
+                logger.warning(f"Error formatting segment: {e}")
+                continue
+        
+        response = {
+            'route_id': optimized_route.route_id,
+            'user_id': user_id,
+            'base_route': optimized_route.base_route,
+            'enhanced_route': optimized_route.enhanced_route,
+            'segments': segments,
+            'pois_included': pois_included,
+            'pois_recommended_not_included': optimized_route.pois_recommended_not_included,
+            'optimization_insights': optimized_route.optimization_insights,
+            'created_at': optimized_route.created_at.isoformat()
+        }
+        
+        return response
+    
+    async def create_poi_optimized_route(
+        self,
+        user_id: str,
+        start_location: GPSLocation,
+        end_location: GPSLocation,
+        preferences: Dict[str, Any],
+        constraints: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Create POI-enhanced route using Phase 4 optimizer
+        
+        Args:
+            user_id: User identifier
+            start_location: Starting GPS location
+            end_location: Destination GPS location
+            preferences: User interests, budget, transport preferences
+            constraints: Route constraints (max_pois, max_detour_minutes, etc.)
+            
+        Returns:
+            Enhanced route response with POIs, segments, ML predictions, and recommendations
+        """
+        logger.info(f"🎯 Creating POI-optimized route for user {user_id}")
+        
+        # Check if optimizer is available
+        if not self.poi_optimizer:
+            logger.warning("POI Optimizer not available, falling back to basic route")
+            # Fallback to basic personalized route
+            route = await self.create_personalized_route(user_id, start_location, preferences, constraints)
+            return self.enhance_route_with_museums_and_tips(route)
+        
+        # Convert constraints to RouteConstraints
+        route_constraints = RouteConstraints(
+            max_pois=constraints.get('max_pois', 3) if constraints else 3,
+            max_detour_time_minutes=constraints.get('max_detour_minutes', 45) if constraints else 45,
+            max_total_detour_minutes=constraints.get('max_total_detour', 120) if constraints else 120,
+            require_category_diversity=preferences.get('prefer_diverse_categories', True),
+            min_poi_value=constraints.get('min_poi_value', 0.3) if constraints else 0.3
+        )
+        
+        # Convert GPS locations to GeoCoordinates
+        from poi_database_service import GeoCoordinate
+        start_coord = GeoCoordinate(lat=start_location.latitude, lon=start_location.longitude)
+        end_coord = GeoCoordinate(lat=end_location.latitude, lon=end_location.longitude)
+        
+        # Create optimized route using Phase 4 optimizer
+        optimized_route = await self.poi_optimizer.create_poi_enhanced_route(
+            start_coord, 
+            end_coord, 
+            preferences, 
+            route_constraints
+        )
+        
+        # Convert optimizer response to enhanced route format
+        response = self._format_optimized_route_response(optimized_route, user_id)
+        
+        # Add district tips for POIs in route
+        districts_in_route = set()
+        for poi in optimized_route.pois_included:
+            if poi.district:
+                districts_in_route.add(poi.district)
+        
+        local_tips = {}
+        for district in districts_in_route:
+            if district in self.district_tips:
+                local_tips[district] = self.district_tips[district]
+        
+        response['local_tips_by_district'] = local_tips
+        
+        # Add recommendation summary
+        response['recommendation_summary'] = {
+            'optimization_method': 'POI-Enhanced Route Optimizer (Phase 4)',
+            'total_pois_evaluated': optimized_route.optimization_insights.get('pois_evaluated', 0),
+            'pois_included': len(optimized_route.pois_included),
+            'pois_recommended_not_included': len(optimized_route.pois_recommended_not_included),
+            'ml_predictions_used': optimized_route.optimization_insights.get('ml_predictions_used', False),
+            'personalization_level': 'high',
+            'route_optimization': 'ML-optimized with POI detour calculation'
+        }
+        
+        logger.info(f"✅ POI-optimized route created: {len(optimized_route.pois_included)} POIs, {response['enhanced_route']['time_minutes']}min")
+        
+        return response
+    
+    async def create_route_with_fallback_location(
+        self,
+        user_id: str,
+        user_input: Optional[str] = None,
+        user_context: Optional[Dict] = None,
+        ip_address: Optional[str] = None,
+        session_data: Optional[Dict] = None,
+        preferences: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Create a personalized route using fallback location detection
+        when GPS is not available or permission is denied
+        
+        Args:
+            user_id: Unique user identifier
+            user_input: User's location description
+            user_context: Previous conversation context
+            ip_address: User's IP address for geolocation
+            session_data: Previous session data
+            preferences: User preferences for the route
+            
+        Returns:
+            Enhanced route response with museums and local tips
+        """
+        if not self.fallback_detector:
+            return {
+                'error': 'Fallback location detection not available',
+                'fallback_required': True,
+                'location_prompts': self._get_basic_location_prompts()
+            }
+        
+        # Detect user location using fallback methods
+        location_options = await self.fallback_detector.detect_fallback_location(
+            user_input, user_context, ip_address, session_data
+        )
+        
+        if not location_options:
+            return {
+                'no_location_detected': True,
+                'location_prompts': self._get_user_location_prompts(),
+                'suggested_districts': list(self.istanbul_districts.keys()),
+                'popular_landmarks': list(self.fallback_detector.landmark_locations.keys())
+            }
+        
+        # Use the highest confidence location option
+        best_option = location_options[0]
+        
+        if best_option.requires_user_confirmation:
+            return {
+                'location_confirmation_required': True,
+                'detected_location': best_option.user_friendly_name,
+                'confidence': best_option.confidence,
+                'method': best_option.method.value,
+                'alternative_options': [
+                    {
+                        'name': opt.user_friendly_name,
+                        'confidence': opt.confidence,
+                        'method': opt.method.value
+                    } for opt in location_options[:3]
+                ],
+                'confirm_prompt': f"I detected your location as {best_option.user_friendly_name}. Is this correct?"
+            }
+        
+        # Create route using detected location
+        route = await self.create_personalized_route(
+            user_id, 
+            best_option.location, 
+            preferences or {}
+        )
+        
+        # Enhance response with museums and local tips
+        enhanced_response = self.enhance_route_with_museums_and_tips(route)
+        
+        # Add fallback location information
+        enhanced_response['location_detection'] = {
+            'method': best_option.method.value,
+            'confidence': best_option.confidence,
+            'detected_location': best_option.user_friendly_name,
+            'district': best_option.district,
+            'neighborhood': best_option.neighborhood
+        }
+        
+        return enhanced_response
+
+    
+    def _get_user_location_prompts(self) -> List[Dict[str, Any]]:
+        """Get user-friendly location input prompts"""
+        if not self.fallback_detector:
+            return self._get_basic_location_prompts()
+        
+        prompts = self.fallback_detector.generate_location_prompts()
+        return [
+            {
+                'message': prompt.message,
+                'input_type': prompt.input_type.value,
+                'examples': prompt.examples,
+                'suggestions': prompt.suggestions
+            } for prompt in prompts
+        ]
+    
+    def _get_basic_location_prompts(self) -> List[Dict[str, Any]]:
+        """Get basic location prompts when fallback detector is not available"""
+        return [
+            {
+                'message': "Could you tell me which district you're in?",
+                'input_type': 'district_name',
+                'examples': ["Sultanahmet", "Beyoğlu", "Kadıköy", "Beşiktaş"],
+                'suggestions': list(self.istanbul_districts.keys())
+            },
+            {
+                'message': "What landmark are you closest to?",
+                'input_type': 'landmark',
+                'examples': ["Galata Tower", "Topkapi Palace", "Taksim Square"],
+                'suggestions': ["Sultanahmet", "Galata Tower", "Taksim", "Dolmabahce Palace"]
+            }
+        ]
+    
+    async def create_route_from_manual_input(
+        self,
+        user_id: str,
+        location_description: str,
+        preferences: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Create route from manual location input when all other methods fail
+        
+        Args:
+            user_id: Unique user identifier  
+            location_description: User's manual location description
+            preferences: User preferences for the route
+            
+        Returns:
+            Enhanced route response or location clarification request
+        """
+        if not self.fallback_detector:
+            # Basic parsing without fallback detector
+            location = self._parse_basic_location(location_description)
+        else:
+            # Use fallback detector for sophisticated parsing
+            location_options = await self.fallback_detector.detect_fallback_location(
+                user_input=location_description
+            )
+            
+            if not location_options:
+                return {
+                    'parsing_failed': True,
+                    'clarification_needed': True,
+                    'message': "I couldn't identify your location. Could you be more specific?",
+                    'suggestions': [
+                        "Try mentioning a district name (e.g., 'Sultanahmet', 'Beyoğlu')",
+                        "Name a landmark (e.g., 'near Galata Tower', 'close to Taksim Square')",
+                        "Describe your area (e.g., 'in the old city', 'near the Bosphorus')"
+                    ]
+                }
+            
+            location = location_options[0].location
+        
+        if not location:
+            return {
+                'parsing_failed': True,
+                'message': "Could you provide more details about your location?",
+                'location_prompts': self._get_user_location_prompts()
+            }
+        
+        # Create route using parsed location
+        route = await self.create_personalized_route(user_id, location, preferences or {})
+        
+        # Enhance response
+        enhanced_response = self.enhance_route_with_museums_and_tips(route)
+        
+        enhanced_response['location_detection'] = {
+            'method': 'manual_input',
+            'confidence': 0.7,  # Manual input gets medium confidence
+            'detected_location': location_description,
+            'district': location.district
+        }
+        
+        enhanced_response['recommendation_summary'] = {
+            'total_museums_available': len(enhanced_response['museums_in_route']),
+            'districts_with_tips': len(enhanced_response['local_tips_by_district']),
+            'personalization_level': 'medium',
+            'route_optimization': 'Manual location with intelligent routing'
+        }
+        
+        return enhanced_response
 
 
 # Singleton instance
-_gps_planner_instance = None
+_planner_instance = None
 
 def get_enhanced_gps_planner() -> EnhancedGPSRoutePlanner:
-    """Get or create singleton instance of Enhanced GPS Route Planner"""
-    global _gps_planner_instance
-    if _gps_planner_instance is None:
-        _gps_planner_instance = EnhancedGPSRoutePlanner()
-    return _gps_planner_instance
+    """
+    Get singleton instance of EnhancedGPSRoutePlanner
+    
+    Returns:
+        EnhancedGPSRoutePlanner: Singleton planner instance
+    """
+    global _planner_instance
+    if _planner_instance is None:
+        _planner_instance = EnhancedGPSRoutePlanner()
+    return _planner_instance
