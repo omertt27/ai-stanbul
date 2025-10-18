@@ -1668,6 +1668,8 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
     except Exception as e:
         print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
 
+       
+
         import traceback
         traceback.print_exc()
         return None
@@ -2093,7 +2095,7 @@ async def optimize_route_from_gps(
         destinations_str = ", ".join(destination_names)
         
         optimization_query = (
-            f"I'm at GPS location {user_location['lat']:.4f}, {user_location['lng']:.4f} "
+            f"I'm at GPS location {user_location['lat']:.4f}, {user_location['lon']:.4f} "
             f"and want to visit these places: {destinations_str}. "
             f"What's the most efficient route order?"
         )
@@ -2360,7 +2362,7 @@ class GPSRouteRequest(BaseModel):
     preferences: Optional[List[str]] = Field(None, description="Travel preferences")
     time_available: Optional[str] = Field(None, description="Available time for the route")
     interests: Optional[List[str]] = Field(None, description="User interests")
-    session_id: Optional[str] = Field(None, description="Session ID for personalization")
+    session_id: Optional[str] = Field(None, description="Session ID")
 
 class TransportRequest(BaseModel):
     origin: Dict[str, float] = Field(..., description="Origin coordinates {lat, lng}")
@@ -2671,6 +2673,18 @@ async def get_specific_route(route_id: str):
 async def find_nearby_stops(
     lat: float = Query(..., description="Latitude", ge=-90, le=90),
     lon: float = Query(..., description="Longitude", ge=-180, le=180),
+    max_distance_km: float = Query(5.0, description="Max distance to search for stops")
+):
+    """
+    Find public transport stops near a given GPS location
+    
+    - **lat**: Latitude of the location
+    - **lon**: Longitude of the location
+    - **max_distance_km**: Maximum distance to search for stops (default: 5 km)
+    
+    Returns:
+    - List of nearby stops with details
+    """
     if not offline_map_service:
         raise HTTPException(
             status_code=503,
@@ -2772,3 +2786,187 @@ async def map_service_health():
         "status": "available" if offline_map_service else "unavailable",
         "timestamp": datetime.now().isoformat()
     }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ML Cache Monitoring Endpoints
+# ═══════════════════════════════════════════════════════════════════
+
+@app.get("/api/cache/stats", tags=["Cache Management"])
+async def get_cache_statistics():
+    """
+    Get ML cache statistics from all integrated systems
+    
+    Returns cache performance metrics including hit rates, size, and memory usage
+    """
+    try:
+        if not istanbul_daily_talk_ai:
+            raise HTTPException(status_code=503, detail="AI system not initialized")
+        
+        # Get cache statistics from main system
+        stats = istanbul_daily_talk_ai.get_cache_statistics()
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "cache_statistics": stats,
+            "message": "Cache statistics retrieved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting cache statistics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cache/health", tags=["Cache Management"])
+async def cache_health_check():
+    """
+    Check ML cache health status
+    
+    Returns health status of all cache systems
+    """
+    try:
+        health_status = {
+            "route_planner_cache": "unavailable",
+            "transportation_cache": "unavailable",
+            "overall_status": "unavailable"
+        }
+        
+        if istanbul_daily_talk_ai:
+            # Check route planner cache
+            if hasattr(istanbul_daily_talk_ai, 'gps_route_planner') and istanbul_daily_talk_ai.gps_route_planner:
+                if hasattr(istanbul_daily_talk_ai.gps_route_planner, 'ml_cache') and istanbul_daily_talk_ai.gps_route_planner.ml_cache:
+                    health_status['route_planner_cache'] = "healthy"
+            
+            # Check transportation cache
+            if hasattr(istanbul_daily_talk_ai, 'ml_transport_system') and istanbul_daily_talk_ai.ml_transport_system:
+                if hasattr(istanbul_daily_talk_ai.ml_transport_system, 'ibb_client'):
+                    ibb_client = istanbul_daily_talk_ai.ml_transport_system.ibb_client
+                    if hasattr(ibb_client, 'ml_cache') and ibb_client.ml_cache:
+                        health_status['transportation_cache'] = "healthy"
+            
+            # Determine overall status
+            if health_status['route_planner_cache'] == "healthy" or health_status['transportation_cache'] == "healthy":
+                health_status['overall_status'] = "healthy"
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "health": health_status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking cache health: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/cache/invalidate/{user_id}", tags=["Cache Management"])
+async def invalidate_user_cache(user_id: str):
+    """
+    Invalidate all cached data for a specific user
+    
+    Use this endpoint when user preferences change or profile updates
+    
+    Args:
+        user_id: User identifier to invalidate cache for
+    """
+    try:
+        if not istanbul_daily_talk_ai:
+            raise HTTPException(status_code=503, detail="AI system not initialized")
+        
+        # Invalidate user cache
+        result = istanbul_daily_talk_ai.invalidate_user_cache(user_id)
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "user_id": user_id,
+            "invalidation_result": result,
+            "message": f"Cache invalidated for user {user_id}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error invalidating user cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/cache/warm", tags=["Cache Management"])
+async def warm_cache():
+    """
+    Warm cache with popular POIs and routes
+    
+    Pre-populates cache with frequently requested items for better performance
+    """
+    try:
+        if not istanbul_daily_talk_ai:
+            raise HTTPException(status_code=503, detail="AI system not initialized")
+        
+        warmed_count = 0
+        
+        # Warm route planner cache if available
+        if hasattr(istanbul_daily_talk_ai, 'gps_route_planner') and istanbul_daily_talk_ai.gps_route_planner:
+            if hasattr(istanbul_daily_talk_ai.gps_route_planner, 'ml_cache') and istanbul_daily_talk_ai.gps_route_planner.ml_cache:
+                # Warm with popular Istanbul POIs
+                popular_pois = [
+                    ('hagia_sophia', {'score': 95, 'popularity': 0.95}, {}),
+                    ('blue_mosque', {'score': 92, 'popularity': 0.92}, {}),
+                    ('topkapi_palace', {'score': 90, 'popularity': 0.90}, {}),
+                    ('grand_bazaar', {'score': 88, 'popularity': 0.88}, {}),
+                    ('galata_tower', {'score': 85, 'popularity': 0.85}, {}),
+                ]
+                
+                istanbul_daily_talk_ai.gps_route_planner.ml_cache.warm_cache(popular_pois)
+                warmed_count += len(popular_pois)
+                logger.info(f"✅ Cache warmed with {len(popular_pois)} popular POIs")
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "items_warmed": warmed_count,
+            "message": f"Cache warmed successfully with {warmed_count} items"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error warming cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/cache/clear", tags=["Cache Management"])
+async def clear_cache():
+    """
+    Clear all cache entries (admin only)
+    
+    WARNING: This will clear all cached predictions and may impact performance
+    """
+    try:
+        if not istanbul_daily_talk_ai:
+            raise HTTPException(status_code=503, detail="AI system not initialized")
+        
+        cleared_count = 0
+        
+        # Clear route planner cache
+        if hasattr(istanbul_daily_talk_ai, 'gps_route_planner') and istanbul_daily_talk_ai.gps_route_planner:
+            if hasattr(istanbul_daily_talk_ai.gps_route_planner, 'ml_cache') and istanbul_daily_talk_ai.gps_route_planner.ml_cache:
+                before_size = len(istanbul_daily_talk_ai.gps_route_planner.ml_cache.cache)
+                istanbul_daily_talk_ai.gps_route_planner.ml_cache.clear()
+                cleared_count += before_size
+                logger.info(f"🗑️ Cleared route planner cache: {before_size} entries")
+        
+        # Clear transportation cache
+        if hasattr(istanbul_daily_talk_ai, 'ml_transport_system') and istanbul_daily_talk_ai.ml_transport_system:
+            if hasattr(istanbul_daily_talk_ai.ml_transport_system, 'ibb_client'):
+                ibb_client = istanbul_daily_talk_ai.ml_transport_system.ibb_client
+                if hasattr(ibb_client, 'invalidate_cache'):
+                    ibb_client.invalidate_cache()
+                    logger.info("🗑️ Cleared transportation cache")
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.now().isoformat(),
+            "entries_cleared": cleared_count,
+            "message": f"Cache cleared successfully ({cleared_count} entries removed)"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
