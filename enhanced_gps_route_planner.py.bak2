@@ -41,19 +41,6 @@ except ImportError as e:
     ML_PREDICTION_AVAILABLE = False
     logging.warning(f"⚠️ ML Prediction Service not available: {e}")
 
-# Import POI-Enhanced Route Optimizer (Phase 4)
-try:
-    from poi_enhanced_route_optimizer import (
-        POIEnhancedRouteOptimizer,
-        RouteConstraints,
-        POIEnhancedRoute
-    )
-    POI_OPTIMIZER_AVAILABLE = True
-    logging.info("✅ POI-Enhanced Route Optimizer integrated successfully!")
-except ImportError as e:
-    POI_OPTIMIZER_AVAILABLE = False
-    logging.warning(f"⚠️ POI-Enhanced Route Optimizer not available: {e}")
-
 # Import fallback location detection
 try:
     from fallback_location_detector import (
@@ -224,27 +211,6 @@ class EnhancedGPSRoutePlanner:
                 logger.warning(f"Could not initialize ML Prediction Service: {e}")
                 self.ml_prediction_service = None
         
-        # Initialize ML-Enhanced Transportation System
-        self.ml_transport_system = None
-        try:
-            from ml_enhanced_transportation_system import MLEnhancedTransportationSystem
-            self.ml_transport_system = MLEnhancedTransportationSystem()
-            logger.info("🚇 ML-Enhanced Transportation System integrated!")
-        except ImportError as e:
-            logger.warning(f"⚠️ ML-Enhanced Transportation System not available: {e}")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not initialize ML Transportation System: {e}")
-        
-        # Initialize POI-Enhanced Route Optimizer (Phase 4)
-        self.poi_optimizer = None
-        if POI_OPTIMIZER_AVAILABLE:
-            try:
-                self.poi_optimizer = POIEnhancedRouteOptimizer()
-                logger.info("🎯 POI-Enhanced Route Optimizer initialized successfully!")
-            except Exception as e:
-                logger.warning(f"Could not initialize POI Route Optimizer: {e}")
-                self.poi_optimizer = None
-        
         # Initialize Intelligent Location Detector (PRIMARY)
         self.intelligent_location_detector = None
         if INTELLIGENT_LOCATION_AVAILABLE:
@@ -260,6 +226,17 @@ class EnhancedGPSRoutePlanner:
         if FALLBACK_DETECTOR_AVAILABLE:
             self.fallback_detector = FallbackLocationDetector()
             logger.info("🔄 Fallback Location Detector initialized")
+        
+        # Initialize ML-Enhanced Transportation System
+        self.ml_transport_system = None
+        try:
+            from ml_enhanced_transportation_system import MLEnhancedTransportationSystem
+            self.ml_transport_system = MLEnhancedTransportationSystem()
+            logger.info("🚇 ML-Enhanced Transportation System integrated!")
+        except ImportError as e:
+            logger.warning(f"⚠️ ML-Enhanced Transportation System not available: {e}")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not initialize ML Transportation System: {e}")
         
         # Initialize Istanbul-specific data
         self.istanbul_districts = self._load_istanbul_districts()
@@ -618,89 +595,6 @@ class EnhancedGPSRoutePlanner:
         
         return enhanced_response
     
-    async def create_poi_optimized_route(
-        self,
-        user_id: str,
-        start_location: GPSLocation,
-        end_location: GPSLocation,
-        preferences: Dict[str, Any],
-        constraints: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
-        """
-        Create POI-enhanced route using Phase 4 optimizer
-        
-        Args:
-            user_id: User identifier
-            start_location: Starting GPS location
-            end_location: Destination GPS location
-            preferences: User interests, budget, transport preferences
-            constraints: Route constraints (max_pois, max_detour_minutes, etc.)
-            
-        Returns:
-            Enhanced route response with POIs, segments, ML predictions, and recommendations
-        """
-        logger.info(f"🎯 Creating POI-optimized route for user {user_id}")
-        
-        # Check if optimizer is available
-        if not self.poi_optimizer:
-            logger.warning("POI Optimizer not available, falling back to basic route")
-            # Fallback to basic personalized route
-            route = await self.create_personalized_route(user_id, start_location, preferences, constraints)
-            return self.enhance_route_with_museums_and_tips(route)
-        
-        # Convert constraints to RouteConstraints
-        route_constraints = RouteConstraints(
-            max_pois=constraints.get('max_pois', 3) if constraints else 3,
-            max_detour_time_minutes=constraints.get('max_detour_minutes', 45) if constraints else 45,
-            max_total_detour_minutes=constraints.get('max_total_detour', 120) if constraints else 120,
-            require_category_diversity=preferences.get('prefer_diverse_categories', True),
-            min_poi_value=constraints.get('min_poi_value', 0.3) if constraints else 0.3
-        )
-        
-        # Convert GPS locations to GeoCoordinates
-        from poi_database_service import GeoCoordinate
-        start_coord = GeoCoordinate(lat=start_location.latitude, lon=start_location.longitude)
-        end_coord = GeoCoordinate(lat=end_location.latitude, lon=end_location.longitude)
-        
-        # Create optimized route using Phase 4 optimizer
-        optimized_route = await self.poi_optimizer.create_poi_enhanced_route(
-            start_coord, 
-            end_coord, 
-            preferences, 
-            route_constraints
-        )
-        
-        # Convert optimizer response to enhanced route format
-        response = self._format_optimized_route_response(optimized_route, user_id)
-        
-        # Add district tips for POIs in route
-        districts_in_route = set()
-        for poi in optimized_route.pois_included:
-            if poi.district:
-                districts_in_route.add(poi.district)
-        
-        local_tips = {}
-        for district in districts_in_route:
-            if district in self.district_tips:
-                local_tips[district] = self.district_tips[district]
-        
-        response['local_tips_by_district'] = local_tips
-        
-        # Add recommendation summary
-        response['recommendation_summary'] = {
-            'optimization_method': 'POI-Enhanced Route Optimizer (Phase 4)',
-            'total_pois_evaluated': optimized_route.optimization_insights.get('pois_evaluated', 0),
-            'pois_included': len(optimized_route.pois_included),
-            'pois_recommended_not_included': len(optimized_route.pois_recommended_not_included),
-            'ml_predictions_used': optimized_route.optimization_insights.get('ml_predictions_used', False),
-            'personalization_level': 'high',
-            'route_optimization': 'ML-optimized with POI detour calculation'
-        }
-        
-        logger.info(f"✅ POI-optimized route created: {len(optimized_route.pois_included)} POIs, {response['enhanced_route']['time_minutes']}min")
-        
-        return response
-    
     async def create_route_with_fallback_location(
         self,
         user_id: str,
@@ -956,7 +850,7 @@ class EnhancedGPSRoutePlanner:
             'galata': GPSLocation(41.0256, 28.9744, district='beyoglu'),
             'kadikoy': GPSLocation(40.9907, 29.0205, district='kadikoy'),
             'besiktas': GPSLocation(41.0422, 29.0084, district='besiktas')
-        };
+        }
         
         for landmark, location in landmarks.items():
             if landmark in desc_lower:
@@ -1098,10 +992,10 @@ class EnhancedGPSRoutePlanner:
         
         return score
     
-    def _calculate_travel_time(self, distance_kmh: float, mode: TransportMode) -> int:
+    def _calculate_travel_time(self, distance_km: float, mode: TransportMode) -> int:
         """Calculate travel time in minutes"""
         speed_kmh = mode.value.get('speed_kmh', 4.5)
-        base_time_minutes = (distance_kmh / speed_kmh) * 60
+        base_time_minutes = (distance_km / speed_kmh) * 60
         
         # Add buffer for waiting times, stops, etc.
         if mode in [TransportMode.PUBLIC_TRANSPORT, TransportMode.METRO]:
@@ -1370,7 +1264,7 @@ class EnhancedGPSRoutePlanner:
             # Query POIs from database service
             geo_coord = GeoCoordinate(
                 lat=location.latitude,
-                lon=location.longitude
+                lng=location.longitude
             )
             
             nearby_pois = self.poi_db_service.find_pois_in_radius(
@@ -1562,10 +1456,406 @@ class EnhancedGPSRoutePlanner:
         # Sort by score descending
         scored_pois.sort(key=lambda x: x[1], reverse=True)
         
-        if scored_pois:
-            logger.info(f"Scored {len(scored_pois)} POIs, top score: {scored_pois[0][1]:.2f}")
-        else:
-            logger.warning("No POIs scored - no nearby POIs found")
+        logger.info(f"Scored {len(scored_pois)} POIs, top score: {scored_pois[0][1]:.2f if scored_pois else 0}")
+        
+        return scored_pois
+    
+    def _select_optimal_waypoints(
+        self,
+        scored_pois: List[Tuple[POI, float]],
+        user_preferences: Dict[str, Any],
+        route_constraints: Dict[str, Any]
+    ) -> List[POI]:
+        """
+        Select optimal waypoints with smart constraints
+        
+        Args:
+            scored_pois: List of (POI, score) tuples sorted by score
+            user_preferences: User preferences
+            route_constraints: Route constraints (max waypoints, max detour time, etc.)
+            
+        Returns:
+            List of selected POI waypoints
+        """
+        max_waypoints = route_constraints.get('max_waypoints', 3)
+        max_total_detour_minutes = route_constraints.get('max_total_detour_minutes', 90)
+        require_category_diversity = user_preferences.get('prefer_diverse_categories', True)
+        
+        selected_pois = []
+        selected_categories = set()
+        total_visit_time = 0
+        
+        for poi, score in scored_pois:
+            # Stop if we have enough waypoints
+            if len(selected_pois) >= max_waypoints:
+                break
+            
+            # Check category diversity if required
+            poi_categories = poi.categories if hasattr(poi, 'categories') else []
+            primary_category = poi_categories[0] if poi_categories else 'unknown'
+            
+            if require_category_diversity and primary_category in selected_categories:
+                # Skip if we already have a POI from this category
+                continue
+            
+            # Check time constraint
+            visit_duration = poi.suggested_duration_minutes if hasattr(poi, 'suggested_duration_minutes') else 60
+            
+            if total_visit_time + visit_duration > max_total_detour_minutes:
+                # Would exceed time budget
+                continue
+            
+            # Add to selected waypoints
+            selected_pois.append(poi)
+            selected_categories.add(primary_category)
+            total_visit_time += visit_duration
+            
+            logger.info(f"Selected waypoint: {poi.name} (score: {score:.2f}, category: {primary_category})")
+        
+        logger.info(f"Selected {len(selected_pois)} optimal waypoints with {total_visit_time} min total visit time")
+        
+        return selected_pois
+    
+    def _convert_pois_to_waypoints(
+        self,
+        pois: List[POI],
+        user_preferences: Dict[str, Any],
+        current_time: datetime
+    ) -> List[PersonalizedWaypoint]:
+        """Convert POI objects to PersonalizedWaypoint objects"""
+        waypoints = []
+        user_interests = user_preferences.get('interests', [])
+        
+        for poi in pois:
+            # Calculate interest match
+            poi_categories = poi.categories if hasattr(poi, 'categories') else []
+            interest_match = 0.0
+            for interest in user_interests:
+                if any(interest.lower() in cat.lower() for cat in poi_categories):
+                    interest_match += 0.3
+            interest_match = min(interest_match, 1.0)
+            
+            # Get attributes with defaults
+            popularity = poi.popularity_score if hasattr(poi, 'popularity_score') else 0.7
+            duration = poi.suggested_duration_minutes if hasattr(poi, 'suggested_duration_minutes') else 60
+            
+            # Create waypoint
+            waypoint = PersonalizedWaypoint(
+                name=poi.name,
+                location=GPSLocation(
+                    latitude=poi.location.latitude,
+                    longitude=poi.location.longitude,
+                    district=getattr(poi, 'district', '')
+                ),
+                category=poi_categories[0] if poi_categories else 'attraction',
+                interest_match=interest_match,
+                popularity_score=popularity,
+                weather_suitability=0.8,  # Default
+                accessibility_score=0.9,  # Default
+                estimated_duration=duration,
+                transport_modes=[TransportMode.WALKING, TransportMode.PUBLIC_TRANSPORT],
+                personalization_reasons=[
+                    f"Matches your interest in {user_interests[0]}" if user_interests else "Popular attraction",
+                    f"Currently {self._get_crowding_label(poi, current_time)}"
+                ],
+                real_time_updates={}
+            )
+            waypoints.append(waypoint)
+        
+        return waypoints
+    
+    def _get_crowding_label(self, poi: POI, current_time: datetime) -> str:
+        """Get human-readable crowding label for a POI"""
+        if ML_PREDICTION_AVAILABLE and self.ml_prediction_service:
+            try:
+                pred = self.ml_prediction_service.predict_poi_crowding(poi.poi_id, current_time)
+                return pred.crowding_label.lower()
+            except:
+                pass
+        return "moderate crowding"
+    
+    async def _start_real_time_monitoring(self, route: PersonalizedRoute):
+        """Start real-time monitoring for route updates"""
+        logger.info(f"🔄 Starting real-time monitoring for route {route.route_id}")
+        
+        self.real_time_monitoring[route.route_id] = {
+            'active': True,
+            'last_update': datetime.now(),
+            'update_frequency': 300  # 5 minutes
+        }
+        
+        # This would be implemented as a background task in production
+        # For now, we'll just log the setup
+        logger.info(f"✅ Real-time monitoring active for route {route.route_id}")
+    
+    async def update_route_real_time(
+        self,
+        route_id: str,
+        current_user_location: GPSLocation,
+        context_updates: Dict[str, Any] = None
+    ) -> Optional[PersonalizedRoute]:
+        """Update route based on real-time conditions"""
+        
+        if route_id not in self.active_routes:
+            logger.warning(f"Route {route_id} not found for real-time update")
+            return None
+        
+        route = self.active_routes[route_id]
+        
+        # Check if significant location change
+        distance_from_planned = self._calculate_distance(
+            current_user_location,
+            route.start_location
+        )
+        
+        if distance_from_planned > 0.5:  # 500m threshold
+            logger.info(f"📍 Significant location change detected, re-routing...")
+            
+            # Create updated route from new location
+            updated_route = await self.create_personalized_route(
+                route.user_id,
+                current_user_location,
+                {'interests': [], 'real_time_updates': True},  # Would extract from original route
+                {'max_waypoints': len(route.waypoints)}
+            )
+            
+            # Update the stored route
+            self.active_routes[route_id] = updated_route
+            
+            logger.info(f"✅ Route {route_id} updated with new starting point")
+            return updated_route
+        
+        # Update real-time conditions for existing segments
+        for segment in route.segments:
+            segment.real_time_conditions.update({
+                'traffic_level': 'moderate',  # Would integrate with traffic API
+                'weather_impact': 'minimal',
+                'last_updated': datetime.now().isoformat()
+            })
+        
+        route.last_updated = datetime.now()
+        return route
+    
+    def _find_nearby_pois(
+        self,
+        location: GPSLocation,
+        radius_km: float,
+        current_time: datetime,
+        user_preferences: Dict[str, Any]
+    ) -> List[POI]:
+        """
+        Find nearby POIs filtered by opening hours and accessibility requirements
+        
+        Args:
+            location: Center point for search
+            radius_km: Search radius in kilometers
+            current_time: Current time for opening hours check
+            user_preferences: User preferences including accessibility needs
+            
+        Returns:
+            List of POI objects within radius that are open and accessible
+        """
+        if not POI_DATABASE_AVAILABLE or not self.poi_db_service:
+            logger.warning("POI Database Service not available, using legacy POI data")
+            return []
+        
+        try:
+            # Query POIs from database service
+            geo_coord = GeoCoordinate(
+                lat=location.latitude,
+                lng=location.longitude
+            )
+            
+            nearby_pois = self.poi_db_service.find_pois_in_radius(
+                center=geo_coord,
+                radius_km=radius_km
+            )
+            
+            # Filter by opening hours
+            open_pois = []
+            for poi in nearby_pois:
+                if self.poi_db_service.is_poi_open(poi, current_time):
+                    open_pois.append(poi)
+            
+            logger.info(f"Found {len(open_pois)} open POIs out of {len(nearby_pois)} nearby")
+            
+            # Filter by accessibility requirements
+            accessibility_needs = user_preferences.get('accessibility', {})
+            wheelchair_required = accessibility_needs.get('wheelchair_accessible', False)
+            
+            accessible_pois = []
+            for poi in open_pois:
+                # Check wheelchair accessibility if required
+                if wheelchair_required:
+                    if poi.accessibility.get('wheelchair_accessible', False):
+                        accessible_pois.append(poi)
+                else:
+                    accessible_pois.append(poi)
+            
+            logger.info(f"Filtered to {len(accessible_pois)} accessible POIs")
+            
+            return accessible_pois
+            
+        except Exception as e:
+            logger.error(f"Error finding nearby POIs: {e}")
+            return []
+    
+    def _score_pois_for_user(
+        self,
+        pois: List[POI],
+        user_location: GPSLocation,
+        user_preferences: Dict[str, Any],
+        current_time: datetime,
+        transport_mode: TransportMode
+    ) -> List[Tuple[POI, float]]:
+        """
+        Score POIs based on multiple factors including crowding predictions and ML
+        
+        Args:
+            pois: List of candidate POIs
+            user_location: User's current location
+            user_preferences: User interests and preferences
+            current_time: Current time for time-based scoring
+            transport_mode: Selected transportation mode
+            
+        Returns:
+            List of (POI, score) tuples sorted by score descending
+        """
+        scored_pois = []
+        user_interests = user_preferences.get('interests', [])
+        max_detour_minutes = user_preferences.get('max_detour_minutes', 30)
+        
+        for poi in pois:
+            score = 0.0
+            
+            # 1. Category match score (0-40 points)
+            category_score = 0.0
+            poi_categories = poi.categories if hasattr(poi, 'categories') else []
+            
+            for interest in user_interests:
+                interest_lower = interest.lower()
+                for category in poi_categories:
+                    if interest_lower in category.lower():
+                        category_score += 10.0
+                        break
+            
+            category_score = min(category_score, 40.0)
+            score += category_score
+            
+            # 2. Popularity/rating score (0-25 points)
+            popularity_score = poi.popularity_score * 25.0 if hasattr(poi, 'popularity_score') else 15.0
+            score += popularity_score
+            
+            # 3. Distance/detour cost (0-20 points, inverse)
+            poi_location = GPSLocation(poi.location.latitude, poi.location.longitude)
+            distance_km = self._calculate_distance(user_location, poi_location)
+            
+            # Calculate travel time based on transport mode
+            speed_kmh = transport_mode.value['speed_kmh']
+            travel_time_minutes = (distance_km / speed_kmh) * 60
+            
+            # Penalize far POIs
+            detour_factor = max(0, 1 - (travel_time_minutes / max_detour_minutes))
+            distance_score = detour_factor * 20.0
+            score += distance_score
+            
+            # 4. Crowding prediction score (0-15 points, inverse) - Using Phase 3 ML Prediction Service
+            if ML_PREDICTION_AVAILABLE and self.ml_prediction_service:
+                try:
+                    # Use ML Prediction Service for advanced crowding prediction
+                    crowding_pred = self.ml_prediction_service.predict_poi_crowding(
+                        poi.poi_id,
+                        current_time,
+                        weather_data=None  # Could integrate weather service here
+                    )
+                    crowding_level = crowding_pred.crowding_level
+                    # Lower crowding = higher score
+                    crowding_score = (1.0 - crowding_level) * 15.0
+                    score += crowding_score
+                    
+                    # Log crowding info
+                    logger.debug(f"{poi.name}: {crowding_pred.crowding_label}, wait: {crowding_pred.wait_time_minutes}min")
+                except Exception as e:
+                    logger.debug(f"Could not get ML crowding prediction for {poi.name}: {e}")
+                    score += 7.5  # Neutral score
+            elif POI_DATABASE_AVAILABLE and self.poi_db_service:
+                try:
+                    # Fallback to POI database service
+                    crowding_level = self.poi_db_service.predict_crowding(poi, current_time)
+                    crowding_score = (1.0 - crowding_level) * 15.0
+                    score += crowding_score
+                except Exception as e:
+                    logger.debug(f"Could not get crowding prediction for {poi.name}: {e}")
+                    score += 7.5  # Neutral score
+            else:
+                score += 7.5  # Neutral score if service unavailable
+            
+            # 5. Time-of-day appropriateness (0-10 points)
+            hour = current_time.hour
+            time_score = 10.0  # Default
+            
+            # Morning (6-11): Museums, breakfast spots
+            if 6 <= hour < 11:
+                if any(cat in ['museum', 'cafe', 'breakfast'] for cat in poi_categories):
+                    time_score = 10.0
+                else:
+                    time_score = 5.0
+            # Afternoon (11-17): All attractions
+            elif 11 <= hour < 17:
+                time_score = 10.0
+            # Evening (17-22): Restaurants, viewpoints
+            elif 17 <= hour < 22:
+                if any(cat in ['restaurant', 'viewpoint', 'nightlife'] for cat in poi_categories):
+                    time_score = 10.0
+                else:
+                    time_score = 5.0
+            # Night (22-6): Limited options
+            else:
+                if 'nightlife' in poi_categories:
+                    time_score = 10.0
+                else:
+                    time_score = 2.0
+            
+            score += time_score
+            
+            # 6. ML prediction boost (0-10 points)
+            if self.ml_cache:
+                try:
+                    # Create prediction context
+                    ml_context = {
+                        'poi_id': poi.poi_id,
+                        'poi_name': poi.name,
+                        'categories': poi_categories,
+                        'user_interests': user_interests,
+                        'time_of_day': hour,
+                        'day_of_week': current_time.weekday(),
+                        'distance_km': distance_km
+                    }
+                    
+                    # Try to get ML prediction from cache
+                    ml_prediction = self.ml_cache.get(
+                        f"poi_recommendation_{poi.poi_id}",
+                        ml_context,
+                        ['poi_recommendation', 'user_preference_matching']
+                    )
+                    
+                    if ml_prediction and isinstance(ml_prediction, (int, float)):
+                        ml_score = float(ml_prediction) * 10.0
+                        score += ml_score
+                    else:
+                        score += 5.0  # Neutral ML score
+                except Exception as e:
+                    logger.debug(f"Could not get ML prediction for {poi.name}: {e}")
+                    score += 5.0  # Neutral ML score
+            else:
+                score += 5.0  # Neutral ML score
+            
+            scored_pois.append((poi, score))
+        
+        # Sort by score descending
+        scored_pois.sort(key=lambda x: x[1], reverse=True)
+        
+        logger.info(f"Scored {len(scored_pois)} POIs, top score: {scored_pois[0][1]:.2f if scored_pois else 0}")
         
         return scored_pois
     
