@@ -96,7 +96,7 @@ export const fetchResults = async (query, sessionId = null) => {
       console.log('🚀 Making chat API request to:', API_URL, 'with query:', query);
       
       const requestBody = { 
-        user_input: query 
+        message: query 
       };
       
       // Add session ID if provided
@@ -136,12 +136,12 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
       const currentSessionId = sessionId || getSessionId();
       
       const requestBody = { 
-        user_input: query,
+        message: query,
         session_id: currentSessionId,  // Always include session ID
         ...(locationContext && { location_context: locationContext }) // Add location context if provided
       };
       
-      console.log('📋 Request body:', { ...requestBody, user_input: query.substring(0, 50) + '...' });
+      console.log('📋 Request body:', { ...requestBody, message: query.substring(0, 50) + '...' });
       
       const response = await fetchWithRetry(STREAM_API_URL, {
         method: 'POST',
