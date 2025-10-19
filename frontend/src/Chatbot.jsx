@@ -850,7 +850,7 @@ function Chatbot() {
   };
 
   return (
-    <div className={`flex flex-col h-screen w-full pt-16 transition-colors duration-200 ${
+    <div className={`max-w-4xl mx-auto p-4 transition-colors duration-200 ${
       darkMode ? 'bg-gray-900' : 'bg-gray-100'
     }`}>
       
@@ -864,10 +864,10 @@ function Chatbot() {
         apiHealth={apiHealth}
       />
 
-      {/* Chat Messages Container - Full screen like ChatGPT */}
-      <div className="flex-1 overflow-y-auto chat-messages" id="chat-messages">
+      {/* Chat Messages Container - Contained within layout */}
+      <div className="overflow-y-auto max-h-[70vh] py-4" id="chat-messages">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center px-4">
+          <div className="flex flex-col items-center justify-center px-4 py-8">
             {/* KAM Definition Card - Always visible */}
             <div className={`max-w-2xl w-full mb-8 p-6 rounded-xl border transition-all duration-200 ${
               darkMode 
@@ -985,131 +985,56 @@ function Chatbot() {
         )}
             
         {/* Message Display Area */}
-        <div className="max-w-full mx-auto px-4">
+        <div className="max-w-4xl mx-auto px-4 py-8">
           {messages.map((msg, index) => (
-            <div key={msg.id || index} className="group py-4">
-              <div className="flex items-start space-x-3">
-                {msg.sender === 'user' ? (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
-                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
-                    }`}>
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>You</div>
-                      <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {msg.text}
-                      </div>
-                      {msg.timestamp && (
-                        <div className={`text-xs mt-1 transition-colors duration-200 ${
-                          darkMode ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </div>
-                      )}
-                    </div>
-                    <MessageActions 
-                      message={msg}
-                      onCopy={copyMessageToClipboard}
-                      onShare={shareMessage}
-                      darkMode={darkMode}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
-                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
-                    }`}>
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
-                        darkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>KAM Assistant</div>
-                      <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
-                        darkMode ? 'text-white' : 'text-gray-900'
-                      }`}>
-                        {renderMessageContent(msg.text || msg.content, darkMode)}
-                      </div>
-                      
-                      {/* Metadata Components */}
-                      {msg.sender === 'assistant' && (
-                        <>
-                          {/* ML Insights */}
-                          {msg.metadata?.ml_predictions && (
-                            <div className="mt-3">
-                              <MLInsights predictions={msg.metadata.ml_predictions} darkMode={darkMode} />
-                            </div>
-                          )}
-                          
-                          {/* POI Cards */}
-                          {msg.metadata?.pois?.map((poi, idx) => (
-                            <div key={idx} className="mt-3">
-                              <POICard poi={poi} darkMode={darkMode} />
-                            </div>
-                          ))}
-                          
-                          {/* District Info */}
-                          {msg.metadata?.district_info && (
-                            <div className="mt-3">
-                              <DistrictInfo district={msg.metadata.district_info} darkMode={darkMode} />
-                            </div>
-                          )}
-                          
-                          {/* Itinerary */}
-                          {msg.metadata?.total_itinerary && (
-                            <div className="mt-3">
-                              <ItineraryTimeline itinerary={msg.metadata.total_itinerary} darkMode={darkMode} />
-                            </div>
-                          )}
-                        </>
+            <div key={msg.id || index} className="mb-6">
+              <div className={`flex ${
+                msg.sender === "user" ? "justify-end" : "justify-start"
+              }`}>
+                <div className={`max-w-[80%] ${
+                  msg.sender === "user"
+                    ? "bg-blue-500 text-white rounded-2xl rounded-br-md px-4 py-3"
+                    : "bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3"
+                }`}>
+                  <div className="whitespace-pre-wrap">
+                    {renderMessageContent(msg.text || msg.content, darkMode)}
+                  </div>
+                  
+                  {/* Metadata Components for Assistant Messages */}
+                  {msg.sender === "assistant" && msg.metadata && (
+                    <div className="mt-4 space-y-3">
+                      {/* ML Insights */}
+                      {msg.metadata.ml_predictions && (
+                        <MLInsights predictions={msg.metadata.ml_predictions} darkMode={false} />
                       )}
                       
-                      <div className="hidden">
-                      </div>
-                      {msg.timestamp && (
-                        <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
-                          darkMode ? 'text-gray-500' : 'text-gray-500'
-                        }`}>
-                          <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                          {msg.type && (
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                            }`}>
-                              {msg.type}
-                            </span>
-                          )}
-                          {msg.resultCount && (
-                            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {msg.resultCount} results
-                            </span>
-                          )}
-                        </div>
+                      {/* POI Cards */}
+                      {msg.metadata.pois?.map((poi, idx) => (
+                        <POICard key={idx} poi={poi} darkMode={false} />
+                      ))}
+                      
+                      {/* District Info */}
+                      {msg.metadata.district_info && (
+                        <DistrictInfo district={msg.metadata.district_info} darkMode={false} />
+                      )}
+                      
+                      {/* Itinerary */}
+                      {msg.metadata.total_itinerary && (
+                        <ItineraryTimeline itinerary={msg.metadata.total_itinerary} darkMode={false} />
                       )}
                     </div>
-                    <MessageActions 
-                      message={msg}
-                      onCopy={copyMessageToClipboard}
-                      onShare={shareMessage}
-                      onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
-                      darkMode={darkMode}
-                    />
-                  </>
-                )}
+                  )}
+                </div>
               </div>
+              
+              {/* Message timestamp */}
+              {msg.timestamp && (
+                <div className={`text-xs mt-1 ${
+                  msg.sender === "user" ? "text-right" : "text-left"
+                } text-gray-500`}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], {hour: "2-digit", minute:"2-digit"})}
+                </div>
+              )}
             </div>
           ))}
           

@@ -98,7 +98,6 @@ const actionTypes = {
   SET_DISTRICTS: 'SET_DISTRICTS',
   
   // Tracking actions
-  SET_TRACKING: 'SET_TRACKING',
   SET_TRACKING_WATCH_ID: 'SET_TRACKING_WATCH_ID',
   
   // Preferences actions
@@ -237,8 +236,6 @@ function locationReducer(state, action) {
         districtsLoading: false 
       };
       
-    case actionTypes.SET_TRACKING:
-      return { ...state, isTracking: action.payload };
       
     case actionTypes.SET_TRACKING_WATCH_ID:
       return { ...state, trackingWatchId: action.payload };

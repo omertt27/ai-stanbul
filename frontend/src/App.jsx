@@ -13,6 +13,10 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import MainPageMobileNavbar from './components/MainPageMobileNavbar';
 import LocationPermissionModal from './components/LocationPermissionModal';
 import RoutePlanningForm from './components/RoutePlanningForm';
+import POICard from './components/POICard';
+import DistrictInfo from './components/DistrictInfo';
+import ItineraryTimeline from './components/ItineraryTimeline';
+import MLInsights from './components/MLInsights';
 
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
 import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
@@ -144,10 +148,27 @@ const App = () => {
     // Track the search event
     trackChatEvent('search_initiated', query);
     
-    // Store the query and navigate to chat page for consistent experience
-    localStorage.setItem('pending_chat_query', query);
-    navigate('/chat');
     
+    try {
+      const newMessage = { id: Date.now(), sender: "user", content: query, timestamp: new Date().toISOString() };
+      const updatedMessages = [...messages, newMessage];
+      setMessages(updatedMessages);
+      
+      const response = await fetchResults(query);
+      
+      const assistantMessage = {
+        id: Date.now() + 1,
+        sender: "assistant",
+        content: response.response,
+        metadata: response.metadata,
+        timestamp: new Date().toISOString()
+      };
+      
+      setMessages([...updatedMessages, assistantMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+    }
+
     // Reset loading state after navigation
     setTimeout(() => setSearchLoading(false), 1000);
   };
@@ -283,25 +304,60 @@ const App = () => {
               value={query}
               onChange={e => setQuery(e.target.value)}
               onSubmit={handleSearch}
-              placeholder={t('chat.searchPlaceholder')}
+              placeholder={t("chat.searchPlaceholder")}
               isLoading={searchLoading}
               expanded={expanded}
             />
           </div>
           
-
-
-
-
-
-
+          {/* Chat Messages */}
+          {messages.length > 0 && (
+            <div className="mt-6 max-w-4xl mx-auto px-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`mb-4 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
+                  <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
+                    msg.sender === "user" 
+                      ? "bg-blue-500 text-white ml-auto" 
+                      : "bg-gray-100 text-gray-900"
+                  }`}>
+                    <div>{msg.content}</div>
+                    
+                    {/* Metadata Components */}
+                    {msg.sender === "assistant" && msg.metadata && (
+                      <div className="mt-3 space-y-3">
+                        {/* ML Insights */}
+                        {msg.metadata.ml_predictions && (
+                          <MLInsights predictions={msg.metadata.ml_predictions} darkMode={false} />
+                        )}
+                        
+                        {/* POI Cards */}
+                        {msg.metadata.pois?.map((poi, idx) => (
+                          <POICard key={idx} poi={poi} darkMode={false} />
+                        ))}
+                        
+                        {/* District Info */}
+                        {msg.metadata.district_info && (
+                          <DistrictInfo district={msg.metadata.district_info} darkMode={false} />
+                        )}
+                        
+                        {/* Itinerary */}
+                        {msg.metadata.total_itinerary && (
+                          <ItineraryTimeline itinerary={msg.metadata.total_itinerary} darkMode={false} />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
           {/* Interactive Main Page Content - Show on all devices including mobile */}
           <div>
             <InteractiveMainPage onQuickStart={handleQuickStart} />
           </div>
           
           {/* Districts and interactive content now visible on all devices */}
-          
         </div>
 
         {/* Location Permission Modal */}
