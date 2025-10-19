@@ -1,8 +1,8 @@
 {
   "cache_key": "events_events_current",
   "content_type": "application/json",
-  "created_at": "2025-10-17T22:25:22.527916",
-  "expires_at": "2025-10-18T04:25:22.527919",
+  "created_at": "2025-10-19T16:13:00.773816",
+  "expires_at": "2025-10-19T22:13:00.773819",
   "etag": "4d609397e23ec351",
   "compressed": true,
   "access_count": 0,

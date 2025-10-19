@@ -2282,7 +2282,7 @@ async def chat_endpoint(request: ChatRequest):
                         'transport': 'Tram T1 to Sultanahmet station',
                         'safety': 'Very safe, watch for pickpockets in crowds',
                         'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': '
+                        'cultural_notes': 'Dress modestly for mosques, remove shoes'
                     },
                     'beyoglu': {
                         'name': 'Beyoğlu',

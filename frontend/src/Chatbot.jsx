@@ -1,1871 +1,1167 @@
-import { useState, useEffect, useRef } from 'react';
-import { fetchStreamingResults } from './api/api';
-import { trackNavigation, trackEvent, trackChatEvent } from './utils/analytics';
-import { useLocation } from './contexts/LocationContext';
-import NavBar from './components/NavBar';
-import SearchBar from './components/SearchBar';
-import MobileOptimizer from './components/MobileOptimizer';
-import LocationPermissionModal from './components/LocationPermissionModal';
-import GPSLocationStatus from './components/GPSLocationStatus';
+import { useState, useEffect } from 'react';
 import { 
-  TypingSimulator, 
-  StreamingText, 
-  TypingIndicator, 
-  LoadingSpinner
-} from './components/TypingAnimation';
-import { LoadingSkeleton, ChatMessageSkeleton } from './components/LoadingSkeletons';
-import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
-import ChatRouteIntegration from './components/ChatRouteIntegration';
-import LeafletNavigationMap from './components/LeafletNavigationMap';
-import './App.css';
+  fetchStreamingResults, 
+  fetchRestaurantRecommendations, 
+  fetchPlacesRecommendations, 
+  extractLocationFromQuery,
+  subscribeToNetworkStatus,
+  checkApiHealth,
+  debouncedFetchRestaurants,
+  debouncedFetchPlaces
+} from './api/api';
+import { 
+  ErrorTypes, 
+  classifyError, 
+  getUserFriendlyMessage,
+  networkStatus 
+} from './utils/errorHandler';
+import ErrorNotification, { NetworkStatusIndicator, RetryButton } from './components/ErrorNotification';
+import TypingIndicator from './components/TypingIndicator';
+import MessageActions from './components/MessageActions';
+import ScrollToBottom from './components/ScrollToBottom';
+import ChatHeader from './components/ChatHeader';
 
+console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
 
+// Input security and normalization functions - ENHANCED SECURITY
+const sanitizeInput = (input) => {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Remove potential SQL injection patterns - ENHANCED
+  const sqlPatterns = [
+    /[';]/g,                              // Remove semicolons
+    /--/g,                                // Remove SQL comments  
+    /\/\*/g,                              // Remove SQL block comments start
+    /\*\//g,                              // Remove SQL block comments end
+    /\b(UNION|SELECT|DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE|DECLARE)\b/gi, // SQL keywords - expanded
+    /\b(OR|AND)\s+['"]\d+['"]?\s*=\s*['"]\d+['"]/gi, // OR '1'='1' patterns
+    /['"]\s*(OR|AND)\s+['"]/gi,          // Injection connector patterns
+  ];
+  
+  // Remove XSS patterns - ENHANCED
+  const xssPatterns = [
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // <script> tags
+    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, // <iframe> tags
+    /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, // <object> tags
+    /<embed\b[^>]*>/gi,                   // <embed> tags
+    /<link\b[^>]*>/gi,                    // <link> tags
+    /<meta\b[^>]*>/gi,                    // <meta> tags
+    /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi,   // <style> tags
+    /<[^>]*>/g,                           // Remove all HTML tags
+    /javascript:/gi,                      // Remove javascript: protocol
+    /on\w+\s*=/gi,                        // Remove event handlers (onclick, etc.)
+    /expression\s*\(/gi,                  // Remove CSS expression() calls
+    /url\s*\(/gi,                         // Remove CSS url() calls
+  ];
 
-// Helper function to render text with clickable links and proper formatting
-const renderMessageContent = (content, darkMode) => {
-  // Enhanced text processing for better readability
-  
-  // Step 1: Handle numbered lists (1. 2. 3. etc.)
-  let formattedContent = content.replace(/^(\d+\.\s)/gm, '\n$1');
-  
-  // Step 2: Handle bullet points (-)
-  formattedContent = formattedContent.replace(/^(\s*-\s)/gm, '\n$1');
-  
-  // Step 3: Add extra spacing around main sections (lines ending with :)
-  formattedContent = formattedContent.replace(/^([^:\n]+:)\s*$/gm, '\n$1\n');
-  
-  // Step 4: Split content into paragraphs (double line breaks or section breaks)
-  const paragraphs = formattedContent.split(/\n\s*\n/).filter(p => p.trim());
-  
-  return paragraphs.map((paragraph, paragraphIndex) => {
-    // Convert Markdown-style links [text](url) to clickable HTML links
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-    
-    while ((match = linkRegex.exec(paragraph)) !== null) {
-      const linkText = match[1];
-      const linkUrl = match[2];
-      
-      // Add text before the link
-      if (match.index > lastIndex) {
-        const textContent = paragraph.substring(lastIndex, match.index);
-        processTextContent(textContent, parts, `${paragraphIndex}-${lastIndex}`);
-      }
-      
-      // Add the clickable link
-      parts.push(
-        <a
-          key={`link-${paragraphIndex}-${match.index}`}
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#60a5fa',
-            textDecoration: 'underline',
-            cursor: 'pointer',
-            transition: 'color 0.2s ease'
-          }}
-          onMouseOver={(e) => e.target.style.color = '#3b82f6'}
-          onMouseOut={(e) => e.target.style.color = '#60a5fa'}
-        >
-          {linkText}
-        </a>
-      );
-      
-      lastIndex = linkRegex.lastIndex;
-    }
-    
-    // Add any remaining text after the last link
-    if (lastIndex < paragraph.length) {
-      const textContent = paragraph.substring(lastIndex);
-      processTextContent(textContent, parts, `${paragraphIndex}-${lastIndex}`);
-    }
-    
-    // If no links were found, handle the whole paragraph
-    if (parts.length === 0) {
-      processTextContent(paragraph, parts, paragraphIndex);
-    }
-    
-    // Return each paragraph with proper spacing
-    return (
-      <div 
-        key={`paragraph-${paragraphIndex}`} 
-        style={{ 
-          marginBottom: paragraphIndex < paragraphs.length - 1 ? '1rem' : '0',
-          lineHeight: '1.6'
-        }}
-      >
-        {parts}
-      </div>
-    );
+  let sanitized = input;
+
+  // Apply all SQL injection sanitization
+  sqlPatterns.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, '');
   });
+
+  // Apply all XSS sanitization
+  xssPatterns.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, '');
+  });
+
+  // Additional character filtering - keep most international chars but remove dangerous ones
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // Control characters
+  
+  // Trim and limit length
+  sanitized = sanitized.trim().substring(0, 1000);
+  
+  return sanitized;
 };
 
-// Helper function to process text content with proper line breaks and formatting
-const processTextContent = (textContent, parts, keyPrefix) => {
-  const lines = textContent.split('\n');
+const addFuzzyMatching = (text) => {
+  if (!text || typeof text !== 'string') return '';
   
-  lines.forEach((line, lineIndex) => {
-    if (lineIndex > 0) {
-      parts.push(<br key={`br-${keyPrefix}-${lineIndex}`} />);
+  const corrections = {
+    'istambul': 'istanbul',
+    'instanbul': 'istanbul', 
+    'stanbul': 'istanbul',
+    'galata': 'galata',
+    'galata tower': 'galata tower',
+    'sultanahmat': 'sultanahmet',
+    'sultuanahmet': 'sultanahmet',
+    'taksim': 'taksim',
+    'kadikoy': 'kadıköy',
+    'beyoglu': 'beyoğlu',
+    'besiktas': 'beşiktaş',
+    'uskudar': 'üsküdar',
+    'ortakoy': 'ortaköy',
+    'karakoy': 'karaköy'
+  };
+  
+  let corrected = text.toLowerCase();
+  
+  Object.entries(corrections).forEach(([wrong, right]) => {
+    const regex = new RegExp(`\\b${wrong}\\b`, 'gi');
+    corrected = corrected.replace(regex, right);
+  });
+  
+  return corrected;
+};
+
+const normalizeText = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  
+  const normalized = text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return normalized;
+};
+
+// Enhanced preprocessing function
+const preprocessInput = (userInput) => {
+  if (!userInput || typeof userInput !== 'string') return '';
+  
+  console.log('🔒 Original input:', userInput);
+  
+  // Step 1: Security sanitization FIRST
+  const sanitized = sanitizeInput(userInput);
+  console.log('🛡️ Sanitized:', sanitized);
+  
+  // Step 2: Text normalization
+  const normalized = normalizeText(sanitized);
+  console.log('📏 Normalized:', normalized);
+  
+  // Step 3: Fix common typos
+  const corrected = addFuzzyMatching(normalized);
+  console.log('✏️ Typo-corrected:', corrected);
+  
+  return corrected;
+};
+
+// Helper function to render text with clickable links
+const renderMessageContent = (content, darkMode) => {
+  // Convert Markdown-style links [text](url) to clickable HTML links
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  
+  console.log('Rendering content:', content.substring(0, 100) + '...');
+  
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = linkRegex.exec(content)) !== null) {
+    const linkText = match[1];
+    const linkUrl = match[2];
+    
+    console.log('Found link:', linkText, '->', linkUrl);
+    
+    // Add text before the link
+    if (match.index > lastIndex) {
+      parts.push(
+        <span key={`text-${lastIndex}`}>
+          {content.substring(lastIndex, match.index)}
+        </span>
+      );
     }
     
-    if (line.trim()) {
-      // Check if this is a numbered list item
-      const isNumberedList = /^\d+\.\s/.test(line.trim());
-      // Check if this is a bullet point
-      const isBulletPoint = /^\s*-\s/.test(line);
-      // Check if this is a section header (ends with :)
-      const isSectionHeader = line.trim().endsWith(':') && !line.includes('http');
-      
-      let processedLine = line;
-      
-      // Add styling for different content types
-      if (isNumberedList) {
-        const [number, ...rest] = line.split(/\.\s/);
-        parts.push(
-          <span key={`numbered-${keyPrefix}-${lineIndex}`} style={{
-            display: 'block',
-            marginTop: '0.5rem',
-            marginBottom: '0.25rem'
-          }}>
-            <strong style={{ color: '#60a5fa' }}>{number}.</strong>
-            <span style={{ marginLeft: '0.5rem' }}>{rest.join('. ')}</span>
-          </span>
-        );
-      } else if (isBulletPoint) {
-        const cleanLine = line.replace(/^\s*-\s/, '');
-        parts.push(
-          <span key={`bullet-${keyPrefix}-${lineIndex}`} style={{
-            display: 'block',
-            marginLeft: '1rem',
-            marginTop: '0.25rem',
-            marginBottom: '0.25rem'
-          }}>
-            <span style={{ color: '#60a5fa', marginRight: '0.5rem' }}>•</span>
-            {cleanLine}
-          </span>
-        );
-      } else if (isSectionHeader) {
-        parts.push(
-          <span key={`header-${keyPrefix}-${lineIndex}`} style={{
-            display: 'block',
-            fontWeight: '600',
-            color: '#f1f5f9',
-            marginTop: '1rem',
-            marginBottom: '0.5rem',
-            fontSize: '1.05em'
-          }}>
-            {line}
-          </span>
-        );
-      } else {
-        parts.push(
-          <span key={`text-${keyPrefix}-${lineIndex}`}>
-            {line}
-          </span>
-        );
+    // Add the clickable link
+    parts.push(
+      <a
+        key={`link-${match.index}`}
+        href={linkUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline transition-colors duration-200 hover:opacity-80 cursor-pointer ${
+          darkMode 
+            ? 'text-blue-400 hover:text-blue-300' 
+            : 'text-blue-600 hover:text-blue-700'
+        }`}
+        onClick={(e) => {
+          console.log('Link clicked:', linkUrl);
+        }}
+      >
+        {linkText}
+      </a>
+    );
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(
+      <span key={`text-${lastIndex}`}>
+        {content.substring(lastIndex)}
+      </span>
+    );
+  }
+  
+  return parts.length > 0 ? parts : content;
+};
+
+// Format restaurant recommendations
+const formatRestaurantRecommendations = (restaurants) => {
+  if (!restaurants || restaurants.length === 0) {
+    return "I couldn't find any restaurant recommendations at this time. Please try again later or search for restaurants in a specific area like 'restaurants in Taksim'.";
+  }
+
+  console.log('Formatting restaurants:', restaurants);
+
+  let response = `Here are some great restaurant recommendations for you:\n\n`;
+
+  restaurants.slice(0, 4).forEach((restaurant, index) => {
+    response += `**${index + 1}. ${restaurant.name}**\n`;
+    
+    if (restaurant.rating) {
+      response += `⭐ Rating: ${restaurant.rating}/5`;
+      if (restaurant.user_ratings_total) {
+        response += ` (${restaurant.user_ratings_total} reviews)`;
+      }
+      response += '\n';
+    }
+    
+    if (restaurant.price_level !== undefined) {
+      const priceSymbols = ['💰', '💰💰', '💰💰💰', '💰💰💰💰'];
+      response += `💸 Price: ${priceSymbols[restaurant.price_level - 1] || 'N/A'}\n`;
+    }
+    
+    if (restaurant.vicinity || restaurant.formatted_address) {
+      response += `📍 Location: ${restaurant.vicinity || restaurant.formatted_address}\n`;
+    }
+    
+    if (restaurant.types && restaurant.types.length > 0) {
+      const displayTypes = restaurant.types
+        .filter(type => !type.includes('_') && type !== 'establishment' && type !== 'point_of_interest')
+        .slice(0, 3)
+        .map(type => type.charAt(0).toUpperCase() + type.slice(1))
+        .join(', ');
+      if (displayTypes) {
+        response += `🍽️ Cuisine: ${displayTypes}\n`;
       }
     }
+    
+    if (restaurant.opening_hours && restaurant.opening_hours.open_now !== undefined) {
+      response += `🕒 ${restaurant.opening_hours.open_now ? 'Open now' : 'Closed now'}\n`;
+    }
+    
+    response += '\n';
   });
+
+  response += "These restaurants are highly rated and popular with locals and visitors. Enjoy your dining experience! 🍽️✨";
+  
+  return response;
+};
+
+// Format places recommendations  
+const formatPlacesRecommendations = (places) => {
+  if (!places || places.length === 0) {
+    return "I couldn't find any places or attractions at this time. Please try searching for specific areas like 'attractions in Sultanahmet' or 'things to do in Beyoğlu'.";
+  }
+
+  console.log('Formatting places:', places);
+
+  let response = `Here are some amazing places and attractions in Istanbul:\n\n`;
+
+  places.slice(0, 4).forEach((place, index) => {
+    response += `**${index + 1}. ${place.name}**\n`;
+    
+    if (place.description) {
+      response += `${place.description}\n`;
+    }
+    
+    if (place.district) {
+      response += `📍 District: ${place.district}\n`;
+    }
+    
+    if (place.address) {
+      response += `🗺️ Address: ${place.address}\n`;
+    }
+    
+    if (place.opening_hours) {
+      response += `🕒 Hours: ${place.opening_hours}\n`;
+    }
+    
+    if (place.admission_fee) {
+      response += `🎫 Admission: ${place.admission_fee}\n`;
+    }
+    
+    if (place.website) {
+      response += `🌐 Website: [${place.website}](${place.website})\n`;
+    }
+    
+    response += '\n';
+  });
+
+  response += "These are some of Istanbul's most beloved attractions. Each offers a unique glimpse into the city's rich history and vibrant culture! 🏛️✨";
+  
+  return response;
+};
+
+// Simplified helper function - detect restaurant requests
+const isExplicitRestaurantRequest = (userInput) => {
+  console.log('🍽️ Checking for explicit restaurant request:', userInput);
+  
+  // CRITICAL SECURITY: Preprocess and sanitize input FIRST
+  const processedInput = preprocessInput(userInput);
+  
+  // SECURITY CHECK: Reject if input is suspicious after sanitization
+  if (!processedInput || processedInput.trim().length === 0) {
+    console.log('🛡️ Input rejected: Empty after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Reject overly long inputs (DoS protection)
+  if (processedInput.length > 500) {
+    console.log('🛡️ Input rejected: Too long after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Double-check for remaining malicious patterns
+  const suspiciousPatterns = [
+    /<[^>]*>/,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /[;'"`].*(--)|(\/\*)/,
+    /\$\([^)]*\)/
+  ];
+  
+  if (suspiciousPatterns.some(pattern => pattern.test(processedInput))) {
+    console.log('🛡️ Input still contains suspicious patterns after sanitization');
+    return false;
+  }
+
+  const input = processedInput.toLowerCase();
+  
+  // More explicit patterns for restaurant recommendations
+  const explicitRestaurantRequests = [
+    'restaurant advice',      // "give me restaurant advice"
+    'restaurant recommendation', // "restaurant recommendation"
+    'restaurant recommendations', // "restaurant recommendations"
+    'recommend restaurants',   // "recommend restaurants"
+    'recommend a restaurant',  // "recommend a restaurant"
+    'recommend some restaurants', // "recommend some restaurants"
+    'good restaurants',        // "what are some good restaurants"
+    'best restaurants',        // "best restaurants"
+    'restaurants in',          // "restaurants in taksim"
+    'restaurant in',           // "restaurant in galata"
+    'food recommendations',    // "food recommendations"
+    'where to eat',           // "where to eat in istanbul"
+    'good places to eat',     // "good places to eat"
+    'dining recommendations', // "dining recommendations"
+    'food advice',            // "food advice"
+    'any good restaurants in', // "any good restaurants in taksim"
+    'any food in',           // "any food in galata"
+    'any place to eat in',   // "any place to eat in kadikoy"
+    'any suggestions for food in', // "any suggestions for food in fatih"
+    'any suggestions for restaurants in', // "any suggestions for restaurants in sultanahmet"
+  ];
+  
+  // Only allow Istanbul or known districts
+  const istanbulDistricts = [
+    'istanbul', 'beyoglu', 'beyoğlu', 'galata', 'taksim', 'sultanahmet', 'fatih',
+    'kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'ortakoy',
+    'ortaköy', 'sisli', 'şişli', 'karakoy', 'karaköy', 'bebek', 'arnavutkoy',
+    'arnavutköy', 'balat', 'fener', 'eminonu', 'eminönü', 'bakirkoy', 'bakırköy', 'maltepe'
+  ];
+
+  const isExplicit = explicitRestaurantRequests.some(keyword => input.includes(keyword));
+  if (!isExplicit) return false;
+
+  // Extract location and check if it's Istanbul or a known district
+  const { district, location } = extractLocationFromQuery(processedInput);
+  if (!district && !location) return false;
+
+  // Use either district or location for matching
+  const normalized = (district || location || '').trim().toLowerCase();
+
+  // Only allow if normalized exactly matches a known Istanbul district (no partial matches)
+  const isIstanbul = istanbulDistricts.includes(normalized);
+  if (!isIstanbul) {
+    console.log('❌ Location is not Istanbul or a known district:', normalized);
+    return false;
+  }
+
+  return true;
+};
+
+// Simplified helper function - detect places/attractions requests
+const isExplicitPlacesRequest = (userInput) => {
+  console.log('🏛️ Checking for explicit places/attractions request:', userInput);
+  
+  // CRITICAL SECURITY: Preprocess and sanitize input FIRST
+  const processedInput = preprocessInput(userInput);
+  
+  // SECURITY CHECK: Reject if input is suspicious after sanitization
+  if (!processedInput || processedInput.trim().length === 0) {
+    console.log('🛡️ Input rejected: Empty after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Reject overly long inputs (DoS protection)
+  if (processedInput.length > 500) {
+    console.log('🛡️ Input rejected: Too long after sanitization');
+    return false;
+  }
+  
+  // SECURITY CHECK: Double-check for remaining malicious patterns
+  const suspiciousPatterns = [
+    /<[^>]*>/,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /[;'"`].*(--)|(\/\*)/,
+    /\$\([^)]*\)/
+  ];
+  
+  if (suspiciousPatterns.some(pattern => pattern.test(processedInput))) {
+    console.log('🛡️ Input still contains suspicious patterns after sanitization');
+    return false;
+  }
+
+  const input = processedInput.toLowerCase();
+  
+  // Explicit patterns for places/attractions requests
+  const explicitPlacesRequests = [
+    'attractions in',
+    'places to visit in',
+    'tourist attractions',
+    'sightseeing in',
+    'landmarks in',
+    'museums in',
+    'historical sites',
+    'things to do in',
+    'places to see in',
+    'tourist spots',
+    'attractions and landmarks',
+    'best places to visit',
+    'top attractions',
+  ];
+  
+  const istanbulDistricts = [
+    'istanbul', 'beyoglu', 'beyoğlu', 'galata', 'taksim', 'sultanahmet', 'fatih',
+    'kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'uskudar', 'üsküdar', 'ortakoy',
+    'ortaköy', 'sisli', 'şişli', 'karakoy', 'karaköy', 'bebek', 'arnavutkoy',
+    'arnavutköy', 'balat', 'fener', 'eminonu', 'eminönü', 'bakirkoy', 'bakırköy', 'maltepe'
+  ];
+
+  const isExplicit = explicitPlacesRequests.some(keyword => input.includes(keyword));
+  if (!isExplicit) return false;
+
+  // Extract location and check if it's Istanbul or a known district
+  const { district, location } = extractLocationFromQuery(processedInput);
+  if (!district && !location) return false;
+
+  // Use either district or location for matching
+  const normalized = (district || location || '').trim().toLowerCase();
+
+  // Only allow if normalized exactly matches a known Istanbul district
+  const isIstanbul = istanbulDistricts.includes(normalized);
+  if (!isIstanbul) {
+    console.log('❌ Location is not Istanbul or a known district:', normalized);
+    return false;
+  }
+
+  return true;
 };
 
 function Chatbot() {
-  // Location context integration
-  const locationContext = useLocation();
-  
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
-  const [inputError, setInputError] = useState('')
-  const [chatSessions, setChatSessions] = useState([])
-  const [currentSessionId, setCurrentSessionId] = useState(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [readingMessageId, setReadingMessageId] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
-  
-  // Add liked and disliked messages state
-  const [likedMessages, setLikedMessages] = useState(new Set());
-  const [dislikedMessages, setDislikedMessages] = useState(new Set());
-  const [savedSessions, setSavedSessions] = useState([]);
-
-  // Location-based features state
-  const [showLocationModal, setShowLocationModal] = useState(false);
-  // Note: userLocation is now managed by LocationContext
-  const [locationRequested, setLocationRequested] = useState(false);
-
-  // Speech synthesis support
-  const speechSynthesis = useRef(window.speechSynthesis);
-  const speechSupported = 'speechSynthesis' in window;
-  const [speechSynthesisSupported, setSpeechSupported] = useState(speechSupported);
-  
-  // Ref for auto-scrolling to bottom
-  const messagesEndRef = useRef(null);
-
-  // Removed input suggestions as requested
-
-  // Add chatbot-page class to body for proper styling
-  useEffect(() => {
-    document.body.classList.add('chatbot-page');
-    
-    // Initialize speech synthesis
-    if ('speechSynthesis' in window) {
-      setSpeechSupported(true);
-      speechSynthesis.current = window.speechSynthesis;
-    }
-    
-    return () => {
-      document.body.classList.remove('chatbot-page');
-      // Stop any ongoing speech when component unmounts
-      if (speechSynthesis.current) {
-        speechSynthesis.current.cancel();
-      }
-      // Clear skeleton timeout
-      if (skeletonTimeoutRef.current) {
-        clearTimeout(skeletonTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Load chat sessions from localStorage
-  useEffect(() => {
-    const savedSessions = localStorage.getItem('chat-sessions');
-    if (savedSessions) {
-      try {
-        const sessions = JSON.parse(savedSessions);
-        setChatSessions(sessions);
-        
-        // Auto-load the most recent session if no current session and sessions exist
-        if (!currentSessionId && sessions.length > 0) {
-          const mostRecentSession = sessions[0]; // Sessions are ordered by most recent first
-          setCurrentSessionId(mostRecentSession.id);
-          setMessages(mostRecentSession.messages);
-        }
-      } catch (error) {
-        console.error('Error loading chat sessions:', error);
-      }
-    }
-    // Don't auto-create sessions here - let handleSend create them when needed
-  }, []); // Empty dependency array to run only once on mount
-
-  // Save chat sessions to localStorage
-  const saveChatSessions = (sessions) => {
-    localStorage.setItem('chat-sessions', JSON.stringify(sessions));
-    setChatSessions(sessions);
-  };
-
-  // Create a new chat session
-  const createNewChat = () => {
-    const newSessionId = Date.now().toString();
-    setCurrentSessionId(newSessionId);
-    setMessages([]);
-    setInput('');
-    setInputError('');
-    // Removed suggestions setting as suggestions are removed
-  };
-
-  // Load a specific chat session
-  const loadChatSession = (sessionId) => {
-    const session = chatSessions.find(s => s.id === sessionId);
-    if (session) {
-      setCurrentSessionId(sessionId);
-      setMessages(session.messages);
-      setInput('');
-      setInputError('');
-      // Removed suggestions clearing as suggestions are removed
-    }
-  };
-
-  // Save current chat session
-  const saveCurrentSession = (newMessages) => {
-    if (!currentSessionId || newMessages.length === 0) return;
-
-    const sessionTitle = newMessages[0]?.content?.substring(0, 50) + '...' || 'New Chat';
-    const updatedSession = {
-      id: currentSessionId,
-      title: sessionTitle,
-      messages: newMessages,
-      lastUpdated: new Date().toISOString()
-    };
-
-    const existingIndex = chatSessions.findIndex(s => s.id === currentSessionId);
-    let updatedSessions;
-    
-    if (existingIndex >= 0) {
-      updatedSessions = [...chatSessions];
-      updatedSessions[existingIndex] = updatedSession;
-    } else {
-      updatedSessions = [updatedSession, ...chatSessions].slice(0, 50); // Keep only last 50 sessions
-    }
-
-    saveChatSessions(updatedSessions);
-  };
-
-  // Delete a chat session
-  const deleteChatSession = (sessionId) => {
-    const updatedSessions = chatSessions.filter(s => s.id !== sessionId);
-    saveChatSessions(updatedSessions);
-    
-    if (currentSessionId === sessionId) {
-      createNewChat();
-    }
-  };
-
-  // Refs for scroll control
-  const [userScrolling, setUserScrolling] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  
-  // Ref to store skeleton timeout
-  const skeletonTimeoutRef = useRef(null);
-  const scrollTimeoutRef = useRef(null);
-
-  // Detect user scrolling behavior
-  useEffect(() => {
-    const handleScroll = (e) => {
-      setUserScrolling(true);
-      
-      // Check if user is at the bottom and show/hide scroll button
-      const chatContainer = e.target.closest('.chatbot-messages') || e.target;
-      if (chatContainer && chatContainer.scrollHeight) {
-        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 50;
-        setShowScrollButton(!isAtBottom);
-      }
-      
-      // Clear existing timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      
-      // Reset user scrolling flag after shorter time during AI responses
-      const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
-      const timeoutDuration = isAIResponding ? 1000 : 2000; // 1 second during AI responses, 2 seconds normally
-      
-      scrollTimeoutRef.current = setTimeout(() => {
-        setUserScrolling(false);
-      }, timeoutDuration);
-    };
-
-    // Add scroll listener to chat container and window
-    const chatContainer = document.querySelector('.chatbot-messages');
-    if (chatContainer) {
-      chatContainer.addEventListener('scroll', handleScroll, { passive: true });
-    }
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      if (chatContainer) {
-        chatContainer.removeEventListener('scroll', handleScroll);
-      }
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Auto-scroll to bottom when new messages arrive - more aggressive during AI responses
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      // Get the chat messages container
-      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-      if (chatContainer) {
-        // During AI responses (loading or streaming), always scroll to bottom unless user is actively scrolling
-        const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
-        
-        if (isAIResponding && !userScrolling) {
-          // During AI response, always scroll to bottom regardless of position
-          setTimeout(() => {
-            chatContainer.scrollTo({
-              top: chatContainer.scrollHeight,
-              behavior: 'smooth'
-            });
-          }, 50); // Faster scroll during AI responses
-        } else if (!userScrolling && !inputFocused && !sendingMessage) {
-          // For regular messages, always scroll to bottom for new messages
-          setTimeout(() => {
-            chatContainer.scrollTo({
-              top: chatContainer.scrollHeight,
-              behavior: 'smooth'
-            });
-          }, 100);
-        }
-      }
-    }
-  }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
-
-  // Check scroll position to show/hide scroll button
-  useEffect(() => {
-    const checkScrollPosition = () => {
-      if (messagesEndRef.current) {
-        const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-        if (chatContainer && chatContainer.scrollHeight) {
-          const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 50;
-          setShowScrollButton(!isAtBottom && messages.length > 0);
-        }
-      }
-    };
-
-    // Check immediately and after a short delay to account for rendering
-    checkScrollPosition();
-    const timeoutId = setTimeout(checkScrollPosition, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [messages]);
-
-  // Removed suggestions functionality as requested
-
-  // Enhanced input validation and processing
-  const validateInput = (userInput) => {
-    const trimmedInput = userInput.trim()
-    
-    // Check for empty input
-    if (!trimmedInput) {
-      setInputError('Please enter a question about Istanbul!')
-      return false
-    }
-    
-    // Check for very short input
-    if (trimmedInput.length < 2) {
-      setInputError('Please enter a more detailed question.')
-      return false
-    }
-    
-    // Check for spam-like input (repeated characters)
-    if (/(.)\1{4,}/.test(trimmedInput)) {
-      setInputError('Please enter a meaningful question.')
-      return false
-    }
-    
-    // Check for only special characters
-    if (!/[a-zA-Z0-9]/.test(trimmedInput)) {
-      setInputError('Please use letters and words in your question.')
-      return false
-    }
-    
-    setInputError('')
-    return true
-  }
-
-  // Location handling functions
-  const handleLocationSet = async (location) => {
+  // Enhanced state management
+  const [messages, setMessages] = useState(() => {
     try {
-      if (location.source === 'gps') {
-        await locationContext.requestGPSLocation();
-      } else {
-        await locationContext.setManualLocation(location);
-      }
-      setShowLocationModal(false);
-      console.log('Location set via context:', location);
-      
-      // If there was a pending message that required location, send it now
-      if (locationRequested && input.trim()) {
-        // Small delay to let the modal close
-        setTimeout(() => {
-          handleSend();
-        }, 100);
-      }
+      const saved = localStorage.getItem('chat-messages');
+      return saved ? JSON.parse(saved) : [];
     } catch (error) {
-      console.error('Error setting location:', error);
+      console.error('Failed to load messages from localStorage:', error);
+      return [];
     }
-  };
+  });
+  
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dark-mode');
+      return saved ? JSON.parse(saved) : false;
+    } catch (error) {
+      console.error('Failed to load dark mode from localStorage:', error);
+      return false;
+    }
+  });
 
-  const handleLocationModalClose = () => {
-    setShowLocationModal(false);
-    setLocationRequested(false);
-  };
+  // Enhanced UI state
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingMessage, setTypingMessage] = useState('AI is thinking...');
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  
+  // Enhanced error handling state
+  const [currentError, setCurrentError] = useState(null);
+  const [retryAction, setRetryAction] = useState(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState(null);
+  
+  // Network and health monitoring
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [apiHealth, setApiHealth] = useState('unknown');
 
-  // Enhanced function to scroll to the bottom/newest messages
-  const scrollToBottom = (smooth = true) => {
-    if (messagesEndRef.current) {
-      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-      if (chatContainer) {
-        if (isMobile) {
-          // Mobile-optimized scrolling
-          chatContainer.scrollTo({
-            top: chatContainer.scrollHeight,
-            behavior: smooth ? 'smooth' : 'auto'
-          });
-        } else {
-          // Desktop scrolling
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-        setShowScrollButton(false);
+  // Enhanced message management
+  const addMessage = (text, sender = 'assistant', metadata = {}) => {
+    const newMessage = {
+      id: Date.now() + Math.random(),
+      text: typeof text === 'string' ? text : '',
+      sender,
+      timestamp: new Date().toISOString(),
+      ...metadata
+    };
+    
+    setMessages(prev => {
+      const updated = [...prev, newMessage];
+      // Persist to localStorage
+      try {
+        localStorage.setItem('chat-messages', JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save messages to localStorage:', error);
       }
+      return updated;
+    });
+  };
+
+  const clearChatHistory = () => {
+    setMessages([]);
+    try {
+      localStorage.removeItem('chat-messages');
+    } catch (error) {
+      console.error('Failed to clear messages from localStorage:', error);
+    }
+    console.log('🗑️ Chat history cleared');
+  };
+
+  // Enhanced clipboard and sharing
+  const copyMessageToClipboard = async (message) => {
+    try {
+      await navigator.clipboard.writeText(message.text);
+      console.log('📋 Message copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
     }
   };
 
-  // Mobile-specific auto-scroll behavior
-  const autoScrollToBottom = () => {
-    if (isMobile && !userScrolling) {
-      // On mobile, always auto-scroll during AI responses
-      setTimeout(() => scrollToBottom(true), 100);
-    } else if (!isMobile) {
-      // Desktop behavior - scroll only if near bottom
-      scrollToBottom(false);
+  const shareMessage = async (message) => {
+    const shareText = `KAM AI Assistant: ${message.text}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'KAM AI Assistant Response',
+          text: shareText,
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+          // Fallback to clipboard
+          await copyMessageToClipboard(message);
+        }
+      }
+    } else {
+      // Fallback to clipboard
+      await copyMessageToClipboard(message);
     }
+  };
+
+  // Enhanced scroll management
+  const scrollToBottom = () => {
+    const chatContainer = document.getElementById('chat-messages');
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+  };
+
+  // Enhanced effect hooks
+  useEffect(() => {
+    // Auto-scroll to bottom when new messages arrive
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  useEffect(() => {
+    // Persist dark mode
+    try {
+      localStorage.setItem('dark-mode', JSON.stringify(darkMode));
+    } catch (error) {
+      console.error('Failed to save dark mode to localStorage:', error);
+    }
+  }, [darkMode]);
+
+  useEffect(() => {
+    // Monitor scroll position for scroll-to-bottom button
+    const chatContainer = document.getElementById('chat-messages');
+    if (!chatContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollToBottom(!isNearBottom && messages.length > 0);
+    };
+
+    chatContainer.addEventListener('scroll', handleScroll);
+    return () => chatContainer.removeEventListener('scroll', handleScroll);
+  }, [messages.length]);
+
+  useEffect(() => {
+    // Network status monitoring
+    const unsubscribe = subscribeToNetworkStatus((status) => {
+      setIsOnline(status.isOnline);
+      console.log('🌐 Network status changed:', status);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    // Periodic API health checks
+    const checkHealth = async () => {
+      try {
+        const isHealthy = await checkApiHealth();
+        setApiHealth(isHealthy ? 'healthy' : 'unhealthy');
+      } catch (error) {
+        setApiHealth('error');
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Enhanced error handling
+  const handleError = (error, context = 'unknown', failedMessage = null) => {
+    console.error(`Error in ${context}:`, error);
+    
+    const errorInfo = {
+      type: classifyError(error),
+      message: getUserFriendlyMessage(error),
+      context,
+      timestamp: Date.now(),
+      failedMessage
+    };
+    
+    setCurrentError(errorInfo);
+    
+    // Set retry action if we have a failed message
+    if (failedMessage && failedMessage.input) {
+      setRetryAction(() => () => {
+        console.log('🔄 Retrying failed message:', failedMessage.input);
+        handleSend(failedMessage.input);
+      });
+    }
+    
+    setLoading(false);
+  };
+
+  const handleRetry = () => {
+    if (retryAction) {
+      console.log('🔄 Retrying last action');
+      setCurrentError(null);
+      retryAction();
+    }
+  };
+
+  const dismissError = () => {
+    setCurrentError(null);
+    setRetryAction(null);
+    setLastFailedMessage(null);
   };
 
   const handleSend = async (customInput = null) => {
-    const userInput = customInput || input.trim();
+    const originalUserInput = customInput || input.trim();
+    if (!originalUserInput) return;
+
+    // Create retry action for this message
+    const retryCurrentMessage = () => {
+      console.log('🔄 Retrying message:', originalUserInput);
+      handleSend(originalUserInput);
+    };
+    setRetryAction(() => retryCurrentMessage);
+
+    // CRITICAL SECURITY: Sanitize input immediately
+    const sanitizedInput = preprocessInput(originalUserInput);
     
-    // Prevent sending if already loading
-    if (loading) {
+    // SECURITY CHECK: Reject if sanitization removed everything
+    if (!sanitizedInput || sanitizedInput.trim().length === 0) {
+      console.log('🛡️ Input rejected: Empty after sanitization');
+      addMessage('Sorry, your input contains invalid characters. Please try again with a different message.', 'assistant', {
+        type: 'error'
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // SECURITY CHECK: Verify sanitized input is safe
+    const isSuspicious = [
+      /<[^>]*>/,
+      /javascript:/i,
+      /on\w+\s*=/i,
+      /[;'"`].*(--)|(\/\*)/,
+      /\$\([^)]*\)/
+    ].some(pattern => pattern.test(sanitizedInput));
+    
+    if (isSuspicious) {
+      console.log('🛡️ Input still suspicious after sanitization, rejecting');
+      addMessage('Sorry, your input appears to contain invalid content. Please try again with a different message.', 'assistant', {
+        type: 'error'
+      });
+      setLoading(false);
       return;
     }
 
-    // Check if message requires location and user hasn't provided it yet
-    const locationKeywords = ['near me', 'nearby', 'closest', 'around me', 'where is', 'directions', 'route', 'restaurant', 'hotel', 'attraction', 'distance', 'how far'];
-    const needsLocation = locationKeywords.some(keyword => userInput.toLowerCase().includes(keyword));
+    console.log('✅ Using sanitized input:', sanitizedInput);
     
-    if (needsLocation && !locationContext.hasLocation && !locationRequested) {
-      setLocationRequested(true);
-      setShowLocationModal(true);
-      return; // Don't send the message yet, wait for location
-    }
+    // Add user message with enhanced metadata
+    addMessage(originalUserInput, 'user', {
+      sanitizedInput,
+      originalLength: originalUserInput.length,
+      sanitizedLength: sanitizedInput.length
+    });
     
-    // Set sending flag to prevent auto-scroll during message sending
-    setSendingMessage(true);
-    
-    // Record user interaction
-    recordUserInteraction('message_sent', { messageLength: userInput.length });
-    
-    // Track chat message with Vercel Analytics
-    trackChatEvent('user_message', userInput);
-    
-    // Enhanced input validation
-    if (!validateInput(userInput)) {
-      setSendingMessage(false);
-      return;
-    }
-
-    // Only create new session if none exists
-    if (!currentSessionId) {
-      const newSessionId = Date.now().toString();
-      setCurrentSessionId(newSessionId);
-    }
-
-    const userMessage = { role: 'user', content: userInput };
-    
-    // Immediately update messages and clear input for ChatGPT-like experience
-    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
     setIsTyping(true);
-    setInputError('');
-    setShowLoadingSkeleton(false); // Reset skeleton state
 
-    // Start performance measurement
-    const startTime = Date.now();
+    // Store failed message for retry purposes
+    setLastFailedMessage({
+      input: originalUserInput,
+      sanitizedInput,
+      timestamp: Date.now()
+    });
 
-    // Show loading skeleton after a short delay to avoid flickering for fast responses
-    skeletonTimeoutRef.current = setTimeout(() => {
-      if (loading) {
-        setShowLoadingSkeleton(true);
-      }
-    }, 300); // Show skeleton only if response takes more than 300ms
-
-    // Start streaming response immediately
-    let streamedContent = '';
-    
     try {
-      // Use location-aware streaming if location is available
-      const useLocationAware = locationContext?.hasLocation;
-      console.log(`🌍 Using ${useLocationAware ? 'location-aware' : 'standard'} chat API`);
-      
-      if (useLocationAware) {
-        const locationData = locationContext.formatLocationForAI();
-        const response = await fetchStreamingResults(
-          userInput,
-          () => {}, // onChunk callback - will be handled by manual reader below
-          currentSessionId,
-          null, // onError
-          locationData // location context
-        );
+      // Check if user is asking for restaurant recommendations - using SANITIZED input
+      if (isExplicitRestaurantRequest(originalUserInput)) {
+        setTypingMessage('Finding restaurants for you...');
+        console.log('Detected restaurant advice request, fetching recommendations...');
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
         
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // CRITICAL: Use sanitized input for API call
+        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput);
+        console.log('Restaurant API response:', restaurantData);
+        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
+        console.log('Formatted response:', formattedResponse);
         
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') break;
-                
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.chunk) {
-                    streamedContent += parsed.chunk;
-                    
-                    // Update UI as we stream
-                    if (streamedContent.length > 0 && loading) {
-                      setLoading(false);
-                      setShowLoadingSkeleton(false);
-                      if (skeletonTimeoutRef.current) {
-                        clearTimeout(skeletonTimeoutRef.current);
-                        skeletonTimeoutRef.current = null;
-                      }
-                    }
-                    
-                    if (streamedContent.length > 0 && isTyping) {
-                      setIsTyping(false);
-                    }
-                    
-                    setMessages(prev => {
-                      const newMessages = [...prev];
-                      if (newMessages[newMessages.length - 1]?.role === 'assistant') {
-                        newMessages[newMessages.length - 1] = {
-                          role: 'assistant',
-                          content: streamedContent,
-                          streaming: true
-                        };
-                      } else {
-                        newMessages.push({
-                          role: 'assistant',
-                          content: streamedContent,
-                          streaming: true
-                        });
-                      }
-                      return newMessages;
-                    });
-                  }
-                } catch (e) {
-                  // Ignore parsing errors for non-JSON chunks
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Stream reading error:', error);
-        } finally {
-          reader.releaseLock();
-        }
-      } else {
-        await fetchStreamingResults(userInput, (chunk) => {
-          streamedContent += chunk;
-          
-          // Hide loading indicator as soon as we get the first chunk
-          if (streamedContent.length > 0 && loading) {
-            setLoading(false);
-            setShowLoadingSkeleton(false);
-            if (skeletonTimeoutRef.current) {
-              clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
-              skeletonTimeoutRef.current = null;
-            }
-          }
-          
-          // Show typing indicator for the first chunk, then switch to content
-          if (streamedContent.length > 0 && isTyping) {
-            setIsTyping(false);
-          }
-          
-          // Update messages in real-time as chunks come in
-          setMessages((prevMessages) => {
-            const lastMessage = prevMessages[prevMessages.length - 1];
-            
-            // If last message is assistant and streaming, update it
-            if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
-              const updatedMessages = [
-                ...prevMessages.slice(0, -1),
-                { 
-                  role: 'assistant', 
-                  content: streamedContent, 
-                  streaming: true,
-                  isTyping: streamedContent.length < 50 // Show typing animation for short responses
-                }
-              ];
-              
-              // Auto-scroll during streaming if user is not actively scrolling
-              if (!userScrolling && messagesEndRef.current) {
-                setTimeout(() => {
-                  const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
-                  if (chatContainer) {
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                  }
-                }, 10); // Very fast scroll during streaming
-              }
-              
-              return updatedMessages;
-            } else {
-              // Add new assistant message
-              const newMessages = [
-                ...prevMessages,
-                { 
-                  role: 'assistant', 
-                  content: streamedContent, 
-                  streaming: true,
-                  isTyping: streamedContent.length < 50
-                }
-              ];
-              
-              // Auto-scroll for new streaming message
-              if (!userScrolling && messagesEndRef.current) {
-                setTimeout(() => {
-                  const chatContainer = messagesEndRef.current?.closest('.chatbot-messages');
-                  if (chatContainer) {
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                  }
-                }, 10);
-              }
-              
-              return newMessages;
-            }
-          });
+        addMessage(formattedResponse, 'assistant', {
+          type: 'restaurant-recommendation',
+          dataSource: 'google-places',
+          resultCount: restaurantData.restaurants?.length || 0
         });
+        
+        // Clear failed message on success
+        setLastFailedMessage(null);
+        return;
       }
+
+      // Check if user is asking for places/attractions recommendations - using SANITIZED input
+      if (isExplicitPlacesRequest(originalUserInput)) {
+        setTypingMessage('Searching for places and attractions...');
+        console.log('Detected places/attractions request, fetching recommendations...');
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        
+        // CRITICAL: Use sanitized input for API call
+        const placesData = await fetchPlacesRecommendations(sanitizedInput);
+        console.log('Places API response:', placesData);
+        const formattedResponse = formatPlacesRecommendations(placesData.places);
+        console.log('Formatted response:', formattedResponse);
+        
+        addMessage(formattedResponse, 'assistant', {
+          type: 'places-recommendation',
+          dataSource: 'database',
+          resultCount: placesData?.places?.length || 0
+        });
+        
+        // Clear failed message on success
+        setLastFailedMessage(null);
+        return;
+      }
+
+      // Regular streaming response for non-restaurant/places queries - use SANITIZED input
+      setTypingMessage('KAM is thinking...');
+      let streamedContent = '';
       
-      // Record successful API response time
-      measureApiResponseTime(Date.now() - startTime);
+      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
+      await fetchStreamingResults(sanitizedInput, (chunk) => {
+        streamedContent += chunk;
+        // If assistant message already exists, update it; else, add it
+        setMessages((prev) => {
+          // If last message is assistant and was streaming, update it
+          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+            return [
+              ...prev.slice(0, -1),
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          } else {
+            return [
+              ...prev,
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          }
+        });
+      });
+      
+      // Clear failed message on success
+      setLastFailedMessage(null);
       
     } catch (error) {
-      const errorMessage = error.message?.includes('network') 
-        ? 'Network error. Please check your connection and try again.'
-        : 'Sorry, I encountered an error. Please try rephrasing your question.';
+      handleError(error, 'message sending', lastFailedMessage);
       
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: errorMessage }
-      ]);
+      // Add error message with enhanced metadata
+      const errorMessage = error.message.includes('fetch')
+        ? 'Sorry, I encountered an error connecting to the server. Please check your connection and try again.'
+        : `Sorry, there was an error: ${error.message}. Please try again.`;
       
-      // Record error
-      recordUserInteraction('api_error', { error: error.message });
-      
+      addMessage(errorMessage, 'assistant', {
+        type: 'error',
+        errorType: classifyError(error),
+        canRetry: true,
+        originalInput: originalUserInput
+      });
     } finally {
       setLoading(false);
       setIsTyping(false);
-      setSendingMessage(false); // Reset sending flag
-      setShowLoadingSkeleton(false); // Hide skeleton
-      if (skeletonTimeoutRef.current) {
-        clearTimeout(skeletonTimeoutRef.current); // Clear skeleton timeout
-        skeletonTimeoutRef.current = null;
-      }
+      setTypingMessage('AI is thinking...');
       
-      // Finalize the last message by removing streaming flag
-      setMessages(prev => {
-        const lastMessage = prev[prev.length - 1];
-        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.streaming) {
-          const finalMessages = [
+      // Remove streaming flag on last assistant message
+      setMessages((prev) => {
+        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+          return [
             ...prev.slice(0, -1),
-            { role: 'assistant', content: lastMessage.content }
+            { role: 'assistant', content: prev[prev.length - 1].content }
           ];
-          
-          // Force scroll to bottom when message is finalized
-          setTimeout(() => {
-            if (messagesEndRef.current) {
-              const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-              if (chatContainer) {
-                chatContainer.scrollTo({
-                  top: chatContainer.scrollHeight,
-                  behavior: 'smooth'
-                });
-              }
-            }
-          }, 150);
-          
-          // Save session with final messages
-          if (currentSessionId && finalMessages.length > 0) {
-            setTimeout(() => saveCurrentSession(finalMessages), 100);
-          }
-          
-          return finalMessages;
         }
         return prev;
       });
-      
-      // Note: Auto-scroll is now handled by the useEffect hook above
-      // which respects user scrolling behavior
-    }
-  }
-
-  // Format date for chat sessions
-  const formatSessionDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    } else if (diffInHours < 168) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
 
-  // Copy message to clipboard
-  const copyToClipboard = async (text, messageIndex) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      // Show temporary feedback (you could add a toast notification here)
-      console.log('Message copied to clipboard');
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      console.log('Message copied to clipboard (fallback)');
-    }
+  const handleSampleClick = (question) => {
+    // Automatically send the message
+    handleSend(question);
   };
-
-  // Read message aloud
-  const readAloud = (text, messageIndex) => {
-    if (!speechSynthesisSupported || !speechSynthesis.current) {
-      console.log('Speech synthesis not supported');
-      return;
-    }
-
-    // Stop any current speech
-    speechSynthesis.current.cancel();
-
-    // If already reading this message, stop
-    if (readingMessageId === messageIndex) {
-      setReadingMessageId(null);
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Configure speech settings
-    utterance.rate = 0.9; // Slightly slower for better comprehension
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    
-    // Use a more natural voice if available
-    const voices = speechSynthesis.current.getVoices();
-    const englishVoice = voices.find(voice => 
-      voice.lang.startsWith('en') && voice.name.includes('Google')
-    ) || voices.find(voice => voice.lang.startsWith('en'));
-    
-    if (englishVoice) {
-      utterance.voice = englishVoice;
-    }
-
-    // Set reading state
-    setReadingMessageId(messageIndex);
-
-    // Handle speech events
-    utterance.onend = () => {
-      setReadingMessageId(null);
-    };
-
-    utterance.onerror = () => {
-      setReadingMessageId(null);
-      console.error('Speech synthesis error');
-    };
-
-    // Start speaking
-    speechSynthesis.current.speak(utterance);
-  };
-
-  // Stop reading
-  const stopReading = () => {
-    if (speechSynthesis.current) {
-      speechSynthesis.current.cancel();
-      setReadingMessageId(null);
-    }
-  };
-
-  // Like/Unlike message functionality
-  const toggleMessageLike = async (messageIndex, isLiked) => {
-    const newLikedMessages = new Set(likedMessages);
-    const newDislikedMessages = new Set(dislikedMessages);
-    const messageId = `${currentSessionId}-${messageIndex}`;
-    
-    if (isLiked) {
-      newLikedMessages.add(messageId);
-      // Remove from dislikes if it was disliked
-      newDislikedMessages.delete(messageId);
-    } else {
-      newLikedMessages.delete(messageId);
-    }
-    
-    setLikedMessages(newLikedMessages);
-    setDislikedMessages(newDislikedMessages);
-    
-    // Save feedback to backend
-    await saveFeedback(messageIndex, isLiked ? 'like' : 'unlike', messages[messageIndex]?.content);
-    
-    // Save the chat session when a message is liked
-    if (isLiked && currentSessionId) {
-      await saveChatSession(currentSessionId, messages);
-    }
-  };
-
-  // Dislike message functionality
-  const toggleMessageDislike = async (messageIndex, isDisliked) => {
-    const newLikedMessages = new Set(likedMessages);
-    const newDislikedMessages = new Set(dislikedMessages);
-    const messageId = `${currentSessionId}-${messageIndex}`;
-    
-    if (isDisliked) {
-      newDislikedMessages.add(messageId);
-      // Remove from likes if it was liked
-      newLikedMessages.delete(messageId);
-    } else {
-      newDislikedMessages.delete(messageId);
-    }
-    
-    setLikedMessages(newLikedMessages);
-    setDislikedMessages(newDislikedMessages);
-    
-    // Save feedback to backend
-    await saveFeedback(messageIndex, isDisliked ? 'dislike' : 'undislike', messages[messageIndex]?.content);
-  };
-
-  // Save chat session to backend
-  const saveChatSession = async (sessionId, messagesData) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/chat-sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          messages: messagesData,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.log('Chat sessions endpoint not available');
-        } else {
-          console.error('Failed to save chat session');
-        }
-      }
-    } catch (error) {
-      console.log('Chat sessions feature not available:', error.message);
-    }
-  };
-
-  // Save feedback to backend
-  const saveFeedback = async (messageIndex, feedbackType, messageContent) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: currentSessionId,
-          message_index: messageIndex,
-          feedback_type: feedbackType,
-          message_content: messageContent,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      
-      if (!response.ok) {
-        console.error('Failed to save feedback');
-      }
-    } catch (error) {
-      console.error('Error saving feedback:', error);
-    }
-  };
-
-  // Load saved sessions
-  const loadSavedSessions = async () => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/chat-sessions`);
-      if (response.ok) {
-        const data = await response.json();
-        setSavedSessions(data.sessions || []);
-      } else if (response.status === 404) {
-        console.log('Chat sessions endpoint not available');
-      }
-    } catch (error) {
-      console.log('Chat sessions feature not available:', error.message);
-    }
-  };
-
-  // Load saved session details and display them
-  const loadSavedSession = async (sessionId) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/chat-sessions/${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data.session.messages);
-        setCurrentSessionId(sessionId);
-        setSidebarOpen(false); // Close sidebar on mobile
-      } else if (response.status === 404) {
-        console.log('Chat session not found or endpoint not available');
-      }
-    } catch (error) {
-      console.log('Chat sessions feature not available:', error.message);
-    }
-  };
-
-  // Delete a saved session
-  const deleteSavedSession = async (sessionId) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiUrl}/api/chat-sessions/${sessionId}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        // Refresh saved sessions list
-        loadSavedSessions();
-      } else if (response.status === 404) {
-        console.log('Chat session deletion endpoint not available');
-      }
-    } catch (error) {
-      console.log('Chat sessions feature not available:', error.message);
-    }
-  };
-
-  // Load saved sessions on component mount
-  useEffect(() => {
-    loadSavedSessions();
-  }, []);
-
-  // Handle pending chat query from main page - START NEW CHAT
-  useEffect(() => {
-    const pendingQuery = localStorage.getItem('pending_chat_query');
-    if (pendingQuery) {
-      // Clear the pending query immediately
-      localStorage.removeItem('pending_chat_query');
-      
-      // Create a completely new chat session for main page queries
-      const newSessionId = Date.now().toString();
-      setCurrentSessionId(newSessionId);
-      setMessages([]); // Start with empty messages
-      setInput(''); // Clear input
-      setInputError(''); // Clear any errors
-      
-      // Set the input with the pending query
-      setInput(pendingQuery);
-      
-      // Automatically send the query after a brief delay to allow state to update
-      setTimeout(() => {
-        handleSend(pendingQuery);
-      }, 100);
-    }
-  }, []); // Run only once on mount to check for pending queries
-
-  // Mobile-specific state and behavior
-  const [isMobile, setIsMobile] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  
-  // Mobile detection and keyboard handling
-  useEffect(() => {
-    const checkIfMobile = () => {
-      const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      setIsMobile(isMobileDevice);
-    };
-
-    const handleResize = () => {
-      checkIfMobile();
-      // Detect virtual keyboard on mobile
-      if (isMobile && inputFocused) {
-        const heightChange = window.innerHeight < window.screen.height * 0.75;
-        setKeyboardVisible(heightChange);
-      }
-    };
-
-    const handleScroll = () => {
-      if (messagesEndRef.current) {
-        const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-        if (chatContainer) {
-          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-          setShowScrollButton(!isNearBottom && messages.length > 0);
-          
-          // Detect user scrolling to prevent auto-scroll interruption
-          setUserScrolling(true);
-          clearTimeout(window.scrollTimeout);
-          window.scrollTimeout = setTimeout(() => setUserScrolling(false), 1000);
-        }
-      }
-    };
-
-    checkIfMobile();
-    window.addEventListener('resize', handleResize);
-    
-    // Add scroll listener for mobile scroll behavior
-    const chatContainer = document.querySelector('.chatbot-messages');
-    if (chatContainer) {
-      chatContainer.addEventListener('scroll', handleScroll);
-    }
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (chatContainer) {
-        chatContainer.removeEventListener('scroll', handleScroll);
-      }
-      if (window.scrollTimeout) {
-        clearTimeout(window.scrollTimeout);
-      }
-    };
-  }, [isMobile, inputFocused, messages.length]);
-
-  // Handle keyboard-visible class for mobile optimization
-  useEffect(() => {
-    if (isMobile) {
-      if (keyboardVisible) {
-        document.body.classList.add('keyboard-visible');
-      } else {
-        document.body.classList.remove('keyboard-visible');
-      }
-    }
-    
-    return () => {
-      document.body.classList.remove('keyboard-visible');
-    };
-  }, [keyboardVisible, isMobile]);
-
-  // Enhanced mobile scroll management
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      const chatContainer = messagesEndRef.current.closest('.chatbot-messages');
-      if (chatContainer) {
-        // During AI responses, always scroll to bottom unless user is actively scrolling
-        const isAIResponding = loading || isTyping || messages.some(msg => msg.streaming);
-        
-        if (isAIResponding && !userScrolling) {
-          // During AI response, always scroll to bottom regardless of position
-          setTimeout(() => {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-          }, 50); // Faster scroll during AI responses
-        } else if (!userScrolling && !inputFocused && !sendingMessage) {
-          // For regular messages, check if user is near the bottom
-          const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 100;
-          
-          if (isNearBottom) {
-            setTimeout(() => {
-              chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 100);
-          }
-        }
-      }
-    }
-  }, [messages.length, messages, loading, isTyping, userScrolling, inputFocused, sendingMessage]); // Added messages array and AI states
 
   return (
-    <div className="chatbot-page" style={{
-      background: isMobile ? '#1a1a1a' : undefined,
-      minHeight: '100vh'
-    }}>
-      {/* Mobile Optimization Component */}
-      <MobileOptimizer />
+    <div className={`flex flex-col h-screen w-full pt-16 transition-colors duration-200 ${
+      darkMode ? 'bg-gray-900' : 'bg-gray-100'
+    }`}>
       
-      {/* Navigation - Simple on mobile, full on desktop */}
-      {!isMobile && <NavBar />}
-      
-      {/* Simple mobile header */}
-      {isMobile && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '3rem',
-          background: '#1a1a1a',
-          borderBottom: 'none', // Remove black border line
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 1rem',
-          zIndex: 10002 // Higher than other navbars to ensure proper layering
-        }}>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#f0f0f0',
-              padding: '0.5rem',
-              borderRadius: '0.5rem'
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
-          <span style={{ color: '#f0f0f0', fontSize: '1rem', fontWeight: '500' }}>A/STANBUL</span>
-          <div style={{ width: '2.5rem' }}></div>
-        </div>
-      )}
-      
-      {/* Chat History Sidebar - Simplified for mobile */}
-      <div className={`fixed top-0 left-0 transition-all duration-300 z-50 ${
-        sidebarOpen ? (isMobile ? 'w-4/5' : 'w-80') : 'w-0'
-      } overflow-hidden`} style={{
-        height: '100vh',
-        background: isMobile ? '#1a1a1a' : 'linear-gradient(135deg, rgba(15, 16, 17, 0.98) 0%, rgba(26, 27, 29, 0.98) 100%)',
-        backdropFilter: isMobile ? 'none' : 'blur(20px)',
-        borderRight: isMobile ? 'none' : '1px solid rgba(139, 92, 246, 0.3)', // Remove black border on mobile
-        boxShadow: isMobile ? 'none' : '4px 0 20px rgba(139, 92, 246, 0.15)'
-      }}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header - Modern Style */}
-          <div className="p-6" style={{
-            borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
-            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)'
-          }}>
-            <div className="flex items-center justify-center">
-              <h2 className="text-xl font-bold text-white" style={{
-                background: 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>Chat History</h2>
+      {/* Enhanced Header with chat management */}
+      <ChatHeader
+        darkMode={darkMode}
+        onDarkModeToggle={() => setDarkMode(!darkMode)}
+        onClearHistory={clearChatHistory}
+        messageCount={messages.length}
+        isOnline={isOnline}
+        apiHealth={apiHealth}
+      />
+
+      {/* Chat Messages Container - Full screen like ChatGPT */}
+      <div className="flex-1 overflow-y-auto chat-messages" id="chat-messages">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center px-4">
+            {/* KAM Definition Card - Always visible */}
+            <div className={`max-w-2xl w-full mb-8 p-6 rounded-xl border transition-all duration-200 ${
+              darkMode 
+                ? 'bg-gray-800 border-gray-700 shadow-lg' 
+                : 'bg-white border-gray-300 shadow-lg'
+            }`}>
+              <div className={`text-center mb-4`}>
+                <h3 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-blue-300' : 'text-blue-700'
+                }`}>
+                  KAM - Your AI Istanbul Guide
+                </h3>
+                <div className={`text-sm leading-relaxed transition-colors duration-200 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  <p className="mb-2">
+                    <strong>Kam</strong>, in Turkish, Altaic, and Mongolian folk culture, is a shaman, a religious leader, wisdom person. Also referred to as "Gam" or Ham.
+                  </p>
+                  <p className={`italic ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    A religious leader believed to communicate with supernatural powers within communities.
+                  </p>
+                </div>
+              </div>
+              <div className={`text-center text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Just like the traditional Kam guides their community, I'm here to guide you through Istanbul's wonders.
+              </div>
             </div>
-            <button
-              onClick={createNewChat}
-              className="mt-4 px-4 py-2 text-white rounded-xl transition-all duration-200 flex items-center justify-center font-semibold mx-auto"
-              style={{
-                border: '1px solid rgba(139, 92, 246, 0.5)',
-                width: 'auto', // Auto width instead of full width
-                minWidth: '120px', // Minimum width for usability
-                maxWidth: '160px' // Maximum width to keep it compact
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px) scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0) scale(1)';
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+              darkMode ? 'bg-white' : 'bg-gradient-to-br from-blue-600 to-purple-600'
+            }`}>
+              <svg className={`w-8 h-8 transition-colors duration-200 ${
+                darkMode ? 'text-black' : 'text-white'
+              }`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
               </svg>
-              New Chat
+            </div>
+            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>How can I help you today?</h2>
+            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              I'm your AI assistant for exploring Istanbul. Ask me about restaurants, attractions, 
+              neighborhoods, culture, history, or anything else about this amazing city!
+            </p>
+            
+            {/* Enhanced Sample Cards with Better Light Mode Styling */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
+              <div 
+                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🏛️ Top Attractions</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Show me the best attractions and landmarks in Istanbul</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🍽️ Restaurants</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Give me restaurant advice - recommend 4 good restaurants</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🏘️ Neighborhoods</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-purple-200 hover:bg-purple-50 hover:border-purple-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🎭 Culture & Activities</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>What are the best cultural experiences and activities in Istanbul?</div>
+              </div>
+            </div>
+          </div>
+        )}
+            
+        {/* Message Display Area */}
+        <div className="max-w-full mx-auto px-4">
+          {messages.map((msg, index) => (
+            <div key={msg.id || index} className="group py-4">
+              <div className="flex items-start space-x-3">
+                {msg.sender === 'user' ? (
+                  <>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode 
+                        ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
+                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                    }`}>
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>You</div>
+                      <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {msg.text}
+                      </div>
+                      {msg.timestamp && (
+                        <div className={`text-xs mt-1 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      )}
+                    </div>
+                    <MessageActions 
+                      message={msg}
+                      onCopy={copyMessageToClipboard}
+                      onShare={shareMessage}
+                      darkMode={darkMode}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                      darkMode 
+                        ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                    }`}>
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>KAM Assistant</div>
+                      <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {renderMessageContent(msg.text || msg.content, darkMode)}
+                      </div>
+                      {msg.timestamp && (
+                        <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          {msg.type && (
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {msg.type}
+                            </span>
+                          )}
+                          {msg.resultCount && (
+                            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {msg.resultCount} results
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <MessageActions 
+                      message={msg}
+                      onCopy={copyMessageToClipboard}
+                      onShare={shareMessage}
+                      onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
+                      darkMode={darkMode}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          
+          <TypingIndicator 
+            isTyping={isTyping} 
+            message={typingMessage}
+            darkMode={darkMode}
+          />
+        </div>
+      </div>
+
+      {/* Scroll to bottom button */}
+      <ScrollToBottom 
+        show={showScrollToBottom}
+        onClick={scrollToBottom}
+        darkMode={darkMode}
+      />
+
+      {/* Enhanced Input Area with Better Light Mode Styling */}
+      <div className={`border-t p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-900 border-gray-700' 
+          : 'bg-white border-gray-300'
+      }`}>
+        <div className="max-w-4xl mx-auto">
+          <div className={`flex items-end space-x-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+            darkMode 
+              ? 'bg-gray-800 border-gray-700 focus-within:border-gray-600' 
+              : 'bg-gray-50 border-gray-300 focus-within:border-blue-400 shadow-sm'
+          }`}>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder="Ask about Istanbul..."
+                className={`w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
+                  darkMode 
+                    ? 'placeholder-gray-400 text-white' 
+                    : 'placeholder-gray-500 text-gray-900'
+                }`}
+                disabled={loading}
+                autoComplete="off"
+              />
+            </div>
+            <button 
+              onClick={handleSend} 
+              disabled={loading || !input.trim()}
+              className={`p-3 rounded-lg transition-all duration-200 ${
+                darkMode 
+                  ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600' 
+                  : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400'
+              } disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95`}
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+              )}
             </button>
           </div>
-          
-          {/* Chat Sessions List - Modern Design */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {chatSessions.length === 0 ? (
-              <div className="text-center py-12" style={{color: '#9ca3af'}}>
-                <div className="mb-4" style={{
-                  borderRadius: '50%',
-                  width: '80px',
-                  height: '80px',
-                  margin: '0 auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid rgba(139, 92, 246, 0.3)'
-                }}>
-                  <svg className="w-8 h-8" style={{color: '#8b5cf6'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium">No conversations yet</p>
-                <p className="text-xs mt-1 opacity-70">Start a new chat to see your history</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {chatSessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="group relative cursor-pointer transition-all duration-200"
-                    style={{
-                      border: `1px solid ${currentSessionId === session.id ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.1)'}`,
-                      borderRadius: '12px',
-                      padding: '16px'
-                    }}
-                    onClick={() => loadChatSession(session.id)}
-                    onMouseEnter={(e) => {
-                      if (currentSessionId !== session.id) {
-                        e.target.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-                        e.target.style.transform = 'translateY(-1px)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (currentSessionId !== session.id) {
-                        e.target.style.borderColor = 'rgba(139, 92, 246, 0.1)';
-                        e.target.style.transform = 'translateY(0)';
-                      }
-                    }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{
-                          color: currentSessionId === session.id ? '#ffffff' : '#e5e7eb'
-                        }}>{session.title}</p>
-                        <p className="text-xs mt-1" style={{
-                          color: currentSessionId === session.id ? 'rgba(255,255,255,0.8)' : 'rgba(229,231,235,0.6)'
-                        }}>{formatSessionDate(session.lastUpdated)}</p>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteChatSession(session.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ml-2"
-                        style={{
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#ef4444'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.transform = 'scale(1)';
-                        }}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Saved Sessions Section */}
-            {savedSessions.length > 0 && (
-              <>
-                <div className="mt-8 mb-4 px-2">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.69 4.5 1.79C13.09 3.69 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                    <h3 className="text-sm font-semibold text-gray-200">Liked Sessions</h3>
-                  </div>
-                  <div className="h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent mt-2"></div>
-                </div>
-                
-                <div className="space-y-2">
-                  {savedSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="group relative cursor-pointer transition-all duration-200"
-                      style={{
-                        border: '1px solid rgba(234, 179, 8, 0.2)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        background: 'rgba(234, 179, 8, 0.05)'
-                      }}
-                      onClick={() => loadSavedSession(session.id)}
-                      onMouseEnter={(e) => {
-                        e.target.style.borderColor = 'rgba(234, 179, 8, 0.4)';
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.borderColor = 'rgba(234, 179, 8, 0.2)';
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-3 h-3 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.69 4.5 1.79C13.09 3.69 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                            </svg>
-                            <p className="text-sm font-semibold truncate text-yellow-100">{session.title}</p>
-                          </div>
-                          <p className="text-xs mt-1 text-yellow-200/60">{formatSessionDate(session.saved_at)}</p>
-                          <p className="text-xs text-yellow-200/40">{session.message_count} messages</p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSavedSession(session.id);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-2 rounded-lg transition-all duration-200 ml-2"
-                          style={{
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            color: '#ef4444'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'scale(1.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'scale(1)';
-                          }}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+          <div className={`text-xs text-center mt-2 transition-colors duration-200 ${
+            darkMode ? 'text-gray-500' : 'text-gray-600'
+          }`}>
+            Your AI-powered Istanbul guide
           </div>
         </div>
       </div>
 
-      {/* Mobile Backdrop */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
+      {/* Error Notification */}
+      {currentError && (
+        <ErrorNotification
+          error={currentError}
+          onRetry={handleRetry}
+          onDismiss={dismissError}
+          autoHide={false}
+          darkMode={darkMode}
         />
       )}
+      
+      {/* Network Status Indicator */}
+      <NetworkStatusIndicator darkMode={darkMode} />
+    </div>
+  );
+}
 
-      {/* Modern Chat History Button - Following AI Chat App Patterns */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed left-2 top-28 z-50 transition-all duration-300 group"
-        style={{ 
-          zIndex: 1001,
-          border: sidebarOpen 
-            ? '1px solid rgba(139, 92, 246, 0.4)' 
-            : '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          padding: '10px',
-          color: sidebarOpen ? '#8b5cf6' : '#9ca3af',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '36px',
-          height: '36px',
-          cursor: 'pointer'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'translateY(-1px) scale(1.05)';
-          e.target.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-          e.target.style.color = '#8b5cf6';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'translateY(0) scale(1)';
-          e.target.style.borderColor = sidebarOpen 
-            ? 'rgba(139, 92, 246, 0.4)' 
-            : 'rgba(255, 255, 255, 0.1)';
-          e.target.style.color = sidebarOpen ? '#8b5cf6' : '#9ca3af';
-        }}
-        title="Chat History"
-      >
-        <svg 
-          width="16" 
-          height="16" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24" 
-          style={{ 
-            transition: 'all 0.3s ease',
-            transform: sidebarOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-          }}
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d={sidebarOpen 
-              ? "M15 19l-7-7 7-7" 
-              : "M4 6h16M4 12h16M4 18h16"
-            } 
-          />
-        </svg>
-      </button>
-
-      {/* Main Chat Container - Simple on mobile */}
-      <div className={`chatbot-main-container transition-all duration-300 ${
-        sidebarOpen ? (isMobile ? 'ml-0' : 'md:ml-80') : 'ml-0'
-      }`} style={{
-        background: isMobile ? '#1a1a1a' : undefined,
-        position: 'relative',
-        zIndex: 1,
-        height: '100vh',
-        maxHeight: '100vh'
-      }}>
-        <div className="chatbot-purple-box" style={{
-          background: isMobile ? '#1a1a1a' : undefined,
-          border: isMobile ? 'none' : undefined,
-          paddingTop: isMobile ? '3rem' : '0',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          maxHeight: '100vh'
-        }}>
-
-          {/* Chat Messages Area - Fixed height with scroll */}
-          <div className="chatbot-messages chatbot-scrollable" style={{
-            background: isMobile ? '#1a1a1a' : undefined,
-            padding: isMobile ? '0.5rem' : undefined,
-            flex: 1,
-            overflowY: 'auto',
-            paddingBottom: '20px'
-          }}>
-          
-          {/* Welcome Screen - Simple on mobile */}
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full px-4" style={{
-              paddingTop: isMobile ? '2rem' : '4rem'
-            }}>
-              
-              {/* Simple Title for mobile, fancy for desktop */}
-              <h1 style={{
-                fontSize: isMobile ? '1.5rem' : '2.5rem',
-                fontWeight: isMobile ? '500' : 'bold',
-                marginBottom: isMobile ? '1rem' : '2rem',
-                textAlign: 'center',
-                maxWidth: '32rem',
-                color: isMobile ? '#f0f0f0' : 'transparent',
-                background: isMobile ? 'none' : 'linear-gradient(90deg, #818cf8 0%, #6366f1 100%)',
-                WebkitBackgroundClip: isMobile ? 'initial' : 'text',
-                WebkitTextFillColor: isMobile ? '#f0f0f0' : 'transparent',
-                backgroundClip: isMobile ? 'initial' : 'text'
-              }}>
-                {isMobile ? 'Hi! Ask me about Istanbul' : 'Hello! I\'m KAM'}
-              </h1>
-              
-              {/* Simple subtitle */}
-              {!isMobile && (
-                <p className={`text-lg mb-6 text-center max-w-xl ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Your AI assistant for exploring Istanbul. Ask me anything about attractions, restaurants, culture, and more!
-                </p>
-              )}
-              
-              {/* GPS Location Status */}
-              <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', maxWidth: '600px', width: '100%' }}>
-                <GPSLocationStatus />
-              </div>
-              
-              {/* Quick suggestions - simplified for mobile */}
-              {!isMobile && (
-                <div className="kam-quick-suggestions">
-                  <div className="text-xs text-gray-400 mb-3">Try asking about:</div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                  {[
-                    "Best restaurants in Sultanahmet",
-                    "Things to do in Beyoğlu", 
-                    "Ferry routes to the islands",
-                    "Turkish breakfast spots"
-                  ].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleSend(suggestion)}
-                      className="kam-suggestion-pill"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                  </div>
-                </div>
-              )}
-              
-            </div>
-          )}
-          
-          {/* Chat Messages - Clean Style with Action Buttons */}
-          <div className="py-1">
-            {messages.map((msg, index) => (
-              <div key={index} className="mb-4 group chat-message" data-testid="chat-message" style={{ maxWidth: '100%' }}>
-                <div className={`flex ${
-                  msg.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}>
-                  {msg.role === 'assistant' && (
-                    <div className="text-xs font-medium mb-1 text-gray-100">
-                      KAM
-                    </div>
-                  )}
-                </div>
-                <div className={`flex ${
-                  msg.role === 'user' ? 'justify-end' : 'justify-start'
-                } relative`}>
-                  <div className={`max-w-[80%] relative ${
-                    msg.role === 'user' 
-                      ? 'bg-purple-600 text-white rounded-2xl rounded-br-md px-4 py-3'
-                      : 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700'
-                  }`}>
-                    <div className={`${msg.role === 'assistant' ? 'prose prose-sm max-w-none' : ''} leading-relaxed`}>
-                      {msg.role === 'assistant' && msg.isTyping ? (
-                        <StreamingText 
-                          text={msg.content} 
-                          speed={30}
-                          enableStreamingGlow={true}
-                          onComplete={() => {
-                            // Mark typing as complete for this message
-                            setMessages(prev => prev.map((m, i) => 
-                              i === index ? { ...m, isTyping: false } : m
-                            ));
-                          }}
-                        />
-                      ) : (
-                        renderMessageContent(msg.content, darkMode)
-                      )}
-                    </div>
-                    
-                    {/* Inline Route Map - Show when backend returns route data */}
-                    {msg.role === 'assistant' && msg.metadata?.route_data && (
-                      <div style={{
-                        marginTop: '1rem',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                      }}>
-                        <LeafletNavigationMap
-                          routeData={msg.metadata.route_data}
-                          pois={msg.metadata.pois || []}
-                          userLocation={msg.metadata.user_location || null}
-                          height="400px"
-                        />
-                        
-                        {/* Route Summary */}
-                        {msg.metadata.route_data.distance && (
-                          <div style={{
-                            padding: '1rem',
-                            background: darkMode ? '#374151' : '#f9fafb',
-                            display: 'flex',
-                            justifyContent: 'space-around',
-                            fontSize: '0.9rem',
-                            borderTop: '1px solid #e5e7eb'
-                          }}>
-                            <div>
-                              <strong>📍 Distance:</strong> {msg.metadata.route_data.distance}
-                            </div>
-                            <div>
-                              <strong>⏱️ Duration:</strong> {msg.metadata.route_data.duration}
-                            </div>
-                            {msg.metadata.route_data.mode && (
-                              <div>
-                                <strong>🚶 Mode:</strong> {msg.metadata.route_data.mode}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* POI/Museum Cards - Rich information display */}
-                    {msg.role === 'assistant' && msg.metadata?.pois && msg.metadata.pois.length > 0 && (
-                      <div style={{
-                        marginTop: '1rem',
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: '1rem'
-                      }}>
-                        {msg.metadata.pois.map((poi, poiIndex) => (
-                          <div
-                            key={poiIndex}
-                            style={{
-                              background: darkMode ? '#374151' : 'white',
-                              borderRadius: '8px',
-                              padding: '1rem',
-                              borderLeft: '3px solid #2196F3',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                            }}
-                          >
-                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
-                              {poi.name}
-                            </h4>
-                            
-                            {poi.category && (
-                              <div style={{
-                                fontSize: '0.75rem',
-                                textTransform: 'uppercase',
-                                color: '#666',
-                                marginBottom: '0.5rem'
-                              }}>
-                                {poi.category}
-                              </div>
-                            )}
-                            
-                            {/* Details */}
-                            {(poi.visiting_duration || poi.entrance_fee || poi.distance) && (
-                              <div style={{
-                                display: 'flex',
-                                gap: '0.75rem',
-                                marginBottom: '0.75rem',
-                                fontSize: '0.875rem',
-                                flexWrap: 'wrap'
-                              }}>
-                                {poi.visiting_duration && (
-                                  <span>⏱️ {poi.visiting_duration}</span>
-                                )}
-                                {poi.entrance_fee && (
-                                  <span>💰 {poi.entrance_fee}</span>
-                                )}
-                                {poi.distance && (
-                                  <span>📍 {typeof poi.distance === 'number' 
-                                    ? `${poi.distance.toFixed(1)} km` 
-                                    : poi.distance}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Highlights */}
-                            {poi.highlights && poi.highlights.length > 0 && (
-                              <div style={{ marginBottom: '0.75rem' }}>
-                                <strong style={{ fontSize: '0.875rem' }}>✨ Must-See:</strong>
-                                <ul style={{
-                                  margin: '0.25rem 0 0 0',
-                                  paddingLeft: '1.25rem',
-                                  fontSize: '0.875rem'
-                                }}>
-                                  {poi.highlights.slice(0, 3).map((highlight, hIndex) => (
-                                    <li key={hIndex}>{highlight}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {/* Local Tips */}
-                            {poi.local_tips && poi.local_tips.length > 0 && (
-                              <div style={{
-                                background: 'rgba(33, 150, 243, 0.1)',
-                                borderRadius: '6px',
-                                padding: '0.75rem',
-                                marginTop: '0.75rem'
-                              }}>
-                                <strong style={{ fontSize: '0.875rem', color: '#2196F3' }}>
-                                  💡 Local Tips:
-                                </strong>
-                                <ul style={{
-                                  margin: '0.5rem 0 0 0',
-                                  paddingLeft: '1.25rem',
-                                  fontSize: '0.875rem'
-                                }}>
-                                  {poi.local_tips.map((tip, tIndex) => (
-                                    <li key={tIndex}>{tip}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* District Information */}
-                    {msg.role === 'assistant' && msg.metadata?.district_info && (
-                      <div style={{
-                        marginTop: '1rem',
-                        background: darkMode ? '#374151' : 'white',
-                        borderRadius: '8px',
-                        padding: '1rem',
-                        borderLeft: '3px solid #FF9800',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                      }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
-                          📍 {msg.metadata.district_info.name}
-                        </h4>
-                        
-                        {msg.metadata.district_info.description && (
-                          <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem' }}>
-                            {msg.metadata.district_info.description}
-                          </p>
-                        )}
-                        
-                        {msg.metadata.district_info.best_time && (
-                          <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}>
-                            <strong>⏰ Best Time to Visit:</strong> {msg.metadata.district_info.best_time}
-                          </div>
-                        )}
-                        
-                        {msg.metadata.district_info.local_tips && msg.metadata.district_info.local_tips.length > 0 && (
-                          <div style={{
-                            background: 'rgba(255, 152, 0, 0.1)',
-                            borderRadius: '6px',
-                            padding: '0.75rem',
-                            marginTop: '0.75rem'
-                          }}>
-                            <strong style={{ fontSize: '0.875rem', color: '#FF9800' }}>
-                              💡 Insider Tips:
-                            </strong>
-                            <ul style={{
-                              margin: '0.5rem 0 0 0',
-                              paddingLeft: '1.25rem',
-                              fontSize: '0.875rem'
-                            }}>
-                              {msg.metadata.district_info.local_tips.map((tip, tIndex) => (
-                                <li key={tIndex}>{tip}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Itinerary Timeline */}
-                    {msg.role === 'assistant' && msg.metadata?.total_itinerary && (
-                      <div style={{
-                        marginTop: '1rem',
-                        background: darkMode ? '#374151' : 'white',
-                        borderRadius: '8px',
-                        padding: '1rem',
-                        borderLeft: '3px solid #4CAF50',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '1rem'
-                        }}>
-                          <h4 style={{ margin: 0, fontSize: '1rem' }}>
-                            🗺️ Your Optimized Itinerary
-                          </h4>
-                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
-                            {msg.metadata.total_itinerary.total_distance && (
-                              <span>🚶 {msg.metadata.total_itinerary.total_distance}</span>
-                            )}
-                            {msg.metadata.total_itinerary.total_time && (
-                              <span>⏱️ {msg.metadata.total_itinerary.total_time}</span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {msg.metadata.total_itinerary.recommended_breaks && msg.metadata.total_itinerary.recommended_breaks.length > 0 && (
-                          <div>
-                            <strong style={{ fontSize: '0.875rem', color: '#4CAF50' }}>
-                              🧃 Recommended Breaks:
-                            </strong>
-                            <div style={{ marginTop: '0.5rem' }}>
-                              {msg.metadata.total_itinerary.recommended_breaks.map((brk, bIndex) => (
-                                <div
-                                  key={bIndex}
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    padding: '0.5rem',
-                                    background: 'rgba(76, 175, 80, 0.1)',
-                                    borderRadius: '4px',
-                                    marginTop: bIndex > 0 ? '0.5rem' : 0,
-                                    fontSize: '0.875rem'
-                                  }}
-                                >
-                                  <span style={{ fontWeight: '500' }}>{brk.location}</span>
-                                  <span style={{ color: '#666' }}>{brk.activity}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Route Integration - Show for user messages that might be route requests */}
-                    {msg.role === 'user' && (
-                      <ChatRouteIntegration 
-                        message={msg}
-                        onRouteGenerated={(route, intent) => {
-                          console.log('Route generated from chat:', route, intent);
-                          // Could add the route as a new assistant message
-                        }}
-                        className="mt-3"
-                      />
-                    )}
+export default Chatbot;
