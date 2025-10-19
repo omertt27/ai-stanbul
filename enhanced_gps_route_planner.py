@@ -931,13 +931,92 @@ class EnhancedGPSRoutePlanner:
         waypoints: List[PersonalizedWaypoint],
         preferred_transport_modes: List[TransportMode]
     ) -> List[RouteSegment]:
-        """Optimize route segments between waypoints with ML travel time predictions"""
+        """Optimize route segments between waypoints with ML transportation system and predictions"""
         
         segments = []
         current_location = start_location
         current_time = datetime.now()
         
         for waypoint in waypoints:
+            # === PRIORITY: USE ML-ENHANCED TRANSPORTATION SYSTEM ===
+            if self.ml_transport_system:
+                try:
+                    # Import required classes for ML transport system
+                    from ml_enhanced_transportation_system import (
+                        GPSLocation as MLGPSLocation, 
+                        RouteOptimizationType
+                    )
+                    
+                    # Convert GPS locations to ML system format
+                    ml_start = MLGPSLocation(
+                        latitude=current_location.latitude,
+                        longitude=current_location.longitude
+                    )
+                    ml_end = MLGPSLocation(
+                        latitude=waypoint.location.latitude,
+                        longitude=waypoint.location.longitude
+                    )
+                    
+                    # Get ML-optimized route for this segment
+                    logger.info(f"🚇 Using ML Transportation System for segment optimization")
+                    ml_route = await self.ml_transport_system.get_optimized_route(
+                        start_location=ml_start,
+                        end_location=ml_end,
+                        optimization_type=RouteOptimizationType.FASTEST,
+                        include_pois=False,
+                        poi_preferences=None
+                    )
+                    
+                    # Extract ML-optimized segment details
+                    if ml_route and ml_route.segments:
+                        ml_segment = ml_route.segments[0]  # Primary segment
+                        
+                        # Convert ML transport mode to our TransportMode
+                        transport_mode_map = {
+                            'WALKING': TransportMode.WALKING,
+                            'METRO': TransportMode.METRO,
+                            'BUS': TransportMode.PUBLIC_TRANSPORT,
+                            'TRAM': TransportMode.PUBLIC_TRANSPORT,
+                            'FERRY': TransportMode.FERRY
+                        }
+                        best_mode = transport_mode_map.get(
+                            ml_segment.transport_mode.name,
+                            TransportMode.WALKING
+                        )
+                        
+                        # Create segment with ML predictions
+                        segment = RouteSegment(
+                            from_point=current_location,
+                            to_point=waypoint.location,
+                            transport_mode=best_mode,
+                            distance_km=ml_segment.distance_km,
+                            estimated_time_minutes=ml_segment.duration_minutes,
+                            cost_estimate=ml_segment.cost_tl,
+                            scenic_score=self._calculate_scenic_score(current_location, waypoint.location, best_mode),
+                            accessibility_score=waypoint.accessibility_score,
+                            real_time_conditions={
+                                'ml_enhanced': True,
+                                'crowding_level': ml_segment.crowding_level,
+                                'crowding_prediction': ml_route.crowding_prediction,
+                                'confidence_score': ml_route.confidence_score,
+                                'real_time_adjustments': ml_route.real_time_adjustments,
+                                'optimization_type': 'ml_transportation_system',
+                                'last_updated': datetime.now().isoformat()
+                            }
+                        )
+                        
+                        segments.append(segment)
+                        current_location = waypoint.location
+                        current_time += timedelta(minutes=ml_segment.duration_minutes)
+                        
+                        logger.info(f"✅ ML segment: {ml_segment.duration_minutes}min, crowding: {ml_segment.crowding_level:.2f}")
+                        continue
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ ML Transportation System failed, falling back to standard: {e}")
+                    # Fall through to standard route planning
+            
+            # === FALLBACK: STANDARD ROUTE PLANNING ===
             # Find best transport mode for this segment
             best_mode = self._select_best_transport_mode(
                 current_location,
@@ -986,7 +1065,10 @@ class EnhancedGPSRoutePlanner:
                 cost_estimate=cost,
                 scenic_score=scenic_score,
                 accessibility_score=accessibility_score,
-                real_time_conditions={}
+                real_time_conditions={
+                    'ml_enhanced': False,
+                    'optimization_type': 'standard_calculation'
+                }
             )
             
             segments.append(segment)
@@ -1002,8 +1084,56 @@ class EnhancedGPSRoutePlanner:
         preferred_modes: List[TransportMode],
         available_modes: List[TransportMode]
     ) -> TransportMode:
-        """Select the best transport mode for a segment"""
+        """Select the best transport mode for a segment with ML assistance"""
         
+        # === TRY ML-ENHANCED TRANSPORT MODE SELECTION ===
+        if self.ml_transport_system:
+            try:
+                from ml_enhanced_transportation_system import (
+                    GPSLocation as MLGPSLocation, 
+                    RouteOptimizationType
+                )
+                
+                # Get ML recommendation for transport mode
+                ml_start = MLGPSLocation(latitude=from_loc.latitude, longitude=from_loc.longitude)
+                ml_end = MLGPSLocation(latitude=to_loc.latitude, longitude=to_loc.longitude)
+                
+                # Use async call in sync context (simplified)
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
+                ml_route = loop.run_until_complete(
+                    self.ml_transport_system.get_optimized_route(
+                        ml_start, ml_end, RouteOptimizationType.FASTEST
+                    )
+                )
+                
+                if ml_route and ml_route.segments:
+                    ml_mode_name = ml_route.segments[0].transport_mode.name
+                    logger.debug(f"🤖 ML recommended transport mode: {ml_mode_name}")
+                    
+                    # Map to our TransportMode
+                    mode_map = {
+                        'WALKING': TransportMode.WALKING,
+                        'METRO': TransportMode.METRO,
+                        'BUS': TransportMode.PUBLIC_TRANSPORT,
+                        'TRAM': TransportMode.PUBLIC_TRANSPORT,
+                        'FERRY': TransportMode.FERRY
+                    }
+                    
+                    ml_mode = mode_map.get(ml_mode_name, None)
+                    if ml_mode and ml_mode in available_modes:
+                        logger.info(f"✅ Using ML-selected transport mode: {ml_mode.name}")
+                        return ml_mode
+                
+            except Exception as e:
+                logger.debug(f"ML transport mode selection unavailable, using heuristic: {e}")
+        
+        # === FALLBACK: HEURISTIC-BASED SELECTION ===
         # Find intersection of preferred and available modes
         viable_modes = [mode for mode in preferred_modes if mode in available_modes]
         

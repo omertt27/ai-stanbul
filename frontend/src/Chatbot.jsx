@@ -16,6 +16,7 @@ import {
 import { LoadingSkeleton, ChatMessageSkeleton } from './components/LoadingSkeletons';
 import { recordUserInteraction, measureApiResponseTime } from './utils/uxEnhancements';
 import ChatRouteIntegration from './components/ChatRouteIntegration';
+import LeafletNavigationMap from './components/LeafletNavigationMap';
 import './App.css';
 
 
@@ -1607,6 +1608,256 @@ function Chatbot() {
                       )}
                     </div>
                     
+                    {/* Inline Route Map - Show when backend returns route data */}
+                    {msg.role === 'assistant' && msg.metadata?.route_data && (
+                      <div style={{
+                        marginTop: '1rem',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                      }}>
+                        <LeafletNavigationMap
+                          routeData={msg.metadata.route_data}
+                          pois={msg.metadata.pois || []}
+                          userLocation={msg.metadata.user_location || null}
+                          height="400px"
+                        />
+                        
+                        {/* Route Summary */}
+                        {msg.metadata.route_data.distance && (
+                          <div style={{
+                            padding: '1rem',
+                            background: darkMode ? '#374151' : '#f9fafb',
+                            display: 'flex',
+                            justifyContent: 'space-around',
+                            fontSize: '0.9rem',
+                            borderTop: '1px solid #e5e7eb'
+                          }}>
+                            <div>
+                              <strong>📍 Distance:</strong> {msg.metadata.route_data.distance}
+                            </div>
+                            <div>
+                              <strong>⏱️ Duration:</strong> {msg.metadata.route_data.duration}
+                            </div>
+                            {msg.metadata.route_data.mode && (
+                              <div>
+                                <strong>🚶 Mode:</strong> {msg.metadata.route_data.mode}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* POI/Museum Cards - Rich information display */}
+                    {msg.role === 'assistant' && msg.metadata?.pois && msg.metadata.pois.length > 0 && (
+                      <div style={{
+                        marginTop: '1rem',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '1rem'
+                      }}>
+                        {msg.metadata.pois.map((poi, poiIndex) => (
+                          <div
+                            key={poiIndex}
+                            style={{
+                              background: darkMode ? '#374151' : 'white',
+                              borderRadius: '8px',
+                              padding: '1rem',
+                              borderLeft: '3px solid #2196F3',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+                              {poi.name}
+                            </h4>
+                            
+                            {poi.category && (
+                              <div style={{
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                color: '#666',
+                                marginBottom: '0.5rem'
+                              }}>
+                                {poi.category}
+                              </div>
+                            )}
+                            
+                            {/* Details */}
+                            {(poi.visiting_duration || poi.entrance_fee || poi.distance) && (
+                              <div style={{
+                                display: 'flex',
+                                gap: '0.75rem',
+                                marginBottom: '0.75rem',
+                                fontSize: '0.875rem',
+                                flexWrap: 'wrap'
+                              }}>
+                                {poi.visiting_duration && (
+                                  <span>⏱️ {poi.visiting_duration}</span>
+                                )}
+                                {poi.entrance_fee && (
+                                  <span>💰 {poi.entrance_fee}</span>
+                                )}
+                                {poi.distance && (
+                                  <span>📍 {typeof poi.distance === 'number' 
+                                    ? `${poi.distance.toFixed(1)} km` 
+                                    : poi.distance}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            
+                            {/* Highlights */}
+                            {poi.highlights && poi.highlights.length > 0 && (
+                              <div style={{ marginBottom: '0.75rem' }}>
+                                <strong style={{ fontSize: '0.875rem' }}>✨ Must-See:</strong>
+                                <ul style={{
+                                  margin: '0.25rem 0 0 0',
+                                  paddingLeft: '1.25rem',
+                                  fontSize: '0.875rem'
+                                }}>
+                                  {poi.highlights.slice(0, 3).map((highlight, hIndex) => (
+                                    <li key={hIndex}>{highlight}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Local Tips */}
+                            {poi.local_tips && poi.local_tips.length > 0 && (
+                              <div style={{
+                                background: 'rgba(33, 150, 243, 0.1)',
+                                borderRadius: '6px',
+                                padding: '0.75rem',
+                                marginTop: '0.75rem'
+                              }}>
+                                <strong style={{ fontSize: '0.875rem', color: '#2196F3' }}>
+                                  💡 Local Tips:
+                                </strong>
+                                <ul style={{
+                                  margin: '0.5rem 0 0 0',
+                                  paddingLeft: '1.25rem',
+                                  fontSize: '0.875rem'
+                                }}>
+                                  {poi.local_tips.map((tip, tIndex) => (
+                                    <li key={tIndex}>{tip}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* District Information */}
+                    {msg.role === 'assistant' && msg.metadata?.district_info && (
+                      <div style={{
+                        marginTop: '1rem',
+                        background: darkMode ? '#374151' : 'white',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        borderLeft: '3px solid #FF9800',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                      }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem' }}>
+                          📍 {msg.metadata.district_info.name}
+                        </h4>
+                        
+                        {msg.metadata.district_info.description && (
+                          <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem' }}>
+                            {msg.metadata.district_info.description}
+                          </p>
+                        )}
+                        
+                        {msg.metadata.district_info.best_time && (
+                          <div style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}>
+                            <strong>⏰ Best Time to Visit:</strong> {msg.metadata.district_info.best_time}
+                          </div>
+                        )}
+                        
+                        {msg.metadata.district_info.local_tips && msg.metadata.district_info.local_tips.length > 0 && (
+                          <div style={{
+                            background: 'rgba(255, 152, 0, 0.1)',
+                            borderRadius: '6px',
+                            padding: '0.75rem',
+                            marginTop: '0.75rem'
+                          }}>
+                            <strong style={{ fontSize: '0.875rem', color: '#FF9800' }}>
+                              💡 Insider Tips:
+                            </strong>
+                            <ul style={{
+                              margin: '0.5rem 0 0 0',
+                              paddingLeft: '1.25rem',
+                              fontSize: '0.875rem'
+                            }}>
+                              {msg.metadata.district_info.local_tips.map((tip, tIndex) => (
+                                <li key={tIndex}>{tip}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Itinerary Timeline */}
+                    {msg.role === 'assistant' && msg.metadata?.total_itinerary && (
+                      <div style={{
+                        marginTop: '1rem',
+                        background: darkMode ? '#374151' : 'white',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        borderLeft: '3px solid #4CAF50',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '1rem'
+                        }}>
+                          <h4 style={{ margin: 0, fontSize: '1rem' }}>
+                            🗺️ Your Optimized Itinerary
+                          </h4>
+                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
+                            {msg.metadata.total_itinerary.total_distance && (
+                              <span>🚶 {msg.metadata.total_itinerary.total_distance}</span>
+                            )}
+                            {msg.metadata.total_itinerary.total_time && (
+                              <span>⏱️ {msg.metadata.total_itinerary.total_time}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {msg.metadata.total_itinerary.recommended_breaks && msg.metadata.total_itinerary.recommended_breaks.length > 0 && (
+                          <div>
+                            <strong style={{ fontSize: '0.875rem', color: '#4CAF50' }}>
+                              🧃 Recommended Breaks:
+                            </strong>
+                            <div style={{ marginTop: '0.5rem' }}>
+                              {msg.metadata.total_itinerary.recommended_breaks.map((brk, bIndex) => (
+                                <div
+                                  key={bIndex}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '0.5rem',
+                                    background: 'rgba(76, 175, 80, 0.1)',
+                                    borderRadius: '4px',
+                                    marginTop: bIndex > 0 ? '0.5rem' : 0,
+                                    fontSize: '0.875rem'
+                                  }}
+                                >
+                                  <span style={{ fontWeight: '500' }}>{brk.location}</span>
+                                  <span style={{ color: '#666' }}>{brk.activity}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {/* Route Integration - Show for user messages that might be route requests */}
                     {msg.role === 'user' && (
                       <ChatRouteIntegration 
@@ -1618,297 +1869,3 @@ function Chatbot() {
                         className="mt-3"
                       />
                     )}
-                  </div>
-                </div>
-                
-                {/* Action Buttons - Outside message bubble like ChatGPT - For both user and assistant messages */}
-                <div className={`kam-message-actions flex ${
-                  msg.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}>
-                  
-                  {/* Like/Unlike Buttons - Only for assistant messages */}
-                  {msg.role === 'assistant' && (
-                    <>
-                      <button
-                        onClick={() => toggleMessageLike(index, !likedMessages.has(`${currentSessionId}-${index}`))}
-                        className={`kam-action-button kam-like-button ${
-                          likedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
-                        }`}
-                        title={likedMessages.has(`${currentSessionId}-${index}`) ? "Unlike this response" : "Like this response"}
-                      >
-                        <svg className="w-3 h-3" fill={likedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span className="text-xs">
-                          {likedMessages.has(`${currentSessionId}-${index}`) ? 'Unlike' : 'Like'}
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleMessageDislike(index, !dislikedMessages.has(`${currentSessionId}-${index}`))}
-                        className={`kam-action-button kam-dislike-button ${
-                          dislikedMessages.has(`${currentSessionId}-${index}`) ? 'active' : ''
-                        }`}
-                        title={dislikedMessages.has(`${currentSessionId}-${index}`) ? "Remove dislike" : "Dislike this response"}
-                      >
-                        <svg className="w-3 h-3" fill={dislikedMessages.has(`${currentSessionId}-${index}`) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24" transform="rotate(180)">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span className="text-xs">
-                          {dislikedMessages.has(`${currentSessionId}-${index}`) ? 'Undislike' : 'Dislike'}
-                        </span>
-                      </button>
-                    </>
-                  )}
-                  
-                  {/* Copy Button */}
-                  <button
-                    onClick={() => copyToClipboard(msg.content, index)}
-                    className="kam-action-button kam-copy-button"
-                    title="Copy message"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-xs">Copy</span>
-                  </button>
-                  
-                  {/* Read Aloud Button */}
-                  {speechSynthesisSupported && (
-                    <button
-                      onClick={() => readingMessageId === index ? stopReading() : readAloud(msg.content, index)}
-                      className={`kam-action-button kam-read-button ${readingMessageId === index ? 'active' : ''}`}
-                      title={readingMessageId === index ? "Stop reading" : "Read aloud"}
-                    >
-                      {readingMessageId === index ? (
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-6.219-8.56" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10l2 2 4-4" />
-                        </svg>
-                      ) : (
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.575 12 18.586V5.414c0-.989-1.077-1.751-1.707-1.121L5.586 9z" />
-                        </svg>
-                      )}
-                      <span className="text-xs">
-                        {readingMessageId === index ? 'Stop' : 'Read'}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            
-            {showLoadingSkeleton && loading && (
-              <div className="mb-4">
-                <div className="flex justify-start">
-                  <div className="text-xs font-medium mb-1 text-gray-100">
-                    KAM
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="max-w-[80%] bg-gray-800 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 border border-gray-700">
-                    <ChatMessageSkeleton variant="enhanced" />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Mobile-optimized Scroll to Bottom Button */}
-            {showScrollButton && (
-              <div className={`fixed z-10 transition-all duration-200 ${
-                isMobile 
-                  ? 'bottom-24 right-4' // Mobile positioning - above input area
-                  : 'bottom-24 right-6' // Desktop positioning
-              }`}>
-                <button
-                  onClick={() => scrollToBottom(true)}
-                  className={`${
-                    isMobile
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center min-h-12 min-w-12'
-                      : 'bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 flex items-center justify-center'
-                  }`}
-                  title="Go to newest messages"
-                  style={{
-                    transform: isMobile ? 'scale(1.1)' : 'scale(1)', // Slightly larger on mobile
-                    boxShadow: isMobile ? '0 8px 25px rgba(59, 130, 246, 0.3)' : undefined
-                  }}
-                >
-                  <svg 
-                    className={isMobile ? "w-6 h-6" : "w-5 h-5"} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3" 
-                    />
-                  </svg>
-                </button>
-              </div>
-            )}
-
-            
-            <div ref={messagesEndRef} />
-          </div>
-          
-          {/* Fixed Input Area at Bottom - ChatGPT Style */}
-          <div className="chatbot-input-area" style={{
-            position: 'sticky',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: isMobile ? '#1a1a1a' : undefined,
-            borderTop: isMobile ? '1px solid rgba(255, 255, 255, 0.1)' : undefined,
-            padding: isMobile ? '12px' : '16px 20px',
-            zIndex: 10,
-            flexShrink: 0
-          }}>
-          
-          {/* Error message with improved styling */}
-          {inputError && (
-            <div className="kam-error-message mb-4">
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="text-red-300 font-medium">{inputError}</span>
-              </div>
-            </div>
-          )}
-          
-          {/* Location Status & Enable Button */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', gap: '8px' }}>
-            {locationContext.hasLocation ? (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '8px 16px',
-                backgroundColor: 'rgba(16, 163, 127, 0.1)',
-                borderRadius: '12px',
-                fontSize: '12px',
-                color: '#10a37f',
-                border: '1px solid rgba(16, 163, 127, 0.2)'
-              }}>
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style={{ marginRight: '6px' }}>
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
-                📍 {locationContext.locationSummary || 'Current Location'}
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowLocationModal(true)}
-                data-testid="location-btn"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '6px 12px',
-                  backgroundColor: 'rgba(107, 114, 128, 0.1)',
-                  color: '#9ca3af',
-                  border: '1px solid rgba(107, 114, 128, 0.3)',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  gap: '4px'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = 'rgba(16, 163, 127, 0.1)';
-                  e.target.style.color = '#10a37f';
-                  e.target.style.borderColor = 'rgba(16, 163, 127, 0.3)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.1)';
-                  e.target.style.color = '#9ca3af';
-                  e.target.style.borderColor = 'rgba(107, 114, 128, 0.3)';
-                }}
-              >
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
-                Enable Location
-              </button>
-            )}
-          </div>
-
-          {/* Enhanced SearchBar Component */}
-          <div className="kam-input-wrapper">
-            <SearchBar
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                if (inputError) setInputError(''); // Clear error when typing
-              }}
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!loading && input.trim()) {
-                  handleSend();
-                  // On mobile, blur input after sending to hide keyboard
-                  if (isMobile) {
-                    const inputElement = document.querySelector('.mobile-search-input, .chat-input');
-                    if (inputElement) inputElement.blur();
-                  }
-                }
-              }}
-              onFocus={(e) => {
-                setInputFocused(true);
-                
-                // Mobile-specific focus handling
-                if (isMobile) {
-                  // Scroll to bottom when input is focused on mobile
-                  setTimeout(() => {
-                    if (messagesEndRef.current) {
-                      messagesEndRef.current.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'end' 
-                      });
-                    }
-                  }, 300); // Delay to account for keyboard animation
-                  
-                  // Track keyboard state
-                  setTimeout(() => setKeyboardVisible(true), 300);
-                } else {
-                  // Desktop focus behavior (prevent scroll)
-                  e.preventDefault();
-                  const currentScrollY = window.scrollY;
-                  const currentScrollTop = e.target.closest('.chatbot-messages')?.scrollTop || 0;
-                  setTimeout(() => {
-                    window.scrollTo(0, currentScrollY);
-                    const chatContainer = e.target.closest('.chatbot-messages');
-                    if (chatContainer) {
-                      chatContainer.scrollTop = currentScrollTop;
-                    }
-                  }, 0);
-                }
-              }}
-              onBlur={() => {
-                setInputFocused(false);
-                if (isMobile) {
-                  setTimeout(() => setKeyboardVisible(false), 300);
-                }
-              }}
-              placeholder={isMobile ? "Ask about Istanbul..." : "What would you like to know about Istanbul?"}
-              isLoading={loading}
-            />
-          </div>
-          
-          {/* Quick suggestions (optional) - removed from here as moved to welcome screen */}
-          </div>
-        </div>
-        </div>
-      </div>
-
-      {/* Location Permission Modal */}
-      <LocationPermissionModal
-        isOpen={showLocationModal}
-        onClose={handleLocationModalClose}
-        onLocationSet={handleLocationSet}
-      />
-    </div>
-  );
-}
-
-export default Chatbot;

@@ -279,6 +279,10 @@ class IstanbulDailyTalkAI:
             
             context = self.user_manager.get_conversation_context(session_id)
             
+            # Check if this is a navigation query
+            if self._is_navigation_query(message):
+                return self._handle_navigation_query(message, user_id, session_id, user_profile, context)
+            
             # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
             if self._is_daily_talk_query(message):
                 return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context)

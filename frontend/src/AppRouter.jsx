@@ -4,6 +4,7 @@ import TestApp from './TestApp';
 import App from './App';
 import Chatbot from './Chatbot';
 import SimpleChatbot from './SimpleChatbot';
+import NavigationChatbot from './NavigationChatbot';
 import TestComponent from './TestComponent';
 import ChatbotTester from './ChatbotTester';
 import About from './pages/About';
@@ -173,6 +174,7 @@ const AppContent = ({ chatExpanded }) => {
           <Route path="/gdpr" element={<GDPRPage />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/navigation-chatbot" element={<NavigationChatbot />} />
         </Routes>
       </main>
       
