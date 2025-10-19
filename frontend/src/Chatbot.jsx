@@ -20,6 +20,10 @@ import TypingIndicator from './components/TypingIndicator';
 import MessageActions from './components/MessageActions';
 import ScrollToBottom from './components/ScrollToBottom';
 import ChatHeader from './components/ChatHeader';
+import POICard from './components/POICard';
+import DistrictInfo from './components/DistrictInfo';
+import ItineraryTimeline from './components/ItineraryTimeline';
+import MLInsights from './components/MLInsights';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
 
@@ -1039,6 +1043,42 @@ function Chatbot() {
                         darkMode ? 'text-white' : 'text-gray-900'
                       }`}>
                         {renderMessageContent(msg.text || msg.content, darkMode)}
+                      </div>
+                      
+                      {/* Metadata Components */}
+                      {msg.sender === 'assistant' && (
+                        <>
+                          {/* ML Insights */}
+                          {msg.metadata?.ml_predictions && (
+                            <div className="mt-3">
+                              <MLInsights predictions={msg.metadata.ml_predictions} darkMode={darkMode} />
+                            </div>
+                          )}
+                          
+                          {/* POI Cards */}
+                          {msg.metadata?.pois?.map((poi, idx) => (
+                            <div key={idx} className="mt-3">
+                              <POICard poi={poi} darkMode={darkMode} />
+                            </div>
+                          ))}
+                          
+                          {/* District Info */}
+                          {msg.metadata?.district_info && (
+                            <div className="mt-3">
+                              <DistrictInfo district={msg.metadata.district_info} darkMode={darkMode} />
+                            </div>
+                          )}
+                          
+                          {/* Itinerary */}
+                          {msg.metadata?.total_itinerary && (
+                            <div className="mt-3">
+                              <ItineraryTimeline itinerary={msg.metadata.total_itinerary} darkMode={darkMode} />
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      <div className="hidden">
                       </div>
                       {msg.timestamp && (
                         <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
