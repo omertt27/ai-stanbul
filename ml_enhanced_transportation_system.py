@@ -29,6 +29,16 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import Lightweight Neural Query Enhancement
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend', 'services'))
+    from lightweight_neural_query_enhancement import LightweightNeuralProcessor
+    NEURAL_ENHANCEMENT_AVAILABLE = True
+    logger.info("✅ Lightweight Neural Query Enhancement integrated successfully!")
+except ImportError as e:
+    NEURAL_ENHANCEMENT_AVAILABLE = False
+    logger.warning(f"⚠️ Neural Query Enhancement not available: {e}")
+
 # Import ML Prediction Cache Service
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'services'))
@@ -694,11 +704,12 @@ class MLCrowdingPredictor:
 class WeatherAwareTransportationAdvisor:
     """Weather-aware transportation advisor using existing weather service"""
     
-    def __init__(self):
+    def __init__(self, neural_processor=None):
         self.weather_service = None
         self.crowding_predictor = MLCrowdingPredictor()
         self.weather_cache = {}
         self.cache_duration = 1800  # 30 minutes
+        self.neural_processor = neural_processor  # Neural processor for query understanding
         
         # Initialize weather service if available
         self._initialize_weather_service()
@@ -721,8 +732,44 @@ class WeatherAwareTransportationAdvisor:
     
     async def get_weather_aware_advice(self, query: str, transport_mode: str = None, 
                                      route_distance: float = 5.0) -> Dict[str, Any]:
-        """Generate weather-aware transportation advice"""
+        """Generate weather-aware transportation advice with neural query understanding"""
         try:
+            # 🧠 Neural query analysis for better understanding
+            neural_insights = None
+            user_intent = None
+            user_preferences = {}
+            
+            if self.neural_processor:
+                try:
+                    neural_result = self.neural_processor.process_query(query)
+                    neural_insights = neural_result
+                    
+                    # Extract intent for routing decisions
+                    user_intent = neural_result.get('intent', 'general_query')
+                    
+                    # Extract user preferences from entities and context
+                    entities = neural_result.get('entities', {})
+                    sentiment = neural_result.get('sentiment', 0)
+                    
+                    # Determine user preferences based on intent and sentiment
+                    if user_intent in ['route_planning', 'fastest_route']:
+                        user_preferences['priority'] = 'speed'
+                    elif user_intent in ['cost_query', 'budget']:
+                        user_preferences['priority'] = 'cost'
+                    elif sentiment < -0.3 or 'comfort' in query.lower() or 'comfortable' in query.lower():
+                        user_preferences['priority'] = 'comfort'
+                    else:
+                        user_preferences['priority'] = 'balanced'
+                    
+                    # Check for weather-specific concerns in entities
+                    if 'rain' in entities.get('conditions', []) or 'cold' in entities.get('conditions', []):
+                        user_preferences['weather_sensitive'] = True
+                    
+                    logger.info(f"🧠 Neural insights - Intent: {user_intent}, Preferences: {user_preferences}")
+                    
+                except Exception as e:
+                    logger.error(f"Neural processing error in weather advice: {e}")
+            
             # Get current weather data
             weather_data = await self._get_current_weather()
             
@@ -743,22 +790,53 @@ class WeatherAwareTransportationAdvisor:
                     hour, day_of_week, weather_data, mode, route_distance
                 )
                 
+                # Calculate base weather suitability
+                weather_suitability = self._calculate_mode_weather_suitability(mode, weather_impact)
+                
+                # 🎯 Adjust recommendations based on neural insights and user intent
+                priority_score = weather_suitability - crowding
+                
+                if user_preferences.get('priority') == 'speed':
+                    # Prioritize metro and tram (faster in traffic)
+                    if mode in ['metro', 'tram']:
+                        priority_score += 0.2
+                elif user_preferences.get('priority') == 'cost':
+                    # All modes cost the same with Istanbulkart, slight preference for metro/tram
+                    if mode in ['metro', 'tram']:
+                        priority_score += 0.1
+                elif user_preferences.get('priority') == 'comfort':
+                    # Prefer less crowded options
+                    if crowding < 0.5:
+                        priority_score += 0.15
+                    # Metro and ferry are typically more comfortable
+                    if mode in ['metro', 'ferry']:
+                        priority_score += 0.1
+                
+                # Weather sensitivity adjustments
+                if user_preferences.get('weather_sensitive'):
+                    # Strongly prefer covered/indoor transport in bad weather
+                    if mode == 'metro':
+                        priority_score += 0.25
+                    elif mode == 'tram':
+                        priority_score += 0.15
+                    elif mode == 'ferry' and weather_impact.precipitation > 5:
+                        priority_score -= 0.2
+                
                 transport_recommendations.append({
                     'mode': mode,
                     'crowding_level': crowding,
                     'crowding_text': self._crowding_to_text(crowding),
-                    'weather_suitability': self._calculate_mode_weather_suitability(mode, weather_impact)
+                    'weather_suitability': weather_suitability,
+                    'priority_score': priority_score
                 })
             
-            # Sort by best overall recommendation
-            transport_recommendations.sort(
-                key=lambda x: (x['weather_suitability'] - x['crowding_level']), 
-                reverse=True
-            )
+            # Sort by priority score (best overall recommendation)
+            transport_recommendations.sort(key=lambda x: x['priority_score'], reverse=True)
             
-            # Generate advice text
+            # Generate advice text with neural insights
             advice = self._generate_weather_advice_text(
-                weather_data, weather_impact, transport_recommendations, hourly_forecast
+                weather_data, weather_impact, transport_recommendations, hourly_forecast,
+                neural_insights=neural_insights, user_intent=user_intent, user_preferences=user_preferences
             )
             
             return {
@@ -767,6 +845,9 @@ class WeatherAwareTransportationAdvisor:
                 'transport_recommendations': transport_recommendations,
                 'current_weather': weather_data,
                 'hourly_forecast': hourly_forecast[:6],  # Next 6 hours
+                'neural_insights': neural_insights,
+                'user_intent': user_intent,
+                'user_preferences': user_preferences,
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -953,8 +1034,10 @@ class WeatherAwareTransportationAdvisor:
         return max(0, min(1, suitability))
     
     def _generate_weather_advice_text(self, weather_data: Dict, weather_impact: WeatherImpact,
-                                    transport_recommendations: List[Dict], hourly_forecast: List[Dict]) -> str:
-        """Generate comprehensive weather-aware transportation advice text"""
+                                    transport_recommendations: List[Dict], hourly_forecast: List[Dict],
+                                    neural_insights: Dict = None, user_intent: str = None, 
+                                    user_preferences: Dict = None) -> str:
+        """Generate comprehensive weather-aware transportation advice text with neural insights"""
         current_time = datetime.now().strftime("%H:%M")
         temp = weather_data.get('temperature', 15)
         condition = weather_data.get('condition', 'Clear')
@@ -965,22 +1048,57 @@ class WeatherAwareTransportationAdvisor:
         
         # Weather header
         advice_parts.append(f"🌤️ **Weather-Aware Transportation Advice** (Updated: {current_time})")
+        
+        # Add neural insights header if available
+        if neural_insights and user_intent:
+            intent_emoji = {
+                'route_planning': '🗺️',
+                'fastest_route': '⚡',
+                'cost_query': '💰',
+                'comfort': '🛋️',
+                'general_query': '💬'
+            }.get(user_intent, '💬')
+            advice_parts.append(f"{intent_emoji} **Understood Intent**: {user_intent.replace('_', ' ').title()}")
+            
+            if user_preferences:
+                priority = user_preferences.get('priority', 'balanced')
+                priority_text = {
+                    'speed': 'Speed ⚡',
+                    'cost': 'Cost-effective 💰',
+                    'comfort': 'Comfort & Convenience 🛋️',
+                    'balanced': 'Balanced ⚖️'
+                }.get(priority, 'Balanced')
+                advice_parts.append(f"🎯 **Optimizing For**: {priority_text}")
+        
         advice_parts.append(f"📊 **Current Weather**: {temp}°C, {description}")
         
         # Weather impact
         if weather_impact.recommendations:
             advice_parts.append(f"⚠️ **Weather Impact**: {', '.join(weather_impact.recommendations)}")
         
-        # Transportation recommendations
+        # Transportation recommendations with reasoning
         advice_parts.append(f"\n🚇 **Best Transportation Options Right Now**:")
         
         for i, rec in enumerate(transport_recommendations[:3], 1):
             mode_icon = {'metro': '🚇', 'bus': '🚌', 'ferry': '⛴️', 'tram': '🚋'}.get(rec['mode'], '🚐')
             crowding_icon = {'Sparsely populated': '🟢', 'Moderately crowded': '🟡', 'Very crowded': '🔴'}.get(rec['crowding_text'], '⚪')
             
+            # Add reasoning based on intent and preferences
+            reasoning = []
+            if user_preferences:
+                priority = user_preferences.get('priority')
+                if priority == 'speed' and rec['mode'] in ['metro', 'tram']:
+                    reasoning.append("fastest in traffic")
+                elif priority == 'comfort' and rec['crowding_level'] < 0.5:
+                    reasoning.append("less crowded")
+                elif user_preferences.get('weather_sensitive') and rec['mode'] == 'metro':
+                    reasoning.append("fully covered")
+            
+            reason_text = f" - {', '.join(reasoning)}" if reasoning else ""
+            
             advice_parts.append(
                 f"{i}. {mode_icon} **{rec['mode'].title()}** - {crowding_icon} {rec['crowding_text']} "
-                f"(Weather suitability: {rec['weather_suitability']:.1f}/1.0)"
+                f"(Score: {rec['priority_score']:.2f}/1.0{reason_text})"
             )
         
         # Hourly forecast if available
@@ -992,21 +1110,36 @@ class WeatherAwareTransportationAdvisor:
                 hour_condition = hour_data.get('condition', 'Clear')
                 advice_parts.append(f"   • {hour_time}: {hour_temp}°C, {hour_condition}")
         
-        # General recommendations
+        # Intent-specific recommendations
         advice_parts.append(f"\n💡 **Weather-Specific Tips**:")
+        
+        # Priority-based tips
+        if user_preferences:
+            priority = user_preferences.get('priority')
+            if priority == 'speed':
+                advice_parts.append("   • 🚇 Metro is your best bet for speed - runs every 5-10 minutes")
+                advice_parts.append("   • 🚋 Tram T1 is fast for historic peninsula routes")
+            elif priority == 'comfort':
+                advice_parts.append("   • Choose metro during peak hours for air conditioning")
+                advice_parts.append("   • ⛴️ Ferry offers scenic comfort when weather permits")
+            elif priority == 'cost':
+                advice_parts.append("   • All transport modes cost the same with Istanbulkart!")
+                advice_parts.append("   • Get Istanbulkart for discounted fares")
+        
+        # Weather-specific tips
         if temp < 10:
-            advice_parts.append("   • Dress warmly and consider underground transport (metro)")
-            advice_parts.append("   • Ferry rides may be colder due to wind")
+            advice_parts.append("   • 🥶 Dress warmly and consider underground transport (metro)")
+            advice_parts.append("   • ⛴️ Ferry rides may be colder due to wind")
         elif temp > 25:
-            advice_parts.append("   • Stay hydrated and seek air-conditioned transport")
-            advice_parts.append("   • Consider ferry rides for cooler Bosphorus breeze")
+            advice_parts.append("   • ☀️ Stay hydrated and seek air-conditioned transport")
+            advice_parts.append("   • ⛴️ Consider ferry rides for cooler Bosphorus breeze")
         
         if weather_data.get('precipitation', 0) > 0:
-            advice_parts.append("   • Carry an umbrella and prefer covered transport")
-            advice_parts.append("   • Metro and tram are better choices than bus during rain")
+            advice_parts.append("   • ☔ Carry an umbrella and prefer covered transport")
+            advice_parts.append("   • 🚇 Metro and tram are better choices than bus during rain")
         
-        advice_parts.append("   • Check real-time arrivals before traveling")
-        advice_parts.append("   • Ask me for specific route recommendations!")
+        advice_parts.append("   • 📱 Check real-time arrivals before traveling")
+        advice_parts.append("   • 🗣️ Ask me for specific route recommendations!")
         
         return "\n".join(advice_parts)
     
@@ -1460,6 +1593,19 @@ class MLEnhancedTransportationSystem:
         self.ml_predictor = MLCrowdingPredictor()
         self.poi_optimizer = POIIntegratedRouteOptimizer()
         self.transport_network = self._load_transport_network()
+        
+        # Initialize lightweight neural processor for query understanding
+        if NEURAL_ENHANCEMENT_AVAILABLE:
+            try:
+                self.neural_processor = LightweightNeuralProcessor()
+                logger.info("✅ Neural query processor initialized for transportation system")
+            except Exception as e:
+                logger.error(f"Failed to initialize neural processor: {e}")
+                self.neural_processor = None
+        else:
+            self.neural_processor = None
+            logger.warning("⚠️ Neural query processor not available, using basic text processing")
+        
         logger.info("🚀 ML-Enhanced Transportation System initialized successfully!")
     
     def _load_transport_network(self) -> Dict[str, Any]:
@@ -2373,9 +2519,25 @@ class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
     def get_general_transportation_advice(self, query: str, start_location: str = None, end_location: str = None) -> Dict[str, Any]:
         """
         Provide general transportation advice when GPS location is not available
+        Enhanced with neural query understanding for better intent and entity extraction
         """
         try:
             logger.info(f"🗺️ Generating general transportation advice for query: {query}")
+            
+            # Use neural processor for query understanding if available
+            neural_insights = {}
+            if self.neural_processor:
+                try:
+                    neural_result = self.neural_processor.process_query(query)
+                    neural_insights = {
+                        'intent': neural_result.get('intent', 'unknown'),
+                        'entities': neural_result.get('entities', {}),
+                        'sentiment': neural_result.get('sentiment', 'neutral'),
+                        'complexity': neural_result.get('complexity', 'simple')
+                    }
+                    logger.info(f"🧠 Neural insights: intent={neural_insights['intent']}, sentiment={neural_insights['sentiment']}")
+                except Exception as e:
+                    logger.warning(f"Neural processing failed: {e}")
             
             # Parse locations from query if not provided
             if not start_location or not end_location:
@@ -2392,9 +2554,9 @@ class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
             end_map_loc = MapLocation(end_coords[0], end_coords[1], end_location)
             distance = self.calculate_distance(start_map_loc, end_map_loc)
             
-            # Generate transportation recommendations
+            # Generate transportation recommendations (enhanced with neural insights)
             transport_recommendations = self._generate_general_transport_recommendations(
-                start_location, end_location, distance, query
+                start_location, end_location, distance, query, neural_insights
             )
             
             # Get nearby attractions for the area
@@ -2424,8 +2586,45 @@ class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
     
     def _extract_locations_from_query(self, query: str) -> Dict[str, str]:
         """
-        Extract start and end locations from user query using keyword matching
+        Extract start and end locations from user query using neural entity extraction
+        Falls back to keyword matching if neural processor is unavailable
         """
+        # Try neural extraction first
+        if self.neural_processor:
+            try:
+                neural_result = self.neural_processor.process_query(query)
+                
+                # Extract location entities from neural processing
+                entities = neural_result.get('entities', {})
+                locations = {'start': None, 'end': None}
+                
+                # Look for GPE (geopolitical entities) and FAC (facilities) as locations
+                location_entities = []
+                for ent_type, ent_list in entities.items():
+                    if ent_type in ['GPE', 'FAC', 'LOC']:
+                        location_entities.extend(ent_list)
+                
+                # Try to determine start and end from context
+                if len(location_entities) >= 2:
+                    locations['start'] = location_entities[0]
+                    locations['end'] = location_entities[1]
+                elif len(location_entities) == 1:
+                    # Single location mentioned, try to determine if it's start or end from intent
+                    intent = neural_result.get('intent', 'unknown')
+                    if 'from' in query.lower() or 'starting' in query.lower():
+                        locations['start'] = location_entities[0]
+                    else:
+                        locations['end'] = location_entities[0]
+                
+                # If neural extraction found locations, return them
+                if locations['start'] or locations['end']:
+                    logger.info(f"🧠 Neural extraction found: start={locations['start']}, end={locations['end']}")
+                    return locations
+                    
+            except Exception as e:
+                logger.warning(f"Neural location extraction failed, falling back to keyword matching: {e}")
+        
+        # Fallback to original keyword-based extraction
         query_lower = query.lower()
         
         # Common location keywords in Turkish and English
@@ -2470,22 +2669,41 @@ class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
         
         return locations
     
-    def _generate_general_transport_recommendations(self, start: str, end: str, distance: float, query: str) -> List[Dict[str, Any]]:
+    def _generate_general_transport_recommendations(self, start: str, end: str, distance: float, query: str, neural_insights: Dict = None) -> List[Dict[str, Any]]:
         """
         Generate general transportation recommendations based on locations and distance
+        Enhanced with neural insights for better personalization
         """
         recommendations = []
+        
+        # Extract user preferences from neural insights
+        prefer_speed = False
+        prefer_cost = False
+        prefer_comfort = False
+        
+        if neural_insights:
+            intent = neural_insights.get('intent', '')
+            if 'fast' in intent or 'quick' in intent or 'urgent' in query.lower():
+                prefer_speed = True
+            if 'cheap' in intent or 'budget' in intent or 'save' in query.lower():
+                prefer_cost = True
+            if 'comfort' in intent or 'relaxing' in query.lower():
+                prefer_comfort = True
         
         # Walking recommendation
         if distance <= 2.0:  # Within 2km
             walking_time = int(distance * 15)
+            suitability = 'high' if distance <= 1.0 else 'medium'
+            if prefer_speed and distance > 1.0:
+                suitability = 'low'  # Walking not preferred for speed
+            
             recommendations.append({
                 'mode': 'walking',
                 'icon': '🚶',
                 'duration_minutes': walking_time,
                 'cost_tl': 0.0,
                 'description': f'Walk directly ({walking_time} minutes)',
-                'suitability': 'high' if distance <= 1.0 else 'medium',
+                'suitability': suitability,
                 'tips': ['Comfortable for short distances', 'Free and healthy option']
             })
         
@@ -2493,13 +2711,17 @@ class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
         metro_suitable = self._is_metro_suitable(start, end)
         if metro_suitable:
             metro_time = max(20, int(distance * 8))  # Metro is faster
+            metro_suitability = 'high'
+            if prefer_speed:
+                metro_suitability = 'very_high'  # Metro is best for speed
+            
             recommendations.append({
                 'mode': 'metro',
                 'icon': '🚇',
                 'duration_minutes': metro_time,
                 'cost_tl': 7.67,
                 'description': f'Metro system ({metro_time} minutes)',
-                'suitability': 'high',
+                'suitability': metro_suitability,
                 'tips': ['Most reliable', 'Frequent service', 'Air conditioned']
             })
         

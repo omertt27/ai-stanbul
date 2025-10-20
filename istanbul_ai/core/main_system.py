@@ -1495,514 +1495,514 @@ What would you like to know about Istanbul's neighborhoods?"""
    Ottoman palace turned restaurant
    📍 Location: Ortaköy, Bosphorus shore
    🏰 Specialty: Elegant waterfront dining, fresh fish
-
-**Fresh Fish Experience:**
-• 🐟 **Daily catch** displayed on ice
-• 🔥 **Grilled whole fish** - Turkish specialty
-• 🥗 **Seasonal salads** and mezze starters
-• 🍷 **Turkish white wines** pair perfectly
-• 🌅 **Sunset dining** on terraces
-
-💡 **Waterfront Fish Tips:**
-• Ask to see the daily catch selection
-• Grilled levrek (sea bass) and çipura (sea bream) are excellent
-• Order rakı or white wine with fish
-• Best times: lunch or early dinner for views
-• Reservations essential for waterfront tables
-
-🌊 Fresh from the Bosphorus to your plate!"""
-
-    def _handle_complex_dietary_query(self, user_input: str, entities: Dict) -> str:
-        """Handle complex dietary restrictions and medical needs"""
-        query_lower = user_input.lower()
-        
-        if 'diabetic' in query_lower or 'sugar-free' in query_lower:
-            return self._handle_diabetic_query(user_input, entities)
-        elif 'pregnant' in query_lower or 'pregnancy' in query_lower:
-            return self._handle_pregnancy_query(user_input, entities)
-        elif 'wheelchair' in query_lower or 'accessible' in query_lower:
-            return self._handle_accessibility_query(user_input, entities)
-        else:
-            return self._handle_restaurant_query(user_input, entities, None)
-
-    def _handle_diabetic_query(self, user_input: str, entities: Dict) -> str:
-        """Handle diabetic and sugar-free dietary needs"""
-        return """🍽️ **Diabetic-Friendly & Sugar-Free Restaurants**
-
-🩺 **Diabetic-Safe Dining Options:**
-
-**1. Zencefil Restaurant**
-   Organic vegetarian with sugar-free options
-   📍 Location: Galata
-   🥗 Specialty: Fresh salads, sugar-free desserts
-
-**2. Cooklife**
-   Health-focused with diabetic-friendly menu
-   📍 Location: Bebek, Bomonti
-   ✅ Specialty: Sugar-free baked goods, low-carb options
-
-**3. Seasons Restaurant (Four Seasons)**
-   Fine dining with medical dietary accommodation
-   📍 Location: Sultanahmet
-   ⭐ Specialty: Custom diabetic-friendly tasting menus
-
-**4. Neolokal**
-   Modern Turkish with health-conscious preparations
-   📍 Location: Galata
-   🍽️ Specialty: Fresh, unprocessed Turkish ingredients
-
-**Diabetic-Safe Turkish Foods:**
-• 🥩 **Grilled meats** - No sugar marinades
-• 🥗 **Fresh vegetables** - Olive oil preparations
-• 🧀 **Turkish cheese** - Natural, unprocessed
-• 🫒 **Olives and nuts** - Healthy snacks
-• 🥬 **Salads** - Ask for dressing on the side
-
-⚠️ **Foods to Avoid:**
-• Turkish desserts (baklava, künefe)
-• Sweetened Turkish tea/coffee
-• Fruit juices and sodas
-• Honey-glazed dishes
-
-💡 **Diabetic Dining Tips:**
-• Learn: "Şekersiz" (sugar-free) and "Az şekerli" (low sugar)
-• Always ask about hidden sugars in sauces
-• Stick to grilled/steamed preparations
-• Carry glucose meter for monitoring
-• Hotel concierge can help explain dietary needs
-
-🩺 Safe and delicious dining for diabetic guests!"""
-
-    def _handle_pregnancy_query(self, user_input: str, entities: Dict) -> str:
-        """Handle pregnancy-safe dining options"""
-        return """🍽️ **Pregnancy-Safe Healthy Restaurants**
-
-🤱 **Pregnancy-Friendly Dining:**
-
-**1. Zencefil Restaurant**
-   Organic vegetarian with fresh ingredients
-   📍 Location: Galata
-   🥗 Specialty: Organic vegetables, no processed foods
-
-**2. Cooklife**
-   Health-focused with fresh preparations
-   📍 Location: Bebek, Bomonti
-   ✅ Specialty: Fresh juices, wholesome meals
-
-**3. Seasons Restaurant (Four Seasons)**
-   High-end dining with quality control
-   📍 Location: Sultanahmet
-   ⭐ Specialty: Premium ingredients, safe preparations
-
-**4. House Cafe**
-   Modern cafe with fresh options
-   📍 Location: Multiple locations
-   ☕ Specialty: Fresh salads, reliable food safety
-
-**Pregnancy-Safe Turkish Foods:**
-• 🥩 **Well-cooked meats** - Avoid rare preparations
-• 🥗 **Fresh vegetables** - Well-washed salads
-• 🍞 **Fresh bread** - Traditional Turkish bread
-• 🧀 **Pasteurized cheese** - Turkish white cheese
-• 🍵 **Herbal teas** - Avoid excessive caffeine
-
-⚠️ **Foods to Avoid:**
-• Raw or undercooked fish
-• Unpasteurized dairy products
-• Raw eggs in preparations
-• Excessive caffeine (Turkish coffee)
-• Unwashed fruits/vegetables
-
-💡 **Pregnancy Dining Tips:**
-• Choose restaurants with good hygiene standards
-• Ask for meat to be well-cooked
-• Avoid street food during pregnancy
-• Drink bottled water
-• Fresh fruit juices are great vitamin sources
-
-🤱 Nutritious and safe dining for expecting mothers!"""
-
-    def _handle_accessibility_query(self, user_input: str, entities: Dict) -> str:
-        """Handle wheelchair accessibility and mobility needs"""
-        return """🍽️ **Wheelchair Accessible Restaurants**
-
-♿ **Fully Accessible Dining Options:**
-
-**1. Seasons Restaurant (Four Seasons)**
-   5-star hotel with full accessibility
-   📍 Location: Sultanahmet
-   ♿ Features: Wheelchair ramps, accessible restrooms
-
-**2. Mikla Restaurant**
-   Modern restaurant with accessibility features
-   📍 Location: Beyoğlu
-   🏢 Features: Elevator access, wide aisles
-
-**3. Sunset Grill & Bar**
-   Upscale dining with accessibility
-   📍 Location: Ulus
-   🌅 Features: Ground level access, accessible parking
-
-**4. Mall Restaurants (Kanyon, Zorlu Center)**
-   Shopping mall dining with full accessibility
-   📍 Location: Levent, Beşiktaş
-   🛒 Features: Wheelchair access, accessible facilities
-
-**5. Hotel Restaurants**
-   Most 4-5 star hotel restaurants are accessible
-   📍 Location: Throughout Istanbul
-   🏨 Features: Ramps, wide doorways, accessible restrooms
-
-**Accessibility Features to Look For:**
-• ♿ **Wheelchair ramps** - Entrance access
-• 🚪 **Wide doorways** - Easy navigation
-• 🚻 **Accessible restrooms** - Proper facilities
-• 🅿️ **Accessible parking** - Close to entrance
-• 🛗 **Elevator access** - For upper floors
-
-💡 **Accessibility Tips:**
-• Call ahead to confirm accessibility features
-• Hotel restaurants usually have best access
-• Newer restaurants generally more accessible
-• Shopping mall restaurants are reliably accessible
-• Tourist areas have better accessibility compliance
-
-♿ Comfortable and accessible dining experiences!"""
-
-    def _detect_user_location(self, user_input: str, user_profile: UserProfile, context: 'ConversationContext') -> Optional[str]:
-        """Intelligently detect user's current location using advanced location detection service"""
-        
-        # Use advanced location detector if available
-        if self.advanced_services_available and self.location_detector:
-            try:
-                result = self.location_detector.detect_location(user_input, user_profile, context)
+                    context={'turn_count': context.turn_count, 'user_query': user_input},
+                    tone=ConversationTone.FRIENDLY
+                )• 🐟 **Daily catch** displayed on ice
+                 specialty
+                # Add to conversation historyers
+                context.add_interaction(user_input, enhanced_response, "small_talk")ectly
                 
-                if result.location:
-                    # Update context with detection method and metadata
-                    context.set_context('current_detected_location', result.location)
-                    context.set_context('location_detection_method', result.detection_method)
-                    context.set_context('location_confidence', result.confidence)
-                    context.set_context('location_fallbacks', result.fallback_locations)
-                    
-                    # Update user profile if it's an explicit mention
-                    if result.detection_method == 'explicit_query':
-                        user_profile.update_location(result.location)
-                    
-                    logger.info(f"Advanced location detection: {result.location} (method: {result.detection_method}, confidence: {result.confidence})")
-                    return result.location
-                else:
-                    logger.info("Advanced location detector found no definitive location")
-                    return None
-                    
-            except Exception as e:
-                logger.warning(f"Advanced location detection failed, falling back to basic detection: {e}")
-        
-        # Fallback to basic location detection
-        return self._detect_user_location_basic(user_input, user_profile, context)
-
-    def _detect_user_location_basic(self, user_input: str, user_profile: UserProfile, context: 'ConversationContext') -> Optional[str]:
-        """Basic location detection fallback method"""
-        
-        # Priority 1: Explicit location mentioned in current query
-        entities = self.entity_recognizer.extract_entities(user_input)
-        districts = entities.get('districts', [])
-        if districts:
-            location = districts[0]
-            user_profile.update_location(location)  # Update user profile
-            context.set_context('current_detected_location', location)
-            context.set_context('location_detection_method', 'explicit_query')
-            logger.info(f"Location detected from query: {location}")
-            return location
-        
-        # Enhanced contextual location detection for proximity indicators
-        proximity_indicators = ['nearby', 'around here', 'close by', 'walking distance', 'in the area']
-        if any(indicator in user_input.lower() for indicator in proximity_indicators):
-            # Look for most recent location mention in context
-            recent_location = self._get_most_recent_location_from_context(context)
-            if recent_location:
-                context.set_context('current_detected_location', recent_location)
-                context.set_context('location_detection_method', 'proximity_inference')
-                logger.info(f"Location inferred from proximity indicator: {recent_location}")
-                return recent_location
-        
-        # Priority 2: Check user profile current location
-        if user_profile.current_location:
-            context.set_context('location_detection_method', 'user_profile')
-            logger.info(f"Using user profile location: {user_profile.current_location}")
-            return user_profile.current_location
-        
-        # Priority 3: Check context memory for previous location mentions
-        if context.get_context('current_detected_location'):
-            location = context.get_context('current_detected_location')
-            context.set_context('location_detection_method', 'context_memory')
-            logger.info(f"Using context location: {location}")
-            return location
-        
-        # Priority 4: Analyze recent conversation history with weighted recency
-        recent_locations = self._extract_locations_from_history_weighted(context.conversation_history)
-        if recent_locations:
-            # Use most recent or frequently mentioned location with recency bias
-            best_location = self._select_best_location_from_history(recent_locations)
-            if best_location:
-                context.set_context('current_detected_location', best_location)
-                context.set_context('location_detection_method', 'conversation_history')
-                logger.info(f"Using location from weighted history analysis: {best_location}")
-                return best_location
-        
-        # Priority 5: Check user's favorite neighborhoods with preference weighting
-        if user_profile.favorite_neighborhoods:
-            # Consider user type and preferences to select best favorite neighborhood
-            location = self._select_best_favorite_neighborhood(user_profile)
-            context.set_context('location_detection_method', 'favorite_neighborhood')
-            logger.info(f"Using selected favorite neighborhood: {location}")
-            return location
-        
-        # Priority 6: Use GPS coordinates if available to determine nearest district
-        if user_profile.gps_location:
-            nearest_district = self._get_nearest_district_from_gps(user_profile.gps_location)
-            if nearest_district:
-                context.set_context('location_detection_method', 'gps_coordinates')
-                logger.info(f"Using GPS-derived location: {nearest_district}")
-                return nearest_district
-        
-        logger.info("No location detected, will provide general recommendations")
-        return None
-
-    def _get_most_recent_location_from_context(self, context: 'ConversationContext') -> Optional[str]:
-        """Get the most recently mentioned location from conversation context"""
-        # Check last 5 interactions for location mentions
-        recent_history = context.conversation_history[-5:] if len(context.conversation_history) > 5 else context.conversation_history
-        
-        for interaction in reversed(recent_history):  # Start from most recent
-            user_input = interaction.get('user_input', '')
-            system_response = interaction.get('system_response', '')
+                return enhanced_response
             
-            # Check user input first
-            entities = self.entity_recognizer.extract_entities(user_input)
-            districts = entities.get('districts', [])
-            if districts:
-                return districts[0]
+            # 🧠 STEP 2: Process with multi-intent or traditional methodion
+            if self.multi_intent_available and self.multi_intent_handler:sea bream) are excellent
+                response = self._process_with_multi_intent(user_input, user_profile, context)
+            else:• Best times: lunch or early dinner for views
+                # Fallback to traditional processingor waterfront tables
+                response = self._process_traditional(user_input, user_profile, context)
             
-            # Check system response for location patterns
-            for district in self._get_known_districts():
-                if district.lower() in system_response.lower():
-                    return district
-        
-        return None
-
-    def _extract_locations_from_history_weighted(self, conversation_history: List[Dict]) -> List[Dict]:
-        """Extract locations from history with recency weighting"""
-        weighted_locations = []
-        # Look at last 10 interactions with decreasing weight for older interactions
-        recent_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
-        
-        for i, interaction in enumerate(reversed(recent_history)):
-            weight = 1.0 - (i * 0.1)  # Recent interactions have higher weight
-            user_input = interaction.get('user_input', '')
-            system_response = interaction.get('system_response', '')
+            # 🎨 STEP 3: Add personality to response
+            response = self.personality.add_personality_to_response( user_input: str, entities: Dict) -> str:
+                response,restrictions and medical needs"""
+                context={        query_lower = user_input.lower()
+                    'turn_count': context.turn_count,
+                    'user_query': user_inputr 'sugar-free' in query_lower:
+                },ies)
+                tone=self._determine_tone(user_input, response)er or 'pregnancy' in query_lower:
+            )ry(user_input, entities)
+            ccessible' in query_lower:
+            # 😄 STEP 4: Occasionally add humor            return self._handle_accessibility_query(user_input, entities)
+            if context.turn_count > 2:  # Only after a few exchanges
+                response = self.personality.add_humor(            return self._handle_restaurant_query(user_input, entities, None)
+                    response,
+                    context={'user_query': user_input}t) -> str:
+                )e dietary needs"""
+            return """🍽️ **Diabetic-Friendly & Sugar-Free Restaurants**
+            # Add to conversation history
+            context.add_interaction(user_input, response, "processed")
             
-            # Extract from user input
-            entities = self.entity_recognizer.extract_entities(user_input)
-            districts = entities.get('districts', [])
-            for district in districts:
-                weighted_locations.append({
-                    'location': district,
-                    'weight': weight,
-                    'source': 'user_input',
-                    'interaction_index': len(recent_history) - i - 1
-                })
-            
-            # Extract from system response
-            for district in self._get_known_districts():
-                if district.lower() in system_response.lower():
-                    weighted_locations.append({
-                        'location': district,
-                        'weight': weight * 0.8,  # System mentions have slightly lower weight
-                        'source': 'system_response',
-                        'interaction_index': len(recent_history) - i - 1
-                    })
-        
-        return weighted_locations
-
-    def _select_best_location_from_history(self, weighted_locations: List[Dict]) -> Optional[str]:
-        """Select the best location from weighted history analysis"""
-        if not weighted_locations:
-            return None
-        
-        # Calculate total weight for each location
-        location_scores = {}
-        for loc_data in weighted_locations:
-            location = loc_data['location']
-            weight = loc_data['weight']
-            
-            if location not in location_scores:
-                location_scores[location] = {
-                    'total_weight': 0,
-                    'mention_count': 0,
-                    'most_recent_index': -1
-                }
-            
-            location_scores[location]['total_weight'] += weight
-            location_scores[location]['mention_count'] += 1
-            location_scores[location]['most_recent_index'] = max(
-                location_scores[location]['most_recent_index'],
-                loc_data['interaction_index']
-            )
-        
-        # Select location with highest combined score (weight + recency + frequency)
-        best_location = None
-        best_score = 0
-        
-        for location, score_data in location_scores.items():
-            # Combined score: total weight + recency bonus + frequency bonus
-            combined_score = (
-                score_data['total_weight'] +
-                (score_data['most_recent_index'] * 0.1) +  # Recency bonus
-                (score_data['mention_count'] * 0.2)  # Frequency bonus
-            )
-            
-            if combined_score > best_score:
-                best_score = combined_score
-                best_location = location
-        
-        return best_location
-
-    def _select_best_favorite_neighborhood(self, user_profile: UserProfile) -> str:
-        """Select the best favorite neighborhood based on user preferences and context"""
-        if not user_profile.favorite_neighborhoods:
-            return None
-        
-        # For now, use first favorite, but could be enhanced with:
-        # - User type preferences (tourists prefer tourist areas, locals prefer authentic areas)
-        # - Time of day (nightlife areas for evening, business areas for lunch)
-        # - Query type (cultural areas for culture queries, food areas for restaurant queries)
-        
-        primary_favorite = user_profile.favorite_neighborhoods[0]
-        
-        # Add some intelligence based on user type
-        if hasattr(user_profile, 'user_type'):
-            if user_profile.user_type == UserType.TOURIST:
-                # Tourists might prefer more accessible/famous areas
-                tourist_friendly = ['Sultanahmet', 'Taksim', 'Beyoğlu', 'Galata']
-                for neighborhood in user_profile.favorite_neighborhoods:
-                    if neighborhood in tourist_friendly:
-                        return neighborhood
-            elif user_profile.user_type == UserType.LOCAL:
-                # Locals might prefer authentic neighborhood experiences
-                authentic_areas = ['Kadıköy', 'Beşiktaş', 'Balat', 'Fener', 'Cihangir']
-                for neighborhood in user_profile.favorite_neighborhoods:
-                    if neighborhood in authentic_areas:
-                        return neighborhood
-        
-        return primary_favorite
-
-    def _get_known_districts(self) -> List[str]:
-        """Get list of known Istanbul districts"""
-        return [
-            'Sultanahmet', 'Beyoğlu', 'Galata', 'Taksim', 'Kadıköy', 'Beşiktaş', 
-            'Şişli', 'Nişantaşı', 'Levent', 'Etiler', 'Ortaköy', 'Üsküdar',
-            'Eminönü', 'Karaköy', 'Cihangir', 'Asmalımescit', 'Arnavutköy',
-            'Bebek', 'Bostancı', 'Fenerbahçe', 'Moda', 'Balat', 'Fener'
-        ]
-
-    def _get_nearest_district_from_gps(self, gps_coords: Dict[str, float]) -> Optional[str]:
-        """Determine nearest district from GPS coordinates"""
-        lat, lng = gps_coords.get('lat'), gps_coords.get('lng')
-        if not lat or not lng:
-            return None
-        
-        # Istanbul district center coordinates (approximate)
-        district_coords = {
-            'Sultanahmet': {'lat': 41.0086, 'lng': 28.9802},
-            'Beyoğlu': {'lat': 41.0362, 'lng': 28.9773},
-            'Taksim': {'lat': 41.0370, 'lng': 28.9850},
-            'Kadıköy': {'lat': 40.9833, 'lng': 29.0333},
-            'Beşiktaş': {'lat': 41.0422, 'lng': 29.0097},
-            'Galata': {'lat': 41.0256, 'lng': 28.9744},
-            'Levent': {'lat': 41.0766, 'lng': 29.0092},
-            'Şişli': {'lat': 41.0608, 'lng': 28.9866}
-        }
-        
-        min_distance = float('inf')
-        nearest_district = None
-        
-        for district, coords in district_coords.items():
-            # Simple distance calculation (Euclidean)
-            distance = ((lat - coords['lat'])**2 + (lng - coords['lng'])**2)**0.5
-            if distance < min_distance:
-                min_distance = distance
-                nearest_district = district
-        
-        return nearest_district
-
-    def _process_with_multi_intent(self, user_input: str, user_profile: UserProfile, context: ConversationContext) -> str:
-        """Process message using multi-intent handler with location detector integration"""
-        try:
-            # PRIORITY CHECK: Neighborhood guide queries should be handled first
-            user_input_lower = user_input.lower()
-            entities = self.entity_recognizer.extract_entities(user_input)
-            matched_districts = []
-            
-            if self.neighborhood_guide:
-                matched_districts = self.neighborhood_guide.find_districts_by_keywords(user_input)
-                
-                # Enhanced neighborhood detection
-                neighborhood_keywords = [
-                    'neighborhood', 'district', 'area', 'guide', 'vibe', 'atmosphere', 'character',
-                    'compare', 'comparison', 'vs', 'versus', 'which is better',
-                    'complete guide', 'comprehensive guide', 'everything about',
-                    'besiktas', 'beşiktaş', 'kadikoy', 'kadıköy', 'sultanahmet', 
-                    'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'
-                ]
-                
-                district_context_keywords = [
-                    f"{query_type} in" for query_type in ['restaurants', 'nightlife', 'attractions', 'shopping', 'food', 'bars', 'clubs', 'sights']
-                ]
-                
-                has_neighborhood_context = (
-                    any(word in user_input_lower for word in neighborhood_keywords) or
-                    any(phrase in user_input_lower for phrase in district_context_keywords) or
-                    matched_districts or
-                    any(f"in {district}" in user_input_lower for district in ['kadikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'sultanahmet', 'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'])
-                )
-                
-                if has_neighborhood_context:
-                    logger.info(f"🏘️ Priority routing to neighborhood guide for query with districts: {matched_districts}")
-                    return self._handle_neighborhood_guide_query(user_input, entities, user_profile, context)
-            
-            # Create context for multi-intent handler
-            multi_intent_context = {
-                'user_id': user_profile.user_id,
-                'session_id': context.session_id,
-                'conversation_history': context.get_recent_interactions(5),
-                'user_preferences': user_profile.preferences,
-                'location': getattr(user_profile, 'current_location', None)
-            }
-            
-            # Analyze query with multi-intent handler
-            multi_intent_result = self.multi_intent_handler.analyze_query(user_input, multi_intent_context)
-            
-            logger.info(f"🎯 Multi-intent analysis: Primary={multi_intent_result.primary_intent.type.value}, "
-                       f"Secondary={[i.type.value for i in multi_intent_result.secondary_intents]}")
-            
-            # Process based on primary intent with location integration
-            if multi_intent_result.primary_intent.type.value in ['location_search', 'route_planning']:
-                return self._handle_location_intent(user_input, multi_intent_result, user_profile, context)
-            elif multi_intent_result.primary_intent.type.value == 'recommendation':
-                return self._handle_recommendation_intent(user_input, multi_intent_result, user_profile, context)
-            elif multi_intent_result.primary_intent.type.value == 'information_request':
-                return self._handle_information_intent(user_input, multi_intent_result, user_profile, context)
-            else:
-                # Handle other intents or use execution plan
-                return self._execute_multi_intent_plan(multi_intent_result, user_profile, context)
+            return response
             
         except Exception as e:
-            logger.error(f"Multi-intent processing failed: {e}")
-            return self._process_traditional(user_input, user_profile, context)
-
-    def _handle_location_intent(self, user_input: str, multi_intent_result, user_profile: UserProfile, context: ConversationContext) -> str:
-        """Handle location-related intents with intelligent location detection"""
+            logger.error(f"Error processing message: {e}")ty: Fresh salads, sugar-free desserts
+            return self._generate_fallback_response(user_input)
+    **2. Cooklife**
+    def _determine_tone(self, user_input: str, response: str) -> ConversationTone:
+        """Determine appropriate conversation tone"""
+        user_lower = user_input.lower()
         
+        # Friendly tone for greetings and thankss)**
+        if any(word in user_lower for word in ['hello', 'hi', 'thanks', 'thank you', 'merhaba']):   Fine dining with medical dietary accommodation
+            return ConversationTone.FRIENDLYt
+        ing menus
+        # Professional tone for factual queries
+        if any(word in user_lower for word in ['how much', 'cost', 'price', 'hours', 'schedule']):
+            return ConversationTone.INFORMATIVE   Modern Turkish with health-conscious preparations
+         Galata
+        # Default to informativeingredients
+        return ConversationTone.INFORMATIVE
+
+    def _init_integrations(self):• 🥩 **Grilled meats** - No sugar marinades
+        """Initialize external integrations"""eparations
+        try:
+            # Initialize advanced transportation systemHealthy snacks
+            if ADVANCED_TRANSPORT_AVAILABLE:
+                self.transport_processor = TransportationQueryProcessor()
+                self.ml_transport_system = create_ml_enhanced_transportation_system()void:**
+                logger.info("🚇 Advanced transportation system with IBB API initialized")
+            else:a/coffee
+                self.transport_processor = None
+                self.ml_transport_system = None• Honey-glazed dishes
+                
+            # Try to load external integrations
+            self._load_events_integration()(low sugar)
+            self._load_route_integration()
+            self._load_deep_learning()
+            logger.info("✅ External integrations loaded successfully")
+        except Exception as e:• Hotel concierge can help explain dietary needs
+            logger.warning(f"⚠️ Some integrations not available: {e}")
+            self._init_fallback_systems()betic guests!"""
+
+    def _load_events_integration(self):y_query(self, user_input: str, entities: Dict) -> str:
+        """Load events integration"""gnancy-safe dining options"""
+        try:        return """🍽️ **Pregnancy-Safe Healthy Restaurants**
+            from monthly_events_scheduler import MonthlyEventsScheduler
+            self.events_scheduler = MonthlyEventsScheduler()
+            self.events_available = True
+            logger.info("🎭 Events integration loaded")
+        except ImportError:redients
+            self.events_available = False
+            logger.warning("⚠️ Events integration not available")   🥗 Specialty: Organic vegetables, no processed foods
+
+    def _load_route_integration(self):**2. Cooklife**
+        """Load route integration"""
+        try:
+            from services.route_maker import IstanbulRoutemaker
+            self.route_maker = IstanbulRoutemaker()
+            self.routing_available = Truesons)**
+            logger.info("🗺️ Route integration loaded")   High-end dining with quality control
+        except ImportError:t
+            self.routing_available = Falseeparations
+            logger.warning("⚠️ Route integration not available")
+
+    def _load_deep_learning(self):   Modern cafe with fresh options
+        """Load deep learning components""" Multiple locations
+        try:od safety
+            from deep_learning_enhanced_ai import DeepLearningEnhancedAI
+            self.deep_learning_ai = DeepLearningEnhancedAI()
+            self.deep_learning_available = True• 🥩 **Well-cooked meats** - Avoid rare preparations
+            logger.info("🧠 Deep learning integration loaded")salads
+        except ImportError:ish bread
+            self.deep_learning_available = False - Turkish white cheese
+            logger.warning("⚠️ Deep learning not available")
+
+    def _init_fallback_systems(self):id:**
+        """Initialize fallback systems when integrations are not available"""
+        self.events_available = False
+        self.routing_available = False
+        self.deep_learning_available = False• Excessive caffeine (Turkish coffee)
+
+    def _init_services(self):
+        """Initialize advanced services"""
+        try:
+            from ..services.intelligent_location_detector import IntelligentLocationDetector
+            from ..services.gps_location_service import GPSLocationService
+            from ..services.neighborhood_guide_service import NeighborhoodGuideService• Drink bottled water
+            re great vitamin sources
+            self.location_detector = IntelligentLocationDetector()
+            self.gps_service = GPSLocationService()for expecting mothers!"""
+            self.neighborhood_guide = NeighborhoodGuideService()
+            self.advanced_services_available = Trueelf, user_input: str, entities: Dict) -> str:
+            logger.info("✅ Advanced location and neighborhood guide services loaded") accessibility and mobility needs"""
+        except ImportError as e:        return """🍽️ **Wheelchair Accessible Restaurants**
+            logger.warning(f"⚠️ Advanced services not available: {e}")
+            self.location_detector = None
+            self.neighborhood_guide = None
+            self.gps_service = Nones)**
+            self.advanced_services_available = Falsefull accessibility
+        
+        # Initialize multi-intent query handler   ♿ Features: Wheelchair ramps, accessible restrooms
+        try:
+            from multi_intent_query_handler import MultiIntentQueryHandler**2. Mikla Restaurant**
+            self.multi_intent_handler = MultiIntentQueryHandler()
+            self.multi_intent_available = True
+            logger.info("✅ Multi-Intent Query Handler loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ Multi-Intent Query Handler not available: {e}")
+            self.multi_intent_handler = None   Upscale dining with accessibility
+            self.multi_intent_available = False
+cessible parking
+    def get_or_create_user_profile(self, user_id: str) -> UserProfile:
+        """Get or create user profile"""
+        if user_id not in self.user_profiles:   Shopping mall dining with full accessibility
+            self.user_profiles[user_id] = UserProfile(user_id=user_id) Beşiktaş
+            logger.info(f"Created new user profile for {user_id}")cilities
+        return self.user_profiles[user_id]
+
+    def get_or_create_conversation_context(self, session_id: str, user_profile: UserProfile) -> ConversationContext:   Most 4-5 star hotel restaurants are accessible
+        """Get or create conversation context"""t Istanbul
+        if session_id not in self.conversation_contexts:, accessible restrooms
+            self.conversation_contexts[session_id] = ConversationContext(
+                session_id=session_id,
+                user_profile=user_profile• ♿ **Wheelchair ramps** - Entrance access
+            )
+        return self.conversation_contexts[session_id]es
+lose to entrance
+    def process_message(self, user_input: str, user_id: str) -> str:
+        """
+        Main message processing method - enhanced with multi-intent support and personality**
+        """
+        try:st access
+            # Get user profile and context
+            user_profile = self.get_or_create_user_profile(user_id)• Shopping mall restaurants are reliably accessible
+            session_id = f"session_{user_id}"ty compliance
+            context = self.get_or_create_conversation_context(session_id, user_profile)
+            riences!"""
+            # 🎭 STEP 1: Check for small talk first (personality-driven)
+            small_talk_response = self.personality.handle_small_talk(str, user_profile: UserProfile, context: 'ConversationContext') -> Optional[str]:
+                user_input,ent location using advanced location detection service"""
+                context={        
+                    'turn_count': context.turn_count,ation detector if available
+                    'user_query': user_input,d self.location_detector:
+                    'weather': 'pleasant'  # TODO: Get real weather
+                }or.detect_location(user_input, user_profile, context)
+            )
+            
+            if small_talk_response:                    # Update context with detection method and metadata
+                # Add personality elements to small talk responsetected_location', result.location)
+                enhanced_response = self.personality.add_personality_to_response(                    context.set_context('location_detection_method', result.detection_method)
+                    small_talk_response,
+                    context={'turn_count': context.turn_count, 'user_query': user_input},
+                    tone=ConversationTone.FRIENDLY            
+                )explicit mention
+                
+                # Add to conversation history        user_profile.update_location(result.location)
+                context.add_interaction(user_input, enhanced_response, "small_talk")
+                    logger.info(f"Advanced location detection: {result.location} (method: {result.detection_method}, confidence: {result.confidence})")
+                return enhanced_responseocation
+            
+            # 🧠 STEP 2: Process with multi-intent or traditional methodion")
+            if self.multi_intent_available and self.multi_intent_handler:
+                response = self._process_with_multi_intent(user_input, user_profile, context)
+            else:
+                # Fallback to traditional processinger.warning(f"Advanced location detection failed, falling back to basic detection: {e}")
+                response = self._process_traditional(user_input, user_profile, context)
+            
+            # 🎨 STEP 3: Add personality to responseile, context)
+            response = self.personality.add_personality_to_response(
+                response,
+                context={ck method"""
+                    'turn_count': context.turn_count,
+                    'user_query': user_input
+                },recognizer.extract_entities(user_input)
+                tone=self._determine_tone(user_input, response)entities.get('districts', [])
+            )
+            
+            # 😄 STEP 4: Occasionally add humor    user_profile.update_location(location)  # Update user profile
+            if context.turn_count > 2:  # Only after a few exchangested_location', location)
+                response = self.personality.add_humor(
+                    response,            logger.info(f"Location detected from query: {location}")
+                    context={'user_query': user_input}
+                )
+            # Enhanced contextual location detection for proximity indicators
+            # Add to conversation history', 'walking distance', 'in the area']
+            context.add_interaction(user_input, response, "processed")ity_indicators):
+            on in context
+            return responsecation = self._get_most_recent_location_from_context(context)
+            
+        except Exception as e:ocation)
+            logger.error(f"Error processing message: {e}")imity_inference')
+            return self._generate_fallback_response(user_input)ent_location}")
+    
+    def _determine_tone(self, user_input: str, response: str) -> ConversationTone:
+        """Determine appropriate conversation tone"""# Priority 2: Check user profile current location
+        user_lower = user_input.lower()
+        
+        # Friendly tone for greetings and thanks")
+        if any(word in user_lower for word in ['hello', 'hi', 'thanks', 'thank you', 'merhaba']):
+            return ConversationTone.FRIENDLY
+        text memory for previous location mentions
+        # Professional tone for factual queries
+        if any(word in user_lower for word in ['how much', 'cost', 'price', 'hours', 'schedule']):
+            return ConversationTone.INFORMATIVE
+        t location: {location}")
+        # Default to informative    return location
+        return ConversationTone.INFORMATIVE
+ersation history with weighted recency
+    def _init_integrations(self):text.conversation_history)
+        """Initialize external integrations"""
+        try:ioned location with recency bias
+            # Initialize advanced transportation system    best_location = self._select_best_location_from_history(recent_locations)
+            if ADVANCED_TRANSPORT_AVAILABLE:
+                self.transport_processor = TransportationQueryProcessor()on', best_location)
+                self.ml_transport_system = create_ml_enhanced_transportation_system()rsation_history')
+                logger.info("🚇 Advanced transportation system with IBB API initialized")best_location}")
+            else:
+                self.transport_processor = None
+                self.ml_transport_system = None# Priority 5: Check user's favorite neighborhoods with preference weighting
+                
+            # Try to load external integrations
+            self._load_events_integration()_select_best_favorite_neighborhood(user_profile)
+            self._load_route_integration()ood')
+            self._load_deep_learning()
+            logger.info("✅ External integrations loaded successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Some integrations not available: {e}")
+            self._init_fallback_systems()
+_get_nearest_district_from_gps(user_profile.gps_location)
+    def _load_events_integration(self):    if nearest_district:
+        """Load events integration"""
+        try: location: {nearest_district}")
+            from monthly_events_scheduler import MonthlyEventsScheduler
+            self.events_scheduler = MonthlyEventsScheduler()
+            self.events_available = True
+            logger.info("🎭 Events integration loaded")
+        except ImportError:
+            self.events_available = False_get_most_recent_location_from_context(self, context: 'ConversationContext') -> Optional[str]:
+            logger.warning("⚠️ Events integration not available")
+or location mentions
+    def _load_route_integration(self):y) > 5 else context.conversation_history
+        """Load route integration"""
+        try:
+            from services.route_maker import IstanbulRoutemaker
+            self.route_maker = IstanbulRoutemaker()on.get('system_response', '')
+            self.routing_available = True    
+            logger.info("🗺️ Route integration loaded")
+        except ImportError:s = self.entity_recognizer.extract_entities(user_input)
+            self.routing_available = False            districts = entities.get('districts', [])
+            logger.warning("⚠️ Route integration not available")
+
+    def _load_deep_learning(self):
+        """Load deep learning components"""
+        try:    for district in self._get_known_districts():
+            from deep_learning_enhanced_ai import DeepLearningEnhancedAI
+            self.deep_learning_ai = DeepLearningEnhancedAI()
+            self.deep_learning_available = True
+            logger.info("🧠 Deep learning integration loaded")rn None
+        except ImportError:
+            self.deep_learning_available = Falsey: List[Dict]) -> List[Dict]:
+            logger.warning("⚠️ Deep learning not available")y weighting"""
+s = []
+    def _init_fallback_systems(self):ons with decreasing weight for older interactions
+        """Initialize fallback systems when integrations are not available"""nt_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
+        self.events_available = False
+        self.routing_available = Falsehistory)):
+        self.deep_learning_available = Falsee higher weight
+n.get('user_input', '')
+    def _init_services(self):    system_response = interaction.get('system_response', '')
+        """Initialize advanced services"""
+        try:            # Extract from user input
+            from ..services.intelligent_location_detector import IntelligentLocationDetector
+            from ..services.gps_location_service import GPSLocationService
+            from ..services.neighborhood_guide_service import NeighborhoodGuideServicetricts:
+            
+            self.location_detector = IntelligentLocationDetector()
+            self.gps_service = GPSLocationService()            'weight': weight,
+            self.neighborhood_guide = NeighborhoodGuideService()
+            self.advanced_services_available = True
+            logger.info("✅ Advanced location and neighborhood guide services loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ Advanced services not available: {e}")# Extract from system response
+            self.location_detector = None_known_districts():
+            self.neighborhood_guide = None
+            self.gps_service = None
+            self.advanced_services_available = Falsestrict,
+        0.8,  # System mentions have slightly lower weight
+        # Initialize multi-intent query handler_response',
+        try:index': len(recent_history) - i - 1
+            from multi_intent_query_handler import MultiIntentQueryHandler
+            self.multi_intent_handler = MultiIntentQueryHandler()
+            self.multi_intent_available = Trueghted_locations
+            logger.info("✅ Multi-Intent Query Handler loaded")
+        except ImportError as e:(self, weighted_locations: List[Dict]) -> Optional[str]:
+            logger.warning(f"⚠️ Multi-Intent Query Handler not available: {e}")y analysis"""
+            self.multi_intent_handler = None
+            self.multi_intent_available = False
+
+    def get_or_create_user_profile(self, user_id: str) -> UserProfile:
+        """Get or create user profile"""
+        if user_id not in self.user_profiles:
+            self.user_profiles[user_id] = UserProfile(user_id=user_id) loc_data['location']
+            logger.info(f"Created new user profile for {user_id}")    weight = loc_data['weight']
+        return self.user_profiles[user_id]
+            if location not in location_scores:
+    def get_or_create_conversation_context(self, session_id: str, user_profile: UserProfile) -> ConversationContext:
+        """Get or create conversation context"""
+        if session_id not in self.conversation_contexts:': 0,
+            self.conversation_contexts[session_id] = ConversationContext(st_recent_index': -1
+                session_id=session_id,        }
+                user_profile=user_profile
+            )location]['total_weight'] += weight
+        return self.conversation_contexts[session_id]ion_count'] += 1
+_recent_index'] = max(
+    def process_message(self, user_input: str, user_id: str) -> str:n]['most_recent_index'],
+        """    loc_data['interaction_index']
+        Main message processing method - enhanced with multi-intent support and personality
+        """
+        try: combined score (weight + recency + frequency)
+            # Get user profile and context
+            user_profile = self.get_or_create_user_profile(user_id)
+            session_id = f"session_{user_id}"
+            context = self.get_or_create_conversation_context(session_id, user_profile)location, score_data in location_scores.items():
+            equency bonus
+            # 🎭 STEP 1: Check for small talk first (personality-driven)
+            small_talk_response = self.personality.handle_small_talk(
+                user_input,cency bonus
+                context={* 0.2)  # Frequency bonus
+                    'turn_count': context.turn_count,
+                    'user_query': user_input,    
+                    'weather': 'pleasant'  # TODO: Get real weather
+                } combined_score
+            )ocation = location
+            
+            if small_talk_response:
+                # Add personality elements to small talk response
+                enhanced_response = self.personality.add_personality_to_response(neighborhood(self, user_profile: UserProfile) -> str:
+                    small_talk_response,hood based on user preferences and context"""
+                    context={'turn_count': context.turn_count, 'user_query': user_input},
+                    tone=ConversationTone.FRIENDLY
+                )
+                r now, use first favorite, but could be enhanced with:
+                # Add to conversation history prefer tourist areas, locals prefer authentic areas)
+                context.add_interaction(user_input, enhanced_response, "small_talk")r evening, business areas for lunch)
+                or culture queries, food areas for restaurant queries)
+                return enhanced_response
+            ser_profile.favorite_neighborhoods[0]
+            # 🧠 STEP 2: Process with multi-intent or traditional method        
+            if self.multi_intent_available and self.multi_intent_handler:
+                response = self._process_with_multi_intent(user_input, user_profile, context)
+            else:OURIST:
+                # Fallback to traditional processingsts might prefer more accessible/famous areas
+                response = self._process_traditional(user_input, user_profile, context)        tourist_friendly = ['Sultanahmet', 'Taksim', 'Beyoğlu', 'Galata']
+            hoods:
+            # 🎨 STEP 3: Add personality to response
+            response = self.personality.add_personality_to_response(
+                response,
+                context={        # Locals might prefer authentic neighborhood experiences
+                    'turn_count': context.turn_count,, 'Fener', 'Cihangir']
+                    'user_query': user_input        for neighborhood in user_profile.favorite_neighborhoods:
+                },reas:
+                tone=self._determine_tone(user_input, response)
+            )
+            
+            # 😄 STEP 4: Occasionally add humor
+            if context.turn_count > 2:  # Only after a few exchanges
+                response = self.personality.add_humor(
+                    response,
+                    context={'user_query': user_input}'Kadıköy', 'Beşiktaş', 
+                )r',
+            
+            # Add to conversation history
+            context.add_interaction(user_input, response, "processed")
+            
+            return response_get_nearest_district_from_gps(self, gps_coords: Dict[str, float]) -> Optional[str]:
+            strict from GPS coordinates"""
+        except Exception as e:        lat, lng = gps_coords.get('lat'), gps_coords.get('lng')
+            logger.error(f"Error processing message: {e}")
+            return self._generate_fallback_response(user_input)
+    
+    def _determine_tone(self, user_input: str, response: str) -> ConversationTone:
+        """Determine appropriate conversation tone"""
+        user_lower = user_input.lower()
+        
+        # Friendly tone for greetings and thanks   'Taksim': {'lat': 41.0370, 'lng': 28.9850},
+        if any(word in user_lower for word in ['hello', 'hi', 'thanks', 'thank you', 'merhaba']):            'Kadıköy': {'lat': 40.9833, 'lng': 29.0333},
+            return ConversationTone.FRIENDLY
+        
+        # Professional tone for factual queries
+        if any(word in user_lower for word in ['how much', 'cost', 'price', 'hours', 'schedule']):1.0608, 'lng': 28.9866}
+            return ConversationTone.INFORMATIVE
+        
+        # Default to informative
+        return ConversationTone.INFORMATIVENone
+
+    def _init_integrations(self):
+        """Initialize external integrations"""
+        try:- coords['lng'])**2)**0.5
+            # Initialize advanced transportation system
+            if ADVANCED_TRANSPORT_AVAILABLE:
+                self.transport_processor = TransportationQueryProcessor()
+                self.ml_transport_system = create_ml_enhanced_transportation_system()
+                logger.info("🚇 Advanced transportation system with IBB API initialized")eturn nearest_district
+            else:
+                self.transport_processor = Noneself, user_input: str, user_profile: UserProfile, context: ConversationContext) -> str:
+                self.ml_transport_system = Noneg multi-intent handler with location detector integration"""
+                try:
+            # Try to load external integrations should be handled first
+            self._load_events_integration()
+            self._load_route_integration()
+            self._load_deep_learning()
+            logger.info("✅ External integrations loaded successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Some integrations not available: {e}")        matched_districts = self.neighborhood_guide.find_districts_by_keywords(user_input)
+            self._init_fallback_systems()
+                # Enhanced neighborhood detection
+    def _load_events_integration(self):
+        """Load events integration"""racter',
+        try:        'compare', 'comparison', 'vs', 'versus', 'which is better',
+            from monthly_events_scheduler import MonthlyEventsScheduler
+            self.events_scheduler = MonthlyEventsScheduler()koy', 'kadıköy', 'sultanahmet', 
+            self.events_available = Trueyer', 'sarıyer'
+            logger.info("🎭 Events integration loaded")
+        except ImportError:    
+            self.events_available = Falseds = [
+            logger.warning("⚠️ Events integration not available")', 'shopping', 'food', 'bars', 'clubs', 'sights']
+]
+    def _load_route_integration(self):
+        """Load route integration"""= (
+        try:
+            from services.route_maker import IstanbulRoutemakerxt_keywords) or
+            self.route_maker = IstanbulRoutemaker()
+            self.routing_available = Truedikoy', 'kadıköy', 'besiktas', 'beşiktaş', 'sultanahmet', 'sisli', 'şişli', 'uskudar', 'üsküdar', 'fatih', 'sariyer', 'sarıyer'])
+            logger.info("🗺️ Route integration loaded")
+        except ImportError:
+            self.routing_available = Falseif has_neighborhood_context:
+            logger.warning("⚠️ Route integration not available")y routing to neighborhood guide for query with districts: {matched_districts}")
+
+    def _load_deep_learning(self):
+        """Load deep learning components"""eate context for multi-intent handler
+        try:
+            from deep_learning_enhanced_ai import DeepLearningEnhancedAI
+            self.deep_learning_ai = DeepLearningEnhancedAI()
+            self.deep_learning_available = Truecontext.get_recent_interactions(5),
+            logger.info("🧠 Deep learning integration loaded")
+        except ImportError:location': getattr(user_profile, 'current_location', None)
+            self.deep_learning_available = False
+            logger.warning("⚠️ Deep learning not available")
+
+    def _init_fallback_systems(self):
+        """Initialize fallback systems when integrations are not available"""
+        self.events_available = Falserimary={multi_intent_result.primary_intent.type.value}, "
+        self.routing_available = False[i.type.value for i in multi_intent_result.secondary_intents]}")
+        self.deep_learning_available = False
+h location integration
+    def _init_services(self):search', 'route_planning']:
+        """Initialize advanced services"""t, multi_intent_result, user_profile, context)
+        try:dation':
+            from ..services.intelligent_location_detector import IntelligentLocationDetector   return self._handle_recommendation_intent(user_input, multi_intent_result, user_profile, context)
+            from ..services.gps_location_service import GPSLocationServiceelif multi_intent_result.primary_intent.type.value == 'information_request':
+            from ..services.neighborhood_guide_service import NeighborhoodGuideServicet(user_input, multi_intent_result, user_profile, context)
+            
+            self.location_detector = IntelligentLocationDetector()    # Handle other intents or use execution plan
+            self.gps_service = GPSLocationService()
+            self.neighborhood_guide = NeighborhoodGuideService()
+            self.advanced_services_available = Truept Exception as e:
+            logger.info("✅ Advanced location and neighborhood guide services loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ Advanced services not available: {e}")
+            self.location_detector = Noneofile: UserProfile, context: ConversationContext) -> str:
+            self.neighborhood_guide = None
+            self.gps_service = None
         # Use intelligent location detector for enhanced location detection
         if self.advanced_services_available and self.location_detector:
             location_result = self.location_detector.detect_location(user_input, user_profile, context)
