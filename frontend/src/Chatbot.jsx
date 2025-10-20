@@ -24,6 +24,7 @@ import POICard from './components/POICard';
 import DistrictInfo from './components/DistrictInfo';
 import ItineraryTimeline from './components/ItineraryTimeline';
 import MLInsights from './components/MLInsights';
+import './components/Chatbot.css';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
 
@@ -607,524 +608,462 @@ function Chatbot() {
 
     chatContainer.addEventListener('scroll', handleScroll);
     return () => chatContainer.removeEventListener('scroll', handleScroll);
-  }, [messages.length]);
+  }, [messages]);
 
+  // Auto-focus input on mount
   useEffect(() => {
-    // Network status monitoring
-    const unsubscribe = subscribeToNetworkStatus((status) => {
-      setIsOnline(status.isOnline);
-      console.log('🌐 Network status changed:', status);
-    });
-
-    return unsubscribe;
+    const inputElement = document.getElementById('chat-input');
+    if (inputElement) {
+      inputElement.focus();
+    }
   }, []);
 
-  useEffect(() => {
-    // Periodic API health checks
-    const checkHealth = async () => {
-      try {
-        const isHealthy = await checkApiHealth();
-        setApiHealth(isHealthy ? 'healthy' : 'unhealthy');
-      } catch (error) {
-        setApiHealth('error');
-      }
-    };
-
-    checkHealth();
-    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  // Enhanced error handling
-  const handleError = (error, context = 'unknown', failedMessage = null) => {
-    console.error(`Error in ${context}:`, error);
+  // Enhanced message sending function
+  const handleSendMessage = async (messageText = null, isRegenerate = false) => {
+    const textToSend = messageText || input.trim();
     
-    const errorInfo = {
-      type: classifyError(error),
-      message: getUserFriendlyMessage(error),
-      context,
-      timestamp: Date.now(),
-      failedMessage
-    };
-    
-    setCurrentError(errorInfo);
-    
-    // Set retry action if we have a failed message
-    if (failedMessage && failedMessage.input) {
-      setRetryAction(() => () => {
-        console.log('🔄 Retrying failed message:', failedMessage.input);
-        handleSend(failedMessage.input);
-      });
-    }
-    
-    setLoading(false);
-  };
+    if (!textToSend || loading) return;
 
-  const handleRetry = () => {
-    if (retryAction) {
-      console.log('🔄 Retrying last action');
-      setCurrentError(null);
-      retryAction();
-    }
-  };
+    console.log('📤 Sending message:', textToSend);
 
-  const dismissError = () => {
+    // Clear current error
     setCurrentError(null);
-    setRetryAction(null);
-    setLastFailedMessage(null);
-  };
-
-  const handleSend = async (customInput = null) => {
-    const originalUserInput = customInput || input.trim();
-    if (!originalUserInput) return;
-
-    // Create retry action for this message
-    const retryCurrentMessage = () => {
-      console.log('🔄 Retrying message:', originalUserInput);
-      handleSend(originalUserInput);
-    };
-    setRetryAction(() => retryCurrentMessage);
-
-    // CRITICAL SECURITY: Sanitize input immediately
-    const sanitizedInput = preprocessInput(originalUserInput);
     
-    // SECURITY CHECK: Reject if sanitization removed everything
-    if (!sanitizedInput || sanitizedInput.trim().length === 0) {
-      console.log('🛡️ Input rejected: Empty after sanitization');
-      addMessage('Sorry, your input contains invalid characters. Please try again with a different message.', 'assistant', {
-        type: 'error'
+    // Add user message (unless regenerating)
+    if (!isRegenerate) {
+      const userMessage = {
+        type: 'user',
+        content: textToSend,
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => {
+        const updated = [...prev, userMessage];
+        try {
+          localStorage.setItem('chat-messages', JSON.stringify(updated));
+        } catch (error) {
+          console.error('Failed to save messages:', error);
+        }
+        return updated;
       });
-      setLoading(false);
-      return;
-    }
-    
-    // SECURITY CHECK: Verify sanitized input is safe
-    const isSuspicious = [
-      /<[^>]*>/,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /[;'"`].*(--)|(\/\*)/,
-      /\$\([^)]*\)/
-    ].some(pattern => pattern.test(sanitizedInput));
-    
-    if (isSuspicious) {
-      console.log('🛡️ Input still suspicious after sanitization, rejecting');
-      addMessage('Sorry, your input appears to contain invalid content. Please try again with a different message.', 'assistant', {
-        type: 'error'
-      });
-      setLoading(false);
-      return;
     }
 
-    console.log('✅ Using sanitized input:', sanitizedInput);
-    
-    // Add user message with enhanced metadata
-    addMessage(originalUserInput, 'user', {
-      sanitizedInput,
-      originalLength: originalUserInput.length,
-      sanitizedLength: sanitizedInput.length
-    });
-    
-    setInput('');
+    // Clear input and set loading states
+    if (!messageText) setInput('');
     setLoading(true);
     setIsTyping(true);
-
-    // Store failed message for retry purposes
-    setLastFailedMessage({
-      input: originalUserInput,
-      sanitizedInput,
-      timestamp: Date.now()
-    });
+    setTypingMessage('AI is thinking...');
 
     try {
-      // Check if user is asking for restaurant recommendations - using SANITIZED input
-      if (isExplicitRestaurantRequest(originalUserInput)) {
-        setTypingMessage('Finding restaurants for you...');
-        console.log('Detected restaurant advice request, fetching recommendations...');
-        console.log('Original input:', originalUserInput);
-        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
-        
-        // CRITICAL: Use sanitized input for API call
-        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput);
-        console.log('Restaurant API response:', restaurantData);
-        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
-        console.log('Formatted response:', formattedResponse);
-        
-        addMessage(formattedResponse, 'assistant', {
-          type: 'restaurant-recommendation',
-          dataSource: 'google-places',
-          resultCount: restaurantData.restaurants?.length || 0
-        });
-        
-        // Clear failed message on success
-        setLastFailedMessage(null);
-        return;
-      }
-
-      // Check if user is asking for places/attractions recommendations - using SANITIZED input
-      if (isExplicitPlacesRequest(originalUserInput)) {
-        setTypingMessage('Searching for places and attractions...');
-        console.log('Detected places/attractions request, fetching recommendations...');
-        console.log('Original input:', originalUserInput);
-        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
-        
-        // CRITICAL: Use sanitized input for API call
-        const placesData = await fetchPlacesRecommendations(sanitizedInput);
-        console.log('Places API response:', placesData);
-        const formattedResponse = formatPlacesRecommendations(placesData.places);
-        console.log('Formatted response:', formattedResponse);
-        
-        addMessage(formattedResponse, 'assistant', {
-          type: 'places-recommendation',
-          dataSource: 'database',
-          resultCount: placesData?.places?.length || 0
-        });
-        
-        // Clear failed message on success
-        setLastFailedMessage(null);
-        return;
-      }
-
-      // Regular streaming response for non-restaurant/places queries - use SANITIZED input
-      setTypingMessage('KAM is thinking...');
-      let streamedContent = '';
+      // Security preprocessing
+      const processedInput = preprocessInput(textToSend);
       
-      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
-      await fetchStreamingResults(sanitizedInput, (chunk) => {
-        streamedContent += chunk;
-        // If assistant message already exists, update it; else, add it
-        setMessages((prev) => {
-          // If last message is assistant and was streaming, update it
-          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-            return [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
-          } else {
-            return [
-              ...prev,
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
+      if (!processedInput) {
+        throw new Error('Invalid input after security processing');
+      }
+
+      // Check for explicit restaurant requests
+      if (isExplicitRestaurantRequest(processedInput)) {
+        console.log('🍽️ Processing restaurant request');
+        setTypingMessage('Finding great restaurants for you...');
+        
+        const restaurants = await debouncedFetchRestaurants(processedInput);
+        const formattedResponse = formatRestaurantRecommendations(restaurants);
+        
+        const aiMessage = {
+          type: 'ai',
+          content: formattedResponse,
+          restaurants: restaurants,
+          timestamp: Date.now()
+        };
+        
+        setMessages(prev => {
+          const updated = [...prev, aiMessage];
+          try {
+            localStorage.setItem('chat-messages', JSON.stringify(updated));
+          } catch (error) {
+            console.error('Failed to save messages:', error);
           }
+          return updated;
         });
-      });
+        
+        return;
+      }
+
+      // Check for explicit places/attractions requests
+      if (isExplicitPlacesRequest(processedInput)) {
+        console.log('🏛️ Processing places request');
+        setTypingMessage('Discovering amazing places for you...');
+        
+        const places = await debouncedFetchPlaces(processedInput);
+        const formattedResponse = formatPlacesRecommendations(places);
+        
+        const aiMessage = {
+          type: 'ai',
+          content: formattedResponse,
+          places: places,
+          timestamp: Date.now()
+        };
+        
+        setMessages(prev => {
+          const updated = [...prev, aiMessage];
+          try {
+            localStorage.setItem('chat-messages', JSON.stringify(updated));
+          } catch (error) {
+            console.error('Failed to save messages:', error);
+          }
+          return updated;
+        });
+        
+        return;
+      }
+
+      // Default: Use streaming AI response
+      console.log('🤖 Processing general AI request');
+      setTypingMessage('AI is generating response...');
       
-      // Clear failed message on success
-      setLastFailedMessage(null);
+      let aiResponse = '';
       
+      const onChunk = (chunk) => {
+        aiResponse += chunk;
+        
+        // Update the last AI message with streaming content
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          
+          if (lastMessage && lastMessage.type === 'ai' && !lastMessage.isComplete) {
+            lastMessage.content = aiResponse;
+          } else {
+            updated.push({
+              type: 'ai',
+              content: aiResponse,
+              timestamp: Date.now(),
+              isComplete: false
+            });
+          }
+          
+          return updated;
+        });
+      };
+
+      const onComplete = (finalResponse) => {
+        console.log('✅ AI response complete');
+        
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          
+          if (lastMessage && lastMessage.type === 'ai') {
+            lastMessage.content = finalResponse || aiResponse;
+            lastMessage.isComplete = true;
+            delete lastMessage.isComplete; // Clean up flag
+          }
+          
+          try {
+            localStorage.setItem('chat-messages', JSON.stringify(updated));
+          } catch (error) {
+            console.error('Failed to save messages:', error);
+          }
+          
+          return updated;
+        });
+      };
+
+      const onError = (error) => {
+        console.error('❌ AI response error:', error);
+        
+        const errorMessage = {
+          type: 'ai',
+          content: 'I apologize, but I encountered an error while processing your request. Please try again.',
+          timestamp: Date.now(),
+          isError: true
+        };
+        
+        setMessages(prev => {
+          const updated = [...prev, errorMessage];
+          try {
+            localStorage.setItem('chat-messages', JSON.stringify(updated));
+          } catch (error) {
+            console.error('Failed to save messages:', error);
+          }
+          return updated;
+        });
+        
+        // Set retry action
+        setRetryAction(() => () => handleSendMessage(textToSend, true));
+        setLastFailedMessage(textToSend);
+      };
+
+      // Call streaming AI API
+      await fetchStreamingResults(
+        processedInput,
+        onChunk,
+        onComplete,
+        onError
+      );
+
     } catch (error) {
-      handleError(error, 'message sending', lastFailedMessage);
+      console.error('❌ Error in handleSendMessage:', error);
       
-      // Add error message with enhanced metadata
-      const errorMessage = error.message.includes('fetch')
-        ? 'Sorry, I encountered an error connecting to the server. Please check your connection and try again.'
-        : `Sorry, there was an error: ${error.message}. Please try again.`;
+      // Classify and handle error
+      const errorType = classifyError(error);
+      const friendlyMessage = getUserFriendlyMessage(errorType, error);
       
-      addMessage(errorMessage, 'assistant', {
-        type: 'error',
-        errorType: classifyError(error),
-        canRetry: true,
-        originalInput: originalUserInput
+      setCurrentError({
+        type: errorType,
+        message: friendlyMessage,
+        originalError: error
       });
+      
+      // Add error message
+      const errorMessage = {
+        type: 'ai',
+        content: friendlyMessage,
+        timestamp: Date.now(),
+        isError: true
+      };
+      
+      setMessages(prev => {
+        const updated = [...prev, errorMessage];
+        try {
+          localStorage.setItem('chat-messages', JSON.stringify(updated));
+        } catch (error) {
+          console.error('Failed to save messages:', error);
+        }
+        return updated;
+      });
+      
+      // Set retry action
+      setRetryAction(() => () => handleSendMessage(textToSend, true));
+      setLastFailedMessage(textToSend);
+      
     } finally {
       setLoading(false);
       setIsTyping(false);
       setTypingMessage('AI is thinking...');
-      
-      // Remove streaming flag on last assistant message
-      setMessages((prev) => {
-        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-          return [
-            ...prev.slice(0, -1),
-            { role: 'assistant', content: prev[prev.length - 1].content }
-          ];
-        }
-        return prev;
-      });
     }
   };
 
-  const handleSampleClick = (question) => {
-    // Automatically send the message
-    handleSend(question);
-  };
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+      if (navigator.onLine) {
+        console.log('🌐 Back online');
+        // Optionally retry failed requests
+        if (lastFailedMessage && retryAction) {
+          console.log('🔄 Auto-retrying last failed message');
+          retryAction();
+        }
+      } else {
+        console.log('📴 Gone offline');
+      }
+    };
 
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+    
+    // Subscribe to network status from error handler
+    const unsubscribe = subscribeToNetworkStatus((status) => {
+      setIsOnline(status.isOnline);
+    });
+
+    // Check API health periodically
+    const healthCheckInterval = setInterval(async () => {
+      try {
+        const health = await checkApiHealth();
+        setApiHealth(health.status);
+      } catch (error) {
+        setApiHealth('error');
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+      unsubscribe();
+      clearInterval(healthCheckInterval);
+    };
+  }, [lastFailedMessage, retryAction]);
+
+  // Main render function
   return (
-    <div className={`max-w-4xl mx-auto p-4 transition-colors duration-200 ${
-      darkMode ? 'bg-gray-900' : 'bg-gray-100'
-    }`}>
-      
-      {/* Enhanced Header with chat management */}
-      <ChatHeader
-        darkMode={darkMode}
-        onDarkModeToggle={() => setDarkMode(!darkMode)}
-        onClearHistory={clearChatHistory}
-        messageCount={messages.length}
-        isOnline={isOnline}
-        apiHealth={apiHealth}
-      />
+    <div className={`chatbot-container ${darkMode ? 'dark-mode' : ''}`}>
+      <NetworkStatusIndicator />
 
-      {/* Chat Messages Container - Contained within layout */}
-      <div className="overflow-y-auto max-h-[70vh] py-4" id="chat-messages">
+      {/* Chat Messages Container */}
+      <div 
+        id="chat-messages" 
+        className="chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat conversation"
+      >
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center px-4 py-8">
-            {/* KAM Definition Card - Always visible */}
-            <div className={`max-w-2xl w-full mb-8 p-6 rounded-xl border transition-all duration-200 ${
-              darkMode 
-                ? 'bg-gray-800 border-gray-700 shadow-lg' 
-                : 'bg-white border-gray-300 shadow-lg'
-            }`}>
-              <div className={`text-center mb-4`}>
-                <h3 className={`text-xl font-bold mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-blue-300' : 'text-blue-700'
-                }`}>
-                  KAM - Your AI Istanbul Guide
-                </h3>
-                <div className={`text-sm leading-relaxed transition-colors duration-200 ${
-                  darkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  <p className="mb-2">
-                    <strong>Kam</strong>, in Turkish, Altaic, and Mongolian folk culture, is a shaman, a religious leader, wisdom person. Also referred to as "Gam" or Ham.
-                  </p>
-                  <p className={`italic ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    A religious leader believed to communicate with supernatural powers within communities.
-                  </p>
-                </div>
-              </div>
-              <div className={`text-center text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Just like the traditional Kam guides their community, I'm here to guide you through Istanbul's wonders.
-              </div>
-            </div>
-
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
-              darkMode ? 'bg-white' : 'bg-gradient-to-br from-blue-600 to-purple-600'
-            }`}>
-              <svg className={`w-8 h-8 transition-colors duration-200 ${
-                darkMode ? 'text-black' : 'text-white'
-              }`} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
-              </svg>
-            </div>
-            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>How can I help you today?</h2>
-            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
-              darkMode ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              I'm your AI assistant for exploring Istanbul. Ask me about restaurants, attractions, 
-              neighborhoods, culture, history, or anything else about this amazing city!
-            </p>
-            
-            {/* Enhanced Sample Cards with Better Light Mode Styling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
-              <div 
-                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
-                }`}
-              >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🏛️ Top Attractions</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Show me the best attractions and landmarks in Istanbul</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
-                }`}
-              >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🍽️ Restaurants</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Give me restaurant advice - recommend 4 good restaurants</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
-                }`}
-              >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🏘️ Neighborhoods</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
-              </div>
-              
-              <div 
-                onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
-                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
-                    : 'bg-white border-purple-200 hover:bg-purple-50 hover:border-purple-400 shadow-md hover:shadow-lg'
-                }`}
-              >
-                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
-                  darkMode ? 'text-white' : 'text-gray-900'
-                }`}>🎭 Culture & Activities</div>
-                <div className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-700'
-                }`}>What are the best cultural experiences and activities in Istanbul?</div>
+          <div className="welcome-message">
+            <div className="welcome-card">
+              <h3>👋 Welcome to AI Istanbul!</h3>
+              <p>I'm your personal Istanbul guide. Ask me about:</p>
+              <div className="suggestion-grid">
+                <button 
+                  onClick={() => setInput('Best restaurants in Sultanahmet')}
+                  className="suggestion-chip"
+                >
+                  🍽️ Restaurants
+                </button>
+                <button 
+                  onClick={() => setInput('Tourist attractions in Beyoğlu')}
+                  className="suggestion-chip"
+                >
+                  🏛️ Attractions
+                </button>
+                <button 
+                  onClick={() => setInput('Things to do in Taksim')}
+                  className="suggestion-chip"
+                >
+                  🎯 Activities
+                </button>
+                <button 
+                  onClick={() => setInput('How to get around Istanbul')}
+                  className="suggestion-chip"
+                >
+                  🚇 Transportation
+                </button>
               </div>
             </div>
           </div>
         )}
-            
-        {/* Message Display Area */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {messages.map((msg, index) => (
-            <div key={msg.id || index} className="mb-6">
-              <div className={`flex ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}>
-                <div className={`max-w-[80%] ${
-                  msg.sender === "user"
-                    ? "bg-blue-500 text-white rounded-2xl rounded-br-md px-4 py-3"
-                    : "bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md px-4 py-3"
-                }`}>
-                  <div className="whitespace-pre-wrap">
-                    {renderMessageContent(msg.text || msg.content, darkMode)}
-                  </div>
-                  
-                  {/* Metadata Components for Assistant Messages */}
-                  {msg.sender === "assistant" && msg.metadata && (
-                    <div className="mt-4 space-y-3">
-                      {/* ML Insights */}
-                      {msg.metadata.ml_predictions && (
-                        <MLInsights predictions={msg.metadata.ml_predictions} darkMode={false} />
-                      )}
-                      
-                      {/* POI Cards */}
-                      {msg.metadata.pois?.map((poi, idx) => (
-                        <POICard key={idx} poi={poi} darkMode={false} />
+
+        {messages.map((message, index) => (
+          <div key={index} className={`message-container ${message.type}`}>
+            <div className={`message-bubble ${message.type}`}>
+              <div className="message-content">
+                {message.type === 'ai' && message.restaurants ? (
+                  <div className="ai-response-section">
+                    <div className="response-text">{message.content}</div>
+                    <div className="recommendations-grid">
+                      {message.restaurants.map((restaurant, idx) => (
+                        <POICard
+                          key={`restaurant-${idx}`}
+                          poi={restaurant}
+                          type="restaurant"
+                          darkMode={darkMode}
+                        />
                       ))}
-                      
-                      {/* District Info */}
-                      {msg.metadata.district_info && (
-                        <DistrictInfo district={msg.metadata.district_info} darkMode={false} />
-                      )}
-                      
-                      {/* Itinerary */}
-                      {msg.metadata.total_itinerary && (
-                        <ItineraryTimeline itinerary={msg.metadata.total_itinerary} darkMode={false} />
-                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : message.type === 'ai' && message.places ? (
+                  <div className="ai-response-section">
+                    <div className="response-text">{message.content}</div>
+                    <div className="recommendations-grid">
+                      {message.places.map((place, idx) => (
+                        <POICard
+                          key={`place-${idx}`}
+                          poi={place}
+                          type="attraction"
+                          darkMode={darkMode}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : message.type === 'ai' && message.itinerary ? (
+                  <div className="ai-response-section">
+                    <div className="response-text">{message.content}</div>
+                    <ItineraryTimeline 
+                      itinerary={message.itinerary} 
+                      darkMode={darkMode}
+                    />
+                  </div>
+                ) : message.type === 'ai' && message.district ? (
+                  <div className="ai-response-section">
+                    <div className="response-text">{message.content}</div>
+                    <DistrictInfo 
+                      district={message.district} 
+                      darkMode={darkMode}
+                    />
+                  </div>
+                ) : message.type === 'ai' && message.insights ? (
+                  <div className="ai-response-section">
+                    <div className="response-text">{message.content}</div>
+                    <MLInsights 
+                      insights={message.insights} 
+                      darkMode={darkMode}
+                    />
+                  </div>
+                ) : (
+                  <div className="simple-message">{message.content}</div>
+                )}
               </div>
-              
-              {/* Message timestamp */}
-              {msg.timestamp && (
-                <div className={`text-xs mt-1 ${
-                  msg.sender === "user" ? "text-right" : "text-left"
-                } text-gray-500`}>
-                  {new Date(msg.timestamp).toLocaleTimeString([], {hour: "2-digit", minute:"2-digit"})}
-                </div>
-              )}
             </div>
-          ))}
-          
-          <TypingIndicator 
-            isTyping={isTyping} 
-            message={typingMessage}
-            darkMode={darkMode}
-          />
-        </div>
+          </div>
+        ))}
+
+        {/* Typing Indicator */}
+        {isTyping && (
+          <div className="message-container ai">
+            <div className="message-bubble ai typing">
+              <div className="message-content">
+                <TypingIndicator message={typingMessage} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Notifications */}
+        <ErrorNotification />
       </div>
 
-      {/* Scroll to bottom button */}
-      <ScrollToBottom 
-        show={showScrollToBottom}
-        onClick={scrollToBottom}
-        darkMode={darkMode}
-      />
-
-      {/* Enhanced Input Area with Better Light Mode Styling */}
-      <div className={`border-t p-4 transition-colors duration-200 ${
-        darkMode 
-          ? 'bg-gray-900 border-gray-700' 
-          : 'bg-white border-gray-300'
-      }`}>
-        <div className="max-w-4xl mx-auto">
-          <div className={`flex items-end space-x-3 p-4 rounded-xl border-2 transition-all duration-200 ${
-            darkMode 
-              ? 'bg-gray-800 border-gray-700 focus-within:border-gray-600' 
-              : 'bg-gray-50 border-gray-300 focus-within:border-blue-400 shadow-sm'
-          }`}>
-            <div className="flex-1">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Ask about Istanbul..."
-                className={`w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 text-base resize-none transition-colors duration-200 ${
-                  darkMode 
-                    ? 'placeholder-gray-400 text-white' 
-                    : 'placeholder-gray-500 text-gray-900'
-                }`}
-                disabled={loading}
-                autoComplete="off"
-              />
-            </div>
-            <button 
-              onClick={handleSend} 
-              disabled={loading || !input.trim()}
-              className={`p-3 rounded-lg transition-all duration-200 ${
-                darkMode 
-                  ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600' 
-                  : 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-400'
-              } disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95`}
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-              )}
-            </button>
-          </div>
-          <div className={`text-xs text-center mt-2 transition-colors duration-200 ${
-            darkMode ? 'text-gray-500' : 'text-gray-600'
-          }`}>
-            Your AI-powered Istanbul guide
-          </div>
-        </div>
-      </div>
-
-      {/* Error Notification */}
-      {currentError && (
-        <ErrorNotification
-          error={currentError}
-          onRetry={handleRetry}
-          onDismiss={dismissError}
-          autoHide={false}
+      {/* Scroll to Bottom Button */}
+      {showScrollToBottom && (
+        <ScrollToBottom 
+          onClick={scrollToBottom}
           darkMode={darkMode}
         />
       )}
-      
-      {/* Network Status Indicator */}
-      <NetworkStatusIndicator darkMode={darkMode} />
+
+      {/* Chat Input */}
+      <div className="chat-input-container">
+        <div className="input-wrapper">
+          <input
+            id="chat-input"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !loading && handleSendMessage()}
+            placeholder="Ask me about Istanbul restaurants, attractions, or travel tips..."
+            disabled={loading}
+            className="chat-input"
+            maxLength={500}
+            aria-label="Chat input"
+          />
+          
+          <button
+            onClick={() => handleSendMessage()}
+            disabled={loading || !input.trim()}
+            className="send-button"
+            aria-label="Send message"
+          >
+            {loading ? (
+              <div className="loading-spinner" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            )}
+          </button>
+        </div>
+        
+        {/* Input Character Counter */}
+        <div className="character-counter">
+          <span className={input.length > 450 ? 'warning' : ''}>
+            {input.length}/500
+          </span>
+        </div>
+      </div>
+
+      {/* Retry Button for failed requests */}
+      <RetryButton />
     </div>
   );
 }

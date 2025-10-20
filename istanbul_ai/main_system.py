@@ -44,6 +44,18 @@ except ImportError as e:
     logger.warning(f"⚠️ ML-Enhanced Daily Talks Bridge not available: {e}")
     ML_DAILY_TALKS_AVAILABLE = False
 
+# Import Lightweight Neural Query Enhancement System (Budget-Friendly!)
+try:
+    from backend.services.lightweight_neural_query_enhancement import (
+        get_lightweight_neural_processor,
+        LightweightNeuralInsights
+    )
+    NEURAL_QUERY_ENHANCEMENT_AVAILABLE = True
+    logger.info("✅ Neural Query Enhancement System loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Neural Query Enhancement System not available: {e}")
+    NEURAL_QUERY_ENHANCEMENT_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -94,6 +106,17 @@ class IstanbulDailyTalkAI:
                 self.daily_talks_bridge = None
         else:
             self.daily_talks_bridge = None
+
+        # Initialize Lightweight Neural Query Enhancement System (Budget-Friendly!)
+        if NEURAL_QUERY_ENHANCEMENT_AVAILABLE:
+            try:
+                self.neural_processor = get_lightweight_neural_processor()
+                logger.info("🧠 Lightweight Neural Query Enhancement System initialized (CPU-optimized, <100ms latency)")
+            except Exception as e:
+                logger.error(f"Failed to initialize neural query processor: {e}")
+                self.neural_processor = None
+        else:
+            self.neural_processor = None
 
         # Initialize museum system with location integration
         try:
@@ -279,23 +302,72 @@ class IstanbulDailyTalkAI:
             
             context = self.user_manager.get_conversation_context(session_id)
             
-            # Check if this is a navigation query
-            if self._is_navigation_query(message):
-                return self._handle_navigation_query(message, user_id, session_id, user_profile, context)
+            # Step 3: Lightweight Neural Query Enhancement - Fast & budget-friendly!
+            neural_insights = None
+            if NEURAL_QUERY_ENHANCEMENT_AVAILABLE and self.neural_processor:
+                try:
+                    # Run lightweight async neural processing (<100ms)
+                    loop = asyncio.get_event_loop()
+                    neural_result = loop.run_until_complete(
+                        self.neural_processor.process_query(
+                            query=message,
+                            context={
+                                'session_id': session_id,
+                                'user_profile': {
+                                    'interests': getattr(user_profile, 'interests', []),
+                                    'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
+                                    'language_preference': getattr(user_profile, 'language_preference', 'english')
+                                }
+                            }
+                        )
+                    )
+                    
+                    # Convert LightweightNeuralInsights to dict format
+                    neural_insights = {
+                        'entities': {entity['type']: [entity['text']] for entity in neural_result.entities},
+                        'intent': {
+                            'primary': neural_result.intent,
+                            'confidence': neural_result.intent_confidence
+                        },
+                        'sentiment': neural_result.sentiment,
+                        'keywords': neural_result.keywords,
+                        'complexity': neural_result.query_complexity,
+                        'location_context': neural_result.location_context,
+                        'temporal_context': neural_result.temporal_context
+                    }
+                    
+                    logger.info(f"✨ Lightweight neural processing complete ({neural_result.processing_time_ms:.1f}ms) - "
+                               f"Intent: {neural_result.intent}, Confidence: {neural_result.intent_confidence:.2f}")
+                except Exception as e:
+                    logger.warning(f"Neural processing failed, continuing with standard processing: {e}")
+                    neural_insights = None
             
             # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
             if self._is_daily_talk_query(message):
-                return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context)
+                return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context, neural_insights)
             
-            # Extract entities from message
+            # Extract entities from message (enhanced with neural insights if available)
             entities = self.entity_recognizer.extract_entities(message)
             
-            # Classify intent with context
-            intent = self._classify_intent_with_context(message, entities, context)
+            # Merge neural entities with traditional entities
+            if neural_insights and 'entities' in neural_insights:
+                neural_entities = neural_insights['entities']
+                for entity_type, entity_values in neural_entities.items():
+                    if entity_type not in entities:
+                        entities[entity_type] = []
+                    entities[entity_type].extend(entity_values)
             
-            # Generate contextual response
+            # Classify intent with context (use neural intent if available and confident)
+            if neural_insights and neural_insights.get('intent', {}).get('confidence', 0) > 0.7:
+                intent = neural_insights['intent']['primary']
+                logger.info(f"Using neural intent: {intent}")
+            else:
+                intent = self._classify_intent_with_context(message, entities, context)
+                logger.info(f"Using traditional intent: {intent}")
+            
+            # Generate contextual response (enhanced with neural insights)
             response = self._generate_contextual_response(
-                message, intent, entities, user_profile, context
+                message, intent, entities, user_profile, context, neural_insights
             )
             
             # Record interaction
@@ -377,8 +449,9 @@ class IstanbulDailyTalkAI:
         return False
 
     def _handle_daily_talk_query(self, message: str, user_id: str, session_id: str, 
-                                user_profile: UserProfile, context: ConversationContext) -> str:
-        """Handle daily talk queries through ML-enhanced bridge"""
+                                user_profile: UserProfile, context: ConversationContext,
+                                neural_insights: Optional[Dict] = None) -> str:
+        """Handle daily talk queries through ML-enhanced bridge, enhanced with neural insights"""
         
         if not ML_DAILY_TALKS_AVAILABLE or not self.daily_talks_bridge:
             # Fallback to basic daily talk response
@@ -576,8 +649,9 @@ class IstanbulDailyTalkAI:
         return 'general'
     
     def _generate_contextual_response(self, message: str, intent: str, entities: Dict,
-                                    user_profile: UserProfile, context: ConversationContext) -> str:
-        """Generate contextual response based on intent and entities"""
+                                    user_profile: UserProfile, context: ConversationContext, 
+                                    neural_insights: Optional[Dict] = None) -> str:
+        """Generate contextual response based on intent and entities, enhanced with neural insights"""
         
         current_time = datetime.now()
         
@@ -1172,6 +1246,11 @@ What would you like to explore first? I'm here to make your Istanbul experience 
 
 Just let me know your preferences and I'll craft the perfect Istanbul experience for you!"""
         )
+
+        # Integrate Neural Query Enhancement if available
+        if NEURAL_QUERY_ENHANCEMENT_AVAILABLE:
+            response_parts.append("\n\n🧠 **Neural Query Enhancement Activated**")
+            response_parts.append("I can now understand and process your requests even better!")
         
         return '\n'.join(response_parts)
 

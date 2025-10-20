@@ -1406,7 +1406,7 @@ class POIIntegratedRouteOptimizer:
         lat2, lng2 = radians(end.latitude), radians(end.longitude)
         
         dlat = lat2 - lat1
-        dlng = lng2 - lng1
+        dlng = lat2 - lng1
         
         a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlng/2)**2
         return 2 * 6371 * asin(sqrt(a))  # 6371 km = Earth's radius
@@ -1858,3 +1858,850 @@ class MLEnhancedTransportationSystem:
             ]
         
         return recommendations
+
+# =============================
+# MAP INTEGRATION & VISUALIZATION
+# =============================
+
+@dataclass
+class MapLocation:
+    """Represents a location on the map with coordinates and metadata"""
+    latitude: float
+    longitude: float
+    name: str = ""
+    address: str = ""
+    type: str = "point"  # point, stop, attraction, restaurant
+    icon: str = "default"
+    description: str = ""
+
+@dataclass
+class MapRoute:
+    """Represents a route with waypoints and directions"""
+    waypoints: List[MapLocation]
+    geometry: str = ""  # GeoJSON LineString
+    distance_km: float = 0.0
+    duration_minutes: int = 0
+    transport_mode: str = "walking"
+    steps: List[Dict[str, Any]] = field(default_factory=list)
+    
+@dataclass
+class MapDirections:
+    """Complete directions with map data"""
+    start_location: MapLocation
+    end_location: MapLocation
+    routes: List[MapRoute]
+    user_location: Optional[MapLocation] = None
+    nearby_stops: List[MapLocation] = field(default_factory=list)
+    nearby_attractions: List[MapLocation] = field(default_factory=list)
+
+class MapIntegrationService:
+    """
+    Comprehensive mapping service for user location tracking and directions
+    """
+    
+    def __init__(self):
+        self.user_location = None
+        self.active_route = None
+        self.map_cache = {}
+        
+        # Istanbul city center as default
+        self.istanbul_center = MapLocation(
+            latitude=41.0082,
+            longitude=28.9784,
+            name="Istanbul City Center",
+            type="center"
+        )
+        
+        logger.info("🗺️ Map Integration Service initialized")
+    
+    def get_user_location(self, latitude: float = None, longitude: float = None) -> MapLocation:
+        """
+        Get or set user's current location
+        """
+        if latitude and longitude:
+            self.user_location = MapLocation(
+                latitude=latitude,
+                longitude=longitude,
+                name="Your Location",
+                type="user",
+                icon="user-location"
+            )
+            logger.info(f"📍 User location updated: {latitude}, {longitude}")
+        
+        return self.user_location or self.istanbul_center
+    
+    def calculate_distance(self, loc1: MapLocation, loc2: MapLocation) -> float:
+        """
+        Calculate distance between two locations using Haversine formula
+        """
+        import math
+        
+        # Convert to radians
+        lat1_rad = math.radians(loc1.latitude)
+        lat2_rad = math.radians(loc2.latitude)
+        delta_lat = math.radians(loc2.latitude - loc1.latitude)
+        delta_lon = math.radians(loc2.longitude - loc1.longitude)
+        
+        # Haversine formula
+        a = (math.sin(delta_lat / 2) ** 2 + 
+             math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2)
+        c = 2 * math.asin(math.sqrt(a))
+        
+        # Earth's radius in kilometers
+        earth_radius = 6371.0
+        distance = earth_radius * c
+        
+        return distance
+    
+    def get_nearby_transport_stops(self, location: MapLocation, radius_km: float = 1.0) -> List[MapLocation]:
+        """
+        Find nearby public transport stops
+        """
+        # Sample Istanbul transport stops (in real implementation, this would come from İBB API)
+        istanbul_stops = [
+            MapLocation(41.0086, 28.9802, "Eminönü Metro", "Eminönü", "metro", "metro-station"),
+            MapLocation(41.0096, 28.9774, "Karaköy Metro", "Karaköy", "metro", "metro-station"),
+            MapLocation(41.0094, 28.9749, "Şişhane Metro", "Şişhane", "metro", "metro-station"),
+            MapLocation(41.0108, 28.9698, "Vezneciler Metro", "Vezneciler", "metro", "metro-station"),
+            MapLocation(41.0055, 28.9787, "Beyazıt-Kapalıçarşı Tram", "Beyazıt", "tram", "tram-station"),
+            MapLocation(41.0067, 28.9833, "Gülhane Tram", "Gülhane", "tram", "tram-station"),
+            MapLocation(41.0084, 28.9803, "Eminönü Ferry", "Eminönü Pier", "ferry", "ferry-terminal"),
+            MapLocation(41.0178, 28.9738, "Karaköy Ferry", "Karaköy Pier", "ferry", "ferry-terminal"),
+        ]
+        
+        nearby_stops = []
+        for stop in istanbul_stops:
+            distance = self.calculate_distance(location, stop)
+            if distance <= radius_km:
+                stop.description = f"{distance:.2f}km away"
+                nearby_stops.append(stop)
+        
+        # Sort by distance
+        nearby_stops.sort(key=lambda s: self.calculate_distance(location, s))
+        return nearby_stops[:10]  # Return closest 10 stops
+    
+    def get_nearby_attractions(self, location: MapLocation, radius_km: float = 2.0) -> List[MapLocation]:
+        """
+        Find nearby tourist attractions
+        """
+        # Sample Istanbul attractions
+        istanbul_attractions = [
+            MapLocation(41.0086, 28.9802, "Hagia Sophia", "Sultanahmet", "attraction", "landmark", "Historic Byzantine cathedral"),
+            MapLocation(41.0055, 28.9766, "Blue Mosque", "Sultanahmet", "attraction", "mosque", "Famous Ottoman mosque"),
+            MapLocation(41.0115, 28.9794, "Topkapi Palace", "Sultanahmet", "attraction", "palace", "Ottoman imperial palace"),
+            MapLocation(41.0258, 28.9744, "Galata Tower", "Galata", "attraction", "tower", "Medieval Genoese tower"),
+            MapLocation(41.0067, 28.9833, "Gülhane Park", "Eminönü", "attraction", "park", "Historic Ottoman garden"),
+            MapLocation(41.0106, 28.9583, "Grand Bazaar", "Beyazıt", "attraction", "market", "Historic covered market"),
+            MapLocation(41.0171, 28.9736, "Istanbul Modern", "Karaköy", "attraction", "museum", "Contemporary art museum"),
+            MapLocation(41.0129, 28.9744, "Galata Bridge", "Eminönü", "attraction", "bridge", "Historic bridge over Golden Horn"),
+        ]
+        
+        nearby_attractions = []
+        for attraction in istanbul_attractions:
+            distance = self.calculate_distance(location, attraction)
+            if distance <= radius_km:
+                attraction.description += f" - {distance:.2f}km away"
+                nearby_attractions.append(attraction)
+        
+        # Sort by distance
+        nearby_attractions.sort(key=lambda a: self.calculate_distance(location, a))
+        return nearby_attractions[:8]  # Return closest 8 attractions
+    
+    def create_route_geometry(self, waypoints: List[MapLocation]) -> str:
+        """
+        Create GeoJSON LineString geometry for route visualization
+        """
+        coordinates = [[wp.longitude, wp.latitude] for wp in waypoints]
+        
+        geometry = {
+            "type": "LineString",
+            "coordinates": coordinates
+        }
+        
+        return json.dumps(geometry)
+    
+    def generate_walking_directions(self, start: MapLocation, end: MapLocation) -> List[Dict[str, Any]]:
+        """
+        Generate step-by-step walking directions
+        """
+        distance = self.calculate_distance(start, end)
+        
+        # Simple direction calculation based on coordinates
+        lat_diff = end.latitude - start.latitude
+        lon_diff = end.longitude - start.longitude
+        
+        if abs(lat_diff) > abs(lon_diff):
+            direction = "north" if lat_diff > 0 else "south"
+        else:
+            direction = "east" if lon_diff > 0 else "west"
+        
+        steps = [
+            {
+                "instruction": f"Head {direction} from {start.name}",
+                "distance": f"{distance * 500:.0f}m",  # Rough estimate
+                "duration": f"{distance * 15:.0f} min"  # Rough walking time
+            },
+            {
+                "instruction": f"Continue straight for {distance:.1f}km",
+                "distance": f"{distance * 500:.0f}m",
+                "duration": f"{distance * 10:.0f} min"
+            },
+            {
+                "instruction": f"Arrive at {end.name}",
+                "distance": "0m",
+                "duration": "0 min"
+            }
+        ]
+        
+        return steps
+    
+    def get_directions_with_map(self, 
+                               start_location: str,
+                               end_location: str,
+                               user_lat: float = None,
+                               user_lon: float = None,
+                               transport_mode: str = "mixed") -> Union[MapDirections, Dict[str, Any]]:
+        """
+        Get comprehensive directions with map visualization data.
+        If GPS location is not available, returns general transportation advice.
+        """
+        try:
+            # Set user location if provided
+            user_location = None
+            if user_lat and user_lon:
+                user_location = self.get_user_location(user_lat, user_lon)
+                logger.info(f"📍 Using GPS location: {user_lat}, {user_lon}")
+            else:
+                # No GPS location - provide general transportation advice
+                logger.info(f"🗺️ No GPS location provided, generating general advice for: {start_location} → {end_location}")
+                general_advice = self.get_general_transportation_advice(
+                    f"How to get from {start_location} to {end_location}",
+                    start_location,
+                    end_location
+                )
+                # Add additional context for non-map response
+                general_advice['response_type'] = 'general_advice'
+                general_advice['map_available'] = False
+                general_advice['directions_text'] = self._format_general_directions_text(
+                    start_location, end_location, general_advice['transport_recommendations']
+                )
+                return general_advice
+            
+            # Parse start and end locations (simplified - in real app would use geocoding)
+            start_coords = self._parse_location_to_coords(start_location)
+            end_coords = self._parse_location_to_coords(end_location)
+            
+            start_map_location = MapLocation(
+                latitude=start_coords[0],
+                longitude=start_coords[1],
+                name=start_location,
+                type="start",
+                icon="start-point"
+            )
+            
+            end_map_location = MapLocation(
+                latitude=end_coords[0],
+                longitude=end_coords[1],
+                name=end_location,
+                type="end",
+                icon="end-point"
+            )
+            
+            # Create route waypoints
+            waypoints = [start_map_location, end_map_location]
+            
+            # Calculate route details
+            distance = self.calculate_distance(start_map_location, end_map_location)
+            duration_walking = int(distance * 15)  # ~15 min per km walking
+            
+            # Generate directions steps
+            steps = self.generate_walking_directions(start_map_location, end_map_location)
+            
+            # Create route geometry
+            geometry = self.create_route_geometry(waypoints)
+            
+            # Create main route
+            main_route = MapRoute(
+                waypoints=waypoints,
+                geometry=geometry,
+                distance_km=distance,
+                duration_minutes=duration_walking,
+                transport_mode=transport_mode,
+                steps=steps
+            )
+            
+            # Get nearby transport stops and attractions
+            nearby_stops = self.get_nearby_transport_stops(start_map_location)
+            nearby_attractions = self.get_nearby_attractions(start_map_location)
+            
+            # Create complete directions object
+            directions = MapDirections(
+                start_location=start_map_location,
+                end_location=end_map_location,
+                routes=[main_route],
+                user_location=user_location,
+                nearby_stops=nearby_stops,
+                nearby_attractions=nearby_attractions
+            )
+            
+            logger.info(f"🗺️ Generated map directions from {start_location} to {end_location}")
+            return directions
+            
+        except Exception as e:
+            logger.error(f"❌ Error generating map directions: {e}")
+            # Return fallback directions
+            return self._create_fallback_directions(start_location, end_location)
+    
+    def _parse_location_to_coords(self, location: str) -> Tuple[float, float]:
+        """
+        Parse location string to coordinates (simplified geocoding)
+        In real implementation, this would use proper geocoding API
+        """
+        # Simple mapping for common Istanbul locations
+        location_coords = {
+            'sultanahmet': (41.0086, 28.9802),
+            'taksim': (41.0370, 28.9847),
+            'galata': (41.0258, 28.9744),
+            'karaköy': (41.0178, 28.9738),
+            'karakoy': (41.0178, 28.9738),
+            'beyoglu': (41.0362, 28.9851),
+            'beyoğlu': (41.0362, 28.9851),
+            'kadikoy': (40.9929, 29.0264),
+            'kadıköy': (40.9929, 29.0264),
+            'besiktas': (41.0422, 29.0094),
+            'beşiktaş': (41.0422, 29.0094),
+            'uskudar': (41.0214, 29.0161),
+            'üsküdar': (41.0214, 29.0161),
+            'fatih': (41.0214, 28.9480),
+            'eminönü': (41.0171, 28.9770),
+            'eminonu': (41.0171, 28.9770),
+            'sisli': (41.0472, 28.9864),
+            'şişli': (41.0472, 28.9864),
+        }
+        
+        location_lower = location.lower().strip()
+        for key, coords in location_coords.items():
+            if key in location_lower:
+                return coords
+        
+        # Default to Istanbul center if location not found
+        return (41.0082, 28.9784)
+    
+    def _create_fallback_directions(self, start: str, end: str) -> MapDirections:
+        """
+        Create fallback directions when main generation fails
+        """
+        start_coords = self._parse_location_to_coords(start)
+        end_coords = self._parse_location_to_coords(end)
+        
+        start_location = MapLocation(start_coords[0], start_coords[1], start, type="start")
+        end_location = MapLocation(end_coords[0], end_coords[1], end, type="end")
+        
+        fallback_route = MapRoute(
+            waypoints=[start_location, end_location],
+            geometry='{"type":"LineString","coordinates":[[28.9784,41.0082],[28.9784,41.0082]]}',
+            distance_km=1.0,
+            duration_minutes=15,
+            transport_mode="walking",
+            steps=[{"instruction": f"Navigate from {start} to {end}", "distance": "1km", "duration": "15 min"}]
+        )
+        
+        return MapDirections(
+            start_location=start_location,
+            end_location=end_location,
+            routes=[fallback_route],
+            nearby_stops=[],
+            nearby_attractions=[]
+        )
+    
+    def get_map_visualization_data(self, directions: MapDirections) -> Dict[str, Any]:
+        """
+        Generate data structure for frontend map visualization
+        """
+        return {
+            "center": {
+                "lat": directions.start_location.latitude,
+                "lng": directions.start_location.longitude
+            },
+            "zoom": 13,
+            "markers": [
+                {
+                    "lat": directions.start_location.latitude,
+                    "lng": directions.start_location.longitude,
+                    "title": directions.start_location.name,
+                    "type": "start",
+                    "icon": "start-point"
+                },
+                {
+                    "lat": directions.end_location.latitude,
+                    "lng": directions.end_location.longitude,
+                    "title": directions.end_location.name,
+                    "type": "end",
+                    "icon": "end-point"
+                }
+            ] + [
+                {
+                    "lat": stop.latitude,
+                    "lng": stop.longitude,
+                    "title": stop.name,
+                    "type": "transport",
+                    "icon": stop.icon,
+                    "description": stop.description
+                }
+                for stop in directions.nearby_stops
+            ] + [
+                {
+                    "lat": attraction.latitude,
+                    "lng": attraction.longitude,
+                    "title": attraction.name,
+                    "type": "attraction",
+                    "icon": attraction.icon,
+                    "description": attraction.description
+                }
+                for attraction in directions.nearby_attractions
+            ],
+            "routes": [
+                {
+                    "geometry": json.loads(route.geometry),
+                    "distance": route.distance_km,
+                    "duration": route.duration_minutes,
+                    "mode": route.transport_mode,
+                    "steps": route.steps
+                }
+                for route in directions.routes
+            ],
+            "user_location": {
+                "lat": directions.user_location.latitude,
+                "lng": directions.user_location.longitude,
+                "accuracy": 50  # meters
+            } if directions.user_location else None
+        }
+
+# Update MLEnhancedTransportationSystem class to include mapping
+class MLEnhancedTransportationSystemWithMapping(MLEnhancedTransportationSystem):
+    """
+    Enhanced version with comprehensive mapping functionality
+    """
+    
+    def __init__(self):
+        super().__init__()
+        self.map_service = MapIntegrationService()
+        logger.info("🗺️ ML Transportation System with Mapping initialized")
+    
+    def get_route_with_map(self, 
+                          start_location: str,
+                          end_location: str,
+                          user_lat: float = None,
+                          user_lon: float = None,
+                          preferences: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Get comprehensive route with ML optimization and map visualization
+        """
+        try:
+            # Get ML-optimized route
+            ml_route = self.optimize_route_with_ml(
+                start_location, end_location, preferences or {}
+            )
+            
+            # Get map directions
+            map_directions = self.map_service.get_directions_with_map(
+                start_location, end_location, user_lat, user_lon
+            )
+            
+            # Get map visualization data
+            map_data = self.map_service.get_map_visualization_data(map_directions)
+            
+            # Combine ML route with map data
+            return {
+                "ml_optimization": ml_route,
+                "map_directions": {
+                    "start": {
+                        "name": map_directions.start_location.name,
+                        "lat": map_directions.start_location.latitude,
+                        "lng": map_directions.start_location.longitude
+                    },
+                    "end": {
+                        "name": map_directions.end_location.name,
+                        "lat": map_directions.end_location.latitude,
+                        "lng": map_directions.end_location.longitude
+                    },
+                    "routes": [
+                        {
+                            "distance_km": route.distance_km,
+                            "duration_minutes": route.duration_minutes,
+                            "transport_mode": route.transport_mode,
+                            "steps": route.steps,
+                            "geometry": route.geometry
+                        }
+                        for route in map_directions.routes
+                    ],
+                    "nearby_stops": [
+                        {
+                            "name": stop.name,
+                            "type": stop.type,
+                            "lat": stop.latitude,
+                            "lng": stop.longitude,
+                            "description": stop.description
+                        }
+                        for stop in map_directions.nearby_stops
+                    ],
+                    "nearby_attractions": [
+                        {
+                            "name": attraction.name,
+                            "type": attraction.type,
+                            "lat": attraction.latitude,
+                            "lng": attraction.longitude,
+                            "description": attraction.description
+                        }
+                        for attraction in map_directions.nearby_attractions
+                    ]
+                },
+                "map_visualization": map_data,
+                "user_location": {
+                    "lat": user_lat,
+                    "lng": user_lon
+                } if user_lat and user_lon else None
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error generating route with map: {e}")
+            return {
+                "error": str(e),
+                "fallback_message": "Unable to generate map route. Please try again."
+            }
+    
+    def get_general_transportation_advice(self, query: str, start_location: str = None, end_location: str = None) -> Dict[str, Any]:
+        """
+        Provide general transportation advice when GPS location is not available
+        """
+        try:
+            logger.info(f"🗺️ Generating general transportation advice for query: {query}")
+            
+            # Parse locations from query if not provided
+            if not start_location or not end_location:
+                locations = self._extract_locations_from_query(query)
+                start_location = start_location or locations.get('start', 'your location')
+                end_location = end_location or locations.get('end', 'destination')
+            
+            # Get coordinates for known locations
+            start_coords = self._parse_location_to_coords(start_location) if start_location != 'your location' else (41.0082, 28.9784)
+            end_coords = self._parse_location_to_coords(end_location) if end_location != 'destination' else (41.0082, 28.9784)
+            
+            # Calculate approximate distance
+            start_map_loc = MapLocation(start_coords[0], start_coords[1], start_location)
+            end_map_loc = MapLocation(end_coords[0], end_coords[1], end_location)
+            distance = self.calculate_distance(start_map_loc, end_map_loc)
+            
+            # Generate transportation recommendations
+            transport_recommendations = self._generate_general_transport_recommendations(
+                start_location, end_location, distance, query
+            )
+            
+            # Get nearby attractions for the area
+            nearby_attractions = self.get_nearby_attractions(start_map_loc, radius_km=3.0)
+            
+            # Generate comprehensive advice
+            advice = self._generate_general_advice_text(
+                query, start_location, end_location, distance, 
+                transport_recommendations, nearby_attractions
+            )
+            
+            return {
+                "advice": advice,
+                "start_location": start_location,
+                "end_location": end_location,
+                "estimated_distance_km": distance,
+                "transport_recommendations": transport_recommendations,
+                "nearby_attractions": nearby_attractions[:5],
+                "general_tips": self._get_general_istanbul_tips(),
+                "has_gps": False,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error generating general transportation advice: {e}")
+            return self._get_fallback_general_advice(query)
+    
+    def _extract_locations_from_query(self, query: str) -> Dict[str, str]:
+        """
+        Extract start and end locations from user query using keyword matching
+        """
+        query_lower = query.lower()
+        
+        # Common location keywords in Turkish and English
+        istanbul_locations = {
+            'sultanahmet', 'taksim', 'galata', 'karaköy', 'karakoy', 'beyoğlu', 'beyoglu',
+            'kadıköy', 'kadikoy', 'beşiktaş', 'besiktas', 'üsküdar', 'uskudar', 'fatih',
+            'eminönü', 'eminonu', 'şişli', 'sisli', 'ortaköy', 'ortakoy', 'bebek',
+            'bosphorus', 'boğaziçi', 'golden horn', 'haliç', 'airport', 'havalimanı'
+        }
+        
+        # Directional keywords
+        from_keywords = ['from', 'dan', 'den', 'starting from', 'başlangıç']
+        to_keywords = ['to', 'ye', 'ya', 'going to', 'hedef', 'destination']
+        
+        locations = {'start': None, 'end': None}
+        
+        # Find locations mentioned in query
+        mentioned_locations = []
+        for location in istanbul_locations:
+            if location in query_lower:
+                mentioned_locations.append(location)
+        
+        # Try to determine start and end based on context
+        if len(mentioned_locations) >= 2:
+            locations['start'] = mentioned_locations[0]
+            locations['end'] = mentioned_locations[1]
+        elif len(mentioned_locations) == 1:
+            # Check if it's mentioned with directional keywords
+            location = mentioned_locations[0]
+            for keyword in to_keywords:
+                if keyword in query_lower and location in query_lower:
+                    locations['end'] = location
+                    break
+            else:
+                for keyword in from_keywords:
+                    if keyword in query_lower and location in query_lower:
+                        locations['start'] = location
+                        break
+                else:
+                    # Default to destination
+                    locations['end'] = location
+        
+        return locations
+    
+    def _generate_general_transport_recommendations(self, start: str, end: str, distance: float, query: str) -> List[Dict[str, Any]]:
+        """
+        Generate general transportation recommendations based on locations and distance
+        """
+        recommendations = []
+        
+        # Walking recommendation
+        if distance <= 2.0:  # Within 2km
+            walking_time = int(distance * 15)
+            recommendations.append({
+                'mode': 'walking',
+                'icon': '🚶',
+                'duration_minutes': walking_time,
+                'cost_tl': 0.0,
+                'description': f'Walk directly ({walking_time} minutes)',
+                'suitability': 'high' if distance <= 1.0 else 'medium',
+                'tips': ['Comfortable for short distances', 'Free and healthy option']
+            })
+        
+        # Metro recommendation
+        metro_suitable = self._is_metro_suitable(start, end)
+        if metro_suitable:
+            metro_time = max(20, int(distance * 8))  # Metro is faster
+            recommendations.append({
+                'mode': 'metro',
+                'icon': '🚇',
+                'duration_minutes': metro_time,
+                'cost_tl': 7.67,
+                'description': f'Metro system ({metro_time} minutes)',
+                'suitability': 'high',
+                'tips': ['Most reliable', 'Frequent service', 'Air conditioned']
+            })
+        
+        # Tram recommendation
+        if self._is_tram_suitable(start, end):
+            tram_time = max(15, int(distance * 10))
+            recommendations.append({
+                'mode': 'tram',
+                'icon': '🚋',
+                'duration_minutes': tram_time,
+                'cost_tl': 7.67,
+                'description': f'Tram line ({tram_time} minutes)',
+                'suitability': 'high',
+                'tips': ['Good for historic areas', 'Scenic route', 'Easy access']
+            })
+        
+        # Bus recommendation
+        if distance > 1.0:
+            bus_time = max(25, int(distance * 12))  # Buses are slower due to traffic
+            recommendations.append({
+                'mode': 'bus',
+                'icon': '🚌',
+                'duration_minutes': bus_time,
+                'cost_tl': 7.67,
+                'description': f'Bus service ({bus_time} minutes)',
+                'suitability': 'medium',
+                'tips': ['Extensive network', 'Can be crowded', 'Traffic dependent']
+            })
+        
+        # Ferry recommendation
+        if self._is_ferry_suitable(start, end):
+            ferry_time = 25
+            recommendations.append({
+                'mode': 'ferry',
+                'icon': '⛴️',
+                'duration_minutes': ferry_time,
+                'cost_tl': 7.67,
+                'description': f'Ferry crossing ({ferry_time} minutes)',
+                'suitability': 'high',
+                'tips': ['Scenic Bosphorus views', 'Avoid traffic', 'Weather dependent']
+            })
+        
+        # Taxi recommendation
+        if distance > 0.5:
+            taxi_time = max(10, int(distance * 6))  # Taxis are fast but traffic dependent
+            taxi_cost = max(15, distance * 8)  # Approximate taxi cost
+            recommendations.append({
+                'mode': 'taxi',
+                'icon': '🚕',
+                'duration_minutes': taxi_time,
+                'cost_tl': taxi_cost,
+                'description': f'Taxi ({taxi_time} minutes)',
+                'suitability': 'medium',
+                'tips': ['Door-to-door service', 'More expensive', 'Traffic dependent']
+            })
+        
+        # Sort by suitability and time
+        suitability_order = {'high': 3, 'medium': 2, 'low': 1}
+        recommendations.sort(key=lambda x: (suitability_order.get(x['suitability'], 0), -x['duration_minutes']), reverse=True)
+        
+        return recommendations[:4]  # Return top 4 recommendations
+    
+    def _is_metro_suitable(self, start: str, end: str) -> bool:
+        """Check if metro is suitable for the route"""
+        metro_areas = ['taksim', 'şişli', 'sisli', 'vezneciler', 'eminönü', 'eminonu', 'karaköy', 'karakoy']
+        start_lower = start.lower()
+        end_lower = end.lower()
+        
+        return any(area in start_lower or area in end_lower for area in metro_areas)
+    
+    def _is_tram_suitable(self, start: str, end: str) -> bool:
+        """Check if tram is suitable for the route"""
+        tram_areas = ['sultanahmet', 'eminönü', 'eminonu', 'karaköy', 'karakoy', 'galata', 'beyoğlu', 'beyoglu']
+        start_lower = start.lower()
+        end_lower = end.lower()
+        
+        return any(area in start_lower or area in end_lower for area in tram_areas)
+    
+    def _is_ferry_suitable(self, start: str, end: str) -> bool:
+        """Check if ferry is suitable for the route (crosses Bosphorus)"""
+        european_side = ['sultanahmet', 'taksim', 'galata', 'karaköy', 'karakoy', 'beyoğlu', 'beyoglu', 'eminönü', 'eminonu']
+        asian_side = ['kadıköy', 'kadikoy', 'üsküdar', 'uskudar']
+        
+        start_lower = start.lower()
+        end_lower = end.lower()
+        
+        start_european = any(area in start_lower for area in european_side)
+        end_european = any(area in end_lower for area in european_side)
+        start_asian = any(area in start_lower for area in asian_side)
+        end_asian = any(area in end_lower for area in asian_side)
+        
+        return (start_european and end_asian) or (start_asian and end_european)
+    
+    def _generate_general_advice_text(self, query: str, start: str, end: str, distance: float, 
+                                    recommendations: List[Dict], attractions: List[MapLocation]) -> str:
+        """Generate comprehensive general transportation advice text"""
+        
+        current_time = datetime.now().strftime("%H:%M")
+        
+        advice_parts = []
+        
+        # Header
+        advice_parts.append(f"🚇 **Istanbul Transportation Advice** (Updated: {current_time})")
+        
+        # Route information
+        if start != 'your location' and end != 'destination':
+            advice_parts.append(f"📍 **Route**: {start.title()} → {end.title()}")
+            advice_parts.append(f"📏 **Estimated Distance**: {distance:.1f}km")
+        else:
+            advice_parts.append(f"📍 **Query**: {query}")
+        
+        # Transportation recommendations
+        advice_parts.append(f"\n🚇 **Best Transportation Options**:")
+        
+        for i, rec in enumerate(recommendations, 1):
+            cost_text = "Free" if rec['cost_tl'] == 0 else f"{rec['cost_tl']:.0f} TL"
+            advice_parts.append(
+                f"{i}. {rec['icon']} **{rec['mode'].title()}** - {rec['description']}"
+            )
+            advice_parts.append(f"   💰 Cost: {cost_text} | ⏱️ Time: ~{rec['duration_minutes']} min")
+            if rec['tips']:
+                advice_parts.append(f"   💡 {' • '.join(rec['tips'])}")
+        
+        # Nearby attractions if available
+        if attractions:
+            advice_parts.append(f"\n🎯 **Nearby Attractions**:")
+            for attraction in attractions[:3]:
+                advice_parts.append(f"   • {attraction.name} - {attraction.description}")
+        
+        # General tips
+        advice_parts.append(f"\n💡 **General Istanbul Transportation Tips**:")
+        advice_parts.append("   • Get an **Istanbulkart** for all public transport (metro, tram, bus, ferry)")
+        advice_parts.append("   • **Rush hours**: 7:30-9:30 AM, 5:30-7:30 PM (avoid if possible)")
+        advice_parts.append("   • **Metro** is most reliable, **ferry** offers best views")
+        advice_parts.append("   • Use **Citymapper** or **Moovit** apps for real-time schedules")
+        advice_parts.append("   • **Walking** is great for exploring historic areas")
+        
+        # Current conditions
+        current_hour = datetime.now().hour
+        if 7 <= current_hour <= 9 or 17 <= current_hour <= 19:
+            advice_parts.append("\n⚠️ **Current Conditions**: Rush hour - expect crowded transport")
+        elif 22 <= current_hour or current_hour <= 6:
+            advice_parts.append("\n🌙 **Current Conditions**: Late hours - limited service frequency")
+        else:
+            advice_parts.append("\n✅ **Current Conditions**: Normal service hours")
+        
+        # Call to action
+        advice_parts.append(f"\n🎯 **Need specific directions?** Share your GPS location for personalized route planning!")
+        
+        return "\n".join(advice_parts)
+    
+    def _get_general_istanbul_tips(self) -> List[str]:
+        """Get general tips for using Istanbul transportation"""
+        return [
+            "Always have an Istanbulkart for seamless travel",
+            "Metro lines M1, M2, M3, M4 connect major areas",
+            "T1 tram line covers most tourist attractions",
+            "Ferries run between European and Asian sides",
+            "Dolmuş (shared taxis) serve local neighborhoods",
+            "Walking is enjoyable in historic peninsula",
+            "Avoid rush hours (7:30-9:30 AM, 5:30-7:30 PM)",
+            "Check weather before using ferry services"
+        ]
+    
+    def _get_fallback_general_advice(self, query: str) -> Dict[str, Any]:
+        """Fallback advice when general advice generation fails"""
+        current_time = datetime.now().strftime("%H:%M")
+        
+        advice = f"""🚇 **Istanbul Transportation Guide** (Updated: {current_time})
+
+📍 **Your Query**: {query}
+
+🚇 **Main Transportation Options**:
+1. 🚇 **Metro** - Fast, reliable, air-conditioned (7.67 TL)
+2. 🚋 **Tram** - Great for tourists, connects main sites (7.67 TL)
+3. 🚌 **Bus** - Extensive network, can be crowded (7.67 TL)
+4. ⛴️ **Ferry** - Scenic Bosphorus crossing (7.67 TL)
+5. 🚶 **Walking** - Free, healthy, great for exploring
+
+💡 **Essential Tips**:
+• Get an Istanbulkart for all public transport
+• Metro is most reliable during rush hours
+• Ferry offers amazing Bosphorus views
+• Walking is perfect for historic areas
+• Use Citymapper app for real-time info
+
+🎯 **For specific directions**: Share your location for personalized route planning!"""
+
+        return {
+            "advice": advice,
+            "start_location": "unknown",
+            "end_location": "unknown",
+            "estimated_distance_km": 0,
+            "transport_recommendations": [
+                {'mode': 'metro', 'icon': '🚇', 'suitability': 'high', 'duration_minutes': 25, 'cost_tl': 7.67},
+                {'mode': 'tram', 'icon': '🚋', 'suitability': 'high', 'duration_minutes': 30, 'cost_tl': 7.67},
+                {'mode': 'bus', 'icon': '🚌', 'suitability': 'medium', 'duration_minutes': 35, 'cost_tl': 7.67},
+                {'mode': 'ferry', 'icon': '⛴️', 'suitability': 'high', 'duration_minutes': 25, 'cost_tl': 7.67}
+            ],
+            "nearby_attractions": [],
+            "general_tips": self._get_general_istanbul_tips(),
+            "has_gps": False,
+            "fallback": True,
+            "timestamp": datetime.now().isoformat()
+        }
