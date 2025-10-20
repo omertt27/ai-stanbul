@@ -944,7 +944,7 @@ class IstanbulMuseumDatabase:
                 location="Galata, Beyoğlu",
                 nearby_attractions=["Galata Tower", "Karaköy", "Istanbul Modern"],
                 visiting_duration="45-60 minutes",
-                best_time
+                best_time_to_visit="Weekday mornings",
                 historical_significance="Important center of Mevlevi Sufi tradition in Ottoman Istanbul.",
                 architectural_style="Ottoman Sufi lodge architecture",
                 must_see_highlights=[
@@ -1388,6 +1388,315 @@ class IstanbulMuseumDatabase:
                 photography_allowed="Respectful photography",
                 accessibility="Waterfront location, accessible",
                 closing_days=["None (respect prayer times)"]
+            ),
+            
+            # Contemporary Art Museums
+            "arter": MuseumInfo(
+                name="Arter - Contemporary Art Museum",
+                historical_period="Contemporary (2010, relocated 2019)",
+                construction_date="New building 2019",
+                architect="Grimshaw Architects",
+                key_features=[
+                    "Leading contemporary art space",
+                    "Vehbi Koç Foundation collection",
+                    "International exhibitions program",
+                    "9,000 m² exhibition space",
+                    "State-of-the-art facilities"
+                ],
+                opening_hours={
+                    "Tuesday-Sunday": "11:00-19:00 (Thursdays till 20:00)",
+                    "Monday": "Closed"
+                },
+                entrance_fee="80 TL (Students: 40 TL, Thursdays after 17:00: Free)",
+                location="Istiklal Avenue, Beyoğlu",
+                nearby_attractions=["SALT Galata", "Pera Museum", "Galata Tower"],
+                visiting_duration="90-120 minutes",
+                best_time_to_visit="Thursday evenings for free entry and fewer crowds",
+                historical_significance="Leading platform for contemporary art in Turkey since 2010.",
+                architectural_style="Modern purpose-built contemporary art space",
+                must_see_highlights=[
+                    "Rotating contemporary exhibitions",
+                    "Vehbi Koç Foundation collection",
+                    "Multi-floor gallery spaces",
+                    "Educational programs and talks"
+                ],
+                photography_allowed="Varies by exhibition (usually allowed without flash)",
+                accessibility="Fully wheelchair accessible, modern facilities",
+                closing_days=["Mondays"]
+            ),
+            
+            "salt_galata": MuseumInfo(
+                name="SALT Galata",
+                historical_period="Historic building (1892), Converted (2011)",
+                construction_date="1892 Ottoman Bank building",
+                architect="Alexandre Vallaury (building)",
+                key_features=[
+                    "Historic Ottoman Bank headquarters",
+                    "Contemporary art and research platform",
+                    "Free admission",
+                    "Extensive library and archives",
+                    "Interdisciplinary exhibitions"
+                ],
+                opening_hours={
+                    "Tuesday-Saturday": "12:00-20:00",
+                    "Sunday": "12:00-18:00",
+                    "Monday": "Closed"
+                },
+                entrance_fee="Free",
+                location="Bankalar Caddesi, Galata",
+                nearby_attractions=["Galata Tower", "Karaköy waterfront", "Arter"],
+                visiting_duration="60-90 minutes",
+                best_time_to_visit="Weekday afternoons for quieter experience",
+                historical_significance="Former Ottoman Bank transformed into cultural space, free public access.",
+                architectural_style="19th-century Ottoman banking architecture",
+                must_see_highlights=[
+                    "Historic banking hall",
+                    "Contemporary exhibitions",
+                    "Research library",
+                    "Rooftop terrace views"
+                ],
+                photography_allowed="Varies by exhibition",
+                accessibility="Historic building with elevator access",
+                closing_days=["Mondays"]
+            ),
+            
+            "salt_beyoglu": MuseumInfo(
+                name="SALT Beyoğlu",
+                historical_period="Historic apartment building, Converted (2011)",
+                construction_date="Early 20th century building",
+                architect="Historic conversion",
+                key_features=[
+                    "Sister space to SALT Galata",
+                    "Focus on architecture and design",
+                    "Free admission",
+                    "Walk-in cinema",
+                    "Educational programs"
+                ],
+                opening_hours={
+                    "Tuesday-Saturday": "12:00-20:00",
+                    "Sunday": "12:00-18:00",
+                    "Monday": "Closed"
+                },
+                entrance_fee="Free",
+                location="Istiklal Avenue, Beyoğlu",
+                nearby_attractions=["Arter", "Pera Museum", "Taksim Square"],
+                visiting_duration="45-60 minutes",
+                best_time_to_visit="Combined with Istiklal Avenue walk",
+                historical_significance="Part of SALT's mission for free public access to arts and culture.",
+                architectural_style="Converted early 20th century building",
+                must_see_highlights=[
+                    "Architecture exhibitions",
+                    "Walk-in cinema",
+                    "Research library",
+                    "Contemporary design shows"
+                ],
+                photography_allowed="Varies by exhibition",
+                accessibility="Elevator access available",
+                closing_days=["Mondays"]
+            ),
+            
+            "dirimart_dolapdere": MuseumInfo(
+                name="Dirimart Dolapdere",
+                historical_period="Contemporary (Industrial conversion)",
+                construction_date="2020s conversion",
+                architect="Industrial space renovation",
+                key_features=[
+                    "Former industrial building",
+                    "Contemporary art gallery",
+                    "Turkish and international artists",
+                    "Large-scale installations",
+                    "Emerging art scene neighborhood"
+                ],
+                opening_hours={
+                    "Tuesday-Saturday": "11:00-19:00",
+                    "Sunday-Monday": "Closed"
+                },
+                entrance_fee="Free",
+                location="Dolapdere, Beyoğlu",
+                nearby_attractions=["Taksim Square", "Nişantaşı shopping district"],
+                visiting_duration="30-45 minutes",
+                best_time_to_visit="Opening days for new exhibitions",
+                historical_significance="Part of Istanbul's emerging contemporary art scene in converted spaces.",
+                architectural_style="Industrial conversion",
+                must_see_highlights=[
+                    "Contemporary art exhibitions",
+                    "Large-scale installations",
+                    "Turkish contemporary artists",
+                    "Industrial architecture"
+                ],
+                photography_allowed="Usually allowed (check with staff)",
+                accessibility="Ground floor accessible",
+                closing_days=["Sundays and Mondays"]
+            ),
+            
+            "pi_artworks": MuseumInfo(
+                name="Pi Artworks Istanbul",
+                historical_period="Contemporary (2010)",
+                construction_date="Historic building conversion",
+                architect="Historic warehouse conversion",
+                key_features=[
+                    "International contemporary art",
+                    "London-Istanbul connection",
+                    "Emerging and established artists",
+                    "Warehouse space aesthetic",
+                    "Karaköy art district"
+                ],
+                opening_hours={
+                    "Tuesday-Saturday": "11:00-19:00",
+                    "Sunday-Monday": "Closed"
+                },
+                entrance_fee="Free",
+                location="Karaköy, Beyoğlu",
+                nearby_attractions=["Istanbul Modern", "SALT Galata", "Karaköy waterfront"],
+                visiting_duration="30-45 minutes",
+                best_time_to_visit="Saturday afternoons during gallery openings",
+                historical_significance="Bridge between London and Istanbul contemporary art scenes.",
+                architectural_style="Converted warehouse space",
+                must_see_highlights=[
+                    "International contemporary art",
+                    "Emerging artists",
+                    "Warehouse gallery space",
+                    "Karaköy neighborhood"
+                ],
+                photography_allowed="Usually allowed",
+                accessibility="Historic building, limited accessibility",
+                closing_days=["Sundays and Mondays"]
+            ),
+            
+            "mixer": MuseumInfo(
+                name="Mixer Arts & Culture",
+                historical_period="Contemporary (2012)",
+                construction_date="Historic building conversion",
+                architect="Historic conversion",
+                key_features=[
+                    "Maçka district cultural space",
+                    "Contemporary Turkish art focus",
+                    "Experimental programs",
+                    "Multi-disciplinary approach",
+                    "Intimate gallery space"
+                ],
+                opening_hours={
+                    "Tuesday-Saturday": "10:00-18:00",
+                    "Sunday-Monday": "Closed"
+                },
+                entrance_fee="Free",
+                location="Maçka, Şişli",
+                nearby_attractions=["Maçka Park", "Dolmabahçe Palace", "Nişantaşı"],
+                visiting_duration="30-45 minutes",
+                best_time_to_visit="Weekday afternoons",
+                historical_significance="Promoting Turkish contemporary art with experimental approach.",
+                architectural_style="Converted residential building",
+                must_see_highlights=[
+                    "Turkish contemporary artists",
+                    "Experimental exhibitions",
+                    "Intimate space",
+                    "Maçka neighborhood setting"
+                ],
+                photography_allowed="Usually allowed",
+                accessibility="Limited due to historic building",
+                closing_days=["Sundays and Mondays"]
+            ),
+            
+            "elgiz_museum": MuseumInfo(
+                name="Elgiz Museum of Contemporary Art",
+                historical_period="Contemporary (2001)",
+                construction_date="Purpose-built 2001",
+                architect="Selahattin Önder",
+                key_features=[
+                    "Private contemporary art collection",
+                    "Turkish and international works",
+                    "Rotating exhibitions",
+                    "Educational programs",
+                    "Maslak business district location"
+                ],
+                opening_hours={
+                    "Tuesday-Friday": "10:00-17:00",
+                    "Saturday": "10:00-16:00",
+                    "Sunday-Monday": "Closed"
+                },
+                entrance_fee="Free (appointment recommended)",
+                location="Maslak, Sarıyer",
+                nearby_attractions=["Istanbul Technical University", "Levent business district"],
+                visiting_duration="60-90 minutes",
+                best_time_to_visit="Weekdays by appointment",
+                historical_significance="One of Turkey's first private contemporary art museums.",
+                architectural_style="Modern purpose-built museum",
+                must_see_highlights=[
+                    "Private collection highlights",
+                    "Contemporary Turkish art",
+                    "International works",
+                    "Sculpture garden"
+                ],
+                photography_allowed="With permission",
+                accessibility="Modern building, fully accessible",
+                closing_days=["Sundays and Mondays"]
+            ),
+            
+            "akbank_sanat": MuseumInfo(
+                name="Akbank Sanat",
+                historical_period="Contemporary (1993)",
+                construction_date="Ongoing venue",
+                architect="Various exhibition spaces",
+                key_features=[
+                    "Corporate-sponsored cultural space",
+                    "Free admission to all events",
+                    "Music, theater, exhibitions",
+                    "Beyoğlu cultural center",
+                    "Year-round programming"
+                ],
+                opening_hours={
+                    "Daily": "10:00-19:00 (event dependent)",
+                },
+                entrance_fee="Free",
+                location="Istiklal Avenue, Beyoğlu",
+                nearby_attractions=["Arter", "SALT", "Pera Museum"],
+                visiting_duration="30-60 minutes",
+                best_time_to_visit="Check program for specific exhibitions",
+                historical_significance="Long-standing corporate cultural contribution with free public access.",
+                architectural_style="Modern cultural center",
+                must_see_highlights=[
+                    "Contemporary exhibitions",
+                    "Music performances",
+                    "Theater productions",
+                    "Free cultural programming"
+                ],
+                photography_allowed="Varies by event",
+                accessibility="Central location, accessible",
+                closing_days=["Varies by program"]
+            ),
+            
+            "borusan_contemporary": MuseumInfo(
+                name="Borusan Contemporary",
+                historical_period="Contemporary (2011)",
+                construction_date="Historic mansion conversion",
+                architect="Perili Köşk (Haunted Mansion) - 1910",
+                key_features=[
+                    "Historic mansion on Bosphorus",
+                    "New media and digital art focus",
+                    "Spectacular Bosphorus views",
+                    "Interactive installations",
+                    "Weekend-only opening"
+                ],
+                opening_hours={
+                    "Saturday-Sunday": "10:00-18:00",
+                    "Weekdays": "Closed to public"
+                },
+                entrance_fee="70 TL (Students: 30 TL)",
+                location="Rumeli Hisarı, Sarıyer (Bosphorus)",
+                nearby_attractions=["Rumeli Fortress", "Bebek", "Emirgan Park"],
+                visiting_duration="90-120 minutes",
+                best_time_to_visit="Weekend mornings for combined mansion and art experience",
+                historical_significance="Historic mansion ('Perili Köşk') housing cutting-edge digital art.",
+                architectural_style="Early 20th century mansion with modern interventions",
+                must_see_highlights=[
+                    "Historic Perili Köşk mansion",
+                    "Bosphorus panoramic views",
+                    "New media art installations",
+                    "Digital and interactive works"
+                ],
+                photography_allowed="Varies by exhibition",
+                accessibility="Historic building with steps",
+                closing_days=["Monday-Friday"]
             )
         }
     

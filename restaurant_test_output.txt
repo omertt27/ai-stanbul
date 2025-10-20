@@ -1,0 +1,891 @@
+WARNING:lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:numexpr.utils:Note: NumExpr detected 10 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+INFO:numexpr.utils:NumExpr defaulting to 8 threads.
+INFO:ml_enhanced_transportation_system:✅ Lightweight Neural Query Enhancement integrated successfully!
+INFO:ml_enhanced_transportation_system:✅ ML Prediction Cache Service integrated successfully!
+WARNING:ml_enhanced_transportation_system:⚠️ ML Prediction Cache Service not available: cannot import name 'MLPredictionCacheService' from 'ml_prediction_cache_service' (/Users/omer/Desktop/ai-stanbul/services/ml_prediction_cache_service.py)
+WARNING:ml_enhanced_transportation_system:⚠️ XGBoost/LightGBM not available, using basic crowding prediction
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_transportation_integration:🚇 Enhanced transportation system initialized with NEW modular architecture
+INFO:istanbul_ai.main_system:✅ Advanced transportation system loaded successfully
+INFO:ml_enhanced_daily_talks_bridge.deep_learning:✅ Deep Learning libraries loaded successfully
+INFO:daily_talks_integration_wrapper:✅ Comprehensive Daily Talks System loaded successfully
+INFO:services.advanced_daily_talk_ai:🧠 Advanced Daily Talk AI System initialized - GPT-level intelligence ready!
+WARNING:daily_talks_integration_wrapper:⚠️ Legacy daily talk system not available: cannot import name 'get_daily_greeting' from 'services.daily_talk_enhancement' (/Users/omer/Desktop/ai-stanbul/services/daily_talk_enhancement.py)
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:ml_enhanced_daily_talks_bridge:✅ İKSV Events System loaded successfully
+INFO:ml_enhanced_daily_talks_bridge:✅ Location Detection for Events loaded successfully
+INFO:comprehensive_daily_talks_system:🎉 Comprehensive Daily Talks System initialized
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:ml_enhanced_daily_talks_bridge:Using device: cpu
+/Users/omer/anaconda3/lib/python3.11/site-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.self_attn.batch_first was not True(use batch_first for better inference performance)
+  warnings.warn(
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+Device set to use cpu
+Some weights of the model checkpoint at cardiffnlp/twitter-roberta-base-sentiment-latest were not used when initializing RobertaForSequenceClassification: ['roberta.pooler.dense.bias', 'roberta.pooler.dense.weight']
+- This IS expected if you are initializing RobertaForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing RobertaForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Device set to use cpu
+INFO:ml_enhanced_daily_talks_bridge:NLP components initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:✅ Deep learning models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML/DL models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML-Enhanced Daily Talks Bridge initialized
+INFO:istanbul_ai.main_system:✅ ML-Enhanced Daily Talks Bridge loaded successfully
+WARNING:backend.services.lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:istanbul_ai.main_system:✅ Neural Query Enhancement System loaded successfully
+INFO:istanbul_ai.core.main_system:✅ Advanced transportation system loaded successfully
+INFO:transportation_integration_wrapper:🚇 Using NEW modular transportation system
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:istanbul_ai.core.main_system:🚇 Advanced transportation system with IBB API initialized
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:istanbul_ai.core.main_system:🎭 Events integration loaded
+WARNING:istanbul_ai.core.main_system:⚠️ Route integration not available
+INFO:deep_learning_enhanced_ai:Using device: cpu
+INFO:deep_learning_enhanced_ai:🧠 Neural networks initialized successfully!
+INFO:deep_learning_enhanced_ai:🚀 UNLIMITED Deep Learning Enhanced AI System initialized!
+INFO:deep_learning_enhanced_ai:✨ ALL PREMIUM FEATURES ENABLED FOR FREE!
+INFO:deep_learning_enhanced_ai:🎉 Serving 10,000+ users with unlimited access!
+INFO:deep_learning_enhanced_ai:🇺🇸 ENGLISH-OPTIMIZED for maximum performance!
+INFO:istanbul_ai.core.main_system:🧠 Deep learning integration loaded
+INFO:istanbul_ai.core.main_system:✅ External integrations loaded successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.services.neighborhood_guide_service:Initialized NeighborhoodGuideService with 7 districts
+INFO:istanbul_ai.core.main_system:✅ Advanced location and neighborhood guide services loaded
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System available!
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System integrated successfully!
+INFO:multi_intent_query_handler:🎭 İKSV Events System integrated successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner integrated successfully!
+INFO:comprehensive_ml_dl_integration:🧠 Deep Learning System available for comprehensive integration!
+WARNING:comprehensive_ml_dl_integration:Enhanced Transportation System not available: cannot import name 'TransportMode' from 'enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/enhanced_transportation_system.py)
+WARNING:comprehensive_ml_dl_integration:Hidden Gems System not available: cannot import name 'HiddenGemsLocalTipsSystem' from 'hidden_gems_local_tips' (/Users/omer/Desktop/ai-stanbul/hidden_gems_local_tips.py)
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System available!
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System initialized successfully!
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:multi_intent_query_handler:🎭 İKSV Events System initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Museum Advising System loaded (40 museums from accurate_museum_database.py)
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:comprehensive_ml_dl_integration:🧠 Core ML/DL System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:comprehensive_ml_dl_integration:🏛️ Attractions System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🏛️ Museum Route Planner integrated with ML enhancement
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:comprehensive_ml_dl_integration:🎭 Events System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🚀 Comprehensive ML/DL Integration initialized with 4 enhanced systems!
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System initialized successfully!
+INFO:istanbul_ai.core.main_system:✅ Multi-Intent Query Handler loaded
+INFO:istanbul_ai.services.personality_enhancement:🎭 Istanbul Personality Enhancement Module initialized
+INFO:istanbul_ai.services.personality_enhancement:🎭 Istanbul Personality Enhancement Module initialized
+INFO:istanbul_ai.core.main_system:🎭 Personality Enhancement Module loaded successfully
+INFO:istanbul_ai.core.main_system:🏛️ Museum Advising System loaded successfully (40 museums)
+INFO:istanbul_ai.core.main_system:🎉 Enhanced Istanbul Daily Talk AI System initialized (Modular Architecture)
+INFO:istanbul_ai.core.main_system:Created new user profile for restaurant_test_user
+INFO:root:🔍 Analyzing multi-intent query: Best restaurants in Beyoğlu
+WARNING:ml_result_cache:Failed to load cache entry from disk: Expecting value: line 10 column 20 (char 269)
+INFO:ml_result_cache:📥 Loaded 3 ML cache entries from disk
+INFO:ml_result_cache:🗄️ ML Result Cache initialized: 3 entries loaded
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Best restaurants in Beyoğlu
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Best restaurants in Beyoğlu
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Where to eat in Sultanahmet?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Where to eat in Sultanahmet?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Where to eat in Sultanahmet?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Food recommendations near Kadıköy
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Food recommendations near Kadıköy
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Food recommendations near Kadıköy
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Restaurants in Beşiktaş
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Restaurants in Beşiktaş
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Restaurants in Beşiktaş
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.45)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Places to eat in Taksim
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Places to eat in Taksim
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Places to eat in Taksim
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Dining options in Ortaköy
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Dining options in Ortaköy
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Dining options in Ortaköy
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.45)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Best food spots in Eminönü
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Best food spots in Eminönü
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Best food spots in Eminönü
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🏛️ Museum System: Processing museum query (including contemporary art)
+ERROR:istanbul_ai.core.main_system:Error processing message: 'IstanbulMuseumDatabase' object has no attribute 'get_all_museums'
+INFO:root:🔍 Analyzing multi-intent query: Turkish restaurants near me
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Turkish restaurants near me
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Turkish restaurants near me
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Best seafood in Istanbul
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Best seafood in Istanbul
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Best seafood in Istanbul
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Where can I find good kebab?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Where can I find good kebab?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Where can I find good kebab?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Street food recommendations
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Street food recommendations
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Street food recommendations
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🎭 Personality: Cultural insight
+INFO:root:🔍 Analyzing multi-intent query: Best meyhane in Beyoğlu
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Best meyhane in Beyoğlu
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Best meyhane in Beyoğlu
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Where to try balik ekmek?
+INFO:root:✅ Multi-intent analysis complete: 0 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Vegetarian restaurants in Istanbul
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Vegetarian restaurants in Istanbul
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Vegetarian restaurants in Istanbul
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Vegan food options near Taksim
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Vegan food options near Taksim
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Vegan food options near Taksim
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+
+🚀 Starting Restaurant System Test Suite...
+
+🍽️ Initializing Restaurant Test Suite...
+✅ AI System initialized successfully
+
+================================================================================
+🍽️  RESTAURANT & FOOD RECOMMENDATION SYSTEM TEST SUITE
+================================================================================
+
+📍 CATEGORY 1: LOCATION-SPECIFIC SEARCHES
+--------------------------------------------------------------------------------
+📝 Testing: Best restaurants in Beyoğlu
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Where to eat in Sultanahmet?
+✅ Response: 📍 I'll help you find exactly where to go! Here are the locations and directions you need:
+
+💡 Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!
+
+✨ I'm 78% confident this matches what you're looking for!
+   Length: 258 chars
+
+📝 Testing: Food recommendations near Kadıköy
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+I'll make sure to provide clear directions and location details.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 38% confident this matches what you're looking for!
+   Length: 348 chars
+
+📝 Testing: Restaurants in Beşiktaş
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 35% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Places to eat in Taksim
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+   Length: 283 chars
+
+📝 Testing: Dining options in Ortaköy
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 55% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Best food spots in Eminönü
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Restaurants near Galata Tower
+✅ Response: I'm your Istanbul AI assistant! I can help you with museums, attractions, restaurants, transportation, and more. What would you like to know about Istanbul?
+   Length: 156 chars
+
+🍲 CATEGORY 2: CUISINE FILTERING
+--------------------------------------------------------------------------------
+📝 Testing: Turkish restaurants near me
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+I'll make sure to provide clear directions and location details.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 62% confident this matches what you're looking for!
+
+Bravo! (Well done!)
+   Length: 369 chars
+
+📝 Testing: Best seafood in Istanbul
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned seafood - I've focused on places that excel in these cuisines.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+   Length: 361 chars
+
+📝 Testing: Where can I find good kebab?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+   Length: 283 chars
+
+📝 Testing: Street food recommendations
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 55% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Traditional Ottoman cuisine
+✅ Response: 🏛️ **Turkish Culture & Etiquette in Istanbul**
+
+Istanbul is a beautiful blend of Eastern and Western cultures! Here are some key cultural insights:
+
+**Social Customs**:
+• Turkish people are incredibly hospitable - "Misafir Allah'ın konuğudur" (Guests are God's guests!)
+• It's common to be offered çay (tea) - accepting is polite and shows respect
+• Greeting with a handshake is common; close friends kiss on both cheeks
+
+**Mosque Etiquette**:
+• Remove shoes before entering (shelves provided)
+• Dress modestly: cover shoulders and knees
+• Ladies should cover their hair (free headscarves at entrance)
+• Be quiet and respectful during prayer times
+
+**Dining Etiquette**:
+• Say "Afiyet olsun!" (Enjoy your meal!) before eating
+• It's polite to try everything offered
+• Sharing food is a sign of friendship
+
+**Shopping Culture**:
+• Bargaining is expected at bazaars (not rude, it's tradition!)
+• Start at 50-60% of asking price
+• It's a social interaction, smile and have fun!
+
+**Daily Life**:
+• Family is very important in Turkish culture
+• Respect for elders is deeply ingrained
+• Public displays of affection are generally modest
+
+Enjoy experiencing Turkish hospitality and culture! 🇹🇷
+
+Çok güzel! (Very beautiful!)
+   Length: 1216 chars
+
+📝 Testing: Best meyhane in Beyoğlu
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: Where to try balik ekmek?
+✅ Response: ℹ️ I'm happy to share what I know! Here's the information you're looking for:
+
+💡 Feel free to ask me anything else about Istanbul's amazing food scene!
+
+✨ I'm 0% confident this matches what you're looking for!
+
+💡 **Cultural Tip**: In Istanbul, you'll hear 'Abi' (brother) and 'Abla' (sister) a lot - it's respectful and friendly!
+   Length: 329 chars
+
+🥗 CATEGORY 3: DIETARY RESTRICTIONS
+--------------------------------------------------------------------------------
+📝 Testing: Vegetarian restaurants in Istanbul
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned vegetarian - I've focused on places that excel in these cuisines.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 85% confident this matches what you're looking for!
+
+Mükemmel! (Perfect!)
+   Length: 385 chars
+
+📝 Testing: Vegan food options near Taksim
+INFO:root:🔍 Analyzing multi-intent query: Halal restaurants in Sultanahmet
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Halal restaurants in Sultanahmet
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Halal restaurants in Sultanahmet
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Kosher dining options
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Kosher dining options
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Kosher dining options
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Gluten-free restaurants
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Gluten-free restaurants
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Gluten-free restaurants
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: I'm vegetarian, where should I eat?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: I'm vegetarian, where should I eat?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: I'm vegetarian, where should I eat?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Do you have vegan-friendly places?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Do you have vegan-friendly places?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Do you have vegan-friendly places?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Cheap eats in Istanbul
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Cheap eats in Istanbul
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Cheap eats in Istanbul
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Budget-friendly restaurants in Kadıköy
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Budget-friendly restaurants in Kadıköy
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Budget-friendly restaurants in Kadıköy
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.45)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Restaurants open late at night
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Restaurants open late at night
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Restaurants open late at night
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🎭 Personality: Warm greeting response
+INFO:root:🔍 Analyzing multi-intent query: restourants in beyoglu
+INFO:root:✅ Multi-intent analysis complete: 0 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: were to eat in kadikoy
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: were to eat in kadikoy
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: were to eat in kadikoy
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: vegiterian food
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: vegiterian food
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: vegiterian food
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: halaal restaurants
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: halaal restaurants
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: halaal restaurants
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🏛️ Museum System: Processing museum query (including contemporary art)
+ERROR:istanbul_ai.core.main_system:Error processing message: 'IstanbulMuseumDatabase' object has no attribute 'get_all_museums'
+INFO:root:🔍 Analyzing multi-intent query: Tell me about Turkish cuisine
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Tell me about Turkish cuisine
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Tell me about Turkish cuisine
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.45)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: What should I try first?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: What should I try first?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: What should I try first?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: I want seafood
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: I want seafood
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: I want seafood
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Where's the best place?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Where's the best place?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Where's the best place?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+I'll make sure to provide clear directions and location details.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+   Length: 348 chars
+
+📝 Testing: Halal restaurants in Sultanahmet
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned halal - I've focused on places that excel in these cuisines.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 85% confident this matches what you're looking for!
+   Length: 358 chars
+
+📝 Testing: Kosher dining options
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+
+Çok şık! (Very stylish/cool!)
+   Length: 314 chars
+
+📝 Testing: Gluten-free restaurants
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+   Length: 284 chars
+
+📝 Testing: I'm vegetarian, where should I eat?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned vegetarian - I've focused on places that excel in these cuisines.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+
+Bravo! (Well done!)
+   Length: 387 chars
+
+📝 Testing: Do you have vegan-friendly places?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+   Length: 282 chars
+
+💰 CATEGORY 4: PRICE LEVEL & OPERATING HOURS
+--------------------------------------------------------------------------------
+📝 Testing: Cheap eats in Istanbul
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+I've prioritized great value options that won't break the bank. I'll include pricing information to help you plan your budget.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 50% confident this matches what you're looking for!
+   Length: 410 chars
+
+📝 Testing: Budget-friendly restaurants in Kadıköy
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+I've prioritized great value options that won't break the bank. I'll include pricing information to help you plan your budget.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 60% confident this matches what you're looking for!
+   Length: 410 chars
+
+📝 Testing: Restaurants open late at night
+✅ Response: ⏰ Let me help you with the timing! Here's what I found about restaurant hours and schedules:
+
+💡 Keep in mind that hours can vary on holidays or special occasions. I'd recommend checking their current status before visiting!
+
+✨ I'm 38% confident this matches what you're looking for!
+
+Mükemmel! (Perfect!)
+   Length: 304 chars
+
+📝 Testing: Where can I eat breakfast early morning?
+✅ Response: Morning! ☕ Time for a Turkish breakfast - çay (tea) and simit! What can I help you with today?
+   Length: 94 chars
+
+✏️ CATEGORY 5: TYPO CORRECTION
+--------------------------------------------------------------------------------
+📝 Testing: restourants in beyoglu
+✅ Response: ℹ️ I'm happy to share what I know! Here's the information you're looking for:
+
+💡 Feel free to ask me anything else about Istanbul's amazing food scene!
+
+✨ I'm 0% confident this matches what you're looking for!
+   Length: 209 chars
+
+📝 Testing: were to eat in kadikoy
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 55% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: vegiterian food
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 55% confident this matches what you're looking for!
+   Length: 282 chars
+
+📝 Testing: halaal restaurants
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 35% confident this matches what you're looking for!
+
+Bravo! (Well done!)
+   Length: 305 chars
+
+📝 Testing: seafod near galata
+✅ Response: I'm your Istanbul AI assistant! I can help you with museums, attractions, restaurants, transportation, and more. What would you like to know about Istanbul?
+   Length: 156 chars
+
+💬 CATEGORY 6: CONTEXT-AWARE FOLLOW-UPS
+--------------------------------------------------------------------------------
+📝 Testing: Tell me about Turkish cuisine
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 85% confident this matches what you're looking for!
+
+Geçmiş olsun! (Get well soon / Hope it passes)
+
+💡 **Cultural Tip**: Shopping tip: Walk away if price is too high. Sellers will often call you back with better offers! 😉
+   Length: 452 chars
+
+📝 Testing: What should I try first?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+
+💡 **Cultural Tip**: Respect for elders is huge here. We kiss their hands and call everyone 'Teyze' (aunt) or 'Amca' (uncle)!
+   Length: 408 chars
+
+📝 Testing: I want seafood
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned seafood - I've focused on places that excel in these cuisines.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 85% confident this matches what you're looking for!
+
+Çok güzel! (Very beautiful!)
+   Length: 390 chars
+
+📝 Testing: Where's the best place?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+   Length: 284 chars
+
+🗺️ CATEGORY 7: GPS LOCATION-BASED RECOMMENDATIONS
+--------------------------------------------------------------------------------
+📝 Testing: Restaurants near me
+INFO:root:🔍 Analyzing multi-intent query: Restaurants near me (Location: Taksim Square)
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Restaurants near me (Location: Taksim Square)
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Restaurants near me (Location: Taksim Square)
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Where can I eat nearby? (Location: Sultanahmet)
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Where can I eat nearby? (Location: Sultanahmet)
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Where can I eat nearby? (Location: Sultanahmet)
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Best food around here (Location: Kadıköy)
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Best food around here (Location: Kadıköy)
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Best food around here (Location: Kadıköy)
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.45)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Seafood restaurants close by (Location: Ortaköy)
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Seafood restaurants close by (Location: Ortaköy)
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Seafood restaurants close by (Location: Ortaköy)
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:root:🔍 Analyzing multi-intent query: Vegetarian options near my location (Location: Beşiktaş)
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Vegetarian options near my location (Location: Beşiktaş)
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Vegetarian options near my location (Location: Beşiktaş)
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.57)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+   📍 Location: {'latitude': 41.0369, 'longitude': 28.985, 'name': 'Taksim Square'}
+✅ Response: 📍 I'll help you find exactly where to go! Here are the locations and directions you need:
+
+I notice you're interested in the Taksim Square area - that's a fantastic choice for dining!
+
+💡 Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!
+
+✨ I'm 57% confident this matches what you're looking for!
+   Length: 352 chars
+
+📝 Testing: Where can I eat nearby?
+   📍 Location: {'latitude': 41.0055, 'longitude': 28.9769, 'name': 'Sultanahmet'}
+✅ Response: 📍 I'll help you find exactly where to go! Here are the locations and directions you need:
+
+💡 Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!
+
+✨ I'm 78% confident this matches what you're looking for!
+   Length: 258 chars
+
+📝 Testing: Best food around here
+   📍 Location: {'latitude': 40.9903, 'longitude': 29.0259, 'name': 'Kadıköy'}
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 100% confident this matches what you're looking for!
+   Length: 285 chars
+
+📝 Testing: Seafood restaurants close by
+   📍 Location: {'latitude': 41.0556, 'longitude': 29.0278, 'name': 'Ortaköy'}
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+You mentioned seafood - I've focused on places that excel in these cuisines. I'll make sure to provide clear directions and location details.
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 90% confident this matches what you're looking for!
+
+Mükemmel! (Perfect!)
+   Length: 449 chars
+
+📝 Testing: Vegetarian options near my location
+   📍 Location: {'latitude': 41.0422, 'longitude': 29.0072, 'name': 'Beşiktaş'}
+✅ Response: 📍 I'll help you find exactly where to go! Here are the locations and directions you need:
+
+💡 Istanbul traffic can be unpredictable, so allow extra time for your journey, especially during rush hours!
+
+✨ I'm 75% confident this matches what you're looking for!
+
+Çok güzel! (Very beautiful!)
+   Length: 288 chars
+
+
+================================================================================
+📊 TEST SUMMARY
+================================================================================
+
+✅ Total Tests: 40
+✅ Passed: 40 (100.0%)
+❌ Failed: 0 (0.0%)
+
+📋 CATEGORY BREAKDOWN:
+   Location Specific: 8/8 (100%)
+   Cuisine Filtering: 7/7 (100%)
+   Dietary Restrictions: 7/7 (100%)
+   Price And Hours: 4/4 (100%)
+   Typo Correction: 5/5 (100%)
+   Context Aware: 4/4 (100%)
+   Gps Location: 5/5 (100%)
+
+📏 RESPONSE LENGTH STATISTICS:
+   Average: 332 characters
+   Min: 94 characters
+   Max: 1216 characters
+
+================================================================================
+📊 TEST SUMMARY
+================================================================================
+
+✅ Total Tests: 40
+✅ Passed: 40 (100.0%)
+❌ Failed: 0 (0.0%)
+
+📋 CATEGORY BREAKDOWN:
+   Location Specific: 8/8 (100%)
+   Cuisine Filtering: 7/7 (100%)
+   Dietary Restrictions: 7/7 (100%)
+   Price And Hours: 4/4 (100%)
+   Typo Correction: 5/5 (100%)
+   Context Aware: 4/4 (100%)
+   Gps Location: 5/5 (100%)
+
+📏 RESPONSE LENGTH STATISTICS:
+   Average: 332 characters
+   Min: 94 characters
+   Max: 1216 characters
+
+💾 Results saved to: restaurant_test_results_20251020_175626.json
+
+================================================================================
+🎉 ALL TESTS PASSED! ✅
+================================================================================
+
+📄 Detailed results saved to: restaurant_test_results_20251020_175626.json
+📊 Run the analysis script to generate detailed report
+

@@ -2201,36 +2201,49 @@ async def chat_endpoint(request: ChatRequest):
                 # Process message with the AI system
                 ai_response = istanbul_daily_talk_ai.process_message(user_input, user_id)
                 
-                # ===== 1. RICH POI DATA (Museums & Attractions) =====
-                if any(word in user_input.lower() for word in ['museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque']):
+                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
+                museum_attraction_keywords = [
+                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
+                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
+                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
+                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
+                ]
+                if any(word in user_input.lower() for word in museum_attraction_keywords):
                     pois = []
                     
-                    # Try to get museum data from the system
-                    if hasattr(istanbul_daily_talk_ai, 'museum_system') and istanbul_daily_talk_ai.museum_system:
+                    # Try to get museum data from the main system
+                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
                         try:
-                            museums = istanbul_daily_talk_ai.museum_system.search_museums(user_input)
+                            museums = istanbul_daily_talk_ai.search_museums(user_input)
                             if museums:
                                 for m in museums[:5]:  # Top 5 museums
                                     poi = {
                                         'name': m.get('name', ''),
-                                        'type': 'museum',
+                                        'type': m.get('type', 'museum'),
+                                        'category': m.get('category', 'Museum'),
                                         'coordinates': m.get('coordinates', [41.0082, 28.9784]),
                                         'description': m.get('description', '')[:200],
                                         'highlights': m.get('highlights', ['Beautiful architecture', 'Rich history']),
                                         'local_tips': m.get('local_tips', ['Visit early to avoid crowds', 'Photography allowed']),
                                         'opening_hours': m.get('opening_hours', '9:00 AM - 5:00 PM'),
                                         'entrance_fee': m.get('entrance_fee', 'Varies'),
-                                        'best_time_to_visit': m.get('best_time', 'Early morning or late afternoon'),
-                                        'visit_duration': m.get('duration', '1-2 hours'),
+                                        'best_time_to_visit': m.get('best_time_to_visit', 'Early morning or late afternoon'),
+                                        'visit_duration': m.get('visit_duration', '1-2 hours'),
                                         'accessibility': m.get('accessibility', 'Wheelchair accessible'),
-                                        'nearby_transport': m.get('transport', 'Tram T1 nearby')
+                                        'nearby_transport': m.get('nearby_transport', 'Tram T1 nearby'),
+                                        'nearby_attractions': m.get('nearby_attractions', []),
+                                        'insider_tips': m.get('insider_tips', []),
+                                        'website': m.get('website', ''),
+                                        'phone': m.get('phone', '')
                                     }
                                     pois.append(poi)
                                 
                                 metadata['pois'] = pois
-                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata")
+                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata from Museum System")
                         except Exception as e:
                             logger.warning(f"Museum data error: {e}")
+                            import traceback
+                            logger.warning(traceback.format_exc())
                     
                     # Add famous attractions with detailed data if museums not found
                     if not pois and 'sultanahmet' in user_input.lower():

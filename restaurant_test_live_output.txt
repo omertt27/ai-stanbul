@@ -1,0 +1,2518 @@
+WARNING:lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:numexpr.utils:Note: NumExpr detected 10 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+INFO:numexpr.utils:NumExpr defaulting to 8 threads.
+INFO:ml_enhanced_transportation_system:✅ Lightweight Neural Query Enhancement integrated successfully!
+INFO:ml_enhanced_transportation_system:✅ ML Prediction Cache Service integrated successfully!
+WARNING:ml_enhanced_transportation_system:⚠️ ML Prediction Cache Service not available: cannot import name 'MLPredictionCacheService' from 'ml_prediction_cache_service' (/Users/omer/Desktop/ai-stanbul/services/ml_prediction_cache_service.py)
+WARNING:ml_enhanced_transportation_system:⚠️ XGBoost/LightGBM not available, using basic crowding prediction
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 91c554be-67cf-4df4-899b-167ec311d5ac)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/./config_sentence_transformers.json
+WARNING:huggingface_hub.utils._http:'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 91c554be-67cf-4df4-899b-167ec311d5ac)')' thrown while requesting HEAD https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/./config_sentence_transformers.json
+Retrying in 1s [Retry 1/5].
+WARNING:huggingface_hub.utils._http:Retrying in 1s [Retry 1/5].
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_transportation_integration:🚇 Enhanced transportation system initialized with NEW modular architecture
+INFO:istanbul_ai.main_system:✅ Advanced transportation system loaded successfully
+INFO:ml_enhanced_daily_talks_bridge.deep_learning:✅ Deep Learning libraries loaded successfully
+INFO:daily_talks_integration_wrapper:✅ Comprehensive Daily Talks System loaded successfully
+INFO:services.advanced_daily_talk_ai:🧠 Advanced Daily Talk AI System initialized - GPT-level intelligence ready!
+WARNING:daily_talks_integration_wrapper:⚠️ Legacy daily talk system not available: cannot import name 'get_daily_greeting' from 'services.daily_talk_enhancement' (/Users/omer/Desktop/ai-stanbul/services/daily_talk_enhancement.py)
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:ml_enhanced_daily_talks_bridge:✅ İKSV Events System loaded successfully
+INFO:ml_enhanced_daily_talks_bridge:✅ Location Detection for Events loaded successfully
+INFO:comprehensive_daily_talks_system:🎉 Comprehensive Daily Talks System initialized
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:ml_enhanced_daily_talks_bridge:Using device: cpu
+/Users/omer/anaconda3/lib/python3.11/site-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.self_attn.batch_first was not True(use batch_first for better inference performance)
+  warnings.warn(
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+Device set to use cpu
+Some weights of the model checkpoint at cardiffnlp/twitter-roberta-base-sentiment-latest were not used when initializing RobertaForSequenceClassification: ['roberta.pooler.dense.bias', 'roberta.pooler.dense.weight']
+- This IS expected if you are initializing RobertaForSequenceClassification from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing RobertaForSequenceClassification from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Device set to use cpu
+INFO:ml_enhanced_daily_talks_bridge:NLP components initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:✅ Deep learning models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML/DL models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML-Enhanced Daily Talks Bridge initialized
+INFO:istanbul_ai.main_system:✅ ML-Enhanced Daily Talks Bridge loaded successfully
+WARNING:backend.services.lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:istanbul_ai.main_system:✅ Neural Query Enhancement System loaded successfully
+INFO:istanbul_ai.core.main_system:✅ Advanced transportation system loaded successfully
+INFO:transportation_integration_wrapper:🚇 Using NEW modular transportation system
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:istanbul_ai.core.main_system:🚇 Advanced transportation system with IBB API initialized
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:istanbul_ai.core.main_system:🎭 Events integration loaded
+WARNING:istanbul_ai.core.main_system:⚠️ Route integration not available
+INFO:deep_learning_enhanced_ai:Using device: cpu
+INFO:deep_learning_enhanced_ai:🧠 Neural networks initialized successfully!
+INFO:deep_learning_enhanced_ai:🚀 UNLIMITED Deep Learning Enhanced AI System initialized!
+INFO:deep_learning_enhanced_ai:✨ ALL PREMIUM FEATURES ENABLED FOR FREE!
+INFO:deep_learning_enhanced_ai:🎉 Serving 10,000+ users with unlimited access!
+INFO:deep_learning_enhanced_ai:🇺🇸 ENGLISH-OPTIMIZED for maximum performance!
+INFO:istanbul_ai.core.main_system:🧠 Deep learning integration loaded
+INFO:istanbul_ai.core.main_system:✅ External integrations loaded successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:🧠 ML libraries available - initializing advanced components...
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Neural networks initialized successfully
+INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: mps
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Sentence transformer loaded: paraphrase-multilingual-MiniLM-L12-v2
+INFO:istanbul_ai.services.intelligent_location_detector:✅ Classical ML components initialized successfully
+INFO:istanbul_ai.services.intelligent_location_detector:🎯 ML/DL location detection system ready
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: False)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.services.neighborhood_guide_service:Initialized NeighborhoodGuideService with 7 districts
+INFO:istanbul_ai.core.main_system:✅ Advanced location and neighborhood guide services loaded
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant Recommendation System loaded successfully
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System available!
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System integrated successfully!
+INFO:multi_intent_query_handler:🎭 İKSV Events System integrated successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner integrated successfully!
+INFO:comprehensive_ml_dl_integration:🧠 Deep Learning System available for comprehensive integration!
+WARNING:comprehensive_ml_dl_integration:Enhanced Transportation System not available: cannot import name 'TransportMode' from 'enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/enhanced_transportation_system.py)
+WARNING:comprehensive_ml_dl_integration:Hidden Gems System not available: cannot import name 'HiddenGemsLocalTipsSystem' from 'hidden_gems_local_tips' (/Users/omer/Desktop/ai-stanbul/hidden_gems_local_tips.py)
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System available!
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System initialized successfully!
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:multi_intent_query_handler:🎭 İKSV Events System initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Museum Advising System loaded (40 museums from accurate_museum_database.py)
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:comprehensive_ml_dl_integration:🧠 Core ML/DL System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:comprehensive_ml_dl_integration:🏛️ Attractions System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🏛️ Museum Route Planner integrated with ML enhancement
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:comprehensive_ml_dl_integration:🎭 Events System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🚀 Comprehensive ML/DL Integration initialized with 4 enhanced systems!
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System initialized successfully!
+INFO:istanbul_ai.core.main_system:✅ Multi-Intent Query Handler loaded
+INFO:istanbul_ai.services.personality_enhancement:🎭 Istanbul Personality Enhancement Module initialized
+INFO:istanbul_ai.services.personality_enhancement:🎭 Istanbul Personality Enhancement Module initialized
+INFO:istanbul_ai.core.main_system:🎭 Personality Enhancement Module loaded successfully
+INFO:istanbul_ai.core.main_system:🏛️ Museum Advising System loaded successfully (40 museums)
+INFO:istanbul_ai.core.main_system:🎉 Enhanced Istanbul Daily Talk AI System initialized (Modular Architecture)
+INFO:istanbul_ai.core.main_system:Created new user profile for restaurant_test_user
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Best restaurants in Beyoğlu
+WARNING:ml_result_cache:Failed to load cache entry from disk: Expecting value: line 10 column 20 (char 269)
+INFO:ml_result_cache:📥 Loaded 37 ML cache entries from disk
+INFO:ml_result_cache:🗄️ ML Result Cache initialized: 37 entries loaded
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 2 intents detected, Complex: True
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+INFO:istanbul_ai.core.main_system:🧠 Multi-Intent Handler: Processing complex restaurant query with location context
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where to eat in Sultanahmet?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Food recommendations near Kadıköy
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Restaurants in Beşiktaş
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Places to eat in Taksim
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Dining options in Ortaköy
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Best food spots in Eminönü
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 2 intents detected, Complex: True
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+INFO:istanbul_ai.core.main_system:🧠 Multi-Intent Handler: Processing complex restaurant query with location context
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Restaurants near Galata Tower
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Restaurants near Galata Tower
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Restaurants near Galata Tower
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🏛️ Museum System: Processing museum query (Location: Not specified)
+ERROR:istanbul_ai.core.main_system:Error processing message: 'IstanbulMuseumDatabase' object has no attribute 'get_all_museums'
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Turkish restaurants near me
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Best seafood in Istanbul
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where can I find good kebab?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Street food recommendations
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+
+🚀 Starting Restaurant System Test Suite...
+
+🍽️ Initializing Restaurant Test Suite...
+✅ AI System initialized successfully
+
+================================================================================
+🍽️  RESTAURANT & FOOD RECOMMENDATION SYSTEM TEST SUITE
+================================================================================
+
+📍 CATEGORY 1: LOCATION-SPECIFIC SEARCHES
+--------------------------------------------------------------------------------
+📝 Testing: Best restaurants in Beyoğlu
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+
+💡 **Cultural Tip**: In Istanbul, you'll hear 'Abi' (brother) and 'Abla' (sister) a lot - it's respectful and friendly!
+   Length: 402 chars
+
+📝 Testing: Where to eat in Sultanahmet?
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Food recommendations near Kadıköy
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Restaurants in Beşiktaş
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Places to eat in Taksim
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+Çok güzel! (Very beautiful!)
+   Length: 2263 chars
+
+📝 Testing: Dining options in Ortaköy
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Best food spots in Eminönü
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 70% confident this matches what you're looking for!
+
+Ağzının tadını biliyorsun! (You have good taste!)
+   Length: 333 chars
+
+📝 Testing: Restaurants near Galata Tower
+✅ Response: I'm your Istanbul AI assistant! I can help you with museums, attractions, restaurants, transportation, and more. What would you like to know about Istanbul?
+   Length: 156 chars
+
+🍲 CATEGORY 2: CUISINE FILTERING
+--------------------------------------------------------------------------------
+📝 Testing: Turkish restaurants near me
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Traditional Ottoman cuisine
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Traditional Ottoman cuisine
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Traditional Ottoman cuisine
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.50)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🎭 Personality: Cultural insight
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Best meyhane in Beyoğlu
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 2 intents detected, Complex: True
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+INFO:istanbul_ai.core.main_system:🧠 Multi-Intent Handler: Processing complex restaurant query with location context
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where to try balik ekmek?
+INFO:root:✅ Multi-intent analysis complete: 0 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Vegetarian restaurants in Istanbul
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Vegan food options near Taksim
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Halal restaurants in Sultanahmet
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Matches 1 of your cuisine preferences, Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2480 chars
+
+📝 Testing: Best seafood in Istanbul
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Sur Balık** $$$
+   Premium seafood restaurant with Bosphorus views
+   🍽️ Cuisine: Seafood
+   📍 Location: Beşiktaş
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Fresh daily catch, Sea bass in salt, Seafood meze
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2485 chars
+
+📝 Testing: Where can I find good kebab?
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+İyi şanslar! 🌟 (Good luck!)
+   Length: 2530 chars
+
+📝 Testing: Street food recommendations
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2508 chars
+
+📝 Testing: Traditional Ottoman cuisine
+✅ Response: 🏛️ **Turkish Culture & Etiquette in Istanbul**
+
+Istanbul is a beautiful blend of Eastern and Western cultures! Here are some key cultural insights:
+
+**Social Customs**:
+• Turkish people are incredibly hospitable - "Misafir Allah'ın konuğudur" (Guests are God's guests!)
+• It's common to be offered çay (tea) - accepting is polite and shows respect
+• Greeting with a handshake is common; close friends kiss on both cheeks
+
+**Mosque Etiquette**:
+• Remove shoes before entering (shelves provided)
+• Dress modestly: cover shoulders and knees
+• Ladies should cover their hair (free headscarves at entrance)
+• Be quiet and respectful during prayer times
+
+**Dining Etiquette**:
+• Say "Afiyet olsun!" (Enjoy your meal!) before eating
+• It's polite to try everything offered
+• Sharing food is a sign of friendship
+
+**Shopping Culture**:
+• Bargaining is expected at bazaars (not rude, it's tradition!)
+• Start at 50-60% of asking price
+• It's a social interaction, smile and have fun!
+
+**Daily Life**:
+• Family is very important in Turkish culture
+• Respect for elders is deeply ingrained
+• Public displays of affection are generally modest
+
+Enjoy experiencing Turkish hospitality and culture! 🇹🇷
+
+Çok şık! (Very stylish/cool!)
+   Length: 1217 chars
+
+📝 Testing: Best meyhane in Beyoğlu
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+
+💡 **Cultural Tip**: Turkish tea culture: Thin-waisted glasses, two sugar cubes, endless refills, deep conversations! ❤️
+   Length: 403 chars
+
+📝 Testing: Where to try balik ekmek?
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Sur Balık** $$$
+   Premium seafood restaurant with Bosphorus views
+   🍽️ Cuisine: Seafood
+   📍 Location: Beşiktaş
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Fresh daily catch, Sea bass in salt, Seafood meze
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2492 chars
+
+🥗 CATEGORY 3: DIETARY RESTRICTIONS
+--------------------------------------------------------------------------------
+📝 Testing: Vegetarian restaurants in Istanbul
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Kosher dining options
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Gluten-free restaurants
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: I'm vegetarian, where should I eat?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Do you have vegan-friendly places?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Cheap eats in Istanbul
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+💡 **Cultural Tip**: Prayer times: Be respectful and quiet. But visitors are welcome outside prayer times! 🌟 🕌
+   Length: 2672 chars
+
+📝 Testing: Vegan food options near Taksim
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2666 chars
+
+📝 Testing: Halal restaurants in Sultanahmet
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2354 chars
+
+📝 Testing: Kosher dining options
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Gluten-free restaurants
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: I'm vegetarian, where should I eat?
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Budget-friendly restaurants in Kadıköy
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Restaurants open late at night
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where can I eat breakfast early morning?
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: Where can I eat breakfast early morning?
+INFO:comprehensive_ml_dl_integration:🍽️ ML-enhancing restaurant discovery for: Where can I eat breakfast early morning?
+ERROR:comprehensive_ml_dl_integration:Enhancement failed for restaurant_discovery: 'ComprehensiveMLDLIntegration' object has no attribute '_detect_cuisines'
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 3 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.60)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 3 systems applied
+INFO:root:✅ Multi-intent analysis complete: 3 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🎭 Personality: Warm greeting response
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: restourants in beyoglu
+INFO:root:✅ Multi-intent analysis complete: 0 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: were to eat in kadikoy
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: vegiterian food
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: halaal restaurants
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: seafod near galata
+INFO:comprehensive_ml_dl_integration:🚀 Starting comprehensive ML enhancement for: seafod near galata
+INFO:comprehensive_ml_dl_integration:✅ Comprehensive ML enhancement complete: 2 systems enhanced
+INFO:multi_intent_query_handler:💾 ML results cached for future use (confidence: 0.90)
+INFO:multi_intent_query_handler:🚀 ML Enhancement completed: 2 systems applied
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🏛️ Museum System: Processing museum query (Location: Not specified)
+ERROR:istanbul_ai.core.main_system:Error processing message: 'IstanbulMuseumDatabase' object has no attribute 'get_all_museums'
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Tell me about Turkish cuisine
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+💡 **Cultural Tip**: Bargaining at Grand Bazaar is expected! It's not rude - it's tradition! Start at 50-60% of asking price. 🛍️
+   Length: 2690 chars
+
+📝 Testing: Do you have vegan-friendly places?
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't explicitly cater to your dietary requirements
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2666 chars
+
+💰 CATEGORY 4: PRICE LEVEL & OPERATING HOURS
+--------------------------------------------------------------------------------
+📝 Testing: Cheap eats in Istanbul
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   ✅ Match: Close to your budget range ($$)
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**2. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Close to your budget range ($$)
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**3. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Price range ($$$) may not match your budget
+**
+
+**4. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Price range ($$$$) may not match your budget
+**
+
+**5. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Price range ($$$$) may not match your budget
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2484 chars
+
+📝 Testing: Budget-friendly restaurants in Kadıköy
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   ✅ Match: Close to your budget range ($$)
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**2. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Close to your budget range ($$)
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**3. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Price range ($$$) may not match your budget
+**
+
+**4. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Price range ($$$$) may not match your budget
+**
+
+**5. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Price range ($$$$) may not match your budget
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2484 chars
+
+📝 Testing: Restaurants open late at night
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Where can I eat breakfast early morning?
+✅ Response: Günaydın! The city is waking up beautifully today. What adventures are you planning?
+   Length: 84 chars
+
+✏️ CATEGORY 5: TYPO CORRECTION
+--------------------------------------------------------------------------------
+📝 Testing: restourants in beyoglu
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: What should I try first?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: I want seafood
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where's the best place?
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Restaurants near me (Location: Taksim Square)
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Where can I eat nearby? (Location: Sultanahmet)
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Best food around here (Location: Kadıköy)
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 2 systems
+INFO:root:✅ Multi-intent analysis complete: 1 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Seafood restaurants close by (Location: Ortaköy)
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+✅ Response: ℹ️ I'm happy to share what I know! Here's the information you're looking for:
+
+💡 Feel free to ask me anything else about Istanbul's amazing food scene!
+
+✨ I'm 0% confident this matches what you're looking for!
+   Length: 209 chars
+
+📝 Testing: were to eat in kadikoy
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+Mükemmel! 🌟 (Perfect!)
+   Length: 2257 chars
+
+📝 Testing: vegiterian food
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: halaal restaurants
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+Ağzının tadını biliyorsun! (You have good taste!)
+
+💡 **Cultural Tip**: Visiting mosques? Cover shoulders and knees. Ladies, grab a headscarf at the entrance (free)! 🧕
+   Length: 2401 chars
+
+📝 Testing: seafod near galata
+✅ Response: I'm your Istanbul AI assistant! I can help you with museums, attractions, restaurants, transportation, and more. What would you like to know about Istanbul?
+   Length: 156 chars
+
+💬 CATEGORY 6: CONTEXT-AWARE FOLLOW-UPS
+--------------------------------------------------------------------------------
+📝 Testing: Tell me about Turkish cuisine
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Matches 1 of your cuisine preferences, Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2480 chars
+
+📝 Testing: What should I try first?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+
+Hayırlı olsun! (May it be blessed - congratulations)
+   Length: 336 chars
+
+📝 Testing: I want seafood
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Sur Balık** $$$
+   Premium seafood restaurant with Bosphorus views
+   🍽️ Cuisine: Seafood
+   📍 Location: Beşiktaş
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Fresh daily catch, Sea bass in salt, Seafood meze
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2485 chars
+
+📝 Testing: Where's the best place?
+✅ Response: 🍽️ I'd love to help you find some amazing restaurants! 🌟 Here are my top recommendations that I think you'll really enjoy:
+
+💡 Would you like more details about any of these restaurants, or do you need directions to get there?
+
+✨ I'm 40% confident this matches what you're looking for!
+   Length: 284 chars
+
+🗺️ CATEGORY 7: GPS LOCATION-BASED RECOMMENDATIONS
+--------------------------------------------------------------------------------
+📝 Testing: Restaurants near me
+   📍 Location: {'latitude': 41.0369, 'longitude': 28.985, 'name': 'Taksim Square'}
+WARNING:istanbul_ai.core.main_system:⚠️ Location detection error: IntelligentLocationDetector.detect_location() missing 2 required positional arguments: 'user_profile' and 'context'
+INFO:root:🔍 Analyzing multi-intent query: Vegetarian options near my location (Location: Beşiktaş)
+INFO:multi_intent_query_handler:🎯 ML Cache HIT: Using cached results for 3 systems
+INFO:root:✅ Multi-intent analysis complete: 2 intents detected, language: english
+INFO:istanbul_ai.core.main_system:🧠 Intent Analysis: 1 intents detected, Complex: False
+INFO:istanbul_ai.core.main_system:🍽️ Restaurant System: Processing query (Location: Not specified)
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+💡 **Cultural Tip**: Remove shoes before entering mosques - you'll find shelves or bags provided. Easy! 👟
+   Length: 2339 chars
+
+📝 Testing: Where can I eat nearby?
+   📍 Location: {'latitude': 41.0055, 'longitude': 28.9769, 'name': 'Sultanahmet'}
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+Harika! 🌟 (Wonderful!)
+   Length: 2257 chars
+
+📝 Testing: Best food around here
+   📍 Location: {'latitude': 40.9903, 'longitude': 29.0259, 'name': 'Kadıköy'}
+✅ Response: 🍽️ **Restaurant Recommendations for Istanbul**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+   Length: 2233 chars
+
+📝 Testing: Seafood restaurants close by
+   📍 Location: {'latitude': 41.0556, 'longitude': 29.0278, 'name': 'Ortaköy'}
+✅ Response: 🍽️ **Perfect Restaurant Matches Found**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Sur Balık** $$$
+   Premium seafood restaurant with Bosphorus views
+   🍽️ Cuisine: Seafood
+   📍 Location: Beşiktaş
+   ✅ Match: Matches 1 of your cuisine preferences
+   🌟 Specialties: Fresh daily catch, Sea bass in salt, Seafood meze
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**2. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**3. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**4. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+**5. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+   ⚠️ Note: Doesn't match your preferred cuisine types
+**
+
+💡 **Helpful Tips:**
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+💡 **Cultural Tip**: Turkish families are big, loud, loving, and involved in EVERYTHING! It's wonderful! 😊
+   Length: 2592 chars
+
+📝 Testing: Vegetarian options near my location
+   📍 Location: {'latitude': 41.0422, 'longitude': 29.0072, 'name': 'Beşiktaş'}
+✅ Response: 🍽️ **Restaurants Matching Your Dietary Needs**
+
+🗺️ **Restaurant recommendations across Istanbul:**
+
+**1. **Pandeli** $$$
+   Historic Ottoman restaurant above the Spice Bazaar with traditional recipes dating back to 1901
+   🍽️ Cuisine: Ottoman, Turkish Traditional
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Ottoman Lamb Stew, Stuffed Grape Leaves, Turkish Delight
+   🎯 Features: Spice Bazaar view
+**
+
+**2. **Seven Hills Restaurant** $$$$
+   Rooftop restaurant with stunning Blue Mosque views and modern Turkish cuisine
+   🍽️ Cuisine: Turkish Modern, International
+   📍 Location: Sultanahmet
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: Sea Bass with herbs, Turkish mezze platter, Baklava
+   🎯 Features: Outdoor seating, Blue Mosque view, Wheelchair accessible
+**
+
+**3. **Mikla** $$$$
+   Award-winning restaurant featuring New Anatolian cuisine with panoramic city views
+   🍽️ Cuisine: Turkish Modern, Fine Dining
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements, Tourist-friendly restaurant
+   🌟 Specialties: New Anatolian cuisine, Seasonal tasting menu, Local ingredient focus
+   🎯 Features: Outdoor seating, Bosphorus view, Wheelchair accessible
+**
+
+**4. **Nevizade Sokak Meyhanes** $$
+   Traditional meyhane street with authentic Turkish tavern atmosphere and live music
+   🍽️ Cuisine: Meyhane, Meze
+   📍 Location: Beyoğlu
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Mixed meze platter, Grilled fish, Rakı pairing
+   🎯 Features: Outdoor seating, Live music
+**
+
+**5. **Çiya Sofrası** $$
+   Authentic Turkish regional cuisine restaurant popular with locals
+   🍽️ Cuisine: Turkish Traditional
+   📍 Location: Kadıköy
+   ✅ Match: Meets all your dietary requirements
+   🌟 Specialties: Regional Turkish dishes, Antakya cuisine, Traditional desserts
+   🎯 Features: Wheelchair accessible
+**
+
+💡 **Helpful Tips:**
+• Always confirm dietary accommodations when making reservations
+• Turkish cuisine has many naturally vegetarian options
+• Tipping: 10-15% is standard for good service
+• Many restaurants don't accept reservations - arrive early for popular spots
+
+🤔 **Need More Help?**
+• Ask me about specific cuisines: 'Show me Turkish restaurants'
+• Specify your budget: 'Affordable restaurants in Taksim'
+• Want alternatives? Ask: 'What about Italian restaurants?'
+• Need directions? Ask: 'How do I get to [restaurant name]?'
+• Want similar places? Ask: 'More restaurants like [restaurant name]'
+
+
+💡 **Cultural Tip**: Bargaining is a social dance here - smile, be friendly, have fun with it! It's theater! 🎭
+   Length: 2672 chars
+
+
+================================================================================
+📊 TEST SUMMARY
+================================================================================
+
+✅ Total Tests: 40
+✅ Passed: 40 (100.0%)
+❌ Failed: 0 (0.0%)
+
+📋 CATEGORY BREAKDOWN:
+   Location Specific: 8/8 (100%)
+   Cuisine Filtering: 7/7 (100%)
+   Dietary Restrictions: 7/7 (100%)
+   Price And Hours: 4/4 (100%)
+   Typo Correction: 5/5 (100%)
+   Context Aware: 4/4 (100%)
+   Gps Location: 5/5 (100%)
+
+📏 RESPONSE LENGTH STATISTICS:
+   Average: 1898 characters
+   Min: 84 characters
+   Max: 2690 characters
+
+================================================================================
+📊 TEST SUMMARY
+================================================================================
+
+✅ Total Tests: 40
+✅ Passed: 40 (100.0%)
+❌ Failed: 0 (0.0%)
+
+📋 CATEGORY BREAKDOWN:
+   Location Specific: 8/8 (100%)
+   Cuisine Filtering: 7/7 (100%)
+   Dietary Restrictions: 7/7 (100%)
+   Price And Hours: 4/4 (100%)
+   Typo Correction: 5/5 (100%)
+   Context Aware: 4/4 (100%)
+   Gps Location: 5/5 (100%)
+
+📏 RESPONSE LENGTH STATISTICS:
+   Average: 1898 characters
+   Min: 84 characters
+   Max: 2690 characters
+
+💾 Results saved to: restaurant_test_results_20251020_180959.json
+
+================================================================================
+🎉 ALL TESTS PASSED! ✅
+================================================================================
+
+📄 Detailed results saved to: restaurant_test_results_20251020_180959.json
+📊 Run the analysis script to generate detailed report
+
