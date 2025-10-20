@@ -944,7 +944,7 @@ class IstanbulMuseumDatabase:
                 location="Galata, Beyoğlu",
                 nearby_attractions=["Galata Tower", "Karaköy", "Istanbul Modern"],
                 visiting_duration="45-60 minutes",
-                best_time_to_visit="Any time, indoor experience",
+                best_time
                 historical_significance="Important center of Mevlevi Sufi tradition in Ottoman Istanbul.",
                 architectural_style="Ottoman Sufi lodge architecture",
                 must_see_highlights=[

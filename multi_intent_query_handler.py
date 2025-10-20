@@ -172,6 +172,23 @@ class MultiIntentQueryHandler:
                 logger.error(f"Failed to initialize Enhanced Museum Route Planner: {e}")
                 MUSEUM_ROUTE_PLANNER_AVAILABLE = False
         
+        # Initialize Museum Advising System with comprehensive database
+        self.museum_database = None
+        try:
+            import sys
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            backend_dir = os.path.join(current_dir, 'backend')
+            if backend_dir not in sys.path:
+                sys.path.append(backend_dir)
+            
+            from accurate_museum_database import IstanbulMuseumDatabase
+            self.museum_database = IstanbulMuseumDatabase()
+            logger.info("🏛️ Museum Advising System loaded (40 museums from accurate_museum_database.py)")
+        except ImportError as e:
+            logger.warning(f"⚠️ Museum Database not available: {e}")
+            self.museum_database = None
+        
         # Initialize comprehensive ML/DL integration system
         global COMPREHENSIVE_ML_AVAILABLE
         self.comprehensive_ml_system = None
