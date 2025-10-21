@@ -149,17 +149,56 @@ docker-data/
 # Redis Data
 redis/
 
-# Monitoring Data
-monitoring/
+# ==============================================
+# LARGE MODEL FILES (GitHub 100MB limit)
+# ==============================================
+# Machine Learning models and checkpoints
+# These files are too large for GitHub (>100MB)
+# Keep them locally or use external storage
 
-# Production Deployment Scripts (May Contain Secrets)
-deploy-production.sh
-production_deploy.sh
+# PyTorch model weights
+*.pth
+*.pt
+*.ckpt
+*.pkl
 
-# Specific Sensitive Files
-backend/intent_utils.py
-ai_stanbul
-backend/ai_stanbul/
+# Transformers/Hugging Face model files
+*.safetensors
+*.bin
+*.h5
+
+# Training checkpoints and intermediate models
+/phase2_extended_v2/
+/phase2_final/
+/phase2_extended/
+checkpoint-*/
+/checkpoints/
+
+# Hugging Face transformers cache
+.cache/
+transformers_cache/
+~/.cache/huggingface/
+
+# Training logs (can be large)
+/logs/
+phase2_*.log
+training_*.log
+
+# Large data files
+*.csv.gz
+*.json.gz
+*.parquet
+
+# ==============================================
+# KEEP SMALL IMPORTANT FILES (exceptions)
+# ==============================================
+# Small result files are OK to commit
+!*results.json
+!*_results.json
+
+# Training data if small (<1MB)
+!comprehensive_training_data.json
+!training_data.json
 
 # ==============================================
 # Additional Source Code Protection
