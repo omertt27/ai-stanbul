@@ -6,7 +6,7 @@ Optimized for student budget and CPU-only deployment (~10k users/month)
 - Uses small, efficient models (<100MB each)
 - Fast CPU inference (<100ms per query)
 - Low memory footprint (<1GB total)
-- No expensive LLMs or GPT models needed
+- Template-based responses with neural ranking (no generative models)
 
 Budget-friendly architecture for Istanbul tourism queries
 """

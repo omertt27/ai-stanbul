@@ -1,0 +1,86 @@
+# Istanbul AI - GPU/ML Development Requirements (MacBook Optimized)
+# Date: October 21, 2025
+# Platform: macOS (Apple Silicon M1/M2/M3)
+# Purpose: Clean requirements for GPU/ML enhancements
+
+# ============================================================================
+# CORE DEPENDENCIES (Already installed ✅)
+# ============================================================================
+
+# Deep Learning Framework
+torch==2.9.0                    # ✅ Installed - PyTorch with MPS support
+torchvision==0.24.0             # ✅ Installed - Computer vision
+
+# NLP & Transformers
+transformers==4.57.1            # ✅ Installed - BERT, etc.
+# sentence-transformers           # ⚠️ NEEDED - Add this
+
+# Numerical Computing
+numpy==1.26.4                   # ✅ Installed
+pandas==2.3.3                   # ✅ Installed
+scipy                           # ⚠️ NEEDED - Add this
+
+# Traditional ML
+# scikit-learn                    # ⚠️ NEEDED - Add this
+# xgboost                         # ⚠️ NEEDED - Add this
+# lightgbm                        # ⚠️ NEEDED - Add this
+
+# ============================================================================
+# ADDITIONAL NEEDED FOR GPU/ML PROJECT
+# ============================================================================
+
+# Vector Search & Embeddings
+faiss-cpu                       # For MacBook (no GPU version)
+# sentence-transformers           # Semantic embeddings
+
+# NLP Processing
+# spacy>=3.0                      # Advanced NLP
+# textblob                        # Sentiment analysis
+
+# Database & Caching
+redis==6.4.0                    # ✅ Installed - Caching
+# sqlalchemy                      # Database ORM
+# psycopg2-binary                 # PostgreSQL adapter
+
+# API & Web
+fastapi==0.119.1                # ✅ Installed - API framework
+# uvicorn[standard]               # ASGI server
+# pydantic                        # Data validation
+
+# MLOps & Monitoring
+# mlflow                          # Experiment tracking
+# wandb                           # Weights & Biases
+# prometheus-client               # Metrics
+
+# Testing
+# pytest                          # Testing framework
+# pytest-asyncio                  # Async tests
+# pytest-cov                      # Coverage
+
+# Utilities
+# python-dotenv                   # Environment variables
+# pyyaml                          # Config files
+# tqdm                            # Progress bars
+# requests                        # HTTP client
+# aiohttp                         # Async HTTP
+
+# System Monitoring
+psutil                          # System metrics for GPU simulator
+
+# ============================================================================
+# TENSORFLOW (Currently installed but NOT NEEDED for this project)
+# ============================================================================
+# tensorflow-macos==2.16.2        # ❌ NOT NEEDED - Using PyTorch
+# tensorflow-metal==1.2.0         # ❌ NOT NEEDED - Using PyTorch
+# tensorflow==2.16.2              # ❌ NOT NEEDED - Using PyTorch
+# tensorflow-io-gcs-filesystem    # ❌ NOT NEEDED
+# tensorboard==2.16.2             # ❌ NOT NEEDED (or use MLflow)
+
+# ============================================================================
+# SUMMARY
+# ============================================================================
+# Currently installed: 116 packages
+# Actually needed: ~30-40 packages
+# Can remove: ~70-80 packages (including all TensorFlow)
+# 
+# Recommendation: Create clean virtual environment with only needed packages

@@ -56,8 +56,8 @@ if ADVANCED_ML_AVAILABLE:
     try:
         from transformers import (
             AutoTokenizer, AutoModel, AutoModelForSequenceClassification,
-            BertModel, GPT2LMHeadModel, T5ForConditionalGeneration,
-            pipeline, Trainer, TrainingArguments, BertTokenizer,
+            BertModel, BertTokenizer,
+            pipeline, Trainer, TrainingArguments,
             AutoModelForTokenClassification, AutoModelForQuestionAnswering
         )
     except ImportError as e:
@@ -227,7 +227,7 @@ class AdvancedNeuralProcessor:
         # Model configuration
         self.model_configs = {
             "intent_classifier": {
-                "model_name": "microsoft/DialoGPT-medium",
+                "model_name": "distilbert-base-uncased",  # Classification only
                 "max_length": 512,
                 "batch_size": 16
             },
@@ -235,8 +235,8 @@ class AdvancedNeuralProcessor:
                 "model_name": "sentence-transformers/all-mpnet-base-v2",
                 "embedding_dim": 768
             },
-            "response_generator": {
-                "model_name": "microsoft/DialoGPT-small",
+            "response_ranker": {  # Changed from response_generator to response_ranker
+                "model_name": "cross-encoder/ms-marco-MiniLM-L-6-v2",  # Ranking model, not generative
                 "max_length": 256
             },
             "multilingual_encoder": {
@@ -267,8 +267,8 @@ class AdvancedNeuralProcessor:
             # Semantic Encoding Model
             self._load_semantic_encoder()
             
-            # Response Generation Model
-            self._load_response_generator()
+            # Response Ranking Model (not generative)
+            self._load_response_ranker()
             
             # Multilingual Processing
             self._load_multilingual_models()
@@ -286,15 +286,15 @@ class AdvancedNeuralProcessor:
         try:
             config = self.model_configs["intent_classifier"]
             
-            # Load pre-trained model for intent classification
+            # Load pre-trained BERT-based classifier (no generative models)
             self.models["intent_classifier"] = AutoModelForSequenceClassification.from_pretrained(
-                "microsoft/DialoGPT-medium",
+                "distilbert-base-uncased",
                 num_labels=12,  # Number of query types
                 problem_type="single_label_classification"
             )
             
             self.tokenizers["intent_classifier"] = AutoTokenizer.from_pretrained(
-                "microsoft/DialoGPT-medium"
+                "distilbert-base-uncased"
             )
             
             # Add padding token if missing
@@ -318,26 +318,22 @@ class AdvancedNeuralProcessor:
         except Exception as e:
             logger.error(f"❌ Failed to load semantic encoder: {e}")
     
-    def _load_response_generator(self):
-        """Load response generation model"""
+    def _load_response_ranker(self):
+        """Load response ranking model (not generative)"""
         try:
-            config = self.model_configs["response_generator"]
+            config = self.model_configs["response_ranker"]
             
-            self.models["response_generator"] = GPT2LMHeadModel.from_pretrained(
-                config["model_name"]
-            )
-            self.tokenizers["response_generator"] = AutoTokenizer.from_pretrained(
-                config["model_name"]
-            )
+            # Use cross-encoder for ranking pre-defined responses, not generating text
+            from sentence_transformers import CrossEncoder
             
-            # Add padding token
-            if self.tokenizers["response_generator"].pad_token is None:
-                self.tokenizers["response_generator"].pad_token = self.tokenizers["response_generator"].eos_token
+            self.models["response_ranker"] = CrossEncoder(config["model_name"])
             
-            logger.info("✅ Response generator loaded")
+            logger.info("✅ Response ranker loaded (classification-based, not generative)")
             
         except Exception as e:
-            logger.error(f"❌ Failed to load response generator: {e}")
+            logger.error(f"❌ Failed to load response ranker: {e}")
+            # Fallback to simple similarity scoring
+            self.models["response_ranker"] = None
     
     def _load_multilingual_models(self):
         """Load multilingual processing models"""

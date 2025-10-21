@@ -464,8 +464,8 @@ system_metrics = {
     "start_time": datetime.now()
 }
 
-# Using Ultra-Specialized Istanbul AI only - no external LLM services
-use_external_llm = False
+# Using Ultra-Specialized Istanbul AI only - template-based with neural ranking
+use_neural_ranking = True
 
 # Redis availability flag and client initialization
 redis_available = REDIS_AVAILABLE
@@ -876,11 +876,11 @@ except ImportError as e:
     def is_followup(text: str, context: Optional[Dict] = None) -> bool: 
         return False
 
-# --- No External LLM Dependencies ---
-# We use only our Ultra-Specialized Istanbul AI System
-external_llm_available = False
-external_llm_client = None
-print("ℹ️ No external LLM services - using Ultra-Specialized Istanbul AI System only")
+# --- Neural Ranking for Template-Based Responses ---
+# We use only our Ultra-Specialized Istanbul AI System with optional neural ranking
+neural_ranking_available = False
+neural_ranker = None
+print("ℹ️ Template-based system with optional neural ranking - no generative AI")
 
 # --- Ultra-Specialized Istanbul AI System (Rule-Based) ---
 # Import our Ultra-Specialized Istanbul AI System
@@ -1464,7 +1464,7 @@ async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str
                         'response': ai_response,
                         'session_id': session_id,
                         'has_context': True,
-                        'uses_llm': False,
+                        'uses_neural_ranking': False,
                         'system_type': 'istanbul_daily_talk_ai',
                         'quality_assessment': {
                             'overall_score': 90,
