@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul AI - Interactive Map (FREE & OPEN-SOURCE)</title>
+    
+    <!-- Leaflet CSS (FREE & OPEN-SOURCE) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .info-panel h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .info-panel ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info-panel li {
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .info-panel li:last-child {
+            border-bottom: none;
+        }
+        
+        .info-panel li strong {
+            color: #495057;
+            display: inline-block;
+            min-width: 100px;
+        }
+        
+        #map {
+            height: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .route-legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .route-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .route-color {
+            width: 30px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-card h4 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ Istanbul AI - Interactive Map</h1>
+            <p>Intelligent Route Planning & Visualization</p>
+            <div>
+                <span class="badge">✓ FREE & OPEN-SOURCE</span>
+                <span class="badge">✓ Leaflet.js</span>
+                <span class="badge">✓ OpenStreetMap</span>
+                <span class="badge">✓ No API Keys Required</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="info-panel">
+                <h3>🎯 Technology Stack</h3>
+                <ul>
+                    <li><strong>Map Library:</strong> Leaflet.js (BSD-2-Clause License)</li>
+                    <li><strong>Base Map:</strong> OpenStreetMap (ODbL License)</li>
+                    <li><strong>Cost:</strong> 100% FREE (No API keys, No usage limits)</li>
+                    <li><strong>Backend:</strong> Python + ML-Powered Query Processing</li>
+                    <li><strong>ML Features:</strong> Turkish NLP, Intent Recognition, Route Optimization</li>
+                </ul>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="loadSampleRoute()">
+                    📍 Load Sample Route
+                </button>
+                <button class="btn btn-secondary" onclick="resetMap()">
+                    🔄 Reset Map
+                </button>
+                <button class="btn btn-secondary" onclick="fitBounds()">
+                    🎯 Fit to Routes
+                </button>
+            </div>
+            
+            <div class="route-legend">
+                <div class="route-item">
+                    <div class="route-color" style="background-color: #4CAF50;"></div>
+                    <span>🚶 Walking</span>
+                </div>
+                <div class="route-item">
+                    <div class="route-color" style="background-color: #2196F3;"></div>
+                    <span>🚇 Metro</span>
+                </div>
+                <div class="route-item">
+                    <div class="route-color" style="background-color: #FF9800;"></div>
+                    <span>🚊 Tram</span>
+                </div>
+                <div class="route-item">
+                    <div class="route-color" style="background-color: #F44336;"></div>
+                    <span>🚌 Bus</span>
+                </div>
+                <div class="route-item">
+                    <div class="route-color" style="background-color: #00BCD4;"></div>
+                    <span>⛴️ Ferry</span>
+                </div>
+            </div>
+            
+            <div id="map"></div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h4 id="totalDistance">0.0</h4>
+                    <p>Total Distance (km)</p>
+                </div>
+                <div class="stat-card">
+                    <h4 id="totalDuration">0</h4>
+                    <p>Total Duration (min)</p>
+                </div>
+                <div class="stat-card">
+                    <h4 id="totalStops">0</h4>
+                    <p>Points of Interest</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Istanbul AI</strong> - Powered by ML & Free Open-Source Maps</p>
+            <p>© 2024 Istanbul AI Project | All Rights Reserved</p>
+        </div>
+    </div>
+    
+    <!-- Leaflet JavaScript (FREE & OPEN-SOURCE) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map centered on Istanbul
+        const map = L.map('map').setView([41.0082, 28.9784], 13);
+        
+        // Add OpenStreetMap tiles (FREE & OPEN-SOURCE)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Store markers and polylines
+        let markers = [];
+        let polylines = [];
+        
+        // Custom icons for different location types
+        const icons = {
+            start: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            end: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            poi: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        };
+        
+        // Function to load sample route data
+        function loadSampleRoute() {
+            // Sample data from map visualization engine
+            const sampleData = {
+                "center": [41.0082, 28.9784],
+                "zoom": 13,
+                "markers": [
+                    {
+                        "position": [41.0082, 28.9784],
+                        "title": "Sultanahmet Square",
+                        "type": "start",
+                        "popup": "<strong>Sultanahmet Square</strong><br>Type: start<br>Description: Historic center of Istanbul"
+                    },
+                    {
+                        "position": [41.0115, 28.9833],
+                        "title": "Hagia Sophia",
+                        "type": "poi",
+                        "popup": "<strong>Hagia Sophia</strong><br>Type: poi<br>Description: Byzantine masterpiece"
+                    },
+                    {
+                        "position": [41.0055, 28.9769],
+                        "title": "Blue Mosque",
+                        "type": "poi",
+                        "popup": "<strong>Blue Mosque</strong><br>Type: poi<br>Description: Ottoman imperial mosque"
+                    },
+                    {
+                        "position": [41.0167, 28.9667],
+                        "title": "Grand Bazaar",
+                        "type": "end",
+                        "popup": "<strong>Grand Bazaar</strong><br>Type: end<br>Description: Historic covered market"
+                    }
+                ],
+                "polylines": [
+                    {
+                        "positions": [[41.0082, 28.9784], [41.0115, 28.9833]],
+                        "color": "#4CAF50",
+                        "weight": 4,
+                        "opacity": 0.7,
+                        "mode": "walk",
+                        "distance": 0.5,
+                        "duration": 7
+                    },
+                    {
+                        "positions": [[41.0115, 28.9833], [41.0055, 28.9769]],
+                        "color": "#4CAF50",
+                        "weight": 4,
+                        "opacity": 0.7,
+                        "mode": "walk",
+                        "distance": 0.3,
+                        "duration": 4
+                    },
+                    {
+                        "positions": [[41.0055, 28.9769], [41.0167, 28.9667]],
+                        "color": "#4CAF50",
+                        "weight": 4,
+                        "opacity": 0.7,
+                        "mode": "walk",
+                        "distance": 1.2,
+                        "duration": 15
+                    }
+                ]
+            };
+            
+            // Clear existing markers and polylines
+            clearMap();
+            
+            // Add markers
+            let totalDistance = 0;
+            let totalDuration = 0;
+            
+            sampleData.markers.forEach(markerData => {
+                const icon = icons[markerData.type] || icons.poi;
+                const marker = L.marker(markerData.position, { icon: icon })
+                    .addTo(map)
+                    .bindPopup(markerData.popup);
+                markers.push(marker);
+            });
+            
+            // Add polylines (routes)
+            sampleData.polylines.forEach(polylineData => {
+                const polyline = L.polyline(polylineData.positions, {
+                    color: polylineData.color,
+                    weight: polylineData.weight,
+                    opacity: polylineData.opacity
+                }).addTo(map);
+                
+                // Add popup with route info
+                polyline.bindPopup(
+                    `<strong>${polylineData.mode.toUpperCase()}</strong><br>` +
+                    `Distance: ${polylineData.distance} km<br>` +
+                    `Duration: ${polylineData.duration} min`
+                );
+                
+                polylines.push(polyline);
+                totalDistance += polylineData.distance;
+                totalDuration += polylineData.duration;
+            });
+            
+            // Update stats
+            document.getElementById('totalDistance').textContent = totalDistance.toFixed(1);
+            document.getElementById('totalDuration').textContent = totalDuration;
+            document.getElementById('totalStops').textContent = sampleData.markers.length;
+            
+            // Fit map to show all markers
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+        
+        // Function to clear map
+        function clearMap() {
+            markers.forEach(marker => map.removeLayer(marker));
+            polylines.forEach(polyline => map.removeLayer(polyline));
+            markers = [];
+            polylines = [];
+            
+            // Reset stats
+            document.getElementById('totalDistance').textContent = '0.0';
+            document.getElementById('totalDuration').textContent = '0';
+            document.getElementById('totalStops').textContent = '0';
+        }
+        
+        // Function to reset map view
+        function resetMap() {
+            map.setView([41.0082, 28.9784], 13);
+        }
+        
+        // Function to fit bounds to all markers
+        function fitBounds() {
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+        
+        // Load sample route on page load
+        loadSampleRoute();
+    </script>
+</body>
+</html>
