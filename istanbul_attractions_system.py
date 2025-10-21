@@ -137,7 +137,7 @@ class IstanbulAttractionsSystem:
                     "Photography allowed in most areas",
                     "Respect prayer times and worshippers"
                 ],
-                keywords=["byzantine", "ottoman", "mosque", "cathedral", "unesco", "history", "architecture"],
+                keywords=["byzantine", "ottoman", "mosque", "cathedral", "unesco", "history", "architecture", "monument", "historical"],
                 sentiment_tags=["awe-inspiring", "spiritual", "historic", "iconic"],
                 coordinates=(41.0086, 28.9802)
             ),
@@ -254,7 +254,7 @@ class IstanbulAttractionsSystem:
                     "Wheelchair accessible",
                     "Mystical lighting creates unique atmosphere"
                 ],
-                keywords=["cistern", "underground", "byzantine", "medusa", "columns", "mystical", "engineering"],
+                keywords=["cistern", "underground", "byzantine", "medusa", "columns", "mystical", "engineering", "monument", "historical"],
                 sentiment_tags=["mysterious", "atmospheric", "ancient", "cool"],
                 coordinates=(41.0084, 28.9778)
             ),
@@ -376,7 +376,7 @@ class IstanbulAttractionsSystem:
                     "Perfect for proposals",
                     "Sunset views spectacular"
                 ],
-                keywords=["tower", "island", "romantic", "boat", "legend", "bosphorus", "sunset"],
+                keywords=["tower", "island", "romantic", "boat", "legend", "bosphorus", "sunset", "monument", "historical", "landmark"],
                 sentiment_tags=["romantic", "legendary", "isolated", "mystical"],
                 coordinates=(41.0214, 29.0042)
             ),
@@ -436,7 +436,7 @@ class IstanbulAttractionsSystem:
                     "Wear comfortable shoes for climbing",
                     "Best views at sunset"
                 ],
-                keywords=["fortress", "ottoman", "bosphorus", "history", "views", "military"],
+                keywords=["fortress", "ottoman", "bosphorus", "history", "views", "military", "monument", "historical"],
                 sentiment_tags=["historic", "scenic", "impressive", "strategic"],
                 coordinates=(41.0835, 29.0565)
             ),
@@ -1036,7 +1036,7 @@ class IstanbulAttractionsSystem:
                     "360-degree Bosphorus views",
                     "Perfect for marriage proposals"
                 ],
-                keywords=["tower", "islet", "bosphorus", "restaurant", "views", "romantic"],
+                keywords=["tower", "islet", "bosphorus", "restaurant", "views", "romantic", "monument", "historical", "landmark"],
                 sentiment_tags=["iconic", "romantic", "scenic", "legendary"],
                 coordinates=(41.0211, 29.0044)
             ),
@@ -2385,31 +2385,44 @@ class IstanbulAttractionsSystem:
         query_lower = query.lower()
         results = []
         
+        # Normalize query for category matching (replace spaces with underscores)
+        query_normalized = query_lower.replace(' ', '_')
+        
         for attraction in self.attractions.values():
             score = 0.0
             
-            # Name matching (highest priority)
+            # Category matching (HIGHEST priority for explicit category queries)
+            # Check both normalized (underscore) and original (space) versions
+            if query_normalized in attraction.category.value.lower():
+                score += 15.0  # Highest priority for category match
+            elif query_lower in attraction.category.value.replace('_', ' '):
+                score += 15.0  # Also check with spaces
+            
+            # Check for partial category matches (e.g., "monument" matches "historical_monument")
+            category_words = attraction.category.value.lower().replace('_', ' ').split()
+            query_words = query_lower.split()
+            for qword in query_words:
+                if len(qword) > 3 and qword in category_words:  # Minimum 4 chars to avoid false matches
+                    score += 12.0
+            
+            # Name matching (high priority)
             if query_lower in attraction.name.lower():
                 score += 10.0
             if query_lower in attraction.turkish_name.lower():
                 score += 8.0
             
-            # Description matching
-            if query_lower in attraction.description.lower():
-                score += 5.0
-            
-            # Keywords matching
+            # Keywords matching (medium-high priority)
             for keyword in attraction.keywords:
                 if query_lower in keyword.lower() or keyword.lower() in query_lower:
-                    score += 3.0
+                    score += 4.0
+            
+            # Description matching (medium priority)
+            if query_lower in attraction.description.lower():
+                score += 3.0
             
             # District matching
             if query_lower in attraction.district.lower():
                 score += 4.0
-            
-            # Category matching
-            if query_lower in attraction.category.value.lower():
-                score += 6.0
             
             # Sentiment tags matching
             for tag in attraction.sentiment_tags:

@@ -56,6 +56,15 @@ except ImportError as e:
     logger.warning(f"⚠️ Neural Query Enhancement System not available: {e}")
     NEURAL_QUERY_ENHANCEMENT_AVAILABLE = False
 
+# Import Multi-Intent Query Handler for complex multi-part queries
+try:
+    from multi_intent_query_handler import MultiIntentQueryHandler, MultiIntentResult
+    MULTI_INTENT_HANDLER_AVAILABLE = True
+    logger.info("✅ Multi-Intent Query Handler loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Multi-Intent Query Handler not available: {e}")
+    MULTI_INTENT_HANDLER_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -154,6 +163,17 @@ class IstanbulDailyTalkAI:
         except ImportError as e:
             logger.warning(f"Advanced Attractions System not available: {e}")
             self.advanced_attractions_system = None
+
+        # Initialize Multi-Intent Query Handler for complex multi-part queries
+        if MULTI_INTENT_HANDLER_AVAILABLE:
+            try:
+                self.multi_intent_handler = MultiIntentQueryHandler()
+                logger.info("🎯 Multi-Intent Query Handler initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize Multi-Intent Query Handler: {e}")
+                self.multi_intent_handler = None
+        else:
+            self.multi_intent_handler = None
 
         # Initialize enhanced museum route planner
         try:
@@ -375,6 +395,32 @@ class IstanbulDailyTalkAI:
                         entities[entity_type] = []
                     entities[entity_type].extend(entity_values)
             
+            # Check for multi-intent queries using MultiIntentQueryHandler
+            # OPTIMIZED: Only invoke for truly complex queries with multiple components
+            multi_intent_result = None
+            if self.multi_intent_handler and self._is_complex_multi_intent_query(message):
+                try:
+                    multi_intent_context = {
+                        'user_profile': {
+                            'interests': getattr(user_profile, 'interests', []),
+                            'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
+                            'language_preference': getattr(user_profile, 'language_preference', 'english')
+                        },
+                        'conversation_history': context.interactions[-3:] if hasattr(context, 'interactions') else [],
+                        'entities': entities
+                    }
+                    multi_intent_result = self.multi_intent_handler.analyze_query(message, multi_intent_context)
+                    
+                    # If complex multi-intent query detected, handle it specially
+                    if multi_intent_result and multi_intent_result.query_complexity > 0.7:  # Raised threshold from 0.6 to 0.7
+                        logger.info(f"🎯 Multi-intent query detected (complexity: {multi_intent_result.query_complexity:.2f})")
+                        if hasattr(multi_intent_result, 'response_text') and multi_intent_result.response_text:
+                            context.add_interaction(message, multi_intent_result.response_text, 'multi_intent')
+                            return multi_intent_result.response_text
+                except Exception as e:
+                    logger.warning(f"Multi-intent processing failed, continuing with standard processing: {e}")
+                    multi_intent_result = None
+            
             # Classify intent with context (use neural intent if available and confident)
             # Lower confidence threshold for museum/attraction queries since ML is better at detecting them
             neural_confidence_threshold = 0.7
@@ -427,16 +473,31 @@ class IstanbulDailyTalkAI:
         
         message_lower = message.lower().strip()
         
-        # CRITICAL: Exclude museum/attraction queries FIRST
+        # CRITICAL: Exclude museum/attraction queries FIRST (EXPANDED LIST)
         # These should NEVER be classified as daily talk
         exclude_patterns = [
+            # Museum and gallery keywords
             'museum', 'museums', 'gallery', 'galleries', 'exhibition', 'exhibitions',
-            'attraction', 'attractions', 'palace', 'palaces', 'mosque', 'mosques',
-            'landmark', 'landmarks', 'monument', 'historical site', 'archaeological',
-            'restaurant', 'restaurants', 'eat', 'food', 'dining',
-            'transport', 'metro', 'bus', 'ferry', 'how to get',
+            'art museum', 'history museum', 'archaeological',
+            
+            # Attraction keywords
+            'attraction', 'attractions', 'place to visit', 'places to visit', 'what to see', 'what to visit',
+            'palace', 'palaces', 'mosque', 'mosques', 'church', 'churches',
+            'landmark', 'landmarks', 'monument', 'monuments', 'memorial',
+            'historical site', 'historical sites', 'historic',
+            
+            # Park and outdoor keywords
+            'park', 'parks', 'garden', 'gardens', 'playground', 'green space',
+            
+            # Sightseeing action words
+            'visit', 'see', 'show me', 'recommend', 'suggest', 'tell me about',
+            'tour', 'sightseeing', 'explore', 'discover',
+            
+            # Specific services
+            'restaurant', 'restaurants', 'eat', 'food', 'dining', 'lunch', 'dinner',
+            'transport', 'metro', 'bus', 'ferry', 'how to get', 'directions',
             'shopping', 'bazaar', 'market', 'buy', 'souvenir',
-            'hotel', 'stay', 'accommodation', 'neighborhood', 'district'
+            'hotel', 'stay', 'accommodation', 'neighborhood', 'district', 'area'
         ]
         
         # If message contains any specific travel/tourism intent, it's NOT daily talk
@@ -449,10 +510,11 @@ class IstanbulDailyTalkAI:
             'how are you', 'how r u', 'whats up', "what's up", 'merhaba', 'selam'
         ]
         
-        # Weather patterns
+        # Weather patterns (only pure weather talk, not "weather-appropriate activities")
         weather_patterns = [
-            'weather', 'temperature', 'rain', 'sunny', 'cloudy', 'hot', 'cold',
-            'warm', 'cool', 'forecast', 'climate', 'degrees'
+            'what is the weather', 'how is the weather', "what's the weather",
+            'weather forecast', 'weather today', 'temperature today', 'will it rain',
+            'is it raining', 'is it sunny'
         ]
         
         # Casual conversation patterns
@@ -1224,7 +1286,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 if any(word in message_lower for word in ['art', 'modern art', 'contemporary']):
                     from museum_advising_system import MuseumCategory
                     museums = self.advanced_museum_system.get_museums_by_category(MuseumCategory.ART_MODERN)
-                elif any(word in message_lower for word in ['historical', 'history', 'ancient']):
+                elif any(word in message_lower for word in ['historical', 'history', 'archaeological']):
                     from museum_advising_system import MuseumCategory
                     museums = self.advanced_museum_system.get_museums_by_category(MuseumCategory.HISTORICAL)
                 elif any(word in message_lower for word in ['archaeological', 'archaeology']):
@@ -1284,6 +1346,47 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             
             message_lower = message.lower()
             
+            # ENHANCED: Detect family-friendly queries
+            family_keywords = [
+                'family', 'families', 'kids', 'children', 'child', 'kid',
+                'toddler', 'toddlers', 'baby', 'babies', 'infant',
+                'age', 'aged', 'year old', 'years old',
+                'son', 'daughter', 'boy', 'girl', 'boys', 'girls',
+                'playground', 'play area', 'family-friendly',
+                'suitable for kids', 'suitable for children',
+                'safe for kids', 'safe for children'
+            ]
+            is_family_query = any(keyword in message_lower for keyword in family_keywords)
+            
+            # ENHANCED: Detect weather-specific queries
+            weather_keywords = {
+                'indoor': 'indoor',
+                'outdoor': 'outdoor',
+                'rainy': 'indoor',
+                'rain': 'indoor',
+                'sunny': 'outdoor',
+                'hot': 'outdoor',
+                'cold': 'indoor',
+                'covered': 'covered'
+            }
+            weather_preference = None
+            for keyword, pref in weather_keywords.items():
+                if keyword in message_lower:
+                    weather_preference = pref
+                    break
+            
+            # ENHANCED: Detect GPS coordinates more reliably
+            gps_pattern = r'(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)'
+            gps_match = re.search(gps_pattern, message)
+            user_location = None
+            if gps_match:
+                try:
+                    lat, lon = float(gps_match.group(1)), float(gps_match.group(2))
+                    user_location = (lat, lon)
+                    logger.info(f"📍 GPS coordinates detected: {user_location}")
+                except ValueError:
+                    pass
+            
             # Try to find specific attraction using search
             search_results = self.advanced_attractions_system.search_attractions(message)
             
@@ -1300,23 +1403,30 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             attractions = []
             
             if category:
-                # Convert category string to enum
+                # ENHANCED: More complete category mapping with museum, park, monument
                 category_map = {
+                    'museum': 'MUSEUM',
+                    'park': 'PARK_GARDEN',
+                    'monument': 'HISTORICAL_MONUMENT',
                     'historic': 'HISTORICAL_MONUMENT',
                     'religious': 'RELIGIOUS_SITE',
                     'palace': 'PALACE_MANSION',
                     'market': 'MARKET_BAZAAR',
                     'waterfront': 'WATERFRONT',
                     'tower': 'VIEWPOINT',
-                    'modern': 'CULTURAL_CENTER'
+                    'modern': 'CULTURAL_CENTER',
+                    'family': 'FAMILY_ATTRACTION',
+                    'romantic': 'ROMANTIC_SPOT'
                 }
                 category_enum_name = category_map.get(category, 'HISTORICAL_MONUMENT')
+                logger.info(f"🎯 Category detected: {category} → {category_enum_name}")
                 
                 # Find matching enum value
                 from istanbul_attractions_system import AttractionCategory
                 for cat_enum in AttractionCategory:
                     if cat_enum.name == category_enum_name:
                         attractions = self.advanced_attractions_system.get_attractions_by_category(cat_enum)
+                        logger.info(f"📊 Found {len(attractions)} attractions in category {category_enum_name}")
                         break
             
             elif district:
@@ -1331,6 +1441,50 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                     'accessibility': user_profile.accessibility_needs if hasattr(user_profile, 'accessibility_needs') else False
                 }
                 attractions = self.advanced_attractions_system.get_attraction_recommendations(preferences)
+            
+            # ENHANCED: Apply family-friendly filter if detected
+            if is_family_query and attractions:
+                family_friendly_attractions = [
+                    a for a in attractions 
+                    if hasattr(a, 'is_family_friendly') and a.is_family_friendly
+                ]
+                if family_friendly_attractions:
+                    attractions = family_friendly_attractions
+                    logger.info(f"👨‍👩‍👧 Applied family-friendly filter: {len(attractions)} attractions")
+            
+            # ENHANCED: Apply weather filter if detected
+            if weather_preference and attractions:
+                from istanbul_attractions_system import WeatherPreference
+                weather_filtered = []
+                for a in attractions:
+                    if hasattr(a, 'weather_preference'):
+                        if weather_preference == 'indoor' and a.weather_preference in [WeatherPreference.INDOOR, WeatherPreference.ALL_WEATHER]:
+                            weather_filtered.append(a)
+                        elif weather_preference == 'outdoor' and a.weather_preference in [WeatherPreference.OUTDOOR, WeatherPreference.ALL_WEATHER]:
+                            weather_filtered.append(a)
+                        elif weather_preference == 'covered' and a.weather_preference in [WeatherPreference.COVERED, WeatherPreference.ALL_WEATHER]:
+                            weather_filtered.append(a)
+                if weather_filtered:
+                    attractions = weather_filtered
+                    logger.info(f"🌤️ Applied weather filter ({weather_preference}): {len(attractions)} attractions")
+            
+            # ENHANCED: Sort by GPS distance if location provided
+            if user_location and attractions:
+                def calculate_distance(attraction):
+                    if hasattr(attraction, 'coordinates') and attraction.coordinates:
+                        from math import radians, sin, cos, sqrt, atan2
+                        lat1, lon1 = user_location
+                        lat2, lon2 = attraction.coordinates
+                        R = 6371  # Earth radius in km
+                        dlat = radians(lat2 - lat1)
+                        dlon = radians(lon2 - lon1)
+                        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+                        c = 2 * atan2(sqrt(a), sqrt(1-a))
+                        return R * c
+                    return float('inf')
+                
+                attractions.sort(key=calculate_distance)
+                logger.info(f"📍 Sorted {len(attractions)} attractions by GPS distance")
             
             # Format response
             if attractions:
@@ -1390,24 +1544,48 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         return response
 
     def _format_attractions_list(self, attractions: List, category: Optional[str] = None, district: Optional[str] = None) -> str:
-        """Format a list of attractions"""
+        """Format a list of attractions with category-specific headers"""
+        # ENHANCED: Category-specific headers
+        category_headers = {
+            'museum': ('🏛️', 'Museums in Istanbul', 'museum'),
+            'park': ('🌳', 'Parks & Gardens in Istanbul', 'park'),
+            'monument': ('🗿', 'Historical Monuments in Istanbul', 'monument'),
+            'historic': ('🏛️', 'Historical Sites in Istanbul', 'historical site'),
+            'religious': ('🕌', 'Religious Sites in Istanbul', 'religious site'),
+            'palace': ('👑', 'Palaces in Istanbul', 'palace'),
+            'market': ('🛍️', 'Markets & Bazaars in Istanbul', 'market'),
+            'waterfront': ('⛵', 'Waterfront Attractions in Istanbul', 'waterfront spot'),
+            'tower': ('🗼', 'Viewpoints & Towers in Istanbul', 'viewpoint'),
+            'modern': ('🎨', 'Modern Attractions in Istanbul', 'modern attraction'),
+            'family': ('👨‍👩‍👧', 'Family-Friendly Attractions in Istanbul', 'family attraction'),
+            'romantic': ('💑', 'Romantic Spots in Istanbul', 'romantic spot')
+        }
+        
         # Build header
-        if category and district:
-            header = f"🌟 **{category.title()} Attractions in {district.title()}**\n\n"
-        elif category:
-            header = f"🌟 **{category.title()} Attractions in Istanbul**\n\n"
+        if category and category in category_headers:
+            emoji, title, singular = category_headers[category]
+            if district:
+                header = f"{emoji} **{title.replace('in Istanbul', f'in {district.title()}')}**\n\n"
+            else:
+                header = f"{emoji} **{title}**\n\n"
         elif district:
             header = f"🌟 **Top Attractions in {district.title()}**\n\n"
         else:
             header = "🌟 **Recommended Attractions in Istanbul**\n\n"
         
         response = header
-        response += f"I found {len(attractions)} amazing places for you:\n\n"
+        response += f"I found **{len(attractions)}** amazing {category_headers.get(category, ('', '', 'attraction'))[2]}{'s' if len(attractions) > 1 else ''} for you:\n\n"
         
         # Format each attraction
-        for i, attraction in enumerate(attractions[:8], 1):  # Limit to 8
+        for i, attraction in enumerate(attractions[:8], 1):  # Limit to 8 for readability
             response += f"{i}. **{attraction.name}**\n"
-            response += f"   📍 {attraction.district} | {attraction.category.value.replace('_', ' ').title()}\n"
+            response += f"   📍 {attraction.district}"
+            
+            # Show category if not filtering by category
+            if not category or category != attraction.category.value.replace('_', ' ').lower():
+                response += f" | {attraction.category.value.replace('_', ' ').title()}"
+            
+            response += "\n"
             
             # Build details line with available attributes
             details = []
@@ -1416,9 +1594,19 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             details.append(f"🎫 {attraction.entrance_fee.value.replace('_', ' ').title()}")
             if hasattr(attraction, 'rating'):
                 details.append(f"⭐ {attraction.rating}/5")
+
             
             response += f"   {' | '.join(details)}\n"
-            response += f"   {attraction.description[:150]}...\n\n"
+            
+            # Show description (truncated)
+            if len(attraction.description) > 150:
+                response += f"   {attraction.description[:147]}...\n\n"
+            else:
+                response += f"   {attraction.description}\n\n"
+        
+        # Add helpful footer
+        if len(attractions) > 8:
+            response += f"\n📋 *Showing top 8 of {len(attractions)} results. Ask for specific details or use filters to narrow down!*\n"
         
         response += "\n💡 **Tip:** Ask me about any specific attraction for detailed information!"
         
@@ -1428,14 +1616,20 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         """Extract attraction category from user message"""
         message_lower = message.lower()
         
+        # ENHANCED: More comprehensive category mapping with museum, park, monument
         category_keywords = {
-            'historic': ['historic', 'historical', 'ancient', 'old', 'heritage'],
-            'religious': ['mosque', 'church', 'synagogue', 'religious', 'spiritual', 'temple'],
-            'palace': ['palace', 'palaces', 'sultan', 'ottoman'],
-            'market': ['market', 'bazaar', 'shopping', 'shop'],
-            'waterfront': ['waterfront', 'bosphorus', 'sea', 'coast', 'pier', 'ferry'],
-            'tower': ['tower', 'towers', 'view', 'panorama'],
-            'modern': ['modern', 'contemporary', 'new']
+            'museum': ['museum', 'museums', 'gallery', 'galleries', 'exhibition', 'exhibitions'],
+            'park': ['park', 'parks', 'garden', 'gardens', 'green space', 'playground', 'outdoor space'],
+            'monument': ['monument', 'monuments', 'landmark', 'landmarks', 'memorial'],
+            'historic': ['historic', 'historical', 'ancient', 'old', 'heritage', 'byzantine', 'ottoman empire'],
+            'religious': ['mosque', 'mosques', 'church', 'churches', 'synagogue', 'religious', 'spiritual', 'temple'],
+            'palace': ['palace', 'palaces', 'sultan', 'imperial'],
+            'market': ['market', 'bazaar', 'shopping', 'shop', 'souvenir'],
+            'waterfront': ['waterfront', 'bosphorus', 'sea', 'coast', 'pier', 'ferry', 'seaside'],
+            'tower': ['tower', 'towers', 'view', 'panorama', 'viewpoint', 'observation'],
+            'modern': ['modern', 'contemporary', 'new', 'current'],
+            'family': ['family', 'kids', 'children', 'family-friendly'],
+            'romantic': ['romantic', 'couple', 'couples', 'date', 'sunset']
         }
         
         for category, keywords in category_keywords.items():
@@ -1578,3 +1772,62 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         r = 6371  # Earth's radius in kilometers
         
         return c * r
+    
+    def _is_complex_multi_intent_query(self, message: str) -> bool:
+        """
+        Detect if query is truly complex enough to warrant multi-intent processing.
+        Simple queries like "Show me museums" should NOT trigger multi-intent handler.
+        """
+        message_lower = message.lower()
+        
+        # Indicators of complex multi-intent queries
+        complexity_indicators = [
+            # Multiple filter combinations
+            ' and ', ' with ', ' plus ', ' also ',
+            ' near ', ' nearby ', ' close to ',
+            ' then ', ' after ', ' before ',
+            # Multiple entities
+            'museum and restaurant', 'attraction and food', 'places and restaurants',
+            'monuments and eat', 'visit and dine', 'see and eat',
+            # Route planning with multiple stops
+            'from', 'to', 'via', 'through',
+            # Multiple time/condition clauses
+            'if ', ' when ', ' during ',
+            # Comparison queries
+            'versus', 'vs', 'compare', 'between',
+            'or', 'either'
+        ]
+        
+        # Count complexity indicators
+        complexity_count = sum(1 for indicator in complexity_indicators if indicator in message_lower)
+        
+        # Also check for multiple question marks or commas (indicating multiple sub-queries)
+        multiple_questions = message.count('?') > 1
+        multiple_clauses = message.count(',') >= 2
+        
+        # Simple queries (should NOT trigger multi-intent):
+        # "Show me museums"
+        # "What monuments should I visit?"
+        # "Are there any nice parks?"
+        # "Religious sites I should visit"
+        
+        # Complex queries (SHOULD trigger multi-intent):
+        # "Show me museums near Taksim with restaurants nearby"
+        # "Free family-friendly parks in Kadıköy"
+        # "Indoor museums for rainy day with kids in Sultanahmet"
+        
+        # Query is complex if it has:
+        # - 2+ complexity indicators, OR
+        # - Multiple questions, OR
+        # - 3+ filter words AND 2+ clauses
+        
+        is_complex = (
+            complexity_count >= 2 or
+            multiple_questions or
+            (complexity_count >= 1 and multiple_clauses)
+        )
+        
+        if is_complex:
+            logger.info(f"🔍 Complex query detected (indicators: {complexity_count}, questions: {multiple_questions}, clauses: {multiple_clauses})")
+        
+        return is_complex
