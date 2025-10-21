@@ -7,6 +7,7 @@ Supports local MacBook development and GPU-accelerated production
 FREE & OPEN-SOURCE ONLY:
 - Uses Leaflet.js for map rendering
 - Uses OpenStreetMap (OSM) for base map tiles
+- Uses OSRM for realistic walking routes
 - No paid map services (Google Maps, Mapbox, etc.)
 - Fully free for development and production
 """
@@ -17,6 +18,14 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from datetime import datetime
 import numpy as np
+
+# Import OSRM routing service
+try:
+    from backend.services.osrm_routing_service import OSRMRoutingService, OSRMRoute
+    OSRM_AVAILABLE = True
+except ImportError:
+    OSRM_AVAILABLE = False
+    logger.warning("OSRM routing service not available - will use straight-line routes")
 
 logger = logging.getLogger(__name__)
 
@@ -95,15 +104,28 @@ class MapVisualizationEngine:
         'funicular': '🚡'
     }
     
-    def __init__(self, use_gpu: bool = False):
+    def __init__(self, use_gpu: bool = False, use_osrm: bool = True):
         """
         Initialize Map Visualization Engine
         
         Args:
             use_gpu: Whether to use GPU acceleration for computations
+            use_osrm: Whether to use OSRM for realistic walking routes
         """
         self.use_gpu = use_gpu
-        logger.info(f"Map Visualization Engine initialized (GPU: {use_gpu})")
+        self.use_osrm = use_osrm and OSRM_AVAILABLE
+        
+        # Initialize OSRM routing service if available
+        self.osrm_service = None
+        if self.use_osrm:
+            try:
+                self.osrm_service = OSRMRoutingService(profile='foot')
+                logger.info("OSRM routing service initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize OSRM service: {e}")
+                self.use_osrm = False
+        
+        logger.info(f"Map Visualization Engine initialized (GPU: {use_gpu}, OSRM: {self.use_osrm})")
     
     def create_location(
         self,
@@ -223,6 +245,168 @@ class MapVisualizationEngine:
             instructions=instructions,
             waypoints=waypoints or []
         )
+    
+    def create_realistic_walking_route(
+        self,
+        start: MapLocation,
+        end: MapLocation,
+        intermediate_points: Optional[List[MapLocation]] = None
+    ) -> Optional[RouteSegment]:
+        """
+        Create a realistic walking route using OSRM
+        Falls back to straight line if OSRM is not available
+        
+        Args:
+            start: Start location
+            end: End location
+            intermediate_points: Optional intermediate waypoints
+            
+        Returns:
+            RouteSegment with realistic walking path or None if failed
+        """
+        if not self.use_osrm or not self.osrm_service:
+            logger.debug("OSRM not available, using straight-line route")
+            return self._create_straight_line_route(start, end)
+        
+        try:
+            # Prepare waypoints
+            waypoints = None
+            if intermediate_points:
+                waypoints = [(loc.lat, loc.lon) for loc in intermediate_points]
+            
+            # Get route from OSRM
+            osrm_route = self.osrm_service.get_walking_route(
+                (start.lat, start.lon),
+                (end.lat, end.lon),
+                waypoints
+            )
+            
+            if not osrm_route:
+                logger.warning("OSRM failed to return route, using straight line")
+                return self._create_straight_line_route(start, end)
+            
+            # Convert OSRM route to RouteSegment
+            return self._convert_osrm_route(start, end, osrm_route)
+            
+        except Exception as e:
+            logger.error(f"Error creating OSRM route: {e}")
+            return self._create_straight_line_route(start, end)
+    
+    def _create_straight_line_route(
+        self,
+        start: MapLocation,
+        end: MapLocation
+    ) -> RouteSegment:
+        """
+        Create a simple straight-line route (fallback)
+        
+        Args:
+            start: Start location
+            end: End location
+            
+        Returns:
+            RouteSegment with straight-line path
+        """
+        # Calculate approximate distance using Haversine formula
+        distance_km = self._haversine_distance(
+            start.lat, start.lon,
+            end.lat, end.lon
+        )
+        
+        # Estimate walking time (4 km/h average)
+        duration_min = int((distance_km / 4.0) * 60)
+        
+        # Simple instruction
+        instructions = [f"Walk from {start.name} to {end.name}"]
+        
+        # Straight line waypoints
+        waypoints = [
+            (start.lat, start.lon),
+            (end.lat, end.lon)
+        ]
+        
+        return RouteSegment(
+            start=start,
+            end=end,
+            distance_km=distance_km,
+            duration_min=duration_min,
+            transport_mode='walk',
+            instructions=instructions,
+            waypoints=waypoints
+        )
+    
+    def _convert_osrm_route(
+        self,
+        start: MapLocation,
+        end: MapLocation,
+        osrm_route: 'OSRMRoute'
+    ) -> RouteSegment:
+        """
+        Convert OSRM route to RouteSegment
+        
+        Args:
+            start: Start location
+            end: End location
+            osrm_route: OSRM route object
+            
+        Returns:
+            RouteSegment object
+        """
+        # Convert distance from meters to km
+        distance_km = osrm_route.total_distance / 1000.0
+        
+        # Convert duration from seconds to minutes
+        duration_min = int(osrm_route.total_duration / 60.0)
+        
+        # Extract instructions
+        instructions = []
+        for step in osrm_route.steps:
+            if step.instruction:
+                dist_str = self.osrm_service.format_distance(step.distance)
+                instructions.append(f"{step.instruction} ({dist_str})")
+        
+        if not instructions:
+            instructions = [f"Walk from {start.name} to {end.name}"]
+        
+        return RouteSegment(
+            start=start,
+            end=end,
+            distance_km=distance_km,
+            duration_min=duration_min,
+            transport_mode='walk',
+            instructions=instructions,
+            waypoints=osrm_route.waypoints
+        )
+    
+    def _haversine_distance(
+        self,
+        lat1: float,
+        lon1: float,
+        lat2: float,
+        lon2: float
+    ) -> float:
+        """
+        Calculate distance between two points using Haversine formula
+        
+        Args:
+            lat1, lon1: First point coordinates
+            lat2, lon2: Second point coordinates
+            
+        Returns:
+            Distance in kilometers
+        """
+        from math import radians, sin, cos, sqrt, atan2
+        
+        R = 6371  # Earth radius in kilometers
+        
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        
+        return R * c
     
     def optimize_waypoints(
         self,

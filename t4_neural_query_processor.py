@@ -15,9 +15,14 @@ import time
 
 logger = logging.getLogger(__name__)
 
-# Check GPU availability
-GPU_AVAILABLE = torch.cuda.is_available()
-DEVICE = torch.device("cuda" if GPU_AVAILABLE else "cpu")
+# Check GPU availability (CUDA for NVIDIA, MPS for Apple Silicon)
+GPU_AVAILABLE = torch.cuda.is_available() or torch.backends.mps.is_available()
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+elif torch.backends.mps.is_available():
+    DEVICE = torch.device("mps")
+else:
+    DEVICE = torch.device("cpu")
 
 @dataclass
 class T4NeuralInsights:
@@ -186,8 +191,8 @@ class T4NeuralQueryProcessor:
                 max_length=128
             ).to(self.device)
             
-            # Convert to half precision for T4
-            if self.use_gpu:
+            # Convert to half precision for CUDA T4 (not MPS - it doesn't support fp16)
+            if self.use_gpu and torch.cuda.is_available():
                 inputs = {k: v.half() if v.dtype == torch.float32 else v 
                          for k, v in inputs.items()}
             

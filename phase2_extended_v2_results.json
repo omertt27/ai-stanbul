@@ -1,0 +1,356 @@
+{
+  "timestamp": "2025-10-21T23:58:21.196126",
+  "training_duration_seconds": 1738.27,
+  "training_duration_minutes": 28.97,
+  "total_epochs": 250,
+  "new_epochs": 150,
+  "training_samples": 676,
+  "test_samples": 26,
+  "accuracy_percent": 73.08,
+  "correct_predictions": 19,
+  "total_predictions": 26,
+  "avg_latency_ms": 13.989,
+  "p95_latency_ms": 25.451,
+  "p99_latency_ms": 76.946,
+  "min_latency_ms": 4.757,
+  "max_latency_ms": 93.627,
+  "device": "mps",
+  "model": "distilbert-base-multilingual-cased",
+  "predictions": [
+    {
+      "query": "En yakın restoran nerede?",
+      "expected": "restaurant",
+      "predicted": "restaurant",
+      "correct": true,
+      "latency_ms": 93.63,
+      "confidence": 100.0
+    },
+    {
+      "query": "Ayasofya'yı görmek istiyorum",
+      "expected": "attraction",
+      "predicted": "attraction",
+      "correct": true,
+      "latency_ms": 26.91,
+      "confidence": 100.0
+    },
+    {
+      "query": "Havaalanına nasıl giderim?",
+      "expected": "transportation",
+      "predicted": "emergency",
+      "correct": false,
+      "latency_ms": 20.84,
+      "confidence": 30.3
+    },
+    {
+      "query": "Hava durumu nasıl?",
+      "expected": "weather",
+      "predicted": "weather",
+      "correct": true,
+      "latency_ms": 18.3,
+      "confidence": 99.8
+    },
+    {
+      "query": "Topkapı Sarayı nerede?",
+      "expected": "attraction",
+      "predicted": "attraction",
+      "correct": true,
+      "latency_ms": 21.09,
+      "confidence": 100.0
+    },
+    {
+      "query": "Kebap nerede yiyebilirim?",
+      "expected": "food",
+      "predicted": "restaurant",
+      "correct": false,
+      "latency_ms": 19.73,
+      "confidence": 95.7
+    },
+    {
+      "query": "İstanbul Arkeoloji Müzesi açık mı?",
+      "expected": "museum",
+      "predicted": "museum",
+      "correct": true,
+      "latency_ms": 7.13,
+      "confidence": 100.0
+    },
+    {
+      "query": "Taksim'e nasıl giderim?",
+      "expected": "gps_navigation",
+      "predicted": "gps_navigation",
+      "correct": true,
+      "latency_ms": 7.84,
+      "confidence": 99.9
+    },
+    {
+      "query": "Boğaz turu için öneri",
+      "expected": "recommendation",
+      "predicted": "cultural_info",
+      "correct": false,
+      "latency_ms": 5.44,
+      "confidence": 94.6
+    },
+    {
+      "query": "Otel rezervasyonu yapabilir misiniz?",
+      "expected": "booking",
+      "predicted": "booking",
+      "correct": true,
+      "latency_ms": 19.79,
+      "confidence": 99.9
+    },
+    {
+      "query": "Bu ne kadar?",
+      "expected": "price_info",
+      "predicted": "recommendation",
+      "correct": false,
+      "latency_ms": 16.99,
+      "confidence": 69.8
+    },
+    {
+      "query": "Bu hafta sonu konser var mı?",
+      "expected": "events",
+      "predicted": "events",
+      "correct": true,
+      "latency_ms": 8.1,
+      "confidence": 100.0
+    },
+    {
+      "query": "Türk kahvesi nasıl içilir?",
+      "expected": "cultural_info",
+      "predicted": "cultural_info",
+      "correct": true,
+      "latency_ms": 4.87,
+      "confidence": 98.1
+    },
+    {
+      "query": "Acil durum, yardım!",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "correct": true,
+      "latency_ms": 5.32,
+      "confidence": 96.0
+    },
+    {
+      "query": "Kapalıçarşı nerede?",
+      "expected": "shopping",
+      "predicted": "shopping",
+      "correct": true,
+      "latency_ms": 4.84,
+      "confidence": 98.5
+    },
+    {
+      "query": "Gece hayatı için tavsiye",
+      "expected": "nightlife",
+      "predicted": "nightlife",
+      "correct": true,
+      "latency_ms": 4.9,
+      "confidence": 100.0
+    },
+    {
+      "query": "Çocuklu gezilecek yerler",
+      "expected": "family_activities",
+      "predicted": "family_activities",
+      "correct": true,
+      "latency_ms": 5.18,
+      "confidence": 100.0
+    },
+    {
+      "query": "Lüks restoran önerisi",
+      "expected": "luxury",
+      "predicted": "luxury",
+      "correct": true,
+      "latency_ms": 4.93,
+      "confidence": 100.0
+    },
+    {
+      "query": "Saklı yerler göster",
+      "expected": "hidden_gems",
+      "predicted": "hidden_gems",
+      "correct": true,
+      "latency_ms": 4.76,
+      "confidence": 99.9
+    },
+    {
+      "query": "Bizans dönemi hakkında bilgi",
+      "expected": "history",
+      "predicted": "history",
+      "correct": true,
+      "latency_ms": 17.28,
+      "confidence": 93.1
+    },
+    {
+      "query": "Ucuz konaklama",
+      "expected": "accommodation",
+      "predicted": "transportation",
+      "correct": false,
+      "latency_ms": 8.12,
+      "confidence": 79.3
+    },
+    {
+      "query": "Romantik mekanlar",
+      "expected": "romantic",
+      "predicted": "romantic",
+      "correct": true,
+      "latency_ms": 7.5,
+      "confidence": 96.0
+    },
+    {
+      "query": "En iyi rota ne?",
+      "expected": "route_planning",
+      "predicted": "recommendation",
+      "correct": false,
+      "latency_ms": 4.9,
+      "confidence": 96.4
+    },
+    {
+      "query": "Yerel ipuçları",
+      "expected": "local_tips",
+      "predicted": "emergency",
+      "correct": false,
+      "latency_ms": 4.8,
+      "confidence": 72.3
+    },
+    {
+      "query": "Genel bilgi",
+      "expected": "general_info",
+      "predicted": "general_info",
+      "correct": true,
+      "latency_ms": 15.28,
+      "confidence": 98.9
+    },
+    {
+      "query": "Ekonomik gezi",
+      "expected": "budget",
+      "predicted": "budget",
+      "correct": true,
+      "latency_ms": 5.26,
+      "confidence": 99.8
+    }
+  ],
+  "intent_accuracy": {
+    "restaurant": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "attraction": {
+      "correct": 2,
+      "total": 2,
+      "accuracy_percent": 100.0
+    },
+    "transportation": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "weather": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "food": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "museum": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "gps_navigation": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "recommendation": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "booking": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "price_info": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "events": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "cultural_info": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "emergency": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "shopping": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "nightlife": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "family_activities": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "luxury": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "hidden_gems": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "history": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "accommodation": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "romantic": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "route_planning": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "local_tips": {
+      "correct": 0,
+      "total": 1,
+      "accuracy_percent": 0.0
+    },
+    "general_info": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    },
+    "budget": {
+      "correct": 1,
+      "total": 1,
+      "accuracy_percent": 100.0
+    }
+  }
+}

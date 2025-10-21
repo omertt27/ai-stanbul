@@ -1,0 +1,10 @@
+{
+  "training_samples": 676,
+  "test_samples": 33,
+  "accuracy_percent": 75.75757575757575,
+  "latency_ms": 14.94711818117084,
+  "correct": 25,
+  "targets_met": false,
+  "model": "DistilBERT-multilingual",
+  "device": "mps"
+}

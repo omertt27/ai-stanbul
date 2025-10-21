@@ -1,0 +1,6 @@
+{
+  "training_samples": 282,
+  "accuracy_percent": 53.333333333333336,
+  "latency_ms": 9.470129013061523,
+  "targets_met": false
+}

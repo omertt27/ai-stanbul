@@ -1,0 +1,9 @@
+{
+  "phase": 2,
+  "accuracy_percent": 30.0,
+  "latency_ms": 12.88440227508545,
+  "model": "DistilBERT-multilingual",
+  "device": "mps",
+  "training_samples": 42,
+  "targets_met": false
+}

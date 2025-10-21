@@ -1,0 +1,15 @@
+{
+  "training_epochs": 250,
+  "training_samples": 676,
+  "test_samples": 37,
+  "accuracy_percent": 81.08108108108108,
+  "previous_accuracy": 75.75757575757575,
+  "improvement": 5.32350532350533,
+  "latency_ms": 11.044031864887959,
+  "correct": 30,
+  "errors": 7,
+  "targets_met": false,
+  "model": "DistilBERT-multilingual",
+  "device": "mps",
+  "training_time_minutes": 17.170857564608255
+}

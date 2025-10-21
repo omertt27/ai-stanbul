@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with Route Integration Example</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            height: 100vh;
+            gap: 0;
+        }
+        
+        /* Map Section */
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Chat Section */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: #3B82F6;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 90%;
+        }
+        
+        .message.user {
+            background: #3B82F6;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .message.assistant {
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message.route {
+            background: #f0f9ff;
+            border: 2px solid #3B82F6;
+        }
+        
+        .route-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .route-info strong {
+            color: #3B82F6;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        input:focus {
+            border-color: #3B82F6;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #2563EB;
+        }
+        
+        button:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+        }
+        
+        .quick-actions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .quick-action {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .quick-action:hover {
+            background: #e5e7eb;
+        }
+        
+        /* Loading indicator */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            color: #6b7280;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Map -->
+        <div id="map"></div>
+        
+        <!-- Chat -->
+        <div class="chat-container">
+            <div class="chat-header">
+                🗺️ Istanbul AI - Route Assistant
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    👋 Hi! I can help you plan routes in Istanbul. Try asking:
+                    <ul style="margin-top: 10px; padding-left: 20px;">
+                        <li>"Route from Sultanahmet to Galata Tower"</li>
+                        <li>"Plan route visiting Taksim, Grand Bazaar, Blue Mosque"</li>
+                        <li>"How do I get from Hagia Sophia to Spice Bazaar?"</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                🔄 Planning route...
+            </div>
+            
+            <div class="chat-input">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Ask for directions..."
+                        onkeypress="handleKeyPress(event)"
+                    />
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+                
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="sendQuickMessage('Route from Sultanahmet to Galata Tower')">
+                        🗺️ Sultanahmet → Galata
+                    </div>
+                    <div class="quick-action" onclick="sendQuickMessage('Route from Taksim to Grand Bazaar')">
+                        🏛️ Taksim → Grand Bazaar
+                    </div>
+                    <div class="quick-action" onclick="sendQuickMessage('Plan route visiting Blue Mosque, Hagia Sophia, Topkapi')">
+                        📍 Multi-stop tour
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([41.0082, 28.9784], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Current route layer
+        let currentRouteLayer = null;
+        let currentMarkers = [];
+        
+        // Handle key press
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Send quick message
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                // Call backend API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        user_context: {}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Hide loading
+                document.getElementById('loading').classList.remove('active');
+                
+                // Handle response
+                if (data.type === 'route') {
+                    handleRouteResponse(data);
+                } else {
+                    addMessage(data.message, 'assistant');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').classList.remove('active');
+                
+                // For demo, simulate route response
+                simulateRouteResponse(message);
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(text, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Handle route response
+        function handleRouteResponse(response) {
+            // Add message to chat
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message route';
+            messageDiv.innerHTML = response.message.replace(/\n/g, '<br>');
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Display route on map
+            const routeData = response.route_data;
+            displayRouteOnMap(routeData);
+        }
+        
+        // Display route on map
+        function displayRouteOnMap(routeData) {
+            // Clear existing route and markers
+            if (currentRouteLayer) {
+                map.removeLayer(currentRouteLayer);
+            }
+            currentMarkers.forEach(marker => map.removeLayer(marker));
+            currentMarkers = [];
+            
+            if (routeData.single) {
+                // Single route
+                const visualization = JSON.parse(routeData.visualization);
+                const waypoints = visualization.waypoints;
+                
+                // Draw route
+                currentRouteLayer = L.polyline(waypoints, {
+                    color: '#3B82F6',
+                    weight: 4,
+                    opacity: 0.7
+                }).addTo(map);
+                
+                // Add markers
+                const startMarker = L.marker(visualization.start, {
+                    icon: L.divIcon({
+                        html: '🚶',
+                        className: 'emoji-marker',
+                        iconSize: [30, 30]
+                    })
+                }).bindPopup('Start').addTo(map);
+                
+                const endMarker = L.marker(visualization.end, {
+                    icon: L.divIcon({
+                        html: '🎯',
+                        className: 'emoji-marker',
+                        iconSize: [30, 30]
+                    })
+                }).bindPopup('End').addTo(map);
+                
+                currentMarkers.push(startMarker, endMarker);
+                
+                // Fit bounds
+                map.fitBounds(currentRouteLayer.getBounds(), { padding: [50, 50] });
+                
+            } else {
+                // Multi-route
+                const routes = routeData.routes;
+                const allPoints = [];
+                
+                routes.forEach((route, index) => {
+                    const visualization = JSON.parse(route.visualization);
+                    const waypoints = visualization.waypoints;
+                    
+                    // Draw segment
+                    const routeLayer = L.polyline(waypoints, {
+                        color: index === 0 ? '#3B82F6' : '#10B981',
+                        weight: 4,
+                        opacity: 0.7
+                    }).addTo(map);
+                    
+                    if (index === 0) {
+                        currentRouteLayer = L.layerGroup([routeLayer]);
+                    } else {
+                        currentRouteLayer.addLayer(routeLayer);
+                    }
+                    
+                    allPoints.push(...waypoints);
+                    
+                    // Add markers
+                    if (index === 0) {
+                        const startMarker = L.marker(visualization.start, {
+                            icon: L.divIcon({
+                                html: '🚶',
+                                className: 'emoji-marker',
+                                iconSize: [30, 30]
+                            })
+                        }).bindPopup('Start').addTo(map);
+                        currentMarkers.push(startMarker);
+                    }
+                    
+                    const stopMarker = L.marker(visualization.end, {
+                        icon: L.divIcon({
+                            html: `${index + 1}️⃣`,
+                            className: 'emoji-marker',
+                            iconSize: [30, 30]
+                        })
+                    }).bindPopup(`Stop ${index + 1}`).addTo(map);
+                    currentMarkers.push(stopMarker);
+                });
+                
+                // Fit bounds to all points
+                if (allPoints.length > 0) {
+                    const bounds = L.latLngBounds(allPoints);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            }
+        }
+        
+        // Simulate route response for demo (remove when backend is connected)
+        function simulateRouteResponse(message) {
+            // This simulates a route response
+            // Remove this function when you connect to real backend
+            
+            const response = {
+                type: 'route',
+                message: `🗺️ Route Planned Successfully!\n\n📏 Distance: 5.9 km\n⏱️ Duration: 10 minutes\n🚶 Mode: Walking\n🏛️ Districts: Fatih, Beyoğlu\n\n💡 Recommendations:\n  • This is a moderate walking distance\n  • Beautiful scenic route along the Bosphorus\n\n📍 The route is displayed on the map above.`,
+                route_data: {
+                    single: true,
+                    visualization: JSON.stringify({
+                        waypoints: [[41.0054, 28.9768], [41.0082, 28.9784], [41.0150, 28.9800], [41.0256, 28.9742]],
+                        start: [41.0054, 28.9768],
+                        end: [41.0256, 28.9742],
+                        distance: 5900,
+                        duration: 600
+                    })
+                }
+            };
+            
+            handleRouteResponse(response);
+        }
+        
+        // Initialize
+        console.log('🗺️ Chat with Route Integration loaded!');
+        console.log('Note: Connect this to your backend /api/chat endpoint');
+    </script>
+</body>
+</html>

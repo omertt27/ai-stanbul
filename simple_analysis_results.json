@@ -1,0 +1,74 @@
+[
+  {
+    "query": "hidden gems in Istanbul beyond Hagia Sophia",
+    "category": "diversified",
+    "overall_quality": 75.5,
+    "keyword_score": 50.0,
+    "practical_score": 95,
+    "completeness_score": 100.0,
+    "cultural_score": 70,
+    "found_keywords": [
+      "chora",
+      "hidden"
+    ],
+    "word_count": 160
+  },
+  {
+    "query": "budget-friendly attractions in Istanbul",
+    "category": "budget",
+    "overall_quality": 64.7,
+    "keyword_score": 25.0,
+    "practical_score": 85,
+    "completeness_score": 100.0,
+    "cultural_score": 92,
+    "found_keywords": [
+      "budget"
+    ],
+    "word_count": 159
+  },
+  {
+    "query": "romantic spots for couples in Istanbul",
+    "category": "romantic",
+    "overall_quality": 77.0,
+    "keyword_score": 50.0,
+    "practical_score": 90,
+    "completeness_score": 100.0,
+    "cultural_score": 100,
+    "found_keywords": [
+      "romantic",
+      "sunset"
+    ],
+    "word_count": 305
+  },
+  {
+    "query": "family-friendly activities in Istanbul",
+    "category": "family",
+    "overall_quality": 87.0,
+    "keyword_score": 75.0,
+    "practical_score": 90,
+    "completeness_score": 100.0,
+    "cultural_score": 100,
+    "found_keywords": [
+      "family",
+      "children",
+      "kids"
+    ],
+    "word_count": 276
+  },
+  {
+    "query": "practical transportation info for Istanbul",
+    "category": "practical",
+    "overall_quality": 99.8,
+    "keyword_score": 100.0,
+    "practical_score": 100,
+    "completeness_score": 100.0,
+    "cultural_score": 98,
+    "found_keywords": [
+      "metro",
+      "tram",
+      "ferry",
+      "istanbulkart"
+    ],
+    "word_count": 230
+  }
+]

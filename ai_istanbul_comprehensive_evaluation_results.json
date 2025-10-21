@@ -1,0 +1,1534 @@
+{
+  "evaluation_metadata": {
+    "title": "AI Istanbul Comprehensive Response Evaluation",
+    "version": "1.0",
+    "date_created": "2025-09-27",
+    "evaluator": "",
+    "ai_system_version": "",
+    "evaluation_start_time": "",
+    "evaluation_end_time": "",
+    "total_tests": 80,
+    "categories": 5
+  },
+  "scoring_criteria": {
+    "accuracy": {
+      "max_points": 3,
+      "description": "Factual correctness of information",
+      "scale": {
+        "3": "All information factually accurate and up-to-date",
+        "2": "Mostly accurate with minor inaccuracies",
+        "1": "Some accurate info but notable errors present",
+        "0": "Significant inaccuracies or misleading information"
+      }
+    },
+    "completeness": {
+      "max_points": 3,
+      "description": "How thoroughly the response addresses the question",
+      "scale": {
+        "3": "Comprehensive response covering all elements",
+        "2": "Good coverage with minor gaps",
+        "1": "Basic response missing important elements",
+        "0": "Incomplete response missing major components"
+      }
+    },
+    "cultural_sensitivity": {
+      "max_points": 2,
+      "description": "Awareness and respect for Turkish culture",
+      "scale": {
+        "2": "Excellent cultural awareness and context",
+        "1": "Basic cultural sensitivity with minor gaps",
+        "0": "Lacks cultural context or shows insensitivity"
+      }
+    },
+    "practical_usefulness": {
+      "max_points": 2,
+      "description": "How actionable and helpful the information is",
+      "scale": {
+        "2": "Highly practical with specific, actionable advice",
+        "1": "Somewhat useful but could be more specific",
+        "0": "Vague or impractical information"
+      }
+    }
+  },
+  "test_categories": {
+    "transportation": {
+      "name": "Transportation",
+      "test_range": "1-16",
+      "description": "Navigation, transit systems, costs, logistics",
+      "total_tests": 16
+    },
+    "restaurants_food": {
+      "name": "Restaurants & Food",
+      "test_range": "17-32",
+      "description": "Dining, cuisine, dietary needs, food culture",
+      "total_tests": 16
+    },
+    "museums_culture": {
+      "name": "Museums & Cultural Sites",
+      "test_range": "33-48",
+      "description": "History, architecture, visiting information",
+      "total_tests": 16
+    },
+    "districts_neighborhoods": {
+      "name": "Districts & Neighborhoods",
+      "test_range": "49-64",
+      "description": "Local areas, characteristics, safety",
+      "total_tests": 16
+    },
+    "general_practical": {
+      "name": "General Tips & Practical",
+      "test_range": "65-80",
+      "description": "Etiquette, safety, bureaucracy, culture",
+      "total_tests": 16
+    }
+  },
+  "evaluation_results": [
+    {
+      "test_id": 1,
+      "category": "transportation",
+      "test_input": "How do I get from Sultanahmet to Taksim Square using public transportation?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 2,
+      "category": "transportation",
+      "test_input": "What are the different metro lines in Istanbul and how much does it cost?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 3,
+      "category": "transportation",
+      "test_input": "How do I buy an Istanbulkart and where can I refill it?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 4,
+      "category": "transportation",
+      "test_input": "What's the best way to get to Istanbul Airport from the city center at 5 AM?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 5,
+      "category": "transportation",
+      "test_input": "Can you explain how the ferry system works between European and Asian sides?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 6,
+      "category": "transportation",
+      "test_input": "How much should I expect to pay for a taxi from Galata Tower to the Grand Bazaar?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 7,
+      "category": "transportation",
+      "test_input": "Is it safe to use ride-sharing apps like Uber or BiTaksi in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 8,
+      "category": "transportation",
+      "test_input": "How can I travel from Istanbul to Cappadocia? What are my options?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 9,
+      "category": "transportation",
+      "test_input": "What's the difference between dolmuş and regular buses in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 10,
+      "category": "transportation",
+      "test_input": "How do I get to the Princess Islands and which one should I visit?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 11,
+      "category": "transportation",
+      "test_input": "Is there a tourist pass for public transportation in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 12,
+      "category": "transportation",
+      "test_input": "How accessible is Istanbul's public transportation for people with disabilities?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 13,
+      "category": "transportation",
+      "test_input": "What should I know about parking a rental car in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 14,
+      "category": "transportation",
+      "test_input": "How do the night bus services work in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 15,
+      "category": "transportation",
+      "test_input": "Can you help me plan a route from my hotel in Beyoğlu to the Blue Mosque during rush hour?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 16,
+      "category": "transportation",
+      "test_input": "What are the transportation options from Sabiha Gökçen Airport to the city center?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 17,
+      "category": "restaurants_food",
+      "test_input": "Can you recommend some traditional Turkish breakfast places in Sultanahmet?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 18,
+      "category": "restaurants_food",
+      "test_input": "Where can I find the best Turkish street food in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 19,
+      "category": "restaurants_food",
+      "test_input": "I'm vegetarian - what Turkish dishes can I eat and where should I go?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 20,
+      "category": "restaurants_food",
+      "test_input": "What's the proper etiquette for dining in a traditional Turkish restaurant?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 21,
+      "category": "restaurants_food",
+      "test_input": "Can you explain the difference between döner, shawarma, and kebab?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 22,
+      "category": "restaurants_food",
+      "test_input": "Where can I buy authentic Turkish spices and what should I look for?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 23,
+      "category": "restaurants_food",
+      "test_input": "I have a severe nut allergy - how can I communicate this in Turkish restaurants?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 24,
+      "category": "restaurants_food",
+      "test_input": "What are some must-try Turkish desserts and where can I find the best ones?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 25,
+      "category": "restaurants_food",
+      "test_input": "How much should I budget for meals in Istanbul? What are typical prices?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 26,
+      "category": "restaurants_food",
+      "test_input": "Can you recommend some rooftop restaurants with good views in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 27,
+      "category": "restaurants_food",
+      "test_input": "What should I know about Turkish tea culture and where can I experience it?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 28,
+      "category": "restaurants_food",
+      "test_input": "Are there any food markets or food halls I should visit in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 29,
+      "category": "restaurants_food",
+      "test_input": "Is it safe to drink tap water in Istanbul, and what about ice in drinks?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 30,
+      "category": "restaurants_food",
+      "test_input": "What's the tipping culture in Istanbul restaurants?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 31,
+      "category": "restaurants_food",
+      "test_input": "Can you recommend some good fish restaurants along the Bosphorus?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 32,
+      "category": "restaurants_food",
+      "test_input": "Where can I find halal food options in Istanbul, and what should I look for?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 33,
+      "category": "museums_culture",
+      "test_input": "What are the visiting hours and ticket prices for Hagia Sophia?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 34,
+      "category": "museums_culture",
+      "test_input": "Can you explain the historical significance of the Blue Mosque?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 35,
+      "category": "museums_culture",
+      "test_input": "What should I expect when visiting Topkapi Palace? Any tips for the visit?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 36,
+      "category": "museums_culture",
+      "test_input": "Are there any lesser-known museums in Istanbul that are worth visiting?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 37,
+      "category": "museums_culture",
+      "test_input": "What is the dress code for visiting mosques in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 38,
+      "category": "museums_culture",
+      "test_input": "Can you recommend a good walking route to see the main historical sites in one day?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 39,
+      "category": "museums_culture",
+      "test_input": "What are the best times to visit major attractions to avoid crowds?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 40,
+      "category": "museums_culture",
+      "test_input": "Is there a museum pass for Istanbul and is it worth buying?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 41,
+      "category": "museums_culture",
+      "test_input": "What should I know about Byzantine history before visiting Istanbul's historical sites?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 42,
+      "category": "museums_culture",
+      "test_input": "Can you explain the significance of the Basilica Cistern and what I'll see there?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 43,
+      "category": "museums_culture",
+      "test_input": "What are some good cultural experiences beyond the main tourist sites?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 44,
+      "category": "museums_culture",
+      "test_input": "Are there any art galleries or contemporary cultural spaces I should visit?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 45,
+      "category": "museums_culture",
+      "test_input": "What is the history behind the Grand Bazaar and what should I know before visiting?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 46,
+      "category": "museums_culture",
+      "test_input": "Can you recommend some traditional Turkish baths (hammams) and explain the experience?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 47,
+      "category": "museums_culture",
+      "test_input": "What are the photography rules in Istanbul's mosques and museums?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 48,
+      "category": "museums_culture",
+      "test_input": "Are there any cultural events or festivals happening in Istanbul that I should know about?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 49,
+      "category": "districts_neighborhoods",
+      "test_input": "What's the character and main attractions of the Beyoğlu district?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 50,
+      "category": "districts_neighborhoods",
+      "test_input": "Is it safe for solo female travelers to walk around Sultanahmet at night?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 51,
+      "category": "districts_neighborhoods",
+      "test_input": "What's special about the Karaköy neighborhood and what should I see there?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 52,
+      "category": "districts_neighborhoods",
+      "test_input": "Can you recommend some neighborhoods on the Asian side that are worth exploring?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 53,
+      "category": "districts_neighborhoods",
+      "test_input": "What's the best area to stay in Istanbul for first-time visitors?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 54,
+      "category": "districts_neighborhoods",
+      "test_input": "Where can I experience local life away from the tourist areas?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 55,
+      "category": "districts_neighborhoods",
+      "test_input": "What are the main differences between the European and Asian sides of Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 56,
+      "category": "districts_neighborhoods",
+      "test_input": "Are there any areas of Istanbul I should avoid as a tourist?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 57,
+      "category": "districts_neighborhoods",
+      "test_input": "What's the Galata area known for and how do I get there?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 58,
+      "category": "districts_neighborhoods",
+      "test_input": "Can you tell me about the nightlife in different neighborhoods of Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 59,
+      "category": "districts_neighborhoods",
+      "test_input": "What should I know about the Fatih district beyond the main tourist sites?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 60,
+      "category": "districts_neighborhoods",
+      "test_input": "Where can I find good shopping areas outside of the Grand Bazaar?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 61,
+      "category": "districts_neighborhoods",
+      "test_input": "Is Taksim Square area good for budget travelers? What should I expect?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 62,
+      "category": "districts_neighborhoods",
+      "test_input": "What are some up-and-coming neighborhoods that locals recommend?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 63,
+      "category": "districts_neighborhoods",
+      "test_input": "How do I get to and what can I do in the Ortaköy neighborhood?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 64,
+      "category": "districts_neighborhoods",
+      "test_input": "What's the character of Balat neighborhood and is it worth visiting?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 65,
+      "category": "general_practical",
+      "test_input": "What are some basic Turkish phrases I should learn before visiting?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 66,
+      "category": "general_practical",
+      "test_input": "What should I know about bargaining in Istanbul's markets?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 67,
+      "category": "general_practical",
+      "test_input": "How much cash should I carry and where are the best places to exchange money?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 68,
+      "category": "general_practical",
+      "test_input": "What should I be aware of during Ramadan if I visit Istanbul then?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 69,
+      "category": "general_practical",
+      "test_input": "Are credit cards widely accepted in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 70,
+      "category": "general_practical",
+      "test_input": "What are some common scams in Istanbul and how can I avoid them?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 71,
+      "category": "general_practical",
+      "test_input": "Do I need a visa to visit Turkey and what are the requirements?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 72,
+      "category": "general_practical",
+      "test_input": "What's the best way to get internet/mobile data as a tourist in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 73,
+      "category": "general_practical",
+      "test_input": "What should I pack for a trip to Istanbul in different seasons?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 74,
+      "category": "general_practical",
+      "test_input": "How do I handle emergencies in Istanbul? What numbers should I know?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 75,
+      "category": "general_practical",
+      "test_input": "What are the business hours for shops, restaurants, and attractions in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 76,
+      "category": "general_practical",
+      "test_input": "Is Istanbul generally safe for tourists? What precautions should I take?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 77,
+      "category": "general_practical",
+      "test_input": "What cultural norms and etiquette should I be aware of in Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 78,
+      "category": "general_practical",
+      "test_input": "How do I respect local customs when visiting religious sites?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 79,
+      "category": "general_practical",
+      "test_input": "What are some good day trip options from Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    },
+    {
+      "test_id": 80,
+      "category": "general_practical",
+      "test_input": "Can you help me plan a 3-day itinerary for first-time visitors to Istanbul?",
+      "ai_response": "",
+      "scores": {
+        "accuracy": null,
+        "completeness": null,
+        "cultural_sensitivity": null,
+        "practical_usefulness": null,
+        "total": null
+      },
+      "issues_found": [],
+      "recommendations": "",
+      "evaluation_notes": "",
+      "timestamp": ""
+    }
+  ],
+  "summary_analysis": {
+    "overall_statistics": {
+      "total_tests_completed": 0,
+      "average_score": null,
+      "grade_distribution": {
+        "excellent_9_10": 0,
+        "very_good_7_8": 0,
+        "good_5_6": 0,
+        "fair_3_4": 0,
+        "poor_1_2": 0
+      }
+    },
+    "category_performance": {
+      "transportation": {
+        "average_score": null,
+        "test_count": 16,
+        "strengths": [],
+        "weaknesses": [],
+        "critical_issues": [],
+        "recommendations": []
+      },
+      "restaurants_food": {
+        "average_score": null,
+        "test_count": 16,
+        "strengths": [],
+        "weaknesses": [],
+        "critical_issues": [],
+        "recommendations": []
+      },
+      "museums_culture": {
+        "average_score": null,
+        "test_count": 16,
+        "strengths": [],
+        "weaknesses": [],
+        "critical_issues": [],
+        "recommendations": []
+      },
+      "districts_neighborhoods": {
+        "average_score": null,
+        "test_count": 16,
+        "strengths": [],
+        "weaknesses": [],
+        "critical_issues": [],
+        "recommendations": []
+      },
+      "general_practical": {
+        "average_score": null,
+        "test_count": 16,
+        "strengths": [],
+        "weaknesses": [],
+        "critical_issues": [],
+        "recommendations": []
+      }
+    },
+    "criteria_performance": {
+      "accuracy": {
+        "average_score": null,
+        "common_issues": [],
+        "best_practices": []
+      },
+      "completeness": {
+        "average_score": null,
+        "common_issues": [],
+        "best_practices": []
+      },
+      "cultural_sensitivity": {
+        "average_score": null,
+        "common_issues": [],
+        "best_practices": []
+      },
+      "practical_usefulness": {
+        "average_score": null,
+        "common_issues": [],
+        "best_practices": []
+      }
+    },
+    "priority_improvements": {
+      "critical_fixes": [],
+      "important_improvements": [],
+      "minor_enhancements": []
+    },
+    "implementation_recommendations": {
+      "immediate_actions": [],
+      "short_term_goals": [],
+      "long_term_strategy": []
+    }
+  }
+}
