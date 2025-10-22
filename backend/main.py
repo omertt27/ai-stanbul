@@ -367,10 +367,6 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
                 'original_query': user_input,
                 'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
             }
-                'corrections': [],
-                'normalized_query': user_input.lower().strip(),
-                'original_query': user_input
-            }
     
     try:
         # Use the enhanced understanding system with preprocessed query
@@ -2409,7 +2405,13 @@ async def chat_endpoint(request: ChatRequest):
                         'transport': 'Tram T1 to Sultanahmet station',
                         'safety': 'Very safe, watch for pickpockets in crowds',
                         'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': '
+                        'cultural_notes': 'Respect mosque dress codes'
+                    },
+                    'beyoglu': {
+                        'name': 'Beyoğlu',
+                        'description': 'Modern Istanbul, nightlife, shopping',
+                        'best_time': 'Evening (for nightlife and dining)',
+                        'local_tips': [
                             'Best nightlife on weekends',
                             'Rooftop bars have amazing views',
                             'Street food is excellent and cheap'
@@ -2448,12 +2450,6 @@ async def chat_endpoint(request: ChatRequest):
                 if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
                     cultural_tips = [
                         'Remove
-                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
-                museum_attraction_keywords = [
-                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
-                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
-                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
-                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
                 ]
                 if any(word in user_input.lower() for word in museum_attraction_keywords):
                     pois = []
