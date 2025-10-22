@@ -94,6 +94,20 @@ except ImportError as e:
     QUERY_PREPROCESSING_AVAILABLE = False
     print(f"⚠️ Query Preprocessing Pipeline not available: {e}")
 
+# Add Context-Aware Classification imports
+try:
+    from services.conversation_context_manager import (
+        ConversationContextManager,
+        Turn
+    )
+    from services.context_aware_classifier import ContextAwareClassifier
+    from services.dynamic_threshold_manager import DynamicThresholdManager
+    CONTEXT_AWARE_AVAILABLE = True
+    print("✅ Context-Aware Classification System loaded successfully")
+except ImportError as e:
+    CONTEXT_AWARE_AVAILABLE = False
+    print(f"⚠️ Context-Aware Classification System not available: {e}")
+
 # Add Monthly Events Scheduler import
 try:
     from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
@@ -135,6 +149,21 @@ if QUERY_PREPROCESSING_AVAILABLE:
     except Exception as e:
         print(f"⚠️ Failed to initialize Query Preprocessor: {e}")
         QUERY_PREPROCESSING_AVAILABLE = False
+
+# Initialize Context-Aware Classification Components
+context_manager = None
+context_aware_classifier = None
+threshold_manager = None
+if CONTEXT_AWARE_AVAILABLE:
+    try:
+        # Initialize with default settings (Redis or in-memory fallback)
+        context_manager = ConversationContextManager()
+        context_aware_classifier = ContextAwareClassifier(context_manager)
+        threshold_manager = DynamicThresholdManager()
+        print("✅ Context-Aware Classification initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Context-Aware Classification: {e}")
+        CONTEXT_AWARE_AVAILABLE = False
 
 def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
     """Generate enhanced suggestions based on multi-intent analysis"""
@@ -258,6 +287,57 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"Intent classifier error: {e}")
     
+    # Step 2.5: Apply context-aware classification (NEW!)
+    context_result = None
+    if CONTEXT_AWARE_AVAILABLE and context_manager and context_aware_classifier and threshold_manager:
+        try:
+            if intent_result:
+                # Get entities from preprocessing
+                entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
+                
+                # Apply context-aware classification
+                context_result = context_aware_classifier.classify_with_context(
+                    query=user_input,
+                    preprocessed_query=preprocessed_query,
+                    base_intent=intent_result['intent'],
+                    base_confidence=intent_result['confidence'],
+                    entities=entities,
+                    session_id=session_id
+                )
+                
+                # Check acceptance threshold (context_features is a dict from to_dict())
+                # Need to pass the original ContextFeatures, not the dict
+                from services.context_aware_classifier import ContextFeatures
+                ctx_features_dict = context_result['context_features']
+                
+                threshold_decision = threshold_manager.should_accept(
+                    intent=context_result['intent'],
+                    confidence=context_result['confidence'],
+                    context_features=ctx_features_dict,  # Dict is fine, threshold_manager handles it
+                    entities=entities
+                )
+                
+                # Update intent result with context-aware values if accepted
+                if threshold_decision['accepted']:
+                    original_confidence = intent_result['confidence']
+                    intent_result['confidence'] = context_result['confidence']
+                    intent_result['context_boost'] = context_result['context_boost']
+                    intent_result['context_applied'] = True
+                    intent_result['threshold_decision'] = threshold_decision
+                    intent_result['resolved_query'] = context_result.get('resolved_query', preprocessed_query)
+                    
+                    logger.info(f"🔥 Context-aware boost: {original_confidence:.2f} → {context_result['confidence']:.2f} "
+                              f"(+{context_result['context_boost']:.2f})")
+                else:
+                    intent_result['context_applied'] = False
+                    intent_result['threshold_decision'] = threshold_decision
+                    logger.info(f"⚠️ Classification rejected by threshold: {threshold_decision['confidence']:.2f} < {threshold_decision['threshold']:.2f}")
+                
+        except Exception as e:
+            logger.warning(f"Context-aware classification error: {e}")
+            import traceback
+            traceback.print_exc()
+    
     # Step 3: Use the enhanced understanding system for deeper analysis
     if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
         # Fall back to intent classifier only
@@ -315,6 +395,21 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
         if multi_intent and multi_intent.extracted_entities:
             merged_entities.update(multi_intent.extracted_entities)
         
+        # Update conversation context (NEW!)
+        if CONTEXT_AWARE_AVAILABLE and context_manager:
+            try:
+                turn = Turn(
+                    query=user_input,
+                    preprocessed_query=preprocessed_query,
+                    intent=primary_intent,
+                    entities=merged_entities,
+                    confidence=confidence
+                )
+                context_manager.update_context(session_id, turn)
+                logger.info(f"💾 Context updated for session: {session_id}")
+            except Exception as e:
+                logger.warning(f"Failed to update context: {e}")
+        
         return {
             'success': True,
             'intent': primary_intent,
@@ -325,7 +420,8 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
             'original_query': user_input,
             'detailed_result': result,
             'intent_classifier_result': intent_result,
-            'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
+            'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None,
+            'context_metadata': context_result if context_result else None  # Add context metadata
         }
     except Exception as e:
         logger.error(f"Error in process_enhanced_query: {e}")
