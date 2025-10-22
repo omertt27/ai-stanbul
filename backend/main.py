@@ -2308,8 +2308,23 @@ async def chat_endpoint(request: ChatRequest):
         # Use Istanbul Daily Talk AI if available
         if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
             try:
-                # Process message with the AI system
-                ai_response = istanbul_daily_talk_ai.process_message(user_input, user_id)
+                # Process message with the AI system using structured response format
+                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
+                
+                # Handle both dict (structured) and str (fallback) responses
+                if isinstance(ai_result, dict):
+                    ai_response = ai_result.get('response', '')
+                    # Extract map data from structured response
+                    if 'map_data' in ai_result and ai_result['map_data']:
+                        metadata['map_data'] = ai_result['map_data']
+                        logger.info(f"🗺️ Map data extracted: {len(ai_result['map_data'].get('locations', []))} locations")
+                    # Extract intent and entities if available
+                    if 'intent' in ai_result:
+                        metadata['detected_intent'] = ai_result['intent']
+                    if 'entities' in ai_result:
+                        metadata['extracted_entities'] = ai_result['entities']
+                else:
+                    ai_response = ai_result
                 
                 # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
                 museum_attraction_keywords = [
@@ -2449,134 +2464,18 @@ async def chat_endpoint(request: ChatRequest):
                 # ===== 3. CULTURAL TIPS & ETIQUETTE =====
                 if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
                     cultural_tips = [
-                        'Remove
-                ]
-                if any(word in user_input.lower() for word in museum_attraction_keywords):
-                    pois = []
-                    
-                    # Try to get museum data from the main system
-                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
-                        try:
-                            museums = istanbul_daily_talk_ai.search_museums(user_input)
-                            if museums:
-                                for m in museums[:5]:  # Top 5 museums
-                                    poi = {
-                                        'name': m.get('name', ''),
-                                        'type': m.get('type', 'museum'),
-                                        'category': m.get('category', 'Museum'),
-                                        'coordinates': m.get('coordinates', [41.0082, 28.9784]),
-                                        'description': m.get('description', '')[:200],
-                                        'highlights': m.get('highlights', ['Beautiful architecture', 'Rich history']),
-                                        'local_tips': m.get('local_tips', ['Visit early to avoid crowds', 'Photography allowed']),
-                                        'opening_hours': m.get('opening_hours', '9:00 AM - 5:00 PM'),
-                                        'entrance_fee': m.get('entrance_fee', 'Varies'),
-                                        'best_time_to_visit': m.get('best_time_to_visit', 'Early morning or late afternoon'),
-                                        'visit_duration': m.get('visit_duration', '1-2 hours'),
-                                        'accessibility': m.get('accessibility', 'Wheelchair accessible'),
-                                        'nearby_transport': m.get('nearby_transport', 'Tram T1 nearby'),
-                                        'nearby_attractions': m.get('nearby_attractions', []),
-                                        'insider_tips': m.get('insider_tips', []),
-                                        'website': m.get('website', ''),
-                                        'phone': m.get('phone', '')
-                                    }
-                                    pois.append(poi)
-                                
-                                metadata['pois'] = pois
-                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata from Museum System")
-                        except Exception as e:
-                            logger.warning(f"Museum data error: {e}")
-                            import traceback
-                            logger.warning(traceback.format_exc())
-                    
-                    # Add famous attractions with detailed data if museums not found
-                    if not pois and 'sultanahmet' in user_input.lower():
-                        metadata['pois'] = [
-                            {
-                                'name': 'Hagia Sophia',
-                                'type': 'museum',
-                                'coordinates': [41.0086, 28.9802],
-                                'description': 'Former Byzantine cathedral and Ottoman mosque, now a mosque',
-                                'highlights': ['Byzantine mosaics', 'Massive 31m dome', 'Islamic calligraphy', 'Marble columns'],
-                                'local_tips': ['Visit early morning (8-10 AM)', 'Dress modestly', 'Free entry', 'Shoes removed at entrance'],
-                                'opening_hours': 'Open 24/7 (prayer times restricted)',
-                                'entrance_fee': 'Free',
-                                'best_time_to_visit': 'Early morning to avoid crowds',
-                                'visit_duration': '45-90 minutes',
-                                'accessibility': 'Limited wheelchair access',
-                                'nearby_transport': 'Tram T1 to Sultanahmet stop'
-                            },
-                            {
-                                'name': 'Topkapi Palace',
-                                'type': 'museum',
-                                'coordinates': [41.0115, 28.9833],
-                                'description': 'Ottoman imperial palace with treasury and harem',
-                                'highlights': ['Imperial treasury', 'Harem quarters', 'Bosphorus views', 'Sacred relics'],
-                                'local_tips': ['Buy tickets online', 'Harem requires separate ticket', 'Closed Tuesdays', 'Allow 2-3 hours'],
-                                'opening_hours': '9:00 AM - 6:00 PM (summer), 9:00 AM - 4:30 PM (winter)',
-                                'entrance_fee': '₺320 (palace) + ₺220 (harem)',
-                                'best_time_to_visit': 'Weekday mornings',
-                                'visit_duration': '2-3 hours',
-                                'accessibility': 'Partially wheelchair accessible',
-                                'nearby_transport': 'Tram T1 to Gülhane or Sultanahmet'
-                            }
-                        ]
-                        logger.info("✅ Added default Sultanahmet attractions with rich data")
+                        'Remove shoes before entering mosques',
+                        'Dress modestly: covered shoulders and knees',
+                        'Women may need headscarves for mosques (often provided)',
+                        'Avoid visiting during prayer times (5 times daily)',
+                        'Tipping: 10-15% in restaurants, round up for taxis',
+                        'Say "Merhaba" (hello) and "Teşekkür ederim" (thank you)',
+                        'Bargaining expected in Grand Bazaar, but not in shops with price tags'
+                    ]
+                    metadata['cultural_tips'] = cultural_tips
+                    logger.info(f"✅ Added {len(cultural_tips)} cultural tips")
                 
-                # ===== 2. ENHANCED DISTRICT INFORMATION =====
-                district_data = {
-                    'sultanahmet': {
-                        'name': 'Sultanahmet',
-                        'description': 'Historic peninsula, heart of old Istanbul',
-                        'best_time': 'Early morning (7-9 AM) or late afternoon (4-6 PM)',
-                        'local_tips': [
-                            'Most museums closed Mondays',
-                            'Tram T1 line runs through the district',
-                            'Avoid carpet shop tours (tourist traps)',
-                            'Street vendors charge higher prices',
-                            'Free walking tours available daily'
-                        ],
-                        'transport': 'Tram T1 to Sultanahmet station',
-                        'safety': 'Very safe, watch for pickpockets in crowds',
-                        'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': '
-                            'Best nightlife on weekends',
-                            'Rooftop bars have amazing views',
-                            'Street food is excellent and cheap'
-                        ],
-                        'transport': 'Metro M2 to Taksim or funicular from Karaköy',
-                        'safety': 'Safe, avoid dark alleys late at night',
-                        'food_tips': 'Best fish sandwiches at Karaköy',
-                        'cultural_notes': 'Cosmopolitan area, all dress codes accepted'
-                    },
-                    'kadikoy': {
-                        'name': 'Kadıköy',
-                        'description': 'Asian side, local vibe, best food scene',
-                        'best_time': 'Evening (best for food and atmosphere)',
-                        'local_tips': [
-                            'Best authentic Turkish food in Istanbul',
-                            'Cheaper than European side',
-                            'Moda neighborhood great for walks',
-                            'Tuesday market is massive',
-                            'Less touristy, more authentic'
-                        ],
-                        'transport': 'Ferry from Eminönü or Karaköy (scenic 20min ride)',
-                        'safety': 'Very safe, family-friendly',
-                        'food_tips': 'Çiya Sofrası for regional Turkish cuisine',
-                        'cultural_notes': 'Local life, non-touristy experience'
-                    }
-                }
-                
-                # Detect mentioned district
-                for district_key, district_info in district_data.items():
-                    if district_key in user_input.lower() or district_key.replace('ı', 'i') in user_input.lower():
-                        metadata['district_info'] = district_info
-                        logger.info(f"✅ Added rich district info for {district_info['name']}")
-                        break
-                
-                # ===== 3. CULTURAL TIPS & ETIQUETTE =====
-                if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
-                    cultural_tips = [
-                        'Remove
+                # ===== 4. ROUTE OPTIMIZATION & ML PREDICTIONS =====
                 if metadata.get('pois') and len(metadata['pois']) > 1:
                     pois = metadata['pois']
                     total_distance = 0
@@ -2675,6 +2574,7 @@ async def chat_stream_endpoint(request: ChatRequest):
     """
     Streaming chat endpoint for real-time AI responses
     Returns Server-Sent Events (SSE) for progressive text display
+    Includes metadata (map_data, intent, entities) at completion
     """
     async def generate_stream():
         try:
@@ -2685,9 +2585,25 @@ async def chat_stream_endpoint(request: ChatRequest):
             
             logger.info(f"🌊 Streaming chat - Session: {session_id}, Query: '{user_input[:50]}...'")
             
-            # Get AI response
+            # Get AI response with structured output
+            metadata = {}
             if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-                ai_response = istanbul_daily_talk_ai.process_message(user_input, user_id)
+                # Request structured response to get map_data
+                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
+                
+                # Handle both dict (structured) and str (fallback) responses
+                if isinstance(ai_result, dict):
+                    ai_response = ai_result.get('response', '')
+                    # Extract metadata
+                    if 'map_data' in ai_result and ai_result['map_data']:
+                        metadata['map_data'] = ai_result['map_data']
+                        logger.info(f"🗺️ Map data available: {len(ai_result['map_data'].get('locations', []))} locations")
+                    if 'intent' in ai_result:
+                        metadata['intent'] = ai_result['intent']
+                    if 'entities' in ai_result:
+                        metadata['entities'] = ai_result['entities']
+                else:
+                    ai_response = ai_result
             else:
                 ai_response = create_fallback_response(user_input)
             
@@ -2701,8 +2617,16 @@ async def chat_stream_endpoint(request: ChatRequest):
                 yield f"data: {json.dumps(chunk_data)}\n\n"
                 await asyncio.sleep(0.03)  # Small delay for streaming effect
             
-            # Send completion signal
-            yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+            # Send completion signal with metadata
+            completion_data = {
+                'done': True, 
+                'session_id': session_id
+            }
+            if metadata:
+                completion_data['metadata'] = metadata
+                logger.info(f"📊 Sending metadata with completion signal")
+            
+            yield f"data: {json.dumps(completion_data)}\n\n"
             
         except Exception as e:
             logger.error(f"Streaming error: {e}", exc_info=True)

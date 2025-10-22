@@ -127,13 +127,13 @@ export const fetchResults = async (query, sessionId = null) => {
   });
 };
 
-export const fetchStreamingResults = async (query, onChunk, sessionId = null, onError = null, locationContext = null) => {
+export const fetchStreamingResults = async (query, onChunk, onComplete = null, onError = null, locationContext = null) => {
   return chatCircuitBreaker.call(async () => {
     try {
       console.log('🌊 Starting streaming request to:', STREAM_API_URL);
       
       // Use provided sessionId or get current session
-      const currentSessionId = sessionId || getSessionId();
+      const currentSessionId = getSessionId();
       
       const requestBody = { 
         message: query,
@@ -158,6 +158,8 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
       
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let completeResponse = '';
+      let metadata = null;
       
       try {
         while (true) {
@@ -171,6 +173,10 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
             if (line.startsWith('data: ')) {
               const data = line.slice(6);
               if (data === '[DONE]') {
+                // Call onComplete with full response and metadata if available
+                if (onComplete) {
+                  onComplete(completeResponse, metadata);
+                }
                 return;
               }
               
@@ -184,19 +190,30 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
                   return;
                 }
                 
-                // Handle completion signal
+                // Handle completion signal with metadata
                 if (parsed.done) {
                   console.log('✅ Streaming completed');
+                  // Extract metadata if present
+                  if (parsed.metadata) {
+                    metadata = parsed.metadata;
+                    console.log('📊 Received metadata:', metadata);
+                  }
+                  // Call onComplete with full response and metadata
+                  if (onComplete) {
+                    onComplete(completeResponse, metadata);
+                  }
                   return;
                 }
                 
                 // Handle chunk data - backend sends {chunk: "text"}
                 if (parsed.chunk) {
+                  completeResponse += parsed.chunk;
                   onChunk(parsed.chunk);
                 }
                 
                 // Legacy: Handle OpenAI-style format if present
                 if (parsed.delta && parsed.delta.content) {
+                  completeResponse += parsed.delta.content;
                   onChunk(parsed.delta.content);
                 }
               } catch (e) {
@@ -208,6 +225,12 @@ export const fetchStreamingResults = async (query, onChunk, sessionId = null, on
             }
           }
         }
+        
+        // Fallback if stream ends without [DONE] signal
+        if (onComplete) {
+          onComplete(completeResponse, metadata);
+        }
+        
       } finally {
         reader.releaseLock();
       }

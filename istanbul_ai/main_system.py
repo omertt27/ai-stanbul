@@ -8,7 +8,7 @@ import logging
 import asyncio
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Union
 
 from .core.models import UserProfile, ConversationContext
 from .core.entity_recognition import IstanbulEntityRecognizer
@@ -319,8 +319,18 @@ class IstanbulDailyTalkAI:
             logger.error(f"Error starting conversation: {e}")
             return "🌟 Welcome to Istanbul! I'm your AI guide ready to help you discover this amazing city. How can I assist you today?"
     
-    def process_message(self, message: str, user_id: str) -> str:
-        """Process user message and generate response"""
+    def process_message(self, message: str, user_id: str, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Process user message and generate response
+        
+        Args:
+            message: User's input message
+            user_id: User identifier
+            return_structured: If True, return dict with response and map_data; if False, return string (default)
+            
+        Returns:
+            If return_structured=False: String response (backward compatible)
+            If return_structured=True: Dict with 'response' (str) and 'map_data' (dict) keys
+        """
         try:
             # Validate inputs
             if not isinstance(user_id, str):
@@ -443,14 +453,32 @@ class IstanbulDailyTalkAI:
                 logger.info(f"Using traditional intent: {intent}")
             
             # Generate contextual response (enhanced with neural insights)
-            response = self._generate_contextual_response(
-                message, intent, entities, user_profile, context, neural_insights
+            response_result = self._generate_contextual_response(
+                message, intent, entities, user_profile, context, neural_insights, return_structured=return_structured
             )
             
-            # Record interaction
-            context.add_interaction(message, response, intent)
+            # Extract response text and map_data
+            if return_structured and isinstance(response_result, dict):
+                response_text = response_result.get('response', '')
+                map_data = response_result.get('map_data', {})
+            else:
+                # Backward compatible - response_result is a string
+                response_text = response_result if isinstance(response_result, str) else str(response_result)
+                map_data = {}
             
-            return response
+            # Record interaction (use text only)
+            context.add_interaction(message, response_text, intent)
+            
+            # Return structured or string response based on parameter
+            if return_structured:
+                return {
+                    'response': response_text,
+                    'map_data': map_data,
+                    'intent': intent,
+                    'entities': entities
+                }
+            else:
+                return response_text
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
@@ -780,8 +808,12 @@ class IstanbulDailyTalkAI:
     
     def _generate_contextual_response(self, message: str, intent: str, entities: Dict,
                                     user_profile: UserProfile, context: ConversationContext, 
-                                    neural_insights: Optional[Dict] = None) -> str:
-        """Generate contextual response based on intent and entities, enhanced with neural insights"""
+                                    neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate contextual response based on intent and entities, enhanced with neural insights
+        
+        Args:
+            return_structured: If True, return dict with response and map_data; if False, return string
+        """
         
         current_time = datetime.now()
         
@@ -806,11 +838,11 @@ class IstanbulDailyTalkAI:
             
             # Fallback to basic response generator
             return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context
+                intent, entities, user_profile, context, return_structured=return_structured
             )
         elif intent in ['restaurant', 'neighborhood']:
             return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context
+                intent, entities, user_profile, context, return_structured=return_structured
             )
         
         # Handle specific intents

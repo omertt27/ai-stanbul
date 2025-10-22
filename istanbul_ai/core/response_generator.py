@@ -4,8 +4,20 @@ Enhanced response generation with comprehensive recommendations and contextual a
 """
 
 import random
+import sys
+import os
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
+
+# Add backend services to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
+try:
+    from services.location_coordinates import get_location_coordinates_service
+    LOCATION_COORDS_AVAILABLE = True
+except ImportError:
+    LOCATION_COORDS_AVAILABLE = False
+    print("⚠️ Location coordinates service not available")
+
 from ..core.models import UserProfile, ConversationContext
 
 
@@ -14,6 +26,11 @@ class ResponseGenerator:
     
     def __init__(self):
         self.initialize_response_templates()
+        # Initialize location coordinates service
+        if LOCATION_COORDS_AVAILABLE:
+            self.location_service = get_location_coordinates_service()
+        else:
+            self.location_service = None
     
     def initialize_response_templates(self):
         """Initialize comprehensive response templates"""
@@ -61,8 +78,21 @@ class ResponseGenerator:
         }
     
     def generate_comprehensive_recommendation(self, recommendation_type: str, entities: Dict, 
-                                           user_profile: UserProfile, context: ConversationContext) -> str:
-        """Generate comprehensive 150-300 word recommendations with practical information"""
+                                           user_profile: UserProfile, context: ConversationContext,
+                                           return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate comprehensive 150-300 word recommendations with practical information
+        
+        Args:
+            recommendation_type: Type of recommendation (restaurant, attraction, neighborhood)
+            entities: Extracted entities from user query
+            user_profile: User profile information
+            context: Conversation context
+            return_structured: If True, return dict with 'response' and 'map_data'; if False, return string
+            
+        Returns:
+            If return_structured=False: String response (backward compatible)
+            If return_structured=True: Dict with 'response', 'map_data', 'recommendation_type'
+        """
         
         current_time = datetime.now()
         hour = current_time.hour
@@ -71,17 +101,23 @@ class ResponseGenerator:
         weather_context = self._get_weather_context(current_time)
         
         if recommendation_type == 'restaurant':
-            return self._generate_enhanced_restaurant_recommendation(entities, user_profile, context, current_time)
+            return self._generate_enhanced_restaurant_recommendation(entities, user_profile, context, current_time, return_structured)
         elif recommendation_type == 'attraction':
-            return self._generate_enhanced_attraction_recommendation(entities, user_profile, context, current_time)
+            return self._generate_enhanced_attraction_recommendation(entities, user_profile, context, current_time, return_structured)
         elif recommendation_type == 'neighborhood':
-            return self._generate_enhanced_neighborhood_recommendation(entities, user_profile, context, current_time)
+            return self._generate_enhanced_neighborhood_recommendation(entities, user_profile, context, current_time, return_structured)
         else:
-            return self._generate_fallback_response(context, user_profile)
+            result = self._generate_fallback_response(context, user_profile)
+            return {'response': result, 'map_data': None, 'recommendation_type': 'general'} if return_structured else result
     
     def _generate_enhanced_restaurant_recommendation(self, entities: Dict, user_profile: UserProfile, 
-                                                   context: ConversationContext, current_time: datetime) -> str:
-        """Generate comprehensive restaurant recommendations with practical details"""
+                                                   context: ConversationContext, current_time: datetime,
+                                                   return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate comprehensive restaurant recommendations with practical details
+        
+        Args:
+            return_structured: If True, return dict with response and map_data
+        """
         
         hour = current_time.hour
         meal_context = self._get_meal_context(hour)
@@ -159,11 +195,20 @@ class ResponseGenerator:
         else:
             response_parts.append(f"🥘 Incredible {meal_context.lower()} spots in Istanbul! Here's where locals and food lovers gather:")
         
-        # Add recommendations with full details
+        # Add recommendations with full details including coordinates
         for i, rec in enumerate(recommendations[:3], 1):
+            # Get coordinates for the restaurant
+            coords_data = None
+            if self.location_service:
+                coords_data = self.location_service.get_coordinates(rec['name'], 'restaurant')
+            
+            location_text = f"📍 Location: {rec['location']}"
+            if coords_data:
+                location_text += f" [GPS: {coords_data['lat']:.4f}, {coords_data['lng']:.4f}]"
+            
             response_parts.append(f"""
 {i}. {rec['name']} ({rec['type']})
-📍 Location: {rec['location']}
+{location_text}
 🍴 Specialty: {rec['specialty']}
 💰 Price range: {rec['price_range']}
 🕐 Hours: {rec['hours']}
@@ -185,11 +230,28 @@ class ResponseGenerator:
         if weather_context:
             response_parts.append(f"🌤️ Weather note: {weather_context}")
         
-        return '\n'.join(response_parts)
+        # Build final response text
+        response_text = '\n'.join(response_parts)
+        
+        # Return structured response with map data if requested
+        if return_structured:
+            map_data = self._extract_location_data(recommendations, 'restaurant')
+            return {
+                'response': response_text,
+                'map_data': map_data,
+                'recommendation_type': 'restaurant'
+            }
+        else:
+            return response_text
     
     def _generate_enhanced_attraction_recommendation(self, entities: Dict, user_profile: UserProfile, 
-                                                   context: ConversationContext, current_time: datetime) -> str:
-        """Generate comprehensive attraction recommendations with practical details"""
+                                                   context: ConversationContext, current_time: datetime,
+                                                   return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate comprehensive attraction recommendations with practical details
+        
+        Args:
+            return_structured: If True, return dict with response and map_data
+        """
         
         hour = current_time.hour
         
@@ -293,11 +355,28 @@ class ResponseGenerator:
 • Tram T1: Connects Sultanahmet to Galata Bridge and beyond
 • Metro/Tram combos: Efficient for crossing between districts""")
         
-        return '\n'.join(response_parts)
+        # Build final response text
+        response_text = '\n'.join(response_parts)
+        
+        # Return structured response with map data if requested
+        if return_structured:
+            map_data = self._extract_location_data(attractions, 'attraction')
+            return {
+                'response': response_text,
+                'map_data': map_data,
+                'recommendation_type': 'attraction'
+            }
+        else:
+            return response_text
     
     def _generate_enhanced_neighborhood_recommendation(self, entities: Dict, user_profile: UserProfile, 
-                                                     context: ConversationContext, current_time: datetime) -> str:
-        """Generate comprehensive neighborhood recommendations"""
+                                                     context: ConversationContext, current_time: datetime,
+                                                     return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate comprehensive neighborhood recommendations
+        
+        Args:
+            return_structured: If True, return dict with response and map_data
+        """
         
         neighborhoods = [
             {
@@ -384,7 +463,19 @@ class ResponseGenerator:
 • Local experience: Consider Asian side (Kadıköy/Üsküdar)
 • Luxury/views: Bosphorus-facing areas in Beşiktaş""")
         
-        return '\n'.join(response_parts)
+        # Build final response text
+        response_text = '\n'.join(response_parts)
+        
+        # Return structured response with map data if requested
+        if return_structured:
+            map_data = self._extract_location_data(neighborhoods, 'neighborhood')
+            return {
+                'response': response_text,
+                'map_data': map_data,
+                'recommendation_type': 'neighborhood'
+            }
+        else:
+            return response_text
     
     def _generate_fallback_response(self, context: ConversationContext, user_profile: UserProfile) -> str:
         """Generate comprehensive fallback response when specific recommendations aren't available"""
@@ -510,3 +601,266 @@ What specifically interests you most? I can provide detailed recommendations bas
             return "Beautiful spring weather - ideal for walking tours and outdoor cafes."
         else:  # Fall
             return "Lovely autumn weather - great time for photography and outdoor exploration."
+    
+    def extract_location_data_for_map(self, recommendations: List[Dict], location_type: str = 'auto') -> List[Dict]:
+        """
+        Extract structured location data with coordinates for map visualization
+        
+        Args:
+            recommendations: List of recommendation dictionaries with 'name' keys
+            location_type: Type of locations ('restaurant', 'attraction', 'neighborhood', 'auto')
+        
+        Returns:
+            List of location objects ready for map display
+        """
+        if not self.location_service:
+            return []
+        
+        map_locations = []
+        for rec in recommendations:
+            location_name = rec.get('name', '')
+            if not location_name:
+                continue
+            
+            coords = self.location_service.get_coordinates(location_name, location_type)
+            if coords:
+                map_locations.append({
+                    'name': location_name,
+                    'lat': coords['lat'],
+                    'lng': coords['lng'],
+                    'address': coords['address'],
+                    'type': rec.get('type', location_type),
+                    'description': rec.get('specialty', rec.get('description', '')),
+                    'details': {
+                        'price_range': rec.get('price_range'),
+                        'hours': rec.get('hours'),
+                        'highlights': rec.get('highlights'),
+                        'best_for': rec.get('best_for'),
+                        'visit_duration': rec.get('visit_duration'),
+                        'best_time': rec.get('best_time'),
+                    }
+                })
+        
+        return map_locations
+    
+    def get_response_with_map_data(self, recommendation_type: str, entities: Dict, 
+                                  user_profile: UserProfile, context: ConversationContext) -> Dict:
+        """
+        Generate response with both text and structured map data
+        
+        Args:
+            recommendation_type: Type of recommendation
+            entities: Extracted entities
+            user_profile: User profile
+            context: Conversation context
+        
+        Returns:
+            Dictionary with 'text' and 'map_data' keys
+        """
+        # Generate text response
+        text_response = self.generate_comprehensive_recommendation(
+            recommendation_type, entities, user_profile, context
+        )
+        
+        # Get structured location data for map
+        map_data = []
+        
+        if recommendation_type == 'restaurant':
+            # Extract restaurant recommendations
+            recs = self._get_restaurant_recommendations(entities, user_profile, context)
+            map_data = self.extract_location_data_for_map(recs, 'restaurant')
+        elif recommendation_type == 'attraction':
+            # Extract attraction recommendations
+            recs = self._get_attraction_recommendations(entities, user_profile, context)
+            map_data = self.extract_location_data_for_map(recs, 'attraction')
+        elif recommendation_type == 'neighborhood':
+            # Extract neighborhood recommendations
+            recs = self._get_neighborhood_recommendations(entities, user_profile, context)
+            map_data = self.extract_location_data_for_map(recs, 'neighborhood')
+        
+        return {
+            'text': text_response,
+            'map_data': map_data,
+            'has_locations': len(map_data) > 0
+        }
+    
+    def _get_restaurant_recommendations(self, entities: Dict, user_profile: UserProfile, 
+                                       context: ConversationContext) -> List[Dict]:
+        """Extract restaurant recommendations as structured data"""
+        recommendations = []
+        
+        # Traditional Turkish restaurants
+        if 'turkish_traditional' in entities.get('cuisines', []) or not entities.get('cuisines'):
+            recommendations.extend([
+                {
+                    'name': 'Pandeli',
+                    'type': 'Traditional Ottoman',
+                    'specialty': 'Ottoman palace cuisine',
+                    'price_range': 'Mid-range (150-300 TL per person)',
+                    'hours': '12:00-17:00 (closed Sundays)',
+                    'highlights': 'Historic 1901 building, ceramic tiles, traditional recipes',
+                    'best_for': 'Cultural dining experience'
+                },
+                {
+                    'name': 'Hünkar',
+                    'type': 'Traditional Turkish',
+                    'specialty': 'Home-style Turkish cooking (ev yemeği)',
+                    'price_range': 'Moderate (100-200 TL per person)',
+                    'hours': '11:30-22:00 daily',
+                    'highlights': 'Family recipes since 1950, lamb dishes, traditional desserts',
+                    'best_for': 'Authentic home cooking experience'
+                }
+            ])
+        
+        # Street food
+        recommendations.extend([
+            {
+                'name': 'Tarihi Eminönü Balık Ekmek',
+                'type': 'Street Food',
+                'specialty': 'Fresh fish sandwiches from boats',
+                'price_range': 'Budget (15-25 TL per sandwich)',
+                'hours': '09:00-23:00 daily',
+                'highlights': 'Caught daily, grilled on boats, Istanbul institution',
+                'best_for': 'Authentic local experience'
+            }
+        ])
+        
+        return recommendations[:3]
+    
+    def _get_attraction_recommendations(self, entities: Dict, user_profile: UserProfile, 
+                                       context: ConversationContext) -> List[Dict]:
+        """Extract attraction recommendations as structured data"""
+        return [
+            {
+                'name': 'Hagia Sophia',
+                'type': 'Historic Monument',
+                'description': '1,500-year history, stunning dome, Byzantine mosaics',
+                'visit_duration': '1-2 hours',
+                'hours': 'Open daily (prayer times may affect access)',
+                'highlights': 'Byzantine mosaics, massive dome, Islamic calligraphy',
+                'best_time': 'Early morning (9-11 AM) or late afternoon'
+            },
+            {
+                'name': 'Topkapi Palace',
+                'type': 'Palace Museum',
+                'description': 'Ottoman imperial treasures, Bosphorus views',
+                'visit_duration': '2-3 hours',
+                'hours': '09:00-18:00 (closed Tuesdays in winter)',
+                'highlights': 'Imperial treasury, harem, sacred relics',
+                'best_time': 'Morning (9-11 AM) to avoid crowds'
+            },
+            {
+                'name': 'Grand Bazaar',
+                'type': 'Historic Market',
+                'description': '4,000 shops, authentic Turkish crafts',
+                'visit_duration': '1-3 hours',
+                'hours': '09:00-19:00 (closed Sundays)',
+                'highlights': 'Turkish carpets, ceramics, spices, historic architecture',
+                'best_time': 'Morning for better prices, afternoon for atmosphere'
+            }
+        ]
+    
+    def _get_neighborhood_recommendations(self, entities: Dict, user_profile: UserProfile, 
+                                         context: ConversationContext) -> List[Dict]:
+        """Extract neighborhood recommendations as structured data"""
+        return [
+            {
+                'name': 'Sultanahmet',
+                'type': 'Historic District',
+                'description': 'Historic peninsula with major monuments',
+                'highlights': 'Hagia Sophia, Blue Mosque, Topkapi Palace',
+                'best_for': 'History lovers, first-time visitors'
+            },
+            {
+                'name': 'Beyoğlu',
+                'type': 'Modern District',
+                'description': 'Trendy area with nightlife and culture',
+                'highlights': 'Galata Tower, Istiklal Street, rooftop bars',
+                'best_for': 'Nightlife, shopping, contemporary culture'
+            },
+            {
+                'name': 'Kadıköy',
+                'type': 'Asian Side',
+                'description': 'Authentic local life on the Asian side',
+                'highlights': 'Street food, local markets, young vibe',
+                'best_for': 'Authentic local experience, food exploration'
+            }
+        ]
+    
+    def _extract_location_data(self, recommendations: List[Dict], rec_type: str = 'poi') -> Optional[Dict]:
+        """Extract location data for map visualization
+        
+        Args:
+            recommendations: List of recommendation dicts with coordinates
+            rec_type: Type of recommendation (restaurant, attraction, neighborhood)
+            
+        Returns:
+            Dict with locations, center, bounds or None if no coordinates
+        """
+        locations = []
+        
+        for rec in recommendations:
+            # Check for coordinates in various formats
+            coords = None
+            if 'coordinates' in rec and rec['coordinates']:
+                coords = rec['coordinates']
+            elif 'coords' in rec and rec['coords']:
+                coords = rec['coords']
+            elif 'lat' in rec and 'lon' in rec:
+                coords = (rec['lat'], rec['lon'])
+            elif 'lat' in rec and 'lng' in rec:
+                coords = (rec['lat'], rec['lng'])
+            
+            # Also try to get from location service
+            if not coords and self.location_service and 'name' in rec:
+                try:
+                    coords_data = self.location_service.get_coordinates(rec['name'], rec_type)
+                    if coords_data:
+                        coords = (coords_data['lat'], coords_data['lng'])
+                except Exception as e:
+                    # Silently skip if coordinate lookup fails
+                    pass
+            
+            if coords:
+                try:
+                    lat, lon = coords
+                    locations.append({
+                        'lat': float(lat),
+                        'lon': float(lon),
+                        'name': rec.get('name', 'Unknown'),
+                        'type': rec_type,
+                        'metadata': {
+                            'description': rec.get('description', rec.get('specialty', '')),
+                            'address': rec.get('location', ''),
+                            'rating': rec.get('rating'),
+                            'price': rec.get('price_range'),
+                            'hours': rec.get('hours'),
+                            'highlights': rec.get('highlights'),
+                            'best_for': rec.get('best_for')
+                        }
+                    })
+                except (ValueError, TypeError):
+                    # Skip invalid coordinates
+                    continue
+        
+        if not locations:
+            return None
+        
+        # Calculate center and bounds
+        lats = [loc['lat'] for loc in locations]
+        lons = [loc['lon'] for loc in locations]
+        
+        return {
+            'locations': locations,
+            'center': {
+                'lat': sum(lats) / len(lats),
+                'lon': sum(lons) / len(lons)
+            },
+            'bounds': {
+                'north': max(lats),
+                'south': min(lats),
+                'east': max(lons),
+                'west': min(lons)
+            },
+            'zoom': 13 if len(locations) > 1 else 15
+        }

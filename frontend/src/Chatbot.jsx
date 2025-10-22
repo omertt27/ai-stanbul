@@ -24,6 +24,7 @@ import POICard from './components/POICard';
 import DistrictInfo from './components/DistrictInfo';
 import ItineraryTimeline from './components/ItineraryTimeline';
 import MLInsights from './components/MLInsights';
+import ChatMapView from './components/ChatMapView';
 import './components/Chatbot.css';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
@@ -747,8 +748,11 @@ function Chatbot() {
         });
       };
 
-      const onComplete = (finalResponse) => {
+      const onComplete = (finalResponse, metadata) => {
         console.log('✅ AI response complete');
+        if (metadata) {
+          console.log('📊 Metadata received:', metadata);
+        }
         
         setMessages(prev => {
           const updated = [...prev];
@@ -757,6 +761,21 @@ function Chatbot() {
           if (lastMessage && lastMessage.type === 'ai') {
             lastMessage.content = finalResponse || aiResponse;
             lastMessage.isComplete = true;
+            
+            // Add metadata if present (map_data, intent, entities, etc.)
+            if (metadata) {
+              if (metadata.map_data) {
+                lastMessage.map_data = metadata.map_data;
+                console.log('🗺️ Map data attached to message:', metadata.map_data);
+              }
+              if (metadata.intent) {
+                lastMessage.intent = metadata.intent;
+              }
+              if (metadata.entities) {
+                lastMessage.entities = metadata.entities;
+              }
+            }
+            
             delete lastMessage.isComplete; // Clean up flag
           }
           
@@ -795,7 +814,7 @@ function Chatbot() {
         setLastFailedMessage(textToSend);
       };
 
-      // Call streaming AI API
+      // Call streaming AI API with metadata support
       await fetchStreamingResults(
         processedInput,
         onChunk,
@@ -992,7 +1011,18 @@ function Chatbot() {
                     />
                   </div>
                 ) : (
-                  <div className="simple-message">{message.content}</div>
+                  <div>
+                    <div className="simple-message">{message.content}</div>
+                    {/* Show map if map_data is present */}
+                    {message.type === 'ai' && message.map_data && (
+                      <div className="map-container">
+                        <ChatMapView 
+                          mapData={message.map_data}
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
