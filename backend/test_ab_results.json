@@ -1,0 +1,1922 @@
+{
+  "test_start": "2025-10-22T11:54:26.282619",
+  "test_end": null,
+  "current_model_version": "v1.0",
+  "candidate_model_version": "v2.0",
+  "traffic_split": {
+    "current": 0.7,
+    "candidate": 0.3
+  },
+  "current_model": {
+    "classifications": [
+      {
+        "timestamp": "2025-10-22T11:54:26.286437",
+        "session_id": "session_0",
+        "query": "test query 0",
+        "intent": "restaurant",
+        "confidence": 0.9121791756493158,
+        "latency_ms": 15.791685631095877
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286450",
+        "session_id": "session_1",
+        "query": "test query 1",
+        "intent": "restaurant",
+        "confidence": 0.8979228776558172,
+        "latency_ms": 18.675733543564654
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286460",
+        "session_id": "session_4",
+        "query": "test query 4",
+        "intent": "restaurant",
+        "confidence": 0.7701971021398702,
+        "latency_ms": 13.080556112826056
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286462",
+        "session_id": "session_5",
+        "query": "test query 5",
+        "intent": "restaurant",
+        "confidence": 0.8882766322562454,
+        "latency_ms": 11.838430485766526
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286475",
+        "session_id": "session_7",
+        "query": "test query 7",
+        "intent": "restaurant",
+        "confidence": 0.8073276635938448,
+        "latency_ms": 11.649391347028377
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286483",
+        "session_id": "session_8",
+        "query": "test query 8",
+        "intent": "restaurant",
+        "confidence": 0.8792368458788392,
+        "latency_ms": 14.579798541509998
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286489",
+        "session_id": "session_10",
+        "query": "test query 10",
+        "intent": "restaurant",
+        "confidence": 0.9035982606676656,
+        "latency_ms": 16.91234591131932
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286491",
+        "session_id": "session_11",
+        "query": "test query 11",
+        "intent": "restaurant",
+        "confidence": 0.8823146470098522,
+        "latency_ms": 19.329250888059676
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286497",
+        "session_id": "session_14",
+        "query": "test query 14",
+        "intent": "restaurant",
+        "confidence": 0.923000158039056,
+        "latency_ms": 15.942976249361786
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286499",
+        "session_id": "session_15",
+        "query": "test query 15",
+        "intent": "restaurant",
+        "confidence": 0.8362388954516479,
+        "latency_ms": 10.282221217163464
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286814",
+        "session_id": "session_16",
+        "query": "test query 16",
+        "intent": "restaurant",
+        "confidence": 0.8251551289561965,
+        "latency_ms": 13.115769905937308
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286824",
+        "session_id": "session_18",
+        "query": "test query 18",
+        "intent": "restaurant",
+        "confidence": 0.9254364691629753,
+        "latency_ms": 12.596983128665798
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286826",
+        "session_id": "session_19",
+        "query": "test query 19",
+        "intent": "restaurant",
+        "confidence": 0.7534795880952347,
+        "latency_ms": 19.215627902907613
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286829",
+        "session_id": "session_21",
+        "query": "test query 21",
+        "intent": "restaurant",
+        "confidence": 0.784289227226578,
+        "latency_ms": 10.36149105269502
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287119",
+        "session_id": "session_24",
+        "query": "test query 24",
+        "intent": "restaurant",
+        "confidence": 0.8964187898537028,
+        "latency_ms": 16.79150867948858
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287123",
+        "session_id": "session_26",
+        "query": "test query 26",
+        "intent": "restaurant",
+        "confidence": 0.7614530686235381,
+        "latency_ms": 14.38812256292873
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287131",
+        "session_id": "session_30",
+        "query": "test query 30",
+        "intent": "restaurant",
+        "confidence": 0.9299204939718679,
+        "latency_ms": 17.125124721492536
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287141",
+        "session_id": "session_35",
+        "query": "test query 35",
+        "intent": "restaurant",
+        "confidence": 0.8135291619604413,
+        "latency_ms": 18.87225989365961
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287142",
+        "session_id": "session_36",
+        "query": "test query 36",
+        "intent": "restaurant",
+        "confidence": 0.8359798413710544,
+        "latency_ms": 16.891184763967114
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287144",
+        "session_id": "session_37",
+        "query": "test query 37",
+        "intent": "restaurant",
+        "confidence": 0.8630362571355067,
+        "latency_ms": 16.502731637538766
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287507",
+        "session_id": "session_38",
+        "query": "test query 38",
+        "intent": "restaurant",
+        "confidence": 0.9402647255912902,
+        "latency_ms": 14.895528853225198
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287510",
+        "session_id": "session_39",
+        "query": "test query 39",
+        "intent": "restaurant",
+        "confidence": 0.8682992408756138,
+        "latency_ms": 15.938848679212715
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287512",
+        "session_id": "session_40",
+        "query": "test query 40",
+        "intent": "restaurant",
+        "confidence": 0.846507569281913,
+        "latency_ms": 15.628532189147172
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287514",
+        "session_id": "session_41",
+        "query": "test query 41",
+        "intent": "restaurant",
+        "confidence": 0.9211847313748471,
+        "latency_ms": 15.649909128094258
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287515",
+        "session_id": "session_42",
+        "query": "test query 42",
+        "intent": "restaurant",
+        "confidence": 0.9054032403323456,
+        "latency_ms": 16.53672465267217
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287517",
+        "session_id": "session_43",
+        "query": "test query 43",
+        "intent": "restaurant",
+        "confidence": 0.8992476199638118,
+        "latency_ms": 17.305304592632154
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287519",
+        "session_id": "session_44",
+        "query": "test query 44",
+        "intent": "restaurant",
+        "confidence": 0.9485204105618804,
+        "latency_ms": 15.579191791997076
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287523",
+        "session_id": "session_46",
+        "query": "test query 46",
+        "intent": "restaurant",
+        "confidence": 0.7767083055553674,
+        "latency_ms": 13.557058660929552
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287525",
+        "session_id": "session_47",
+        "query": "test query 47",
+        "intent": "restaurant",
+        "confidence": 0.872181907703643,
+        "latency_ms": 11.686973919406181
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287527",
+        "session_id": "session_48",
+        "query": "test query 48",
+        "intent": "restaurant",
+        "confidence": 0.8402566747736351,
+        "latency_ms": 11.151477564333845
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288339",
+        "session_id": "session_0",
+        "query": "test query 50",
+        "intent": "restaurant",
+        "confidence": 0.8607039034714864,
+        "latency_ms": 11.33853946696511
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288341",
+        "session_id": "session_1",
+        "query": "test query 51",
+        "intent": "restaurant",
+        "confidence": 0.7682614872520759,
+        "latency_ms": 17.43354653238727
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288347",
+        "session_id": "session_4",
+        "query": "test query 54",
+        "intent": "restaurant",
+        "confidence": 0.9376714468186189,
+        "latency_ms": 19.359497332463295
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288349",
+        "session_id": "session_5",
+        "query": "test query 55",
+        "intent": "restaurant",
+        "confidence": 0.8448383566458656,
+        "latency_ms": 17.853638133313158
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288353",
+        "session_id": "session_7",
+        "query": "test query 57",
+        "intent": "restaurant",
+        "confidence": 0.8501576915014585,
+        "latency_ms": 10.483279287165882
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288355",
+        "session_id": "session_8",
+        "query": "test query 58",
+        "intent": "restaurant",
+        "confidence": 0.7682574489015495,
+        "latency_ms": 17.35894431870721
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288358",
+        "session_id": "session_10",
+        "query": "test query 60",
+        "intent": "restaurant",
+        "confidence": 0.9398774702888808,
+        "latency_ms": 15.114778244678678
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288360",
+        "session_id": "session_11",
+        "query": "test query 61",
+        "intent": "restaurant",
+        "confidence": 0.9464759809397046,
+        "latency_ms": 13.3921965880278
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288366",
+        "session_id": "session_14",
+        "query": "test query 64",
+        "intent": "restaurant",
+        "confidence": 0.7565775509966101,
+        "latency_ms": 16.8379175420597
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288368",
+        "session_id": "session_15",
+        "query": "test query 65",
+        "intent": "restaurant",
+        "confidence": 0.8675713761990865,
+        "latency_ms": 16.151677853684056
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288841",
+        "session_id": "session_16",
+        "query": "test query 66",
+        "intent": "restaurant",
+        "confidence": 0.917758593037746,
+        "latency_ms": 13.996470328934297
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288845",
+        "session_id": "session_18",
+        "query": "test query 68",
+        "intent": "restaurant",
+        "confidence": 0.8934932377939415,
+        "latency_ms": 17.178778972121407
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288847",
+        "session_id": "session_19",
+        "query": "test query 69",
+        "intent": "restaurant",
+        "confidence": 0.8440086807769513,
+        "latency_ms": 14.099633543086702
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288854",
+        "session_id": "session_21",
+        "query": "test query 71",
+        "intent": "restaurant",
+        "confidence": 0.7589250688717786,
+        "latency_ms": 12.669749977777258
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289332",
+        "session_id": "session_24",
+        "query": "test query 74",
+        "intent": "restaurant",
+        "confidence": 0.9042466771863076,
+        "latency_ms": 12.084297405616905
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289336",
+        "session_id": "session_26",
+        "query": "test query 76",
+        "intent": "restaurant",
+        "confidence": 0.7938794961511979,
+        "latency_ms": 11.420475905488573
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289344",
+        "session_id": "session_30",
+        "query": "test query 80",
+        "intent": "restaurant",
+        "confidence": 0.7832482219237826,
+        "latency_ms": 10.328848585412288
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289353",
+        "session_id": "session_35",
+        "query": "test query 85",
+        "intent": "restaurant",
+        "confidence": 0.9456590571581255,
+        "latency_ms": 14.160842431476599
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289355",
+        "session_id": "session_36",
+        "query": "test query 86",
+        "intent": "restaurant",
+        "confidence": 0.9369687594416648,
+        "latency_ms": 19.967859544967368
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289357",
+        "session_id": "session_37",
+        "query": "test query 87",
+        "intent": "restaurant",
+        "confidence": 0.8754424018678515,
+        "latency_ms": 12.229467195739018
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289862",
+        "session_id": "session_38",
+        "query": "test query 88",
+        "intent": "restaurant",
+        "confidence": 0.9184862721981338,
+        "latency_ms": 15.02746727375397
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289870",
+        "session_id": "session_39",
+        "query": "test query 89",
+        "intent": "restaurant",
+        "confidence": 0.9298067255982342,
+        "latency_ms": 13.76614856350227
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289872",
+        "session_id": "session_40",
+        "query": "test query 90",
+        "intent": "restaurant",
+        "confidence": 0.8193823480748346,
+        "latency_ms": 17.504748552074446
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289874",
+        "session_id": "session_41",
+        "query": "test query 91",
+        "intent": "restaurant",
+        "confidence": 0.7856637754149951,
+        "latency_ms": 16.569641907771057
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289876",
+        "session_id": "session_42",
+        "query": "test query 92",
+        "intent": "restaurant",
+        "confidence": 0.8185416637613077,
+        "latency_ms": 18.805338603973034
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289878",
+        "session_id": "session_43",
+        "query": "test query 93",
+        "intent": "restaurant",
+        "confidence": 0.7772982624610808,
+        "latency_ms": 11.864791048627772
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289879",
+        "session_id": "session_44",
+        "query": "test query 94",
+        "intent": "restaurant",
+        "confidence": 0.7891042760956738,
+        "latency_ms": 13.02928601673434
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289883",
+        "session_id": "session_46",
+        "query": "test query 96",
+        "intent": "restaurant",
+        "confidence": 0.9031995774483058,
+        "latency_ms": 19.651397389717886
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289884",
+        "session_id": "session_47",
+        "query": "test query 97",
+        "intent": "restaurant",
+        "confidence": 0.9293614487389272,
+        "latency_ms": 14.01737006409149
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289890",
+        "session_id": "session_48",
+        "query": "test query 98",
+        "intent": "restaurant",
+        "confidence": 0.8830806055381643,
+        "latency_ms": 11.095238843297391
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291000",
+        "session_id": "session_0",
+        "query": "test query 100",
+        "intent": "restaurant",
+        "confidence": 0.8506520883317642,
+        "latency_ms": 11.860797641872491
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291005",
+        "session_id": "session_1",
+        "query": "test query 101",
+        "intent": "restaurant",
+        "confidence": 0.9264696008190569,
+        "latency_ms": 17.03193147524926
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291011",
+        "session_id": "session_4",
+        "query": "test query 104",
+        "intent": "restaurant",
+        "confidence": 0.9207301793604684,
+        "latency_ms": 17.50967054933715
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291013",
+        "session_id": "session_5",
+        "query": "test query 105",
+        "intent": "restaurant",
+        "confidence": 0.8999837408074435,
+        "latency_ms": 18.680063894050207
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291016",
+        "session_id": "session_7",
+        "query": "test query 107",
+        "intent": "restaurant",
+        "confidence": 0.8235478266909382,
+        "latency_ms": 19.727368642142366
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291018",
+        "session_id": "session_8",
+        "query": "test query 108",
+        "intent": "restaurant",
+        "confidence": 0.8093926756074268,
+        "latency_ms": 11.36607319897422
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291022",
+        "session_id": "session_10",
+        "query": "test query 110",
+        "intent": "restaurant",
+        "confidence": 0.8237873753145687,
+        "latency_ms": 16.875096433402323
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291023",
+        "session_id": "session_11",
+        "query": "test query 111",
+        "intent": "restaurant",
+        "confidence": 0.8456383197617586,
+        "latency_ms": 16.155915819888595
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291029",
+        "session_id": "session_14",
+        "query": "test query 114",
+        "intent": "restaurant",
+        "confidence": 0.8026011663850121,
+        "latency_ms": 14.401934077235268
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291031",
+        "session_id": "session_15",
+        "query": "test query 115",
+        "intent": "restaurant",
+        "confidence": 0.8821068290835896,
+        "latency_ms": 17.522552435858955
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291632",
+        "session_id": "session_16",
+        "query": "test query 116",
+        "intent": "restaurant",
+        "confidence": 0.7934974358439888,
+        "latency_ms": 11.466286013241117
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291639",
+        "session_id": "session_18",
+        "query": "test query 118",
+        "intent": "restaurant",
+        "confidence": 0.8282234662268211,
+        "latency_ms": 16.96009600388393
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291641",
+        "session_id": "session_19",
+        "query": "test query 119",
+        "intent": "restaurant",
+        "confidence": 0.9063371491803146,
+        "latency_ms": 19.242380379201848
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291644",
+        "session_id": "session_21",
+        "query": "test query 121",
+        "intent": "restaurant",
+        "confidence": 0.9020576158356153,
+        "latency_ms": 17.687078874916402
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292287",
+        "session_id": "session_24",
+        "query": "test query 124",
+        "intent": "restaurant",
+        "confidence": 0.7631589768764788,
+        "latency_ms": 17.38236335968747
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292294",
+        "session_id": "session_26",
+        "query": "test query 126",
+        "intent": "restaurant",
+        "confidence": 0.7712822072582906,
+        "latency_ms": 11.319928651145961
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292302",
+        "session_id": "session_30",
+        "query": "test query 130",
+        "intent": "restaurant",
+        "confidence": 0.8754955844478776,
+        "latency_ms": 11.022214927858158
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292311",
+        "session_id": "session_35",
+        "query": "test query 135",
+        "intent": "restaurant",
+        "confidence": 0.9409944035763587,
+        "latency_ms": 11.419871112724813
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292313",
+        "session_id": "session_36",
+        "query": "test query 136",
+        "intent": "restaurant",
+        "confidence": 0.9429580111823462,
+        "latency_ms": 12.977929816385902
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292315",
+        "session_id": "session_37",
+        "query": "test query 137",
+        "intent": "restaurant",
+        "confidence": 0.940752372808269,
+        "latency_ms": 16.432167019338365
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293031",
+        "session_id": "session_38",
+        "query": "test query 138",
+        "intent": "restaurant",
+        "confidence": 0.886556668654842,
+        "latency_ms": 18.52987906156369
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293033",
+        "session_id": "session_39",
+        "query": "test query 139",
+        "intent": "restaurant",
+        "confidence": 0.7512420597254251,
+        "latency_ms": 15.109135449626613
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293038",
+        "session_id": "session_40",
+        "query": "test query 140",
+        "intent": "restaurant",
+        "confidence": 0.8604984103506905,
+        "latency_ms": 14.59022092055391
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293040",
+        "session_id": "session_41",
+        "query": "test query 141",
+        "intent": "restaurant",
+        "confidence": 0.8868647658826878,
+        "latency_ms": 10.49312892779541
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293042",
+        "session_id": "session_42",
+        "query": "test query 142",
+        "intent": "restaurant",
+        "confidence": 0.8585333671290751,
+        "latency_ms": 15.720536262012173
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293044",
+        "session_id": "session_43",
+        "query": "test query 143",
+        "intent": "restaurant",
+        "confidence": 0.7826974942886561,
+        "latency_ms": 10.041575683936523
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293046",
+        "session_id": "session_44",
+        "query": "test query 144",
+        "intent": "restaurant",
+        "confidence": 0.8436904456521531,
+        "latency_ms": 15.21529408661501
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293049",
+        "session_id": "session_46",
+        "query": "test query 146",
+        "intent": "restaurant",
+        "confidence": 0.8604732823236628,
+        "latency_ms": 19.107236068909913
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293051",
+        "session_id": "session_47",
+        "query": "test query 147",
+        "intent": "restaurant",
+        "confidence": 0.876931374744192,
+        "latency_ms": 13.37774335313961
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293052",
+        "session_id": "session_48",
+        "query": "test query 148",
+        "intent": "restaurant",
+        "confidence": 0.803424527809354,
+        "latency_ms": 19.60577363799809
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294574",
+        "session_id": "session_0",
+        "query": "test query 150",
+        "intent": "restaurant",
+        "confidence": 0.8197390147622525,
+        "latency_ms": 16.020823811483492
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294576",
+        "session_id": "session_1",
+        "query": "test query 151",
+        "intent": "restaurant",
+        "confidence": 0.7543260452369381,
+        "latency_ms": 10.353178320721412
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294581",
+        "session_id": "session_4",
+        "query": "test query 154",
+        "intent": "restaurant",
+        "confidence": 0.9129500058421399,
+        "latency_ms": 16.111447403421273
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294583",
+        "session_id": "session_5",
+        "query": "test query 155",
+        "intent": "restaurant",
+        "confidence": 0.9325005821795064,
+        "latency_ms": 15.794846778932277
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294588",
+        "session_id": "session_7",
+        "query": "test query 157",
+        "intent": "restaurant",
+        "confidence": 0.9112840725480897,
+        "latency_ms": 16.163510168722443
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294590",
+        "session_id": "session_8",
+        "query": "test query 158",
+        "intent": "restaurant",
+        "confidence": 0.931371060644935,
+        "latency_ms": 10.992953840314469
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294593",
+        "session_id": "session_10",
+        "query": "test query 160",
+        "intent": "restaurant",
+        "confidence": 0.8679659777387048,
+        "latency_ms": 16.80756522927689
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294595",
+        "session_id": "session_11",
+        "query": "test query 161",
+        "intent": "restaurant",
+        "confidence": 0.7709377772171152,
+        "latency_ms": 12.47636057716272
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294600",
+        "session_id": "session_14",
+        "query": "test query 164",
+        "intent": "restaurant",
+        "confidence": 0.7806582417175841,
+        "latency_ms": 12.067016567438646
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294602",
+        "session_id": "session_15",
+        "query": "test query 165",
+        "intent": "restaurant",
+        "confidence": 0.7798951341284951,
+        "latency_ms": 18.975572631441725
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295478",
+        "session_id": "session_16",
+        "query": "test query 166",
+        "intent": "restaurant",
+        "confidence": 0.9441918273253254,
+        "latency_ms": 19.16900976989895
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295482",
+        "session_id": "session_18",
+        "query": "test query 168",
+        "intent": "restaurant",
+        "confidence": 0.812063185589077,
+        "latency_ms": 19.93123147493199
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295484",
+        "session_id": "session_19",
+        "query": "test query 169",
+        "intent": "restaurant",
+        "confidence": 0.8948360367220181,
+        "latency_ms": 12.626653198451042
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295488",
+        "session_id": "session_21",
+        "query": "test query 171",
+        "intent": "restaurant",
+        "confidence": 0.7804672212821295,
+        "latency_ms": 11.161874203295604
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296769",
+        "session_id": "session_24",
+        "query": "test query 174",
+        "intent": "restaurant",
+        "confidence": 0.7541362363268131,
+        "latency_ms": 13.457689044455076
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296780",
+        "session_id": "session_26",
+        "query": "test query 176",
+        "intent": "restaurant",
+        "confidence": 0.8952139241527866,
+        "latency_ms": 15.184267715830686
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296788",
+        "session_id": "session_30",
+        "query": "test query 180",
+        "intent": "restaurant",
+        "confidence": 0.7706433956377438,
+        "latency_ms": 12.22275369465714
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296798",
+        "session_id": "session_35",
+        "query": "test query 185",
+        "intent": "restaurant",
+        "confidence": 0.9375817167764063,
+        "latency_ms": 11.925146567388008
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296800",
+        "session_id": "session_36",
+        "query": "test query 186",
+        "intent": "restaurant",
+        "confidence": 0.7737208258823324,
+        "latency_ms": 19.00937009207842
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296803",
+        "session_id": "session_37",
+        "query": "test query 187",
+        "intent": "restaurant",
+        "confidence": 0.7842666185203583,
+        "latency_ms": 12.524482873755964
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297878",
+        "session_id": "session_38",
+        "query": "test query 188",
+        "intent": "restaurant",
+        "confidence": 0.8065844576739738,
+        "latency_ms": 16.333237629779827
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297881",
+        "session_id": "session_39",
+        "query": "test query 189",
+        "intent": "restaurant",
+        "confidence": 0.8725756833309952,
+        "latency_ms": 13.848078067130388
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297883",
+        "session_id": "session_40",
+        "query": "test query 190",
+        "intent": "restaurant",
+        "confidence": 0.901444891324773,
+        "latency_ms": 16.75954742903593
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297885",
+        "session_id": "session_41",
+        "query": "test query 191",
+        "intent": "restaurant",
+        "confidence": 0.7767061520758681,
+        "latency_ms": 16.232138080016327
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297887",
+        "session_id": "session_42",
+        "query": "test query 192",
+        "intent": "restaurant",
+        "confidence": 0.8310347841457334,
+        "latency_ms": 14.934712878892144
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297889",
+        "session_id": "session_43",
+        "query": "test query 193",
+        "intent": "restaurant",
+        "confidence": 0.9237096705191362,
+        "latency_ms": 17.462842372203543
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297891",
+        "session_id": "session_44",
+        "query": "test query 194",
+        "intent": "restaurant",
+        "confidence": 0.7901027416431339,
+        "latency_ms": 17.97270995606
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297894",
+        "session_id": "session_46",
+        "query": "test query 196",
+        "intent": "restaurant",
+        "confidence": 0.901560238297916,
+        "latency_ms": 11.160195776357313
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297896",
+        "session_id": "session_47",
+        "query": "test query 197",
+        "intent": "restaurant",
+        "confidence": 0.913951613616538,
+        "latency_ms": 10.457727496379848
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297898",
+        "session_id": "session_48",
+        "query": "test query 198",
+        "intent": "restaurant",
+        "confidence": 0.8533317383237357,
+        "latency_ms": 18.434825947597876
+      }
+    ],
+    "feedback": [
+      {
+        "timestamp": "2025-10-22T11:54:26.300048",
+        "session_id": "session_0",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.301326",
+        "session_id": "session_1",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.305662",
+        "session_id": "session_4",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.307077",
+        "session_id": "session_5",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.311354",
+        "session_id": "session_7",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.312858",
+        "session_id": "session_8",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.315687",
+        "session_id": "session_10",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.316809",
+        "session_id": "session_11",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.320667",
+        "session_id": "session_14",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.321770",
+        "session_id": "session_15",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.322963",
+        "session_id": "session_16",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.325302",
+        "session_id": "session_18",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.326520",
+        "session_id": "session_19",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.328828",
+        "session_id": "session_21",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.332282",
+        "session_id": "session_24",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.334676",
+        "session_id": "session_26",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.339417",
+        "session_id": "session_30",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.345518",
+        "session_id": "session_35",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.346689",
+        "session_id": "session_36",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.347832",
+        "session_id": "session_37",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.348967",
+        "session_id": "session_38",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.350226",
+        "session_id": "session_39",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.351571",
+        "session_id": "session_40",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.352952",
+        "session_id": "session_41",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.354431",
+        "session_id": "session_42",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.355617",
+        "session_id": "session_43",
+        "is_correct": false,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.356887",
+        "session_id": "session_44",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.359369",
+        "session_id": "session_46",
+        "is_correct": false,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.360586",
+        "session_id": "session_47",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.361999",
+        "session_id": "session_48",
+        "is_correct": true,
+        "actual_intent": null
+      }
+    ]
+  },
+  "candidate_model": {
+    "classifications": [
+      {
+        "timestamp": "2025-10-22T11:54:26.286453",
+        "session_id": "session_2",
+        "query": "test query 2",
+        "intent": "restaurant",
+        "confidence": 0.8798113035269067,
+        "latency_ms": 13.195291068287933
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286457",
+        "session_id": "session_3",
+        "query": "test query 3",
+        "intent": "restaurant",
+        "confidence": 0.844394071124258,
+        "latency_ms": 14.426237198967453
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286464",
+        "session_id": "session_6",
+        "query": "test query 6",
+        "intent": "restaurant",
+        "confidence": 0.8195229690873934,
+        "latency_ms": 15.135153480189949
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286487",
+        "session_id": "session_9",
+        "query": "test query 9",
+        "intent": "restaurant",
+        "confidence": 0.8693613500078129,
+        "latency_ms": 10.376041788087473
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286493",
+        "session_id": "session_12",
+        "query": "test query 12",
+        "intent": "restaurant",
+        "confidence": 0.8307065881888949,
+        "latency_ms": 12.03864189037171
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286495",
+        "session_id": "session_13",
+        "query": "test query 13",
+        "intent": "restaurant",
+        "confidence": 0.8154085905591583,
+        "latency_ms": 15.892280938911105
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286821",
+        "session_id": "session_17",
+        "query": "test query 17",
+        "intent": "restaurant",
+        "confidence": 0.786069519921907,
+        "latency_ms": 17.755024361411653
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286827",
+        "session_id": "session_20",
+        "query": "test query 20",
+        "intent": "restaurant",
+        "confidence": 0.8683056355127092,
+        "latency_ms": 15.462592924210263
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286831",
+        "session_id": "session_22",
+        "query": "test query 22",
+        "intent": "restaurant",
+        "confidence": 0.8941363436933555,
+        "latency_ms": 15.002922519676925
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.286833",
+        "session_id": "session_23",
+        "query": "test query 23",
+        "intent": "restaurant",
+        "confidence": 0.8553283981035347,
+        "latency_ms": 11.848276475563562
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287121",
+        "session_id": "session_25",
+        "query": "test query 25",
+        "intent": "restaurant",
+        "confidence": 0.8291453787037002,
+        "latency_ms": 14.648337426200591
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287125",
+        "session_id": "session_27",
+        "query": "test query 27",
+        "intent": "restaurant",
+        "confidence": 0.9562162844991154,
+        "latency_ms": 19.255274411492714
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287127",
+        "session_id": "session_28",
+        "query": "test query 28",
+        "intent": "restaurant",
+        "confidence": 0.9651910988971006,
+        "latency_ms": 10.950616673599713
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287129",
+        "session_id": "session_29",
+        "query": "test query 29",
+        "intent": "restaurant",
+        "confidence": 0.7816836273221348,
+        "latency_ms": 11.65550975834958
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287133",
+        "session_id": "session_31",
+        "query": "test query 31",
+        "intent": "restaurant",
+        "confidence": 0.8523340292622288,
+        "latency_ms": 17.04531498895128
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287135",
+        "session_id": "session_32",
+        "query": "test query 32",
+        "intent": "restaurant",
+        "confidence": 0.9140740329454269,
+        "latency_ms": 19.00948123557525
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287137",
+        "session_id": "session_33",
+        "query": "test query 33",
+        "intent": "restaurant",
+        "confidence": 0.8595802999041968,
+        "latency_ms": 12.937895841253056
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287139",
+        "session_id": "session_34",
+        "query": "test query 34",
+        "intent": "restaurant",
+        "confidence": 0.7927603596192798,
+        "latency_ms": 11.456389131530635
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287521",
+        "session_id": "session_45",
+        "query": "test query 45",
+        "intent": "restaurant",
+        "confidence": 0.7842356876891288,
+        "latency_ms": 10.441802003658296
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.287932",
+        "session_id": "session_49",
+        "query": "test query 49",
+        "intent": "restaurant",
+        "confidence": 0.9683280974427491,
+        "latency_ms": 10.629565940973126
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288343",
+        "session_id": "session_2",
+        "query": "test query 52",
+        "intent": "restaurant",
+        "confidence": 0.9216270446835336,
+        "latency_ms": 16.34669311407119
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288345",
+        "session_id": "session_3",
+        "query": "test query 53",
+        "intent": "restaurant",
+        "confidence": 0.8960549942853673,
+        "latency_ms": 17.063965648020577
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288351",
+        "session_id": "session_6",
+        "query": "test query 56",
+        "intent": "restaurant",
+        "confidence": 0.9604935979279849,
+        "latency_ms": 16.390513378964187
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288357",
+        "session_id": "session_9",
+        "query": "test query 59",
+        "intent": "restaurant",
+        "confidence": 0.9731114458729384,
+        "latency_ms": 15.408878459904065
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288362",
+        "session_id": "session_12",
+        "query": "test query 62",
+        "intent": "restaurant",
+        "confidence": 0.9546605873098846,
+        "latency_ms": 12.724349813342764
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288364",
+        "session_id": "session_13",
+        "query": "test query 63",
+        "intent": "restaurant",
+        "confidence": 0.9234772698906294,
+        "latency_ms": 18.73128355552827
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288844",
+        "session_id": "session_17",
+        "query": "test query 67",
+        "intent": "restaurant",
+        "confidence": 0.822452720042207,
+        "latency_ms": 10.089567785552376
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288849",
+        "session_id": "session_20",
+        "query": "test query 70",
+        "intent": "restaurant",
+        "confidence": 0.891814697099621,
+        "latency_ms": 16.642009894420333
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288856",
+        "session_id": "session_22",
+        "query": "test query 72",
+        "intent": "restaurant",
+        "confidence": 0.928100134720466,
+        "latency_ms": 16.807599062670548
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.288858",
+        "session_id": "session_23",
+        "query": "test query 73",
+        "intent": "restaurant",
+        "confidence": 0.9433032162886599,
+        "latency_ms": 19.772005279261005
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289335",
+        "session_id": "session_25",
+        "query": "test query 75",
+        "intent": "restaurant",
+        "confidence": 0.9050170892278651,
+        "latency_ms": 18.772793543228012
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289338",
+        "session_id": "session_27",
+        "query": "test query 77",
+        "intent": "restaurant",
+        "confidence": 0.8214321918088034,
+        "latency_ms": 10.47996916603637
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289340",
+        "session_id": "session_28",
+        "query": "test query 78",
+        "intent": "restaurant",
+        "confidence": 0.903999567096753,
+        "latency_ms": 12.887787530038997
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289342",
+        "session_id": "session_29",
+        "query": "test query 79",
+        "intent": "restaurant",
+        "confidence": 0.8363380795033759,
+        "latency_ms": 16.86836050878134
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289346",
+        "session_id": "session_31",
+        "query": "test query 81",
+        "intent": "restaurant",
+        "confidence": 0.8086956456431379,
+        "latency_ms": 17.22606248042205
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289348",
+        "session_id": "session_32",
+        "query": "test query 82",
+        "intent": "restaurant",
+        "confidence": 0.8826021185756938,
+        "latency_ms": 14.32773275474652
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289349",
+        "session_id": "session_33",
+        "query": "test query 83",
+        "intent": "restaurant",
+        "confidence": 0.9778381243702181,
+        "latency_ms": 10.771284530688884
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289351",
+        "session_id": "session_34",
+        "query": "test query 84",
+        "intent": "restaurant",
+        "confidence": 0.8055287071980489,
+        "latency_ms": 16.212125656875045
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.289881",
+        "session_id": "session_45",
+        "query": "test query 95",
+        "intent": "restaurant",
+        "confidence": 0.8524610146977508,
+        "latency_ms": 16.04692123774436
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.290440",
+        "session_id": "session_49",
+        "query": "test query 99",
+        "intent": "restaurant",
+        "confidence": 0.9184022911445469,
+        "latency_ms": 11.193785699096043
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291007",
+        "session_id": "session_2",
+        "query": "test query 102",
+        "intent": "restaurant",
+        "confidence": 0.8335914865911611,
+        "latency_ms": 10.682521710619248
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291009",
+        "session_id": "session_3",
+        "query": "test query 103",
+        "intent": "restaurant",
+        "confidence": 0.9209662919944429,
+        "latency_ms": 14.235031195242055
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291014",
+        "session_id": "session_6",
+        "query": "test query 106",
+        "intent": "restaurant",
+        "confidence": 0.8052652305709442,
+        "latency_ms": 10.862570660356717
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291020",
+        "session_id": "session_9",
+        "query": "test query 109",
+        "intent": "restaurant",
+        "confidence": 0.8630419203826288,
+        "latency_ms": 18.615538343348497
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291025",
+        "session_id": "session_12",
+        "query": "test query 112",
+        "intent": "restaurant",
+        "confidence": 0.8039675783132798,
+        "latency_ms": 11.14534421704827
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291027",
+        "session_id": "session_13",
+        "query": "test query 113",
+        "intent": "restaurant",
+        "confidence": 0.8321024980206774,
+        "latency_ms": 14.620888025218509
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291634",
+        "session_id": "session_17",
+        "query": "test query 117",
+        "intent": "restaurant",
+        "confidence": 0.9007272235695822,
+        "latency_ms": 10.295798304459558
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291643",
+        "session_id": "session_20",
+        "query": "test query 120",
+        "intent": "restaurant",
+        "confidence": 0.8233877424179012,
+        "latency_ms": 15.805249360008357
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291646",
+        "session_id": "session_22",
+        "query": "test query 122",
+        "intent": "restaurant",
+        "confidence": 0.8409994638150387,
+        "latency_ms": 18.674500716100365
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.291648",
+        "session_id": "session_23",
+        "query": "test query 123",
+        "intent": "restaurant",
+        "confidence": 0.8872172324264921,
+        "latency_ms": 11.20254106791127
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292292",
+        "session_id": "session_25",
+        "query": "test query 125",
+        "intent": "restaurant",
+        "confidence": 0.8901669215165774,
+        "latency_ms": 17.17213086521373
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292296",
+        "session_id": "session_27",
+        "query": "test query 127",
+        "intent": "restaurant",
+        "confidence": 0.9653760147954185,
+        "latency_ms": 17.82225602802204
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292298",
+        "session_id": "session_28",
+        "query": "test query 128",
+        "intent": "restaurant",
+        "confidence": 0.8805133506807555,
+        "latency_ms": 19.23346777923836
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292300",
+        "session_id": "session_29",
+        "query": "test query 129",
+        "intent": "restaurant",
+        "confidence": 0.8762173044430411,
+        "latency_ms": 14.639380891691784
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292304",
+        "session_id": "session_31",
+        "query": "test query 131",
+        "intent": "restaurant",
+        "confidence": 0.9429270065608706,
+        "latency_ms": 18.86855190496737
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292306",
+        "session_id": "session_32",
+        "query": "test query 132",
+        "intent": "restaurant",
+        "confidence": 0.8840300601855459,
+        "latency_ms": 18.730031049178827
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292308",
+        "session_id": "session_33",
+        "query": "test query 133",
+        "intent": "restaurant",
+        "confidence": 0.965213851121056,
+        "latency_ms": 19.827881297365725
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.292309",
+        "session_id": "session_34",
+        "query": "test query 134",
+        "intent": "restaurant",
+        "confidence": 0.8539500622306931,
+        "latency_ms": 13.311878540088786
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293047",
+        "session_id": "session_45",
+        "query": "test query 145",
+        "intent": "restaurant",
+        "confidence": 0.9716044323671349,
+        "latency_ms": 17.386094209223415
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.293817",
+        "session_id": "session_49",
+        "query": "test query 149",
+        "intent": "restaurant",
+        "confidence": 0.8577646043539625,
+        "latency_ms": 16.490529087596233
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294578",
+        "session_id": "session_2",
+        "query": "test query 152",
+        "intent": "restaurant",
+        "confidence": 0.9433909023953733,
+        "latency_ms": 11.588119658118618
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294580",
+        "session_id": "session_3",
+        "query": "test query 153",
+        "intent": "restaurant",
+        "confidence": 0.9436233488078396,
+        "latency_ms": 12.201899290655344
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294586",
+        "session_id": "session_6",
+        "query": "test query 156",
+        "intent": "restaurant",
+        "confidence": 0.9528454761683235,
+        "latency_ms": 17.857326283627057
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294591",
+        "session_id": "session_9",
+        "query": "test query 159",
+        "intent": "restaurant",
+        "confidence": 0.8417597205891058,
+        "latency_ms": 12.470320768312313
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294597",
+        "session_id": "session_12",
+        "query": "test query 162",
+        "intent": "restaurant",
+        "confidence": 0.8178749714533778,
+        "latency_ms": 13.364489752232588
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.294599",
+        "session_id": "session_13",
+        "query": "test query 163",
+        "intent": "restaurant",
+        "confidence": 0.9636028633459357,
+        "latency_ms": 15.051484712834842
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295481",
+        "session_id": "session_17",
+        "query": "test query 167",
+        "intent": "restaurant",
+        "confidence": 0.8197612238985965,
+        "latency_ms": 14.102521943383334
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295486",
+        "session_id": "session_20",
+        "query": "test query 170",
+        "intent": "restaurant",
+        "confidence": 0.958917708037144,
+        "latency_ms": 14.871820424398612
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295490",
+        "session_id": "session_22",
+        "query": "test query 172",
+        "intent": "restaurant",
+        "confidence": 0.8476051612909887,
+        "latency_ms": 10.39250169360022
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.295491",
+        "session_id": "session_23",
+        "query": "test query 173",
+        "intent": "restaurant",
+        "confidence": 0.8675505966199833,
+        "latency_ms": 19.725086844181575
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296777",
+        "session_id": "session_25",
+        "query": "test query 175",
+        "intent": "restaurant",
+        "confidence": 0.8311196899877452,
+        "latency_ms": 13.364046005165035
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296782",
+        "session_id": "session_27",
+        "query": "test query 177",
+        "intent": "restaurant",
+        "confidence": 0.8681235448287787,
+        "latency_ms": 13.18370579437916
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296784",
+        "session_id": "session_28",
+        "query": "test query 178",
+        "intent": "restaurant",
+        "confidence": 0.9151695383042138,
+        "latency_ms": 13.168742085503425
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296786",
+        "session_id": "session_29",
+        "query": "test query 179",
+        "intent": "restaurant",
+        "confidence": 0.7916050305280327,
+        "latency_ms": 13.275292116377795
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296790",
+        "session_id": "session_31",
+        "query": "test query 181",
+        "intent": "restaurant",
+        "confidence": 0.8201763674565055,
+        "latency_ms": 17.315740456773735
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296792",
+        "session_id": "session_32",
+        "query": "test query 182",
+        "intent": "restaurant",
+        "confidence": 0.8628267531380198,
+        "latency_ms": 10.609913393742682
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296794",
+        "session_id": "session_33",
+        "query": "test query 183",
+        "intent": "restaurant",
+        "confidence": 0.8301194652087652,
+        "latency_ms": 14.085994694277687
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.296796",
+        "session_id": "session_34",
+        "query": "test query 184",
+        "intent": "restaurant",
+        "confidence": 0.9181810196454622,
+        "latency_ms": 10.667636878747812
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.297893",
+        "session_id": "session_45",
+        "query": "test query 195",
+        "intent": "restaurant",
+        "confidence": 0.8353837074056876,
+        "latency_ms": 17.94187833140004
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.299015",
+        "session_id": "session_49",
+        "query": "test query 199",
+        "intent": "restaurant",
+        "confidence": 0.9461127724399818,
+        "latency_ms": 17.83637747204333
+      }
+    ],
+    "feedback": [
+      {
+        "timestamp": "2025-10-22T11:54:26.302730",
+        "session_id": "session_2",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.303851",
+        "session_id": "session_3",
+        "is_correct": false,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.308471",
+        "session_id": "session_6",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.314272",
+        "session_id": "session_9",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.318010",
+        "session_id": "session_12",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.319424",
+        "session_id": "session_13",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.324130",
+        "session_id": "session_17",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.327588",
+        "session_id": "session_20",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.329887",
+        "session_id": "session_22",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.331093",
+        "session_id": "session_23",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.333471",
+        "session_id": "session_25",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.335976",
+        "session_id": "session_27",
+        "is_correct": false,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.337121",
+        "session_id": "session_28",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.338196",
+        "session_id": "session_29",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.340609",
+        "session_id": "session_31",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.341767",
+        "session_id": "session_32",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.342938",
+        "session_id": "session_33",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.344169",
+        "session_id": "session_34",
+        "is_correct": true,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.358118",
+        "session_id": "session_45",
+        "is_correct": false,
+        "actual_intent": null
+      },
+      {
+        "timestamp": "2025-10-22T11:54:26.363184",
+        "session_id": "session_49",
+        "is_correct": true,
+        "actual_intent": null
+      }
+    ]
+  }
+}

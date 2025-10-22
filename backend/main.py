@@ -85,6 +85,15 @@ except ImportError as e:
     EDGE_CACHE_AVAILABLE = False
     print(f"⚠️ Caching Systems not available: {e}")
 
+# Add Query Preprocessing Pipeline import
+try:
+    from services.query_preprocessing_pipeline import QueryPreprocessor
+    QUERY_PREPROCESSING_AVAILABLE = True
+    print("✅ Query Preprocessing Pipeline loaded successfully")
+except ImportError as e:
+    QUERY_PREPROCESSING_AVAILABLE = False
+    print(f"⚠️ Query Preprocessing Pipeline not available: {e}")
+
 # Add Monthly Events Scheduler import
 try:
     from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
@@ -116,6 +125,16 @@ if INTENT_CLASSIFIER_AVAILABLE:
     except Exception as e:
         print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
         INTENT_CLASSIFIER_AVAILABLE = False
+
+# Initialize Query Preprocessor
+query_preprocessor = None
+if QUERY_PREPROCESSING_AVAILABLE:
+    try:
+        query_preprocessor = QueryPreprocessor()
+        print("✅ Query Preprocessor initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Query Preprocessor: {e}")
+        QUERY_PREPROCESSING_AVAILABLE = False
 
 def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
     """Generate enhanced suggestions based on multi-intent analysis"""
@@ -194,17 +213,33 @@ def generate_traditional_suggestions(intent: str) -> List[str]:
     ])
 
 def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
-    """Process query using Enhanced Understanding System with Neural Intent Classifier"""
+    """Process query using Enhanced Understanding System with Neural Intent Classifier and Query Preprocessing"""
     
-    # First, try the neural intent classifier with hybrid fallback
+    # Step 1: Preprocess the query (typo correction, dialect normalization, entity extraction)
+    preprocessing_result = None
+    preprocessed_query = user_input
+    if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
+        try:
+            preprocessing_result = query_preprocessor.preprocess(user_input)
+            preprocessed_query = preprocessing_result['processed_text']
+            logger.info(f"🔧 Query preprocessed: '{user_input}' -> '{preprocessed_query}'")
+            if preprocessing_result.get('corrections'):
+                logger.info(f"✏️ Corrections applied: {len(preprocessing_result['corrections'])}")
+            if preprocessing_result.get('entities'):
+                logger.info(f"🏷️ Entities extracted: {list(preprocessing_result['entities'].keys())}")
+        except Exception as e:
+            logger.warning(f"Preprocessing error: {e}, using original query")
+            preprocessed_query = user_input
+    
+    # Step 2: Try the neural intent classifier with hybrid fallback
     intent_result = None
     if INTENT_CLASSIFIER_AVAILABLE and intent_classifier:
         try:
             import time
             start_time = time.time()
             
-            # Use the neural router's route_query method
-            routing_result = intent_classifier.route_query(user_input)
+            # Use the neural router's route_query method with preprocessed query
+            routing_result = intent_classifier.route_query(preprocessed_query)
             latency_ms = (time.time() - start_time) * 1000
             
             intent = routing_result['intent']
@@ -223,34 +258,43 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"Intent classifier error: {e}")
     
-    # Then use the enhanced understanding system for deeper analysis
+    # Step 3: Use the enhanced understanding system for deeper analysis
     if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
         # Fall back to intent classifier only
+        entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
+        corrections = preprocessing_result.get('corrections', []) if preprocessing_result else []
+        
         if intent_result and intent_result['confidence'] >= 0.6:
             return {
                 'success': True,
                 'intent': intent_result['intent'],
                 'confidence': intent_result['confidence'],
-                'entities': {},
-                'corrections': [],
-                'normalized_query': user_input.lower().strip(),
+                'entities': entities,
+                'corrections': corrections,
+                'normalized_query': preprocessed_query.lower().strip(),
                 'original_query': user_input,
-                'classifier_used': f"neural_{intent_result['method']}"
+                'classifier_used': f"neural_{intent_result['method']}",
+                'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
             }
         else:
             return {
                 'success': False,
                 'intent': 'general_info',
                 'confidence': 0.3,
-                'entities': {},
+                'entities': entities,
+                'corrections': corrections,
+                'normalized_query': preprocessed_query.lower().strip(),
+                'original_query': user_input,
+                'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
+            }
                 'corrections': [],
                 'normalized_query': user_input.lower().strip(),
                 'original_query': user_input
             }
     
     try:
-        # Use the enhanced understanding system (correct method name)
-        result = enhanced_understanding_system.understand_query(user_input, session_id=session_id)
+        # Use the enhanced understanding system with preprocessed query
+        result = enhanced_understanding_system.understand_query(preprocessed_query, session_id=session_id)
         
         # Extract intent from multi_intent_result
         multi_intent = result.multi_intent_result
@@ -264,40 +308,54 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
         else:
             confidence = result.understanding_confidence
         
+        # Merge entities from preprocessing and understanding system
+        merged_entities = {}
+        if preprocessing_result and preprocessing_result.get('entities'):
+            merged_entities.update(preprocessing_result['entities'])
+        if multi_intent and multi_intent.extracted_entities:
+            merged_entities.update(multi_intent.extracted_entities)
+        
         return {
             'success': True,
             'intent': primary_intent,
             'confidence': confidence,
-            'entities': multi_intent.extracted_entities if multi_intent else {},
-            'corrections': [],  # Can be enhanced later
-            'normalized_query': result.original_query.lower().strip(),
+            'entities': merged_entities,
+            'corrections': preprocessing_result.get('corrections', []) if preprocessing_result else [],
+            'normalized_query': preprocessed_query.lower().strip(),
             'original_query': user_input,
             'detailed_result': result,
-            'intent_classifier_result': intent_result
+            'intent_classifier_result': intent_result,
+            'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
         }
     except Exception as e:
         logger.error(f"Error in process_enhanced_query: {e}")
         # Fall back to intent classifier only
+        entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
+        corrections = preprocessing_result.get('corrections', []) if preprocessing_result else []
+        preprocessing_stats = preprocessing_result.get('statistics') if preprocessing_result else None
+        
         if intent_result and intent_result['confidence'] >= 0.6:
             return {
                 'success': True,
                 'intent': intent_result['intent'],
                 'confidence': intent_result['confidence'],
-                'entities': {},
-                'corrections': [],
-                'normalized_query': user_input.lower().strip(),
+                'entities': entities,
+                'corrections': corrections,
+                'normalized_query': preprocessed_query.lower().strip(),
                 'original_query': user_input,
-                'classifier_used': f"neural_{intent_result['method']}_fallback"
+                'classifier_used': f"neural_{intent_result['method']}_fallback",
+                'preprocessing_stats': preprocessing_stats
             }
         else:
             return {
                 'success': False,
                 'intent': 'general_info',
                 'confidence': 0.3,
-                'entities': {},
-                'corrections': [],
-                'normalized_query': user_input.lower().strip(),
-                'original_query': user_input
+                'entities': entities,
+                'corrections': corrections,
+                'normalized_query': preprocessed_query.lower().strip(),
+                'original_query': user_input,
+                'preprocessing_stats': preprocessing_stats
             }
 
 def generate_sample_hidden_gems(area: str, language: str = 'en') -> List[Dict[str, Any]]:
@@ -1195,155 +1253,8 @@ async def add_security_headers(request: Request, call_next):
 
 print("✅ Security headers middleware configured")
 
-# === Include Routers ===
-try:
-    from routes.blog import router as blog_router
-    app.include_router(blog_router)
-    print("✅ Blog router included successfully")
-except ImportError as e:
-    print(f"⚠️ Blog router import failed: {e}")
-
-# === Include Cache Monitoring Router ===
-try:
-    from routes.cache_monitoring import router as cache_router
-    app.include_router(cache_router, prefix="/api/cache")
-    print("✅ Cache monitoring router included successfully")
-except ImportError as e:
-    print(f"⚠️ Cache monitoring router import failed: {e}")
-
-# === Include API Routers ===
-try:
-    from routes.restaurants import router as restaurants_router
-    app.include_router(restaurants_router, prefix="/api/restaurants", tags=["restaurants"])
-    print("✅ Restaurants router included successfully")
-except ImportError as e:
-    print(f"⚠️ Restaurants router import failed: {e}")
-
-try:
-    from routes.museums import router as museums_router
-    app.include_router(museums_router, prefix="/api/museums", tags=["museums"])
-    print("✅ Museums router included successfully")
-except ImportError as e:
-    print(f"⚠️ Museums router import failed: {e}")
-
-try:
-    from routes.places import router as places_router
-    app.include_router(places_router, prefix="/api/places", tags=["places"])
-    print("✅ Places router included successfully")
-except ImportError as e:
-    print(f"⚠️ Places router import failed: {e}")
-
-# === Include Route Maker Router ===
-try:
-    from routes.route_maker import router as route_maker_router
-    app.include_router(route_maker_router, tags=["Route Maker"])
-    print("✅ Route Maker router included successfully")
-except ImportError as e:
-    print(f"⚠️ Route Maker router import failed: {e}")
-
-# === Include Live Location Router ===
-try:
-    from routes.location_routes import router as location_router
-    app.include_router(location_router, tags=["Live Location & Routing"])
-    print("✅ Live Location & Routing router included successfully")
-    print("🌍 Location features: Real-time tracking, Multi-stop TSP optimization, Smart POI filtering, Dynamic route updates")
-except ImportError as e:
-    print(f"⚠️ Live Location router import failed: {e}")
-    print("📍 Using simple location router as fallback")
-except Exception as e:
-    print(f"❌ Live Location router registration failed: {e}")
-    print("📍 Using simple location router as fallback")
-
-# === Include Simple Location Router for Testing ===
-try:
-    from routes.simple_location_routes import router as simple_location_router
-    app.include_router(simple_location_router, tags=["Location Services"])
-    print("✅ Simple Location router included successfully")
-    print("🌍 Location endpoints available: /api/location/health, /api/location/validate, /api/location/session, /api/location/recommendations")
-except ImportError as e:
-    print(f"❌ Simple Location router import failed: {e}")
-except Exception as e:
-    print(f"❌ Simple Location router registration failed: {e}")
-
-# === Authentication Setup ===
-try:
-    from auth import get_current_admin, authenticate_admin, create_access_token, create_refresh_token
-    print("✅ Authentication module imported successfully")
-except ImportError as e:
-    print(f"❌ Authentication import failed: {e}")
-    # Create dummy functions to prevent errors
-    async def get_current_admin():
-        return {"username": "admin", "role": "admin"}
-    def authenticate_admin(username, password):
-        return {"username": username, "role": "admin"} if username == "admin" else None
-    def create_access_token(data):
-        return "dummy-token"
-
-# === Security Headers Middleware ===
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    """Add comprehensive security headers to all responses"""
-    start_time = time.time()
-    
-    response = await call_next(request)
-    
-    # Calculate response time
-    duration_ms = (time.time() - start_time) * 1000
-    
-    # Log API request if monitoring is enabled
-    if ADVANCED_MONITORING_ENABLED:
-        client_ip = getattr(request.client, 'host', 'unknown')
-        user_agent = request.headers.get('user-agent', '')
-        user_id = getattr(request.state, 'user_id', '')
-        request_id = getattr(request.state, 'request_id', '')
-        
-        log_api_request(
-            method=request.method,
-            path=str(request.url.path),
-            status_code=response.status_code,
-            duration_ms=duration_ms,
-            ip_address=client_ip,
-            user_id=user_id,
-            request_id=request_id,
-            user_agent=user_agent,
-            response_size=len(getattr(response, 'body', b''))
-        )
-        
-        # Log performance metric
-        log_performance_metric(f"api_{request.method.lower()}_response_time", duration_ms)
-    
-    # Basic security headers
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
-    # HTTPS enforcement (when deployed with SSL)
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    
-    # Content Security Policy for production
-    csp_policy = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.aistanbul.net https://localhost:8001; "
-        "frame-ancestors 'none'"
-    )
-    response.headers["Content-Security-Policy"] = csp_policy
-    
-    # Additional security headers
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
-    # Add response time header for monitoring
-    response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
-    
-    return response
-
-print("✅ Security headers middleware configured")
-
-# Rate limiter completely removed
+# --- Rate Limiting Removed ---
+# Rate limiting has been completely removed for unrestricted testing
 limiter = None
 print("✅ Rate limiting completely removed for unrestricted testing")
 
@@ -1750,9 +1661,6 @@ async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Op
             
     except Exception as e:
         print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
-
-       
-
         import traceback
         traceback.print_exc()
         return None
@@ -2274,9 +2182,36 @@ async def chat_endpoint(request: ChatRequest):
         
         logger.info(f"💬 Chat request - Session: {session_id}, Query: '{user_input[:50]}...'")
         
+        # Run query preprocessing pipeline
+        query_analysis = {}
+        if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
+            try:
+                query_analysis = process_enhanced_query(user_input, session_id)
+                if query_analysis.get('success'):
+                    logger.info(f"🔧 Query preprocessed - Intent: {query_analysis['intent']} "
+                              f"(confidence: {query_analysis['confidence']:.2f})")
+                    if query_analysis.get('corrections'):
+                        logger.info(f"✏️ Applied {len(query_analysis['corrections'])} corrections")
+                    if query_analysis.get('entities'):
+                        logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
+            except Exception as e:
+                logger.warning(f"Query preprocessing error: {e}")
+        
         # Initialize comprehensive metadata
         metadata = {}
         cultural_tips = []
+        
+        # Add preprocessing results to metadata
+        if query_analysis:
+            metadata['query_preprocessing'] = {
+                'original_query': query_analysis.get('original_query', user_input),
+                'processed_query': query_analysis.get('normalized_query', user_input),
+                'corrections_applied': len(query_analysis.get('corrections', [])),
+                'entities_extracted': list(query_analysis.get('entities', {}).keys()),
+                'detected_intent': query_analysis.get('intent'),
+                'confidence': query_analysis.get('confidence'),
+                'statistics': query_analysis.get('preprocessing_stats')
+            }
         
         # Use Istanbul Daily Talk AI if available
         if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
@@ -2378,15 +2313,7 @@ async def chat_endpoint(request: ChatRequest):
                         'transport': 'Tram T1 to Sultanahmet station',
                         'safety': 'Very safe, watch for pickpockets in crowds',
                         'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': 'Dress modestly for mosques, remove shoes'
-                    },
-                    'beyoglu': {
-                        'name': 'Beyoğlu',
-                        'description': 'Modern district with İstiklal Avenue, nightlife, and culture',
-                        'best_time': 'Afternoon and evening (2 PM onwards)',
-                        'local_tips': [
-                            'Walk İstiklal Avenue but explore side streets',
-                            'Take historic tram for photos',
+                        'cultural_notes': '
                             'Best nightlife on weekends',
                             'Rooftop bars have amazing views',
                             'Street food is excellent and cheap'
@@ -2424,18 +2351,140 @@ async def chat_endpoint(request: ChatRequest):
                 # ===== 3. CULTURAL TIPS & ETIQUETTE =====
                 if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
                     cultural_tips = [
-                        'Remove shoes before entering mosques',
-                        'Dress modestly: cover shoulders and knees',
-                        'Women should cover hair with scarf in mosques',
-                        'No photography during prayer times',
-                        'Free entry to most mosques',
-                        'Respect prayer times (5 times daily)',
-                        'Speak quietly inside religious sites'
-                    ]
-                    metadata['cultural_tips'] = cultural_tips
-                    logger.info("✅ Added cultural etiquette tips")
+                        'Remove
+                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
+                museum_attraction_keywords = [
+                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
+                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
+                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
+                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
+                ]
+                if any(word in user_input.lower() for word in museum_attraction_keywords):
+                    pois = []
+                    
+                    # Try to get museum data from the main system
+                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
+                        try:
+                            museums = istanbul_daily_talk_ai.search_museums(user_input)
+                            if museums:
+                                for m in museums[:5]:  # Top 5 museums
+                                    poi = {
+                                        'name': m.get('name', ''),
+                                        'type': m.get('type', 'museum'),
+                                        'category': m.get('category', 'Museum'),
+                                        'coordinates': m.get('coordinates', [41.0082, 28.9784]),
+                                        'description': m.get('description', '')[:200],
+                                        'highlights': m.get('highlights', ['Beautiful architecture', 'Rich history']),
+                                        'local_tips': m.get('local_tips', ['Visit early to avoid crowds', 'Photography allowed']),
+                                        'opening_hours': m.get('opening_hours', '9:00 AM - 5:00 PM'),
+                                        'entrance_fee': m.get('entrance_fee', 'Varies'),
+                                        'best_time_to_visit': m.get('best_time_to_visit', 'Early morning or late afternoon'),
+                                        'visit_duration': m.get('visit_duration', '1-2 hours'),
+                                        'accessibility': m.get('accessibility', 'Wheelchair accessible'),
+                                        'nearby_transport': m.get('nearby_transport', 'Tram T1 nearby'),
+                                        'nearby_attractions': m.get('nearby_attractions', []),
+                                        'insider_tips': m.get('insider_tips', []),
+                                        'website': m.get('website', ''),
+                                        'phone': m.get('phone', '')
+                                    }
+                                    pois.append(poi)
+                                
+                                metadata['pois'] = pois
+                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata from Museum System")
+                        except Exception as e:
+                            logger.warning(f"Museum data error: {e}")
+                            import traceback
+                            logger.warning(traceback.format_exc())
+                    
+                    # Add famous attractions with detailed data if museums not found
+                    if not pois and 'sultanahmet' in user_input.lower():
+                        metadata['pois'] = [
+                            {
+                                'name': 'Hagia Sophia',
+                                'type': 'museum',
+                                'coordinates': [41.0086, 28.9802],
+                                'description': 'Former Byzantine cathedral and Ottoman mosque, now a mosque',
+                                'highlights': ['Byzantine mosaics', 'Massive 31m dome', 'Islamic calligraphy', 'Marble columns'],
+                                'local_tips': ['Visit early morning (8-10 AM)', 'Dress modestly', 'Free entry', 'Shoes removed at entrance'],
+                                'opening_hours': 'Open 24/7 (prayer times restricted)',
+                                'entrance_fee': 'Free',
+                                'best_time_to_visit': 'Early morning to avoid crowds',
+                                'visit_duration': '45-90 minutes',
+                                'accessibility': 'Limited wheelchair access',
+                                'nearby_transport': 'Tram T1 to Sultanahmet stop'
+                            },
+                            {
+                                'name': 'Topkapi Palace',
+                                'type': 'museum',
+                                'coordinates': [41.0115, 28.9833],
+                                'description': 'Ottoman imperial palace with treasury and harem',
+                                'highlights': ['Imperial treasury', 'Harem quarters', 'Bosphorus views', 'Sacred relics'],
+                                'local_tips': ['Buy tickets online', 'Harem requires separate ticket', 'Closed Tuesdays', 'Allow 2-3 hours'],
+                                'opening_hours': '9:00 AM - 6:00 PM (summer), 9:00 AM - 4:30 PM (winter)',
+                                'entrance_fee': '₺320 (palace) + ₺220 (harem)',
+                                'best_time_to_visit': 'Weekday mornings',
+                                'visit_duration': '2-3 hours',
+                                'accessibility': 'Partially wheelchair accessible',
+                                'nearby_transport': 'Tram T1 to Gülhane or Sultanahmet'
+                            }
+                        ]
+                        logger.info("✅ Added default Sultanahmet attractions with rich data")
                 
-                # ===== 4. ROUTE CALCULATION (If multiple POIs) =====
+                # ===== 2. ENHANCED DISTRICT INFORMATION =====
+                district_data = {
+                    'sultanahmet': {
+                        'name': 'Sultanahmet',
+                        'description': 'Historic peninsula, heart of old Istanbul',
+                        'best_time': 'Early morning (7-9 AM) or late afternoon (4-6 PM)',
+                        'local_tips': [
+                            'Most museums closed Mondays',
+                            'Tram T1 line runs through the district',
+                            'Avoid carpet shop tours (tourist traps)',
+                            'Street vendors charge higher prices',
+                            'Free walking tours available daily'
+                        ],
+                        'transport': 'Tram T1 to Sultanahmet station',
+                        'safety': 'Very safe, watch for pickpockets in crowds',
+                        'food_tips': 'Skip overpriced cafes, eat where locals eat',
+                        'cultural_notes': '
+                            'Best nightlife on weekends',
+                            'Rooftop bars have amazing views',
+                            'Street food is excellent and cheap'
+                        ],
+                        'transport': 'Metro M2 to Taksim or funicular from Karaköy',
+                        'safety': 'Safe, avoid dark alleys late at night',
+                        'food_tips': 'Best fish sandwiches at Karaköy',
+                        'cultural_notes': 'Cosmopolitan area, all dress codes accepted'
+                    },
+                    'kadikoy': {
+                        'name': 'Kadıköy',
+                        'description': 'Asian side, local vibe, best food scene',
+                        'best_time': 'Evening (best for food and atmosphere)',
+                        'local_tips': [
+                            'Best authentic Turkish food in Istanbul',
+                            'Cheaper than European side',
+                            'Moda neighborhood great for walks',
+                            'Tuesday market is massive',
+                            'Less touristy, more authentic'
+                        ],
+                        'transport': 'Ferry from Eminönü or Karaköy (scenic 20min ride)',
+                        'safety': 'Very safe, family-friendly',
+                        'food_tips': 'Çiya Sofrası for regional Turkish cuisine',
+                        'cultural_notes': 'Local life, non-touristy experience'
+                    }
+                }
+                
+                # Detect mentioned district
+                for district_key, district_info in district_data.items():
+                    if district_key in user_input.lower() or district_key.replace('ı', 'i') in user_input.lower():
+                        metadata['district_info'] = district_info
+                        logger.info(f"✅ Added rich district info for {district_info['name']}")
+                        break
+                
+                # ===== 3. CULTURAL TIPS & ETIQUETTE =====
+                if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
+                    cultural_tips = [
+                        'Remove
                 if metadata.get('pois') and len(metadata['pois']) > 1:
                     pois = metadata['pois']
                     total_distance = 0
