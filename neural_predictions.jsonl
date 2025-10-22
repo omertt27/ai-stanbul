@@ -1,0 +1,634 @@
+{"timestamp": "2025-10-22T11:51:54.618144", "query": "En yakın restoran nerede?", "intent": "recommendation", "confidence": 0.9975, "latency_ms": 388.88, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.649574", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 31.03, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.677882", "query": "Havaalanına nasıl giderim?", "intent": "recommendation", "confidence": 0.663, "latency_ms": 28.1, "high_confidence": false}
+{"timestamp": "2025-10-22T11:51:54.704374", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9999, "latency_ms": 26.28, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.724706", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9989, "latency_ms": 20.1, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.731153", "query": "Ucuz otel", "intent": "transportation", "confidence": 0.9786, "latency_ms": 6.26, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.754566", "query": "Acil durum!", "intent": "luxury", "confidence": 0.5234, "latency_ms": 23.27, "high_confidence": false}
+{"timestamp": "2025-10-22T11:51:54.760346", "query": "Boğaz turu", "intent": "weather", "confidence": 0.5703, "latency_ms": 5.64, "high_confidence": false}
+{"timestamp": "2025-10-22T11:51:54.785901", "query": "Kebap nerede yiyebilirim?", "intent": "recommendation", "confidence": 0.999, "latency_ms": 25.42, "high_confidence": true}
+{"timestamp": "2025-10-22T11:51:54.794043", "query": "Taksim'e nasıl giderim?", "intent": "recommendation", "confidence": 0.9987, "latency_ms": 7.96, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.219629", "query": "Otel önerisi istiyorum", "intent": "accommodation", "confidence": 0.9679, "latency_ms": 141.53, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.244799", "query": "Nerede kalabilirim?", "intent": "recommendation", "confidence": 0.9944, "latency_ms": 24.69, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.269201", "query": "Ucuz hostel arıyorum", "intent": "transportation", "confidence": 0.9961, "latency_ms": 24.27, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.291392", "query": "5 yıldızlı otel var mı?", "intent": "recommendation", "confidence": 0.9996, "latency_ms": 22.04, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.296991", "query": "Sultanahmet'te konaklama", "intent": "accommodation", "confidence": 0.9647, "latency_ms": 5.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.302001", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 4.91, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.306982", "query": "Topkapı Sarayı nerede?", "intent": "attraction", "confidence": 1.0, "latency_ms": 4.89, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.312301", "query": "Görülecek yerler", "intent": "attraction", "confidence": 0.9973, "latency_ms": 5.24, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.317647", "query": "En güzel yerler neresi?", "intent": "recommendation", "confidence": 0.9851, "latency_ms": 5.26, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.340338", "query": "Galata Kulesi'ni ziyaret etmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 22.61, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.361390", "query": "Rezervasyon yapmak istiyorum", "intent": "booking", "confidence": 0.9987, "latency_ms": 20.9, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.367241", "query": "Tur nasıl rezerve ederim?", "intent": "recommendation", "confidence": 0.9822, "latency_ms": 5.72, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.387457", "query": "Bilet almak istiyorum", "intent": "luxury", "confidence": 0.2272, "latency_ms": 20.11, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.409790", "query": "Online rezervasyon", "intent": "booking", "confidence": 1.0, "latency_ms": 22.07, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.417478", "query": "Masa ayırtmak istiyorum", "intent": "booking", "confidence": 0.9983, "latency_ms": 7.47, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.429869", "query": "Ucuz seçenekler", "intent": "family_activities", "confidence": 0.9637, "latency_ms": 12.22, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.441561", "query": "Bütçe dostu yerler", "intent": "nightlife", "confidence": 0.9385, "latency_ms": 11.34, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.469275", "query": "Ekonomik tatil", "intent": "transportation", "confidence": 0.9997, "latency_ms": 27.5, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.481929", "query": "Para tasarrufu nasıl yapılır?", "intent": "general_info", "confidence": 0.96, "latency_ms": 12.4, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.492215", "query": "En uygun fiyatlar", "intent": "local_tips", "confidence": 0.185, "latency_ms": 10.05, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.501169", "query": "Türk kültürü hakkında bilgi", "intent": "cultural_info", "confidence": 0.9999, "latency_ms": 8.77, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.513474", "query": "Gelenekler nelerdir?", "intent": "recommendation", "confidence": 0.7939, "latency_ms": 12.12, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.541536", "query": "Ramazan'da nelere dikkat etmeliyim?", "intent": "history", "confidence": 0.9967, "latency_ms": 27.87, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.548012", "query": "Kültürel özellikler", "intent": "cultural_info", "confidence": 1.0, "latency_ms": 6.29, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.554909", "query": "Görgü kuralları", "intent": "emergency", "confidence": 0.4286, "latency_ms": 6.69, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.562222", "query": "Acil durum!", "intent": "luxury", "confidence": 0.5234, "latency_ms": 7.1, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.568775", "query": "Polisi arayın", "intent": "price_info", "confidence": 0.5267, "latency_ms": 6.4, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.575986", "query": "Hastaneye gitmem lazım", "intent": "restaurant", "confidence": 0.8309, "latency_ms": 7.05, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.582086", "query": "Kayboldum yardım edin", "intent": "emergency", "confidence": 0.8135, "latency_ms": 5.93, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.589945", "query": "Pasaportumu kaybettim", "intent": "accommodation", "confidence": 0.8229, "latency_ms": 7.69, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.598358", "query": "Bu hafta hangi etkinlikler var?", "intent": "general_info", "confidence": 0.8445, "latency_ms": 8.27, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.606932", "query": "Festival ne zaman?", "intent": "events", "confidence": 0.9708, "latency_ms": 8.4, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.614352", "query": "Konser programı", "intent": "events", "confidence": 0.7707, "latency_ms": 7.21, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.622569", "query": "Etkinlik takvimi", "intent": "events", "confidence": 0.9999, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.630805", "query": "Ne yapabilirim bu akşam?", "intent": "recommendation", "confidence": 0.9917, "latency_ms": 8.07, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.639197", "query": "Çocuklarla nereye gidilir?", "intent": "recommendation", "confidence": 0.9828, "latency_ms": 8.19, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.647555", "query": "Aile dostu yerler", "intent": "budget", "confidence": 0.6479, "latency_ms": 8.17, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.655933", "query": "Çocuk parkları", "intent": "family_activities", "confidence": 1.0, "latency_ms": 8.22, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.664939", "query": "Ailece yapılabilecek aktiviteler", "intent": "budget", "confidence": 0.2024, "latency_ms": 8.82, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.673934", "query": "Çocuklar için etkinlikler", "intent": "budget", "confidence": 0.5675, "latency_ms": 8.74, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.682841", "query": "Türk mutfağı hakkında", "intent": "accommodation", "confidence": 0.99, "latency_ms": 8.74, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.692598", "query": "Geleneksel yemekler", "intent": "food", "confidence": 0.9881, "latency_ms": 9.53, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.703276", "query": "Kahvaltı kültürü", "intent": "general_info", "confidence": 0.5776, "latency_ms": 10.37, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.714917", "query": "Baklava nerede yenir?", "intent": "history", "confidence": 0.7828, "latency_ms": 11.4, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.725240", "query": "Meze çeşitleri", "intent": "family_activities", "confidence": 0.941, "latency_ms": 10.11, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.749373", "query": "İstanbul hakkında bilgi", "intent": "general_info", "confidence": 1.0, "latency_ms": 23.74, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.758152", "query": "Şehir rehberi", "intent": "general_info", "confidence": 1.0, "latency_ms": 8.5, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.784650", "query": "Genel bilgi", "intent": "transportation", "confidence": 0.45, "latency_ms": 26.26, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.797463", "query": "İstanbul nasıl bir yer?", "intent": "nightlife", "confidence": 1.0, "latency_ms": 12.58, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.808350", "query": "Temel bilgiler", "intent": "general_info", "confidence": 1.0, "latency_ms": 10.65, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.818525", "query": "Konumumu göster", "intent": "events", "confidence": 1.0, "latency_ms": 9.94, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.831626", "query": "GPS koordinatları", "intent": "weather", "confidence": 0.5392, "latency_ms": 12.92, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.843201", "query": "Haritada göster", "intent": "shopping", "confidence": 0.8879, "latency_ms": 10.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.857503", "query": "En yakın yol neresi?", "intent": "accommodation", "confidence": 0.6659, "latency_ms": 14.09, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.865044", "query": "Navigasyon başlat", "intent": "cultural_info", "confidence": 0.5609, "latency_ms": 7.29, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.871931", "query": "Gizli yerler", "intent": "cultural_info", "confidence": 0.4807, "latency_ms": 6.72, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.879130", "query": "Turistik olmayan yerler", "intent": "hidden_gems", "confidence": 0.9987, "latency_ms": 7.04, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.885407", "query": "Yerel mekanlar", "intent": "local_tips", "confidence": 0.9768, "latency_ms": 6.11, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.892402", "query": "Bilinmeyen güzellikler", "intent": "budget", "confidence": 0.9622, "latency_ms": 6.83, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.898325", "query": "Keşfedilmemiş yerler", "intent": "hidden_gems", "confidence": 0.8728, "latency_ms": 5.75, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.905640", "query": "İstanbul'un tarihi", "intent": "recommendation", "confidence": 0.9971, "latency_ms": 7.17, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.913809", "query": "Bizans dönemi", "intent": "history", "confidence": 1.0, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.921829", "query": "Osmanlı İmparatorluğu", "intent": "history", "confidence": 1.0, "latency_ms": 7.82, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.930032", "query": "Tarihi bilgi", "intent": "history", "confidence": 1.0, "latency_ms": 7.91, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.937893", "query": "Constantinopolis", "intent": "history", "confidence": 1.0, "latency_ms": 7.73, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.946308", "query": "Yerel ipuçları", "intent": "local_tips", "confidence": 0.9912, "latency_ms": 8.2, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.955314", "query": "İçeriden bilgiler", "intent": "local_tips", "confidence": 1.0, "latency_ms": 8.78, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.964205", "query": "Yerel halk ne yapıyor?", "intent": "recommendation", "confidence": 0.9999, "latency_ms": 8.67, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.973556", "query": "Tavsiyelerin var mı?", "intent": "attraction", "confidence": 0.7187, "latency_ms": 9.11, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.982815", "query": "İpucu verin", "intent": "weather", "confidence": 0.4399, "latency_ms": 9.06, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:24.992389", "query": "Lüks restoranlar", "intent": "luxury", "confidence": 0.991, "latency_ms": 9.38, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:24.999091", "query": "Pahalı oteller", "intent": "transportation", "confidence": 0.6312, "latency_ms": 6.53, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.008042", "query": "VIP deneyimler", "intent": "local_tips", "confidence": 0.9065, "latency_ms": 8.78, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.016171", "query": "Premium hizmetler", "intent": "recommendation", "confidence": 0.5501, "latency_ms": 7.97, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.025065", "query": "Özel turlar", "intent": "hidden_gems", "confidence": 0.4202, "latency_ms": 8.75, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.034535", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9989, "latency_ms": 9.26, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.048118", "query": "Hangi müzeleri gezmeliyim?", "intent": "general_info", "confidence": 0.638, "latency_ms": 13.4, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.059161", "query": "Arkeoloji Müzesi nerede?", "intent": "museum", "confidence": 0.7815, "latency_ms": 10.84, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.072836", "query": "Müze biletleri", "intent": "price_info", "confidence": 0.9502, "latency_ms": 13.5, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.083799", "query": "Sanat galerileri", "intent": "cultural_info", "confidence": 0.4889, "latency_ms": 10.72, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.092383", "query": "Gece hayatı", "intent": "nightlife", "confidence": 0.9999, "latency_ms": 8.37, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.100250", "query": "Bar önerileri", "intent": "recommendation", "confidence": 0.9993, "latency_ms": 7.66, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.110563", "query": "Gece kulüpleri", "intent": "nightlife", "confidence": 0.9999, "latency_ms": 10.15, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.123797", "query": "Eğlence mekanları", "intent": "nightlife", "confidence": 0.5127, "latency_ms": 13.07, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.133265", "query": "Canlı müzik nerede?", "intent": "attraction", "confidence": 1.0, "latency_ms": 9.24, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.141449", "query": "Fiyatlar ne kadar?", "intent": "history", "confidence": 0.3107, "latency_ms": 8.05, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.148598", "query": "Giriş ücreti", "intent": "general_info", "confidence": 0.6037, "latency_ms": 7.01, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.156663", "query": "Ne kadar para gerekir?", "intent": "recommendation", "confidence": 0.6845, "latency_ms": 7.93, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.163288", "query": "Maliyet", "intent": "price_info", "confidence": 0.9019, "latency_ms": 6.47, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.171074", "query": "Ücret bilgisi", "intent": "family_activities", "confidence": 0.3877, "latency_ms": 7.7, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.179195", "query": "Öneri istiyorum", "intent": "local_tips", "confidence": 0.2399, "latency_ms": 8.04, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.188076", "query": "Ne önerirsiniz?", "intent": "recommendation", "confidence": 0.9804, "latency_ms": 8.79, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.196713", "query": "En iyisi hangisi?", "intent": "romantic", "confidence": 0.4694, "latency_ms": 8.53, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.205257", "query": "Tavsiyeniz nedir?", "intent": "recommendation", "confidence": 0.7564, "latency_ms": 8.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.213494", "query": "Yardım edin", "intent": "emergency", "confidence": 0.9998, "latency_ms": 8.14, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.221996", "query": "Restoran önerisi", "intent": "cultural_info", "confidence": 0.2966, "latency_ms": 8.42, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.231288", "query": "En yakın restoran nerede?", "intent": "recommendation", "confidence": 0.9975, "latency_ms": 9.19, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.241459", "query": "Balık restoranı", "intent": "shopping", "confidence": 0.4685, "latency_ms": 10.0, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.250347", "query": "Meze mekanı", "intent": "restaurant", "confidence": 0.8464, "latency_ms": 8.66, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.261131", "query": "Yemek yiyebileceğim yer", "intent": "nightlife", "confidence": 0.6814, "latency_ms": 10.55, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.273954", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 12.66, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.281844", "query": "Çiftler için aktiviteler", "intent": "romantic", "confidence": 0.9498, "latency_ms": 7.69, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.289455", "query": "Balayı önerileri", "intent": "general_info", "confidence": 0.6668, "latency_ms": 7.43, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.297503", "query": "Gün batımı nerede izlenir?", "intent": "recommendation", "confidence": 0.7619, "latency_ms": 7.88, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.304708", "query": "Romantik akşam yemeği", "intent": "romantic", "confidence": 0.9997, "latency_ms": 7.04, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.312735", "query": "Rota planla", "intent": "route_planning", "confidence": 1.0, "latency_ms": 7.8, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.320168", "query": "En iyi güzergah", "intent": "attraction", "confidence": 0.2273, "latency_ms": 7.27, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.327834", "query": "Nereden başlamalıyım?", "intent": "recommendation", "confidence": 0.9989, "latency_ms": 7.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.337494", "query": "Gezilecek yerler sırası", "intent": "route_planning", "confidence": 0.7414, "latency_ms": 9.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.344606", "query": "İtinerimi oluştur", "intent": "gps_navigation", "confidence": 0.8245, "latency_ms": 6.87, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.351600", "query": "Alışveriş merkezleri", "intent": "shopping", "confidence": 0.2916, "latency_ms": 6.74, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.360049", "query": "Kapalıçarşı nerede?", "intent": "attraction", "confidence": 0.8419, "latency_ms": 8.28, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.367013", "query": "Hediyelik eşya", "intent": "shopping", "confidence": 0.415, "latency_ms": 6.71, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.374719", "query": "Marka mağazaları", "intent": "shopping", "confidence": 1.0, "latency_ms": 7.51, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.382161", "query": "Pazar yerleri", "intent": "hidden_gems", "confidence": 0.4733, "latency_ms": 7.26, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:25.390567", "query": "Ulaşım nasıl?", "intent": "history", "confidence": 0.7111, "latency_ms": 8.23, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.398862", "query": "Metro hattı", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.09, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.407441", "query": "Otobüs saatleri", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.39, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.416199", "query": "Tramvay güzergahı", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.59, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.425071", "query": "Taksi bulmak", "intent": "transportation", "confidence": 0.9995, "latency_ms": 8.67, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.434003", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9999, "latency_ms": 8.72, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.443791", "query": "Yarın yağmur yağar mı?", "intent": "history", "confidence": 0.9867, "latency_ms": 9.64, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.455626", "query": "Sıcaklık kaç derece?", "intent": "recommendation", "confidence": 0.9583, "latency_ms": 11.59, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.465788", "query": "Hava tahmini", "intent": "weather", "confidence": 1.0, "latency_ms": 9.92, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:25.476659", "query": "Bugün hava nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 10.67, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.303213", "query": "Otel önerisi istiyorum", "intent": "accommodation", "confidence": 0.9679, "latency_ms": 132.55, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.328354", "query": "Nerede kalabilirim?", "intent": "recommendation", "confidence": 0.9944, "latency_ms": 24.74, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.356813", "query": "Ucuz hostel arıyorum", "intent": "transportation", "confidence": 0.9961, "latency_ms": 28.24, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.381842", "query": "5 yıldızlı otel var mı?", "intent": "recommendation", "confidence": 0.9996, "latency_ms": 24.88, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.390628", "query": "Sultanahmet'te konaklama", "intent": "accommodation", "confidence": 0.9647, "latency_ms": 8.64, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.399805", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 9.05, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.407981", "query": "Topkapı Sarayı nerede?", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.07, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.416271", "query": "Görülecek yerler", "intent": "attraction", "confidence": 0.9973, "latency_ms": 8.2, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.424337", "query": "En güzel yerler neresi?", "intent": "recommendation", "confidence": 0.9851, "latency_ms": 7.96, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.449237", "query": "Galata Kulesi'ni ziyaret etmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 24.8, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.470596", "query": "Rezervasyon yapmak istiyorum", "intent": "booking", "confidence": 0.9987, "latency_ms": 21.19, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.478098", "query": "Tur nasıl rezerve ederim?", "intent": "recommendation", "confidence": 0.9822, "latency_ms": 7.3, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.501706", "query": "Bilet almak istiyorum", "intent": "luxury", "confidence": 0.2272, "latency_ms": 23.48, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.521926", "query": "Online rezervasyon", "intent": "booking", "confidence": 1.0, "latency_ms": 20.05, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.529690", "query": "Masa ayırtmak istiyorum", "intent": "booking", "confidence": 0.9983, "latency_ms": 7.61, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.537324", "query": "Ucuz seçenekler", "intent": "family_activities", "confidence": 0.9637, "latency_ms": 7.36, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.545326", "query": "Bütçe dostu yerler", "intent": "nightlife", "confidence": 0.9385, "latency_ms": 7.88, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.564831", "query": "Ekonomik tatil", "intent": "transportation", "confidence": 0.9997, "latency_ms": 19.4, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.573934", "query": "Para tasarrufu nasıl yapılır?", "intent": "general_info", "confidence": 0.96, "latency_ms": 8.96, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.581923", "query": "En uygun fiyatlar", "intent": "local_tips", "confidence": 0.185, "latency_ms": 7.88, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.590490", "query": "Türk kültürü hakkında bilgi", "intent": "cultural_info", "confidence": 0.9999, "latency_ms": 8.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.598937", "query": "Gelenekler nelerdir?", "intent": "recommendation", "confidence": 0.7939, "latency_ms": 8.35, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.626336", "query": "Ramazan'da nelere dikkat etmeliyim?", "intent": "history", "confidence": 0.9967, "latency_ms": 27.32, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.634901", "query": "Kültürel özellikler", "intent": "cultural_info", "confidence": 1.0, "latency_ms": 8.42, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.643660", "query": "Görgü kuralları", "intent": "emergency", "confidence": 0.4286, "latency_ms": 8.65, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.652293", "query": "Acil durum!", "intent": "luxury", "confidence": 0.5234, "latency_ms": 8.53, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.660898", "query": "Polisi arayın", "intent": "price_info", "confidence": 0.5267, "latency_ms": 8.47, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.669884", "query": "Hastaneye gitmem lazım", "intent": "restaurant", "confidence": 0.8309, "latency_ms": 8.89, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.678997", "query": "Kayboldum yardım edin", "intent": "emergency", "confidence": 0.8135, "latency_ms": 9.01, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.688480", "query": "Pasaportumu kaybettim", "intent": "accommodation", "confidence": 0.8229, "latency_ms": 9.39, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.697816", "query": "Bu hafta hangi etkinlikler var?", "intent": "general_info", "confidence": 0.8445, "latency_ms": 9.23, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.706186", "query": "Festival ne zaman?", "intent": "events", "confidence": 0.9708, "latency_ms": 8.27, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.714667", "query": "Konser programı", "intent": "events", "confidence": 0.7707, "latency_ms": 8.38, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.723859", "query": "Etkinlik takvimi", "intent": "events", "confidence": 0.9999, "latency_ms": 9.09, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.733432", "query": "Ne yapabilirim bu akşam?", "intent": "recommendation", "confidence": 0.9917, "latency_ms": 9.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.753632", "query": "Çocuklarla nereye gidilir?", "intent": "recommendation", "confidence": 0.9828, "latency_ms": 20.08, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.770398", "query": "Aile dostu yerler", "intent": "budget", "confidence": 0.6479, "latency_ms": 15.97, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.782235", "query": "Çocuk parkları", "intent": "family_activities", "confidence": 1.0, "latency_ms": 11.16, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.795806", "query": "Ailece yapılabilecek aktiviteler", "intent": "budget", "confidence": 0.2024, "latency_ms": 13.22, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.805697", "query": "Çocuklar için etkinlikler", "intent": "budget", "confidence": 0.5675, "latency_ms": 9.6, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.814761", "query": "Türk mutfağı hakkında", "intent": "accommodation", "confidence": 0.99, "latency_ms": 8.87, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.823689", "query": "Geleneksel yemekler", "intent": "food", "confidence": 0.9881, "latency_ms": 8.81, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.832551", "query": "Kahvaltı kültürü", "intent": "general_info", "confidence": 0.5776, "latency_ms": 8.77, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.841034", "query": "Baklava nerede yenir?", "intent": "history", "confidence": 0.7828, "latency_ms": 8.39, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.849371", "query": "Meze çeşitleri", "intent": "family_activities", "confidence": 0.941, "latency_ms": 8.25, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.873062", "query": "İstanbul hakkında bilgi", "intent": "general_info", "confidence": 1.0, "latency_ms": 23.6, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.881349", "query": "Şehir rehberi", "intent": "general_info", "confidence": 1.0, "latency_ms": 8.12, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.905819", "query": "Genel bilgi", "intent": "transportation", "confidence": 0.45, "latency_ms": 24.34, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.915060", "query": "İstanbul nasıl bir yer?", "intent": "nightlife", "confidence": 1.0, "latency_ms": 9.05, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.923196", "query": "Temel bilgiler", "intent": "general_info", "confidence": 1.0, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.931250", "query": "Konumumu göster", "intent": "events", "confidence": 1.0, "latency_ms": 7.95, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.939251", "query": "GPS koordinatları", "intent": "weather", "confidence": 0.5392, "latency_ms": 7.89, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.947320", "query": "Haritada göster", "intent": "shopping", "confidence": 0.8879, "latency_ms": 7.95, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.956197", "query": "En yakın yol neresi?", "intent": "accommodation", "confidence": 0.6659, "latency_ms": 8.75, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.964699", "query": "Navigasyon başlat", "intent": "cultural_info", "confidence": 0.5609, "latency_ms": 8.39, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.973049", "query": "Gizli yerler", "intent": "cultural_info", "confidence": 0.4807, "latency_ms": 8.24, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:36.981435", "query": "Turistik olmayan yerler", "intent": "hidden_gems", "confidence": 0.9987, "latency_ms": 8.28, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.989976", "query": "Yerel mekanlar", "intent": "local_tips", "confidence": 0.9768, "latency_ms": 8.43, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:36.999831", "query": "Bilinmeyen güzellikler", "intent": "budget", "confidence": 0.9622, "latency_ms": 9.73, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.008280", "query": "Keşfedilmemiş yerler", "intent": "hidden_gems", "confidence": 0.8728, "latency_ms": 8.34, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.016375", "query": "İstanbul'un tarihi", "intent": "recommendation", "confidence": 0.9971, "latency_ms": 7.93, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.024239", "query": "Bizans dönemi", "intent": "history", "confidence": 1.0, "latency_ms": 7.79, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.031694", "query": "Osmanlı İmparatorluğu", "intent": "history", "confidence": 1.0, "latency_ms": 7.38, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.040137", "query": "Tarihi bilgi", "intent": "history", "confidence": 1.0, "latency_ms": 8.37, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.047955", "query": "Constantinopolis", "intent": "history", "confidence": 1.0, "latency_ms": 7.72, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.056610", "query": "Yerel ipuçları", "intent": "local_tips", "confidence": 0.9912, "latency_ms": 8.58, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.065799", "query": "İçeriden bilgiler", "intent": "local_tips", "confidence": 1.0, "latency_ms": 9.1, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.074820", "query": "Yerel halk ne yapıyor?", "intent": "recommendation", "confidence": 0.9999, "latency_ms": 8.95, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.083745", "query": "Tavsiyelerin var mı?", "intent": "attraction", "confidence": 0.7187, "latency_ms": 8.81, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.092718", "query": "İpucu verin", "intent": "weather", "confidence": 0.4399, "latency_ms": 8.87, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.102327", "query": "Lüks restoranlar", "intent": "luxury", "confidence": 0.991, "latency_ms": 9.51, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.111492", "query": "Pahalı oteller", "intent": "transportation", "confidence": 0.6312, "latency_ms": 9.07, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.120590", "query": "VIP deneyimler", "intent": "local_tips", "confidence": 0.9065, "latency_ms": 8.99, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.129884", "query": "Premium hizmetler", "intent": "recommendation", "confidence": 0.5501, "latency_ms": 9.2, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.139093", "query": "Özel turlar", "intent": "hidden_gems", "confidence": 0.4202, "latency_ms": 9.09, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.148374", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9989, "latency_ms": 9.19, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.157240", "query": "Hangi müzeleri gezmeliyim?", "intent": "general_info", "confidence": 0.638, "latency_ms": 8.77, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.165820", "query": "Arkeoloji Müzesi nerede?", "intent": "museum", "confidence": 0.7815, "latency_ms": 8.48, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.172618", "query": "Müze biletleri", "intent": "price_info", "confidence": 0.9502, "latency_ms": 6.7, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.180704", "query": "Sanat galerileri", "intent": "cultural_info", "confidence": 0.4889, "latency_ms": 7.99, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.188957", "query": "Gece hayatı", "intent": "nightlife", "confidence": 0.9999, "latency_ms": 8.15, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.197932", "query": "Bar önerileri", "intent": "recommendation", "confidence": 0.9993, "latency_ms": 8.89, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.207555", "query": "Gece kulüpleri", "intent": "nightlife", "confidence": 0.9999, "latency_ms": 9.53, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.217649", "query": "Eğlence mekanları", "intent": "nightlife", "confidence": 0.5127, "latency_ms": 9.99, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.227678", "query": "Canlı müzik nerede?", "intent": "attraction", "confidence": 1.0, "latency_ms": 9.9, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.237851", "query": "Fiyatlar ne kadar?", "intent": "history", "confidence": 0.3107, "latency_ms": 9.99, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.247670", "query": "Giriş ücreti", "intent": "general_info", "confidence": 0.6037, "latency_ms": 9.71, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.257696", "query": "Ne kadar para gerekir?", "intent": "recommendation", "confidence": 0.6845, "latency_ms": 9.93, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.266508", "query": "Maliyet", "intent": "price_info", "confidence": 0.9019, "latency_ms": 8.7, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.275430", "query": "Ücret bilgisi", "intent": "family_activities", "confidence": 0.3877, "latency_ms": 8.82, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.284631", "query": "Öneri istiyorum", "intent": "local_tips", "confidence": 0.2399, "latency_ms": 9.1, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.294662", "query": "Ne önerirsiniz?", "intent": "recommendation", "confidence": 0.9804, "latency_ms": 9.94, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.304959", "query": "En iyisi hangisi?", "intent": "romantic", "confidence": 0.4694, "latency_ms": 10.14, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.313129", "query": "Tavsiyeniz nedir?", "intent": "recommendation", "confidence": 0.7564, "latency_ms": 8.07, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.320847", "query": "Yardım edin", "intent": "emergency", "confidence": 0.9998, "latency_ms": 7.59, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.328295", "query": "Restoran önerisi", "intent": "cultural_info", "confidence": 0.2966, "latency_ms": 7.35, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.336038", "query": "En yakın restoran nerede?", "intent": "recommendation", "confidence": 0.9975, "latency_ms": 7.65, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.343895", "query": "Balık restoranı", "intent": "shopping", "confidence": 0.4685, "latency_ms": 7.75, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.353074", "query": "Meze mekanı", "intent": "restaurant", "confidence": 0.8464, "latency_ms": 9.09, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.362590", "query": "Yemek yiyebileceğim yer", "intent": "nightlife", "confidence": 0.6814, "latency_ms": 9.4, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.372172", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 9.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.382158", "query": "Çiftler için aktiviteler", "intent": "romantic", "confidence": 0.9498, "latency_ms": 9.88, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.390973", "query": "Balayı önerileri", "intent": "general_info", "confidence": 0.6668, "latency_ms": 8.71, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.400511", "query": "Gün batımı nerede izlenir?", "intent": "recommendation", "confidence": 0.7619, "latency_ms": 9.44, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.409163", "query": "Romantik akşam yemeği", "intent": "romantic", "confidence": 0.9997, "latency_ms": 8.56, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.418296", "query": "Rota planla", "intent": "route_planning", "confidence": 1.0, "latency_ms": 9.01, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.428865", "query": "En iyi güzergah", "intent": "attraction", "confidence": 0.2273, "latency_ms": 10.47, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.438345", "query": "Nereden başlamalıyım?", "intent": "recommendation", "confidence": 0.9989, "latency_ms": 9.37, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.447792", "query": "Gezilecek yerler sırası", "intent": "route_planning", "confidence": 0.7414, "latency_ms": 9.34, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.457816", "query": "İtinerimi oluştur", "intent": "gps_navigation", "confidence": 0.8245, "latency_ms": 9.87, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.467721", "query": "Alışveriş merkezleri", "intent": "shopping", "confidence": 0.2916, "latency_ms": 9.8, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.476984", "query": "Kapalıçarşı nerede?", "intent": "attraction", "confidence": 0.8419, "latency_ms": 9.16, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.486767", "query": "Hediyelik eşya", "intent": "shopping", "confidence": 0.415, "latency_ms": 9.68, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.496882", "query": "Marka mağazaları", "intent": "shopping", "confidence": 1.0, "latency_ms": 9.93, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.506313", "query": "Pazar yerleri", "intent": "hidden_gems", "confidence": 0.4733, "latency_ms": 9.27, "high_confidence": false}
+{"timestamp": "2025-10-22T11:56:37.516133", "query": "Ulaşım nasıl?", "intent": "history", "confidence": 0.7111, "latency_ms": 9.67, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.524961", "query": "Metro hattı", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.7, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.534505", "query": "Otobüs saatleri", "intent": "transportation", "confidence": 1.0, "latency_ms": 9.44, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.544061", "query": "Tramvay güzergahı", "intent": "transportation", "confidence": 1.0, "latency_ms": 9.42, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.553343", "query": "Taksi bulmak", "intent": "transportation", "confidence": 0.9995, "latency_ms": 9.13, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.563234", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9999, "latency_ms": 9.8, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.573422", "query": "Yarın yağmur yağar mı?", "intent": "history", "confidence": 0.9867, "latency_ms": 10.06, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.583212", "query": "Sıcaklık kaç derece?", "intent": "recommendation", "confidence": 0.9583, "latency_ms": 9.67, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.591725", "query": "Hava tahmini", "intent": "weather", "confidence": 1.0, "latency_ms": 8.41, "high_confidence": true}
+{"timestamp": "2025-10-22T11:56:37.600456", "query": "Bugün hava nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 8.64, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.657751", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 133.61, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.679789", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9999, "latency_ms": 21.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.699600", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9989, "latency_ms": 19.46, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.726705", "query": "En yakın restoran nerede?", "intent": "recommendation", "confidence": 0.9975, "latency_ms": 26.9, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.734258", "query": "Ucuz otel", "intent": "transportation", "confidence": 0.9786, "latency_ms": 7.34, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.767523", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 33.07, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.776774", "query": "Acil durum!", "intent": "luxury", "confidence": 0.5234, "latency_ms": 9.03, "high_confidence": false}
+{"timestamp": "2025-10-22T11:58:28.810915", "query": "Boğaz turu ne kadar?", "intent": "recommendation", "confidence": 0.9416, "latency_ms": 33.94, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.820155", "query": "Çocuklarla nereye gidebilirim?", "intent": "recommendation", "confidence": 0.9982, "latency_ms": 9.03, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.845315", "query": "Merhaba", "intent": "shopping", "confidence": 0.6435, "latency_ms": 24.97, "high_confidence": false}
+{"timestamp": "2025-10-22T11:58:28.872433", "query": "Yardım", "intent": "shopping", "confidence": 0.8523, "latency_ms": 26.84, "high_confidence": true}
+{"timestamp": "2025-10-22T11:58:28.882193", "query": "Ne yapabilirim?", "intent": "family_activities", "confidence": 0.7825, "latency_ms": 9.52, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.591860", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 163.92, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.616278", "query": "Restoran önerisi", "intent": "cultural_info", "confidence": 0.2966, "latency_ms": 23.87, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.637016", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9999, "latency_ms": 20.51, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.646512", "query": "En yakın metro nerede?", "intent": "restaurant", "confidence": 0.5673, "latency_ms": 9.19, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.654633", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9989, "latency_ms": 7.94, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.686993", "query": "I want to visit Hagia Sophia", "intent": "gps_navigation", "confidence": 0.9509, "latency_ms": 32.16, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.709581", "query": "Restaurant recommendations", "intent": "luxury", "confidence": 1.0, "latency_ms": 22.33, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.722812", "query": "What's the weather like?", "intent": "cultural_info", "confidence": 0.8128, "latency_ms": 12.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.729047", "query": "Where is the nearest metro?", "intent": "emergency", "confidence": 0.6215, "latency_ms": 6.05, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.757698", "query": "Museum suggestions", "intent": "transportation", "confidence": 0.5741, "latency_ms": 28.49, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.764076", "query": "Where can I stay?", "intent": "nightlife", "confidence": 0.9732, "latency_ms": 6.16, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.770367", "query": "Emergency help!", "intent": "luxury", "confidence": 0.9979, "latency_ms": 6.13, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.777242", "query": "Book a tour", "intent": "luxury", "confidence": 0.9996, "latency_ms": 6.68, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.784280", "query": "Shopping malls", "intent": "luxury", "confidence": 0.9925, "latency_ms": 6.86, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.790851", "query": "Romantic places", "intent": "romantic", "confidence": 0.3155, "latency_ms": 6.38, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.798870", "query": "Family activities", "intent": "luxury", "confidence": 0.975, "latency_ms": 7.77, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.805408", "query": "Night life", "intent": "events", "confidence": 0.7878, "latency_ms": 6.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.838526", "query": "How do I get to Taksim?", "intent": "history", "confidence": 1.0, "latency_ms": 32.78, "high_confidence": true}
+{"timestamp": "2025-10-22T12:01:56.846691", "query": "Turkish food", "intent": "recommendation", "confidence": 0.1311, "latency_ms": 7.93, "high_confidence": false}
+{"timestamp": "2025-10-22T12:01:56.854158", "query": "Historical sites", "intent": "cultural_info", "confidence": 0.6834, "latency_ms": 7.31, "high_confidence": false}
+{"timestamp": "2025-10-22T12:12:11.633832", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 130.39, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.661322", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 26.73, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.694275", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9948, "latency_ms": 32.6, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.719485", "query": "Müze önerileri", "intent": "museum", "confidence": 0.999, "latency_ms": 25.0, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.769836", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9997, "latency_ms": 50.13, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.804067", "query": "Acil durum!", "intent": "emergency", "confidence": 0.9965, "latency_ms": 33.63, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.810155", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.9932, "latency_ms": 5.83, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.816603", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.8994, "latency_ms": 6.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.822735", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 5.95, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.846679", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.517, "latency_ms": 23.82, "high_confidence": false}
+{"timestamp": "2025-10-22T12:12:11.852892", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9974, "latency_ms": 6.0, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.859733", "query": "What's the weather?", "intent": "weather", "confidence": 0.9989, "latency_ms": 6.68, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.866490", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9998, "latency_ms": 6.63, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.888610", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9986, "latency_ms": 21.98, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.894943", "query": "Looking for cheap hotel", "intent": "family_activities", "confidence": 0.327, "latency_ms": 6.12, "high_confidence": false}
+{"timestamp": "2025-10-22T12:12:11.901466", "query": "Emergency!", "intent": "emergency", "confidence": 0.9888, "latency_ms": 6.37, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.927890", "query": "Bosphorus tour", "intent": "attraction", "confidence": 0.9993, "latency_ms": 26.25, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.936218", "query": "How to use metro?", "intent": "restaurant", "confidence": 0.52, "latency_ms": 8.07, "high_confidence": false}
+{"timestamp": "2025-10-22T12:12:11.943703", "query": "Romantic places", "intent": "nightlife", "confidence": 0.8878, "latency_ms": 7.33, "high_confidence": true}
+{"timestamp": "2025-10-22T12:12:11.952580", "query": "Where to go with kids?", "intent": "museum", "confidence": 0.7036, "latency_ms": 8.72, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.462850", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 140.3, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.484764", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.995, "latency_ms": 21.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.513042", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9904, "latency_ms": 28.08, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.541161", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9998, "latency_ms": 27.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.570402", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.8285, "latency_ms": 29.03, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.594557", "query": "Acil durum!", "intent": "gps_navigation", "confidence": 0.8285, "latency_ms": 23.96, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.604382", "query": "Boğaz turu", "intent": "restaurant", "confidence": 0.5614, "latency_ms": 9.59, "high_confidence": false}
+{"timestamp": "2025-10-22T12:22:10.612354", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.979, "latency_ms": 7.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.621625", "query": "Romantik yerler", "intent": "romantic", "confidence": 0.9999, "latency_ms": 9.08, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.651181", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9729, "latency_ms": 29.33, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.657752", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9913, "latency_ms": 6.35, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.663975", "query": "What's the weather?", "intent": "weather", "confidence": 0.9999, "latency_ms": 6.07, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.670744", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.996, "latency_ms": 6.64, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.693695", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9964, "latency_ms": 22.78, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.699253", "query": "Looking for cheap hotel", "intent": "accommodation", "confidence": 0.4825, "latency_ms": 5.36, "high_confidence": false}
+{"timestamp": "2025-10-22T12:22:10.705673", "query": "Emergency!", "intent": "emergency", "confidence": 0.9659, "latency_ms": 6.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.727549", "query": "Bosphorus tour", "intent": "attraction", "confidence": 0.9888, "latency_ms": 21.72, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.735796", "query": "How to use metro?", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.05, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.743092", "query": "Romantic places", "intent": "romantic", "confidence": 0.985, "latency_ms": 7.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:22:10.751236", "query": "Where to go with kids?", "intent": "nightlife", "confidence": 0.4762, "latency_ms": 7.94, "high_confidence": false}
+{"timestamp": "2025-10-22T12:30:56.818689", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 0.9973, "latency_ms": 142.72, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.842830", "query": "Hava durumu nasıl?", "intent": "gps_navigation", "confidence": 0.5654, "latency_ms": 22.76, "high_confidence": false}
+{"timestamp": "2025-10-22T12:30:56.874038", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9944, "latency_ms": 30.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.898097", "query": "Müze önerileri", "intent": "museum", "confidence": 0.9977, "latency_ms": 23.83, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.924408", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.8952, "latency_ms": 26.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.948643", "query": "Acil durum!", "intent": "emergency", "confidence": 0.9984, "latency_ms": 23.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.959349", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.9823, "latency_ms": 10.4, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.965658", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.7843, "latency_ms": 6.06, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.972521", "query": "Romantik yerler", "intent": "romantic", "confidence": 0.9992, "latency_ms": 6.68, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:56.998411", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9785, "latency_ms": 25.76, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.005305", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9995, "latency_ms": 6.66, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.011863", "query": "What's the weather?", "intent": "romantic", "confidence": 0.9781, "latency_ms": 6.42, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.019444", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9934, "latency_ms": 7.38, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.044642", "query": "Museum recommendations", "intent": "museum", "confidence": 0.8199, "latency_ms": 22.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.051979", "query": "Looking for cheap hotel", "intent": "booking", "confidence": 0.2303, "latency_ms": 7.1, "high_confidence": false}
+{"timestamp": "2025-10-22T12:30:57.058178", "query": "Emergency!", "intent": "emergency", "confidence": 0.9969, "latency_ms": 6.03, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.089089", "query": "Bosphorus tour", "intent": "attraction", "confidence": 1.0, "latency_ms": 30.75, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.098523", "query": "How to use metro?", "intent": "transportation", "confidence": 0.9624, "latency_ms": 9.2, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.106851", "query": "Romantic places", "intent": "romantic", "confidence": 0.9872, "latency_ms": 8.15, "high_confidence": true}
+{"timestamp": "2025-10-22T12:30:57.117737", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9929, "latency_ms": 10.69, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.678196", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 115.56, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.699477", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 0.9998, "latency_ms": 20.25, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.726868", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9993, "latency_ms": 26.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.748542", "query": "Müze önerileri", "intent": "museum", "confidence": 1.0, "latency_ms": 21.43, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.774118", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9953, "latency_ms": 25.36, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.799616", "query": "Acil durum!", "intent": "emergency", "confidence": 1.0, "latency_ms": 25.25, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.809884", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.7791, "latency_ms": 9.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.819064", "query": "Metro nasıl kullanılır?", "intent": "gps_navigation", "confidence": 0.5819, "latency_ms": 8.95, "high_confidence": false}
+{"timestamp": "2025-10-22T12:34:18.829422", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 10.13, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.860596", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9939, "latency_ms": 30.94, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.867770", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9999, "latency_ms": 6.86, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.874580", "query": "What's the weather?", "intent": "weather", "confidence": 1.0, "latency_ms": 6.63, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.880905", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9985, "latency_ms": 6.18, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.902537", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9933, "latency_ms": 21.44, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.911130", "query": "Looking for cheap hotel", "intent": "route_planning", "confidence": 0.296, "latency_ms": 7.93, "high_confidence": false}
+{"timestamp": "2025-10-22T12:34:18.918569", "query": "Emergency!", "intent": "emergency", "confidence": 0.9941, "latency_ms": 7.21, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.941158", "query": "Bosphorus tour", "intent": "attraction", "confidence": 0.9997, "latency_ms": 22.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.950685", "query": "How to use metro?", "intent": "weather", "confidence": 0.5364, "latency_ms": 9.27, "high_confidence": false}
+{"timestamp": "2025-10-22T12:34:18.958325", "query": "Romantic places", "intent": "romantic", "confidence": 0.8411, "latency_ms": 7.48, "high_confidence": true}
+{"timestamp": "2025-10-22T12:34:18.969479", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9861, "latency_ms": 10.97, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.248781", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 140.72, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.270932", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 20.5, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.292715", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9997, "latency_ms": 21.59, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.321814", "query": "Müze önerileri", "intent": "museum", "confidence": 1.0, "latency_ms": 28.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.346748", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9987, "latency_ms": 24.7, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.365114", "query": "Acil durum!", "intent": "emergency", "confidence": 0.987, "latency_ms": 18.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.372594", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.6984, "latency_ms": 7.23, "high_confidence": false}
+{"timestamp": "2025-10-22T12:37:37.378170", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.9666, "latency_ms": 5.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.384525", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 6.19, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.415419", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9999, "latency_ms": 30.71, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.423974", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9998, "latency_ms": 8.33, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.431317", "query": "What's the weather?", "intent": "weather", "confidence": 1.0, "latency_ms": 7.2, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.438040", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9996, "latency_ms": 6.54, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.460376", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9932, "latency_ms": 22.05, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.470638", "query": "Looking for cheap hotel", "intent": "emergency", "confidence": 0.6794, "latency_ms": 10.0, "high_confidence": false}
+{"timestamp": "2025-10-22T12:37:37.477621", "query": "Emergency!", "intent": "emergency", "confidence": 0.9732, "latency_ms": 6.8, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.498173", "query": "Bosphorus tour", "intent": "attraction", "confidence": 1.0, "latency_ms": 20.38, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.508937", "query": "How to use metro?", "intent": "transportation", "confidence": 1.0, "latency_ms": 10.52, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.516858", "query": "Romantic places", "intent": "romantic", "confidence": 0.9587, "latency_ms": 7.74, "high_confidence": true}
+{"timestamp": "2025-10-22T12:37:37.526931", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9997, "latency_ms": 9.82, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.277464", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 130.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.302937", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 24.98, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.332986", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9997, "latency_ms": 29.86, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.356710", "query": "Müze önerileri", "intent": "museum", "confidence": 1.0, "latency_ms": 23.51, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.385313", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9987, "latency_ms": 28.17, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.409538", "query": "Acil durum!", "intent": "emergency", "confidence": 0.987, "latency_ms": 24.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.421114", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.6984, "latency_ms": 11.35, "high_confidence": false}
+{"timestamp": "2025-10-22T12:39:01.429173", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.9666, "latency_ms": 7.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.436531", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 7.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.464786", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9999, "latency_ms": 28.07, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.475397", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9998, "latency_ms": 10.4, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.483882", "query": "What's the weather?", "intent": "weather", "confidence": 1.0, "latency_ms": 8.35, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.492845", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9996, "latency_ms": 8.77, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.518891", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9932, "latency_ms": 25.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.528532", "query": "Looking for cheap hotel", "intent": "emergency", "confidence": 0.6794, "latency_ms": 9.43, "high_confidence": false}
+{"timestamp": "2025-10-22T12:39:01.537118", "query": "Emergency!", "intent": "emergency", "confidence": 0.9732, "latency_ms": 8.43, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.559699", "query": "Bosphorus tour", "intent": "attraction", "confidence": 1.0, "latency_ms": 22.39, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.569499", "query": "How to use metro?", "intent": "transportation", "confidence": 1.0, "latency_ms": 9.59, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.577127", "query": "Romantic places", "intent": "romantic", "confidence": 0.9587, "latency_ms": 7.48, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:01.588735", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9997, "latency_ms": 11.42, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.491200", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 136.79, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.515822", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 24.09, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.549049", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9997, "latency_ms": 32.94, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.595605", "query": "Müze önerileri", "intent": "museum", "confidence": 1.0, "latency_ms": 44.62, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.622324", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9987, "latency_ms": 26.38, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.649403", "query": "Acil durum!", "intent": "emergency", "confidence": 0.987, "latency_ms": 26.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.654843", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.6984, "latency_ms": 5.21, "high_confidence": false}
+{"timestamp": "2025-10-22T12:39:41.661923", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.9666, "latency_ms": 6.92, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.668124", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 6.09, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.696503", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9999, "latency_ms": 28.2, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.703479", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9998, "latency_ms": 6.75, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.710465", "query": "What's the weather?", "intent": "weather", "confidence": 1.0, "latency_ms": 6.78, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.717454", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9996, "latency_ms": 6.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.738647", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9932, "latency_ms": 20.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.746741", "query": "Looking for cheap hotel", "intent": "emergency", "confidence": 0.6794, "latency_ms": 7.84, "high_confidence": false}
+{"timestamp": "2025-10-22T12:39:41.753717", "query": "Emergency!", "intent": "emergency", "confidence": 0.9732, "latency_ms": 6.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.775516", "query": "Bosphorus tour", "intent": "attraction", "confidence": 1.0, "latency_ms": 21.6, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.785765", "query": "How to use metro?", "intent": "transportation", "confidence": 1.0, "latency_ms": 10.02, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.793499", "query": "Romantic places", "intent": "romantic", "confidence": 0.9587, "latency_ms": 7.57, "high_confidence": true}
+{"timestamp": "2025-10-22T12:39:41.804823", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9997, "latency_ms": 11.18, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.073355", "query": "Ayasofya'yı görmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 138.46, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.096435", "query": "Hava durumu nasıl?", "intent": "weather", "confidence": 1.0, "latency_ms": 22.53, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.120799", "query": "En yakın restoran nerede?", "intent": "restaurant", "confidence": 0.9997, "latency_ms": 24.18, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.142862", "query": "Müze önerileri", "intent": "museum", "confidence": 1.0, "latency_ms": 21.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.178447", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9987, "latency_ms": 35.36, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.195259", "query": "Acil durum!", "intent": "emergency", "confidence": 0.987, "latency_ms": 16.6, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.200921", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.6984, "latency_ms": 5.47, "high_confidence": false}
+{"timestamp": "2025-10-22T12:40:45.208340", "query": "Metro nasıl kullanılır?", "intent": "transportation", "confidence": 0.9666, "latency_ms": 7.26, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.215570", "query": "Romantik yerler", "intent": "romantic", "confidence": 1.0, "latency_ms": 6.93, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.248540", "query": "Çocuklarla nereye gidilir?", "intent": "family_activities", "confidence": 0.9999, "latency_ms": 32.71, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.256129", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9998, "latency_ms": 7.34, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.264137", "query": "What's the weather?", "intent": "weather", "confidence": 1.0, "latency_ms": 7.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.270886", "query": "Where's the nearest restaurant?", "intent": "restaurant", "confidence": 0.9996, "latency_ms": 6.58, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.294055", "query": "Museum recommendations", "intent": "museum", "confidence": 0.9932, "latency_ms": 22.98, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.307343", "query": "Looking for cheap hotel", "intent": "emergency", "confidence": 0.6794, "latency_ms": 13.03, "high_confidence": false}
+{"timestamp": "2025-10-22T12:40:45.315644", "query": "Emergency!", "intent": "emergency", "confidence": 0.9732, "latency_ms": 8.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.342097", "query": "Bosphorus tour", "intent": "attraction", "confidence": 1.0, "latency_ms": 26.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.351160", "query": "How to use metro?", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.83, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.359862", "query": "Romantic places", "intent": "romantic", "confidence": 0.9587, "latency_ms": 8.52, "high_confidence": true}
+{"timestamp": "2025-10-22T12:40:45.370317", "query": "Where to go with kids?", "intent": "attraction", "confidence": 0.9997, "latency_ms": 10.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:49.740705", "query": "Kayboldum yardım edin", "intent": "emergency", "confidence": 0.6253, "latency_ms": 992.05, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:49.952641", "query": "Acil polis lazım", "intent": "emergency", "confidence": 0.9913, "latency_ms": 210.92, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.183453", "query": "Hastaneye gitmem gerekiyor", "intent": "emergency", "confidence": 0.9965, "latency_ms": 230.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.368564", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 184.67, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.543951", "query": "Topkapı Sarayı nerede", "intent": "attraction", "confidence": 0.9993, "latency_ms": 175.15, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.726876", "query": "Boğaz turu yapılır mı", "intent": "museum", "confidence": 0.6537, "latency_ms": 182.56, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:50.736424", "query": "Güzel bir restoran öner", "intent": "restaurant", "confidence": 1.0, "latency_ms": 9.2, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.915965", "query": "Balık yemek için nereye gidebilirim", "intent": "restaurant", "confidence": 0.9882, "latency_ms": 179.39, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:50.926909", "query": "Kebap nerede yenir", "intent": "restaurant", "confidence": 0.9998, "latency_ms": 10.34, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.138049", "query": "Metro nasıl kullanılır", "intent": "transportation", "confidence": 0.5111, "latency_ms": 210.91, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.148243", "query": "Taksim'e nasıl giderim", "intent": "route_planning", "confidence": 0.8029, "latency_ms": 9.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.157232", "query": "Tramvay saatleri", "intent": "transportation", "confidence": 1.0, "latency_ms": 8.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.169592", "query": "Yarın hava nasıl olacak", "intent": "weather", "confidence": 1.0, "latency_ms": 12.18, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.176518", "query": "Bugün yağmur yağar mı", "intent": "weather", "confidence": 0.9624, "latency_ms": 6.49, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.182431", "query": "Çocuklarla nereye gidebilirim", "intent": "family_activities", "confidence": 0.9984, "latency_ms": 5.76, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.188035", "query": "Aile için aktiviteler", "intent": "family_activities", "confidence": 0.9974, "latency_ms": 5.47, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.193623", "query": "Ucuz otel arıyorum", "intent": "accommodation", "confidence": 0.9987, "latency_ms": 5.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.200133", "query": "Nerede kalabilirim", "intent": "luxury", "confidence": 0.4447, "latency_ms": 6.34, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.206898", "query": "Konumumu göster", "intent": "weather", "confidence": 0.9666, "latency_ms": 6.59, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.213457", "query": "Buradan Galata'ya rota", "intent": "gps_navigation", "confidence": 0.9609, "latency_ms": 6.42, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.220442", "query": "Hangi müzeleri gezmeliyim", "intent": "museum", "confidence": 0.9979, "latency_ms": 6.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.225861", "query": "Müze giriş ücreti ne kadar", "intent": "weather", "confidence": 0.4835, "latency_ms": 5.24, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.233550", "query": "Kapalıçarşı nerede", "intent": "attraction", "confidence": 0.9906, "latency_ms": 7.51, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.241749", "query": "Alışveriş yapılacak yerler", "intent": "family_activities", "confidence": 0.7422, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.426217", "query": "I'm lost please help", "intent": "emergency", "confidence": 1.0, "latency_ms": 184.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.434935", "query": "Need police urgently", "intent": "emergency", "confidence": 0.8535, "latency_ms": 8.34, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.443009", "query": "Where is nearest hospital", "intent": "accommodation", "confidence": 0.9328, "latency_ms": 7.92, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.453238", "query": "I want to visit Hagia Sophia", "intent": "attraction", "confidence": 0.9998, "latency_ms": 10.07, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.459750", "query": "Where is Topkapi Palace", "intent": "booking", "confidence": 0.6928, "latency_ms": 6.3, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.469941", "query": "Bosphorus cruise available?", "intent": "food", "confidence": 0.7074, "latency_ms": 10.02, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.479443", "query": "Recommend a good restaurant", "intent": "romantic", "confidence": 0.7502, "latency_ms": 9.31, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.491717", "query": "Where can I eat fish", "intent": "family_activities", "confidence": 0.7668, "latency_ms": 12.1, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.499734", "query": "Best kebab place", "intent": "restaurant", "confidence": 0.6291, "latency_ms": 7.8, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.505968", "query": "How to use metro", "intent": "transportation", "confidence": 1.0, "latency_ms": 6.04, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.512461", "query": "How do I get to Taksim", "intent": "attraction", "confidence": 0.9993, "latency_ms": 6.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.721509", "query": "Tram schedule", "intent": "price_info", "confidence": 0.7042, "latency_ms": 208.84, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.731132", "query": "What's the weather tomorrow", "intent": "weather", "confidence": 1.0, "latency_ms": 9.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.740205", "query": "Will it rain today", "intent": "weather", "confidence": 1.0, "latency_ms": 8.94, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.751688", "query": "Where to go with kids", "intent": "hidden_gems", "confidence": 0.6188, "latency_ms": 11.34, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.759327", "query": "Family friendly activities", "intent": "family_activities", "confidence": 1.0, "latency_ms": 7.44, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.765091", "query": "What can children do", "intent": "budget", "confidence": 0.5029, "latency_ms": 5.63, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.772835", "query": "Looking for cheap hotel", "intent": "emergency", "confidence": 0.6794, "latency_ms": 7.63, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.790867", "query": "Where should I stay", "intent": "accommodation", "confidence": 0.5959, "latency_ms": 16.26, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.816211", "query": "Budget hostel recommendations", "intent": "accommodation", "confidence": 0.9998, "latency_ms": 24.66, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.829114", "query": "Show my location", "intent": "gps_navigation", "confidence": 0.9129, "latency_ms": 12.63, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.840735", "query": "Navigate to Galata Tower", "intent": "attraction", "confidence": 1.0, "latency_ms": 11.37, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.850550", "query": "Which museums should I visit", "intent": "attraction", "confidence": 0.9263, "latency_ms": 9.64, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.860108", "query": "Museum entrance fees", "intent": "museum", "confidence": 0.9858, "latency_ms": 9.38, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.867167", "query": "Where is Grand Bazaar", "intent": "emergency", "confidence": 0.4769, "latency_ms": 6.85, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:51.874046", "query": "Best places for shopping", "intent": "shopping", "confidence": 0.9494, "latency_ms": 6.74, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.880611", "query": "Istanbul'da romantic dinner nerede", "intent": "romantic", "confidence": 0.9966, "latency_ms": 6.46, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.887231", "query": "Cheap otel Sultanahmet'te", "intent": "gps_navigation", "confidence": 0.8057, "latency_ms": 6.41, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:51.893483", "query": "Boğaz", "intent": "transportation", "confidence": 0.4598, "latency_ms": 6.05, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:52.171815", "query": "Müzik", "intent": "nightlife", "confidence": 0.6036, "latency_ms": 278.14, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:52.446553", "query": "Otel", "intent": "transportation", "confidence": 0.7316, "latency_ms": 274.51, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.454322", "query": "Food", "intent": "shopping", "confidence": 0.8572, "latency_ms": 7.57, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.542666", "query": "Çocuklarla gidebileceğim ücretsiz müze var mı", "intent": "museum", "confidence": 0.9949, "latency_ms": 88.21, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.553038", "query": "Where can I eat and see the sunset", "intent": "attraction", "confidence": 0.3989, "latency_ms": 10.18, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:52.561600", "query": "Ayasofia nerde", "intent": "emergency", "confidence": 0.5748, "latency_ms": 8.25, "high_confidence": false}
+{"timestamp": "2025-10-22T12:43:52.572193", "query": "Restorant recommendation", "intent": "booking", "confidence": 1.0, "latency_ms": 10.43, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.583612", "query": "Acil yardım edin kayboldum", "intent": "emergency", "confidence": 0.8549, "latency_ms": 11.2, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.591615", "query": "Ayasofya", "intent": "shopping", "confidence": 0.944, "latency_ms": 7.78, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.598691", "query": "Güzel", "intent": "gps_navigation", "confidence": 0.8989, "latency_ms": 6.87, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.604664", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.81, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.610795", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.99, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.617233", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.28, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.628061", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 10.7, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.634000", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.640104", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.03, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.646020", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.83, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.652083", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.98, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.657934", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.77, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.663946", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.92, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.670198", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.17, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.676188", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.91, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.682461", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.19, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.689131", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.6, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.695293", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.05, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.701091", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.71, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.707698", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.53, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.714269", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.47, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.720243", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.726742", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.42, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.733521", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.69, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.740209", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.61, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.747031", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.75, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.753616", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.49, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.760401", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.7, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.767264", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.77, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.774616", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.27, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.782289", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.59, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.789923", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.55, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.796956", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.95, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.805223", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.19, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.812812", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.5, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.820721", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.82, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.828036", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.18, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.836271", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.13, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.844366", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.852749", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.861736", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.871289", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 9.44, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.880304", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.93, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.890349", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 9.95, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.898452", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.906169", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.61, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.913382", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.12, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.920775", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.3, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.927327", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.46, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.934359", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.93, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.941365", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.9, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.948295", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.83, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.954812", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.44, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.961793", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.9, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.968183", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.31, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.974726", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.46, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.981518", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.71, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.988022", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.42, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:52.994419", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.32, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.000576", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.0, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.006812", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.013034", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.018975", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.025159", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.09, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.031469", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.22, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.037524", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.97, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.043764", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.16, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.049980", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.12, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.056004", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.93, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.061942", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.86, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.067660", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.63, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.073804", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.06, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.080009", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.14, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.086056", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.97, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.092203", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.07, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.098244", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.97, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.104634", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.32, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.110736", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.01, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.116874", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.06, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.123242", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.130167", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.136160", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.89, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.141966", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 5.72, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.148662", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.61, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.155444", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.71, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.161594", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.07, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.167929", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.25, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.174818", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.77, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.181199", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.189791", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.52, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.195957", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.09, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.202732", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.69, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.209130", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.33, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.215768", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.55, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.222447", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.61, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.228744", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.22, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.235363", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.55, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.241845", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.4, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.248366", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.45, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.255107", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.66, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.262351", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.17, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.268691", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.26, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.275290", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.52, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.282482", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.12, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.290019", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.46, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.297685", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.59, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.304791", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.0, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.311718", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 6.85, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.319087", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.29, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.326920", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.75, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.334609", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.61, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.342442", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 7.75, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.350775", "query": "Ayasofya'yı gezmek istiyorum", "intent": "attraction", "confidence": 1.0, "latency_ms": 8.26, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.358639", "query": "Acil kayboldum", "intent": "emergency", "confidence": 0.9327, "latency_ms": 7.73, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.366400", "query": "otel", "intent": "accommodation", "confidence": 0.9089, "latency_ms": 7.64, "high_confidence": true}
+{"timestamp": "2025-10-22T12:43:53.375337", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.6984, "latency_ms": 8.81, "high_confidence": false}
+{"timestamp": "2025-10-22T12:56:51.942658", "query": "Acil kayboldum", "intent": "emergency", "confidence": 0.3613, "latency_ms": 138.72, "high_confidence": false}
+{"timestamp": "2025-10-22T12:56:51.964619", "query": "otel", "intent": "emergency", "confidence": 0.1467, "latency_ms": 20.71, "high_confidence": false}
+{"timestamp": "2025-10-22T12:56:51.972938", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.7582, "latency_ms": 8.05, "high_confidence": true}
+{"timestamp": "2025-10-22T13:00:02.034026", "query": "Acil kayboldum", "intent": "emergency", "confidence": 0.3613, "latency_ms": 136.49, "high_confidence": false}
+{"timestamp": "2025-10-22T13:00:02.056716", "query": "otel", "intent": "emergency", "confidence": 0.1467, "latency_ms": 21.77, "high_confidence": false}
+{"timestamp": "2025-10-22T13:00:02.066227", "query": "Boğaz turu", "intent": "attraction", "confidence": 0.7582, "latency_ms": 9.28, "high_confidence": true}

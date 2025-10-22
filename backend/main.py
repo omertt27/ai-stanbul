@@ -36,6 +36,15 @@ except ImportError as e:
     ADVANCED_UNDERSTANDING_AVAILABLE = False
     print(f"⚠️ Advanced Understanding System not available: {e}")
 
+# Add Intent Classifier import
+try:
+    from main_system_neural_integration import NeuralIntentRouter
+    INTENT_CLASSIFIER_AVAILABLE = True
+    print("✅ Neural Intent Classifier (Hybrid) loaded successfully")
+except ImportError as e:
+    INTENT_CLASSIFIER_AVAILABLE = False
+    print(f"⚠️ Neural Intent Classifier not available: {e}")
+
 # Add Comprehensive ML/DL Integration System import
 try:
     from comprehensive_ml_dl_integration import (
@@ -97,6 +106,16 @@ if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
     except Exception as e:
         print(f"⚠️ Failed to initialize Enhanced Understanding System: {e}")
         ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
+
+# Initialize Intent Classifier
+intent_classifier = None
+if INTENT_CLASSIFIER_AVAILABLE:
+    try:
+        intent_classifier = NeuralIntentRouter()
+        print("✅ Neural Intent Classifier (Hybrid) initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
+        INTENT_CLASSIFIER_AVAILABLE = False
 
 def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
     """Generate enhanced suggestions based on multi-intent analysis"""
@@ -175,17 +194,59 @@ def generate_traditional_suggestions(intent: str) -> List[str]:
     ])
 
 def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
-    """Process query using Enhanced Understanding System"""
+    """Process query using Enhanced Understanding System with Neural Intent Classifier"""
+    
+    # First, try the neural intent classifier with hybrid fallback
+    intent_result = None
+    if INTENT_CLASSIFIER_AVAILABLE and intent_classifier:
+        try:
+            import time
+            start_time = time.time()
+            
+            # Use the neural router's route_query method
+            routing_result = intent_classifier.route_query(user_input)
+            latency_ms = (time.time() - start_time) * 1000
+            
+            intent = routing_result['intent']
+            confidence = routing_result['confidence']
+            method = routing_result.get('method', 'unknown')
+            
+            intent_result = {
+                'intent': intent,
+                'confidence': confidence,
+                'latency_ms': latency_ms,
+                'method': method,  # 'neural' or 'fallback'
+                'fallback_used': routing_result.get('fallback_used', False)
+            }
+            
+            logger.info(f"🎯 Intent Classifier ({method}): {intent} (confidence: {confidence:.2f}, latency: {latency_ms:.2f}ms)")
+        except Exception as e:
+            logger.warning(f"Intent classifier error: {e}")
+    
+    # Then use the enhanced understanding system for deeper analysis
     if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
-        return {
-            'success': False,
-            'intent': 'general_info',
-            'confidence': 0.3,
-            'entities': {},
-            'corrections': [],
-            'normalized_query': user_input.lower().strip(),
-            'original_query': user_input
-        }
+        # Fall back to intent classifier only
+        if intent_result and intent_result['confidence'] >= 0.6:
+            return {
+                'success': True,
+                'intent': intent_result['intent'],
+                'confidence': intent_result['confidence'],
+                'entities': {},
+                'corrections': [],
+                'normalized_query': user_input.lower().strip(),
+                'original_query': user_input,
+                'classifier_used': f"neural_{intent_result['method']}"
+            }
+        else:
+            return {
+                'success': False,
+                'intent': 'general_info',
+                'confidence': 0.3,
+                'entities': {},
+                'corrections': [],
+                'normalized_query': user_input.lower().strip(),
+                'original_query': user_input
+            }
     
     try:
         # Use the enhanced understanding system (correct method name)
@@ -195,27 +256,49 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
         multi_intent = result.multi_intent_result
         primary_intent = multi_intent.primary_intent.type.value if multi_intent.primary_intent else 'general_info'
         
+        # Use intent classifier result if it has higher confidence
+        if intent_result and intent_result['confidence'] > result.understanding_confidence:
+            primary_intent = intent_result['intent']
+            confidence = intent_result['confidence']
+            logger.info(f"✨ Using neural intent classifier result (higher confidence: {confidence:.2f} vs {result.understanding_confidence:.2f})")
+        else:
+            confidence = result.understanding_confidence
+        
         return {
             'success': True,
             'intent': primary_intent,
-            'confidence': result.understanding_confidence,
+            'confidence': confidence,
             'entities': multi_intent.extracted_entities if multi_intent else {},
             'corrections': [],  # Can be enhanced later
             'normalized_query': result.original_query.lower().strip(),
             'original_query': user_input,
-            'detailed_result': result
+            'detailed_result': result,
+            'intent_classifier_result': intent_result
         }
     except Exception as e:
-        print(f"Error in process_enhanced_query: {e}")
-        return {
-            'success': False,
-            'intent': 'general_info',
-            'confidence': 0.3,
-            'entities': {},
-            'corrections': [],
-            'normalized_query': user_input.lower().strip(),
-            'original_query': user_input
-        }
+        logger.error(f"Error in process_enhanced_query: {e}")
+        # Fall back to intent classifier only
+        if intent_result and intent_result['confidence'] >= 0.6:
+            return {
+                'success': True,
+                'intent': intent_result['intent'],
+                'confidence': intent_result['confidence'],
+                'entities': {},
+                'corrections': [],
+                'normalized_query': user_input.lower().strip(),
+                'original_query': user_input,
+                'classifier_used': f"neural_{intent_result['method']}_fallback"
+            }
+        else:
+            return {
+                'success': False,
+                'intent': 'general_info',
+                'confidence': 0.3,
+                'entities': {},
+                'corrections': [],
+                'normalized_query': user_input.lower().strip(),
+                'original_query': user_input
+            }
 
 def generate_sample_hidden_gems(area: str, language: str = 'en') -> List[Dict[str, Any]]:
     """Generate sample hidden gems for a given area"""
