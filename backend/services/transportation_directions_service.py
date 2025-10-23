@@ -25,9 +25,13 @@ logger = logging.getLogger(__name__)
 try:
     from .osrm_routing_service import OSRMRoutingService
     OSRM_AVAILABLE = True
-except ImportError:
+    logger.info("✅ Backend OSRM routing service imported successfully")
+except ImportError as e:
     OSRM_AVAILABLE = False
-    logger.warning("⚠️ OSRM not available - walking segments will be estimated")
+    logger.warning(f"⚠️ OSRM not available - walking segments will be estimated. Error: {e}")
+except Exception as e:
+    OSRM_AVAILABLE = False
+    logger.error(f"⚠️ Error importing OSRM service: {e}")
 
 
 @dataclass
@@ -63,7 +67,18 @@ class TransportationDirectionsService:
         """Initialize the transportation directions service"""
         self.osrm = None
         if OSRM_AVAILABLE:
-            self.osrm = OSRMRoutingService(profile='foot')
+            try:
+                # Initialize with backend OSRM service parameters
+                self.osrm = OSRMRoutingService(
+                    server='primary',
+                    profile='foot',
+                    timeout=10,
+                    use_fallback=True
+                )
+                logger.info("✅ OSRM service initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize OSRM service: {e}")
+                self.osrm = None
         
         # Initialize Istanbul metro/tram/bus lines
         self._initialize_transit_lines()

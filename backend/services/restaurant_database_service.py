@@ -22,6 +22,7 @@ class RestaurantQuery:
     location: Optional[Tuple[float, float]] = None  # (lat, lng)
     radius_km: Optional[float] = None
     keywords: List[str] = None
+    dietary_restrictions: List[str] = None  # vegetarian, vegan, halal, kosher, gluten_free
 
 class RestaurantDatabaseService:
     """Service for restaurant database operations"""
@@ -81,6 +82,7 @@ class RestaurantDatabaseService:
             'restaurant_list': """🍽️ **{name}** ({district})
 ⭐ {rating}/5 • 💰 {budget_category} • 🍴 {cuisine_types}
 📍 {address}
+{dietary_info}
 {special_note}""",
 
             'cuisine_intro': {
@@ -163,12 +165,27 @@ class RestaurantDatabaseService:
         if rating_matches:
             rating_min = float(rating_matches[0])
 
-        # Extract keywords for additional filtering
+        # Extract dietary restrictions
+        dietary_restrictions = []
+        dietary_patterns = {
+            'vegetarian': ['vegetarian', 'vejetaryen', 'veggie', 'no meat', 'etsiz'],
+            'vegan': ['vegan', 'plant-based', 'bitki bazlı', 'hayvansal ürün'],
+            'halal': ['halal', 'helal', 'islamic', 'muslim'],
+            'kosher': ['kosher', 'kasher', 'jewish', 'yahudi'],
+            'gluten_free': ['gluten free', 'gluten-free', 'glutensiz', 'celiac', 'çölyak'],
+            'dairy_free': ['dairy free', 'dairy-free', 'sütsüz', 'lactose', 'laktoz'],
+            'nut_free': ['nut free', 'nut-free', 'fındıksız', 'allergy', 'alerji']
+        }
+        
+        for restriction, patterns in dietary_patterns.items():
+            if any(pattern in query_lower for pattern in patterns):
+                dietary_restrictions.append(restriction)
+
+        # Extract other keywords for additional filtering
         keywords = []
         keyword_patterns = [
             'rooftop', 'view', 'manzara', 'terrace', 'garden', 'bahçe',
-            'romantic', 'family', 'business', 'casual', 'formal',
-            'halal', 'vegetarian', 'vegan'
+            'romantic', 'family', 'business', 'casual', 'formal'
         ]
         
         for keyword in keyword_patterns:
@@ -180,7 +197,8 @@ class RestaurantDatabaseService:
             district=district,
             budget=budget,
             rating_min=rating_min,
-            keywords=keywords
+            keywords=keywords,
+            dietary_restrictions=dietary_restrictions
         )
 
     def filter_restaurants(self, query: RestaurantQuery, limit: int = 10) -> List[Dict]:
@@ -225,6 +243,11 @@ class RestaurantDatabaseService:
                 if not any(keyword in restaurant_text.lower() for keyword in query.keywords):
                     continue
             
+            # Filter by dietary restrictions
+            if query.dietary_restrictions:
+                if not self._check_dietary_compatibility(restaurant, query.dietary_restrictions):
+                    continue
+            
             filtered.append(restaurant)
         
         # Sort by rating and review count (handle None values)
@@ -247,6 +270,73 @@ class RestaurantDatabaseService:
                 return restaurant
         
         return None
+
+    def _check_dietary_compatibility(self, restaurant: Dict, dietary_restrictions: List[str]) -> bool:
+        """Check if restaurant meets dietary restriction requirements"""
+        # Get restaurant's dietary options (if available in data)
+        restaurant_dietary = restaurant.get('dietary_options', [])
+        restaurant_name = restaurant.get('name', '').lower()
+        restaurant_description = restaurant.get('description', '').lower()
+        restaurant_categories = [cat.lower() for cat in restaurant.get('categories', [])]
+        
+        # Combine all restaurant text for keyword matching
+        restaurant_text = f"{restaurant_name} {restaurant_description} {' '.join(restaurant_categories)}"
+        
+        for restriction in dietary_restrictions:
+            # Check if restaurant explicitly supports this dietary restriction
+            if restaurant_dietary and restriction in restaurant_dietary:
+                continue  # This restriction is supported
+            
+            # Fallback: keyword-based matching for common restrictions
+            restriction_keywords = {
+                'vegetarian': ['vegetarian', 'vejetaryen', 'veggie', 'plant', 'veg'],
+                'vegan': ['vegan', 'plant-based', 'bitki'],
+                'halal': ['halal', 'helal', 'islamic', 'muslim', 'türk', 'turkish'],
+                'kosher': ['kosher', 'kasher', 'jewish'],
+                'gluten_free': ['gluten free', 'glutensiz', 'celiac'],
+                'dairy_free': ['dairy free', 'sütsüz', 'lactose free'],
+                'nut_free': ['nut free', 'fındıksız']
+            }
+            
+            keywords = restriction_keywords.get(restriction, [])
+            
+            # Special logic for common restrictions
+            if restriction == 'vegetarian':
+                # Turkish and Mediterranean restaurants often have good vegetarian options
+                if any(keyword in restaurant_text for keyword in ['türk', 'turkish', 'mediterranean', 'meze', 'sebze']):
+                    continue
+                # Also check if explicitly mentioned
+                if any(keyword in restaurant_text for keyword in keywords):
+                    continue 
+                # Otherwise, this restaurant might not be suitable
+                return False
+                
+            elif restriction == 'halal':
+                # Most Turkish restaurants are halal by default
+                if any(keyword in restaurant_text for keyword in ['türk', 'turkish', 'ottoman', 'kebab', 'döner']):
+                    continue
+                # Check explicit halal mention
+                if any(keyword in restaurant_text for keyword in keywords):
+                    continue
+                # International restaurants need explicit halal certification
+                if any(keyword in restaurant_text for keyword in ['italian', 'chinese', 'japanese', 'american']):
+                    return False
+                    
+            elif restriction == 'vegan':
+                # Stricter check for vegan options
+                if any(keyword in restaurant_text for keyword in keywords):
+                    continue
+                # Some cuisines are more likely to have vegan options
+                if any(keyword in restaurant_text for keyword in ['mediterranean', 'turkish', 'sebze']):
+                    continue
+                return False
+                
+            else:
+                # For other restrictions, check keyword matching
+                if not any(keyword in restaurant_text for keyword in keywords):
+                    return False
+        
+        return True  # All restrictions can be accommodated
 
     def format_single_restaurant_response(self, restaurant: Dict) -> str:
         """Format detailed response for a single restaurant"""
@@ -305,6 +395,13 @@ class RestaurantDatabaseService:
         for i, restaurant in enumerate(restaurants, 1):
             cuisine_types = ', '.join(restaurant.get('cuisine_types', ['Restaurant']))
             
+            # Add dietary information
+            dietary_info = ""
+            dietary_options = restaurant.get('dietary_options', [])
+            if dietary_options:
+                dietary_display = [opt.replace('_', '-') for opt in dietary_options]
+                dietary_info = f"🥗 {', '.join(dietary_display)} options"
+            
             # Add special notes
             special_note = ""
             rating = restaurant.get('rating', 0)
@@ -322,6 +419,7 @@ class RestaurantDatabaseService:
                 budget_category=restaurant.get('budget_category', 'Moderate').title(),
                 cuisine_types=cuisine_types,
                 address=restaurant.get('address', 'Address not available'),
+                dietary_info=dietary_info,
                 special_note=special_note
             )
             
@@ -359,6 +457,27 @@ class RestaurantDatabaseService:
             descriptions.append("An upscale dining experience with premium service.")
         elif budget == 'budget':
             descriptions.append("Great value for money with authentic flavors.")
+        
+        # Dietary options description
+        dietary_options = restaurant.get('dietary_options', [])
+        if dietary_options:
+            dietary_text = ", ".join(dietary_options).replace('_', '-')
+            descriptions.append(f"Offers {dietary_text} options.")
+        else:
+            # Infer dietary options from cuisine type and name
+            restaurant_text = f"{restaurant.get('name', '')} {' '.join(restaurant.get('categories', []))}".lower()
+            inferred_options = []
+            
+            if any(keyword in restaurant_text for keyword in ['türk', 'turkish', 'kebab', 'döner']):
+                inferred_options.append("halal")
+            if any(keyword in restaurant_text for keyword in ['vegetarian', 'vegan', 'sebze']):
+                inferred_options.append("vegetarian")
+            if any(keyword in restaurant_text for keyword in ['meze', 'mediterranean']):
+                inferred_options.append("vegetarian-friendly")
+                
+            if inferred_options:
+                options_text = ", ".join(inferred_options).replace('_', '-')
+                descriptions.append(f"Likely offers {options_text} options.")
         
         return " ".join(descriptions) if descriptions else "A popular dining spot in Istanbul."
 

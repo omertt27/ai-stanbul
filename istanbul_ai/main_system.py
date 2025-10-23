@@ -202,6 +202,15 @@ class IstanbulDailyTalkAI:
             logger.warning(f"Enhanced Route Planner V2 not available: {e}")
             self.advanced_route_planner = None
 
+        # Initialize Weather System
+        try:
+            from backend.api_clients.enhanced_weather import EnhancedWeatherClient
+            self.weather_client = EnhancedWeatherClient()
+            logger.info("🌤️ Enhanced Weather System loaded successfully!")
+        except ImportError as e:
+            logger.warning(f"Weather System not available: {e}")
+            self.weather_client = None
+
         # System status
         self.system_ready = True
         logger.info("✅ Istanbul Daily Talk AI System initialized successfully!")
@@ -781,6 +790,35 @@ class IstanbulDailyTalkAI:
         if any(keyword in message_lower for keyword in event_keywords):
             return 'events'
         
+        # Weather intent
+        weather_keywords = ['weather', 'temperature', 'forecast', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 
+                           'what\'s the weather', 'how\'s the weather', 'weather today', 'weather tomorrow',
+                           'will it rain', 'is it sunny', 'degrees', 'celsius', 'fahrenheit', 'humidity',
+                           'wind', 'precipitation', 'weather conditions', 'climate']
+        if any(keyword in message_lower for keyword in weather_keywords):
+            return 'weather'
+        
+        # Airport transport intent
+        airport_keywords = [
+            'airport', 'ist', 'saw', 'atatürk', 'ataturk', 'istanbul airport', 'sabiha gökçen', 
+            'sabiha gokcen', 'new airport', 'airport transfer', 'airport transport', 'from airport',
+            'to airport', 'airport shuttle', 'airport bus', 'airport metro', 'flight', 'departure',
+            'arrival', 'terminal', 'baggage', 'customs', 'immigration'
+        ]
+        if any(keyword in message_lower for keyword in airport_keywords):
+            return 'airport_transport'
+        
+        # Hidden gems intent
+        hidden_gems_keywords = [
+            'hidden', 'secret', 'local', 'authentic', 'off-beaten', 'off the beaten path', 'unknown', 
+            'undiscovered', 'gems', 'hidden gems', 'secret spots', 'local favorites', 'insider',
+            'less touristy', 'not touristy', 'avoid crowds', 'unique places', 'special places',
+            'locals know', 'local secrets', 'hidden treasures', 'underground', 'alternative',
+            'unconventional', 'non-touristy', 'lesser known', 'hidden places'
+        ]
+        if any(keyword in message_lower for keyword in hidden_gems_keywords):
+            return 'hidden_gems'
+        
         # Route planning intent
         route_keywords = ['route', 'itinerary', 'plan', 'schedule', 'day trip']
         if any(keyword in message_lower for keyword in route_keywords):
@@ -855,6 +893,19 @@ class IstanbulDailyTalkAI:
         elif intent == 'events':
             return self._generate_events_response(entities, user_profile, context, current_time)
         
+        elif intent == 'weather':
+            return self._generate_weather_response(message, entities, user_profile, context)
+        
+        elif intent == 'airport_transport':
+            return self.response_generator.generate_comprehensive_recommendation(
+                intent, entities, user_profile, context, return_structured=return_structured
+            )
+        
+        elif intent == 'hidden_gems':
+            return self.response_generator.generate_comprehensive_recommendation(
+                intent, entities, user_profile, context, return_structured=return_structured
+            )
+        
         elif intent == 'route_planning':
             return self._generate_route_planning_response(message, user_profile, context)
         
@@ -919,9 +970,9 @@ class IstanbulDailyTalkAI:
 📍 **Live Status** (Updated: {current_time})
 
 **🎫 Essential Transport Card:**
-• **Istanbulkart**: Must-have for all public transport (13 TL + credit)
+• **Istanbulkart**: Must-have for official public transport (13 TL + credit)
 • Available at metro stations, kiosks, and ferry terminals
-• Works on metro, tram, bus, ferry, and dolmuş
+• Works on metro, tram, bus, ferry, and metrobüs (NOT on dolmuş - cash only)
 
 **🚇 Metro Lines:**
 • **M1A**: Yenikapı ↔ Atatürk Airport (closed) - serves Grand Bazaar area
@@ -941,7 +992,7 @@ class IstanbulDailyTalkAI:
 
 **🚌 Buses & Dolmuş:**
 • Extensive network but can be crowded
-• Dolmuş (shared taxis) follow set routes
+• Dolmuş (shared taxis) follow set routes - cash payment only, no Istanbulkart
 • Look for destination signs in Turkish and English
 
 **💡 Pro Tips:**
@@ -1011,9 +1062,57 @@ What type of shopping interests you most? I can provide specific store recommend
     
     def _generate_events_response(self, entities: Dict, user_profile: UserProfile, 
                                  context: ConversationContext, current_time: datetime) -> str:
-        """Generate events and activities response"""
+        """Generate events and activities response with live IKSV data"""
         
-        return """🎭 **Istanbul Events & Activities**
+        # Try to get live IKSV events through ML Daily Talks Bridge
+        live_events_section = ""
+        if self.daily_talks_bridge:
+            try:
+                import asyncio
+                # Create context for IKSV events fetching
+                from ml_enhanced_daily_talks_bridge import ConversationContext as MLContext, UserProfile as MLProfile
+                
+                ml_user_profile = MLProfile(
+                    user_id=user_profile.user_id,
+                    preferences={"interests": ["culture", "events", "arts"]},
+                    interaction_history=[],
+                    personality_traits={},
+                    location_preferences={},
+                    activity_patterns={}
+                )
+                ml_context = MLContext(context.session_id, ml_user_profile, [])
+                ml_context.current_location = context.current_location or "Istanbul"
+                
+                # Fetch live IKSV events
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Can't await in sync function, skip live events for now
+                        pass
+                    else:
+                        iksv_events = loop.run_until_complete(
+                            self.daily_talks_bridge._fetch_relevant_iksv_events(ml_context)
+                        )
+                        
+                        if iksv_events and len(iksv_events) > 0:
+                            live_events_section = "\n**🎭 Live İKSV Events:**\n"
+                            for i, event in enumerate(iksv_events[:3]):  # Show top 3
+                                title = event.get('title', 'Event')
+                                venue = event.get('venue', 'Istanbul')
+                                date = event.get('date', 'Check schedule')
+                                live_events_section += f"• **{title}** - {venue}\n"
+                                if date != 'Check schedule':
+                                    live_events_section += f"  📅 {date}\n"
+                            live_events_section += "  💡 Visit iksv.org for tickets and details\n"
+                except Exception:
+                    # Fallback to static content if async fails
+                    pass
+                    
+            except Exception as e:
+                logger.debug(f"Could not fetch live IKSV events: {e}")
+        
+        return f"""🎭 **Istanbul Events & Activities**
+{live_events_section}
 
 **🎨 Cultural Events:**
 • **Istanbul Modern**: Contemporary art exhibitions, Bosphorus views
@@ -1507,13 +1606,16 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                         from math import radians, sin, cos, sqrt, atan2
                         lat1, lon1 = user_location
                         lat2, lon2 = attraction.coordinates
-                        R = 6371  # Earth radius in km
-                        dlat = radians(lat2 - lat1)
-                        dlon = radians(lon2 - lon1)
-                        a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+                        # Convert to radians
+                        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+                        # Haversine formula
+                        dlat = lat2 - lat1
+                        dlon = lon2 - lon1
+                        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
                         c = 2 * atan2(sqrt(a), sqrt(1-a))
-                        return R * c
-                    return float('inf')
+                        r = 6371  # Earth's radius in kilometers
+                        return c * r
+                    return float('inf')  # Default to infinite distance if no coordinates
                 
                 attractions.sort(key=calculate_distance)
                 logger.info(f"📍 Sorted {len(attractions)} attractions by GPS distance")
@@ -1586,7 +1688,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             'religious': ('🕌', 'Religious Sites in Istanbul', 'religious site'),
             'palace': ('👑', 'Palaces in Istanbul', 'palace'),
             'market': ('🛍️', 'Markets & Bazaars in Istanbul', 'market'),
-            'waterfront': ('⛵', 'Waterfront Attractions in Istanbul', 'waterfront spot'),
+            'waterfront': ('⛵', 'Waterfront Attractions in Istanbul', 'waterfront'),
             'tower': ('🗼', 'Viewpoints & Towers in Istanbul', 'viewpoint'),
             'modern': ('🎨', 'Modern Attractions in Istanbul', 'modern attraction'),
             'family': ('👨‍👩‍👧', 'Family-Friendly Attractions in Istanbul', 'family attraction'),
@@ -1736,8 +1838,6 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 distance = self._calculate_haversine_distance(gps_location, museum.coordinates)
                 response += f"🚶 **Distance:** {distance:.1f} km from you\n"
             
-            response += f"\n📖 **About:**\n{museum.description}\n\n"
-            
             # Highlights
             if museum.highlights:
                 response += f"✨ **Must-See Highlights:**\n"
@@ -1761,7 +1861,6 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 features.append("☕ Café")
             if museum.gift_shop:
                 features.append("🎁 Gift shop")
-            
             if features:
                 response += f"🏢 **Facilities:** {' | '.join(features)}\n\n"
             
@@ -1774,7 +1873,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 response += f"🍽️ **Dining:** {', '.join(museum.nearby_restaurants[:2])}\n"
             
             response += "\n"
-        
+            
         # Add practical tips at the end
         response += "=" * 60 + "\n\n"
         response += "💡 **Planning Your Visit:**\n"
@@ -1785,29 +1884,25 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         response += "🎯 **Need help planning a museum route?** Just ask!"
         
         return response
-
     def _calculate_haversine_distance(self, point1: Tuple[float, float], point2: Tuple[float, float]) -> float:
         """Calculate distance between two GPS coordinates using Haversine formula"""
         from math import radians, sin, cos, sqrt, atan2
-        
         lat1, lon1 = point1
         lat2, lon2 = point2
-        
         # Convert to radians
         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-        
         # Haversine formula
         dlat = lat2 - lat1
-        dlon = lat2 - lon1
+        dlon = lon2 - lon1
         a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
         c = 2 * atan2(sqrt(a), sqrt(1-a))
         r = 6371  # Earth's radius in kilometers
-        
         return c * r
-    
+
     def _is_complex_multi_intent_query(self, message: str) -> bool:
         """
         Detect if query is truly complex enough to warrant multi-intent processing.
+        
         Simple queries like "Show me museums" should NOT trigger multi-intent handler.
         """
         message_lower = message.lower()
@@ -1830,29 +1925,17 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             'or', 'either'
         ]
         
-        # Count complexity indicators
+        # Count complexity indicators detected
         complexity_count = sum(1 for indicator in complexity_indicators if indicator in message_lower)
         
         # Also check for multiple question marks or commas (indicating multiple sub-queries)
         multiple_questions = message.count('?') > 1
         multiple_clauses = message.count(',') >= 2
         
-        # Simple queries (should NOT trigger multi-intent):
-        # "Show me museums"
-        # "What monuments should I visit?"
-        # "Are there any nice parks?"
-        # "Religious sites I should visit"
-        
-        # Complex queries (SHOULD trigger multi-intent):
-        # "Show me museums near Taksim with restaurants nearby"
-        # "Free family-friendly parks in Kadıköy"
-        # "Indoor museums for rainy day with kids in Sultanahmet"
-        
         # Query is complex if it has:
         # - 2+ complexity indicators, OR
-        # - Multiple questions, OR
+        # - Multiple questions, OR  
         # - 3+ filter words AND 2+ clauses
-        
         is_complex = (
             complexity_count >= 2 or
             multiple_questions or
@@ -1863,3 +1946,118 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             logger.info(f"🔍 Complex query detected (indicators: {complexity_count}, questions: {multiple_questions}, clauses: {multiple_clauses})")
         
         return is_complex
+
+    def _generate_weather_response(self, message: str, entities: Dict, user_profile: UserProfile, 
+                                 context: ConversationContext) -> str:
+        """Generate weather response using the enhanced weather client"""
+        try:
+            if not self.weather_client:
+                return "🌤️ Weather service is temporarily unavailable. Please try again later."
+            
+            # Get current weather data for Istanbul
+            weather_data = self.weather_client.get_current_weather()
+            
+            if not weather_data:
+                return "🌤️ Unable to fetch current weather data. Please try again later."
+            
+            # Format the weather response
+            temp = weather_data.get('temperature', 'N/A')
+            feels_like = weather_data.get('feels_like', 'N/A')
+            description = weather_data.get('description', 'N/A')
+            humidity = weather_data.get('humidity', 'N/A')
+            wind_speed = weather_data.get('wind_speed', 'N/A')
+            pressure = weather_data.get('pressure', 'N/A')
+            visibility = weather_data.get('visibility', 'N/A')
+            
+            # Generate contextual recommendations based on weather
+            recommendations = self._get_weather_based_recommendations(weather_data)
+            
+            current_time = datetime.now().strftime("%H:%M")
+            
+            response = f"""🌤️ **Istanbul Weather** (Updated: {current_time})
+
+**📊 Current Conditions:**
+• **Temperature**: {temp}°C (feels like {feels_like}°C)
+• **Conditions**: {description.title()}
+• **Humidity**: {humidity}%
+• **Wind**: {wind_speed} km/h
+• **Pressure**: {pressure} hPa
+• **Visibility**: {visibility} km
+
+{recommendations}
+
+**💡 Travel Tips:**
+• Check weather before outdoor activities
+• Istanbul weather can change quickly
+• Consider indoor alternatives during rain
+• Dress in layers for temperature changes
+• Bosphorus can be windier than city center
+
+Would you like specific recommendations based on today's weather conditions?"""
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Weather response error: {e}")
+            return """🌤️ **Weather Service Temporarily Unavailable**
+            
+I'm currently unable to fetch real-time weather data for Istanbul. 
+
+**🌍 General Istanbul Weather Info:**
+• **Spring (Mar-May)**: Mild, 15-25°C, occasional rain
+• **Summer (Jun-Aug)**: Hot, 25-35°C, mostly sunny
+• **Fall (Sep-Nov)**: Pleasant, 15-25°C, some rain
+• **Winter (Dec-Feb)**: Cool, 5-15°C, frequent rain
+
+**☔ Weather Preparation:**
+• Umbrella recommended year-round
+• Layers useful for temperature changes
+• Waterproof jacket for winter visits
+• Sunscreen for summer sightseeing
+
+Please try asking about the weather again in a few moments!"""
+    
+    def _get_weather_based_recommendations(self, weather_data: Dict) -> str:
+        """Generate activity recommendations based on current weather"""
+        try:
+            temp = weather_data.get('temperature', 20)
+            description = weather_data.get('description', '').lower()
+            wind_speed = weather_data.get('wind_speed', 0)
+            
+            recommendations = "\n**🎯 Weather-Based Recommendations:**\n"
+            
+            # Temperature-based recommendations
+            if temp >= 25:
+                recommendations += "• **Hot Weather**: Visit air-conditioned museums, take Bosphorus ferry for breeze\n"
+                recommendations += "• **Best Activities**: Basilica Cistern, Grand Bazaar, ferry rides\n"
+                recommendations += "• **Avoid**: Long outdoor walks during midday heat\n"
+            elif temp >= 15:
+                recommendations += "• **Pleasant Weather**: Perfect for walking tours and outdoor sightseeing\n"
+                recommendations += "• **Best Activities**: Sultanahmet walking tour, Galata Bridge, parks\n"
+                recommendations += "• **Great Time**: Ideal weather for most outdoor activities\n"
+            else:
+                recommendations += "• **Cool Weather**: Focus on indoor attractions and cozy experiences\n"
+                recommendations += "• **Best Activities**: Museums, Turkish baths, covered bazaars\n"
+                recommendations += "• **Warm Up**: Try traditional Turkish tea or coffee\n"
+            
+            # Weather condition recommendations
+            if 'rain' in description or 'drizzle' in description:
+                recommendations += "• **Rainy Day**: Perfect for covered markets, underground cistern\n"
+                recommendations += "• **Stay Dry**: Grand Bazaar, Spice Bazaar, museums with covered access\n"
+            elif 'clear' in description or 'sunny' in description:
+                recommendations += "• **Sunny Day**: Excellent for Bosphorus tours and rooftop views\n"
+                recommendations += "• **Don't Miss**: Galata Tower, outdoor markets, ferry rides\n"
+            elif 'cloud' in description:
+                recommendations += "• **Cloudy Day**: Good for photography and comfortable walking\n"
+                recommendations += "• **Perfect For**: City exploration without harsh sun\n"
+            
+            # Wind recommendations
+            if wind_speed > 20:
+                recommendations += "• **Windy Conditions**: Be cautious on bridges and high viewpoints\n"
+                recommendations += "• **Consider**: Indoor activities or sheltered areas\n"
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Weather recommendations error: {e}")
+            return "\n**🎯 General Recommendations:**\n• Check current conditions before heading out\n• Have indoor backup plans ready\n"

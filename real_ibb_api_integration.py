@@ -497,10 +497,10 @@ class RealIBBAPIClient:
         current_time = datetime.now()
         return {
             'lines': {
-                'M1A': {'name': 'Yenikapı-Atatürk Airport', 'status': 'operational', 'delays': [], 'crowding': 0.6},
+                'M1A': {'name': 'Yenikapı-Kirazlı', 'status': 'operational', 'delays': [], 'crowding': 0.6},
                 'M2': {'name': 'Vezneciler-Hacıosman', 'status': 'operational', 'delays': [], 'crowding': 0.8},
-                'M4': {'name': 'Kadıköy-Sabiha Gökçen', 'status': 'operational', 'delays': [], 'crowding': 0.7},
-                'M11': {'name': 'İST Airport-Gayrettepe', 'status': 'operational', 'delays': [], 'crowding': 0.4},
+                'M4': {'name': 'Kadıköy-Sabiha Gökçen Airport', 'status': 'operational', 'delays': [], 'crowding': 0.7},
+                'M11': {'name': 'İstanbul Airport-Gayrettepe', 'status': 'operational', 'delays': [], 'crowding': 0.4},
                 'T1': {'name': 'Kabataş-Bağcılar', 'status': 'operational', 'delays': [], 'crowding': 0.7}
             },
             'timestamp': current_time.isoformat(),
@@ -514,7 +514,15 @@ class RealIBBAPIClient:
             'routes': {
                 '28': {'name': 'Beşiktaş-Edirnekapı', 'crowding': 0.9, 'next_arrival': 5, 'delays': 2},
                 '36': {'name': 'Taksim-Kadıköy', 'crowding': 0.6, 'next_arrival': 8, 'delays': 0},
-                '74': {'name': 'Mecidiyeköy-Söğütlü', 'crowding': 0.4, 'next_arrival': 12, 'delays': 1}
+                '74': {'name': 'Mecidiyeköy-Söğütlü', 'crowding': 0.4, 'next_arrival': 12, 'delays': 1},
+                'IST-1': {'name': 'İstanbul Airport-Taksim (Havaist)', 'crowding': 0.6, 'next_arrival': 30, 'delays': 0},
+                'IST-2': {'name': 'İstanbul Airport-Kadıköy (Havaist)', 'crowding': 0.5, 'next_arrival': 25, 'delays': 0},
+                'IST-3': {'name': 'İstanbul Airport-Beşiktaş (Havaist)', 'crowding': 0.4, 'next_arrival': 35, 'delays': 0},
+                'IST-4': {'name': 'İstanbul Airport-Sultanahmet (Havaist)', 'crowding': 0.7, 'next_arrival': 20, 'delays': 0},
+                'IST-5': {'name': 'İstanbul Airport-Üsküdar (Havaist)', 'crowding': 0.3, 'next_arrival': 40, 'delays': 0},
+                'IST-19': {'name': 'İstanbul Airport-Cevizlibağ (Havaist)', 'crowding': 0.5, 'next_arrival': 15, 'delays': 0},
+                'H-2': {'name': 'Sabiha Gökçen Airport-Taksim (Havabus)', 'crowding': 0.6, 'next_arrival': 45, 'delays': 0},
+                'H-3': {'name': 'Sabiha Gökçen Airport-Kadıköy (Havabus)', 'crowding': 0.4, 'next_arrival': 30, 'delays': 0}
             },
             'timestamp': current_time.isoformat(),
             'source': 'fallback'
