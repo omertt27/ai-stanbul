@@ -15,7 +15,7 @@ import {
   getUserFriendlyMessage,
   networkStatus 
 } from './utils/errorHandler';
-import ErrorNotification, { NetworkStatusIndicator, RetryButton } from './components/ErrorNotification';
+import ErrorNotification, { NetworkStatusIndicator } from './components/ErrorNotification';
 import TypingIndicator from './components/TypingIndicator';
 import MessageActions from './components/MessageActions';
 import ScrollToBottom from './components/ScrollToBottom';
@@ -502,8 +502,6 @@ function Chatbot() {
   
   // Enhanced error handling state
   const [currentError, setCurrentError] = useState(null);
-  const [retryAction, setRetryAction] = useState(null);
-  const [lastFailedMessage, setLastFailedMessage] = useState(null);
   
   // Network and health monitoring
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -808,10 +806,6 @@ function Chatbot() {
           }
           return updated;
         });
-        
-        // Set retry action
-        setRetryAction(() => () => handleSendMessage(textToSend, true));
-        setLastFailedMessage(textToSend);
       };
 
       // Call streaming AI API with metadata support
@@ -853,10 +847,6 @@ function Chatbot() {
         return updated;
       });
       
-      // Set retry action
-      setRetryAction(() => () => handleSendMessage(textToSend, true));
-      setLastFailedMessage(textToSend);
-      
     } finally {
       setLoading(false);
       setIsTyping(false);
@@ -870,11 +860,6 @@ function Chatbot() {
       setIsOnline(navigator.onLine);
       if (navigator.onLine) {
         console.log('🌐 Back online');
-        // Optionally retry failed requests
-        if (lastFailedMessage && retryAction) {
-          console.log('🔄 Auto-retrying last failed message');
-          retryAction();
-        }
       } else {
         console.log('📴 Gone offline');
       }
@@ -904,7 +889,7 @@ function Chatbot() {
       unsubscribe();
       clearInterval(healthCheckInterval);
     };
-  }, [lastFailedMessage, retryAction]);
+  }, []);
 
   // Main render function
   return (
@@ -1091,9 +1076,6 @@ function Chatbot() {
           </span>
         </div>
       </div>
-
-      {/* Retry Button for failed requests */}
-      <RetryButton />
     </div>
   );
 }

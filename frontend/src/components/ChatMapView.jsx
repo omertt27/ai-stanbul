@@ -1,10 +1,12 @@
 /**
  * ChatMapView Component - Displays map data from AI chat responses
  * Renders locations (restaurants, attractions, neighborhoods) on an interactive map
+ * Phase 2: Includes user location, route visualization, and filters
  */
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { useLocation } from '../contexts/LocationContext';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -29,11 +31,13 @@ const createCustomIcon = (type, color) => {
     museum: '🏛️',
     park: '🌳',
     shopping: '🛍️',
+    origin: '🟢',
+    destination: '🏁',
     default: '📍'
   };
 
   const icon = icons[type] || icons.default;
-  const bgColor = color || '#3B82F6';
+  const bgColor = color || (type === 'origin' ? '#10b981' : type === 'destination' ? '#ef4444' : '#3B82F6');
   
   return L.divIcon({
     html: `
@@ -58,26 +62,60 @@ const createCustomIcon = (type, color) => {
   });
 };
 
-// Auto-fit bounds component
-const AutoFitBounds = ({ locations }) => {
+// User location icon with pulse animation
+const userLocationIcon = L.divIcon({
+  html: `
+    <div class="user-location-marker">
+      <div class="user-location-pulse"></div>
+      <div class="user-location-dot">
+        <span style="font-size: 14px;">📍</span>
+      </div>
+    </div>
+  `,
+  className: 'user-location-icon-container',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
+// Auto-fit bounds component (updated to include user location and routes)
+const AutoFitBounds = ({ locations, userLocation, routePolyline }) => {
   const map = useMap();
 
   useEffect(() => {
+    const allPoints = [];
+    
+    // Add location markers
     if (locations && locations.length > 0) {
-      const bounds = locations.map(loc => [loc.lat, loc.lon]);
-      const leafletBounds = L.latLngBounds(bounds);
+      locations.forEach(loc => allPoints.push([loc.lat, loc.lon]));
+    }
+    
+    // Add user location if available
+    if (userLocation) {
+      allPoints.push([userLocation.lat, userLocation.lng]);
+    }
+    
+    // Add route polyline points if available
+    if (routePolyline && routePolyline.length > 0) {
+      routePolyline.forEach(point => allPoints.push([point.lat, point.lng]));
+    }
+    
+    if (allPoints.length > 0) {
+      const leafletBounds = L.latLngBounds(allPoints);
       map.fitBounds(leafletBounds, { padding: [50, 50], maxZoom: 15 });
     }
-  }, [locations, map]);
+  }, [locations, userLocation, routePolyline, map]);
 
   return null;
 };
 
-const ChatMapView = ({ mapData, darkMode = false }) => {
-  const [expandedMarker, setExpandedMarker] = useState(null);
+const ChatMapView = ({ mapData, darkMode = false, showRoute = true, showUserLocation = true }) => {
+  const [activeFilters, setActiveFilters] = useState(['restaurant', 'attraction', 'cafe', 'bar', 'museum', 'park', 'shopping', 'hotel', 'neighborhood', 'poi', 'origin', 'destination']);
+  const { currentLocation, hasLocation } = useLocation();
 
   // Extract data from map_data
   const locations = mapData?.locations || [];
+  const routePolyline = mapData?.route_polyline || null; // Route path for transportation directions
   const center = mapData?.center || { lat: 41.0082, lon: 28.9784 }; // Istanbul center as fallback
   
   // Determine tile layer based on theme
@@ -88,6 +126,34 @@ const ChatMapView = ({ mapData, darkMode = false }) => {
   const tileAttribution = darkMode
     ? '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
     : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+  // Filter toggle handler
+  const toggleFilter = (type) => {
+    setActiveFilters(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
+  // Get unique location types from current locations
+  const availableTypes = [...new Set(locations.map(loc => loc.type))];
+  
+  // Filter type configurations
+  const filterConfig = {
+    restaurant: { icon: '🍽️', label: 'Restaurants', color: '#f59e0b' },
+    attraction: { icon: '🏛️', label: 'Attractions', color: '#3b82f6' },
+    cafe: { icon: '☕', label: 'Cafes', color: '#a855f7' },
+    bar: { icon: '🍺', label: 'Bars', color: '#ef4444' },
+    museum: { icon: '🏛️', label: 'Museums', color: '#06b6d4' },
+    park: { icon: '🌳', label: 'Parks', color: '#10b981' },
+    shopping: { icon: '🛍️', label: 'Shopping', color: '#ec4899' },
+    hotel: { icon: '🏨', label: 'Hotels', color: '#8b5cf6' },
+    neighborhood: { icon: '🏘️', label: 'Areas', color: '#6366f1' },
+    poi: { icon: '📍', label: 'POIs', color: '#64748b' },
+    origin: { icon: '🟢', label: 'Start', color: '#10b981' },
+    destination: { icon: '🏁', label: 'End', color: '#ef4444' }
+  };
 
   if (!locations || locations.length === 0) {
     return (
@@ -125,16 +191,69 @@ const ChatMapView = ({ mapData, darkMode = false }) => {
           url={tileUrl}
         />
         
-        <AutoFitBounds locations={locations} />
+        <AutoFitBounds 
+          locations={locations} 
+          userLocation={showUserLocation && hasLocation ? currentLocation : null}
+          routePolyline={routePolyline}
+        />
         
-        {locations.map((location, idx) => (
+        {/* Route Polyline - Transportation directions route */}
+        {routePolyline && routePolyline.length > 0 && (
+          <Polyline
+            positions={routePolyline.map(point => [point.lat, point.lng])}
+            pathOptions={{
+              color: '#3b82f6',
+              weight: 4,
+              opacity: 0.8,
+              dashArray: '10, 5',
+              lineJoin: 'round',
+              lineCap: 'round'
+            }}
+          />
+        )}
+        
+        {/* Route Visualization - Simple path between multiple locations (not for transportation) */}
+        {showRoute && !routePolyline && locations.length > 1 && (
+          <Polyline
+            positions={locations.map(loc => [loc.lat, loc.lon])}
+            pathOptions={{
+              color: '#8a2be2',
+              weight: 3,
+              opacity: 0.6,
+              dashArray: '10, 10',
+              lineJoin: 'round'
+            }}
+          />
+        )}
+        
+        {/* User Location Marker */}
+        {showUserLocation && hasLocation && currentLocation && (
+          <Marker
+            position={[currentLocation.lat, currentLocation.lng]}
+            icon={userLocationIcon}
+            zIndexOffset={1000}
+          >
+            <Popup>
+              <div style={{ padding: '8px', textAlign: 'center' }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600' }}>
+                  📍 You are here
+                </h4>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                  Current location
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+        
+        {/* Location Markers - Filtered */}
+        {locations
+          .filter(loc => activeFilters.includes(loc.type))
+          .map((location, idx) => (
           <Marker 
             key={idx} 
             position={[location.lat, location.lon]}
             icon={createCustomIcon(location.type, location.metadata?.color)}
-            eventHandlers={{
-              click: () => setExpandedMarker(idx),
-            }}
           >
             <Popup maxWidth={300}>
               <div style={{ 
@@ -239,6 +358,92 @@ const ChatMapView = ({ mapData, darkMode = false }) => {
           </Marker>
         ))}
       </MapContainer>
+      
+      {/* Filter Controls - Only show if there are multiple types */}
+      {availableTypes.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: darkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '12px',
+          padding: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 1000,
+          maxWidth: '200px'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: '600',
+            color: darkMode ? '#e2e8f0' : '#374151',
+            marginBottom: '6px',
+            paddingLeft: '4px'
+          }}>
+            Filter Locations
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            {availableTypes.map(type => {
+              const config = filterConfig[type] || filterConfig.poi;
+              const isActive = activeFilters.includes(type);
+              
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleFilter(type)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 8px',
+                    background: isActive 
+                      ? (darkMode ? 'rgba(138, 43, 226, 0.3)' : 'rgba(138, 43, 226, 0.1)') 
+                      : 'transparent',
+                    border: isActive 
+                      ? `1px solid ${config.color}` 
+                      : `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    borderRadius: '8px',
+                    color: darkMode ? '#e2e8f0' : '#374151',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    opacity: isActive ? 1 : 0.6
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '1';
+                    e.target.style.transform = 'translateX(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = isActive ? '1' : '0.6';
+                    e.target.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <span>{config.icon}</span>
+                  <span>{config.label}</span>
+                  {isActive && <span style={{ marginLeft: 'auto', fontSize: '10px' }}>✓</span>}
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Stats */}
+          <div style={{
+            marginTop: '8px',
+            paddingTop: '8px',
+            borderTop: `1px solid ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+            fontSize: '10px',
+            color: darkMode ? '#94a3b8' : '#6b7280',
+            textAlign: 'center'
+          }}>
+            Showing {locations.filter(loc => activeFilters.includes(loc.type)).length} of {locations.length} locations
+          </div>
+        </div>
+      )}
     </div>
   );
 };

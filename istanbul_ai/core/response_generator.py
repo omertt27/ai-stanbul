@@ -7,7 +7,7 @@ import random
 import sys
 import os
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Tuple
 
 # Add backend services to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -17,6 +17,14 @@ try:
 except ImportError:
     LOCATION_COORDS_AVAILABLE = False
     print("⚠️ Location coordinates service not available")
+
+# Import transportation directions service
+try:
+    from services.transportation_directions_service import get_transportation_service
+    TRANSPORTATION_SERVICE_AVAILABLE = True
+except ImportError:
+    TRANSPORTATION_SERVICE_AVAILABLE = False
+    print("⚠️ Transportation directions service not available")
 
 from ..core.models import UserProfile, ConversationContext
 
@@ -31,6 +39,12 @@ class ResponseGenerator:
             self.location_service = get_location_coordinates_service()
         else:
             self.location_service = None
+        
+        # Initialize transportation service
+        if TRANSPORTATION_SERVICE_AVAILABLE:
+            self.transport_service = get_transportation_service()
+        else:
+            self.transport_service = None
     
     def initialize_response_templates(self):
         """Initialize comprehensive response templates"""
@@ -83,7 +97,7 @@ class ResponseGenerator:
         """Generate comprehensive 150-300 word recommendations with practical information
         
         Args:
-            recommendation_type: Type of recommendation (restaurant, attraction, neighborhood)
+            recommendation_type: Type of recommendation (restaurant, attraction, neighborhood, transportation)
             entities: Extracted entities from user query
             user_profile: User profile information
             context: Conversation context
@@ -106,6 +120,8 @@ class ResponseGenerator:
             return self._generate_enhanced_attraction_recommendation(entities, user_profile, context, current_time, return_structured)
         elif recommendation_type == 'neighborhood':
             return self._generate_enhanced_neighborhood_recommendation(entities, user_profile, context, current_time, return_structured)
+        elif recommendation_type == 'transportation' or recommendation_type == 'route_planning':
+            return self._generate_transportation_directions(entities, user_profile, context, return_structured)
         else:
             result = self._generate_fallback_response(context, user_profile)
             return {'response': result, 'map_data': None, 'recommendation_type': 'general'} if return_structured else result
@@ -477,100 +493,258 @@ class ResponseGenerator:
         else:
             return response_text
     
-    def _generate_fallback_response(self, context: ConversationContext, user_profile: UserProfile) -> str:
-        """Generate comprehensive fallback response when specific recommendations aren't available"""
+    def _generate_transportation_directions(
+        self,
+        entities: Dict,
+        user_profile: UserProfile,
+        context: ConversationContext,
+        return_structured: bool = False
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Generate detailed transportation directions (Google Maps style)
         
-        current_time = datetime.now()
-        hour = current_time.hour
+        Args:
+            entities: Extracted entities (origin, destination, locations)
+            user_profile: User profile
+            context: Conversation context
+            return_structured: If True, return dict with response and map_data
+            
+        Returns:
+            Detailed transportation directions with route visualization
+        """
         
-        # Time-based suggestions
-        if hour < 10:
-            time_suggestion = "🌅 Perfect morning activities: Visit Hagia Sophia before crowds, enjoy traditional Turkish breakfast in Sultanahmet, or take an early Bosphorus walk."
-        elif hour < 14:
-            time_suggestion = "☀️ Great midday options: Explore Grand Bazaar, enjoy lunch in a traditional lokanta, visit Topkapi Palace with its shaded courtyards."
-        elif hour < 18:
-            time_suggestion = "🌤️ Wonderful afternoon choices: Climb Galata Tower for sunset views, stroll through trendy Beyoğlu, discover local cafes in Karaköy."
+        # Extract origin and destination from entities
+        origin = entities.get('origin')
+        destination = entities.get('destination')
+        landmarks = entities.get('landmarks', [])
+        
+        # Try to resolve location names to coordinates
+        origin_coords = None
+        destination_coords = None
+        origin_name = "your location"
+        destination_name = "destination"
+        
+        if origin and self.location_service:
+            coords_data = self.location_service.get_coordinates(origin, 'auto')
+            if coords_data:
+                origin_coords = (coords_data['lat'], coords_data['lng'])
+                origin_name = origin
+        
+        if destination and self.location_service:
+            coords_data = self.location_service.get_coordinates(destination, 'auto')
+            if coords_data:
+                destination_coords = (coords_data['lat'], coords_data['lng'])
+                destination_name = destination
+        
+        # If no specific origin/destination but landmarks mentioned, find route between first two
+        if not origin_coords and not destination_coords and len(landmarks) >= 2:
+            if self.location_service:
+                first_coords = self.location_service.get_coordinates(landmarks[0], 'auto')
+                second_coords = self.location_service.get_coordinates(landmarks[1], 'auto')
+                if first_coords and second_coords:
+                    origin_coords = (first_coords['lat'], first_coords['lng'])
+                    destination_coords = (second_coords['lat'], second_coords['lng'])
+                    origin_name = landmarks[0]
+                    destination_name = landmarks[1]
+        
+        # Default to popular routes if nothing specified
+        if not origin_coords or not destination_coords:
+            # Default example: Sultanahmet to Taksim
+            origin_coords = (41.0054, 28.9768)  # Sultanahmet
+            destination_coords = (41.0370, 28.9850)  # Taksim
+            origin_name = "Sultanahmet"
+            destination_name = "Taksim Square"
+        
+        # Get detailed directions
+        route = None
+        if self.transport_service:
+            try:
+                route = self.transport_service.get_directions(
+                    start=origin_coords,
+                    end=destination_coords,
+                    start_name=origin_name,
+                    end_name=destination_name
+                )
+            except Exception as e:
+                print(f"⚠️ Transportation service error: {e}")
+        
+        # Build response
+        response_parts = []
+        
+        # Header
+        response_parts.append(f"🗺️ **Directions from {origin_name} to {destination_name}**\n")
+        
+        if route:
+            # Format the detailed route
+            response_parts.append(f"⏱️ **Total Time:** {route.total_duration} minutes")
+            response_parts.append(f"📏 **Total Distance:** {route.total_distance/1000:.1f} km")
+            
+            modes_icons = {
+                'walk': '🚶 Walking',
+                'metro': '🚇 Metro',
+                'tram': '🚊 Tram',
+                'bus': '🚌 Bus',
+                'ferry': '⛴️ Ferry'
+            }
+            modes_str = ', '.join([modes_icons.get(m, m) for m in set(route.modes_used)])
+            response_parts.append(f"🚉 **Transport Modes:** {modes_str}\n")
+            
+            # Detailed steps
+            response_parts.append("**Step-by-Step Directions:**\n")
+            for i, step in enumerate(route.steps, 1):
+                icon = {
+                    'walk': '🚶',
+                    'metro': '🚇',
+                    'tram': '🚊',
+                    'bus': '🚌',
+                    'ferry': '⛴️'
+                }.get(step.mode, '➡️')
+                
+                response_parts.append(f"**{i}. {icon} {step.instruction}**")
+                response_parts.append(f"   • Distance: {step.distance/1000:.1f} km")
+                response_parts.append(f"   • Duration: {step.duration} minutes")
+                
+                if step.line_name:
+                    response_parts.append(f"   • Line: {step.line_name}")
+                if step.stops_count:
+                    response_parts.append(f"   • Stops: {step.stops_count}")
+                response_parts.append("")
         else:
-            time_suggestion = "🌆 Evening magic awaits: Experience Istanbul's vibrant nightlife, enjoy dinner with Bosphorus views, or explore illuminated historic monuments."
+            # Fallback general directions
+            response_parts.append(f"Here's how to travel between {origin_name} and {destination_name}:\n")
+            response_parts.append("🚇 **Metro/Tram Option:**")
+            response_parts.append("1. Walk to the nearest metro or tram station")
+            response_parts.append("2. Take the appropriate line towards your destination")
+            response_parts.append("3. Transfer if needed at major hubs")
+            response_parts.append("4. Walk to your final destination\n")
+            
+            response_parts.append("💡 **Tips:**")
+            response_parts.append("• Get an Istanbulkart for easy payment on all public transport")
+            response_parts.append("• Metro frequency: Every 5-10 minutes during peak hours")
+            response_parts.append("• Trams run frequently on major routes")
+            response_parts.append("• Download the official IETT app for real-time schedules")
         
-        fallback_response = f"""
-🎯 I'd love to give you more specific recommendations! While I gather more details about what you're looking for, here are some wonderful Istanbul experiences:
-
-{time_suggestion}
-
-🏛️ Must-See Attractions (any time):
-• Hagia Sophia - Architectural marvel spanning 1,500 years
-• Blue Mosque - Stunning Ottoman architecture with six minarets  
-• Grand Bazaar - 4,000 shops in historic covered market
-• Bosphorus - The strait that divides Europe and Asia
-
-🍽️ Culinary Experiences:
-• Traditional breakfast - Try serpme kahvaltı (spread breakfast)
-• Street food - Döner, simit, and fresh fish sandwiches
-• Ottoman cuisine - Historic recipes in traditional restaurants
-• Turkish coffee & baklava - Perfect afternoon treats
-
-🏘️ Neighborhood Character:
-• Sultanahmet - Historic heart with major monuments
-• Beyoğlu - Modern, trendy area with nightlife
-• Kadıköy - Authentic local life on Asian side
-• Beşiktaş - Upscale with beautiful Bosphorus views
-
-💡 Pro Tips:
-• Get an Istanbulkart for easy public transport
-• Dress modestly when visiting mosques
-• Learn basic Turkish greetings - locals appreciate it!
-• Always negotiate prices in markets
-• Try Turkish tea (çay) - it's offered everywhere!
-
-What specifically interests you most? I can provide detailed recommendations based on your preferences, budget, time available, or any particular experiences you're seeking!
-"""
+        # Add general Istanbul transportation info
+        response_parts.append("\n📱 **Transportation Resources:**")
+        response_parts.append("• **Istanbulkart:** Essential rechargeable transport card")
+        response_parts.append("• **IETT App:** Real-time bus tracking and schedules")
+        response_parts.append("• **Metro hours:** Approximately 6:00 AM - 12:00 AM")
+        response_parts.append("• **Ferry schedules:** Check İDO or Şehir Hatları websites")
+        response_parts.append("• **Taxi apps:** BiTaksi, iTaksi for reliable rides")
         
-        return fallback_response
+        response_text = '\n'.join(response_parts)
+        
+        # Build map data with route visualization
+        if return_structured:
+            map_data = self._build_route_map_data(route, origin_coords, destination_coords, origin_name, destination_name)
+            return {
+                'response': response_text,
+                'map_data': map_data,
+                'recommendation_type': 'transportation',
+                'route_data': self._serialize_route(route) if route else None
+            }
+        else:
+            return response_text
     
-    def _enhance_multi_intent_response(self, base_response: str, intents: List[str], 
-                                     entities: Dict, user_profile: UserProfile) -> str:
-        """Enhance responses when multiple intents are detected"""
+    def _build_route_map_data(
+        self,
+        route,
+        origin_coords: Tuple[float, float],
+        destination_coords: Tuple[float, float],
+        origin_name: str,
+        destination_name: str
+    ) -> Dict[str, Any]:
+        """Build map data for route visualization"""
         
-        if len(intents) <= 1:
-            return base_response
+        locations = []
+        route_polyline = []
         
-        enhancement_parts = [base_response]
+        # Add origin and destination markers
+        locations.append({
+            'lat': origin_coords[0],
+            'lon': origin_coords[1],
+            'name': origin_name,
+            'type': 'origin',
+            'metadata': {
+                'description': 'Starting point',
+                'icon': 'start'
+            }
+        })
         
-        # Add connections between different intents
-        if 'restaurant' in intents and 'attraction' in intents:
-            enhancement_parts.append("""
-🍽️➡️🏛️ Perfect Combinations:
-• Visit Hagia Sophia, then lunch at nearby Pandeli restaurant
-• Explore Grand Bazaar, then traditional Ottoman dinner in Sultanahmet
-• Morning at Topkapi Palace, afternoon tea in historic Soğukçeşme Street""")
+        locations.append({
+            'lat': destination_coords[0],
+            'lon': destination_coords[1],
+            'name': destination_name,
+            'type': 'destination',
+            'metadata': {
+                'description': 'Destination',
+                'icon': 'end'
+            }
+        })
         
-        if 'transportation' in intents and ('restaurant' in intents or 'attraction' in intents):
-            enhancement_parts.append("""
-🚇 Easy Transport Connections:
-• Sultanahmet tram connects all major historic sites
-• Ferry rides offer scenic routes between districts
-• Metro system efficiently connects modern areas
-• Walking between nearby attractions saves time and money""")
+        # Build route polyline from steps
+        if route and route.steps:
+            for step in route.steps:
+                # Add waypoints if available
+                if step.waypoints:
+                    for wp in step.waypoints:
+                        route_polyline.append({'lat': wp[0], 'lng': wp[1]})
+                else:
+                    # Add start and end of step
+                    route_polyline.append({'lat': step.start_location[0], 'lng': step.start_location[1]})
+                    route_polyline.append({'lat': step.end_location[0], 'lng': step.end_location[1]})
         
-        if 'neighborhood' in intents and 'restaurant' in intents:
-            enhancement_parts.append("""
-🏘️🍴 Neighborhood Food Specialties:
-• Sultanahmet: Traditional Ottoman cuisine and tourist-friendly restaurants
-• Beyoğlu: Trendy cafes, international cuisine, and rooftop dining
-• Kadıköy: Authentic local eateries and incredible street food markets
-• Beşiktaş: Upscale dining with Bosphorus views""")
+        # If no detailed route, add simple line
+        if not route_polyline:
+            route_polyline = [
+                {'lat': origin_coords[0], 'lng': origin_coords[1]},
+                {'lat': destination_coords[0], 'lng': destination_coords[1]}
+            ]
         
-        # Add user-specific enhancements
-        if user_profile.travel_style == 'family':
-            enhancement_parts.append("""
-👨‍👩‍👧‍👦 Family-Friendly Tips:
-• Many restaurants welcome children and offer high chairs
-• Historic sites have facilities and shorter visit options
-• Parks and waterfront areas great for kids to play
-• Traditional Turkish breakfast is perfect for families""")
+        # Calculate bounds
+        all_lats = [loc['lat'] for loc in locations] + [p['lat'] for p in route_polyline]
+        all_lons = [loc['lon'] for loc in locations] + [p['lng'] for p in route_polyline]
         
-        return '\n'.join(enhancement_parts)
+        return {
+            'locations': locations,
+            'route_polyline': route_polyline,
+            'center': {
+                'lat': sum(all_lats) / len(all_lats),
+                'lon': sum(all_lons) / len(all_lons)
+            },
+            'bounds': {
+                'north': max(all_lats),
+                'south': min(all_lats),
+                'east': max(all_lons),
+                'west': min(all_lons)
+            },
+            'zoom': 13
+        }
+    
+    def _serialize_route(self, route) -> Optional[Dict[str, Any]]:
+        """Serialize route object to JSON-compatible dict"""
+        if not route:
+            return None
+        
+        return {
+            'total_distance': route.total_distance,
+            'total_duration': route.total_duration,
+            'summary': route.summary,
+            'modes_used': route.modes_used,
+            'steps': [
+                {
+                    'mode': step.mode,
+                    'instruction': step.instruction,
+                    'distance': step.distance,
+                    'duration': step.duration,
+                    'start_location': step.start_location,
+                    'end_location': step.end_location,
+                    'line_name': step.line_name,
+                    'stops_count': step.stops_count
+                }
+                for step in route.steps
+            ]
+        }
     
     def _get_meal_context(self, current_time) -> str:
         """Get appropriate meal context based on time"""
@@ -863,4 +1037,257 @@ What specifically interests you most? I can provide detailed recommendations bas
                 'west': min(lons)
             },
             'zoom': 13 if len(locations) > 1 else 15
+        }
+
+    def _generate_transportation_directions(
+        self,
+        entities: Dict,
+        user_profile: UserProfile,
+        context: ConversationContext,
+        return_structured: bool = False
+    ) -> Union[str, Dict[str, Any]]:
+        """
+        Generate detailed transportation directions (Google Maps style)
+        
+        Args:
+            entities: Extracted entities (origin, destination, locations)
+            user_profile: User profile
+            context: Conversation context
+            return_structured: If True, return dict with response and map_data
+            
+        Returns:
+            Detailed transportation directions with route visualization
+        """
+        
+        # Extract origin and destination from entities
+        origin = entities.get('origin')
+        destination = entities.get('destination')
+        landmarks = entities.get('landmarks', [])
+        
+        # Try to resolve location names to coordinates
+        origin_coords = None
+        destination_coords = None
+        origin_name = "your location"
+        destination_name = "destination"
+        
+        if origin and self.location_service:
+            coords_data = self.location_service.get_coordinates(origin, 'auto')
+            if coords_data:
+                origin_coords = (coords_data['lat'], coords_data['lng'])
+                origin_name = origin
+        
+        if destination and self.location_service:
+            coords_data = self.location_service.get_coordinates(destination, 'auto')
+            if coords_data:
+                destination_coords = (coords_data['lat'], coords_data['lng'])
+                destination_name = destination
+        
+        # If no specific origin/destination but landmarks mentioned, find route between first two
+        if not origin_coords and not destination_coords and len(landmarks) >= 2:
+            if self.location_service:
+                first_coords = self.location_service.get_coordinates(landmarks[0], 'auto')
+                second_coords = self.location_service.get_coordinates(landmarks[1], 'auto')
+                if first_coords and second_coords:
+                    origin_coords = (first_coords['lat'], first_coords['lng'])
+                    destination_coords = (second_coords['lat'], second_coords['lng'])
+                    origin_name = landmarks[0]
+                    destination_name = landmarks[1]
+        
+        # Default to popular routes if nothing specified
+        if not origin_coords or not destination_coords:
+            # Default example: Sultanahmet to Taksim
+            origin_coords = (41.0054, 28.9768)  # Sultanahmet
+            destination_coords = (41.0370, 28.9850)  # Taksim
+            origin_name = "Sultanahmet"
+            destination_name = "Taksim Square"
+        
+        # Get detailed directions
+        route = None
+        if self.transport_service:
+            try:
+                route = self.transport_service.get_directions(
+                    start=origin_coords,
+                    end=destination_coords,
+                    start_name=origin_name,
+                    end_name=destination_name
+                )
+            except Exception as e:
+                print(f"⚠️ Transportation service error: {e}")
+        
+        # Build response
+        response_parts = []
+        
+        # Header
+        response_parts.append(f"🗺️ **Directions from {origin_name} to {destination_name}**\n")
+        
+        if route:
+            # Format the detailed route
+            response_parts.append(f"⏱️ **Total Time:** {route.total_duration} minutes")
+            response_parts.append(f"📏 **Total Distance:** {route.total_distance/1000:.1f} km")
+            
+            modes_icons = {
+                'walk': '🚶 Walking',
+                'metro': '🚇 Metro',
+                'tram': '🚊 Tram',
+                'bus': '🚌 Bus',
+                'ferry': '⛴️ Ferry'
+            }
+            modes_str = ', '.join([modes_icons.get(m, m) for m in set(route.modes_used)])
+            response_parts.append(f"🚉 **Transport Modes:** {modes_str}\n")
+            
+            # Detailed steps
+            response_parts.append("**Step-by-Step Directions:**\n")
+            for i, step in enumerate(route.steps, 1):
+                icon = {
+                    'walk': '🚶',
+                    'metro': '🚇',
+                    'tram': '🚊',
+                    'bus': '🚌',
+                    'ferry': '⛴️'
+                }.get(step.mode, '➡️')
+                
+                response_parts.append(f"**{i}. {icon} {step.instruction}**")
+                response_parts.append(f"   • Distance: {step.distance/1000:.1f} km")
+                response_parts.append(f"   • Duration: {step.duration} minutes")
+                
+                if step.line_name:
+                    response_parts.append(f"   • Line: {step.line_name}")
+                if step.stops_count:
+                    response_parts.append(f"   • Stops: {step.stops_count}")
+                response_parts.append("")
+        else:
+            # Fallback general directions
+            response_parts.append(f"Here's how to travel between {origin_name} and {destination_name}:\n")
+            response_parts.append("🚇 **Metro/Tram Option:**")
+            response_parts.append("1. Walk to the nearest metro or tram station")
+            response_parts.append("2. Take the appropriate line towards your destination")
+            response_parts.append("3. Transfer if needed at major hubs")
+            response_parts.append("4. Walk to your final destination\n")
+            
+            response_parts.append("💡 **Tips:**")
+            response_parts.append("• Get an Istanbulkart for easy payment on all public transport")
+            response_parts.append("• Metro frequency: Every 5-10 minutes during peak hours")
+            response_parts.append("• Trams run frequently on major routes")
+            response_parts.append("• Download the official IETT app for real-time schedules")
+        
+        # Add general Istanbul transportation info
+        response_parts.append("\n📱 **Transportation Resources:**")
+        response_parts.append("• **Istanbulkart:** Essential rechargeable transport card")
+        response_parts.append("• **IETT App:** Real-time bus tracking and schedules")
+        response_parts.append("• **Metro hours:** Approximately 6:00 AM - 12:00 AM")
+        response_parts.append("• **Ferry schedules:** Check İDO or Şehir Hatları websites")
+        response_parts.append("• **Taxi apps:** BiTaksi, iTaksi for reliable rides")
+        
+        response_text = '\n'.join(response_parts)
+        
+        # Build map data with route visualization
+        if return_structured:
+            map_data = self._build_route_map_data(route, origin_coords, destination_coords, origin_name, destination_name)
+            return {
+                'response': response_text,
+                'map_data': map_data,
+                'recommendation_type': 'transportation',
+                'route_data': self._serialize_route(route) if route else None
+            }
+        else:
+            return response_text
+    
+    def _build_route_map_data(
+        self,
+        route,
+        origin_coords: Tuple[float, float],
+        destination_coords: Tuple[float, float],
+        origin_name: str,
+        destination_name: str
+    ) -> Dict[str, Any]:
+        """Build map data for route visualization"""
+        
+        locations = []
+        route_polyline = []
+        
+        # Add origin and destination markers
+        locations.append({
+            'lat': origin_coords[0],
+            'lon': origin_coords[1],
+            'name': origin_name,
+            'type': 'origin',
+            'metadata': {
+                'description': 'Starting point',
+                'icon': 'start'
+            }
+        })
+        
+        locations.append({
+            'lat': destination_coords[0],
+            'lon': destination_coords[1],
+            'name': destination_name,
+            'type': 'destination',
+            'metadata': {
+                'description': 'Destination',
+                'icon': 'end'
+            }
+        })
+        
+        # Build route polyline from steps
+        if route and route.steps:
+            for step in route.steps:
+                # Add waypoints if available
+                if step.waypoints:
+                    for wp in step.waypoints:
+                        route_polyline.append({'lat': wp[0], 'lng': wp[1]})
+                else:
+                    # Add start and end of step
+                    route_polyline.append({'lat': step.start_location[0], 'lng': step.start_location[1]})
+                    route_polyline.append({'lat': step.end_location[0], 'lng': step.end_location[1]})
+        
+        # If no detailed route, add simple line
+        if not route_polyline:
+            route_polyline = [
+                {'lat': origin_coords[0], 'lng': origin_coords[1]},
+                {'lat': destination_coords[0], 'lng': destination_coords[1]}
+            ]
+        
+        # Calculate bounds
+        all_lats = [loc['lat'] for loc in locations] + [p['lat'] for p in route_polyline]
+        all_lons = [loc['lon'] for loc in locations] + [p['lng'] for p in route_polyline]
+        
+        return {
+            'locations': locations,
+            'route_polyline': route_polyline,
+            'center': {
+                'lat': sum(all_lats) / len(all_lats),
+                'lon': sum(all_lons) / len(all_lons)
+            },
+            'bounds': {
+                'north': max(all_lats),
+                'south': min(all_lats),
+                'east': max(all_lons),
+                'west': min(all_lons)
+            },
+            'zoom': 13
+        }
+    
+    def _serialize_route(self, route) -> Optional[Dict[str, Any]]:
+        """Serialize route object to JSON-compatible dict"""
+        if not route:
+            return None
+        
+        return {
+            'total_distance': route.total_distance,
+            'total_duration': route.total_duration,
+            'summary': route.summary,
+            'modes_used': route.modes_used,
+            'steps': [
+                {
+                    'mode': step.mode,
+                    'instruction': step.instruction,
+                    'distance': step.distance,
+                    'duration': step.duration,
+                    'start_location': step.start_location,
+                    'end_location': step.end_location,
+                    'line_name': step.line_name,
+                    'stops_count': step.stops_count
+                }
+                for step in route.steps
+            ]
         }

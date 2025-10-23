@@ -2,16 +2,24 @@
 .chatbot-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  max-width: 1200px;
+  height: 85vh;
+  margin: 0 auto 2rem auto; /* Remove top margin, keep auto horizontal and bottom margin */
+  margin-top: calc(70px + 1.5rem); /* Add top margin = navbar height (70px) + spacing (1.5rem) */
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
   color: #ffffff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
   overflow: hidden;
+  border: 2px solid rgba(138, 43, 226, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(138, 43, 226, 0.3);
 }
 
 .chatbot-container.dark-mode {
   background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%);
+  border: 2px solid rgba(138, 43, 226, 0.6);
+  box-shadow: 0 20px 60px rgba(138, 43, 226, 0.4);
 }
 
 /* Chat Messages Container */
@@ -113,7 +121,7 @@
 }
 
 .message-container.user {
-  justify-content: flex-end;
+  justify-content: flex-start; /* User messages on the left */
 }
 
 .message-container.ai {
@@ -135,9 +143,9 @@
 .message-bubble.user {
   background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
   color: #ffffff;
-  margin-left: auto;
-  margin-right: 20px;
-  border-bottom-right-radius: 6px;
+  margin-left: 20px; /* User messages start from left */
+  margin-right: auto;
+  border-bottom-left-radius: 6px; /* Round bottom left instead of right */
 }
 
 .message-bubble.ai {
@@ -193,18 +201,18 @@
 
 /* Chat Input Container */
 .chat-input-container {
-  padding: 24px;
+  padding: 16px 24px;
   background: transparent;
-  border-top: 1px solid rgba(138, 43, 226, 0.15);
+  border-top: 1px solid rgba(138, 43, 226, 0.1);
 }
 
 .input-wrapper {
   display: flex;
   align-items: center;
-  background: rgba(42, 48, 66, 0.7);
-  border: 1px solid rgba(138, 43, 226, 0.25);
-  border-radius: 30px;
-  padding: 6px;
+  background: rgba(42, 48, 66, 0.5);
+  border: 1px solid rgba(138, 43, 226, 0.15);
+  border-radius: 24px;
+  padding: 4px;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   max-width: 800px;
@@ -212,8 +220,9 @@
 }
 
 .input-wrapper:focus-within {
-  border-color: rgba(138, 43, 226, 0.5);
-  box-shadow: 0 0 25px rgba(138, 43, 226, 0.15);
+  border-color: rgba(138, 43, 226, 0.4);
+  box-shadow: 0 0 20px rgba(138, 43, 226, 0.1);
+  background: rgba(42, 48, 66, 0.7);
 }
 
 .chat-input {
@@ -221,16 +230,17 @@
   background: transparent;
   border: none;
   outline: none;
-  padding: 16px 24px;
+  padding: 12px 20px;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
   font-weight: 400;
 }
 
 .chat-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
   font-weight: 400;
+  font-size: 13px;
 }
 
 .chat-input:disabled {
@@ -241,9 +251,9 @@
 .send-button {
   background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
   border: none;
-  border-radius: 22px;
-  width: 44px;
-  height: 44px;
+  border-radius: 20px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,18 +265,20 @@
 
 .send-button:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(138, 43, 226, 0.4);
+  box-shadow: 0 4px 16px rgba(138, 43, 226, 0.3);
 }
 
 .send-button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   transform: none;
-  background: rgba(138, 43, 226, 0.3);
+  background: rgba(138, 43, 226, 0.2);
 }
 
 .send-button svg {
   color: #ffffff;
+  width: 18px;
+  height: 18px;
 }
 
 .loading-spinner {
@@ -390,6 +402,21 @@
   }
 }
 
+@keyframes userLocationPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
 /* Error States */
 .error-message {
   border-left: 4px solid #ff6b6b;
@@ -495,7 +522,10 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .chatbot-container {
-    height: 100vh;
+    height: calc(100vh - 60px); /* Full height minus mobile navbar height (60px) */
+    margin: 0;
+    margin-top: 60px; /* Add top margin for mobile navbar */
+    border-radius: 0;
   }
   
   .chat-messages {
@@ -503,15 +533,15 @@
   }
   
   .message-bubble {
-    max-width: 75%;
+    max-width: 80%;
   }
   
   .message-bubble.user {
-    margin-left: 15px;
+    margin-left: 12px;
   }
   
   .message-bubble.ai {
-    margin-right: 15px;
+    margin-left: 12px;
   }
   
   .welcome-card {
@@ -525,12 +555,16 @@
   }
   
   .chat-input-container {
-    padding: 16px;
+    padding: 12px 16px;
+  }
+  
+  .input-wrapper {
+    border-radius: 20px;
   }
   
   .scroll-to-bottom {
-    bottom: 100px;
-    right: 20px;
+    bottom: 90px;
+    right: 16px;
     width: 40px;
     height: 40px;
   }
@@ -546,63 +580,55 @@
     font-size: 14px;
   }
   
+  .message-bubble {
+    max-width: 85%;
+  }
+  
   .chat-input {
-    padding: 12px 16px;
+    padding: 10px 16px;
     font-size: 14px;
   }
   
   .send-button {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+  }
+  
+  .send-button svg {
+    width: 16px;
+    height: 16px;
   }
 }
 
-/* Map Container in Chat Messages */
-.map-container {
-  margin-top: 16px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: #ffffff;
+/* User Location Marker Styles */
+.user-location-marker {
+  position: relative;
+  width: 24px;
+  height: 24px;
 }
 
-.dark-mode .map-container {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  background: #1e293b;
-}
-
-/* Leaflet map styles integration */
-.map-container .leaflet-container {
-  border-radius: 12px;
+.user-location-pulse {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.4);
+  animation: userLocationPulse 2s ease-out infinite;
   z-index: 1;
 }
 
-.map-container .leaflet-popup-content-wrapper {
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.map-container .leaflet-popup-content {
-  margin: 0;
-  padding: 0;
-}
-
-/* Ensure map is properly sized */
-.ai-response-section .map-container {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Mobile responsiveness for maps */
-@media (max-width: 768px) {
-  .map-container {
-    height: 300px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .map-container {
-    height: 250px !important;
-    margin-top: 12px;
-  }
+.user-location-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }

@@ -6,6 +6,8 @@ import App from "./App";
 import Chatbot from './Chatbot';
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import FAQ from "./pages/FAQ";
+import Donate from "./pages/Donate";
 import './App.css';
 
 function AppRouter() {
@@ -20,6 +22,8 @@ function AppRouter() {
             <Route path="/chatbot" element={<Chatbot />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/donate" element={<Donate />} />
           </Routes>
         </main>
         <Footer />
