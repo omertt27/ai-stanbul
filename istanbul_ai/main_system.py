@@ -35,6 +35,15 @@ except ImportError as e:
     logger.warning(f"⚠️ Advanced transportation system not available: {e}")
     ADVANCED_TRANSPORT_AVAILABLE = False
 
+# Import Transfer Instructions & Map Visualization Integration
+try:
+    from transportation_chat_integration import TransportationChatIntegration
+    TRANSFER_MAP_INTEGRATION_AVAILABLE = True
+    logger.info("✅ Transfer Instructions & Map Visualization integration loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Transfer Instructions & Map Visualization not available: {e}")
+    TRANSFER_MAP_INTEGRATION_AVAILABLE = False
+
 # Import ML-Enhanced Daily Talks Bridge
 try:
     from ml_enhanced_daily_talks_bridge import MLEnhancedDailyTalksBridge, process_enhanced_daily_talk
@@ -104,6 +113,17 @@ class IstanbulDailyTalkAI:
         else:
             self.transport_processor = None
             self.ml_transport_system = None
+        
+        # Initialize Transfer Instructions & Map Visualization Integration
+        if TRANSFER_MAP_INTEGRATION_AVAILABLE:
+            try:
+                self.transportation_chat = TransportationChatIntegration()
+                logger.info("🗺️ Transfer Instructions & Map Visualization integration initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize transfer instructions integration: {e}")
+                self.transportation_chat = None
+        else:
+            self.transportation_chat = None
 
         # Initialize ML-Enhanced Daily Talks Bridge
         if ML_DAILY_TALKS_AVAILABLE:
@@ -885,7 +905,7 @@ class IstanbulDailyTalkAI:
         
         # Handle specific intents
         elif intent == 'transportation':
-            return self._generate_transportation_response(message, entities, user_profile, context)
+            return self._generate_transportation_response(message, entities, user_profile, context, return_structured=return_structured)
         
         elif intent == 'shopping':
             return self._generate_shopping_response(entities, user_profile, context)
@@ -932,13 +952,69 @@ class IstanbulDailyTalkAI:
                 return self.response_generator._generate_fallback_response(context, user_profile)
     
     def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
-                                        context: ConversationContext) -> str:
+                                        context: ConversationContext, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
         """Generate comprehensive transportation response with advanced AI and real-time data"""
         try:
-            # Check if this is a specific route request (use GPS route planner)
+            # Check if this is a specific route request
             route_indicators = ['from', 'to', 'how to get', 'directions', 'route from', 'route to']
-            if any(indicator in message.lower() for indicator in route_indicators):
-                logger.info("🗺️ Transportation query appears to be route-specific, using GPS route planner")
+            is_route_query = any(indicator in message.lower() for indicator in route_indicators)
+            
+            # Use new transfer instructions & map visualization integration if available
+            if is_route_query and TRANSFER_MAP_INTEGRATION_AVAILABLE and self.transportation_chat:
+                logger.info("🗺️ Using Transfer Instructions & Map Visualization system")
+                
+                # Extract locations from entities if available
+                user_location = None
+                destination = None
+                
+                if 'location' in entities and entities['location']:
+                    locations = entities['location']
+                    if len(locations) >= 2:
+                        user_location = locations[0]
+                        destination = locations[1]
+                    elif len(locations) == 1:
+                        destination = locations[0]
+                
+                # Process the transportation query (async)
+                import asyncio
+                loop = asyncio.get_event_loop()
+                result = loop.run_until_complete(
+                    self.transportation_chat.handle_transportation_query(
+                        query=message,
+                        user_location=user_location,
+                        destination=destination,
+                        user_context={
+                            'has_luggage': False,
+                            'time_sensitive': False,
+                            'accessibility_needs': []
+                        }
+                    )
+                )
+                
+                if result.get('success'):
+                    response_text = result.get('response_text', '')
+                    map_data = result.get('map_data', {})
+                    
+                    if return_structured:
+                        return {
+                            'response': response_text,
+                            'map_data': map_data,
+                            'detailed_route': result.get('detailed_route'),
+                            'alternatives': result.get('alternatives', []),
+                            'fare_info': result.get('fare_info'),
+                            'transfer_count': result.get('transfer_count', 0),
+                            'total_time': result.get('total_time', 0)
+                        }
+                    else:
+                        return response_text
+                else:
+                    # If clarification needed or error, fall through to other systems
+                    if result.get('needs_clarification'):
+                        return result.get('response_text', '')
+            
+            # Check if this is a GPS route request (use GPS route planner)
+            if is_route_query:
+                logger.info("🗺️ Using GPS route planner for route-specific query")
                 return self._generate_gps_route_response(message, entities, user_profile, context)
             
             # Use advanced transportation system if available for general transport info
@@ -951,15 +1027,36 @@ class IstanbulDailyTalkAI:
                 )
                 
                 if enhanced_response and enhanced_response.strip():
-                    return enhanced_response
+                    if return_structured:
+                        return {
+                            'response': enhanced_response,
+                            'map_data': {}
+                        }
+                    else:
+                        return enhanced_response
                     
             # Fallback to improved static response
             logger.info("🚇 Using fallback transportation system")
-            return self._get_fallback_transportation_response(entities, user_profile, context)
+            response = self._get_fallback_transportation_response(entities, user_profile, context)
+            
+            if return_structured:
+                return {
+                    'response': response,
+                    'map_data': {}
+                }
+            else:
+                return response
             
         except Exception as e:
             logger.error(f"Transportation query error: {e}")
-            return self._get_fallback_transportation_response(entities, user_profile, context)
+            response = self._get_fallback_transportation_response(entities, user_profile, context)
+            if return_structured:
+                return {
+                    'response': response,
+                    'map_data': {}
+                }
+            else:
+                return response
 
     def _get_fallback_transportation_response(self, entities: Dict, user_profile: UserProfile, 
                                             context: ConversationContext) -> str:

@@ -1,0 +1,58 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": []
+      },
+      "properties": {
+        "route_id": "M2",
+        "route_name": "M2 Yenikapı - Hacıosman",
+        "color": "#00FF00",
+        "mode": "metro",
+        "segment_number": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": []
+      },
+      "properties": {
+        "route_id": "MARMARAY",
+        "route_name": "Marmaray Gebze - Halkalı",
+        "color": "#FF4500",
+        "mode": "metro",
+        "segment_number": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.9512,
+          41.0085
+        ]
+      },
+      "properties": {
+        "type": "transfer",
+        "station_name": "Yenikapı",
+        "from_line": "M2",
+        "to_line": "MARMARAY",
+        "transfer_time": 3,
+        "icon": "🔄",
+        "popup_content": "\n🚇➡️🚇 **TRANSFER AT YENIKAPI**\nFrom M2 to MARMARAY\n⏱️ 3 min • 🚶 80m\n\n**Step-by-Step Instructions:**\n  1️⃣ Exit the M2 train at Yenikapı\n  2️⃣ Exit M2 platform and look for yellow Marmaray signs\n  3️⃣ Take escalator down one level\n  4️⃣ Follow the passage (approximately 50 meters)\n  ✅ Board MARMARAY train towards Gebze\n  ⏱️ Total transfer time: approximately 3 minutes\n\n📍 **Platform Info:** M2: Level -3 → MARMARAY: Level -4 (deepest)\n\n👁️ **Look for:**\n  • Large modern station with high ceilings\n  • Look for the digital arrival boards\n  • Blue mosaic artwork on M2 level\n  • Yellow Marmaray signage with modern design\n\n♿ **Accessibility:** Elevators, Escalators, Wheelchair accessible"
+      }
+    }
+  ],
+  "bounds": {
+    "north": 41.1,
+    "south": 40.9,
+    "east": 29.1,
+    "west": 28.8
+  }
+}

@@ -73,12 +73,20 @@ The Istanbul AI Assistant now **prioritizes metro and Marmaray** in all transpor
 - [x] Scoring prioritization
 - [x] Test coverage
 - [x] Documentation
+- [x] Alternative route options ⭐ NEW
+- [x] Fare calculations with Istanbulkart discounts ⭐ NEW
+- [x] Context-aware recommendations ⭐ NEW
+- [x] Full IBB API integration (real-time data) ⭐ NEW
+- [x] Real-time availability monitoring ⭐ NEW
+- [x] User journey tracking and analytics ⭐ NEW
 
 **Coming Soon:**
 - [ ] Transfer instructions between lines
 - [ ] Station amenities info
 - [ ] Real-time crowding data
 - [ ] First/last train times
+- [ ] Multi-language support
+- [ ] Accessibility features
 
 ---
 

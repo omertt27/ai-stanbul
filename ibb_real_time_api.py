@@ -53,16 +53,50 @@ class IBBRealTimeAPI:
         self.cache = {}
         
         # İBB Dataset IDs (these are real dataset identifiers from İBB Open Data)
+        # Expanded to include ALL Istanbul public transport types for industry-level coverage
         self.datasets = {
+            # Metro System
             'metro_lines': 'metro-hatlari',
-            'metro_stations': 'metro-istasyonlari', 
+            'metro_stations': 'metro-istasyonlari',
+            'metro_realtime': 'metro-gercek-zamanli',  # Real-time metro positions
+            
+            # Bus System - Comprehensive Coverage
             'bus_stops': 'otobus-duragi',
             'bus_routes': 'otobus-hatlari',
+            'bus_realtime': 'otobus-konum',  # Real-time bus positions
+            'bus_schedules': 'otobus-seferleri',
+            'metrobus_stops': 'metrobus-durakları',
+            'metrobus_route': 'metrobus-hatti',
+            
+            # Tram System
+            'tram_lines': 'tramvay-hatlari',
+            'tram_stations': 'tramvay-istasyonlari',
+            'tram_realtime': 'tramvay-konum',
+            
+            # Ferry System
             'ferry_routes': 'vapur-hatlari',
             'ferry_schedules': 'vapur-seferleri',
+            'ferry_piers': 'vapur-iskeleleri',
+            'ferry_realtime': 'vapur-konum',
+            
+            # Funicular & Cable Car
+            'funicular_routes': 'funikuler-hatlari',
+            'cablecar_routes': 'teleferik-hatlari',
+            
+            # Marmaray (Cross-Continental Rail)
+            'marmaray_stations': 'marmaray-istasyonlari',
+            'marmaray_schedule': 'marmaray-seferleri',
+            
+            # Additional Infrastructure
             'traffic_density': 'trafik-yogunlugu',
             'parking_lots': 'otopark-alanlari',
-            'bike_stations': 'bisiklet-istasyonlari'
+            'bike_stations': 'bisiklet-istasyonlari',
+            'transfer_points': 'aktarma-noktalari',
+            'accessibility_info': 'erisilebilirlik',
+            
+            # Service Status & Alerts
+            'service_alerts': 'servis-uyarilari',
+            'disruptions': 'kesintiler'
         }
         
         logger.info(f"🌐 İBB Real-Time API initialized (Live APIs: {self.use_live_apis})")

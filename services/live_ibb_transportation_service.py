@@ -4,7 +4,7 @@ Live IBB Transportation Service
 ==============================
 
 Integrates real-time İBB Open Data with our transportation directions service.
-Provides live bus schedules, routes, and real-time updates.
+Provides live bus schedules, routes, and real-time updates with detailed transfer instructions.
 """
 
 import asyncio
@@ -35,6 +35,16 @@ except ImportError:
     TransportationDirectionsService = Any
     logger.warning("⚠️ Base transportation service not available")
 
+# Import transfer instructions generator
+try:
+    from services.transfer_instructions_generator import TransferInstructionsGenerator, TransferInstruction
+    TRANSFER_INSTRUCTIONS_AVAILABLE = True
+except ImportError:
+    TRANSFER_INSTRUCTIONS_AVAILABLE = False
+    TransferInstructionsGenerator = None
+    TransferInstruction = None
+    logger.warning("⚠️ Transfer instructions generator not available")
+
 
 @dataclass
 class LiveRouteData:
@@ -52,12 +62,13 @@ class LiveRouteData:
 class LiveIBBTransportationService:
     """Enhanced transportation service with live IBB data"""
     
-    def __init__(self, use_mock_data: bool = True):
+    def __init__(self, use_mock_data: bool = False):
         """
         Initialize live IBB service
         
         Args:
             use_mock_data: If True, uses realistic mock data for development
+                         Default is False to use live İBB data
         """
         self.use_mock_data = use_mock_data
         self.ibb_api = None
@@ -114,7 +125,19 @@ class LiveIBBTransportationService:
         self._cache = {}
         self._cache_duration = timedelta(minutes=5)
         
+        # Initialize transfer instructions generator if available
+        self.transfer_instructions_generator = None
+        if TRANSFER_INSTRUCTIONS_AVAILABLE:
+            try:
+                self.transfer_instructions_generator = TransferInstructionsGenerator()
+                logger.info("✅ Transfer instructions generator initialized")
+            except Exception as e:
+                logger.warning(f"❌ Failed to initialize transfer instructions generator: {e}")
+        
         logger.info(f"🚌 Live IBB Transportation Service initialized (Mock: {self.use_mock_data})")
+        
+        # Log data source status
+        self.log_data_source_status()
     
     async def get_live_route_data(self, route_code: str) -> Optional[LiveRouteData]:
         """Get live data for a specific route"""
@@ -737,6 +760,30 @@ class LiveIBBTransportationService:
         else:
             return 'bus'
     
+    def _get_route_name(self, route_id: str) -> str:
+        """Get the full name of a route"""
+        route_names = {
+            'M1A': 'M1A Yenikapı - Atatürk Airport',
+            'M1B': 'M1B Yenikapı - Kirazlı',
+            'M2': 'M2 Yenikapı - Hacıosman',
+            'M3': 'M3 Kirazlı - Başakşehir/Olimpiyat',
+            'M4': 'M4 Kadıköy - Sabiha Gökçen Airport',
+            'M5': 'M5 Üsküdar - Çekmeköy',
+            'M6': 'M6 Levent - Boğaziçi Üniversitesi',
+            'M7': 'M7 Mecidiyeköy - Mahmutbey',
+            'M8': 'M8 Bostancı - Parseller',
+            'M9': 'M9 Ataköy - İkitelli Sanayi',
+            'M11': 'M11 Istanbul Airport - Gayrettepe',
+            'MARMARAY': 'Marmaray Gebze - Halkalı',
+            'T1': 'T1 Kabataş - Bağcılar',
+            'T3': 'T3 Kadıköy - Moda',
+            'T4': 'T4 Topkapı - Mescid-i Selam',
+            'T5': 'T5 Cibali - Alibeyköy',
+            'F1': 'F1 Kabataş - Taksim Funicular',
+            'F2': 'F2 Karaköy - İstiklal Funicular',
+        }
+        return route_names.get(route_id, f"{route_id} Line")
+    
     def _get_route_priority(self, route: LiveRouteData, user_context: Dict = None) -> str:
         """Determine priority category for route"""
         if not user_context:
@@ -1112,6 +1159,444 @@ class LiveIBBTransportationService:
                 'note': 'Using fallback data'
             }
         }
+    
+    def generate_detailed_route_with_transfers(
+        self,
+        origin: str,
+        destination: str,
+        selected_routes: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Generate a detailed route with step-by-step transfer instructions and map visualization
+        
+        Args:
+            origin: Starting location
+            destination: Destination location
+            selected_routes: List of route IDs (e.g., ['M2', 'MARMARAY', 'M5'])
+            
+        Returns:
+            Dict with detailed instructions, transfer info, and map data
+        """
+        
+        # Initialize transfer instructions generator if available
+        if not TRANSFER_INSTRUCTIONS_AVAILABLE:
+            logger.warning("⚠️ Transfer instructions generator not available")
+            return self._generate_basic_route_info(origin, destination, selected_routes)
+        
+        try:
+            detailed_route = {
+                'origin': origin,
+                'destination': destination,
+                'routes': selected_routes,
+                'steps': [],
+                'transfers': [],
+                'map_data': {
+                    'type': 'FeatureCollection',
+                    'features': []
+                },
+                'total_time_estimate': 0,
+                'total_distance_meters': 0,
+                'fare_info': None,
+                'accessibility': []
+            }
+            
+            # Generate steps for each route segment
+            for i, route_id in enumerate(selected_routes):
+                route_step = {
+                    'step_number': i + 1,
+                    'route_id': route_id,
+                    'mode': self._get_route_mode(route_id),
+                    'instruction': f"Take {route_id}",
+                    'details': []
+                }
+                
+                # Add route-specific details
+                if route_id.startswith('M'):
+                    route_step['mode_icon'] = '🚇'
+                    route_step['details'].append("Metro - Fast and reliable")
+                elif route_id == 'MARMARAY':
+                    route_step['mode_icon'] = '🚆'
+                    route_step['details'].append("Marmaray - Cross-continental rail")
+                elif route_id.startswith('T'):
+                    route_step['mode_icon'] = '🚊'
+                    route_step['details'].append("Tram - Scenic route")
+                elif route_id.startswith('F'):
+                    route_step['mode_icon'] = '🚡'
+                    route_step['details'].append("Funicular - Quick uphill transport")
+                else:
+                    route_step['mode_icon'] = '🚌'
+                    route_step['details'].append("Bus")
+                
+                detailed_route['steps'].append(route_step)
+                
+                # Generate transfer instructions if there's a next route
+                if i < len(selected_routes) - 1:
+                    next_route = selected_routes[i + 1]
+                    transfer_station = self._find_transfer_station(route_id, next_route)
+                    
+                    if transfer_station and hasattr(self, 'transfer_instructions_generator'):
+                        transfer_instruction = self.transfer_instructions_generator.generate_transfer_instructions(
+                            from_line=route_id,
+                            to_line=next_route,
+                            station=transfer_station,
+                            direction_on_new_line=self._get_direction_hint(next_route, destination)
+                        )
+                        
+                        detailed_route['transfers'].append({
+                            'transfer_number': i + 1,
+                            'instruction': transfer_instruction,
+                            'formatted': self.transfer_instructions_generator.format_transfer_instruction_for_display(transfer_instruction)
+                        })
+                        
+                        detailed_route['total_time_estimate'] += transfer_instruction.estimated_time
+            
+            # Calculate fare
+            detailed_route['fare_info'] = self.calculate_fare(
+                selected_routes,
+                num_transfers=len(selected_routes) - 1
+            )
+            
+            # Generate map visualization data
+            detailed_route['map_data'] = self._generate_map_data(selected_routes, detailed_route['transfers'])
+            
+            # Add accessibility information
+            detailed_route['accessibility'] = self._get_accessibility_info(selected_routes)
+            
+            logger.info(f"✅ Generated detailed route: {origin} → {destination} via {', '.join(selected_routes)}")
+            return detailed_route
+            
+        except Exception as e:
+            logger.error(f"❌ Error generating detailed route: {e}")
+            return self._generate_basic_route_info(origin, destination, selected_routes)
+    
+    def _generate_basic_route_info(self, origin: str, destination: str, routes: List[str]) -> Dict[str, Any]:
+        """Generate basic route info when detailed generator is unavailable"""
+        return {
+            'origin': origin,
+            'destination': destination,
+            'routes': routes,
+            'steps': [
+                {
+                    'step_number': i + 1,
+                    'route_id': route,
+                    'instruction': f"Take {route} line"
+                }
+                for i, route in enumerate(routes)
+            ],
+            'transfers': [
+                {
+                    'transfer_number': i + 1,
+                    'instruction': f"Transfer from {routes[i]} to {routes[i+1]}"
+                }
+                for i in range(len(routes) - 1)
+            ],
+            'fare_info': self.calculate_fare(routes, num_transfers=len(routes) - 1)
+        }
+    
+    def _find_transfer_station(self, from_route: str, to_route: str) -> Optional[str]:
+        """Find the transfer station between two routes"""
+        
+        # Known transfer stations mapping
+        transfer_stations = {
+            ('M1A', 'M2'): 'Yenikapı',
+            ('M1B', 'M2'): 'Yenikapı',
+            ('M1A', 'MARMARAY'): 'Yenikapı',
+            ('M1B', 'MARMARAY'): 'Yenikapı',
+            ('M2', 'MARMARAY'): 'Yenikapı',
+            ('M2', 'M7'): 'Mecidiyeköy',
+            ('M2', 'M11'): 'Gayrettepe',
+            ('M2', 'M6'): 'Levent',
+            ('MARMARAY', 'M5'): 'Üsküdar',
+            ('MARMARAY', 'M4'): 'Ayrılık Çeşmesi',
+            ('MARMARAY', 'T1'): 'Sirkeci',
+            ('T1', 'M2'): 'Yenikapı',
+            ('T1', 'F1'): 'Kabataş',
+            ('T1', 'F2'): 'Karaköy',
+            ('M4', 'M8'): 'Bostancı',
+        }
+        
+        # Check both directions
+        key1 = (from_route, to_route)
+        key2 = (to_route, from_route)
+        
+        return transfer_stations.get(key1) or transfer_stations.get(key2)
+    
+    def _get_direction_hint(self, route_id: str, destination: str) -> Optional[str]:
+        """Get direction hint for the route based on destination"""
+        
+        destination_lower = destination.lower()
+        
+        direction_hints = {
+            'M2': {
+                'taksim': 'Hacıosman',
+                'şişli': 'Hacıosman',
+                'levent': 'Hacıosman',
+                'sultanahmet': 'Yenikapı',
+                'aksaray': 'Yenikapı'
+            },
+            'M11': {
+                'airport': 'Istanbul Airport',
+                'havalimanı': 'Istanbul Airport',
+                'gayrettepe': 'Gayrettepe'
+            },
+            'MARMARAY': {
+                'kadıköy': 'Gebze',
+                'üsküdar': 'Gebze',
+                'pendik': 'Gebze',
+                'taksim': 'Halkalı',
+                'beyoğlu': 'Halkalı'
+            },
+            'M4': {
+                'sabiha': 'Sabiha Gökçen Airport',
+                'airport': 'Sabiha Gökçen Airport',
+                'kadıköy': 'Kadıköy',
+                'kartal': 'Sabiha Gökçen Airport'
+            }
+        }
+        
+        if route_id in direction_hints:
+            for keyword, direction in direction_hints[route_id].items():
+                if keyword in destination_lower:
+                    return direction
+        
+        return None
+    
+    def _generate_map_data(self, routes: List[str], transfers: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Generate GeoJSON map data for route visualization
+        Compatible with Leaflet, Mapbox, and other map libraries
+        """
+        
+        map_data = {
+            'type': 'FeatureCollection',
+            'features': [],
+            'bounds': {
+                'north': 41.1,
+                'south': 40.9,
+                'east': 29.1,
+                'west': 28.8
+            }
+        }
+        
+        # Known station coordinates for major transfer points
+        station_coords = {
+            'Yenikapı': [28.9512, 41.0085],
+            'Mecidiyeköy': [28.9986, 41.0639],
+            'Gayrettepe': [29.0140, 41.0688],
+            'Levent': [29.0117, 41.0781],
+            'Kabataş': [29.0064, 41.0298],
+            'Taksim': [28.9874, 41.0369],
+            'Üsküdar': [29.0159, 41.0243],
+            'Kadıköy': [29.0261, 40.9904],
+            'Sirkeci': [28.9767, 41.0170],
+            'Bostancı': [29.0890, 40.9612],
+        }
+        
+        # Route colors
+        route_colors = {
+            'M1A': '#FF0000',
+            'M1B': '#00BFFF',
+            'M2': '#00FF00',
+            'M3': '#0000FF',
+            'M4': '#FF69B4',
+            'M5': '#800080',
+            'M6': '#8B4513',
+            'M7': '#FFD700',
+            'M8': '#FFA500',
+            'M9': '#FF1493',
+            'M11': '#9370DB',
+            'MARMARAY': '#FF4500',
+            'T1': '#DC143C',
+            'F1': '#00CED1',
+            'F2': '#4169E1',
+        }
+        
+        # Add route lines
+        for i, route_id in enumerate(routes):
+            route_feature = {
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'LineString',
+                    'coordinates': []
+                },
+                'properties': {
+                    'route_id': route_id,
+                    'route_name': self._get_route_name(route_id),
+                    'color': route_colors.get(route_id, '#000000'),
+                    'mode': self._get_route_mode(route_id),
+                    'segment_number': i + 1
+                }
+            }
+            
+            map_data['features'].append(route_feature)
+        
+        # Add transfer points as markers
+        for transfer in transfers:
+            if 'instruction' in transfer and hasattr(transfer['instruction'], 'station_name'):
+                station_name = transfer['instruction'].station_name
+                coords = station_coords.get(station_name)
+                
+                if coords:
+                    transfer_feature = {
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': coords
+                        },
+                        'properties': {
+                            'type': 'transfer',
+                            'station_name': station_name,
+                            'from_line': transfer['instruction'].from_line,
+                            'to_line': transfer['instruction'].to_line,
+                            'transfer_time': transfer['instruction'].estimated_time,
+                            'icon': '🔄',
+                            'popup_content': transfer.get('formatted', f"Transfer at {station_name}")
+                        }
+                    }
+                    
+                    map_data['features'].append(transfer_feature)
+        
+        return map_data
+    
+    def _get_accessibility_info(self, routes: List[str]) -> List[str]:
+        """Get accessibility information for the routes"""
+        
+        accessibility_info = []
+        
+        for route_id in routes:
+            if route_id in ['M11', 'M7', 'M9']:  # Newer lines
+                accessibility_info.append(f"{route_id}: Fully wheelchair accessible")
+            elif route_id.startswith('M'):
+                accessibility_info.append(f"{route_id}: Elevator access available at most stations")
+            elif route_id == 'MARMARAY':
+                accessibility_info.append("MARMARAY: Elevator access at all stations")
+            elif route_id.startswith('T'):
+                accessibility_info.append(f"{route_id}: Low-floor trams, wheelchair accessible")
+            elif route_id.startswith('F'):
+                accessibility_info.append(f"{route_id}: Funicular accessible with assistance")
+        
+        return list(set(accessibility_info))  # Remove duplicates
+    
+    def format_detailed_route_for_display(self, detailed_route: Dict[str, Any]) -> str:
+        """Format detailed route information for user-friendly display"""
+        
+        output = []
+        
+        # Header
+        output.append(f"\n🗺️ **DETAILED ROUTE INSTRUCTIONS**")
+        output.append(f"📍 From: **{detailed_route['origin']}**")
+        output.append(f"📍 To: **{detailed_route['destination']}**")
+        output.append(f"⏱️ Estimated time: ~{detailed_route.get('total_time_estimate', 30)} minutes")
+        
+        # Fare information
+        if detailed_route.get('fare_info'):
+            fare_info = detailed_route['fare_info']
+            output.append(f"\n💳 **FARE INFORMATION**")
+            # Handle both old and new fare info formats
+            total_cost = fare_info.get('total_cost_istanbulkart') or fare_info.get('breakdown', {}).get('total', 0)
+            output.append(f"Total cost: {total_cost:.2f} TL (Istanbulkart)")
+            if fare_info.get('savings') or fare_info.get('savings_with_istanbulkart'):
+                savings = fare_info.get('savings') or fare_info.get('savings_with_istanbulkart', 0)
+                output.append(f"💰 Savings: {savings:.2f} TL vs single tickets")
+        
+        # Route steps
+        output.append(f"\n🚇 **ROUTE STEPS** ({len(detailed_route['routes'])} segments)")
+        
+        for step in detailed_route['steps']:
+            output.append(f"\n{step['mode_icon']} **Step {step['step_number']}: {step['route_id']}**")
+            output.append(f"   {step['instruction']}")
+            for detail in step.get('details', []):
+                output.append(f"   • {detail}")
+        
+        # Transfer instructions
+        if detailed_route.get('transfers'):
+            output.append(f"\n🔄 **TRANSFER INSTRUCTIONS** ({len(detailed_route['transfers'])} transfers)")
+            
+            for transfer in detailed_route['transfers']:
+                output.append(f"\n{transfer.get('formatted', 'Transfer information')}")
+        
+        # Accessibility
+        if detailed_route.get('accessibility'):
+            output.append(f"\n♿ **ACCESSIBILITY INFORMATION**")
+            for info in detailed_route['accessibility']:
+                output.append(f"   • {info}")
+        
+        # Map visualization hint
+        if detailed_route.get('map_data'):
+            output.append(f"\n🗺️ **MAP VISUALIZATION AVAILABLE**")
+            output.append(f"   View this route on an interactive map")
+            output.append(f"   Features: {len(detailed_route['map_data']['features'])} map features")
+        
+        return '\n'.join(output)
+    
+    def get_data_source_info(self) -> Dict[str, Any]:
+        """
+        Get information about the data source being used
+        
+        Returns:
+            Dict with data source information including:
+            - is_using_mock_data: bool
+            - data_source: str ('mock' or 'live_ibb_api')
+            - ibb_api_available: bool
+            - ibb_api_connected: bool
+            - description: str
+        """
+        data_source_info = {
+            'is_using_mock_data': self.use_mock_data,
+            'data_source': 'mock' if self.use_mock_data else 'live_ibb_api',
+            'ibb_api_available': IBB_API_AVAILABLE,
+            'ibb_api_connected': self.ibb_api is not None,
+            'description': ''
+        }
+        
+        if self.use_mock_data:
+            data_source_info['description'] = (
+                "Using realistic mock data for development and testing. "
+                "Mock data simulates İBB's real-time transportation system with current "
+                "schedules, frequencies, and route information."
+            )
+        else:
+            if self.ibb_api:
+                data_source_info['description'] = (
+                    "Connected to live İBB Open Data API. "
+                    "Providing real-time transportation information including schedules, "
+                    "delays, and live vehicle tracking."
+                )
+            else:
+                data_source_info['description'] = (
+                    "Attempted to use live İBB API but connection failed. "
+                    "Falling back to mock data."
+                )
+        
+        return data_source_info
+    
+    def get_data_source_display(self) -> str:
+        """
+        Get a user-friendly display string for the data source
+        
+        Returns:
+            str: Display string (e.g., "📡 Live İBB Data" or "🧪 Mock Data")
+        """
+        if self.use_mock_data:
+            return "🧪 Mock Data (Development)"
+        elif self.ibb_api:
+            return "📡 Live İBB Data"
+        else:
+            return "⚠️ Mock Data (API Unavailable)"
+    
+    def log_data_source_status(self) -> None:
+        """Log detailed information about the current data source"""
+        info = self.get_data_source_info()
+        
+        logger.info("=" * 70)
+        logger.info("📊 İBB Transportation Data Source Status")
+        logger.info("=" * 70)
+        logger.info(f"Data Source: {info['data_source'].upper()}")
+        logger.info(f"Using Mock Data: {info['is_using_mock_data']}")
+        logger.info(f"İBB API Available: {info['ibb_api_available']}")
+        logger.info(f"İBB API Connected: {info['ibb_api_connected']}")
+        logger.info(f"Description: {info['description']}")
+        logger.info("=" * 70)
 
 
 # Factory function
@@ -1167,7 +1652,7 @@ async def main():
 
 
 # Factory function for easy import
-def get_live_ibb_transportation_service(use_mock_data: bool = True) -> LiveIBBTransportationService:
+def get_live_ibb_transportation_service(use_mock_data: bool = False) -> LiveIBBTransportationService:
     """Get instance of live IBB transportation service"""
     return LiveIBBTransportationService(use_mock_data=use_mock_data)
 
@@ -1177,7 +1662,7 @@ async def test_live_features():
     print("🚌 TESTING ENHANCED LIVE IBB FEATURES")
     print("=" * 50)
     
-    service = get_live_ibb_transportation_service(use_mock_data=True)
+    service = get_live_ibb_transportation_service(use_mock_data=False)
     
     # Test individual route data
     test_routes = ['HAVAIST-1', '500T', '28', 'UNKNOWN']

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul Transportation Route Map - Interactive Demo</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+        
+        .sidebar {
+            width: 400px;
+            background: white;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .route-selector {
+            margin-bottom: 20px;
+        }
+        
+        .route-selector h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .route-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .route-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .route-button.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .step {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .step.transfer {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        
+        .step-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+        
+        .step-text {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .fare-info {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .fare-info h4 {
+            color: #155724;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .fare-info p {
+            color: #155724;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        
+        .legend-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        /* Leaflet popup styling */
+        .leaflet-popup-content {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .popup-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .popup-detail {
+            font-size: 13px;
+            color: #666;
+            margin: 4px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 40%;
+            }
+            
+            #map {
+                height: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Istanbul Transportation Route Visualizer</h1>
+        <p>Interactive map with Google Maps-style transfer instructions</p>
+    </div>
+    
+    <div class="container">
+        <div id="map"></div>
+        
+        <div class="sidebar">
+            <div class="route-selector">
+                <h3>📍 Select Route</h3>
+                <button class="route-button active" onclick="showRoute('route1')">
+                    🚇 Taksim → Kadıköy<br>
+                    <small>via M2 + Marmaray</small>
+                </button>
+                <button class="route-button" onclick="showRoute('route2')">
+                    ✈️ Sultanahmet → Airport<br>
+                    <small>via T1 + M2 + M11</small>
+                </button>
+                <button class="route-button" onclick="showRoute('route3')">
+                    🚇 Levent → Mahmutbey<br>
+                    <small>via M2 + M7</small>
+                </button>
+                <button class="route-button" onclick="showRoute('route4')">
+                    🌊 Kabataş → Taksim<br>
+                    <small>via F1 Funicular</small>
+                </button>
+            </div>
+            
+            <div class="instructions" id="instructions">
+                <!-- Instructions will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="legend">
+        <h4>🗺️ Legend</h4>
+        <div class="legend-item">
+            <div class="legend-line" style="background: #00FF00;"></div>
+            <span>M2 Metro (Green)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background: #FF4500;"></div>
+            <span>Marmaray (Orange)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background: #9370DB;"></div>
+            <span>M11 Airport Line</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background: #FFD700;"></div>
+            <span>M7 Metro</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-icon">🔄</span>
+            <span>Transfer Station</span>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map centered on Istanbul
+        const map = L.map('map').setView([41.0082, 28.9784], 12);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+        
+        // Define route data
+        const routes = {
+            route1: {
+                name: 'Taksim → Kadıköy',
+                routes: ['M2', 'MARMARAY'],
+                lines: [
+                    {
+                        color: '#00FF00',
+                        name: 'M2',
+                        coords: [[41.0369, 28.9874], [41.0082, 28.9512]]  // Taksim to Yenikapı
+                    },
+                    {
+                        color: '#FF4500',
+                        name: 'MARMARAY',
+                        coords: [[41.0082, 28.9512], [40.9904, 29.0261]]  // Yenikapı to Kadıköy
+                    }
+                ],
+                transfers: [
+                    {
+                        name: 'Yenikapı',
+                        coords: [41.0085, 28.9512],
+                        from: 'M2',
+                        to: 'MARMARAY',
+                        time: 3
+                    }
+                ],
+                instructions: `
+                    <h3>📋 Route Instructions</h3>
+                    <div class="step">
+                        <span class="step-icon">🚇</span>
+                        <div class="step-text">
+                            <strong>Step 1:</strong> Take M2 Metro from Taksim<br>
+                            Direction: Yenikapı<br>
+                            Duration: ~15 minutes
+                        </div>
+                    </div>
+                    <div class="step transfer">
+                        <span class="step-icon">🔄</span>
+                        <div class="step-text">
+                            <strong>Transfer at Yenikapı</strong><br>
+                            1️⃣ Exit M2 train<br>
+                            2️⃣ Look for yellow Marmaray signs<br>
+                            3️⃣ Take escalator down one level<br>
+                            4️⃣ Follow passage (~50m)<br>
+                            ⏱️ Transfer time: 3 minutes
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-icon">🚆</span>
+                        <div class="step-text">
+                            <strong>Step 2:</strong> Take Marmaray to Kadıköy<br>
+                            Direction: Gebze (Asian side)<br>
+                            Duration: ~10 minutes
+                        </div>
+                    </div>
+                    <div class="fare-info">
+                        <h4>💳 Fare Information</h4>
+                        <p><strong>Total:</strong> 23.62 TL (Istanbulkart)</p>
+                        <p><strong>Transfers:</strong> 1 (discounted)</p>
+                        <p><strong>Time:</strong> ~28 minutes</p>
+                    </div>
+                `
+            },
+            route2: {
+                name: 'Sultanahmet → Istanbul Airport',
+                routes: ['T1', 'M2', 'M11'],
+                lines: [
+                    {
+                        color: '#DC143C',
+                        name: 'T1',
+                        coords: [[41.0054, 28.9768], [41.0082, 28.9512]]  // Sultanahmet to Yenikapı
+                    },
+                    {
+                        color: '#00FF00',
+                        name: 'M2',
+                        coords: [[41.0082, 28.9512], [41.0688, 29.0140]]  // Yenikapı to Gayrettepe
+                    },
+                    {
+                        color: '#9370DB',
+                        name: 'M11',
+                        coords: [[41.0688, 29.0140], [41.2627, 28.7519]]  // Gayrettepe to Airport
+                    }
+                ],
+                transfers: [
+                    {
+                        name: 'Yenikapı',
+                        coords: [41.0085, 28.9512],
+                        from: 'T1',
+                        to: 'M2',
+                        time: 5
+                    },
+                    {
+                        name: 'Gayrettepe',
+                        coords: [41.0688, 29.0140],
+                        from: 'M2',
+                        to: 'M11',
+                        time: 3
+                    }
+                ],
+                instructions: `
+                    <h3>📋 Route Instructions</h3>
+                    <div class="step">
+                        <span class="step-icon">🚊</span>
+                        <div class="step-text">
+                            <strong>Step 1:</strong> Take T1 Tram from Sultanahmet<br>
+                            Direction: Bağcılar<br>
+                            Duration: ~8 minutes
+                        </div>
+                    </div>
+                    <div class="step transfer">
+                        <span class="step-icon">🔄</span>
+                        <div class="step-text">
+                            <strong>Transfer at Yenikapı (T1 → M2)</strong><br>
+                            1️⃣ Exit tram<br>
+                            2️⃣ Follow blue M2 signs<br>
+                            3️⃣ Take escalator down<br>
+                            ⏱️ Transfer time: 5 minutes
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-icon">🚇</span>
+                        <div class="step-text">
+                            <strong>Step 2:</strong> Take M2 Metro<br>
+                            Direction: Hacıosman<br>
+                            Duration: ~20 minutes
+                        </div>
+                    </div>
+                    <div class="step transfer">
+                        <span class="step-icon">🔄</span>
+                        <div class="step-text">
+                            <strong>Transfer at Gayrettepe (M2 → M11)</strong><br>
+                            1️⃣ Exit M2 platform<br>
+                            2️⃣ Look for purple M11 airport signs<br>
+                            3️⃣ Very visible - modern station<br>
+                            4️⃣ Short walk (~50m)<br>
+                            ⏱️ Transfer time: 3 minutes
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-icon">✈️</span>
+                        <div class="step-text">
+                            <strong>Step 3:</strong> Take M11 to Istanbul Airport<br>
+                            Direction: Airport<br>
+                            Duration: ~35 minutes
+                        </div>
+                    </div>
+                    <div class="fare-info">
+                        <h4>💳 Fare Information</h4>
+                        <p><strong>Total:</strong> 33.75 TL (Istanbulkart)</p>
+                        <p><strong>Transfers:</strong> 2 (discounted)</p>
+                        <p><strong>Time:</strong> ~71 minutes</p>
+                    </div>
+                `
+            },
+            route3: {
+                name: 'Levent → Mahmutbey',
+                routes: ['M2', 'M7'],
+                lines: [
+                    {
+                        color: '#00FF00',
+                        name: 'M2',
+                        coords: [[41.0781, 29.0117], [41.0639, 28.9986]]  // Levent to Mecidiyeköy
+                    },
+                    {
+                        color: '#FFD700',
+                        name: 'M7',
+                        coords: [[41.0639, 28.9986], [41.0750, 28.8400]]  // Mecidiyeköy to Mahmutbey
+                    }
+                ],
+                transfers: [
+                    {
+                        name: 'Mecidiyeköy',
+                        coords: [41.0639, 28.9986],
+                        from: 'M2',
+                        to: 'M7',
+                        time: 4
+                    }
+                ],
+                instructions: `
+                    <h3>📋 Route Instructions</h3>
+                    <div class="step">
+                        <span class="step-icon">🚇</span>
+                        <div class="step-text">
+                            <strong>Step 1:</strong> Take M2 Metro from Levent<br>
+                            Direction: Yenikapı<br>
+                            Duration: ~3 minutes
+                        </div>
+                    </div>
+                    <div class="step transfer">
+                        <span class="step-icon">🔄</span>
+                        <div class="step-text">
+                            <strong>Transfer at Mecidiyeköy</strong><br>
+                            1️⃣ Exit M2 platform towards center<br>
+                            2️⃣ Look for bright yellow M7 signs<br>
+                            3️⃣ Take escalator down one level<br>
+                            4️⃣ Walk through passage (~100m)<br>
+                            5️⃣ M7 platform on your left<br>
+                            ⏱️ Transfer time: 4 minutes
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-icon">🚇</span>
+                        <div class="step-text">
+                            <strong>Step 2:</strong> Take M7 Metro to Mahmutbey<br>
+                            Direction: Mahmutbey<br>
+                            Duration: ~20 minutes
+                        </div>
+                    </div>
+                    <div class="fare-info">
+                        <h4>💳 Fare Information</h4>
+                        <p><strong>Total:</strong> 23.62 TL (Istanbulkart)</p>
+                        <p><strong>Transfers:</strong> 1 (discounted)</p>
+                        <p><strong>Time:</strong> ~27 minutes</p>
+                    </div>
+                `
+            },
+            route4: {
+                name: 'Kabataş → Taksim',
+                routes: ['F1'],
+                lines: [
+                    {
+                        color: '#00CED1',
+                        name: 'F1',
+                        coords: [[41.0298, 29.0064], [41.0369, 28.9874]]  // Kabataş to Taksim
+                    }
+                ],
+                transfers: [],
+                instructions: `
+                    <h3>📋 Route Instructions</h3>
+                    <div class="step">
+                        <span class="step-icon">🚡</span>
+                        <div class="step-text">
+                            <strong>Direct Route:</strong> F1 Funicular<br>
+                            From: Kabataş<br>
+                            To: Taksim<br>
+                            Duration: ~2 minutes (no transfers!)<br>
+                            <br>
+                            💡 Quick uphill transport with stunning views
+                        </div>
+                    </div>
+                    <div class="fare-info">
+                        <h4>💳 Fare Information</h4>
+                        <p><strong>Total:</strong> 13.50 TL (Istanbulkart)</p>
+                        <p><strong>Transfers:</strong> None</p>
+                        <p><strong>Time:</strong> ~2 minutes</p>
+                    </div>
+                `
+            }
+        };
+        
+        let currentLayers = [];
+        
+        function clearMap() {
+            currentLayers.forEach(layer => map.removeLayer(layer));
+            currentLayers = [];
+        }
+        
+        function showRoute(routeId) {
+            // Update button states
+            document.querySelectorAll('.route-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.route-button').classList.add('active');
+            
+            // Clear existing layers
+            clearMap();
+            
+            const route = routes[routeId];
+            
+            // Draw route lines
+            route.lines.forEach(line => {
+                const polyline = L.polyline(line.coords, {
+                    color: line.color,
+                    weight: 5,
+                    opacity: 0.8
+                }).addTo(map);
+                
+                polyline.bindPopup(`<div class="popup-title">${line.name}</div>`);
+                currentLayers.push(polyline);
+            });
+            
+            // Add transfer markers
+            route.transfers.forEach(transfer => {
+                const marker = L.marker(transfer.coords, {
+                    icon: L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background: #FFC107; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">🔄</div>`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 20]
+                    })
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <div class="popup-title">Transfer: ${transfer.name}</div>
+                    <div class="popup-detail">From: ${transfer.from} → ${transfer.to}</div>
+                    <div class="popup-detail">⏱️ ${transfer.time} minutes</div>
+                `);
+                
+                currentLayers.push(marker);
+            });
+            
+            // Add start and end markers
+            const firstCoord = route.lines[0].coords[0];
+            const lastLine = route.lines[route.lines.length - 1];
+            const lastCoord = lastLine.coords[lastLine.coords.length - 1];
+            
+            const startMarker = L.marker(firstCoord, {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background: #28a745; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">🚩</div>`,
+                    iconSize: [35, 35],
+                    iconAnchor: [17.5, 17.5]
+                })
+            }).addTo(map);
+            startMarker.bindPopup('<div class="popup-title">Start</div>');
+            currentLayers.push(startMarker);
+            
+            const endMarker = L.marker(lastCoord, {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background: #dc3545; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">🎯</div>`,
+                    iconSize: [35, 35],
+                    iconAnchor: [17.5, 17.5]
+                })
+            }).addTo(map);
+            endMarker.bindPopup('<div class="popup-title">Destination</div>');
+            currentLayers.push(endMarker);
+            
+            // Fit map to route bounds
+            const allCoords = route.lines.flatMap(line => line.coords);
+            map.fitBounds(allCoords, { padding: [50, 50] });
+            
+            // Update instructions
+            document.getElementById('instructions').innerHTML = route.instructions;
+        }
+        
+        // Show first route by default
+        showRoute('route1');
+    </script>
+</body>
+</html>
