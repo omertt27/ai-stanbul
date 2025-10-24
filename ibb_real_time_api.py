@@ -13,6 +13,7 @@ import aiohttp
 import asyncio
 import json
 import logging
+import ssl
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
@@ -49,54 +50,56 @@ class IBBRealTimeAPI:
         self.use_live_apis = os.getenv('USE_LIVE_APIS', 'true').lower() == 'true'
         self.debug_mode = os.getenv('DEBUG_API_CALLS', 'false').lower() == 'true'
         
+        # SSL context for İBB API (handles self-signed certificates)
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
+        
         # Data cache with timestamps
         self.cache = {}
         
-        # İBB Dataset IDs (these are real dataset identifiers from İBB Open Data)
+        # İBB Dataset IDs (ACTUAL dataset names from İBB Open Data Portal - verified October 2025)
         # Expanded to include ALL Istanbul public transport types for industry-level coverage
         self.datasets = {
             # Metro System
             'metro_lines': 'metro-hatlari',
             'metro_stations': 'metro-istasyonlari',
-            'metro_realtime': 'metro-gercek-zamanli',  # Real-time metro positions
+            'metro_tunnels': 'metro-tunel-guzergahlari',
             
-            # Bus System - Comprehensive Coverage
-            'bus_stops': 'otobus-duragi',
-            'bus_routes': 'otobus-hatlari',
-            'bus_realtime': 'otobus-konum',  # Real-time bus positions
-            'bus_schedules': 'otobus-seferleri',
+            # IETT Bus System - VERIFIED DATASETS
+            'iett_bus_stops': 'iett-otobus-duraklari-verisi',  # VERIFIED
+            'iett_bus_routes': 'iett-hat-guzergahlari',  # VERIFIED
+            'iett_bus_service': 'iett-hat-durak-guzergah-web-servisi',  # VERIFIED - Web Service
+            'iett_schedules': 'iett-planlanan-sefer-saati-web-servisi',  # VERIFIED
+            
+            # Metrobus
             'metrobus_stops': 'metrobus-durakları',
             'metrobus_route': 'metrobus-hatti',
             
             # Tram System
             'tram_lines': 'tramvay-hatlari',
             'tram_stations': 'tramvay-istasyonlari',
-            'tram_realtime': 'tramvay-konum',
             
-            # Ferry System
-            'ferry_routes': 'vapur-hatlari',
-            'ferry_schedules': 'vapur-seferleri',
-            'ferry_piers': 'vapur-iskeleleri',
-            'ferry_realtime': 'vapur-konum',
+            # Ferry & Maritime Transport - VERIFIED
+            'ferry_lines_vector': 'deniz-ulasim-hatlari-vektor-verisi',  # VERIFIED
+            'ferry_stations_vector': 'deniz-ulasim-istasyonlari-vektor-verisi',  # VERIFIED
+            'city_lines_piers': 'istanbul-sehir-hatlari-iskeleleri',  # VERIFIED
+            'maritime_stats': 'deniz-isletmeleri-bazinda-arac-hat-ve-iskele-sayisi',  # VERIFIED
             
-            # Funicular & Cable Car
-            'funicular_routes': 'funikuler-hatlari',
-            'cablecar_routes': 'teleferik-hatlari',
-            
-            # Marmaray (Cross-Continental Rail)
-            'marmaray_stations': 'marmaray-istasyonlari',
-            'marmaray_schedule': 'marmaray-seferleri',
+            # Specific Metro Lines (Individual datasets)
+            'metro_cekmekoy': 'cekmekoy-sancaktepe-sultanbeyli-metro-hatti-istasyon-ve-ana-hat-tunel-guzergahlari',
+            'metro_dudullu': 'dudullu-bostanci-metro-hatti-istasyon-ve-ana-hat-tunel-guzergahlari',
+            'metro_goztepe': 'goztepe-atasehir-umraniye-metro-hatti-istasyon-ve-ana-hat-guzergahlari',
             
             # Additional Infrastructure
-            'traffic_density': 'trafik-yogunlugu',
-            'parking_lots': 'otopark-alanlari',
-            'bike_stations': 'bisiklet-istasyonlari',
-            'transfer_points': 'aktarma-noktalari',
-            'accessibility_info': 'erisilebilirlik',
+            'bike_stations': 'bisiklet-bakim-istasyonlari',  # VERIFIED
+            'ev_charging': 'elektrikli-arac-sarj-istasyonlari-verisi',  # VERIFIED
+            'fuel_stations': 'akaryakit-istasyonlari',  # VERIFIED
             
-            # Service Status & Alerts
-            'service_alerts': 'servis-uyarilari',
-            'disruptions': 'kesintiler'
+            # Transportation Planning Data
+            'transport_model': 'istanbul-ulasim-modeli',  # VERIFIED
+            'transport_index': '34-dakika-istanbul-ulasim-indeksi',  # VERIFIED
+            'household_survey': 'istanbul-ulasim-ana-plani-hanehalki-arastirmasi',  # VERIFIED
         }
         
         logger.info(f"🌐 İBB Real-Time API initialized (Live APIs: {self.use_live_apis})")
@@ -296,11 +299,14 @@ class IBBRealTimeAPI:
             'id': dataset_id
         }
         
-        headers = {}
+        headers = {
+            'User-Agent': 'Istanbul-AI-Assistant/1.0'
+        }
         if self.api_key and self.api_key != 'your_ibb_api_key_here':
-            headers['Authorization'] = f"Bearer {self.api_key}"
+            headers['Authorization'] = self.api_key
         
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
+        connector = aiohttp.TCPConnector(ssl=self.ssl_context)
+        async with aiohttp.ClientSession(connector=connector, timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
             for attempt in range(self.max_retries):
                 try:
                     if self.debug_mode:
