@@ -185,16 +185,94 @@ class TransportationDirectionsService:
             },
         }
         
-        # Bus routes (sample major routes)
+        # Enhanced bus routes with live İBB data integration capability
+        # TODO: Replace with live İBB Open Data Portal integration
+        # See LIVE_IBB_INTEGRATION_PLAN.md for implementation details
         self.bus_routes = {
+            # Airport Connections - Enhanced with live data structure
+            'HAVAIST-1': {
+                'name': 'Havaist IST-1 Taksim',
+                'route_type': 'airport_shuttle',
+                'stops': [
+                    {'name': 'Istanbul Airport Terminal', 'lat': 41.2619, 'lng': 28.7419},
+                    {'name': 'Mecidiyeköy', 'lat': 41.0684, 'lng': 28.9947},
+                    {'name': 'Taksim Square', 'lat': 41.0370, 'lng': 28.9850},
+                ],
+                # Static data (to be replaced with live İBB API)
+                'frequency': '30 minutes',
+                'price': '18 TL (cash only)',
+                'notes': 'Direct airport connection, no Istanbulkart',
+                # Live data integration points (commented for future implementation)
+                # 'live_frequency': 'await ibb_api.get_current_frequency("HAVAIST-1")',
+                # 'current_delays': 'await ibb_api.get_route_delays("HAVAIST-1")', 
+                # 'next_departures': 'await ibb_api.get_next_departures("HAVAIST-1")',
+                # 'occupancy_level': 'await ibb_api.get_occupancy("HAVAIST-1")',
+                # 'service_alerts': 'await ibb_api.get_alerts("HAVAIST-1")'
+            },
+            'HAVAIST-2': {
+                'name': 'Havaist IST-2 Sultanahmet',
+                'route_type': 'airport_shuttle',
+                'stops': [
+                    {'name': 'Istanbul Airport Terminal', 'lat': 41.2619, 'lng': 28.7419},
+                    {'name': 'Beyazıt', 'lat': 41.0106, 'lng': 28.9638},
+                    {'name': 'Sultanahmet', 'lat': 41.0054, 'lng': 28.9768},
+                ],
+                'frequency': '45 minutes',
+                'price': '18 TL (cash only)',
+                'notes': 'Historic peninsula connection'
+            },
+            'E-2': {
+                'name': 'E-2 Sabiha Gökçen - Kadıköy',
+                'route_type': 'airport_shuttle',
+                'stops': [
+                    {'name': 'Sabiha Gökçen Airport', 'lat': 40.8986, 'lng': 29.3092},
+                    {'name': 'Kartal', 'lat': 40.9061, 'lng': 29.1836},
+                    {'name': 'Kadıköy', 'lat': 40.9900, 'lng': 29.0250},
+                ],
+                'frequency': '15-20 minutes',
+                'price': '13.5 TL (Istanbulkart)',
+                'notes': 'Asian side airport connection'
+            },
+            # Major City Routes
             '500T': {
                 'name': '500T Taksim - Sarıyer',
+                'route_type': 'intercity',
                 'stops': [
-                    {'name': 'Taksim', 'lat': 41.0370, 'lng': 28.9850},
+                    {'name': 'Taksim Square', 'lat': 41.0370, 'lng': 28.9850},
                     {'name': 'Beşiktaş', 'lat': 41.0426, 'lng': 29.0050},
                     {'name': 'Ortaköy', 'lat': 41.0553, 'lng': 29.0275},
-                ]
+                    {'name': 'Sarıyer', 'lat': 41.1069, 'lng': 29.0581},
+                ],
+                'frequency': '10-15 minutes',
+                'price': '13.5 TL (Istanbulkart)',
+                'notes': 'Scenic Bosphorus route'
             },
+            '28': {
+                'name': '28 Beşiktaş - Edirnekapı',
+                'route_type': 'cross_city',
+                'stops': [
+                    {'name': 'Beşiktaş', 'lat': 41.0426, 'lng': 29.0050},
+                    {'name': 'Taksim', 'lat': 41.0370, 'lng': 28.9850},
+                    {'name': 'Şişli', 'lat': 41.0602, 'lng': 28.9892},
+                    {'name': 'Edirnekapı', 'lat': 41.0395, 'lng': 28.9358},
+                ],
+                'frequency': '8-12 minutes',
+                'price': '13.5 TL (Istanbulkart)',
+                'notes': 'Connects European districts'
+            },
+            '25E': {
+                'name': '25E Kabataş - Sarıyer Express',
+                'route_type': 'express',
+                'stops': [
+                    {'name': 'Kabataş', 'lat': 41.0389, 'lng': 29.0069},
+                    {'name': 'Beşiktaş', 'lat': 41.0426, 'lng': 29.0050},
+                    {'name': 'Ortaköy', 'lat': 41.0553, 'lng': 29.0275},
+                    {'name': 'Sarıyer', 'lat': 41.1069, 'lng': 29.0581},
+                ],
+                'frequency': '12-15 minutes',
+                'price': '13.5 TL (Istanbulkart)',
+                'notes': 'Express route with fewer stops'
+            }
         }
     
     def get_directions(
