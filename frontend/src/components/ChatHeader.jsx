@@ -55,7 +55,7 @@ const ChatHeader = ({
           <h1 className={`text-lg font-semibold transition-colors duration-200 ${
             darkMode ? 'text-white' : 'text-black'
           }`}>
-            Istanbul Travel Guide
+            KAM - Istanbul Travel Guide
           </h1>
           <div className={`text-xs transition-colors duration-200 flex items-center space-x-2 ${
             darkMode ? 'text-gray-400' : 'text-gray-600'

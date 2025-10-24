@@ -35,6 +35,17 @@ from hidden_gems_local_tips import HiddenGemsLocalTips
 # Import ML-enhanced daily talks bridge
 from ml_enhanced_daily_talks_bridge import MLEnhancedDailyTalksBridge
 
+# Import routing system components
+try:
+    from services.chat_routing_integration import ChatRoutingIntegration
+    from services.route_network_builder import TransportationNetwork
+    import json as json_lib
+    ROUTING_SYSTEM_AVAILABLE = True
+    logger.info("✅ Routing system available for chat integration")
+except ImportError as e:
+    ROUTING_SYSTEM_AVAILABLE = False
+    logger.warning(f"⚠️ Routing system not available: {e}")
+
 # Configure advanced logging
 logging.basicConfig(
     level=logging.INFO,
@@ -715,6 +726,40 @@ class PersonalizedResponseGenerator:
                                       context: DialogueContext) -> str:
         """Generate route planning response"""
         
+        # Check if routing system is available
+        if hasattr(self, 'routing_system') and self.routing_system:
+            # Get the full user input from context
+            user_input = context.context_history[-1] if context.context_history else ""
+            
+            # Use the routing system for advanced route planning
+            routing_result = self.routing_system.handle_routing_query(
+                query=user_input,
+                user_context={
+                    'user_type': user_profile.user_type.value,
+                    'preferences': {
+                        'budget': user_profile.budget_range
+                    }
+                }
+            )
+            
+            if routing_result.get('success'):
+                # Return the formatted response from routing system
+                response = routing_result.get('response_text', '')
+                
+                # Add personalized touch based on user profile
+                if user_profile.user_type == UserType.FIRST_TIME_VISITOR:
+                    response += "\n\n💡 **First-time visitor tip:** İstanbulkart is your best friend for all public transport!"
+                elif user_profile.user_type == UserType.LOCAL_RESIDENT:
+                    response += "\n\n🏠 As a local, you know this already, but always check for weekend schedules!"
+                
+                # Store route data in context for follow-up questions
+                context.conversation_memory['last_route'] = routing_result
+                
+                return response
+            elif routing_result.get('needs_clarification'):
+                return routing_result.get('response_text', "I'd be happy to help with directions!")
+        
+        # Fallback to basic routing (if routing system not available or failed)
         # Extract locations
         locations = [e.text for e in entities if e.entity_type in ["neighborhood", "landmarks"]]
         
@@ -816,13 +861,53 @@ class PersonalizedResponseGenerator:
 class AdvancedIstanbulAI:
     """Main AI system orchestrating all components"""
     
-    def __init__(self, db_path: str = "istanbul_ai.db"):
+    def __init__(self, db_path: str = "istanbul_ai.db", routing_network: Optional[TransportationNetwork] = None):
         self.db_path = db_path
         self.entity_recognizer = AdvancedEntityRecognizer()
         self.intent_classifier = HybridIntentClassifier()
         self.response_generator = PersonalizedResponseGenerator()
         self.data_integrator = RealTimeDataIntegrator()
         self.hidden_gems_system = HiddenGemsLocalTips()  # Initialize hidden gems system
+        
+        # Initialize routing system if network provided
+        self.routing_system = None
+        if ROUTING_SYSTEM_AVAILABLE and routing_network:
+            self.routing_system = ChatRoutingIntegration(routing_network)
+            logger.info("✅ Chat routing system initialized with network")
+        elif ROUTING_SYSTEM_AVAILABLE:
+            # Try to load from default network file
+            try:
+                with open('major_routes_network.json', 'r') as f:
+                    network_data = json_lib.load(f)
+                    routing_network = TransportationNetwork()
+                    # Load network from JSON
+                    for stop_data in network_data.get('stops', []):
+                        from services.route_network_builder import TransportStop
+                        stop = TransportStop(
+                            stop_id=stop_data['stop_id'],
+                            name=stop_data['name'],
+                            lat=stop_data['lat'],
+                            lon=stop_data['lon']
+                        )
+                        routing_network.add_stop(stop)
+                    
+                    for line_data in network_data.get('lines', []):
+                        from services.route_network_builder import TransportLine
+                        line = TransportLine(
+                            line_id=line_data['line_id'],
+                            name=line_data['name'],
+                            transport_type=line_data['transport_type']
+                        )
+                        routing_network.add_line(line)
+                    
+                    for edge in network_data.get('edges', []):
+                        routing_network.add_edge(**edge)
+                    
+                    self.routing_system = ChatRoutingIntegration(routing_network)
+                    logger.info("✅ Loaded routing network from major_routes_network.json")
+            except Exception as e:
+                logger.warning(f"Could not load routing network: {e}")
+                self.routing_system = None
         
         # Initialize components
         self._init_database()

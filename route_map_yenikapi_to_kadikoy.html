@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul Route Map - Yenikapi to Kadikoy</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #route-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 350px;
+        }
+        
+        #route-info h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        
+        .route-detail {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .route-detail strong {
+            margin-right: 8px;
+            color: #333;
+        }
+        
+        .legend {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+        
+        .legend-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .legend-icon {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            #route-info {
+                left: 10px;
+                top: 10px;
+                max-width: calc(100% - 20px);
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <!-- Route Information Panel -->
+        <div id="route-info">
+            <h2>🗺️ Route Information</h2>
+            <div class="route-detail">
+                <strong>From:</strong> Yenikapi
+            </div>
+            <div class="route-detail">
+                <strong>To:</strong> Kadikoy
+            </div>
+            <div class="route-detail">
+                <strong>⏱️ Duration:</strong> 16 minutes
+            </div>
+            <div class="route-detail">
+                <strong>📏 Distance:</strong> 7.4 km
+            </div>
+            <div class="route-detail">
+                <strong>🔄 Transfers:</strong> 1
+            </div>
+            
+            <div class="legend">
+                <div class="legend-title">Transport Types:</div>
+                <div class="legend-item">
+                    <div class="legend-icon" style="background: #E31E24;"></div>
+                    <span>Metro</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon" style="background: #9C27B0;"></div>
+                    <span>Marmaray</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon" style="background: #00BCD4;"></div>
+                    <span>Ferry</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon" style="background: #4CAF50;"></div>
+                    <span>Tram</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Map data from Python
+        const mapData = {
+  "success": true,
+  "markers": [
+    {
+      "type": "stop",
+      "coordinates": [
+        41.0054,
+        28.9518
+      ],
+      "label": "Yenikap\u0131",
+      "icon": "\ud83d\ude87",
+      "color": "#E31E24",
+      "index": 0,
+      "popup": "<div style=\"min-width: 200px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                \ud83d\ude87 Yenikap\u0131\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                <strong>Marmaray (Halkal\u0131-Gebze)</strong><br/>\n                Type: Metro\n            </div>\n        </div>"
+    },
+    {
+      "type": "stop",
+      "coordinates": [
+        41.015,
+        29.03
+      ],
+      "label": "Ayr\u0131l\u0131k \u00c7e\u015fmesi",
+      "icon": "\ud83d\ude87",
+      "color": "#E31E24",
+      "index": 1,
+      "popup": "<div style=\"min-width: 200px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                \ud83d\ude87 Ayr\u0131l\u0131k \u00c7e\u015fmesi\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                <strong>Marmaray (Halkal\u0131-Gebze)</strong><br/>\n                Type: Metro\n            </div>\n        </div>"
+    },
+    {
+      "type": "stop",
+      "coordinates": [
+        40.995,
+        29.032
+      ],
+      "label": "Ayr\u0131l\u0131k \u00c7e\u015fmesi",
+      "icon": "\ud83d\ude87",
+      "color": "#FF6B9D",
+      "index": 2,
+      "popup": "<div style=\"min-width: 200px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                \ud83d\ude87 Ayr\u0131l\u0131k \u00c7e\u015fmesi\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                <strong>M4: Kad\u0131k\u00f6y-Tav\u015fantepe (Asian Side)</strong><br/>\n                Type: Metro\n            </div>\n        </div>"
+    },
+    {
+      "type": "stop",
+      "coordinates": [
+        40.9905,
+        29.025
+      ],
+      "label": "Kad\u0131k\u00f6y",
+      "icon": "\ud83d\ude87",
+      "color": "#FF6B9D",
+      "index": 3,
+      "popup": "<div style=\"min-width: 200px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                \ud83d\ude87 Kad\u0131k\u00f6y\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                <strong>M4: Kad\u0131k\u00f6y-Tav\u015fantepe (Asian Side)</strong><br/>\n                Type: Metro\n            </div>\n        </div>"
+    }
+  ],
+  "polylines": [
+    {
+      "type": "route",
+      "coordinates": [
+        [
+          41.0054,
+          28.9518
+        ],
+        [
+          41.015,
+          29.03
+        ]
+      ],
+      "color": "#E31E24",
+      "weight": 4,
+      "opacity": 0.8,
+      "transport_type": "metro",
+      "line_name": "Marmaray (Halkal\u0131-Gebze)",
+      "popup": "<div style=\"min-width: 180px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                Marmaray (Halkal\u0131-Gebze)\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                \u23f1\ufe0f Duration: 9 min<br/>\n                \ud83d\ude8f Stops: 3\n            </div>\n        </div>"
+    },
+    {
+      "type": "route",
+      "coordinates": [
+        [
+          40.995,
+          29.032
+        ],
+        [
+          40.9905,
+          29.025
+        ]
+      ],
+      "color": "#FF6B9D",
+      "weight": 4,
+      "opacity": 0.8,
+      "transport_type": "metro",
+      "line_name": "M4: Kad\u0131k\u00f6y-Tav\u015fantepe (Asian Side)",
+      "popup": "<div style=\"min-width: 180px;\">\n            <h4 style=\"margin: 0 0 8px 0; color: #333;\">\n                M4: Kad\u0131k\u00f6y-Tav\u015fantepe (Asian Side)\n            </h4>\n            <div style=\"font-size: 13px; color: #666;\">\n                \u23f1\ufe0f Duration: 3 min<br/>\n                \ud83d\ude8f Stops: 1\n            </div>\n        </div>"
+    }
+  ],
+  "bounds": {
+    "southwest": [
+      40.9905,
+      28.9518
+    ],
+    "northeast": [
+      41.015,
+      29.032
+    ]
+  },
+  "center": [
+    41.00275,
+    28.9919
+  ],
+  "zoom": 12,
+  "metadata": {
+    "origin": "Yenikapi",
+    "destination": "Kadikoy",
+    "duration": 16,
+    "distance": 7.419494063398652,
+    "transfers": 1
+  }
+};
+        
+        // Initialize map
+        const map = L.map('map').setView(mapData.center, mapData.zoom);
+        
+        // Add tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add polylines (route lines)
+        mapData.polylines.forEach(function(line) {
+            const polyline = L.polyline(line.coordinates, {
+                color: line.color,
+                weight: line.weight,
+                opacity: line.opacity
+            }).addTo(map);
+            
+            if (line.popup) {
+                polyline.bindPopup(line.popup);
+            }
+        });
+        
+        // Add markers (stops)
+        mapData.markers.forEach(function(marker, index) {
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    background: ${marker.color};
+                    color: white;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    border: 3px solid white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                ">${marker.icon}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            const leafletMarker = L.marker(marker.coordinates, { icon: icon }).addTo(map);
+            
+            if (marker.popup) {
+                leafletMarker.bindPopup(marker.popup);
+            }
+        });
+        
+        // Fit map to bounds if available
+        if (mapData.bounds) {
+            map.fitBounds([
+                mapData.bounds.southwest,
+                mapData.bounds.northeast
+            ], { padding: [50, 50] });
+        }
+    </script>
+</body>
+</html>
+        

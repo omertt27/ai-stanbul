@@ -12,8 +12,29 @@ import { BlogProvider } from './contexts/BlogContext.jsx'
 import { LocationProvider } from './contexts/LocationContext.jsx'
 import { NotificationProvider } from './contexts/NotificationContext.jsx'
 // import './utils/websiteProtection.js' // Initialize website protection - DISABLED
+import offlineEnhancementManager from './services/offlineEnhancementManager.js'
 
 console.log('Starting React app...')
+
+// Initialize offline enhancements
+async function initializeOfflineFeatures() {
+  try {
+    const result = await offlineEnhancementManager.initialize({
+      autoSyncOnReconnect: true,
+      enablePeriodicSync: true,
+      enableOfflineIntents: true,
+      cacheMapTilesOnInstall: false // User must opt-in via settings
+    });
+    
+    console.log('✅ Offline enhancements initialized:', result);
+  } catch (error) {
+    console.error('⚠️ Failed to initialize offline enhancements:', error);
+    // Non-critical failure, app continues to work
+  }
+}
+
+// Initialize offline features (non-blocking)
+initializeOfflineFeatures();
 
 // Ensure page starts at top
 window.scrollTo(0, 0);

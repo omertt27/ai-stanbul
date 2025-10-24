@@ -1,7 +1,7 @@
 {
-  "name": "A/ST - AI Istanbul Travel Assistant",
-  "short_name": "A/ST",
-  "description": "Your intelligent travel companion for Istanbul",
+  "name": "KAM - Your AI Istanbul Travel Assistant",
+  "short_name": "KAM",
+  "description": "KAM is your intelligent travel companion for Istanbul",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f1011",
@@ -32,7 +32,7 @@
     {
       "name": "Start Chat",
       "short_name": "Chat",
-      "description": "Start a new conversation with AI Istanbul",
+      "description": "Start a new conversation with KAM",
       "url": "/?action=chat",
       "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     },

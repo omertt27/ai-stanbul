@@ -497,7 +497,7 @@ function Chatbot() {
 
   // Enhanced UI state
   const [isTyping, setIsTyping] = useState(false);
-  const [typingMessage, setTypingMessage] = useState('AI is thinking...');
+  const [typingMessage, setTypingMessage] = useState('KAM is thinking...');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   
   // Enhanced error handling state
@@ -651,7 +651,7 @@ function Chatbot() {
     if (!messageText) setInput('');
     setLoading(true);
     setIsTyping(true);
-    setTypingMessage('AI is thinking...');
+    setTypingMessage('KAM is thinking...');
 
     try {
       // Security preprocessing
@@ -719,7 +719,7 @@ function Chatbot() {
 
       // Default: Use streaming AI response
       console.log('🤖 Processing general AI request');
-      setTypingMessage('AI is generating response...');
+      setTypingMessage('KAM is generating response...');
       
       let aiResponse = '';
       
@@ -850,7 +850,7 @@ function Chatbot() {
     } finally {
       setLoading(false);
       setIsTyping(false);
-      setTypingMessage('AI is thinking...');
+      setTypingMessage('KAM is thinking...');
     }
   };
 
@@ -907,8 +907,8 @@ function Chatbot() {
         {messages.length === 0 && (
           <div className="welcome-message">
             <div className="welcome-card">
-              <h3>👋 Welcome to AI Istanbul!</h3>
-              <p>I'm your personal Istanbul guide. Ask me about:</p>
+              <h3>👋 Welcome to KAM - Your AI Istanbul Guide!</h3>
+              <p>I'm KAM, your personal Istanbul guide. Ask me about:</p>
               <div className="suggestion-grid">
                 <button 
                   onClick={() => setInput('Best restaurants in Sultanahmet')}

@@ -30,6 +30,15 @@ except ImportError as e:
     logger.warning(f"⚠️ Advanced transportation system not available: {e}")
     ADVANCED_TRANSPORT_AVAILABLE = False
 
+# Import industry-level routing system
+try:
+    from services.routing_service_adapter import get_routing_service, RoutingServiceAdapter
+    ROUTING_SERVICE_AVAILABLE = True
+    logger.info("✅ Industry-level routing service loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Industry-level routing service not available: {e}")
+    ROUTING_SERVICE_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """
@@ -62,6 +71,17 @@ class IstanbulDailyTalkAI:
             else:
                 self.transport_processor = None
                 self.ml_transport_system = None
+            
+            # Initialize industry-level routing service
+            if ROUTING_SERVICE_AVAILABLE:
+                self.routing_service = get_routing_service()
+                if self.routing_service and self.routing_service.is_initialized:
+                    logger.info("🗺️ Industry-level routing service initialized successfully")
+                else:
+                    self.routing_service = None
+                    logger.warning("⚠️ Routing service could not be initialized")
+            else:
+                self.routing_service = None
                 
             # Try to load external integrations
             self._load_events_integration()
@@ -425,12 +445,40 @@ class IstanbulDailyTalkAI:
                 # Final fallback: Generate helpful restaurant response
                 return self._generate_restaurant_fallback(user_input, detected_location)
             
-            # 🚇 STEP 6: TRANSPORTATION QUERIES - Use location context
-            transport_keywords = ['metro', 'bus', 'tram', 'ferry', 'transport', 'how to get', 'direction']
+            # 🚇 STEP 6: TRANSPORTATION QUERIES - Use industry-level routing system
+            transport_keywords = ['metro', 'bus', 'tram', 'ferry', 'transport', 'how to get', 'direction', 'route',
+                                'marmaray', 'metrobüs', 'nostalgic tram', 'from', 'to', 'go to', 'travel',
+                                'nasıl gidebilirim', 'nasıl giderim', 'ulaşım', 'yol', 'aktarma']
+            
             if any(word in user_input.lower() for word in transport_keywords):
                 logger.info(f"🚇 Transportation query detected (Location: {detected_location or 'Not specified'})")
-                # Transportation handling would go here
-                # Can use detected_location and location_context
+                
+                # Priority 1: Try industry-level routing service for route planning
+                if self.routing_service and self.routing_service.is_initialized:
+                    try:
+                        routing_response = self.routing_service.process_routing_query(user_input)
+                        if routing_response:
+                            logger.info("🗺️ Route planned successfully using industry-level routing system")
+                            # Add personality touch to routing responses
+                            if self.personality_available and self.personality:
+                                return self.personality.add_personality_to_response(routing_response, 'helpful')
+                            return routing_response
+                    except Exception as e:
+                        logger.warning(f"⚠️ Routing service error: {e}")
+                
+                # Priority 2: Use advanced transportation system for general transport info
+                if self.transport_processor:
+                    try:
+                        transport_response = self._handle_transportation_query(user_input, detected_location, location_context)
+                        if transport_response:
+                            if self.personality_available and self.personality:
+                                return self.personality.add_personality_to_response(transport_response, 'helpful')
+                            return transport_response
+                    except Exception as e:
+                        logger.warning(f"⚠️ Advanced transport system error: {e}")
+                
+                # Fallback: Basic transportation guidance
+                return self._generate_transportation_fallback(user_input, detected_location)
             
             # 🧠 STEP 7: MULTI-INTENT HANDLER - Use for complex multi-category queries
             # Already analyzed at top, now generate response if detected
@@ -1190,3 +1238,128 @@ Enjoy experiencing Turkish hospitality and culture! 🇹🇷"""
             self.logger.info(f"🔧 Typo correction: '{original}' -> '{corrected}'")
         
         return corrected, was_corrected
+    
+    def _handle_transportation_query(self, user_input: str, detected_location: Optional[str] = None, 
+                                     location_context: Optional[Dict] = None) -> Optional[str]:
+        """
+        Handle transportation queries using advanced transport system
+        
+        Args:
+            user_input: User's query text
+            detected_location: Location detected from query or GPS
+            location_context: Additional location context (GPS coords, district, etc.)
+        
+        Returns:
+            Transportation response or None if not available
+        """
+        if not self.transport_processor:
+            return None
+        
+        try:
+            # Use the advanced transportation system for general info
+            query_lower = user_input.lower()
+            
+            # Build response based on query type
+            response_parts = []
+            
+            # General transport info queries
+            if any(word in query_lower for word in ['how does', 'how do i use', 'explain', 'what is', 'tell me about']):
+                if 'metro' in query_lower:
+                    response_parts.append("🚇 **Istanbul Metro System**\n")
+                    response_parts.append("Istanbul has an extensive metro network covering both European and Asian sides:\n\n")
+                    response_parts.append("**Major Lines:**")
+                    response_parts.append("• **M1** (Red): Airport - Yenikapı - Kirazlı")
+                    response_parts.append("• **M2** (Green): Yenikapı - Hacıosman (connects to Marmaray)")
+                    response_parts.append("• **M3** (Blue): Kirazlı - Olimpiyat - Başakşehir")
+                    response_parts.append("• **M4** (Pink): Kadıköy - Tavşantepe (Asian side)")
+                    response_parts.append("• **M5** (Purple): Üsküdar - Çekmeköy (Asian side)")
+                    response_parts.append("• **M6** (Brown): Levent - Hisarüstü")
+                    response_parts.append("• **M7** (Light Blue): Mecidiyeköy - Mahmutbey")
+                    response_parts.append("\n💳 **Payment:** Use Istanbul Card (Istanbulkart)")
+                    response_parts.append("💰 **Cost:** Single ride ~₺15-20 (with discount card)")
+                    
+                elif 'marmaray' in query_lower:
+                    response_parts.append("🚄 **Marmaray Rail System**\n")
+                    response_parts.append("The first rail tunnel connecting Europe and Asia!\n\n")
+                    response_parts.append("**Route:** Halkalı (Europe) ↔ Gebze (Asia)")
+                    response_parts.append("**Key Stops:** Halkalı, Bakırköy, Yenikapı, Sirkeci, Ayrılıkçeşmesi, Üsküdar, Kadıköy, Gebze")
+                    response_parts.append("\n**Connections:**")
+                    response_parts.append("• Metro M2 at Yenikapı")
+                    response_parts.append("• Metro M4 at Ayrılıkçeşmesi")
+                    response_parts.append("• Metrobüs at multiple stations")
+                    response_parts.append("\n⏱️ **Frequency:** Every 3-15 minutes depending on time")
+                    response_parts.append("💰 **Cost:** Same as metro (~₺15-20)")
+                
+                elif 'bus' in query_lower or 'otobüs' in query_lower:
+                    response_parts.append("🚌 **Istanbul Bus System**\n")
+                    response_parts.append("Extensive bus network covering all neighborhoods:\n\n")
+                    response_parts.append("**Types:**")
+                    response_parts.append("• **IETT Buses:** Main public buses (red)")
+                    response_parts.append("• **Metrobüs:** Rapid transit buses on dedicated lanes")
+                    response_parts.append("• **Private Buses:** Yellow and white buses")
+                    response_parts.append("\n💳 **Payment:** Istanbul Card required")
+                    response_parts.append("💰 **Cost:** ~₺15 per ride")
+                    response_parts.append("\n📱 **Tip:** Use Istanbul public transport apps for real-time info!")
+                
+                elif 'ferry' in query_lower or 'vapur' in query_lower:
+                    response_parts.append("⛴️ **Istanbul Ferry System**\n")
+                    response_parts.append("Experience Istanbul by sea!\n\n")
+                    response_parts.append("**Main Routes:**")
+                    response_parts.append("• Eminönü ↔ Kadıköy (Most popular)")
+                    response_parts.append("• Karaköy ↔ Kadıköy")
+                    response_parts.append("• Beşiktaş ↔ Üsküdar")
+                    response_parts.append("• Bosphorus tours (Eminönü - Princes' Islands)")
+                    response_parts.append("\n💳 **Payment:** Istanbul Card or token")
+                    response_parts.append("💰 **Cost:** ~₺15-25 depending on route")
+                    response_parts.append("⏱️ **Duration:** 15-25 minutes for short crossings")
+                    response_parts.append("\n🌅 **Tip:** Best views during sunset!")
+            
+            if response_parts:
+                return "\n".join(response_parts)
+            
+            # If no specific info query, return None to try routing
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in transportation query handler: {e}")
+            return None
+    
+    def _generate_transportation_fallback(self, user_input: str, detected_location: Optional[str] = None) -> str:
+        """
+        Generate fallback response for transportation queries
+        
+        Args:
+            user_input: User's query text
+            detected_location: Location detected from query or GPS
+        
+        Returns:
+            Helpful transportation fallback response
+        """
+        response_parts = []
+        response_parts.append("🚇 **Istanbul Public Transportation**\n")
+        
+        if detected_location:
+            response_parts.append(f"Getting around {detected_location}:\n")
+        
+        response_parts.append("\n**Transportation Options:**")
+        response_parts.append("• 🚇 **Metro:** Fast, modern, covers major districts")
+        response_parts.append("• 🚄 **Marmaray:** Connects Europe and Asia under the Bosphorus")
+        response_parts.append("• 🚌 **Buses:** Extensive network, IETT and Metrobüs")
+        response_parts.append("• 🚊 **Trams:** Historic and modern lines (Istiklal, Sultanahmet)")
+        response_parts.append("• ⛴️ **Ferries:** Scenic Bosphorus crossings")
+        response_parts.append("• 🚕 **Taxis:** Yellow cabs and ride-sharing apps")
+        
+        response_parts.append("\n💳 **Istanbul Card (Istanbulkart):**")
+        response_parts.append("Essential for public transport! Available at kiosks and machines.")
+        response_parts.append("Offers discounted fares and easy transfers.")
+        
+        response_parts.append("\n💡 **Tips:**")
+        response_parts.append("• Download İBB mobile app for real-time schedules")
+        response_parts.append("• Peak hours: 7-9 AM, 5-7 PM (can be crowded)")
+        response_parts.append("• Most lines run 6 AM - 12 AM")
+        
+        response_parts.append("\n🗺️ **For specific route planning:**")
+        response_parts.append("Ask me: 'How do I get from [origin] to [destination]?'")
+        response_parts.append("Example: 'How do I get from Taksim to Kadıköy?'")
+        
+        return "\n".join(response_parts)

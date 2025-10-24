@@ -8,6 +8,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import Donate from "./pages/Donate";
+import OfflineSettings from "./pages/OfflineSettings";
 import './App.css';
 
 function AppRouter() {
@@ -24,6 +25,7 @@ function AppRouter() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/donate" element={<Donate />} />
+            <Route path="/offline-settings" element={<OfflineSettings />} />
           </Routes>
         </main>
         <Footer />
