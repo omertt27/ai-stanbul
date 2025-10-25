@@ -383,38 +383,49 @@ class IstanbulDailyTalkAI:
             neural_insights = None
             if NEURAL_QUERY_ENHANCEMENT_AVAILABLE and self.neural_processor:
                 try:
-                    # Run lightweight async neural processing (<100ms)
-                    loop = asyncio.get_event_loop()
-                    neural_result = loop.run_until_complete(
-                        self.neural_processor.process_query(
-                            query=message,
-                            context={
-                                'session_id': session_id,
-                                'user_profile': {
-                                    'interests': getattr(user_profile, 'interests', []),
-                                    'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
-                                    'language_preference': getattr(user_profile, 'language_preference', 'english')
-                                }
+                    # Skip neural processing if already in an async context (avoid deadlock)
+                    try:
+                        loop = asyncio.get_running_loop()
+                        # We're in an async context, skip neural processing to avoid deadlock
+                        logger.debug("Skipping neural processing (already in async context)")
+                        neural_insights = None
+                    except RuntimeError:
+                        # No event loop running, safe to create one
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            neural_result = loop.run_until_complete(
+                                self.neural_processor.process_query(
+                                    query=message,
+                                    context={
+                                        'session_id': session_id,
+                                        'user_profile': {
+                                            'interests': getattr(user_profile, 'interests', []),
+                                            'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
+                                            'language_preference': getattr(user_profile, 'language_preference', 'english')
+                                        }
+                                    }
+                                )
+                                    )
+                            
+                            # Convert LightweightNeuralInsights to dict format
+                            neural_insights = {
+                                'entities': {entity['type']: [entity['text']] for entity in neural_result.entities},
+                                'intent': {
+                                    'primary': neural_result.intent,
+                                    'confidence': neural_result.intent_confidence
+                                },
+                                'sentiment': neural_result.sentiment,
+                                'keywords': neural_result.keywords,
+                                'complexity': neural_result.query_complexity,
+                                'location_context': neural_result.location_context,
+                                'temporal_context': neural_result.temporal_context
                             }
-                        )
-                    )
-                    
-                    # Convert LightweightNeuralInsights to dict format
-                    neural_insights = {
-                        'entities': {entity['type']: [entity['text']] for entity in neural_result.entities},
-                        'intent': {
-                            'primary': neural_result.intent,
-                            'confidence': neural_result.intent_confidence
-                        },
-                        'sentiment': neural_result.sentiment,
-                        'keywords': neural_result.keywords,
-                        'complexity': neural_result.query_complexity,
-                        'location_context': neural_result.location_context,
-                        'temporal_context': neural_result.temporal_context
-                    }
-                    
-                    logger.info(f"✨ Lightweight neural processing complete ({neural_result.processing_time_ms:.1f}ms) - "
-                               f"Intent: {neural_result.intent}, Confidence: {neural_result.intent_confidence:.2f}")
+                            
+                            logger.info(f"✨ Lightweight neural processing complete ({neural_result.processing_time_ms:.1f}ms) - "
+                                       f"Intent: {neural_result.intent}, Confidence: {neural_result.intent_confidence:.2f}")
+                        finally:
+                            loop.close()
                 except Exception as e:
                     logger.warning(f"Neural processing failed, continuing with standard processing: {e}")
                     neural_insights = None

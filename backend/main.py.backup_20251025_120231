@@ -559,62 +559,6 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from thefuzz import fuzz, process
 
-# Enhanced Authentication imports
-try:
-    from enhanced_auth import (
-        EnhancedAuthManager,
-        get_current_user,
-        UserRegistrationRequest,
-        UserLoginRequest,
-        UserRefreshRequest,
-        TokenResponse,
-        UserResponse
-    )
-    ENHANCED_AUTH_AVAILABLE = True
-    print("✅ Enhanced Authentication module loaded")
-except ImportError as e:
-    print(f"⚠️ Enhanced Authentication not available: {e}")
-    ENHANCED_AUTH_AVAILABLE = False
-    
-    # Define fallback models if authentication is not available
-    class TokenResponse(BaseModel):
-        """Fallback TokenResponse when auth is unavailable"""
-        access_token: str
-        refresh_token: str
-        token_type: str = "bearer"
-    
-    class UserResponse(BaseModel):
-        """Fallback UserResponse when auth is unavailable"""
-        id: int
-        email: str
-        username: str
-    
-    class UserRegistrationRequest(BaseModel):
-        """Fallback registration request"""
-        email: str
-        password: str
-        username: str
-        full_name: Optional[str] = None
-    
-    class UserLoginRequest(BaseModel):
-        """Fallback login request"""
-        email: str
-        password: str
-    
-    class UserRefreshRequest(BaseModel):
-        """Fallback refresh request"""
-        refresh_token: str
-    
-    # Define fallback for get_current_user dependency
-    async def get_current_user() -> Dict[str, Any]:
-        """Fallback get_current_user when auth is unavailable"""
-        return {
-            "sub": "fallback_user",
-            "username": "fallback_user",
-            "email": "fallback@example.com",
-            "role": "user"
-        }
-
 # === Pydantic Models for API Endpoints ===
 
 class ChatRequest(BaseModel):
@@ -924,25 +868,6 @@ except ImportError as e:
             return {"query_type": "general"}
     input_processor = InputProcessor()
 
-# --- Import Input Sanitizer ---
-try:
-    from input_sanitizer import sanitize_text, is_safe_input
-    print("✅ Input sanitizer import successful")
-    
-    # Create alias for backward compatibility
-    def sanitize_user_input(text: str) -> str:
-        """Sanitize user input text"""
-        return sanitize_text(text)
-except ImportError as e:
-    print(f"⚠️ Input sanitizer import failed: {e}")
-    # Fallback sanitizer
-    def sanitize_user_input(text: str) -> str:
-        """Basic fallback sanitizer"""
-        import html
-        return html.escape(text.strip())[:10000]
-    def is_safe_input(text: str) -> bool:
-        return True
-
 # --- Import Enhanced Services ---
 try:
     from enhanced_transportation_service import EnhancedTransportationService
@@ -1164,6 +1089,17 @@ except ImportError as e:
 
 # --- Import Language Processing ---
 try:
+    print("✅ Advanced AI features loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Advanced AI features not available: {e}")
+    ADVANCED_AI_ENABLED = False
+    # Use dummy objects
+    realtime_data_aggregator = DummyAdvancedAI()
+    get_multimodal_ai_service = lambda: DummyAdvancedAI()
+    predictive_analytics_service = DummyAdvancedAI()
+
+# --- Import Language Processing ---
+try:
     from api_clients.language_processing import (
         AdvancedLanguageProcessor, 
         process_user_query,
@@ -1239,30 +1175,6 @@ custom_ai_system = None
 # --- Legacy imports and system setup ---
 
 # Initialize logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI app
-app = FastAPI(
-    title="Istanbul AI Guide API",
-    description="AI-powered Istanbul travel guide with enhanced authentication",
-    version="2.0.0"
-)
-
-# Initialize Enhanced Authentication Manager
-auth_manager = None
-if ENHANCED_AUTH_AVAILABLE:
-    try:
-        auth_manager = EnhancedAuthManager()
-        logger.info("✅ Enhanced Authentication Manager initialized successfully")
-        print("✅ Enhanced Authentication Manager initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize Enhanced Authentication Manager: {e}")
-        print(f"⚠️ Failed to initialize Enhanced Authentication Manager: {e}")
-        ENHANCED_AUTH_AVAILABLE = False
-else:
-    logger.warning("Enhanced Authentication not available - authentication endpoints will be disabled")
-    print("⚠️ Enhanced Authentication not available - authentication endpoints will be disabled")
 
 print("✅ FastAPI app initialized successfully")
 
@@ -1481,198 +1393,425 @@ except Exception as e:
 
 print(f"Optional Enhancement Systems Status: {'✅ ENABLED' if OPTIONAL_ENHANCEMENTS_ENABLED else '❌ DISABLED'}")
 
-# =============================
-# AUTHENTICATION ENDPOINTS
-# =============================
+# (Removed duplicate project imports and load_dotenv)
 
-@app.post("/api/auth/register", response_model=TokenResponse, tags=["Authentication"])
-async def register_user(request: UserRegistrationRequest, db: Session = Depends(get_db)):
-    """
-    Register a new user
+def clean_text_formatting(text):
+    """Enhanced text formatting for better readability while preserving structure"""
+    if not text:
+        return text
     
-    Returns access token, refresh token, and user information
-    """
-    if not ENHANCED_AUTH_AVAILABLE or not auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not available"
-        )
+    # Remove excessive emojis but keep a few for context
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"  # dingbats
+        u"\U000024C2-\U0001F251"
+        u"\U0001F900-\U0001F9FF"  # supplemental symbols
+        u"\U0001FA70-\U0001FAFF"  # symbols and pictographs extended-a
+        u"\U00002600-\U000026FF"  # miscellaneous symbols
+        u"\U00002700-\U000027BF"  # dingbats
+        u"\U0001F780-\U0001F7FF"  # geometric shapes extended
+        u"\U0001F800-\U0001F8FF"  # supplemental arrows-c
+        "]+", flags=re.UNICODE)
     
+    # Count emojis and only remove if excessive (more than 3)
+    emoji_count = len(emoji_pattern.findall(text))
+    if emoji_count > 3:
+        text = emoji_pattern.sub(r'', text)
+    
+    # PHASE 1: Remove explicit pricing amounts (all formats) - ENHANCED
+    text = re.sub(r'\$\d+[\d.,]*', '', text)      # $20, $15.50
+    text = re.sub(r'€\d+[\d.,]*', '', text)       # €20, €15.50
+    text = re.sub(r'₺\d+[\d.,]*', '', text)       # ₺20, ₺15.50
+    text = re.sub(r'\d+₺', '', text)              # 50₺
+    text = re.sub(r'\d+\s*(?:\$|€|₺)', '', text)  # 20$, 50 €
+    text = re.sub(r'(?:\$|€|₺)\s*\d+[\d.,]*', '', text)  # $ 20, € 15.50
+    
+    # Additional pricing patterns
+    text = re.sub(r'£\d+[\d.,]*', '', text)       # £20, £15.50
+    text = re.sub(r'\d+£', '', text)              # 50£
+    text = re.sub(r'(?:USD|EUR|GBP|TRY|TL)\s*\d+[\d.,]*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\d+\s*(?:USD|EUR|GBP|TRY|TL)', '', text, flags=re.IGNORECASE)
+    
+    # PHASE 2: Remove pricing words and phrases - ENHANCED
+    text = re.sub(r'\d+\s*(?:lira|euro|euros|dollar|dollars|pound|pounds|tl|usd|eur|gbp|try)s?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:turkish\s+)?lira\s*\d+', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'(?:around|about|approximately|roughly)\s+\d+\s*(?:lira|euro|euros|dollar|dollars)', '', text, flags=re.IGNORECASE)
+    
+    # PHASE 3: Remove cost-related phrases with amounts - ENHANCED
+    cost_patterns = [
+        r'(?:costs?|prices?|fees?)\s*:?\s*(?:around\s+|about\s+|approximately\s+|roughly\s+)?\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:entrance|admission|ticket|entry)\s*(?:cost|price|fee)s?\s*:?\s*\$?\€?₺?£?\d+',
+        r'(?:starting|starts)\s+(?:from|at)\s+\$?\€?₺?£?\d+',
+        r'(?:only|just)\s+\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:per\s+person|each|pp)\s*:?\s*\$?\€?₺?£?\d+',
+        r'\$?\€?₺?£?\d+[\d.,]*\s*(?:per\s+person|each|pp)',
+        r'(?:budget|spend|pay)\s*:?\s*(?:around\s+|about\s+)?\$?\€?₺?£?\d+[\d.,]*',
+        r'(?:between|from)\s+\$?\€?₺?£?\d+\s*(?:and|to|-|–)\s*\$?\€?₺?£?\d+',
+        r'(?:range|varies)\s+(?:from|between)\s+\$?\€?₺?£?\d+',
+    ]
+    
+    for pattern in cost_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    # PHASE 4: Remove money emojis and pricing symbols - ENHANCED
+    text = re.sub(r'💰|💵|💴|💶|💷|💸', '', text)
+    text = re.sub(r'[\$€₺£¥₹₽₴₦₱₩₪₨₡₵₼₢₨₹₿]', '', text)
+    
+    # Remove pricing codes
+    text = re.sub(r'\b(?:USD|EUR|GBP|TRY|TL|JPY|CHF|CAD|AUD)\b', '', text, flags=re.IGNORECASE)
+    
+    # PHASE 5: Remove ALL markdown formatting for clean responses
+    # Remove **bold** and *italic* formatting completely
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove **bold** but keep content
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Remove *italic* but keep content
+    
+    # Remove any remaining asterisks that might be left over
+    text = re.sub(r'\*+', '', text)  # Remove any standalone asterisks
+    
+    # Clean up any double spacing that might result from asterisk removal
+    text = re.sub(r'  +', ' ', text)  # Multiple spaces to single space
+    
+    # Improve bullet points and structure
+    text = re.sub(r'^[\s]*-\s*', '• ', text, flags=re.MULTILINE) 
+    text = re.sub(r'([.!?])\s*\n\s*([A-Z])', r'\1\n\n\2', text)  # Add space between paragraphs
+    
+    # Clean up spacing while preserving structure
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        line = line.strip()
+        if line:  # Only process non-empty lines
+            line = re.sub(r'\s+', ' ', line)  # Multiple spaces to single space
+            line = re.sub(r'\s*[:;,]\s*[:;,]+', ',', line)  # Clean up punctuation
+            cleaned_lines.append(line)
+        else:
+            cleaned_lines.append('')  # Preserve empty lines for structure
+    
+    text = '\n'.join(cleaned_lines)
+    
+    # Final cleanup
+    text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)  # No more than double line breaks
+    text = re.sub(r'^\s+|\s+$', '', text)  # Remove leading/trailing whitespace
+    
+    return text
+
+def sanitize_user_input(user_input: str) -> str:
+    """Sanitize user input to prevent injection attacks"""
+    if not user_input:
+        return ""
+    
+    # Limit input length
+    max_length = 1000
+    if len(user_input) > max_length:
+        user_input = user_input[:max_length]
+    
+    # Remove potentially dangerous characters
+    user_input = html.escape(user_input)
+    
+    # Remove SQL injection patterns
+    dangerous_patterns = [
+        r'union\s+select', r'drop\s+table', r'delete\s+from', r'insert\s+into',
+        r'update\s+set', r'create\s+table', r'alter\s+table', r'exec\s*\(',
+        r'script\s*>', r'javascript:', r'vbscript:', r'on\w+\s*=', r'<\s*script'
+    ]
+    
+    for pattern in dangerous_patterns:
+        user_input = re.sub(pattern, '', user_input, flags=re.IGNORECASE)
+    
+    return user_input.strip()
+
+async def get_istanbul_ai_response_with_quality(user_input: str, session_id: str, user_ip: Optional[str] = None, location_context: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    """SIMPLIFIED: Generate response using Istanbul Daily Talk AI (Primary System)"""
     try:
-        result = await auth_manager.register_user(
-            email=request.email,
-            password=request.password,
-            username=request.username,
-            full_name=request.full_name,
-            db=db
-        )
+        # Sanitize input
+        user_input = sanitize_user_input(user_input)
+        if not user_input:
+            return None
         
-        logger.info(f"✅ User registered successfully: {request.email}")
-        return result
+        print(f"🏛️ Using Istanbul Daily Talk AI (SIMPLIFIED) for session: {session_id}")
         
-    except ValueError as e:
-        logger.warning(f"Registration validation error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        # Use Istanbul Daily Talk AI as the primary system - it handles everything internally
+        if ISTANBUL_DAILY_TALK_AVAILABLE:
+            try:
+                # Let Istanbul Daily Talk AI handle all the complex processing internally
+                ai_response = istanbul_daily_talk_ai.process_message(user_input, session_id)
+                
+                if ai_response and len(ai_response) > 20:
+                    print(f"✅ Istanbul Daily Talk AI response: {len(ai_response)} characters")
+                    
+                    # Apply post-processing cleanup
+                    ai_response = post_ai_cleanup(ai_response)
+                    
+                    return {
+                        'success': True,
+                        'response': ai_response,
+                        'session_id': session_id,
+                        'has_context': True,
+                        'uses_neural_ranking': False,
+                        'system_type': 'istanbul_daily_talk_ai',
+                        'quality_assessment': {
+                            'overall_score': 90,
+                            'confidence': 0.85,
+                            'used_fallback': False,
+                            'processing_time': 0.2,
+                            'system_version': 'istanbul_daily_talk_ai_integrated'
+                        }
+                    }
+                else:
+                    print("⚠️ Istanbul Daily Talk AI response insufficient")
+                    return None
+                    
+            except Exception as e:
+                print(f"⚠️ Istanbul Daily Talk AI error: {e}")
+                return None
+        else:
+            print("❌ Istanbul Daily Talk AI not available")
+            return None
+            
     except Exception as e:
-        logger.error(f"Registration error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed. Please try again."
-        )
+        print(f"❌ Error in simplified AI system: {str(e)}")
+        return None
 
-
-@app.post("/api/auth/login", response_model=TokenResponse, tags=["Authentication"])
-async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
-    """
-    Login with email and password
-    
-    Returns access token, refresh token, and user information
-    """
-    if not ENHANCED_AUTH_AVAILABLE or not auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not available"
-        )
-    
+async def get_istanbul_ai_response(user_input: str, session_id: str, user_ip: Optional[str] = None) -> Optional[str]:
+    """Generate response using Ultra-Specialized Istanbul AI (Rule-Based) - Simple version"""
     try:
-        result = await auth_manager.login_user(
-            email=request.email,
-            password=request.password,
-            db=db
-        )
+        # Sanitize input first
+        user_input = sanitize_user_input(user_input)
+        if not user_input:
+            return None
         
-        logger.info(f"✅ User logged in successfully: {request.email}")
-        return result
+        # 🧠 ENHANCED QUERY UNDERSTANDING INTEGRATION (Simple version)
+        query_analysis = {}
+        if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
+            try:
+                query_analysis = process_enhanced_query(user_input, session_id)
+                if query_analysis.get('success'):
+                    print(f"🧠 Simple Query Analysis - Intent: {query_analysis['intent']} "
+                          f"(confidence: {query_analysis['confidence']:.2f})")
+            except Exception as e:
+                print(f"⚠️ Enhanced query understanding error (simple): {e}")
         
-    except ValueError as e:
-        logger.warning(f"Login validation error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
-        )
+        # Prepare user context with query analysis
+        user_context = {
+            'session_id': session_id,
+            'user_ip': user_ip,
+            'timestamp': datetime.now().isoformat(),
+            'query_analysis': query_analysis,
+            'detected_intent': query_analysis.get('intent', 'general_info'),
+            'query_confidence': query_analysis.get('confidence', 0.3),
+            'extracted_entities': query_analysis.get('entities', {}),
+            'normalized_query': query_analysis.get('normalized_query', user_input.lower().strip())
+        }
+        
+        # �🏛️ PRIMARY: Use Istanbul Daily Talk AI with its enhanced query detection (Simple version)
+        if ISTANBUL_DAILY_TALK_AVAILABLE:
+            print(f"🏛️ Using Istanbul Daily Talk AI (PRIMARY) with enhanced query detection for session: {session_id}")
+            try:
+                # Process with Istanbul Daily Talk AI - it has its own query detection
+                ai_response = istanbul_daily_talk_ai.process_message(user_input, session_id)
+                
+                # Use Istanbul Daily Talk AI's internal query detection for restaurant enhancement
+                if RESTAURANT_SERVICE_ENABLED:
+                    try:
+                        # Use Istanbul Daily Talk AI's enhanced intent classification (simpler approach)
+                        entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(user_input)
+                        
+                        # Use the enhanced intent classification method directly
+                        enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
+                        
+                        # Check restaurant-specific patterns
+                        is_restaurant_pattern = istanbul_daily_talk_ai._is_restaurant_query(user_input)
+                        
+                        # Determine final intent
+                        if is_restaurant_pattern or enhanced_intent in ['restaurant_query']:
+                            intent = 'restaurant_query'
+                        elif enhanced_intent == 'attraction_query':
+                            intent = 'attraction_query'
+                        elif enhanced_intent == 'transportation_query':
+                            intent = 'transportation_query'
+                        else:
+                            intent = enhanced_intent if enhanced_intent != 'general_conversation' else 'general_info'
+                        
+                        # 🍽️ ENHANCE RESTAURANT RESPONSES WITH DATABASE DATA
+                        restaurant_intents = ['restaurant_query', 'restaurant_recommendation', 'dining', 'food']
+                        if intent in restaurant_intents and ai_response:
+                            print(f"🍽️ Restaurant query detected by Istanbul Daily Talk AI - enhancing with database")
+                            
+                            # Extract search parameters from Istanbul Daily Talk AI's entities
+                            district = entities.get('neighborhoods', [None])[0] if entities.get('neighborhoods') else None
+                            cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
+                            
+                            # Search restaurant database
+                            restaurants = restaurant_service.search_restaurants_compat(
+                                district=district,
+                                cuisine=cuisine,
+                                limit=3
+                            )
+                            
+                            if restaurants:
+                                # Create enhanced response
+                                database_response = restaurant_service.format_restaurant_response(restaurants)
+                                # Combine responses for comprehensive answer
+                                enhanced_response = f"{ai_response}\n\n{database_response}"
+                                print(f"✅ Enhanced Istanbul Daily Talk AI response with {len(restaurants)} restaurants")
+                                return enhanced_response
+                            else:
+                                print("⚠️ No restaurants found in database, using AI response only")
+                                
+                    except Exception as e:
+                        print(f"⚠️ Restaurant enhancement error (simple): {e}")
+                        # Continue with original AI response
+                
+                # Return Istanbul Daily Talk AI response
+                if ai_response and len(ai_response) > 30:  # Simple threshold
+                    print(f"✅ Istanbul Daily Talk AI (simple) response: {len(ai_response)} characters")
+                    return ai_response
+                else:
+                    print("⚠️ Istanbul Daily Talk AI response too short, using fallback")
+                    # Fall through to fallback system
+            except Exception as e:
+                print(f"⚠️ Istanbul Daily Talk AI error (simple): {e}")
+                # Fall through to fallback system
+        
+        # FALLBACK: Use Ultra-Specialized Istanbul AI if Daily Talk AI fails or unavailable
+        if ULTRA_ISTANBUL_AI_AVAILABLE and istanbul_ai_system:
+            print(f"🏛️ Using Ultra-Specialized Istanbul AI (FALLBACK) for session: {session_id}")
+            result = istanbul_ai_system.process_istanbul_query(user_input, user_context)
+        else:
+            print("❌ No AI systems available")
+            return None
+        
+        if result.get('success'):
+            ai_response = result['response']
+            
+            # 🍽️ RESTAURANT DATA INTEGRATION (Simple version) - Using Istanbul Daily Talk AI's detection
+            # Note: This is fallback integration for the Ultra-Specialized system
+            restaurant_intents = ['restaurant_query', 'restaurant_recommendation', 'dining', 'food']
+            detected_intent = 'general_info'
+            
+            # Try to use Istanbul Daily Talk AI's query detection even in fallback mode
+            if ISTANBUL_DAILY_TALK_AVAILABLE:
+                try:
+                    entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(user_input)
+                    
+                    # Use enhanced intent classification (simpler, no context needed)
+                    enhanced_intent = istanbul_daily_talk_ai._enhance_intent_classification(user_input)
+                    is_restaurant_pattern = istanbul_daily_talk_ai._is_restaurant_query(user_input)
+                    
+                    # Determine final intent
+                    if is_restaurant_pattern or enhanced_intent in ['restaurant_query']:
+                        detected_intent = 'restaurant_query'
+                    else:
+                        detected_intent = enhanced_intent if enhanced_intent != 'general_conversation' else 'general_info'
+                except Exception as e:
+                    print(f"⚠️ Could not use Istanbul Daily Talk AI detection in fallback: {e}")
+                    detected_intent = query_analysis.get('intent', 'general_info')
+            else:
+                detected_intent = query_analysis.get('intent', 'general_info')
+            
+            if RESTAURANT_SERVICE_ENABLED and detected_intent in restaurant_intents:
+                try:
+                    # Simple restaurant search based on detected entities
+                    entities = query_analysis.get('entities', {})
+                    district = entities.get('districts', [None])[0] if entities.get('districts') else None
+                    cuisine = entities.get('cuisines', [None])[0] if entities.get('cuisines') else None
+                    
+                    restaurants = restaurant_service.search_restaurants_compat(
+                        district=district,
+                        cuisine=cuisine,
+                        limit=2
+                    )
+                    
+                    if restaurants:
+                        ai_response = restaurant_service.format_restaurant_response(restaurants)
+                        print(f"✅ Simple restaurant integration: {len(restaurants)} restaurants")
+                        
+                except Exception as e:
+                    print(f"⚠️ Simple restaurant integration error: {e}")
+            
+            print(f"✅ Ultra-Specialized AI response (simple) - Session: {session_id}, "
+                  f"Confidence: {result.get('confidence', 0.7):.2f}, "
+                  f"System: {result.get('system_version', 'ultra_specialized')}")
+            
+            # Apply post-processing cleanup
+            ai_response = post_ai_cleanup(ai_response)
+            
+            # Apply restaurant response formatting
+            try:
+                from restaurant_response_formatter import format_restaurant_response
+                ai_response = format_restaurant_response(ai_response, user_input)
+            except ImportError:
+                pass  # Formatter not available, continue without it
+                
+            return ai_response
+        else:
+            print(f"❌ Ultra-Specialized Istanbul AI failed: {result.get('error', 'Unknown error')}")
+            return None
+            
     except Exception as e:
-        logger.error(f"Login error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed. Please try again."
-        )
+        print(f"❌ Error in Ultra-Specialized Istanbul AI system: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
-
-@app.post("/api/auth/refresh", response_model=TokenResponse, tags=["Authentication"])
-async def refresh_token(request: UserRefreshRequest, db: Session = Depends(get_db)):
-    """
-    Refresh access token using refresh token
-    
-    Returns new access token and refresh token
-    """
-    if not ENHANCED_AUTH_AVAILABLE or not auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not available"
-        )
-    
+def create_fallback_response(user_input: str, context: Optional[Dict] = None) -> str:
+    """Create a fallback response when AI systems fail"""
     try:
-        result = await auth_manager.refresh_access_token(
-            refresh_token=request.refresh_token,
-            db=db
-        )
+        # Basic fallback responses based on keywords
+        user_lower = user_input.lower()
         
-        logger.info("✅ Token refreshed successfully")
-        return result
-        
-    except ValueError as e:
-        logger.warning(f"Token refresh validation error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
-        )
+        if any(word in user_lower for word in ['restaurant', 'food', 'eat', 'dining', 'meal']):
+            return """I'd be happy to help you find restaurants in Istanbul! Here are some popular areas for dining:
+
+• **Sultanahmet** - Traditional Ottoman cuisine near historic sites
+• **Beyoğlu** - International restaurants and trendy cafes
+• **Karaköy** - Waterfront dining with Bosphorus views
+• **Kadıköy** - Local favorites and street food
+
+For specific restaurant recommendations, please let me know:
+- Which district interests you?
+- What type of cuisine do you prefer?
+- What's your budget range?"""
+
+        elif any(word in user_lower for word in ['museum', 'history', 'culture', 'art']):
+            return """Istanbul has amazing museums and cultural sites! Here are the must-visit ones:
+
+• **Hagia Sophia** - Iconic Byzantine and Ottoman architecture
+• **Topkapi Palace** - Former Ottoman imperial palace
+• **Istanbul Archaeological Museum** - Ancient artifacts and treasures
+• **Istanbul Modern** - Contemporary Turkish and international art
+
+Would you like more details about any specific museum or cultural site?"""
+
+        elif any(word in user_lower for word in ['transport', 'metro', 'bus', 'travel', 'getting around']):
+            return """Getting around Istanbul is easy with multiple transport options:
+
+• **Metro** - Fast and efficient for major districts
+• **Tram** - Great for tourist areas like Sultanahmet
+• **Ferry** - Scenic Bosphorus crossings
+• **Bus** - Extensive network covering the whole city
+• **Istanbulkart** - Single card for all public transport
+
+Need help planning a specific route?"""
+
+        else:
+            return """Welcome to Istanbul! I'm here to help you discover this amazing city.
+
+I can assist you with:
+• Restaurant recommendations and dining
+• Museums and cultural attractions  
+• Transportation and getting around
+• Historical sites and hidden gems
+• Local tips and insider knowledge
+
+What would you like to know about Istanbul?"""
+            
     except Exception as e:
-        logger.error(f"Token refresh error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Token refresh failed. Please try again."
-        )
-
-
-@app.post("/api/auth/logout", tags=["Authentication"])
-async def logout_user(
-    current_user: Dict = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Logout current user (revoke tokens)
-    
-    Requires valid access token in Authorization header
-    """
-    if not ENHANCED_AUTH_AVAILABLE or not auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not available"
-        )
-    
-    try:
-        user_id = current_user.get("user_id")
-        await auth_manager.logout_user(user_id=user_id, db=db)
-        
-        logger.info(f"✅ User logged out successfully: {user_id}")
-        return {"message": "Logged out successfully"}
-        
-    except Exception as e:
-        logger.error(f"Logout error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed. Please try again."
-        )
-
-
-@app.get("/api/auth/profile", response_model=UserResponse, tags=["Authentication"])
-async def get_user_profile(
-    current_user: Dict = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get current user profile
-    
-    Requires valid access token in Authorization header
-    """
-    if not ENHANCED_AUTH_AVAILABLE or not auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not available"
-        )
-    
-    try:
-        user_id = current_user.get("user_id")
-        user = await auth_manager.get_user_by_id(user_id=user_id, db=db)
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        return UserResponse(
-            id=user.id,
-            email=user.email,
-            username=user.username,
-            full_name=user.full_name,
-            is_active=user.is_active,
-            created_at=user.created_at,
-            updated_at=user.updated_at
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Profile fetch error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch profile. Please try again."
-        )
-
+        print(f"Error in create_fallback_response: {e}")
+        return "I'm here to help you explore Istanbul! Please let me know what you'd like to discover about this amazing city."
 
 # =============================
 # HEALTH CHECK & MONITORING ENDPOINTS
@@ -1849,11 +1988,8 @@ async def add_comprehensive_security_headers(request: Request, call_next):
     if request.url.scheme == "https":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     
-    # Remove server identification header (MutableHeaders doesn't support pop, use del with try/except)
-    try:
-        del response.headers["server"]
-    except KeyError:
-        pass
+    # Remove server identification header
+    response.headers.pop("server", None)
     
     return response
 
@@ -1903,329 +2039,304 @@ class MuseumResponse(BaseModel):
     ticket_info: Dict[str, Any] = Field(..., description="Ticket information")
 
 # =============================
-# HELPER FUNCTIONS FOR CHAT
+# GPS-BASED ROUTE PLANNING ENDPOINTS
 # =============================
 
-def create_fallback_response(user_input: str) -> str:
+@app.post("/api/route/gps-plan", response_model=RouteResponse, tags=["GPS Route Planning"])
+async def plan_route_from_gps_location(request: GPSRouteRequest):
     """
-    Create a fallback response when AI systems are unavailable
-    
-    Args:
-        user_input: User's query/message
-        
-    Returns:
-        A helpful fallback response
-    """
-    user_input_lower = user_input.lower()
-    
-    # Check for common intents and provide helpful responses
-    if any(word in user_input_lower for word in ['restaurant', 'food', 'eat', 'dining']):
-        return ("I can help you find great restaurants in Istanbul! However, I'm experiencing some technical "
-                "difficulties right now. Please try again in a moment, or visit our website for restaurant recommendations.")
-    
-    elif any(word in user_input_lower for word in ['museum', 'attraction', 'visit', 'see', 'places']):
-        return ("Istanbul has amazing attractions and museums! I'm having some technical issues at the moment. "
-                "Please try again shortly, or check out popular spots like Hagia Sophia, Topkapi Palace, and the Blue Mosque.")
-    
-    elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'how to get']):
-        return ("I can help with transportation in Istanbul! I'm experiencing technical difficulties right now. "
-                "Please try again in a moment. In the meantime, consider using the Istanbul Kart for public transport.")
-    
-    elif any(word in user_input_lower for word in ['neighborhood', 'area', 'district', 'where to stay']):
-        return ("I can tell you about Istanbul's neighborhoods! I'm having some issues at the moment. "
-                "Please try again shortly. Popular areas include Sultanahmet, Beyoğlu, Kadıköy, and Beşiktaş.")
-    
-    elif any(word in user_input_lower for word in ['hello', 'hi', 'hey', 'greetings']):
-        return ("Hello! Welcome to the Istanbul AI Guide. I'm here to help you explore Istanbul, but I'm "
-                "experiencing some technical difficulties. Please try again in a moment!")
-    
-    else:
-        return ("Thank you for your question about Istanbul! I'm experiencing some technical difficulties at the moment. "
-                "Please try again shortly, and I'll be happy to help you explore this amazing city!")
-
-# =============================
-# AI CHAT ENDPOINTS (MAIN CHAT INTERFACE)
-# =============================
-
-@app.post("/api/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_endpoint(request: ChatRequest):
-    """
-    Main chat endpoint for AI interactions
-    Processes user query and returns AI response with rich data
-    
-    Returns comprehensive POI data, district info, cultural tips, and route suggestions
+    Generate intelligent route plan based on user's GPS location
+    Finds nearby attractions and creates optimized route
     """
     try:
-        # Sanitize user input
-        user_input = sanitize_user_input(request.message)
-        session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
-        user_id = request.user_id or session_id
+        print(f"📍 GPS-based route planning request from location: {request.user_location}")
         
-        logger.info(f"💬 Chat request - Session: {session_id}, Query: '{user_input[:50]}...'")
+        if not ISTANBUL_DAILY_TALK_AVAILABLE:
+            raise HTTPException(status_code=503, detail="GPS route planning service unavailable")
         
-        # Run query preprocessing pipeline
-        query_analysis = {}
-        if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
+        # Generate session ID for personalization
+        session_id = request.session_id or f"gps_route_{uuid.uuid4().hex[:8]}"
+        
+        # Get user profile for personalization
+        user_profile = istanbul_daily_talk_ai.get_or_create_user_profile(session_id)
+        
+        # Update user profile with interests if provided
+        if request.interests:
+            user_profile.interests.extend([interest for interest in request.interests if interest not in user_profile.interests])
+        
+        # Create location-aware query
+        lat, lng = request.user_location["lat"], request.user_location["lng"]
+        
+        # Generate contextual route planning query based on location and interests
+        location_query_parts = [
+            f"I'm currently at GPS location {lat:.4f}, {lng:.4f} in Istanbul."
+        ]
+        
+        if request.interests:
+            interests_str = ", ".join(request.interests)
+            location_query_parts.append(f"I'm interested in {interests_str}.")
+        
+        if request.duration_hours:
+            location_query_parts.append(f"I have {request.duration_hours} hours available.")
+        
+        if request.radius_km:
+            location_query_parts.append(f"I prefer to stay within {request.radius_km}km of my current location.")
+        
+        location_query_parts.append("Please create an optimized route for me.")
+        
+        route_query = " ".join(location_query_parts)
+        
+        # Create context with GPS location
+        from istanbul_daily_talk_system_modular import ConversationContext
+        context = ConversationContext(
+            session_id=session_id,
+            user_profile=user_profile
+        )
+        context.context_memory = {
+            "user_location": request.user_location,
+            "radius_km": request.radius_km,
+            "duration_hours": request.duration_hours,
+            "transport_mode": request.transport_mode,
+            "route_style": request.route_style
+        }
+        
+        # === USE ENHANCED GPS ROUTE PLANNER FROM MAIN SYSTEM ===
+        route_result = None
+        if hasattr(istanbul_daily_talk_ai, 'gps_route_planner') and istanbul_daily_talk_ai.gps_route_planner:
+            print("🗺️ Using Enhanced GPS Route Planner from Main System...")
             try:
-                query_analysis = process_enhanced_query(user_input, session_id)
-                if query_analysis.get('success'):
-                    logger.info(f"🔧 Query preprocessed - Intent: {query_analysis['intent']} "
-                              f"(confidence: {query_analysis['confidence']:.2f})")
-                    if query_analysis.get('corrections'):
-                        logger.info(f"✏️ Applied {len(query_analysis['corrections'])} corrections")
-                    if query_analysis.get('entities'):
-                        logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
-            except Exception as e:
-                logger.warning(f"Preprocessing error: {e}")
-        
-        # Initialize comprehensive metadata
-        metadata = {}
-        cultural_tips = []
-        
-        # Add preprocessing results to metadata
-        if query_analysis:
-            metadata['query_preprocessing'] = {
-                'original_query': query_analysis.get('original_query', user_input),
-                'processed_query': query_analysis.get('normalized_query', user_input),
-                'corrections_applied': len(query_analysis.get('corrections', [])),
-                'entities_extracted': list(query_analysis.get('entities', {}).keys()),
-                'detected_intent': query_analysis.get('intent'),
-                'confidence': query_analysis.get('confidence'),
-                'statistics': query_analysis.get('preprocessing_stats')
-            }
-        
-        # Use Istanbul Daily Talk AI if available
-        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-            try:
-                # Process message with the AI system using structured response format
-                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
-                
-                # Handle both dict (structured) and str (fallback) responses
-                if isinstance(ai_result, dict):
-                    ai_response = ai_result.get('response', '')
-                    # Extract map data from structured response
-                    if 'map_data' in ai_result and ai_result['map_data']:
-                        metadata['map_data'] = ai_result['map_data']
-                        logger.info(f"🗺️ Map data extracted: {len(ai_result['map_data'].get('locations', []))} locations")
-                    # Extract intent and entities if available
-                    if 'intent' in ai_result:
-                        metadata['detected_intent'] = ai_result['intent']
-                    if 'entities' in ai_result:
-                        metadata['extracted_entities'] = ai_result['entities']
-                else:
-                    ai_response = ai_result
-                
-                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
-                museum_attraction_keywords = [
-                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
-                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
-                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
-                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
-                ]
-                if any(word in user_input.lower() for word in museum_attraction_keywords):
-                    pois = []
-                    
-                    # Try to get museum data from the main system
-                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
-                        try:
-                            museums = istanbul_daily_talk_ai.search_museums(user_input)
-                            if museums:
-                                for m in museums[:5]:  # Top 5 museums
-                                    poi = {
-                                        'name': m.get('name', ''),
-                                        'type': m.get('type', 'museum'),
-                                        'category': m.get('category', 'Museum'),
-                                        'coordinates': m.get('coordinates', [41.0082, 28.9784]),
-                                        'description': m.get('description', '')[:200],
-                                        'highlights': m.get('highlights', ['Beautiful architecture', 'Rich history']),
-                                        'local_tips': m.get('local_tips', ['Visit early to avoid crowds', 'Photography allowed']),
-                                        'opening_hours': m.get('opening_hours', '9:00 AM - 5:00 PM'),
-                                        'entrance_fee': m.get('entrance_fee', 'Varies'),
-                                        'best_time_to_visit': m.get('best_time_to_visit', 'Early morning or late afternoon'),
-                                        'visit_duration': m.get('visit_duration', '1-2 hours'),
-                                        'accessibility': m.get('accessibility', 'Wheelchair accessible'),
-                                        'nearby_transport': m.get('nearby_transport', 'Tram T1 nearby'),
-                                        'nearby_attractions': m.get('nearby_attractions', []),
-                                        'insider_tips': m.get('insider_tips', []),
-                                        'website': m.get('website', ''),
-                                        'phone': m.get('phone', '')
-                                    }
-                                    pois.append(poi)
-                                
-                                metadata['pois'] = pois
-                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata from Museum System")
-                        except Exception as e:
-                            logger.warning(f"Museum data error: {e}")
-                            import traceback
-                            logger.warning(traceback.format_exc())
-                    
-                    # Add famous attractions with detailed data if museums not found
-                    if not pois and 'sultanahmet' in user_input.lower():
-                        metadata['pois'] = [
-                            {
-                                'name': 'Hagia Sophia',
-                                'type': 'museum',
-                                'coordinates': [41.0086, 28.9802],
-                                'description': 'Former Byzantine cathedral and Ottoman mosque, now a mosque',
-                                'highlights': ['Byzantine mosaics', 'Massive 31m dome', 'Islamic calligraphy', 'Marble columns'],
-                                'local_tips': ['Visit early morning (8-10 AM)', 'Dress modestly', 'Free entry', 'Shoes removed at entrance'],
-                                'opening_hours': 'Open 24/7 (prayer times restricted)',
-                                'entrance_fee': 'Free',
-                                'best_time_to_visit': 'Early morning to avoid crowds',
-                                'visit_duration': '45-90 minutes',
-                                'accessibility': 'Limited wheelchair access',
-                                'nearby_transport': 'Tram T1 to Sultanahmet stop'
-                            },
-                            {
-                                'name': 'Topkapi Palace',
-                                'type': 'museum',
-                                'coordinates': [41.0115, 28.9833],
-                                'description': 'Ottoman imperial palace with treasury and harem',
-                                'highlights': ['Imperial treasury', 'Harem quarters', 'Bosphorus views', 'Sacred relics'],
-                                'local_tips': ['Buy tickets online', 'Harem requires separate ticket', 'Closed Tuesdays', 'Allow 2-3 hours'],
-                                'opening_hours': '9:00 AM - 6:00 PM (summer), 9:00 AM - 4:30 PM (winter)',
-                                'entrance_fee': '₺320 (palace) + ₺220 (harem)',
-                                'best_time_to_visit': 'Weekday mornings',
-                                'visit_duration': '2-3 hours',
-                                'accessibility': 'Partially wheelchair accessible',
-                                'nearby_transport': 'Tram T1 to Gülhane or Sultanahmet'
-                            }
-                        ]
-                        logger.info("✅ Added default Sultanahmet attractions with rich data")
-                
-                # ===== 2. ENHANCED DISTRICT INFORMATION =====
-                district_data = {
-                    'sultanahmet': {
-                        'name': 'Sultanahmet',
-                        'description': 'Historic peninsula, heart of old Istanbul',
-                        'best_time': 'Early morning (7-9 AM) or late afternoon (4-6 PM)',
-                        'local_tips': [
-                            'Most museums closed Mondays',
-                            'Tram T1 line runs through the district',
-                            'Avoid carpet shop tours (tourist traps)',
-                            'Street vendors charge higher prices',
-                            'Free walking tours available daily'
-                        ],
-                        'transport': 'Tram T1 to Sultanahmet station',
-                        'safety': 'Very safe, watch for pickpockets in crowds',
-                        'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': 'Respect mosque dress codes'
+                # Use the enhanced GPS route planner with fallback location detection
+                route_result = istanbul_daily_talk_ai.gps_route_planner.plan_route(
+                    user_location=request.user_location,
+                    user_preferences={
+                        'interests': request.interests or [],
+                        'duration_hours': request.duration_hours,
+                        'radius_km': request.radius_km,
+                        'transport_mode': request.transport_mode,
+                        'route_style': request.route_style
                     },
-                    'beyoglu': {
-                        'name': 'Beyoğlu',
-                        'description': 'Modern Istanbul, nightlife, shopping',
-                        'best_time': 'Evening (for nightlife and dining)',
-                        'local_tips': [
-                            'Best nightlife on weekends',
-                            'Rooftop bars have amazing views',
-                            'Street food is excellent and cheap'
-                        ],
-                        'transport': 'Metro M2 to Taksim or funicular from Karaköy',
-                        'safety': 'Safe, avoid dark alleys late at night',
-                        'food_tips': 'Best fish sandwiches at Karaköy',
-                        'cultural_notes': 'Cosmopolitan area, all dress codes accepted'
-                    },
-                    'kadikoy': {
-                        'name': 'Kadıköy',
-                        'description': 'Asian side, local vibe, best food scene',
-                        'best_time': 'Evening (best for food and atmosphere)',
-                        'local_tips': [
-                            'Best authentic Turkish food in Istanbul',
-                            'Cheaper than European side',
-                            'Moda neighborhood great for walks',
-                            'Tuesday market is massive',
-                            'Less touristy, more authentic'
-                        ],
-                        'transport': 'Ferry from Eminönü or Karaköy (scenic 20min ride)',
-                        'safety': 'Very safe, family-friendly',
-                        'food_tips': 'Çiya Sofrası for regional Turkish cuisine',
-                        'cultural_notes': 'Local life, non-touristy experience'
+                    user_context={
+                        'session_id': session_id,
+                        'user_profile': user_profile.__dict__ if hasattr(user_profile, '__dict__') else {}
                     }
-                }
-                
-                # Detect mentioned district
-                for district_key, district_info in district_data.items():
-                    if district_key in user_input.lower() or district_key.replace('ı', 'i') in user_input.lower():
-                        metadata['district_info'] = district_info
-                        logger.info(f"✅ Added rich district info for {district_info['name']}")
-                        break
-                
-                # ===== 3. CULTURAL TIPS & ETIQUETTE =====
-                if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
-                    cultural_tips = [
-                        'Remove shoes before entering mosques',
-                        'Dress modestly when visiting religious sites',
-                        'Women may need to cover their hair in mosques',
-                        'No photography during prayer times',
-                        'Respect local customs and traditions'
-                    ]
-                    metadata['cultural_tips'] = cultural_tips
-                    logger.info(f"📚 Added {len(cultural_tips)} cultural tips")
-                
-                # ===== 4. ROUTE PLANNING & DISTANCE CALCULATIONS =====
-                if metadata.get('pois') and len(metadata['pois']) > 1:
-                    total_distance = 0
-                    total_time = 0
-                    for i, poi in enumerate(metadata['pois'][:5]):  # Calculate for first 5 POIs
-                        # Estimate distances and times
-                        distance_km = (i + 1) * 1.5  # Rough estimate
-                        time_mins = distance_km * 20  # ~20 min per km walking
-                        total_distance += distance_km
-                        total_time += time_mins
-                    
-                    metadata['route_info'] = {
-                        'total_distance_km': round(total_distance, 1),
-                        'total_time_hours': round(total_time / 60, 1),
-                        'number_of_stops': len(metadata['pois'][:5]),
-                        'suggested_breaks': ['Coffee break after 2 hours', 'Lunch around noon'],
-                        'best_start_time': '9:00 AM'
-                    }
-                    
-                    logger.info(f"✅ Calculated route: {round(total_distance, 1)}km, {round(total_time/60, 1)}hrs")
-                
-                # ===== 5. CONTEXT-AWARE SUGGESTIONS =====
-                suggestions = ["Tell me more details"]
-                if metadata.get('pois'):
-                    suggestions.extend(["Show me on a map", "Plan optimized route"])
-                if metadata.get('district_info'):
-                    suggestions.append(f"What else is in {metadata['district_info']['name']}?")
-                suggestions.append("Find nearby restaurants")
-                
-                return ChatResponse(
-                    response=ai_response,
-                    session_id=session_id,
-                    intent="rich_travel_info",
-                    confidence=0.92,
-                    suggestions=suggestions[:4],  # Limit to 4 suggestions
-                    metadata=metadata if metadata else None
                 )
                 
+                if route_result and route_result.get('success', True):
+                    print(f"✅ Enhanced GPS route plan generated with {len(route_result.get('waypoints', []))} waypoints")
+                    route_response = route_result.get('formatted_plan', route_result.get('description', ''))
+                else:
+                    print(f"⚠️ Enhanced GPS planner returned error, falling back...")
+                    route_response = None
+                    
             except Exception as e:
-                logger.error(f"Istanbul Daily Talk AI error: {e}", exc_info=True)
-                # Fall through to fallback
+                print(f"⚠️ Enhanced GPS planner error: {e}, falling back...")
+                route_result = None
+                route_response = None
         
-        # Fallback response
-        fallback_response = create_fallback_response(user_input)
+        # Fallback to traditional route planning if enhanced planner not available or failed
+        if not route_result:
+            if hasattr(istanbul_daily_talk_ai, 'handle_route_planning_query'):
+                route_response = istanbul_daily_talk_ai.handle_route_planning_query(
+                    route_query, user_profile, context, datetime.now()
+                )
+            else:
+                # Final fallback to regular message processing with location context
+                route_response = istanbul_daily_talk_ai.process_message(route_query, session_id)
         
-        return ChatResponse(
-            response=fallback_response,
-            session_id=session_id,
-            intent="general_query",
-            confidence=0.5,
-            suggestions=[
-                "Show me museums in Sultanahmet",
-                "Find restaurants in Beyoğlu",
-                "Plan a day tour",
-                "Tell me about Turkish culture"
+        # Extract nearby attractions (if route maker service is available)
+        nearby_attractions = []
+        if hasattr(istanbul_daily_talk_ai, 'route_maker') and istanbul_daily_talk_ai.route_maker:
+            try:
+                # Get nearby attractions using route maker service
+                from services.route_maker_service import get_route_maker
+                route_maker = get_route_maker()
+                
+                # This would need to be implemented in the route maker service
+                # nearby_attractions = route_maker.get_attractions_near_point(lat, lng, request.radius_km or 5.0)
+                
+            except Exception as e:
+                print(f"⚠️ Could not get nearby attractions: {e}")
+        
+        # Create GPS-aware waypoints from enhanced route result or fallback parsing
+        waypoints = []
+        estimated_distance = 0
+        estimated_duration = 0
+        
+        if route_result and route_result.get('waypoints'):
+            # Use waypoints from enhanced GPS route planner
+            for waypoint in route_result['waypoints']:
+                waypoints.append({
+                    "order": waypoint.get('order', len(waypoints) + 1),
+                    "name": waypoint.get('name', 'Unknown Location'),
+                    "description": waypoint.get('description', ''),
+                    "estimated_time": waypoint.get('estimated_time', '45-90 minutes'),
+                    "distance_from_start": waypoint.get('distance_from_start', f"{len(waypoints) * 0.8:.1f} km"),
+                    "lat": waypoint.get('lat'),
+                    "lng": waypoint.get('lng')
+                })
+            
+            estimated_distance = route_result.get('total_distance_km', len(waypoints) * 1.2)
+            estimated_duration = route_result.get('total_duration_hours', request.duration_hours or min(len(waypoints) * 1.5, 8))
+            
+        elif route_response and "→" in route_response:
+            # Fallback: Parse waypoints from text response
+            places = [place.strip() for place in route_response.split("→")]
+            for i, place in enumerate(places):
+                waypoints.append({
+                    "order": i + 1,
+                    "name": place,
+                    "description": f"Stop {i + 1}: {place}",
+                    "estimated_time": "45-90 minutes",
+                    "distance_from_start": f"{i * 0.8:.1f} km"  # Estimated
+                })
+            
+            estimated_distance = len(waypoints) * 1.2  # Rough estimate
+            estimated_duration = request.duration_hours or min(len(waypoints) * 1.5, 8)
+        else:
+            # No waypoints could be extracted
+            estimated_distance = 0
+            estimated_duration = request.duration_hours or 4
+        
+        # Build comprehensive route data from enhanced result or fallback
+        route_data = {
+            "description": route_response or route_result.get('description', 'Custom GPS-based route created'),
+            "optimized": True,
+            "algorithm": route_result.get('algorithm', "GPS-aware TSP with local optimization"),
+            "start_point": request.user_location,
+            "gps_based": True,
+            "radius_km": request.radius_km or 5.0,
+            "interests_considered": request.interests or [],
+            "transport_mode": request.transport_mode,
+            "nearby_museums": route_result.get('nearby_museums', []) if route_result else [],
+            "local_tips": route_result.get('local_tips', []) if route_result else [],
+            "district_transport_tips": route_result.get('district_transport_tips', []) if route_result else []
+        }
+        
+        # Generate suggestions from enhanced result or create defaults
+        suggestions = []
+        if route_result and route_result.get('local_tips'):
+            suggestions = route_result['local_tips'][:4]
+        else:
+            suggestions = [
+                f"Route optimized for {request.radius_km or 5.0}km radius from your location",
+                f"Estimated total time: {estimated_duration:.1f} hours",
+                "Consider traffic and opening hours",
+                "Download offline maps for better navigation"
             ]
+        
+        return RouteResponse(
+            route=route_data,
+            total_duration=f"{estimated_duration:.1f} hours",
+            total_distance=f"{estimated_distance:.1f} km",
+            waypoints=waypoints,
+            suggestions=suggestions
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Chat endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
+        print(f"❌ GPS route planning error: {e}")
+        raise HTTPException(status_code=500, detail="GPS route planning failed")
 
+@app.post("/api/nearby/attractions", response_model=LocationBasedRecommendationResponse, tags=["GPS Route Planning"]) 
+async def get_nearby_attractions(request: NearbyAttractionsRequest):
+    """
+    Get attractions near user's GPS location
+    Returns personalized recommendations based on location
+    """
+    try:
+        print(f"📍 Nearby attractions request for location: {request.location}")
+        
+        lat, lng = request.location["lat"], request.location["lng"]
+        radius = request.radius_km or 2.0
+        
+        # Use Istanbul Daily Talk AI to get location-aware recommendations
+        location_query = f"What attractions and interesting places are near GPS coordinates {lat:.4f}, {lng:.4f} within {radius}km?"
+        
+        if request.categories:
+            categories_str = ", ".join(request.categories)
+            location_query += f" I'm particularly interested in {categories_str}."
+        
+        session_id = f"nearby_{uuid.uuid4().hex[:8]}"
+        
+        if ISTANBUL_DAILY_TALK_AVAILABLE:
+            # Get AI recommendations
+            ai_response = istanbul_daily_talk_ai.process_message(location_query, session_id)
+            
+            # Extract location information using entity recognizer
+            entities = istanbul_daily_talk_ai.entity_recognizer.extract_entities(location_query)
+            
+            # Parse response for structured data
+            recommendations = []
+            
+            # Extract attractions from AI response (basic parsing)
+            lines = ai_response.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and ('•' in line or '-' in line or line.startswith(('1.', '2.', '3.'))):
+                    # Extract attraction name and description
+                    clean_line = re.sub(r'^[•\-\d\.\s]+', '', line)
+                    if clean_line:
+                        recommendations.append({
+                            "name": clean_line.split('-')[0].strip() if '-' in clean_line else clean_line[:50],
+                            "description": clean_line,
+                            "estimated_distance": f"{radius/2:.1f} km",  # Rough estimate
+                            "category": "attraction",
+                            "confidence": 0.8
+                        })
+            
+            # Limit results
+            recommendations = recommendations[:request.limit or 10]
+            
+        else:
+            # Fallback static recommendations
+            recommendations = [
+                {
+                    "name": "Hagia Sophia",
+                    "description": "Historic Byzantine and Ottoman monument",
+                    "estimated_distance": "1.2 km",
+                    "category": "historical",
+                    "confidence": 0.9
+                },
+                {
+                    "name": "Blue Mosque",
+                    "description": "Famous Ottoman mosque with blue tiles",
+                    "estimated_distance": "0.8 km", 
+                    "category": "religious",
+                    "confidence": 0.9
+                }
+            ]
+        
+        # Generate route suggestions
+        suggested_routes = [
+            {
+                "name": "Quick Tour",
+                "duration": "2-3 hours",
+                "attractions": min(len(recommendations), 3),
+                "description": "Visit top nearby attractions"
+            },
+            {
+                "name": "Full Day Tour", 
+                "duration": "6-8 hours",
+                "attractions": min(len(recommendations), 6),
+                "description": "Comprehensive exploration of the area"
+            }
+        ]
+        
+        return LocationBasedRecommendationResponse(
+            recommendations=recommendations,
+            user_location=request.location,
+            distance_info={
+                "search_radius": f"{radius} km",
+                "total_found": str(len(recommendations)),
+                "closest": recommendations[0]["estimated_distance"] if recommendations else "unknown"
+            },
+            suggested_routes=suggested_routes
+        )
+        
+    except Exception as e:
+        print(f"❌ Nearby attractions error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get nearby attractions")
 
 @app.post("/api/route/gps-optimize", response_model=RouteResponse, tags=["GPS Route Planning"])
 async def optimize_route_from_gps(
@@ -2326,27 +2437,13 @@ async def optimize_route_from_gps(
 
 
 # =============================
-# HELPER FUNCTIONS FOR CHAT
-# =============================
-
-def create_fallback_response(user_input: str) -> str:
-    """Create a fallback response when AI systems are unavailable"""
-    return (
-        "I apologize, but I'm experiencing technical difficulties at the moment. "
-        "Please try your question again, or visit our website for information about Istanbul. "
-        "I can help with restaurants, attractions, transportation, and neighborhood recommendations!"
-    )
-
-# =============================
 # AI CHAT ENDPOINTS (MAIN CHAT INTERFACE)
 # =============================
 
-@app.post("/api/chat", response_model=ChatResponse, tags=["AI Chat"])
+@app.post("/ai/chat", response_model=ChatResponse, tags=["AI Chat"])
 async def chat_endpoint(request: ChatRequest):
     """
-    Main chat endpoint for AI interactions
-    Processes user query and returns AI response with rich data
-    
+    Main chat endpoint for AI Istanbul assistant with RICH METADATA
     Returns comprehensive POI data, district info, cultural tips, and route suggestions
     """
     try:
@@ -2370,7 +2467,7 @@ async def chat_endpoint(request: ChatRequest):
                     if query_analysis.get('entities'):
                         logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
             except Exception as e:
-                logger.warning(f"Preprocessing error: {e}")
+                logger.warning(f"Query preprocessing error: {e}")
         
         # Initialize comprehensive metadata
         metadata = {}
@@ -2725,3 +2822,8 @@ async def chat_stream_endpoint(request: ChatRequest):
             "X-Accel-Buffering": "no"
         }
     )
+
+
+# =============================
+# GPS-BASED ROUTE PLANNING ENDPOINTS
+# =============================

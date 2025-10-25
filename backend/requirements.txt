@@ -17,6 +17,8 @@ psycopg2-binary>=2.9.0
 # Authentication and Security
 PyJWT>=2.8.0
 bcrypt>=4.0.0
+passlib[bcrypt]>=1.7.4
+python-jose[cryptography]>=3.3.0
 
 # Utilities and fuzzy matching
 requests>=2.31.0
@@ -60,6 +62,12 @@ certifi>=2023.0.0
 
 # Rate limiting and security
 slowapi==0.1.9
+
+# Error tracking and monitoring
+sentry-sdk[fastapi]>=1.40.0
+
+# Configuration validation
+pydantic-settings>=2.1.0
 
 # Redis with proper version compatibility
 redis==4.6.0
