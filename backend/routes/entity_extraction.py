@@ -14,6 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from services.entity_extractor import get_entity_extractor
+from services.enhanced_entity_extractor import get_enhanced_entity_extractor
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +73,13 @@ async def extract_entities(request: EntityExtractionRequest):
     try:
         logger.info(f"📊 Entity extraction request - Query: '{request.query}', Intent: {request.intent}")
         
-        extractor = get_entity_extractor()
+        # Use enhanced extractor with advanced features
+        extractor = get_enhanced_entity_extractor()
         entities = extractor.extract_entities(request.query, request.intent)
         
         extracted_count = sum(1 for v in entities.values() if v)
         
-        logger.info(f"✅ Extracted {extracted_count} entity types from query")
+        logger.info(f"✅ Extracted {extracted_count} entity types from query (enhanced mode)")
         
         return EntityExtractionResponse(
             success=True,
@@ -96,7 +98,7 @@ async def extract_entities(request: EntityExtractionRequest):
 async def health_check():
     """Health check for entity extractor"""
     try:
-        extractor = get_entity_extractor()
+        extractor = get_enhanced_entity_extractor()
         return {
             "status": "healthy",
             "service": "entity_extractor",

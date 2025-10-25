@@ -829,3 +829,279 @@
 {"timestamp": "2025-10-25T18:17:41.608961", "query": "Luxury hotels with Bosphorus view", "intent": "hotel_search", "confidence": 0.9794, "latency_ms": 8.6, "high_confidence": true}
 {"timestamp": "2025-10-25T18:17:41.616880", "query": "Safe neighborhoods to stay", "intent": "neighborhood_search", "confidence": 0.7895, "latency_ms": 7.83, "high_confidence": true}
 {"timestamp": "2025-10-25T18:17:41.624048", "query": "Hotel recommendations", "intent": "recommendation_request", "confidence": 0.7402, "latency_ms": 7.09, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.039192", "query": "Where can I find good Turkish restaurants in Sultanahmet?", "intent": "restaurant_search", "confidence": 0.9978, "latency_ms": 236.15, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.071660", "query": "Best seafood restaurants near Bosphorus", "intent": "restaurant_search", "confidence": 0.9978, "latency_ms": 31.57, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.110876", "query": "Recommend vegetarian restaurants in Kadıköy", "intent": "restaurant_search", "confidence": 0.9978, "latency_ms": 38.84, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.142234", "query": "I want to eat traditional Turkish food", "intent": "restaurant_search", "confidence": 0.9964, "latency_ms": 31.08, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.149844", "query": "Any halal restaurants in Taksim?", "intent": "restaurant_search", "confidence": 0.9978, "latency_ms": 7.26, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.156168", "query": "Where to eat breakfast in Beşiktaş?", "intent": "restaurant_search", "confidence": 0.9972, "latency_ms": 6.1, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.178856", "query": "Find restaurants with vegan options", "intent": "restaurant_search", "confidence": 0.8265, "latency_ms": 22.47, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.187014", "query": "What museums should I visit in Istanbul?", "intent": "attraction_search", "confidence": 0.9889, "latency_ms": 7.85, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.194190", "query": "Tell me about Hagia Sophia", "intent": "restaurant_info", "confidence": 0.6031, "latency_ms": 6.94, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.201763", "query": "Best places to visit in Istanbul", "intent": "attraction_search", "confidence": 0.496, "latency_ms": 7.37, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.209656", "query": "Where is the Blue Mosque?", "intent": "weather_query", "confidence": 0.6968, "latency_ms": 7.71, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.217975", "query": "Contemporary art galleries in Istanbul", "intent": "attraction_search", "confidence": 0.9023, "latency_ms": 8.09, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.225808", "query": "Historic sites in Sultanahmet", "intent": "attraction_search", "confidence": 0.9669, "latency_ms": 7.53, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.232910", "query": "What are the main attractions?", "intent": "attraction_search", "confidence": 0.4736, "latency_ms": 6.9, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.240693", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood_info", "confidence": 0.9731, "latency_ms": 7.57, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.263926", "query": "What is Beşiktaş like?", "intent": "weather_query", "confidence": 0.6326, "latency_ms": 23.02, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.273439", "query": "Best neighborhoods for shopping", "intent": "neighborhood_search", "confidence": 0.246, "latency_ms": 8.97, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.283171", "query": "Where should I stay in Istanbul?", "intent": "daily_help", "confidence": 0.9628, "latency_ms": 9.42, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.293345", "query": "Is Beyoğlu safe?", "intent": "restaurant_info", "confidence": 0.3218, "latency_ms": 9.91, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.303298", "query": "Describe the Sultanahmet area", "intent": "neighborhood_info", "confidence": 0.4942, "latency_ms": 9.78, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.313378", "query": "Compare Kadıköy and Beşiktaş", "intent": "transport_route", "confidence": 0.9313, "latency_ms": 9.8, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.324307", "query": "How do I get to Taksim from Sultanahmet?", "intent": "transport_route", "confidence": 0.9898, "latency_ms": 10.48, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.331446", "query": "What metro line goes to the airport?", "intent": "transport_route", "confidence": 0.8277, "latency_ms": 6.9, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.338023", "query": "How to use the Istanbul metro?", "intent": "daily_help", "confidence": 0.5757, "latency_ms": 6.37, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.345128", "query": "Best way to travel in Istanbul", "intent": "transport_route", "confidence": 0.716, "latency_ms": 6.85, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.351646", "query": "Ferry schedules to Kadıköy", "intent": "transport_route", "confidence": 0.8531, "latency_ms": 6.28, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.358826", "query": "Where to buy an Istanbulkart?", "intent": "transport_info", "confidence": 0.4455, "latency_ms": 6.97, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.382954", "query": "Public transport options", "intent": "transport_info", "confidence": 0.8798, "latency_ms": 23.9, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.408818", "query": "Plan a route from Sultanahmet to Taksim", "intent": "transport_route", "confidence": 0.993, "latency_ms": 25.64, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.440392", "query": "Optimize my route to visit 5 museums", "intent": "attraction_search", "confidence": 0.647, "latency_ms": 29.21, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.470516", "query": "Best way to visit Hagia Sophia and Blue Mosque in one day", "intent": "attraction_info", "confidence": 0.5418, "latency_ms": 29.88, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.481432", "query": "Create an itinerary for 3 days", "intent": "daily_help", "confidence": 0.6876, "latency_ms": 10.67, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.491805", "query": "How to get from hotel to Topkapi Palace?", "intent": "transport_route", "confidence": 0.9834, "latency_ms": 10.18, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.501877", "query": "What's the fastest route to the Grand Bazaar?", "intent": "transport_route", "confidence": 0.9778, "latency_ms": 9.89, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.511070", "query": "What's the weather like today?", "intent": "weather_query", "confidence": 0.9887, "latency_ms": 8.99, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.520571", "query": "Will it rain tomorrow?", "intent": "weather_query", "confidence": 0.7445, "latency_ms": 9.33, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.553540", "query": "Temperature this week", "intent": "weather_query", "confidence": 0.9852, "latency_ms": 32.8, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.565107", "query": "Should I bring an umbrella?", "intent": "daily_help", "confidence": 0.9419, "latency_ms": 11.33, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.575560", "query": "Weather forecast for Istanbul", "intent": "weather_query", "confidence": 0.9459, "latency_ms": 10.24, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.585557", "query": "Is it hot in Istanbul now?", "intent": "weather_query", "confidence": 0.9862, "latency_ms": 9.8, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.595103", "query": "What events are happening this weekend?", "intent": "event_search", "confidence": 0.9751, "latency_ms": 9.36, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.604599", "query": "Any concerts in Istanbul?", "intent": "event_search", "confidence": 0.3369, "latency_ms": 9.3, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.614495", "query": "Cultural festivals this month", "intent": "event_search", "confidence": 0.5691, "latency_ms": 9.58, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.624034", "query": "Where to find live music?", "intent": "event_search", "confidence": 0.2898, "latency_ms": 9.29, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.633050", "query": "Art exhibitions happening now", "intent": "event_search", "confidence": 0.9032, "latency_ms": 8.75, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.641717", "query": "Events near me", "intent": "weather_query", "confidence": 0.5288, "latency_ms": 8.45, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.650952", "query": "Hello, how are you?", "intent": "daily_greeting", "confidence": 0.4808, "latency_ms": 9.0, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.662036", "query": "Good morning!", "intent": "daily_greeting", "confidence": 0.9379, "latency_ms": 10.79, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.672270", "query": "Thanks for your help", "intent": "daily_gratitude", "confidence": 0.7375, "latency_ms": 10.03, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.681767", "query": "Can you help me?", "intent": "daily_help", "confidence": 0.4315, "latency_ms": 9.27, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.691059", "query": "Nice to meet you", "intent": "weather_query", "confidence": 0.8909, "latency_ms": 9.1, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.720500", "query": "Goodbye", "intent": "daily_farewell", "confidence": 0.7947, "latency_ms": 29.25, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.730597", "query": "What a beautiful day!", "intent": "weather_query", "confidence": 0.7136, "latency_ms": 9.84, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.741099", "query": "What do locals do in Istanbul?", "intent": "restaurant_search", "confidence": 0.2695, "latency_ms": 10.3, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.747743", "query": "Give me some insider tips", "intent": "recommendation_request", "confidence": 0.4699, "latency_ms": 6.41, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.754326", "query": "Hidden gems in Istanbul", "intent": "attraction_search", "confidence": 0.9797, "latency_ms": 6.39, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.785710", "query": "Local secrets", "intent": "recommendation_request", "confidence": 0.3159, "latency_ms": 31.21, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.793068", "query": "What should tourists avoid?", "intent": "recommendation_request", "confidence": 0.2747, "latency_ms": 7.15, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.801230", "query": "Best local experiences", "intent": "weather_query", "confidence": 0.4918, "latency_ms": 7.91, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.808428", "query": "Authentic Turkish culture", "intent": "restaurant_info", "confidence": 0.2247, "latency_ms": 6.98, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.815206", "query": "Where can I exchange money?", "intent": "daily_help", "confidence": 0.7699, "latency_ms": 6.59, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.822319", "query": "Are credit cards accepted?", "intent": "recommendation_request", "confidence": 0.401, "latency_ms": 6.94, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.829558", "query": "What's the voltage in Turkey?", "intent": "weather_query", "confidence": 0.382, "latency_ms": 7.07, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.838887", "query": "Do I need a visa?", "intent": "daily_help", "confidence": 0.8848, "latency_ms": 8.61, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.847106", "query": "Emergency numbers in Istanbul", "intent": "weather_query", "confidence": 0.2536, "latency_ms": 7.91, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.856344", "query": "Where is the nearest pharmacy?", "intent": "daily_help", "confidence": 0.8567, "latency_ms": 9.0, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.866500", "query": "How much to tip in restaurants?", "intent": "restaurant_search", "confidence": 0.9949, "latency_ms": 9.99, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.875693", "query": "How much does a museum ticket cost?", "intent": "price_inquiry", "confidence": 0.892, "latency_ms": 8.96, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.886016", "query": "Price of metro tickets", "intent": "transport_info", "confidence": 0.7896, "latency_ms": 10.1, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.897294", "query": "What's the price range for hotels?", "intent": "price_inquiry", "confidence": 0.4642, "latency_ms": 11.04, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.907961", "query": "Cost of a taxi from airport", "intent": "transport_route", "confidence": 0.7067, "latency_ms": 10.39, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.915773", "query": "Average meal price", "intent": "price_inquiry", "confidence": 0.2323, "latency_ms": 7.5, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.922261", "query": "Is Istanbul expensive?", "intent": "daily_help", "confidence": 0.4196, "latency_ms": 6.23, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.929129", "query": "How much money should I bring?", "intent": "daily_help", "confidence": 0.9764, "latency_ms": 6.72, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.936183", "query": "Compare Hagia Sophia and Blue Mosque", "intent": "attraction_info", "confidence": 0.876, "latency_ms": 6.91, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.943780", "query": "What's the difference between Kadıköy and Beşiktaş?", "intent": "transport_route", "confidence": 0.389, "latency_ms": 7.45, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.950493", "query": "Metro vs bus - which is better?", "intent": "comparison_request", "confidence": 0.9223, "latency_ms": 6.56, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.957466", "query": "Asian side vs European side", "intent": "comparison_request", "confidence": 0.9354, "latency_ms": 6.78, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.964418", "query": "Cheap vs luxury restaurants", "intent": "restaurant_search", "confidence": 0.9139, "latency_ms": 6.78, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:38.970786", "query": "Best vs most popular museums", "intent": "attraction_search", "confidence": 0.2973, "latency_ms": 6.17, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.978456", "query": "What do you recommend for first-time visitors?", "intent": "daily_help", "confidence": 0.5819, "latency_ms": 7.51, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.986565", "query": "Best places for photography", "intent": "recommendation_request", "confidence": 0.5717, "latency_ms": 7.94, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:38.995032", "query": "Recommend activities for families", "intent": "recommendation_request", "confidence": 0.6695, "latency_ms": 8.29, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:39.004504", "query": "What's worth visiting?", "intent": "weather_query", "confidence": 0.4378, "latency_ms": 9.2, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:39.012688", "query": "Suggest romantic spots", "intent": "restaurant_search", "confidence": 0.2812, "latency_ms": 7.93, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:39.020188", "query": "Best things to do in winter", "intent": "weather_query", "confidence": 0.9749, "latency_ms": 7.36, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:39.028460", "query": "Where should I stay in Istanbul?", "intent": "daily_help", "confidence": 0.9628, "latency_ms": 8.14, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:39.036960", "query": "Best hotels near Sultanahmet", "intent": "attraction_search", "confidence": 0.4298, "latency_ms": 8.29, "high_confidence": false}
+{"timestamp": "2025-10-25T21:11:39.047192", "query": "Budget accommodation options", "intent": "price_inquiry", "confidence": 0.7219, "latency_ms": 10.07, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:39.057300", "query": "Luxury hotels with Bosphorus view", "intent": "hotel_search", "confidence": 0.9794, "latency_ms": 9.91, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:39.066803", "query": "Safe neighborhoods to stay", "intent": "neighborhood_search", "confidence": 0.7895, "latency_ms": 9.29, "high_confidence": true}
+{"timestamp": "2025-10-25T21:11:39.076277", "query": "Hotel recommendations", "intent": "recommendation_request", "confidence": 0.7402, "latency_ms": 9.21, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:06.787204", "query": "Where can I find good Turkish restaurants in Sultanahmet?", "intent": "practical_info", "confidence": 0.6137, "latency_ms": 131.58, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.814762", "query": "Best seafood restaurants near Bosphorus", "intent": "practical_info", "confidence": 0.4351, "latency_ms": 26.89, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.843893", "query": "Recommend vegetarian restaurants in Kadıköy", "intent": "neighborhood_info", "confidence": 0.1647, "latency_ms": 28.96, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.873708", "query": "I want to eat traditional Turkish food", "intent": "practical_info", "confidence": 0.6074, "latency_ms": 29.66, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.884061", "query": "Any halal restaurants in Taksim?", "intent": "practical_info", "confidence": 0.3743, "latency_ms": 10.2, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.892514", "query": "Where to eat breakfast in Beşiktaş?", "intent": "practical_info", "confidence": 0.2586, "latency_ms": 8.33, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.913747", "query": "Find restaurants with vegan options", "intent": "practical_info", "confidence": 0.422, "latency_ms": 21.12, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.922553", "query": "What museums should I visit in Istanbul?", "intent": "practical_info", "confidence": 0.292, "latency_ms": 8.64, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.931722", "query": "Tell me about Hagia Sophia", "intent": "neighborhood_info", "confidence": 0.6253, "latency_ms": 9.06, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.940495", "query": "Best places to visit in Istanbul", "intent": "neighborhood_info", "confidence": 0.3606, "latency_ms": 8.68, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.949371", "query": "Where is the Blue Mosque?", "intent": "neighborhood_info", "confidence": 0.3417, "latency_ms": 8.78, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.958399", "query": "Contemporary art galleries in Istanbul", "intent": "practical_info", "confidence": 0.4435, "latency_ms": 8.94, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.967643", "query": "Historic sites in Sultanahmet", "intent": "neighborhood_info", "confidence": 0.5065, "latency_ms": 9.1, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.976693", "query": "What are the main attractions?", "intent": "practical_info", "confidence": 0.37, "latency_ms": 8.96, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:06.986119", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood_info", "confidence": 0.9055, "latency_ms": 9.31, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.016182", "query": "What is Beşiktaş like?", "intent": "neighborhood_info", "confidence": 0.5611, "latency_ms": 29.95, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.025631", "query": "Best neighborhoods for shopping", "intent": "practical_info", "confidence": 0.2235, "latency_ms": 9.27, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.035324", "query": "Where should I stay in Istanbul?", "intent": "practical_info", "confidence": 0.6297, "latency_ms": 9.58, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.044309", "query": "Is Beyoğlu safe?", "intent": "neighborhood_info", "confidence": 0.769, "latency_ms": 8.87, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.053560", "query": "Describe the Sultanahmet area", "intent": "neighborhood_info", "confidence": 0.9047, "latency_ms": 9.15, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.062963", "query": "Compare Kadıköy and Beşiktaş", "intent": "comparison_request", "confidence": 0.4068, "latency_ms": 9.29, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.073598", "query": "How do I get to Taksim from Sultanahmet?", "intent": "practical_info", "confidence": 0.1978, "latency_ms": 10.51, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.083070", "query": "What metro line goes to the airport?", "intent": "practical_info", "confidence": 0.3547, "latency_ms": 9.31, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.092927", "query": "How to use the Istanbul metro?", "intent": "practical_info", "confidence": 0.3205, "latency_ms": 9.76, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.102477", "query": "Best way to travel in Istanbul", "intent": "practical_info", "confidence": 0.2103, "latency_ms": 9.39, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.112890", "query": "Ferry schedules to Kadıköy", "intent": "practical_info", "confidence": 0.2032, "latency_ms": 10.25, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.121947", "query": "Where to buy an Istanbulkart?", "intent": "practical_info", "confidence": 0.7302, "latency_ms": 8.94, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.149171", "query": "Public transport options", "intent": "practical_info", "confidence": 0.6885, "latency_ms": 27.12, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.178810", "query": "Plan a route from Sultanahmet to Taksim", "intent": "practical_info", "confidence": 0.0978, "latency_ms": 29.46, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.203827", "query": "Optimize my route to visit 5 museums", "intent": "practical_info", "confidence": 0.3959, "latency_ms": 24.86, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.229922", "query": "Best way to visit Hagia Sophia and Blue Mosque in one day", "intent": "neighborhood_info", "confidence": 0.2157, "latency_ms": 25.95, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.236712", "query": "Create an itinerary for 3 days", "intent": "practical_info", "confidence": 0.2991, "latency_ms": 6.61, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.243394", "query": "How to get from hotel to Topkapi Palace?", "intent": "practical_info", "confidence": 0.4202, "latency_ms": 6.58, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.251376", "query": "What's the fastest route to the Grand Bazaar?", "intent": "practical_info", "confidence": 0.1607, "latency_ms": 7.89, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.258638", "query": "What's the weather like today?", "intent": "event_search", "confidence": 0.1793, "latency_ms": 7.17, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.266471", "query": "Will it rain tomorrow?", "intent": "neighborhood_info", "confidence": 0.1855, "latency_ms": 7.74, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.289045", "query": "Temperature this week", "intent": "neighborhood_info", "confidence": 0.1712, "latency_ms": 22.5, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.298530", "query": "Should I bring an umbrella?", "intent": "practical_info", "confidence": 0.2403, "latency_ms": 9.33, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.308150", "query": "Weather forecast for Istanbul", "intent": "practical_info", "confidence": 0.4655, "latency_ms": 9.52, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.317861", "query": "Is it hot in Istanbul now?", "intent": "practical_info", "confidence": 0.3916, "latency_ms": 9.57, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.327116", "query": "What events are happening this weekend?", "intent": "event_search", "confidence": 0.8427, "latency_ms": 9.15, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.336298", "query": "Any concerts in Istanbul?", "intent": "event_search", "confidence": 0.4244, "latency_ms": 9.06, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.344874", "query": "Cultural festivals this month", "intent": "event_search", "confidence": 0.2847, "latency_ms": 8.47, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.353719", "query": "Where to find live music?", "intent": "practical_info", "confidence": 0.3587, "latency_ms": 8.76, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.362523", "query": "Art exhibitions happening now", "intent": "event_search", "confidence": 0.5114, "latency_ms": 8.73, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.371395", "query": "Events near me", "intent": "neighborhood_info", "confidence": 0.3758, "latency_ms": 8.79, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.381163", "query": "Hello, how are you?", "intent": "practical_info", "confidence": 0.2644, "latency_ms": 9.67, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.392226", "query": "Good morning!", "intent": "neighborhood_info", "confidence": 0.215, "latency_ms": 10.97, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.401511", "query": "Thanks for your help", "intent": "neighborhood_info", "confidence": 0.2358, "latency_ms": 9.15, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.410598", "query": "Can you help me?", "intent": "practical_info", "confidence": 0.2927, "latency_ms": 8.99, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.419807", "query": "Nice to meet you", "intent": "practical_info", "confidence": 0.219, "latency_ms": 9.11, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.449981", "query": "Goodbye", "intent": "neighborhood_info", "confidence": 0.507, "latency_ms": 30.09, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.459878", "query": "What a beautiful day!", "intent": "neighborhood_info", "confidence": 0.6519, "latency_ms": 9.73, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.469833", "query": "What do locals do in Istanbul?", "intent": "practical_info", "confidence": 0.7621, "latency_ms": 9.81, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.479235", "query": "Give me some insider tips", "intent": "practical_info", "confidence": 0.5535, "latency_ms": 9.31, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.488298", "query": "Hidden gems in Istanbul", "intent": "practical_info", "confidence": 0.6094, "latency_ms": 8.98, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.514036", "query": "Local secrets", "intent": "practical_info", "confidence": 0.7217, "latency_ms": 25.64, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.523614", "query": "What should tourists avoid?", "intent": "practical_info", "confidence": 0.4532, "latency_ms": 9.41, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.533309", "query": "Best local experiences", "intent": "practical_info", "confidence": 0.7208, "latency_ms": 9.57, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.542624", "query": "Authentic Turkish culture", "intent": "practical_info", "confidence": 0.735, "latency_ms": 9.19, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.550952", "query": "Where can I exchange money?", "intent": "practical_info", "confidence": 0.4182, "latency_ms": 8.22, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.558605", "query": "Are credit cards accepted?", "intent": "practical_info", "confidence": 0.6181, "latency_ms": 7.56, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.565419", "query": "What's the voltage in Turkey?", "intent": "practical_info", "confidence": 0.5698, "latency_ms": 6.69, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.572596", "query": "Do I need a visa?", "intent": "practical_info", "confidence": 0.2526, "latency_ms": 7.09, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.579460", "query": "Emergency numbers in Istanbul", "intent": "practical_info", "confidence": 0.5449, "latency_ms": 6.76, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.585241", "query": "Where is the nearest pharmacy?", "intent": "practical_info", "confidence": 0.7245, "latency_ms": 5.69, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.591001", "query": "How much to tip in restaurants?", "intent": "practical_info", "confidence": 0.5162, "latency_ms": 5.67, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.596302", "query": "How much does a museum ticket cost?", "intent": "price_inquiry", "confidence": 0.6249, "latency_ms": 5.22, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.602275", "query": "Price of metro tickets", "intent": "price_inquiry", "confidence": 0.2875, "latency_ms": 5.83, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.608646", "query": "What's the price range for hotels?", "intent": "price_inquiry", "confidence": 0.6656, "latency_ms": 6.27, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.615184", "query": "Cost of a taxi from airport", "intent": "practical_info", "confidence": 0.2783, "latency_ms": 6.45, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.621487", "query": "Average meal price", "intent": "price_inquiry", "confidence": 0.3686, "latency_ms": 6.23, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.627745", "query": "Is Istanbul expensive?", "intent": "price_inquiry", "confidence": 0.2756, "latency_ms": 6.17, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.634235", "query": "How much money should I bring?", "intent": "price_inquiry", "confidence": 0.3854, "latency_ms": 6.41, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.641520", "query": "Compare Hagia Sophia and Blue Mosque", "intent": "comparison_request", "confidence": 0.2549, "latency_ms": 7.21, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.649312", "query": "What's the difference between Kadıköy and Beşiktaş?", "intent": "neighborhood_info", "confidence": 0.7081, "latency_ms": 7.71, "high_confidence": true}
+{"timestamp": "2025-10-25T21:14:07.657308", "query": "Metro vs bus - which is better?", "intent": "practical_info", "confidence": 0.3163, "latency_ms": 7.92, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.665475", "query": "Asian side vs European side", "intent": "practical_info", "confidence": 0.3031, "latency_ms": 8.09, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.674365", "query": "Cheap vs luxury restaurants", "intent": "practical_info", "confidence": 0.2073, "latency_ms": 8.81, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.683536", "query": "Best vs most popular museums", "intent": "neighborhood_info", "confidence": 0.2012, "latency_ms": 9.09, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.693947", "query": "What do you recommend for first-time visitors?", "intent": "recommendation_request", "confidence": 0.4189, "latency_ms": 10.33, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.702891", "query": "Best places for photography", "intent": "practical_info", "confidence": 0.3212, "latency_ms": 8.86, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.711965", "query": "Recommend activities for families", "intent": "recommendation_request", "confidence": 0.3696, "latency_ms": 8.99, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.720474", "query": "What's worth visiting?", "intent": "neighborhood_info", "confidence": 0.312, "latency_ms": 8.42, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.728721", "query": "Suggest romantic spots", "intent": "neighborhood_info", "confidence": 0.2948, "latency_ms": 8.17, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.737743", "query": "Best things to do in winter", "intent": "neighborhood_info", "confidence": 0.507, "latency_ms": 8.93, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.747093", "query": "Where should I stay in Istanbul?", "intent": "practical_info", "confidence": 0.6297, "latency_ms": 9.26, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.757206", "query": "Best hotels near Sultanahmet", "intent": "neighborhood_info", "confidence": 0.6278, "latency_ms": 10.02, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.766709", "query": "Budget accommodation options", "intent": "practical_info", "confidence": 0.2753, "latency_ms": 9.41, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.777098", "query": "Luxury hotels with Bosphorus view", "intent": "practical_info", "confidence": 0.266, "latency_ms": 10.11, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.786776", "query": "Safe neighborhoods to stay", "intent": "practical_info", "confidence": 0.4941, "latency_ms": 9.59, "high_confidence": false}
+{"timestamp": "2025-10-25T21:14:07.795472", "query": "Hotel recommendations", "intent": "recommendation_request", "confidence": 0.4395, "latency_ms": 8.61, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.149357", "query": "Where can I find good Turkish restaurants in Sultanahmet?", "intent": "restaurant_search", "confidence": 0.7662, "latency_ms": 140.73, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.181482", "query": "Best seafood restaurants near Bosphorus", "intent": "restaurant_search", "confidence": 0.8662, "latency_ms": 28.98, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.207792", "query": "Recommend vegetarian restaurants in Kadıköy", "intent": "restaurant_search", "confidence": 0.8271, "latency_ms": 26.15, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.232269", "query": "I want to eat traditional Turkish food", "intent": "restaurant_search", "confidence": 0.6948, "latency_ms": 24.34, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.238046", "query": "Any halal restaurants in Taksim?", "intent": "restaurant_search", "confidence": 0.8067, "latency_ms": 5.64, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.244937", "query": "Where to eat breakfast in Beşiktaş?", "intent": "restaurant_search", "confidence": 0.3362, "latency_ms": 6.79, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.265675", "query": "Find restaurants with vegan options", "intent": "practical_info", "confidence": 0.379, "latency_ms": 20.61, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.271635", "query": "What museums should I visit in Istanbul?", "intent": "attraction_info", "confidence": 0.2088, "latency_ms": 5.81, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.278805", "query": "Tell me about Hagia Sophia", "intent": "neighborhood_info", "confidence": 0.2674, "latency_ms": 7.08, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.285943", "query": "Best places to visit in Istanbul", "intent": "weather_query", "confidence": 0.1706, "latency_ms": 7.06, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.293620", "query": "Where is the Blue Mosque?", "intent": "neighborhood_info", "confidence": 0.3804, "latency_ms": 7.6, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.302023", "query": "Contemporary art galleries in Istanbul", "intent": "practical_info", "confidence": 0.4629, "latency_ms": 8.31, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.310297", "query": "Historic sites in Sultanahmet", "intent": "attraction_search", "confidence": 0.3627, "latency_ms": 8.18, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.319168", "query": "What are the main attractions?", "intent": "recommendation_request", "confidence": 0.1908, "latency_ms": 8.79, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.328639", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood_info", "confidence": 0.7716, "latency_ms": 9.38, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.351598", "query": "What is Beşiktaş like?", "intent": "neighborhood_info", "confidence": 0.2808, "latency_ms": 22.87, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.360414", "query": "Best neighborhoods for shopping", "intent": "neighborhood_search", "confidence": 0.3198, "latency_ms": 8.69, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.369799", "query": "Where should I stay in Istanbul?", "intent": "daily_help", "confidence": 0.7717, "latency_ms": 9.28, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.378640", "query": "Is Beyoğlu safe?", "intent": "neighborhood_info", "confidence": 0.3178, "latency_ms": 8.74, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.387453", "query": "Describe the Sultanahmet area", "intent": "neighborhood_info", "confidence": 0.7489, "latency_ms": 8.72, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.396565", "query": "Compare Kadıköy and Beşiktaş", "intent": "comparison_request", "confidence": 0.9137, "latency_ms": 8.98, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.405927", "query": "How do I get to Taksim from Sultanahmet?", "intent": "transport_route", "confidence": 0.7954, "latency_ms": 9.26, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.415176", "query": "What metro line goes to the airport?", "intent": "transport_info", "confidence": 0.4502, "latency_ms": 9.15, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.424232", "query": "How to use the Istanbul metro?", "intent": "daily_help", "confidence": 0.755, "latency_ms": 8.97, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.433527", "query": "Best way to travel in Istanbul", "intent": "transport_route", "confidence": 0.5013, "latency_ms": 9.2, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.443436", "query": "Ferry schedules to Kadıköy", "intent": "transport_route", "confidence": 0.7406, "latency_ms": 9.83, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.452853", "query": "Where to buy an Istanbulkart?", "intent": "daily_help", "confidence": 0.4348, "latency_ms": 9.32, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.477819", "query": "Public transport options", "intent": "transport_info", "confidence": 0.5978, "latency_ms": 24.88, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.511992", "query": "Plan a route from Sultanahmet to Taksim", "intent": "transport_route", "confidence": 0.872, "latency_ms": 34.01, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.544820", "query": "Optimize my route to visit 5 museums", "intent": "practical_info", "confidence": 0.1392, "latency_ms": 32.62, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.582793", "query": "Best way to visit Hagia Sophia and Blue Mosque in one day", "intent": "neighborhood_info", "confidence": 0.159, "latency_ms": 37.56, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.590114", "query": "Create an itinerary for 3 days", "intent": "recommendation_request", "confidence": 0.3488, "latency_ms": 7.15, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.596070", "query": "How to get from hotel to Topkapi Palace?", "intent": "transport_route", "confidence": 0.805, "latency_ms": 5.85, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.602611", "query": "What's the fastest route to the Grand Bazaar?", "intent": "transport_route", "confidence": 0.5961, "latency_ms": 6.45, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.610125", "query": "What's the weather like today?", "intent": "weather_query", "confidence": 0.8248, "latency_ms": 7.4, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.616615", "query": "Will it rain tomorrow?", "intent": "daily_help", "confidence": 0.5462, "latency_ms": 6.41, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.642957", "query": "Temperature this week", "intent": "weather_query", "confidence": 0.3388, "latency_ms": 26.26, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.650543", "query": "Should I bring an umbrella?", "intent": "daily_help", "confidence": 0.8474, "latency_ms": 7.44, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.658246", "query": "Weather forecast for Istanbul", "intent": "weather_query", "confidence": 0.1452, "latency_ms": 7.6, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.665522", "query": "Is it hot in Istanbul now?", "intent": "daily_help", "confidence": 0.4483, "latency_ms": 7.19, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.672439", "query": "What events are happening this weekend?", "intent": "event_search", "confidence": 0.6994, "latency_ms": 6.78, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.680180", "query": "Any concerts in Istanbul?", "intent": "event_search", "confidence": 0.1695, "latency_ms": 7.63, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.687958", "query": "Cultural festivals this month", "intent": "weather_query", "confidence": 0.3252, "latency_ms": 7.68, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.695846", "query": "Where to find live music?", "intent": "practical_info", "confidence": 0.2457, "latency_ms": 7.79, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.703993", "query": "Art exhibitions happening now", "intent": "event_search", "confidence": 0.4326, "latency_ms": 8.02, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.712705", "query": "Events near me", "intent": "event_search", "confidence": 0.1997, "latency_ms": 8.62, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.722007", "query": "Hello, how are you?", "intent": "daily_greeting", "confidence": 0.3969, "latency_ms": 9.2, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.730478", "query": "Good morning!", "intent": "daily_greeting", "confidence": 0.7951, "latency_ms": 8.37, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.739262", "query": "Thanks for your help", "intent": "daily_gratitude", "confidence": 0.695, "latency_ms": 8.7, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.747639", "query": "Can you help me?", "intent": "daily_gratitude", "confidence": 0.2749, "latency_ms": 8.28, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.757084", "query": "Nice to meet you", "intent": "daily_farewell", "confidence": 0.1565, "latency_ms": 9.35, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.785005", "query": "Goodbye", "intent": "daily_farewell", "confidence": 0.6287, "latency_ms": 27.81, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.794421", "query": "What a beautiful day!", "intent": "daily_gratitude", "confidence": 0.2839, "latency_ms": 9.28, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.804652", "query": "What do locals do in Istanbul?", "intent": "practical_info", "confidence": 0.4196, "latency_ms": 10.08, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.814319", "query": "Give me some insider tips", "intent": "recommendation_request", "confidence": 0.3646, "latency_ms": 9.56, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.822808", "query": "Hidden gems in Istanbul", "intent": "practical_info", "confidence": 0.4042, "latency_ms": 8.38, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.847649", "query": "Local secrets", "intent": "practical_info", "confidence": 0.4656, "latency_ms": 24.76, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.856564", "query": "What should tourists avoid?", "intent": "recommendation_request", "confidence": 0.2308, "latency_ms": 8.77, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.865132", "query": "Best local experiences", "intent": "practical_info", "confidence": 0.5748, "latency_ms": 8.46, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.873352", "query": "Authentic Turkish culture", "intent": "practical_info", "confidence": 0.6413, "latency_ms": 8.14, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.882445", "query": "Where can I exchange money?", "intent": "practical_info", "confidence": 0.1548, "latency_ms": 8.99, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.891225", "query": "Are credit cards accepted?", "intent": "practical_info", "confidence": 0.3421, "latency_ms": 8.69, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.900775", "query": "What's the voltage in Turkey?", "intent": "daily_help", "confidence": 0.3829, "latency_ms": 9.46, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.910753", "query": "Do I need a visa?", "intent": "daily_farewell", "confidence": 0.2078, "latency_ms": 9.9, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.920419", "query": "Emergency numbers in Istanbul", "intent": "practical_info", "confidence": 0.3844, "latency_ms": 9.57, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.929799", "query": "Where is the nearest pharmacy?", "intent": "practical_info", "confidence": 0.3484, "latency_ms": 9.28, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.939844", "query": "How much to tip in restaurants?", "intent": "daily_help", "confidence": 0.5699, "latency_ms": 9.96, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.948973", "query": "How much does a museum ticket cost?", "intent": "price_inquiry", "confidence": 0.8105, "latency_ms": 9.03, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.957905", "query": "Price of metro tickets", "intent": "price_inquiry", "confidence": 0.6104, "latency_ms": 8.84, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.968098", "query": "What's the price range for hotels?", "intent": "price_inquiry", "confidence": 0.8306, "latency_ms": 10.1, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:50.978351", "query": "Cost of a taxi from airport", "intent": "transport_route", "confidence": 0.3849, "latency_ms": 10.15, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.988100", "query": "Average meal price", "intent": "price_inquiry", "confidence": 0.3367, "latency_ms": 9.51, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:50.997591", "query": "Is Istanbul expensive?", "intent": "price_inquiry", "confidence": 0.1912, "latency_ms": 9.38, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.007496", "query": "How much money should I bring?", "intent": "daily_help", "confidence": 0.8566, "latency_ms": 9.79, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:51.016811", "query": "Compare Hagia Sophia and Blue Mosque", "intent": "comparison_request", "confidence": 0.873, "latency_ms": 9.2, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:51.027996", "query": "What's the difference between Kadıköy and Beşiktaş?", "intent": "neighborhood_info", "confidence": 0.6118, "latency_ms": 11.08, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.037932", "query": "Metro vs bus - which is better?", "intent": "comparison_request", "confidence": 0.368, "latency_ms": 9.75, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.047312", "query": "Asian side vs European side", "intent": "practical_info", "confidence": 0.257, "latency_ms": 9.28, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.056525", "query": "Cheap vs luxury restaurants", "intent": "comparison_request", "confidence": 0.2585, "latency_ms": 9.1, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.065550", "query": "Best vs most popular museums", "intent": "practical_info", "confidence": 0.2354, "latency_ms": 8.93, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.075546", "query": "What do you recommend for first-time visitors?", "intent": "recommendation_request", "confidence": 0.7098, "latency_ms": 9.89, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:51.085539", "query": "Best places for photography", "intent": "recommendation_request", "confidence": 0.3535, "latency_ms": 9.89, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.095765", "query": "Recommend activities for families", "intent": "recommendation_request", "confidence": 0.5351, "latency_ms": 10.11, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.106039", "query": "What's worth visiting?", "intent": "neighborhood_info", "confidence": 0.145, "latency_ms": 10.18, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.115141", "query": "Suggest romantic spots", "intent": "practical_info", "confidence": 0.4867, "latency_ms": 9.01, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.124698", "query": "Best things to do in winter", "intent": "weather_query", "confidence": 0.22, "latency_ms": 9.47, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.134843", "query": "Where should I stay in Istanbul?", "intent": "daily_help", "confidence": 0.7717, "latency_ms": 10.04, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:51.145162", "query": "Best hotels near Sultanahmet", "intent": "restaurant_search", "confidence": 0.1733, "latency_ms": 10.23, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.154795", "query": "Budget accommodation options", "intent": "price_inquiry", "confidence": 0.3348, "latency_ms": 9.53, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.164842", "query": "Luxury hotels with Bosphorus view", "intent": "hotel_search", "confidence": 0.8695, "latency_ms": 9.94, "high_confidence": true}
+{"timestamp": "2025-10-25T21:40:51.173088", "query": "Safe neighborhoods to stay", "intent": "neighborhood_search", "confidence": 0.3198, "latency_ms": 8.07, "high_confidence": false}
+{"timestamp": "2025-10-25T21:40:51.181205", "query": "Hotel recommendations", "intent": "recommendation_request", "confidence": 0.5675, "latency_ms": 7.99, "high_confidence": false}

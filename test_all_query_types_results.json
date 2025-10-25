@@ -1,9 +1,9 @@
 {
   "summary": {
     "total_queries": 92,
-    "total_neural": 53,
-    "neural_rate": 0.5760869565217391,
-    "avg_confidence": 0.7100613246793333,
+    "total_neural": 23,
+    "neural_rate": 0.25,
+    "avg_confidence": 0.479299811889296,
     "categories_tested": 14
   },
   "category_results": [
@@ -14,50 +14,50 @@
         {
           "query": "Where can I find good Turkish restaurants in Sultanahmet?",
           "intent": "restaurant_search",
-          "confidence": 0.9978308081626892,
+          "confidence": 0.7661791443824768,
           "method": "neural"
         },
         {
           "query": "Best seafood restaurants near Bosphorus",
           "intent": "restaurant_search",
-          "confidence": 0.9978109002113342,
+          "confidence": 0.8662033081054688,
           "method": "neural"
         },
         {
           "query": "Recommend vegetarian restaurants in Kadıköy",
           "intent": "restaurant_search",
-          "confidence": 0.9977933168411255,
+          "confidence": 0.8270987272262573,
           "method": "neural"
         },
         {
           "query": "I want to eat traditional Turkish food",
           "intent": "restaurant_search",
-          "confidence": 0.9963520765304565,
-          "method": "neural"
+          "confidence": 0.6948215961456299,
+          "method": "fallback"
         },
         {
           "query": "Any halal restaurants in Taksim?",
           "intent": "restaurant_search",
-          "confidence": 0.9977557063102722,
+          "confidence": 0.8066854476928711,
           "method": "neural"
         },
         {
           "query": "Where to eat breakfast in Beşiktaş?",
           "intent": "restaurant_search",
-          "confidence": 0.9971561431884766,
-          "method": "neural"
+          "confidence": 0.3361518383026123,
+          "method": "fallback"
         },
         {
           "query": "Find restaurants with vegan options",
-          "intent": "restaurant_search",
-          "confidence": 0.8264883756637573,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.3790402412414551,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.9730267609868731,
-        "neural_count": 7,
-        "neural_rate": 1.0
+        "avg_confidence": 0.6680257575852531,
+        "neural_count": 4,
+        "neural_rate": 0.5714285714285714
       }
     },
     {
@@ -66,51 +66,51 @@
       "predictions": [
         {
           "query": "What museums should I visit in Istanbul?",
-          "intent": "attraction_search",
-          "confidence": 0.9889229536056519,
-          "method": "neural"
+          "intent": "attraction_info",
+          "confidence": 0.20883412659168243,
+          "method": "fallback"
         },
         {
           "query": "Tell me about Hagia Sophia",
-          "intent": "restaurant_info",
-          "confidence": 0.6031296253204346,
+          "intent": "neighborhood_info",
+          "confidence": 0.26737865805625916,
           "method": "fallback"
         },
         {
           "query": "Best places to visit in Istanbul",
-          "intent": "attraction_search",
-          "confidence": 0.4960468113422394,
+          "intent": "weather_query",
+          "confidence": 0.17056426405906677,
           "method": "fallback"
         },
         {
           "query": "Where is the Blue Mosque?",
-          "intent": "weather_query",
-          "confidence": 0.6968486309051514,
+          "intent": "neighborhood_info",
+          "confidence": 0.38044440746307373,
           "method": "fallback"
         },
         {
           "query": "Contemporary art galleries in Istanbul",
-          "intent": "attraction_search",
-          "confidence": 0.9022510647773743,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.4628508687019348,
+          "method": "fallback"
         },
         {
           "query": "Historic sites in Sultanahmet",
           "intent": "attraction_search",
-          "confidence": 0.9669209718704224,
-          "method": "neural"
+          "confidence": 0.3627462387084961,
+          "method": "fallback"
         },
         {
           "query": "What are the main attractions?",
-          "intent": "attraction_search",
-          "confidence": 0.47362199425697327,
+          "intent": "recommendation_request",
+          "confidence": 0.19077274203300476,
           "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.732534578868321,
-        "neural_count": 3,
-        "neural_rate": 0.42857142857142855
+        "avg_confidence": 0.2919416150876454,
+        "neural_count": 0,
+        "neural_rate": 0.0
       }
     },
     {
@@ -120,50 +120,50 @@
         {
           "query": "Tell me about Kadıköy neighborhood",
           "intent": "neighborhood_info",
-          "confidence": 0.9730984568595886,
+          "confidence": 0.7716354727745056,
           "method": "neural"
         },
         {
           "query": "What is Beşiktaş like?",
-          "intent": "weather_query",
-          "confidence": 0.6326459646224976,
+          "intent": "neighborhood_info",
+          "confidence": 0.2808128893375397,
           "method": "fallback"
         },
         {
           "query": "Best neighborhoods for shopping",
           "intent": "neighborhood_search",
-          "confidence": 0.24599289894104004,
+          "confidence": 0.3198472857475281,
           "method": "fallback"
         },
         {
           "query": "Where should I stay in Istanbul?",
           "intent": "daily_help",
-          "confidence": 0.9628217816352844,
+          "confidence": 0.7717495560646057,
           "method": "neural"
         },
         {
           "query": "Is Beyoğlu safe?",
-          "intent": "restaurant_info",
-          "confidence": 0.3217548429965973,
+          "intent": "neighborhood_info",
+          "confidence": 0.3178235590457916,
           "method": "fallback"
         },
         {
           "query": "Describe the Sultanahmet area",
           "intent": "neighborhood_info",
-          "confidence": 0.49415189027786255,
-          "method": "fallback"
+          "confidence": 0.7488896250724792,
+          "method": "neural"
         },
         {
           "query": "Compare Kadıköy and Beşiktaş",
-          "intent": "transport_route",
-          "confidence": 0.931258499622345,
+          "intent": "comparison_request",
+          "confidence": 0.9136508107185364,
           "method": "neural"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.6516749049936023,
-        "neural_count": 3,
-        "neural_rate": 0.42857142857142855
+        "avg_confidence": 0.5892013141087123,
+        "neural_count": 4,
+        "neural_rate": 0.5714285714285714
       }
     },
     {
@@ -173,50 +173,50 @@
         {
           "query": "How do I get to Taksim from Sultanahmet?",
           "intent": "transport_route",
-          "confidence": 0.9898043870925903,
+          "confidence": 0.7954320907592773,
           "method": "neural"
         },
         {
           "query": "What metro line goes to the airport?",
-          "intent": "transport_route",
-          "confidence": 0.8277430534362793,
-          "method": "neural"
+          "intent": "transport_info",
+          "confidence": 0.45023444294929504,
+          "method": "fallback"
         },
         {
           "query": "How to use the Istanbul metro?",
           "intent": "daily_help",
-          "confidence": 0.5756742358207703,
-          "method": "fallback"
+          "confidence": 0.7549765706062317,
+          "method": "neural"
         },
         {
           "query": "Best way to travel in Istanbul",
           "intent": "transport_route",
-          "confidence": 0.7160175442695618,
-          "method": "neural"
+          "confidence": 0.5012613534927368,
+          "method": "fallback"
         },
         {
           "query": "Ferry schedules to Kadıköy",
           "intent": "transport_route",
-          "confidence": 0.8531324863433838,
+          "confidence": 0.740608274936676,
           "method": "neural"
         },
         {
           "query": "Where to buy an Istanbulkart?",
-          "intent": "transport_info",
-          "confidence": 0.44545528292655945,
+          "intent": "daily_help",
+          "confidence": 0.4348372519016266,
           "method": "fallback"
         },
         {
           "query": "Public transport options",
           "intent": "transport_info",
-          "confidence": 0.8798357844352722,
-          "method": "neural"
+          "confidence": 0.5978232622146606,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.7553803963320596,
-        "neural_count": 5,
-        "neural_rate": 0.7142857142857143
+        "avg_confidence": 0.6107390352657863,
+        "neural_count": 3,
+        "neural_rate": 0.42857142857142855
       }
     },
     {
@@ -226,44 +226,44 @@
         {
           "query": "Plan a route from Sultanahmet to Taksim",
           "intent": "transport_route",
-          "confidence": 0.992986261844635,
+          "confidence": 0.871991753578186,
           "method": "neural"
         },
         {
           "query": "Optimize my route to visit 5 museums",
-          "intent": "attraction_search",
-          "confidence": 0.6470300555229187,
+          "intent": "practical_info",
+          "confidence": 0.13921339809894562,
           "method": "fallback"
         },
         {
           "query": "Best way to visit Hagia Sophia and Blue Mosque in one day",
-          "intent": "attraction_info",
-          "confidence": 0.5418038964271545,
+          "intent": "neighborhood_info",
+          "confidence": 0.15902602672576904,
           "method": "fallback"
         },
         {
           "query": "Create an itinerary for 3 days",
-          "intent": "daily_help",
-          "confidence": 0.6876459717750549,
+          "intent": "recommendation_request",
+          "confidence": 0.34884095191955566,
           "method": "fallback"
         },
         {
           "query": "How to get from hotel to Topkapi Palace?",
           "intent": "transport_route",
-          "confidence": 0.9833714365959167,
+          "confidence": 0.8049648404121399,
           "method": "neural"
         },
         {
           "query": "What's the fastest route to the Grand Bazaar?",
           "intent": "transport_route",
-          "confidence": 0.977786660194397,
-          "method": "neural"
+          "confidence": 0.5961114764213562,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.8051040470600128,
-        "neural_count": 3,
-        "neural_rate": 0.5
+        "avg_confidence": 0.4866914078593254,
+        "neural_count": 2,
+        "neural_rate": 0.3333333333333333
       }
     },
     {
@@ -273,44 +273,44 @@
         {
           "query": "What's the weather like today?",
           "intent": "weather_query",
-          "confidence": 0.9886804819107056,
+          "confidence": 0.8247582316398621,
           "method": "neural"
         },
         {
           "query": "Will it rain tomorrow?",
-          "intent": "weather_query",
-          "confidence": 0.744456946849823,
-          "method": "neural"
+          "intent": "daily_help",
+          "confidence": 0.5462249517440796,
+          "method": "fallback"
         },
         {
           "query": "Temperature this week",
           "intent": "weather_query",
-          "confidence": 0.9851807355880737,
-          "method": "neural"
+          "confidence": 0.33882224559783936,
+          "method": "fallback"
         },
         {
           "query": "Should I bring an umbrella?",
           "intent": "daily_help",
-          "confidence": 0.9418768882751465,
+          "confidence": 0.847404420375824,
           "method": "neural"
         },
         {
           "query": "Weather forecast for Istanbul",
           "intent": "weather_query",
-          "confidence": 0.9459159970283508,
-          "method": "neural"
+          "confidence": 0.14522479474544525,
+          "method": "fallback"
         },
         {
           "query": "Is it hot in Istanbul now?",
-          "intent": "weather_query",
-          "confidence": 0.9862013459205627,
-          "method": "neural"
+          "intent": "daily_help",
+          "confidence": 0.44825196266174316,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.9320520659287771,
-        "neural_count": 6,
-        "neural_rate": 1.0
+        "avg_confidence": 0.5251144344607989,
+        "neural_count": 2,
+        "neural_rate": 0.3333333333333333
       }
     },
     {
@@ -320,44 +320,44 @@
         {
           "query": "What events are happening this weekend?",
           "intent": "event_search",
-          "confidence": 0.975138247013092,
-          "method": "neural"
+          "confidence": 0.6994025111198425,
+          "method": "fallback"
         },
         {
           "query": "Any concerts in Istanbul?",
           "intent": "event_search",
-          "confidence": 0.3369264602661133,
+          "confidence": 0.1694866120815277,
           "method": "fallback"
         },
         {
           "query": "Cultural festivals this month",
-          "intent": "event_search",
-          "confidence": 0.569125235080719,
+          "intent": "weather_query",
+          "confidence": 0.3251509368419647,
           "method": "fallback"
         },
         {
           "query": "Where to find live music?",
-          "intent": "event_search",
-          "confidence": 0.2898337244987488,
+          "intent": "practical_info",
+          "confidence": 0.24571479856967926,
           "method": "fallback"
         },
         {
           "query": "Art exhibitions happening now",
           "intent": "event_search",
-          "confidence": 0.903171181678772,
-          "method": "neural"
+          "confidence": 0.432613343000412,
+          "method": "fallback"
         },
         {
           "query": "Events near me",
-          "intent": "weather_query",
-          "confidence": 0.5287730693817139,
+          "intent": "event_search",
+          "confidence": 0.19974569976329803,
           "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.6004946529865265,
-        "neural_count": 2,
-        "neural_rate": 0.3333333333333333
+        "avg_confidence": 0.3453523168961207,
+        "neural_count": 0,
+        "neural_rate": 0.0
       }
     },
     {
@@ -367,50 +367,50 @@
         {
           "query": "Hello, how are you?",
           "intent": "daily_greeting",
-          "confidence": 0.48075586557388306,
+          "confidence": 0.396944135427475,
           "method": "fallback"
         },
         {
           "query": "Good morning!",
           "intent": "daily_greeting",
-          "confidence": 0.9378702640533447,
+          "confidence": 0.7951322793960571,
           "method": "neural"
         },
         {
           "query": "Thanks for your help",
           "intent": "daily_gratitude",
-          "confidence": 0.7375085353851318,
-          "method": "neural"
+          "confidence": 0.6950496435165405,
+          "method": "fallback"
         },
         {
           "query": "Can you help me?",
-          "intent": "daily_help",
-          "confidence": 0.4315473437309265,
+          "intent": "daily_gratitude",
+          "confidence": 0.27486008405685425,
           "method": "fallback"
         },
         {
           "query": "Nice to meet you",
-          "intent": "weather_query",
-          "confidence": 0.8909170627593994,
-          "method": "neural"
+          "intent": "daily_farewell",
+          "confidence": 0.15647371113300323,
+          "method": "fallback"
         },
         {
           "query": "Goodbye",
           "intent": "daily_farewell",
-          "confidence": 0.794714093208313,
-          "method": "neural"
+          "confidence": 0.6287357211112976,
+          "method": "fallback"
         },
         {
           "query": "What a beautiful day!",
-          "intent": "weather_query",
-          "confidence": 0.7135802507400513,
-          "method": "neural"
+          "intent": "daily_gratitude",
+          "confidence": 0.28386807441711426,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.7124133450644357,
-        "neural_count": 5,
-        "neural_rate": 0.7142857142857143
+        "avg_confidence": 0.46158052129404886,
+        "neural_count": 1,
+        "neural_rate": 0.14285714285714285
       }
     },
     {
@@ -419,51 +419,51 @@
       "predictions": [
         {
           "query": "What do locals do in Istanbul?",
-          "intent": "restaurant_search",
-          "confidence": 0.269523024559021,
+          "intent": "practical_info",
+          "confidence": 0.4195539653301239,
           "method": "fallback"
         },
         {
           "query": "Give me some insider tips",
           "intent": "recommendation_request",
-          "confidence": 0.46986305713653564,
+          "confidence": 0.3645797371864319,
           "method": "fallback"
         },
         {
           "query": "Hidden gems in Istanbul",
-          "intent": "attraction_search",
-          "confidence": 0.9796693921089172,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.4041939377784729,
+          "method": "fallback"
         },
         {
           "query": "Local secrets",
-          "intent": "recommendation_request",
-          "confidence": 0.3158632516860962,
+          "intent": "practical_info",
+          "confidence": 0.46556365489959717,
           "method": "fallback"
         },
         {
           "query": "What should tourists avoid?",
           "intent": "recommendation_request",
-          "confidence": 0.27471986413002014,
+          "confidence": 0.23084422945976257,
           "method": "fallback"
         },
         {
           "query": "Best local experiences",
-          "intent": "weather_query",
-          "confidence": 0.4918365478515625,
+          "intent": "practical_info",
+          "confidence": 0.5747610926628113,
           "method": "fallback"
         },
         {
           "query": "Authentic Turkish culture",
-          "intent": "restaurant_info",
-          "confidence": 0.2246738225221634,
+          "intent": "practical_info",
+          "confidence": 0.6413316130638123,
           "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.4323069942849023,
-        "neural_count": 1,
-        "neural_rate": 0.14285714285714285
+        "avg_confidence": 0.4429754614830017,
+        "neural_count": 0,
+        "neural_rate": 0.0
       }
     },
     {
@@ -472,51 +472,51 @@
       "predictions": [
         {
           "query": "Where can I exchange money?",
-          "intent": "daily_help",
-          "confidence": 0.7699049711227417,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.15482017397880554,
+          "method": "fallback"
         },
         {
           "query": "Are credit cards accepted?",
-          "intent": "recommendation_request",
-          "confidence": 0.4009874165058136,
+          "intent": "practical_info",
+          "confidence": 0.3420780599117279,
           "method": "fallback"
         },
         {
           "query": "What's the voltage in Turkey?",
-          "intent": "weather_query",
-          "confidence": 0.3820449709892273,
+          "intent": "daily_help",
+          "confidence": 0.3828614056110382,
           "method": "fallback"
         },
         {
           "query": "Do I need a visa?",
-          "intent": "daily_help",
-          "confidence": 0.8848094940185547,
-          "method": "neural"
+          "intent": "daily_farewell",
+          "confidence": 0.20775890350341797,
+          "method": "fallback"
         },
         {
           "query": "Emergency numbers in Istanbul",
-          "intent": "weather_query",
-          "confidence": 0.2536023259162903,
+          "intent": "practical_info",
+          "confidence": 0.38436758518218994,
           "method": "fallback"
         },
         {
           "query": "Where is the nearest pharmacy?",
-          "intent": "daily_help",
-          "confidence": 0.856690526008606,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.3484114110469818,
+          "method": "fallback"
         },
         {
           "query": "How much to tip in restaurants?",
-          "intent": "restaurant_search",
-          "confidence": 0.9949464201927185,
-          "method": "neural"
+          "intent": "daily_help",
+          "confidence": 0.5698752403259277,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.6489980178219932,
-        "neural_count": 4,
-        "neural_rate": 0.5714285714285714
+        "avg_confidence": 0.3414532542228699,
+        "neural_count": 0,
+        "neural_rate": 0.0
       }
     },
     {
@@ -526,50 +526,50 @@
         {
           "query": "How much does a museum ticket cost?",
           "intent": "price_inquiry",
-          "confidence": 0.8919514417648315,
+          "confidence": 0.8104985356330872,
           "method": "neural"
         },
         {
           "query": "Price of metro tickets",
-          "intent": "transport_info",
-          "confidence": 0.7895808219909668,
-          "method": "neural"
+          "intent": "price_inquiry",
+          "confidence": 0.6104117035865784,
+          "method": "fallback"
         },
         {
           "query": "What's the price range for hotels?",
           "intent": "price_inquiry",
-          "confidence": 0.46424153447151184,
-          "method": "fallback"
+          "confidence": 0.830599308013916,
+          "method": "neural"
         },
         {
           "query": "Cost of a taxi from airport",
           "intent": "transport_route",
-          "confidence": 0.7066644430160522,
-          "method": "neural"
+          "confidence": 0.38488632440567017,
+          "method": "fallback"
         },
         {
           "query": "Average meal price",
           "intent": "price_inquiry",
-          "confidence": 0.23226211965084076,
+          "confidence": 0.33669313788414,
           "method": "fallback"
         },
         {
           "query": "Is Istanbul expensive?",
-          "intent": "daily_help",
-          "confidence": 0.4196298122406006,
+          "intent": "price_inquiry",
+          "confidence": 0.19120727479457855,
           "method": "fallback"
         },
         {
           "query": "How much money should I bring?",
           "intent": "daily_help",
-          "confidence": 0.9763911366462708,
+          "confidence": 0.8565914630889893,
           "method": "neural"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.6401030442544392,
-        "neural_count": 4,
-        "neural_rate": 0.5714285714285714
+        "avg_confidence": 0.5744125353438514,
+        "neural_count": 3,
+        "neural_rate": 0.42857142857142855
       }
     },
     {
@@ -578,45 +578,45 @@
       "predictions": [
         {
           "query": "Compare Hagia Sophia and Blue Mosque",
-          "intent": "attraction_info",
-          "confidence": 0.8759897947311401,
+          "intent": "comparison_request",
+          "confidence": 0.872959315776825,
           "method": "neural"
         },
         {
           "query": "What's the difference between Kadıköy and Beşiktaş?",
-          "intent": "transport_route",
-          "confidence": 0.38896164298057556,
+          "intent": "neighborhood_info",
+          "confidence": 0.6117749214172363,
           "method": "fallback"
         },
         {
           "query": "Metro vs bus - which is better?",
           "intent": "comparison_request",
-          "confidence": 0.9223048686981201,
-          "method": "neural"
+          "confidence": 0.3680100440979004,
+          "method": "fallback"
         },
         {
           "query": "Asian side vs European side",
-          "intent": "comparison_request",
-          "confidence": 0.9354288578033447,
-          "method": "neural"
+          "intent": "practical_info",
+          "confidence": 0.2570369839668274,
+          "method": "fallback"
         },
         {
           "query": "Cheap vs luxury restaurants",
-          "intent": "restaurant_search",
-          "confidence": 0.9139004349708557,
-          "method": "neural"
+          "intent": "comparison_request",
+          "confidence": 0.25846150517463684,
+          "method": "fallback"
         },
         {
           "query": "Best vs most popular museums",
-          "intent": "attraction_search",
-          "confidence": 0.2973075807094574,
+          "intent": "practical_info",
+          "confidence": 0.23539909720420837,
           "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.7223155299822489,
-        "neural_count": 4,
-        "neural_rate": 0.6666666666666666
+        "avg_confidence": 0.433940311272939,
+        "neural_count": 1,
+        "neural_rate": 0.16666666666666666
       }
     },
     {
@@ -625,43 +625,43 @@
       "predictions": [
         {
           "query": "What do you recommend for first-time visitors?",
-          "intent": "daily_help",
-          "confidence": 0.5818954110145569,
-          "method": "fallback"
+          "intent": "recommendation_request",
+          "confidence": 0.7097581624984741,
+          "method": "neural"
         },
         {
           "query": "Best places for photography",
           "intent": "recommendation_request",
-          "confidence": 0.5717021822929382,
+          "confidence": 0.35350301861763,
           "method": "fallback"
         },
         {
           "query": "Recommend activities for families",
           "intent": "recommendation_request",
-          "confidence": 0.6695178747177124,
+          "confidence": 0.5350751280784607,
           "method": "fallback"
         },
         {
           "query": "What's worth visiting?",
-          "intent": "weather_query",
-          "confidence": 0.43784356117248535,
+          "intent": "neighborhood_info",
+          "confidence": 0.14496931433677673,
           "method": "fallback"
         },
         {
           "query": "Suggest romantic spots",
-          "intent": "restaurant_search",
-          "confidence": 0.2812236249446869,
+          "intent": "practical_info",
+          "confidence": 0.48668229579925537,
           "method": "fallback"
         },
         {
           "query": "Best things to do in winter",
           "intent": "weather_query",
-          "confidence": 0.9748635292053223,
-          "method": "neural"
+          "confidence": 0.22004109621047974,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.5861743638912836,
+        "avg_confidence": 0.40833816925684613,
         "neural_count": 1,
         "neural_rate": 0.16666666666666666
       }
@@ -673,44 +673,44 @@
         {
           "query": "Where should I stay in Istanbul?",
           "intent": "daily_help",
-          "confidence": 0.9628217816352844,
+          "confidence": 0.7717495560646057,
           "method": "neural"
         },
         {
           "query": "Best hotels near Sultanahmet",
-          "intent": "attraction_search",
-          "confidence": 0.4298468232154846,
+          "intent": "restaurant_search",
+          "confidence": 0.17334751784801483,
           "method": "fallback"
         },
         {
           "query": "Budget accommodation options",
           "intent": "price_inquiry",
-          "confidence": 0.7219133973121643,
-          "method": "neural"
+          "confidence": 0.3347915709018707,
+          "method": "fallback"
         },
         {
           "query": "Luxury hotels with Bosphorus view",
           "intent": "hotel_search",
-          "confidence": 0.9794251322746277,
+          "confidence": 0.8695129752159119,
           "method": "neural"
         },
         {
           "query": "Safe neighborhoods to stay",
           "intent": "neighborhood_search",
-          "confidence": 0.7894837260246277,
-          "method": "neural"
+          "confidence": 0.31975966691970825,
+          "method": "fallback"
         },
         {
           "query": "Hotel recommendations",
           "intent": "recommendation_request",
-          "confidence": 0.740240752696991,
-          "method": "neural"
+          "confidence": 0.5674951076507568,
+          "method": "fallback"
         }
       ],
       "statistics": {
-        "avg_confidence": 0.7706219355265299,
-        "neural_count": 5,
-        "neural_rate": 0.8333333333333334
+        "avg_confidence": 0.5061093991001447,
+        "neural_count": 2,
+        "neural_rate": 0.3333333333333333
       }
     }
   ]

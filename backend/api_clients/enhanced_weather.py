@@ -139,7 +139,7 @@ class EnhancedWeatherClient:
         temp = weather_data["main"]["temp"]
         condition = weather_data["weather"][0]["main"].lower()
         humidity = weather_data["main"]["humidity"]
-        wind_speed = weather_data.get("wind", {}).get("speed", 0)
+        wind_speed = weather_data.get("wind", {}).get("speed", 0) * 3.6  # Convert m/s to km/h
         
         # Add activity recommendations based on weather
         recommendations = self._get_activity_recommendations(temp, condition, humidity, wind_speed)
@@ -150,7 +150,18 @@ class EnhancedWeatherClient:
         # Add Istanbul-specific insights
         istanbul_insights = self._get_istanbul_weather_insights(temp, condition)
         
+        # Add normalized fields for easy access
         weather_data.update({
+            # Normalized field names for main_system.py
+            "temperature": temp,
+            "feels_like": weather_data["main"].get("feels_like", temp),
+            "description": weather_data["weather"][0]["description"],
+            "humidity": humidity,
+            "wind_speed": round(wind_speed, 1),
+            "pressure": weather_data["main"].get("pressure", 1013),
+            "visibility": weather_data.get("visibility", 10000) / 1000,  # Convert m to km
+            
+            # Enhanced fields
             "activity_recommendations": recommendations,
             "clothing_suggestions": clothing,
             "istanbul_insights": istanbul_insights,

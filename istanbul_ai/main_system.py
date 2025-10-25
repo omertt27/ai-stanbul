@@ -15,9 +15,44 @@ from .core.entity_recognition import IstanbulEntityRecognizer
 from .core.response_generator import ResponseGenerator
 from .core.user_management import UserManager
 
-# Configure logging
+# Configure logging first
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Import hidden gems and price filtering services (after logging is configured)
+try:
+    from backend.services.hidden_gems_handler import HiddenGemsHandler
+    HIDDEN_GEMS_HANDLER_AVAILABLE = True
+    logger.info("✅ Hidden Gems Handler loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Hidden Gems Handler not available: {e}")
+    HIDDEN_GEMS_HANDLER_AVAILABLE = False
+
+try:
+    from backend.services.price_filter_service import PriceFilterService
+    PRICE_FILTER_AVAILABLE = True
+    logger.info("✅ Price Filter Service loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Price Filter Service not available: {e}")
+    PRICE_FILTER_AVAILABLE = False
+
+# Import Events Service
+try:
+    from backend.services.events_service import get_events_service
+    EVENTS_SERVICE_AVAILABLE = True
+    logger.info("✅ Events Service loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Events Service not available: {e}")
+    EVENTS_SERVICE_AVAILABLE = False
+
+# Import Weather Recommendations Service
+try:
+    from backend.services.weather_recommendations import get_weather_recommendations_service
+    WEATHER_RECOMMENDATIONS_AVAILABLE = True
+    logger.info("✅ Weather Recommendations Service loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Weather Recommendations Service not available: {e}")
+    WEATHER_RECOMMENDATIONS_AVAILABLE = False
 
 # Import advanced transportation system
 try:
@@ -90,6 +125,59 @@ class IstanbulDailyTalkAI:
         self.entity_recognizer = IstanbulEntityRecognizer()
         self.response_generator = ResponseGenerator()
         self.user_manager = UserManager()
+        
+        # Initialize hidden gems handler
+        if HIDDEN_GEMS_HANDLER_AVAILABLE:
+            try:
+                self.hidden_gems_handler = HiddenGemsHandler()
+                logger.info("💎 Hidden Gems Handler initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize hidden gems handler: {e}")
+                self.hidden_gems_handler = None
+        else:
+            self.hidden_gems_handler = None
+        
+        # Initialize price filter service
+        if PRICE_FILTER_AVAILABLE:
+            try:
+                self.price_filter_service = PriceFilterService()
+                logger.info("💰 Price Filter Service initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize price filter: {e}")
+                self.price_filter_service = None
+        else:
+            self.price_filter_service = None
+        
+        # Initialize conversation handler
+        try:
+            from backend.services.conversation_handler import get_conversation_handler
+            self.conversation_handler = get_conversation_handler()
+            logger.info("💬 Conversation Handler initialized successfully!")
+        except Exception as e:
+            logger.error(f"Failed to initialize conversation handler: {e}")
+            self.conversation_handler = None
+        
+        # Initialize events service
+        if EVENTS_SERVICE_AVAILABLE:
+            try:
+                self.events_service = get_events_service()
+                logger.info("🎭 Events Service initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize events service: {e}")
+                self.events_service = None
+        else:
+            self.events_service = None
+        
+        # Initialize weather recommendations service
+        if WEATHER_RECOMMENDATIONS_AVAILABLE:
+            try:
+                self.weather_recommendations = get_weather_recommendations_service()
+                logger.info("🌤️ Weather Recommendations Service initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize weather recommendations: {e}")
+                self.weather_recommendations = None
+        else:
+            self.weather_recommendations = None
         
         # Initialize location detector if available
         try:
@@ -886,6 +974,53 @@ class IstanbulDailyTalkAI:
         
         current_time = datetime.now()
         
+        # Check for conversational queries first (thanks, help, planning)
+        if self.conversation_handler:
+            try:
+                if self.conversation_handler.is_conversational_query(message):
+                    conv_response = self.conversation_handler.handle_conversation(message)
+                    if conv_response:
+                        if return_structured:
+                            return {
+                                'response': conv_response,
+                                'map_data': {},
+                                'conversation_type': 'conversational'
+                            }
+                        return conv_response
+            except Exception as e:
+                logger.error(f"Conversation handler error: {e}")
+        
+        # Check for budget-related queries first using price filter service
+        if self.price_filter_service:
+            budget_level = self.price_filter_service.detect_budget_query(message)
+            
+            # Handle explicit free/budget attraction queries
+            if budget_level == 'free' and intent in ['attraction', 'activity', 'things_to_do']:
+                response = self.price_filter_service.format_free_attractions_response()
+                if return_structured:
+                    return {
+                        'response': response,
+                        'map_data': {},
+                        'budget_level': 'free'
+                    }
+                return response
+            
+            # Handle budget restaurant queries
+            if budget_level in ['free', 'budget'] and intent == 'restaurant':
+                response = self.price_filter_service.format_budget_eats_response()
+                if return_structured:
+                    return {
+                        'response': response,
+                        'map_data': {},
+                        'budget_level': budget_level
+                    }
+                return response
+        
+        # Check for hidden gems query using hidden gems handler
+        if self.hidden_gems_handler and self.hidden_gems_handler.detect_hidden_gems_query(message):
+            # Override intent to hidden_gems if detected
+            intent = 'hidden_gems'
+        
         # Use response generator for comprehensive responses
         if intent == 'attraction':
             # Check if this is a museum query - use advanced museum system if available
@@ -896,19 +1031,32 @@ class IstanbulDailyTalkAI:
             # Route to advanced museum system if museum query and advanced system available
             if any(keyword in message_lower for keyword in museum_keywords):
                 if self.advanced_museum_system:
-                    return self._generate_advanced_museum_response(message, entities, user_profile, context)
+                    response = self._generate_advanced_museum_response(message, entities, user_profile, context)
+                    # Add weather context to response
+                    if isinstance(response, str):
+                        response = self._add_weather_context_to_attractions(response)
+                    return response
                 elif self.museum_generator:
-                    return self._generate_location_aware_museum_response(message, entities, user_profile, context)
+                    response = self._generate_location_aware_museum_response(message, entities, user_profile, context)
+                    if isinstance(response, str):
+                        response = self._add_weather_context_to_attractions(response)
+                    return response
             
             # Route to advanced attractions system if attraction query and advanced system available
             elif any(keyword in message_lower for keyword in attractions_keywords):
                 if self.advanced_attractions_system:
-                    return self._generate_advanced_attractions_response(message, entities, user_profile, context)
+                    response = self._generate_advanced_attractions_response(message, entities, user_profile, context)
+                    if isinstance(response, str):
+                        response = self._add_weather_context_to_attractions(response)
+                    return response
             
-            # Fallback to basic response generator
-            return self.response_generator.generate_comprehensive_recommendation(
+            # Fallback to basic response generator with weather context
+            response = self.response_generator.generate_comprehensive_recommendation(
                 intent, entities, user_profile, context, return_structured=return_structured
             )
+            if isinstance(response, str):
+                response = self._add_weather_context_to_attractions(response)
+            return response
         elif intent in ['restaurant', 'neighborhood']:
             return self.response_generator.generate_comprehensive_recommendation(
                 intent, entities, user_profile, context, return_structured=return_structured
@@ -933,6 +1081,35 @@ class IstanbulDailyTalkAI:
             )
         
         elif intent == 'hidden_gems':
+            # Use specialized hidden gems handler
+            if self.hidden_gems_handler:
+                try:
+                    # Extract location from entities if available
+                    location = None
+                    if 'location' in entities and entities['location']:
+                        location = entities['location'][0] if isinstance(entities['location'], list) else entities['location']
+                    
+                    # Get hidden gems
+                    gems = self.hidden_gems_handler.get_hidden_gems(
+                        location=location,
+                        limit=5
+                    )
+                    
+                    # Format response
+                    response = self.hidden_gems_handler.format_hidden_gem_response(gems, location)
+                    
+                    if return_structured:
+                        return {
+                            'response': response,
+                            'map_data': {},
+                            'gems': gems
+                        }
+                    return response
+                    
+                except Exception as e:
+                    logger.error(f"Hidden gems handler error: {e}")
+            
+            # Fallback to response generator
             return self.response_generator.generate_comprehensive_recommendation(
                 intent, entities, user_profile, context, return_structured=return_structured
             )
@@ -947,6 +1124,16 @@ class IstanbulDailyTalkAI:
             return self._generate_museum_route_response(message, entities, user_profile, context)
         
         elif intent == 'greeting':
+            # Use conversation handler if available for better greetings
+            if self.conversation_handler:
+                try:
+                    response = self.conversation_handler.handle_conversation(message)
+                    if response:
+                        return response
+                except Exception as e:
+                    logger.error(f"Conversation handler error: {e}")
+            
+            # Fallback to original greeting
             return self._generate_greeting_response(user_profile, context)
         
         else:
@@ -1170,7 +1357,34 @@ What type of shopping interests you most? I can provide specific store recommend
     
     def _generate_events_response(self, entities: Dict, user_profile: UserProfile, 
                                  context: ConversationContext, current_time: datetime) -> str:
-        """Generate events and activities response with live IKSV data"""
+        """Generate events and activities response with temporal parsing and live IKSV data"""
+        
+        # Get the original query message
+        query_message = context.conversation_history[-1].message if context.conversation_history else ""
+        
+        # Try to use events service for temporal parsing
+        events_content = ""
+        if self.events_service:
+            try:
+                # Parse temporal query (today, tonight, this weekend, etc.)
+                timeframe = self.events_service.parse_temporal_query(query_message)
+                
+                if timeframe:
+                    # Get events for the specified timeframe
+                    events = self.events_service.get_events_by_timeframe(timeframe)
+                    
+                    if events:
+                        # Format events using the service's formatter
+                        events_content = self.events_service.format_events_response(
+                            events, 
+                            timeframe.get('label'),
+                            include_iksv=True
+                        )
+                        # Return the formatted events directly
+                        return events_content
+                
+            except Exception as e:
+                logger.error(f"Error using events service: {e}")
         
         # Try to get live IKSV events through ML Daily Talks Bridge
         live_events_section = ""
@@ -1219,8 +1433,23 @@ What type of shopping interests you most? I can provide specific store recommend
             except Exception as e:
                 logger.debug(f"Could not fetch live IKSV events: {e}")
         
+        # Add seasonal events if events service is available
+        seasonal_section = ""
+        if self.events_service:
+            try:
+                seasonal_events = self.events_service.get_seasonal_events()
+                if seasonal_events:
+                    seasonal_section = "\n**🎪 Current Season Highlights:**\n"
+                    for event in seasonal_events[:3]:
+                        seasonal_section += f"• **{event['name']}** ({event.get('month', 'TBA')})\n"
+                        if event.get('description'):
+                            seasonal_section += f"  {event['description']}\n"
+            except Exception as e:
+                logger.debug(f"Could not get seasonal events: {e}")
+        
         return f"""🎭 **Istanbul Events & Activities**
 {live_events_section}
+{seasonal_section}
 
 **🎨 Cultural Events:**
 • **Istanbul Modern**: Contemporary art exhibitions, Bosphorus views
@@ -1233,12 +1462,6 @@ What type of shopping interests you most? I can provide specific store recommend
 • **Rooftop Bars**: 360 Istanbul, Mikla, Leb-i Derya
 • **Live Music**: Babylon, Salon IKSV, Nardis Jazz Club
 • **Traditional Music**: Turkish folk at cultural centers
-
-**🎪 Seasonal Events:**
-• **Spring**: Tulip Festival (April), Historic Peninsula blooms
-• **Summer**: Istanbul Music Festival, outdoor concerts
-• **Fall**: Istanbul Biennial (odd years), art across the city
-• **Winter**: New Year celebrations, cozy indoor venues
 
 **🌊 Bosphorus Activities:**
 • **Ferry Tours**: Public ferries (15 TL) vs private tours (100+ TL)
@@ -1279,7 +1502,7 @@ What type of shopping interests you most? I can provide specific store recommend
 • Istanbul Municipality: Free cultural events
 • Time Out Istanbul: Current happenings
 
-What type of experience interests you most? I can provide specific venue recommendations and booking details!"""
+💡 **Tip:** Ask me about events "today", "tonight", "this weekend" or specific days for detailed schedules!"""
     
     def _generate_route_planning_response(self, message: str, user_profile: UserProfile, 
                                         context: ConversationContext) -> str:
@@ -1736,7 +1959,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                 return self.response_generator.generate_comprehensive_recommendation(
                     'attraction', entities, user_profile, context
                 )
-                
+
         except Exception as e:
             logger.error(f"Error in advanced attractions response: {e}")
             import traceback
@@ -1748,10 +1971,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
     def _format_single_attraction(self, attraction) -> str:
         """Format a single attraction detail"""
         response = f"🌟 **{attraction.name}**\n\n"
-        response += f"📍 **Location:** {attraction.district}"
-        if hasattr(attraction, 'address') and attraction.address:
-            response += f" | {attraction.address}"
-        response += "\n"
+        response += f"📍 **Location:** {attraction.district} • {attraction.address}\n"
         response += f"🎯 **Category:** {attraction.category.value.replace('_', ' ').title()}\n"
         
         # Use 'duration' (correct attribute name)
@@ -2057,7 +2277,7 @@ What would you like to explore first? I'm here to make your Istanbul experience 
 
     def _generate_weather_response(self, message: str, entities: Dict, user_profile: UserProfile, 
                                  context: ConversationContext) -> str:
-        """Generate weather response using the enhanced weather client"""
+        """Generate weather response using the enhanced weather client and recommendations service"""
         try:
             if not self.weather_client:
                 return "🌤️ Weather service is temporarily unavailable. Please try again later."
@@ -2068,20 +2288,20 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             if not weather_data:
                 return "🌤️ Unable to fetch current weather data. Please try again later."
             
-            # Format the weather response
+            # Extract weather data
             temp = weather_data.get('temperature', 'N/A')
-            feels_like = weather_data.get('feels_like', 'N/A')
+            feels_like = weather_data.get('feels_like', temp)
             description = weather_data.get('description', 'N/A')
             humidity = weather_data.get('humidity', 'N/A')
             wind_speed = weather_data.get('wind_speed', 'N/A')
             pressure = weather_data.get('pressure', 'N/A')
             visibility = weather_data.get('visibility', 'N/A')
-            
-            # Generate contextual recommendations based on weather
-            recommendations = self._get_weather_based_recommendations(weather_data)
-            
             current_time = datetime.now().strftime("%H:%M")
             
+            # Get weather-based activity recommendations
+            recommendations = self._get_weather_based_recommendations(weather_data)
+            
+            # Build response
             response = f"""🌤️ **Istanbul Weather** (Updated: {current_time})
 
 **📊 Current Conditions:**
@@ -2130,42 +2350,150 @@ Please try asking about the weather again in a few moments!"""
         try:
             temp = weather_data.get('temperature', 20)
             description = weather_data.get('description', '').lower()
-            wind_speed = weather_data.get('wind_speed', 0)
             
+            # Determine weather condition
+            condition = 'clear'
+            if any(word in description for word in ['rain', 'drizzle', 'shower']):
+                condition = 'rain'
+            elif 'snow' in description:
+                condition = 'snow'
+            elif 'cloud' in description:
+                condition = 'cloudy'
+            
+            # Use weather recommendations service if available
+            if self.weather_recommendations:
+                try:
+                    weather_response = self.weather_recommendations.format_weather_activities_response(
+                        temperature=temp,
+                        weather_condition=condition,
+                        limit=5
+                    )
+                    return "\n**🎯 Weather-Based Recommendations:**\n" + weather_response
+                except Exception as e:
+                    logger.error(f"Weather recommendations service error: {e}")
+                    # Fall through to fallback recommendations
+            
+            # Fallback recommendations (original logic)
             recommendations = "\n**🎯 Weather-Based Recommendations:**\n"
+            wind_speed = weather_data.get('wind_speed', 0)
             
             # Temperature-based recommendations
             if temp >= 25:
-                recommendations += "• **Hot Weather**: Visit air-conditioned museums, take Bosphorus ferry for breeze\n"
-                recommendations += "• **Best Activities**: Basilica Cistern, Grand Bazaar, ferry rides\n"
-                recommendations += "• **Avoid**: Long outdoor walks during midday heat\n"
+                recommendations += "• **Hot Weather** 🌡️: Visit air-conditioned museums, take Bosphorus ferry for breeze\n"
+                recommendations += "  **Top Picks**: \n"
+                recommendations += "  - Basilica Cistern (cool underground atmosphere)\n"
+                recommendations += "  - Grand Bazaar (covered market, naturally cool)\n"
+                recommendations += "  - Bosphorus Ferry (refreshing sea breeze)\n"
+                recommendations += "  - Turkish Bath Experience (Çemberlitaş Hamamı)\n"
+                recommendations += "• **Stay Cool**: Drink plenty of water, seek shade between 12-4 PM\n"
             elif temp >= 15:
-                recommendations += "• **Pleasant Weather**: Perfect for walking tours and outdoor sightseeing\n"
-                recommendations += "• **Best Activities**: Sultanahmet walking tour, Galata Bridge, parks\n"
-                recommendations += "• **Great Time**: Ideal weather for most outdoor activities\n"
+                recommendations += "• **Pleasant Weather** ☀️: Perfect for walking tours and outdoor sightseeing\n"
+                recommendations += "  **Top Picks**:\n"
+                recommendations += "  - Sultanahmet Square & Blue Mosque\n"
+                recommendations += "  - Galata Bridge walk to Galata Tower\n"
+                recommendations += "  - Princes' Islands day trip\n"
+                recommendations += "  - Gülhane Park or Emirgan Park\n"
+                recommendations += "• **Perfect Time**: Ideal for most outdoor activities!\n"
             else:
-                recommendations += "• **Cool Weather**: Focus on indoor attractions and cozy experiences\n"
-                recommendations += "• **Best Activities**: Museums, Turkish baths, covered bazaars\n"
-                recommendations += "• **Warm Up**: Try traditional Turkish tea or coffee\n"
+                recommendations += "• **Cool Weather** 🧥: Focus on indoor attractions and cozy experiences\n"
+                recommendations += "  **Top Picks**:\n"
+                recommendations += "  - Topkapı Palace (indoor sections)\n"
+                recommendations += "  - Turkish Bath Experience (warm & relaxing)\n"
+                recommendations += "  - Grand Bazaar & Spice Bazaar (covered)\n"
+                recommendations += "  - Istanbul Modern Art Museum\n"
+                recommendations += "• **Warm Up**: Try traditional Turkish tea at Pierre Loti Café\n"
             
             # Weather condition recommendations
-            if 'rain' in description or 'drizzle' in description:
-                recommendations += "• **Rainy Day**: Perfect for covered markets, underground cistern\n"
-                recommendations += "• **Stay Dry**: Grand Bazaar, Spice Bazaar, museums with covered access\n"
+            if condition == 'rain':
+                recommendations += "\n• **Rainy Day** ☔: Perfect for covered markets & underground attractions\n"
+                recommendations += "  **Stay Dry Options**:\n"
+                recommendations += "  - Grand Bazaar (4,000 covered shops)\n"
+                recommendations += "  - Basilica Cistern (underground wonder)\n"
+                recommendations += "  - Spice Bazaar (aromatic covered market)\n"
+                recommendations += "  - Hagia Sophia & Blue Mosque (indoor sections)\n"
+                recommendations += "  - Museum Route: Archaeological, Mosaic, or Istanbul Modern\n"
             elif 'clear' in description or 'sunny' in description:
-                recommendations += "• **Sunny Day**: Excellent for Bosphorus tours and rooftop views\n"
-                recommendations += "• **Don't Miss**: Galata Tower, outdoor markets, ferry rides\n"
-            elif 'cloud' in description:
-                recommendations += "• **Cloudy Day**: Good for photography and comfortable walking\n"
-                recommendations += "• **Perfect For**: City exploration without harsh sun\n"
+                recommendations += "\n• **Sunny Day** ☀️: Excellent for Bosphorus tours and panoramic views\n"
+                recommendations += "  **Don't Miss**:\n"
+                recommendations += "  - Galata Tower (360° city views)\n"
+                recommendations += "  - Bosphorus Sunset Cruise\n"
+                recommendations += "  - Çamlıca Hill (highest viewpoint)\n"
+                recommendations += "  - Ortaköy waterfront\n"
+                recommendations += "  - Outdoor markets in Kadıköy\n"
+            elif condition == 'cloudy':
+                recommendations += "\n• **Cloudy Day** ⛅: Great for photography and comfortable walking\n"
+                recommendations += "  **Perfect For**:\n"
+                recommendations += "  - Photography tours (soft lighting)\n"
+                recommendations += "  - Balat & Fener colorful streets\n"
+                recommendations += "  - City exploration without harsh sun\n"
+                recommendations += "  - Longer walking tours\n"
             
             # Wind recommendations
             if wind_speed > 20:
-                recommendations += "• **Windy Conditions**: Be cautious on bridges and high viewpoints\n"
-                recommendations += "• **Consider**: Indoor activities or sheltered areas\n"
+                recommendations += "\n• **Windy Conditions** 💨: Be cautious on bridges & high viewpoints\n"
+                recommendations += "  **Better Choices**: Sheltered streets of Sultanahmet, indoor museums\n"
             
             return recommendations
             
         except Exception as e:
             logger.error(f"Weather recommendations error: {e}")
             return "\n**🎯 General Recommendations:**\n• Check current conditions before heading out\n• Have indoor backup plans ready\n"
+    
+    def _add_weather_context_to_attractions(self, response: str, weather_data: Optional[Dict] = None) -> str:
+        """Add weather context and recommendations to attraction responses"""
+        if not weather_data and self.weather_client:
+            try:
+                weather_data = self.weather_client.get_current_weather()
+            except Exception as e:
+                logger.debug(f"Could not fetch weather for context: {e}")
+                return response
+        
+        if not weather_data:
+            return response
+        
+        # Extract weather conditions
+        temp = weather_data.get('temperature', 20)
+        description = weather_data.get('description', '').lower()
+        condition = 'clear'
+        
+        # Determine weather condition
+        if any(word in description for word in ['rain', 'drizzle', 'shower']):
+            condition = 'rain'
+        elif 'snow' in description:
+            condition = 'snow'
+        elif 'cloud' in description:
+            condition = 'cloudy'
+        
+        # Add weather context header
+        weather_note = "\n\n**🌤️ Weather Tip for Today:**\n"
+        
+        # Use weather recommendations service if available
+        if self.weather_recommendations:
+            try:
+                # Get 3 quick weather-appropriate suggestions
+                weather_response = self.weather_recommendations.format_weather_activities_response(
+                    temperature=temp,
+                    weather_condition=condition,
+                    limit=3
+                )
+                weather_note += weather_response
+                return response + "\n" + weather_note
+            except Exception as e:
+                logger.error(f"Weather recommendations error: {e}")
+                # Fall through to basic weather note
+        
+        # Fallback to basic weather note
+        if condition == 'rain':
+            weather_note += "It's rainy today - prioritize indoor attractions or covered areas!\n"
+            weather_note += "💡 The suggestions above include indoor/covered options perfect for this weather.\n"
+        elif temp > 28:
+            weather_note += f"It's quite hot today ({temp}°C) - stay hydrated and take breaks in air-conditioned spaces!\n"
+            weather_note += "💡 Consider visiting during early morning or late afternoon.\n"
+        elif temp < 10:
+            weather_note += f"It's chilly today ({temp}°C) - dress warmly and enjoy cozy indoor attractions!\n"
+            weather_note += "💡 Perfect weather for museums and Turkish baths.\n"
+        else:
+            weather_note += f"Pleasant weather today ({temp}°C, {description}) - great for exploring!\n"
+            weather_note += "💡 Perfect conditions for outdoor sightseeing.\n"
+        
+        return response + weather_note
