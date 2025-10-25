@@ -36,6 +36,17 @@ except ImportError as e:
     ADVANCED_UNDERSTANDING_AVAILABLE = False
     print(f"⚠️ Advanced Understanding System not available: {e}")
 
+# Add Production Monitoring and Feedback Collection
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+    from ml_production_monitor import get_production_monitor
+    from user_feedback_collector import get_feedback_collector
+    ML_MONITORING_AVAILABLE = True
+    print("✅ ML Production Monitoring loaded successfully")
+except ImportError as e:
+    ML_MONITORING_AVAILABLE = False
+    print(f"⚠️ ML Production Monitoring not available: {e}")
+
 # Add Intent Classifier import
 try:
     from main_system_neural_integration import NeuralIntentRouter
@@ -165,6 +176,18 @@ if CONTEXT_AWARE_AVAILABLE:
         print(f"⚠️ Failed to initialize Context-Aware Classification: {e}")
         CONTEXT_AWARE_AVAILABLE = False
 
+# Initialize ML Production Monitoring and Feedback Collection
+ml_monitor = None
+feedback_collector = None
+if ML_MONITORING_AVAILABLE:
+    try:
+        ml_monitor = get_production_monitor()
+        feedback_collector = get_feedback_collector()
+        print("✅ ML monitoring and feedback systems enabled")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize ML monitoring: {e}")
+        ML_MONITORING_AVAILABLE = False
+
 def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
     """Generate enhanced suggestions based on multi-intent analysis"""
     suggestions = []
@@ -284,6 +307,19 @@ def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
             }
             
             logger.info(f"🎯 Intent Classifier ({method}): {intent} (confidence: {confidence:.2f}, latency: {latency_ms:.2f}ms)")
+            
+            # Log prediction to ML monitor
+            if ML_MONITORING_AVAILABLE and ml_monitor:
+                try:
+                    ml_monitor.log_prediction(
+                        query=user_input,
+                        predicted_intent=intent,
+                        confidence=confidence,
+                        latency_ms=latency_ms
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to log prediction to monitor: {e}")
+                    
         except Exception as e:
             logger.warning(f"Intent classifier error: {e}")
     
@@ -1675,6 +1711,271 @@ async def get_user_profile(
 
 
 # =============================
+# ML FEEDBACK & MONITORING ENDPOINTS
+# =============================
+
+class FeedbackRatingRequest(BaseModel):
+    """Request model for star rating feedback"""
+    query: str = Field(..., description="User query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: str = Field(..., description="Predicted intent")
+    rating: int = Field(..., ge=1, le=5, description="Rating (1-5 stars)")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+class FeedbackThumbsRequest(BaseModel):
+    """Request model for thumbs up/down feedback"""
+    query: str = Field(..., description="User query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: str = Field(..., description="Predicted intent")
+    thumbs_up: bool = Field(..., description="Thumbs up (True) or down (False)")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+class FeedbackIntentCorrectionRequest(BaseModel):
+    """Request model for intent correction feedback"""
+    query: str = Field(..., description="User query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: str = Field(..., description="Predicted intent")
+    correct_intent: str = Field(..., description="Correct intent")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+class FeedbackCommentRequest(BaseModel):
+    """Request model for free-text comment feedback"""
+    query: str = Field(..., description="User query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: str = Field(..., description="Predicted intent")
+    comment: str = Field(..., description="User comment")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+class FeedbackResponse(BaseModel):
+    """Response model for feedback submission"""
+    status: str = Field(..., description="Submission status")
+    feedback_id: str = Field(..., description="Feedback identifier")
+    message: str = Field(..., description="Success message")
+
+
+@app.post("/api/feedback/rating", response_model=FeedbackResponse, tags=["ML Feedback"])
+async def submit_rating_feedback(request: FeedbackRatingRequest):
+    """
+    Submit star rating feedback (1-5 stars)
+    
+    This endpoint collects user satisfaction ratings on AI responses.
+    """
+    if not ML_MONITORING_AVAILABLE or not feedback_collector:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Feedback collection service is not available"
+        )
+    
+    try:
+        feedback_id = feedback_collector.collect_rating(
+            query=request.query,
+            response=request.response,
+            predicted_intent=request.predicted_intent,
+            rating=request.rating,
+            session_id=request.session_id,
+            metadata=request.metadata
+        )
+        
+        logger.info(f"✅ Rating feedback collected: {feedback_id} (rating: {request.rating}/5)")
+        
+        return FeedbackResponse(
+            status="success",
+            feedback_id=feedback_id,
+            message=f"Thank you for your {request.rating}-star rating!"
+        )
+    
+    except Exception as e:
+        logger.error(f"Failed to collect rating feedback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to submit feedback"
+        )
+
+
+@app.post("/api/feedback/thumbs", response_model=FeedbackResponse, tags=["ML Feedback"])
+async def submit_thumbs_feedback(request: FeedbackThumbsRequest):
+    """
+    Submit thumbs up/down feedback
+    
+    Quick binary feedback on response quality.
+    """
+    if not ML_MONITORING_AVAILABLE or not feedback_collector:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Feedback collection service is not available"
+        )
+    
+    try:
+        feedback_id = feedback_collector.collect_thumbs(
+            query=request.query,
+            response=request.response,
+            predicted_intent=request.predicted_intent,
+            thumbs_up=request.thumbs_up,
+            session_id=request.session_id,
+            metadata=request.metadata
+        )
+        
+        feedback_type = "👍 thumbs up" if request.thumbs_up else "👎 thumbs down"
+        logger.info(f"✅ Thumbs feedback collected: {feedback_id} ({feedback_type})")
+        
+        return FeedbackResponse(
+            status="success",
+            feedback_id=feedback_id,
+            message=f"Thank you for your feedback!"
+        )
+    
+    except Exception as e:
+        logger.error(f"Failed to collect thumbs feedback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to submit feedback"
+        )
+
+
+@app.post("/api/feedback/intent-correction", response_model=FeedbackResponse, tags=["ML Feedback"])
+async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
+    """
+    Submit intent correction feedback
+    
+    Allows users to correct misclassified intents.
+    """
+    if not ML_MONITORING_AVAILABLE or not feedback_collector:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Feedback collection service is not available"
+        )
+    
+    try:
+        feedback_id = feedback_collector.collect_intent_correction(
+            query=request.query,
+            response=request.response,
+            predicted_intent=request.predicted_intent,
+            correct_intent=request.correct_intent,
+            session_id=request.session_id,
+            metadata=request.metadata
+        )
+        
+        logger.info(f"✅ Intent correction collected: {feedback_id} ({request.predicted_intent} → {request.correct_intent})")
+        
+        # Log to ML monitor for retraining
+        if ml_monitor:
+            ml_monitor.log_prediction(
+                query=request.query,
+                predicted_intent=request.predicted_intent,
+                confidence=0.0,  # Mark as incorrect
+                latency_ms=0,
+                actual_intent=request.correct_intent,
+                user_feedback='wrong'
+            )
+        
+        return FeedbackResponse(
+            status="success",
+            feedback_id=feedback_id,
+            message="Thank you for the correction! This helps improve our system."
+        )
+    
+    except Exception as e:
+        logger.error(f"Failed to collect intent correction: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to submit correction"
+        )
+
+
+@app.post("/api/feedback/comment", response_model=FeedbackResponse, tags=["ML Feedback"])
+async def submit_comment_feedback(request: FeedbackCommentRequest):
+    """
+    Submit free-text comment feedback
+    
+    Allows users to provide detailed feedback comments.
+    """
+    if not ML_MONITORING_AVAILABLE or not feedback_collector:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Feedback collection service is not available"
+        )
+    
+    try:
+        feedback_id = feedback_collector.collect_comment(
+            query=request.query,
+            response=request.response,
+            predicted_intent=request.predicted_intent,
+            comment=request.comment,
+            session_id=request.session_id,
+            metadata=request.metadata
+        )
+        
+        logger.info(f"✅ Comment feedback collected: {feedback_id}")
+        
+        return FeedbackResponse(
+            status="success",
+            feedback_id=feedback_id,
+            message="Thank you for your detailed feedback!"
+        )
+    
+    except Exception as e:
+        logger.error(f"Failed to collect comment feedback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to submit feedback"
+        )
+
+
+@app.get("/api/monitoring/metrics", tags=["ML Monitoring"])
+async def get_ml_metrics():
+    """
+    Get current ML performance metrics
+    
+    Returns real-time monitoring data including accuracy, latency, and quality metrics.
+    """
+    if not ML_MONITORING_AVAILABLE or not ml_monitor:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ML monitoring service is not available"
+        )
+    
+    try:
+        metrics = ml_monitor.get_current_metrics()
+        return metrics
+    
+    except Exception as e:
+        logger.error(f"Failed to get ML metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve metrics"
+        )
+
+
+@app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
+async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
+    """
+    Get user feedback analysis
+    
+    Returns aggregated user feedback statistics and insights.
+    """
+    if not ML_MONITORING_AVAILABLE or not feedback_collector:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Feedback collection service is not available"
+        )
+    
+    try:
+        analysis = feedback_collector.analyze_feedback(days=days)
+        return analysis
+    
+    except Exception as e:
+        logger.error(f"Failed to analyze feedback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to analyze feedback"
+        )
+
+
+# =============================
 # HEALTH CHECK & MONITORING ENDPOINTS
 # =============================
 
@@ -2153,7 +2454,7 @@ async def chat_endpoint(request: ChatRequest):
                 # ===== 3. CULTURAL TIPS & ETIQUETTE =====
                 if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
                     cultural_tips = [
-                        'Remove shoes before entering mosques',
+                        'Remove
                         'Dress modestly when visiting religious sites',
                         'Women may need to cover their hair in mosques',
                         'No photography during prayer times',

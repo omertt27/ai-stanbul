@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, List, Dict, Optional
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
 import logging
 
 # Setup logging
@@ -66,7 +66,7 @@ class NeuralQueryClassifier:
     
     def __init__(
         self,
-        model_path: str = "bilingual_model.pth",  # Changed to bilingual model
+        model_path: str = "models/istanbul_intent_classifier_finetuned",  # Updated to use fine-tuned model
         confidence_threshold: float = 0.70,
         device: str = "auto",
         enable_logging: bool = True,
@@ -97,8 +97,10 @@ class NeuralQueryClassifier:
         
         # Load model and tokenizer
         self.tokenizer = None
-        self.base_model = None
-        self.classifier = None
+        self.model = None  # For fine-tuned model
+        self.base_model = None  # For old format
+        self.classifier = None  # For old format
+        self.use_finetuned = False  # Flag to indicate which model type
         self._load_model()
         
         # Statistics
@@ -130,55 +132,103 @@ class NeuralQueryClassifier:
     def _load_model(self):
         """Load model and tokenizer"""
         try:
-            logger.info("Loading tokenizer...")
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                "distilbert-base-multilingual-cased"
-            )
+            model_path = Path(self.model_path)
             
-            logger.info("Loading base model...")
-            self.base_model = AutoModel.from_pretrained(
-                "distilbert-base-multilingual-cased"
-            )
-            
-            logger.info("Creating classifier head...")
-            self.classifier = IntentClassifierHead(num_intents=len(self.INTENT_CLASSES))
-            
-            # Load trained weights
-            if Path(self.model_path).exists():
-                logger.info(f"Loading trained weights from {self.model_path}...")
-                checkpoint = torch.load(self.model_path, map_location=self.device)
+            # Check if this is a fine-tuned Hugging Face model (has config.json)
+            if (model_path / "config.json").exists():
+                logger.info(f"Loading fine-tuned Hugging Face model from {self.model_path}...")
                 
-                # Handle different checkpoint formats
-                if isinstance(checkpoint, dict) and 'classifier_state_dict' in checkpoint:
-                    # Format from phase2_extended_model.pth (classifier head only)
-                    classifier_state = checkpoint['classifier_state_dict']
-                    self.classifier.load_state_dict(classifier_state)
-                    logger.info(f"✅ Loaded classifier head weights")
-                    logger.info(f"   Accuracy: {checkpoint.get('accuracy', 'unknown')}")
-                    logger.info(f"   Training samples: {checkpoint.get('training_samples', 'unknown')}")
-                    logger.info(f"   Latency: {checkpoint.get('latency', 'unknown')}ms")
-                elif isinstance(checkpoint, dict):
-                    # Full state dict
-                    self.classifier.load_state_dict(checkpoint)
-                    logger.info("Loaded full classifier weights")
-                else:
-                    logger.error(f"Unknown checkpoint format")
-                    raise ValueError("Cannot load checkpoint")
+                # Load intent mapping FIRST to get the correct number of labels
+                intent_mapping_path = model_path / "intent_mapping.json"
+                num_labels = len(self.INTENT_CLASSES)  # Default
                 
-                logger.info("Trained weights loaded successfully")
+                if intent_mapping_path.exists():
+                    with open(intent_mapping_path, 'r', encoding='utf-8') as f:
+                        mapping = json.load(f)
+                        # Update intent mappings from the saved model
+                        if 'intents' in mapping:
+                            self.INTENT_CLASSES = mapping['intents']
+                            self.intent_to_id = {intent: idx for idx, intent in enumerate(self.INTENT_CLASSES)}
+                            self.id_to_intent = {idx: intent for intent, idx in self.intent_to_id.items()}
+                            num_labels = len(self.INTENT_CLASSES)
+                            logger.info(f"✅ Loaded intent mapping: {num_labels} intents")
+                
+                # Load tokenizer and model with correct num_labels
+                from transformers import AutoModelForSequenceClassification
+                
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    self.model_path,
+                    num_labels=num_labels
+                )
+                
+                # Load training metadata if available
+                metadata_path = model_path / "training_metadata.json"
+                if metadata_path.exists():
+                    with open(metadata_path, 'r') as f:
+                        metadata = json.load(f)
+                        logger.info(f"✅ Fine-tuned model loaded:")
+                        logger.info(f"   Training accuracy: {metadata.get('final_train_accuracy', 0):.2%}")
+                        logger.info(f"   Validation accuracy: {metadata.get('final_val_accuracy', 0):.2%}")
+                        logger.info(f"   Dataset size: {metadata.get('dataset_size', 'unknown')} samples")
+                        logger.info(f"   Trained on: {metadata.get('training_date', 'unknown')}")
+                
+                self.model.to(self.device)
+                self.model.eval()
+                self.use_finetuned = True
+                
+                logger.info("✅ Fine-tuned model loaded and ready")
+                
             else:
-                logger.warning(f"Model file not found: {self.model_path}")
-                logger.warning("Using untrained classifier!")
-            
-            self.base_model.to(self.device)
-            self.classifier.to(self.device)
-            self.base_model.eval()
-            self.classifier.eval()
-            
-            logger.info("Model loaded and ready")
+                # Fallback to old .pth format
+                logger.info("Loading base model with custom classifier head...")
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    "distilbert-base-multilingual-cased"
+                )
+                
+                self.base_model = AutoModel.from_pretrained(
+                    "distilbert-base-multilingual-cased"
+                )
+                
+                self.classifier = IntentClassifierHead(num_intents=len(self.INTENT_CLASSES))
+                
+                # Load trained weights if exists
+                if model_path.exists() and model_path.is_file():
+                    logger.info(f"Loading trained weights from {self.model_path}...")
+                    checkpoint = torch.load(self.model_path, map_location=self.device)
+                    
+                    # Handle different checkpoint formats
+                    if isinstance(checkpoint, dict) and 'classifier_state_dict' in checkpoint:
+                        classifier_state = checkpoint['classifier_state_dict']
+                        self.classifier.load_state_dict(classifier_state)
+                        logger.info(f"✅ Loaded classifier head weights")
+                        logger.info(f"   Accuracy: {checkpoint.get('accuracy', 'unknown')}")
+                        logger.info(f"   Training samples: {checkpoint.get('training_samples', 'unknown')}")
+                        logger.info(f"   Latency: {checkpoint.get('latency', 'unknown')}ms")
+                    elif isinstance(checkpoint, dict):
+                        self.classifier.load_state_dict(checkpoint)
+                        logger.info("✅ Loaded full classifier weights")
+                    else:
+                        logger.error(f"Unknown checkpoint format")
+                        raise ValueError("Cannot load checkpoint")
+                    
+                    logger.info("Trained weights loaded successfully")
+                else:
+                    logger.warning(f"Model file not found: {self.model_path}")
+                    logger.warning("Using untrained classifier!")
+                
+                self.base_model.to(self.device)
+                self.classifier.to(self.device)
+                self.base_model.eval()
+                self.classifier.eval()
+                self.use_finetuned = False
+                
+                logger.info("Model loaded and ready")
             
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
+            import traceback
+            traceback.print_exc()
             raise
     
     def predict(self, query: str) -> Tuple[str, float]:
@@ -207,14 +257,18 @@ class NeuralQueryClassifier:
                 max_length=128
             ).to(self.device)
             
-            # Predict
+            # Predict based on model type
             with torch.no_grad():
-                # Get embeddings from base model
-                outputs = self.base_model(**inputs)
-                embeddings = outputs.last_hidden_state[:, 0, :]  # CLS token
+                if self.use_finetuned:
+                    # Use fine-tuned model directly
+                    outputs = self.model(**inputs)
+                    logits = outputs.logits
+                else:
+                    # Use base model + classifier head
+                    outputs = self.base_model(**inputs)
+                    embeddings = outputs.last_hidden_state[:, 0, :]  # CLS token
+                    logits = self.classifier(embeddings)
                 
-                # Classify
-                logits = self.classifier(embeddings)
                 probabilities = torch.softmax(logits, dim=1)
                 confidence, predicted_id = probabilities.max(dim=1)
                 
@@ -263,14 +317,18 @@ class NeuralQueryClassifier:
                 max_length=128
             ).to(self.device)
             
-            # Predict batch
+            # Predict batch based on model type
             with torch.no_grad():
-                # Get embeddings
-                outputs = self.base_model(**inputs)
-                embeddings = outputs.last_hidden_state[:, 0, :]  # CLS tokens
+                if self.use_finetuned:
+                    # Use fine-tuned model directly
+                    outputs = self.model(**inputs)
+                    logits = outputs.logits
+                else:
+                    # Use base model + classifier head
+                    outputs = self.base_model(**inputs)
+                    embeddings = outputs.last_hidden_state[:, 0, :]  # CLS tokens
+                    logits = self.classifier(embeddings)
                 
-                # Classify
-                logits = self.classifier(embeddings)
                 probabilities = torch.softmax(logits, dim=1)
                 confidences, predicted_ids = probabilities.max(dim=1)
             

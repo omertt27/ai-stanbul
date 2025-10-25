@@ -1,0 +1,48 @@
+CATEGORY PERFORMANCE SUMMARY
+================================================================================
+
+DailyTalks (8 tests)
+  Quality:  65.7/100
+  Accuracy: 41.5/100
+  Status:   🟠 NEEDS IMPROVEMENT
+
+Events (4 tests)
+  Quality:  59.6/100
+  Accuracy: 46.7/100
+  Status:   🟠 NEEDS IMPROVEMENT
+
+LocalTips (6 tests)
+  Quality:  76.9/100
+  Accuracy: 55.6/100
+  Status:   🟡 GOOD
+
+Neighborhoods (10 tests)
+  Quality:  77.1/100
+  Accuracy: 71.2/100
+  Status:   🟡 GOOD
+
+Places (15 tests)
+  Quality:  72.6/100
+  Accuracy: 49.1/100
+  Status:   🟡 GOOD
+
+Restaurants (15 tests)
+  Quality:  81.9/100
+  Accuracy: 69.9/100
+  Status:   🟢 EXCELLENT
+
+RoutePlanning (6 tests)
+  Quality:  76.6/100
+  Accuracy: 54.9/100
+  Status:   🟡 GOOD
+
+Transportation (12 tests)
+  Quality:  78.2/100
+  Accuracy: 67.2/100
+  Status:   🟡 GOOD
+
+Weather (4 tests)
+  Quality:  62.9/100
+  Accuracy: 38.3/100
+  Status:   🟠 NEEDS IMPROVEMENT
+
