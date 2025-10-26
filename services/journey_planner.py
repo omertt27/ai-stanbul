@@ -12,6 +12,7 @@ from .intelligent_route_finder import (
     IntelligentRouteFinder, Journey, RoutePreferences
 )
 from .location_matcher import LocationMatcher, LocationMatch
+from .walking_directions import WalkingDirectionsGenerator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -85,6 +86,7 @@ class JourneyPlanner:
         self.network = network_graph
         self.route_finder = IntelligentRouteFinder(network_graph)
         self.location_matcher = LocationMatcher(network_graph)
+        self.walking_generator = WalkingDirectionsGenerator()
         
         logger.info("Journey planner initialized with network graph")
     
@@ -389,3 +391,233 @@ class JourneyPlanner:
             'successful_routes': len(plans),
             'destinations': dict(sorted_plans)
         }
+
+    def plan_journey_from_gps(self,
+                             gps_lat: float,
+                             gps_lng: float,
+                             destination: str,
+                             max_start_walking_m: int = 1000,
+                             preferences: Optional[RoutePreferences] = None) -> Optional[Dict]:
+        """
+        Plan complete journey from GPS location to destination
+        Includes walking to nearest stop, transit journey, and walking to final destination
+        
+        Args:
+            gps_lat: User's GPS latitude
+            gps_lng: User's GPS longitude
+            destination: Destination location (name or coordinates)
+            max_start_walking_m: Maximum walking distance to start stop (meters)
+            preferences: Route preferences
+            
+        Returns:
+            Complete journey plan with walking and transit segments
+        """
+        logger.info(f"Planning GPS journey from ({gps_lat}, {gps_lng}) to {destination}")
+        
+        # Step 1: Find nearest transit stops from GPS location
+        nearest_stops = self.location_matcher.find_nearest_stops(
+            gps_lat=gps_lat,
+            gps_lng=gps_lng,
+            max_distance_km=max_start_walking_m / 1000,
+            limit=5
+        )
+        
+        if not nearest_stops:
+            logger.warning("No transit stops found near GPS location")
+            return None
+        
+        logger.info(f"Found {len(nearest_stops)} nearby stops")
+        
+        # Step 2: Match destination location
+        dest_match = self.location_matcher.match_location(destination)
+        if not dest_match:
+            logger.warning(f"Could not match destination: {destination}")
+            return None
+        
+        logger.info(f"Matched destination: {dest_match.stop_name}")
+        
+        # Step 3: Try to find best journey from each nearby stop
+        best_journey = None
+        best_start_stop = None
+        best_total_time = float('inf')
+        
+        route_prefs = preferences or RoutePreferences()
+        
+        for start_stop in nearest_stops:
+            # Plan journey from this stop to destination
+            journey = self.route_finder.find_optimal_route(
+                start_stop['stop_id'],
+                dest_match.stop_id,
+                preferences=route_prefs,
+                use_astar=True
+            )
+            
+            if journey:
+                # Calculate total time including initial walking
+                total_time = start_stop['walking_time_min'] + journey.total_duration_minutes
+                
+                logger.info(
+                    f"Route via {start_stop['stop_name']}: "
+                    f"{start_stop['walking_time_min']}min walk + "
+                    f"{journey.total_duration_minutes}min transit = {total_time}min total"
+                )
+                
+                if total_time < best_total_time:
+                    best_total_time = total_time
+                    best_journey = journey
+                    best_start_stop = start_stop
+        
+        if not best_journey or not best_start_stop:
+            logger.warning("No viable journey found from GPS location")
+            return None
+        
+        # Step 4: Generate walking directions to start stop
+        walking_to_start = self.walking_generator.generate_walking_directions(
+            from_lat=gps_lat,
+            from_lon=gps_lng,
+            to_lat=best_start_stop['coordinates']['lat'],
+            to_lon=best_start_stop['coordinates']['lon'],
+            to_name=best_start_stop['stop_name'],
+            transport_type=best_start_stop['transport_type']
+        )
+        
+        # Step 5: Check if final destination requires walking from last stop
+        last_stop = self.network.stops.get(best_journey.segments[-1].to_stop)
+        walking_to_destination = None
+        
+        if last_stop:
+            # Calculate distance from last stop to final destination
+            final_walk_distance = self.location_matcher.calculate_distance(
+                (last_stop.lat, last_stop.lon),
+                (dest_match.latitude, dest_match.longitude)
+            )
+            
+            # If more than 100m, generate walking directions
+            if final_walk_distance > 0.1:  # 100m = 0.1km
+                walking_to_destination = self.walking_generator.generate_walking_directions(
+                    from_lat=last_stop.lat,
+                    from_lon=last_stop.lon,
+                    to_lat=dest_match.latitude,
+                    to_lon=dest_match.longitude,
+                    to_name=dest_match.stop_name,
+                    transport_type=None  # Final destination
+                )
+        
+        # Step 6: Compile complete journey
+        complete_journey = {
+            'journey_type': 'gps_to_destination',
+            'gps_start': {
+                'latitude': gps_lat,
+                'longitude': gps_lng
+            },
+            'destination': dest_match.to_dict(),
+            
+            # Walking segment 1: GPS to transit stop
+            'walking_to_transit': {
+                'directions': walking_to_start,
+                'start_location': {'lat': gps_lat, 'lon': gps_lng},
+                'end_stop': {
+                    'stop_id': best_start_stop['stop_id'],
+                    'stop_name': best_start_stop['stop_name'],
+                    'transport_type': best_start_stop['transport_type'],
+                    'coordinates': best_start_stop['coordinates']
+                }
+            },
+            
+            # Transit segment
+            'transit_journey': best_journey.to_dict(),
+            
+            # Walking segment 2: Last stop to final destination (if needed)
+            'walking_to_destination': walking_to_destination,
+            
+            # Summary
+            'summary': {
+                'total_duration_min': (
+                    walking_to_start['total_duration_min'] +
+                    best_journey.total_duration_minutes +
+                    (walking_to_destination['total_duration_min'] if walking_to_destination else 0)
+                ),
+                'walking_duration_min': (
+                    walking_to_start['total_duration_min'] +
+                    (walking_to_destination['total_duration_min'] if walking_to_destination else 0)
+                ),
+                'transit_duration_min': best_journey.total_duration_minutes,
+                'total_distance_km': round(
+                    walking_to_start['total_distance_km'] +
+                    best_journey.total_distance_km +
+                    (walking_to_destination['total_distance_km'] if walking_to_destination else 0),
+                    2
+                ),
+                'total_transfers': best_journey.total_transfers,
+                'transport_types': list(best_journey.transport_types_used),
+                'estimated_cost_tl': best_journey.estimated_cost_tl
+            }
+        }
+        
+        logger.info(
+            f"Complete GPS journey planned: "
+            f"{complete_journey['summary']['total_duration_min']}min total, "
+            f"{complete_journey['summary']['total_transfers']} transfers"
+        )
+        
+        return complete_journey
+    
+    def find_best_gps_start_stops(self,
+                                  gps_lat: float,
+                                  gps_lng: float,
+                                  destination_stop_id: str,
+                                  max_walking_m: int = 1000,
+                                  limit: int = 3) -> List[Dict]:
+        """
+        Find best transit stops to start journey from GPS location
+        Evaluates based on walking distance + transit time
+        
+        Args:
+            gps_lat: User's GPS latitude
+            gps_lng: User's GPS longitude
+            destination_stop_id: Destination stop ID
+            max_walking_m: Maximum walking distance to consider
+            limit: Number of options to return
+            
+        Returns:
+            List of start stop options with journey details
+        """
+        # Find nearby stops
+        nearby_stops = self.location_matcher.find_nearest_stops(
+            gps_lat=gps_lat,
+            gps_lng=gps_lng,
+            max_distance_km=max_walking_m / 1000,
+            limit=10  # Get more candidates
+        )
+        
+        if not nearby_stops:
+            return []
+        
+        # Evaluate each stop
+        evaluated_options = []
+        
+        for stop in nearby_stops:
+            # Try to find route from this stop
+            journey = self.route_finder.find_optimal_route(
+                stop['stop_id'],
+                destination_stop_id,
+                use_astar=True
+            )
+            
+            if journey:
+                total_time = stop['walking_time_min'] + journey.total_duration_minutes
+                
+                evaluated_options.append({
+                    'start_stop': stop,
+                    'transit_journey': journey.to_dict(),
+                    'walking_time_min': stop['walking_time_min'],
+                    'transit_time_min': journey.total_duration_minutes,
+                    'total_time_min': total_time,
+                    'transfers': journey.total_transfers,
+                    'quality_score': journey.quality_score
+                })
+        
+        # Sort by total time (walking + transit)
+        evaluated_options.sort(key=lambda x: x['total_time_min'])
+        
+        return evaluated_options[:limit]

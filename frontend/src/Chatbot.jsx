@@ -7,7 +7,8 @@ import {
   subscribeToNetworkStatus,
   checkApiHealth,
   debouncedFetchRestaurants,
-  debouncedFetchPlaces
+  debouncedFetchPlaces,
+  planJourneyFromGPS
 } from './api/api';
 import { 
   ErrorTypes, 
@@ -26,6 +27,7 @@ import ItineraryTimeline from './components/ItineraryTimeline';
 import MLInsights from './components/MLInsights';
 import ChatMapView from './components/ChatMapView';
 import TransportationInterface from './components/TransportationInterface';
+import JourneyInstructions from './components/JourneyInstructions';
 import { useLocation } from './contexts/LocationContext';
 import './components/Chatbot.css';
 
@@ -473,6 +475,69 @@ const isExplicitPlacesRequest = (userInput) => {
   return true;
 };
 
+// Helper function to detect transit/route requests
+const isTransitRouteRequest = (userInput) => {
+  console.log('🚇 Checking for transit/route request:', userInput);
+  
+  const processedInput = preprocessInput(userInput);
+  
+  // Security checks
+  if (!processedInput || processedInput.trim().length === 0) {
+    console.log('🛡️ Input rejected: Empty after sanitization');
+    return false;
+  }
+  
+  if (processedInput.length > 500) {
+    console.log('🛡️ Input rejected: Too long after sanitization');
+    return false;
+  }
+
+  const input = processedInput.toLowerCase();
+  
+  // Transit/route keywords
+  const transitKeywords = [
+    'how to get to',
+    'how do i get to',
+    'how can i get to',
+    'directions to',
+    'route to',
+    'navigate to',
+    'travel to',
+    'go to',
+    'take me to',
+    'metro to',
+    'tram to',
+    'bus to',
+    'public transport to',
+    'transit to',
+    'transportation to',
+    'marmaray to',
+    'funicular to'
+  ];
+  
+  return transitKeywords.some(keyword => input.includes(keyword));
+};
+
+// Helper function to extract destination from transit request
+const extractDestination = (userInput) => {
+  const processedInput = preprocessInput(userInput);
+  const input = processedInput.toLowerCase();
+  
+  // Try to extract destination after "to" keywords
+  const patterns = [
+    /(?:how (?:to|do i|can i) get to|directions to|route to|navigate to|travel to|go to|take me to|metro to|tram to|bus to|public transport to|transit to|transportation to|marmaray to|funicular to)\s+(.+?)(?:\?|$)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = userInput.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  return null;
+};
+
 function Chatbot() {
   // Location Context - GPS Integration
   const {
@@ -787,6 +852,64 @@ function Chatbot() {
         });
         
         return;
+      }
+
+      // Check for transit/route requests with GPS
+      if (isTransitRouteRequest(processedInput) && hasGPSLocation) {
+        console.log('🚇 Processing GPS transit request');
+        setTypingMessage('Planning your journey with Metro, Tram, and Marmaray...');
+        
+        const destination = extractDestination(textToSend);
+        if (!destination) {
+          throw new Error('Could not extract destination from your request');
+        }
+        
+        console.log('📍 GPS Location:', currentLocation);
+        console.log('🎯 Destination:', destination);
+        
+        try {
+          const journey = await planJourneyFromGPS(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            destination,
+            {
+              maxWalkingM: 1000,
+              minimizeTransfers: true
+            }
+          );
+          
+          console.log('✅ Journey plan received:', journey);
+          
+          // Format journey response message
+          const journeyResponse = `I've planned your journey from your current location to ${destination}!\n\n` +
+            `🚶 Total Duration: ${journey.summary.total_duration_min} minutes\n` +
+            `📍 Distance: ${journey.summary.total_distance_km} km\n` +
+            `🔄 Transfers: ${journey.summary.total_transfers}\n` +
+            `💰 Cost: ₺${journey.summary.estimated_cost_tl}`;
+          
+          const aiMessage = {
+            type: 'ai',
+            content: journeyResponse,
+            journey: journey,
+            timestamp: Date.now()
+          };
+          
+          setMessages(prev => {
+            const updated = [...prev, aiMessage];
+            try {
+              localStorage.setItem('chat-messages', JSON.stringify(updated));
+            } catch (error) {
+              console.error('Failed to save messages:', error);
+            }
+            return updated;
+          });
+          
+          return;
+        } catch (journeyError) {
+          console.error('Journey planning error:', journeyError);
+          // Fall through to regular AI chat if journey planning fails
+          setTypingMessage('KAM is generating response...');
+        }
       }
 
       // Default: Use streaming AI response
@@ -1136,6 +1259,15 @@ function Chatbot() {
                             weather_impact: message.route_data.ml_predictions.weather_impact,
                             confidence: message.route_data.ml_predictions.confidence_score
                           }}
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    )}
+                    {/* Show journey instructions for GPS-based transit journey */}
+                    {message.type === 'ai' && message.journey && message.journey.summary && (
+                      <div className="journey-container mt-4">
+                        <JourneyInstructions 
+                          journey={message.journey}
                           darkMode={darkMode}
                         />
                       </div>

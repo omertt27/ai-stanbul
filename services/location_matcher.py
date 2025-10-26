@@ -274,6 +274,178 @@ class LocationMatcher:
         
         return nearby_stops[:max_results]
     
+    def find_nearest_stops(self, 
+                          gps_lat: float,
+                          gps_lng: float, 
+                          max_distance_km: float = 1.0,
+                          transport_types: Optional[List[str]] = None,
+                          limit: int = 5) -> List[Dict]:
+        """
+        Find nearest transportation stops to GPS coordinates
+        Optimized for GPS-based routing with walking directions
+        
+        Args:
+            gps_lat: User's GPS latitude
+            gps_lng: User's GPS longitude
+            max_distance_km: Maximum search radius (default 1km)
+            transport_types: Filter by transport type (e.g., ['metro', 'bus'])
+            limit: Maximum number of results
+            
+        Returns:
+            List of nearest stops with walking info:
+            {
+                'stop_id': str,
+                'stop_name': str,
+                'transport_type': str,
+                'distance_km': float,
+                'distance_m': int,
+                'walking_time_min': int,
+                'coordinates': {'lat': float, 'lon': float},
+                'bearing': float,  # Compass bearing (0-360)
+                'direction': str,  # Human-readable direction (e.g., 'north')
+                'lines': List[str]
+            }
+        """
+        results = []
+        
+        for stop_id, stop in self.network.stops.items():
+            # Skip if transport type filter doesn't match
+            if transport_types and stop.transport_type not in transport_types:
+                continue
+            
+            # Calculate distance using haversine
+            distance_km = self._haversine_distance(
+                gps_lat, gps_lng,
+                stop.lat, stop.lon
+            )
+            
+            # Skip if too far
+            if distance_km > max_distance_km:
+                continue
+            
+            # Calculate bearing for directions
+            bearing = self._calculate_bearing(
+                gps_lat, gps_lng,
+                stop.lat, stop.lon
+            )
+            
+            # Convert bearing to human-readable direction
+            direction = self._bearing_to_direction(bearing)
+            
+            # Calculate walking time (80 meters/minute average walking speed)
+            distance_m = int(distance_km * 1000)
+            walking_time_min = max(1, int(distance_m / 80))
+            
+            # Get lines serving this stop
+            lines = self._get_stop_lines(stop_id)
+            
+            results.append({
+                'stop_id': stop_id,
+                'stop_name': stop.name,
+                'transport_type': stop.transport_type,
+                'distance_km': round(distance_km, 3),
+                'distance_m': distance_m,
+                'walking_time_min': walking_time_min,
+                'coordinates': {
+                    'lat': stop.lat,
+                    'lon': stop.lon
+                },
+                'bearing': round(bearing, 1),
+                'direction': direction,
+                'lines': lines
+            })
+        
+        # Sort by distance (closest first)
+        results.sort(key=lambda x: x['distance_km'])
+        
+        return results[:limit]
+    
+    def _haversine_distance(self, lat1: float, lon1: float, 
+                           lat2: float, lon2: float) -> float:
+        """
+        Calculate great-circle distance between two GPS points using Haversine formula
+        More accurate than simple Euclidean distance for GPS coordinates
+        
+        Args:
+            lat1, lon1: First coordinate
+            lat2, lon2: Second coordinate
+            
+        Returns:
+            Distance in kilometers
+        """
+        R = 6371.0  # Earth radius in kilometers
+        
+        # Convert to radians
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        
+        # Haversine formula
+        a = (math.sin(dlat/2)**2 + 
+             math.cos(lat1_rad) * math.cos(lat2_rad) * 
+             math.sin(dlon/2)**2)
+        
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        
+        return R * c
+    
+    def _calculate_bearing(self, lat1: float, lon1: float,
+                          lat2: float, lon2: float) -> float:
+        """
+        Calculate compass bearing between two GPS points
+        
+        Args:
+            lat1, lon1: Starting coordinate
+            lat2, lon2: Ending coordinate
+            
+        Returns:
+            Bearing in degrees (0-360, where 0 = North)
+        """
+        # Convert to radians
+        lat1_rad = math.radians(lat1)
+        lat2_rad = math.radians(lat2)
+        dlon = math.radians(lon2 - lon1)
+        
+        # Calculate bearing
+        x = math.sin(dlon) * math.cos(lat2_rad)
+        y = (math.cos(lat1_rad) * math.sin(lat2_rad) -
+             math.sin(lat1_rad) * math.cos(lat2_rad) * math.cos(dlon))
+        
+        bearing_rad = math.atan2(x, y)
+        bearing_deg = math.degrees(bearing_rad)
+        
+        # Normalize to 0-360
+        return (bearing_deg + 360) % 360
+    
+    def _bearing_to_direction(self, bearing: float) -> str:
+        """
+        Convert compass bearing to human-readable direction
+        
+        Args:
+            bearing: Bearing in degrees (0-360)
+            
+        Returns:
+            Direction name (e.g., 'north', 'northeast', etc.)
+        """
+        directions = [
+            (0, 22.5, 'north'),
+            (22.5, 67.5, 'northeast'),
+            (67.5, 112.5, 'east'),
+            (112.5, 157.5, 'southeast'),
+            (157.5, 202.5, 'south'),
+            (202.5, 247.5, 'southwest'),
+            (247.5, 292.5, 'west'),
+            (292.5, 337.5, 'northwest'),
+            (337.5, 360, 'north')
+        ]
+        
+        for min_deg, max_deg, direction in directions:
+            if min_deg <= bearing < max_deg:
+                return direction
+        
+        return 'north'  # Default for 337.5-360 range
+
     def find_stops_by_area(self, area_name: str,
                           max_results: int = 10) -> List[LocationMatch]:
         """

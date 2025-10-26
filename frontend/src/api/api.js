@@ -435,6 +435,51 @@ export const fetchPlacesRecommendations = async (userInput = '', limit = 6) => {
 export const debouncedFetchRestaurants = debounce(fetchRestaurantRecommendations, 300);
 export const debouncedFetchPlaces = debounce(fetchPlacesRecommendations, 300);
 
+// GPS Journey Planning API
+export const planJourneyFromGPS = async (gpsLat, gpsLng, destination, options = {}) => {
+  try {
+    const {
+      maxWalkingM = 1000,
+      minimizeTransfers = true
+    } = options;
+
+    const requestBody = {
+      gps_lat: gpsLat,
+      gps_lng: gpsLng,
+      destination: destination,
+      max_walking_m: maxWalkingM,
+      minimize_transfers: minimizeTransfers
+    };
+
+    const url = `${cleanBaseUrl}/api/route/from-gps`;
+    console.log('🚇 Making GPS journey planning request to:', url, 'with body:', requestBody);
+
+    const response = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody),
+      timeout: 20000
+    }, {
+      maxAttempts: 3,
+      baseDelay: 1000
+    });
+
+    const data = await response.json();
+    console.log('✅ GPS journey planning response:', data);
+
+    if (data.success && data.journey) {
+      return data.journey;
+    } else {
+      throw new Error(data.error || 'No route found');
+    }
+  } catch (error) {
+    throw handleApiError(error, null, 'GPS Journey Planning API');
+  }
+};
+
 // Health check utility
 export const checkApiHealth = async () => {
   try {
