@@ -41,10 +41,18 @@ try:
     from services.route_network_builder import TransportationNetwork
     import json as json_lib
     ROUTING_SYSTEM_AVAILABLE = True
-    logger.info("✅ Routing system available for chat integration")
 except ImportError as e:
     ROUTING_SYSTEM_AVAILABLE = False
-    logger.warning(f"⚠️ Routing system not available: {e}")
+
+# Events database integration
+from backend.data.events_database import (
+    get_all_events,
+    search_events,
+    get_events_by_type,
+    get_current_and_upcoming_events,
+    get_iksv_events_only,
+    get_events_by_month
+)
 
 # Configure advanced logging
 logging.basicConfig(
@@ -668,6 +676,8 @@ class PersonalizedResponseGenerator:
             response = await self._generate_hidden_gems_response(entities, user_profile, context)
         elif primary_intent == IntentType.LOCAL_TIPS:
             response = await self._generate_local_tips_response(entities, user_profile, context)
+        elif primary_intent == IntentType.EVENT_DISCOVERY:
+            response = await self._generate_event_response(entities, user_profile, context)
         else:
             response = await self._generate_general_response(user_profile, context)
         
@@ -815,6 +825,134 @@ class PersonalizedResponseGenerator:
         
         if weather_data['recommendation']:
             response += f"💡 {weather_data['recommendation']}"
+        
+        return response
+    
+    async def _generate_hidden_gems_response(self, entities: List[EntityMention],
+                                             user_profile: UserProfile,
+                                             context: DialogueContext) -> str:
+        """Generate response for hidden gems discovery"""
+        
+        # For now, just recommend a static hidden gem
+        hidden_gem = "📍 **Çukurcuma Antique Shops**: A treasure trove of antiques and vintage finds. Perfect for unique souvenirs!"
+        
+        return hidden_gem
+    
+    async def _generate_local_tips_response(self, entities: List[EntityMention],
+                                            user_profile: UserProfile,
+                                            context: DialogueContext) -> str:
+        """Generate response for local tips"""
+        
+        tips = [
+            "🛍️ Don't miss the local bazaars for authentic souvenirs!",
+            "🍵 Try a traditional Turkish tea in a local café.",
+            "🚶‍♂️ Explore the city on foot to discover hidden gems.",
+            "🕌 Visit the lesser-known mosques for a peaceful experience."
+        ]
+        
+        return random.choice(tips)
+    
+    async def _generate_event_response(self, entities: List[EntityMention],
+                                       user_profile: UserProfile,
+                                       context: DialogueContext) -> str:
+        """Generate event discovery response using real İKSV event data"""
+        
+        # Determine language preference
+        lang = user_profile.preferred_language or "en"
+        
+        # Extract event type from entities if specified
+        event_type = None
+        for entity in entities:
+            entity_lower = entity.text.lower()
+            if any(word in entity_lower for word in ["concert", "konser", "music", "müzik"]):
+                event_type = "concert"
+                break
+            elif any(word in entity_lower for word in ["theater", "theatre", "tiyatro", "play", "oyun"]):
+                event_type = "theater"
+                break
+            elif any(word in entity_lower for word in ["festival"]):
+                event_type = "festival"
+                break
+            elif any(word in entity_lower for word in ["exhibition", "sergi", "art", "sanat"]):
+                event_type = "exhibition"
+                break
+        
+        # Get current and upcoming events (next 45 days)
+        try:
+            upcoming_events = get_current_and_upcoming_events(days_ahead=45, include_live=True)
+            
+            # Filter by type if specified
+            if event_type:
+                upcoming_events = [e for e in upcoming_events if e.get('type') == event_type]
+            
+            # If no events found, try searching all events
+            if not upcoming_events:
+                # Try to get İKSV events specifically
+                upcoming_events = get_iksv_events_only()
+                if event_type:
+                    upcoming_events = [e for e in upcoming_events if e.get('type') == event_type]
+            
+            if not upcoming_events:
+                if event_type:
+                    type_name_tr = {"concert": "konser", "theater": "tiyatro", "festival": "festival", "exhibition": "sergi"}.get(event_type, event_type)
+                    type_name_en = event_type
+                    if lang == "tr":
+                        return f"🎭 Şu anda {type_name_tr} etkinlikleri bulamadım. Ancak İKSV'nin web sitesinde (www.iksv.org) güncel etkinlik programını bulabilirsiniz!"
+                    else:
+                        return f"🎭 I couldn't find any {type_name_en} events at the moment. However, you can check İKSV's website (www.iksv.org) for their latest event schedule!"
+                else:
+                    if lang == "tr":
+                        return "🎭 Şu anda yaklaşan etkinlik bulamadım, ancak İKSV'nin web sitesinde (www.iksv.org) güncel program bilgilerine ulaşabilirsiniz!"
+                    else:
+                        return "🎭 I couldn't find any upcoming events at the moment, but you can check İKSV's website (www.iksv.org) for the latest schedule!"
+            
+            # Format response based on language
+            if lang == "tr":
+                response = "🎭 **İstanbul'da Yaklaşan Etkinlikler:**\n\n"
+            else:
+                response = "🎭 **Upcoming Events in Istanbul:**\n\n"
+            
+            # Show top 5 events
+            event_count = 0
+            for event in upcoming_events[:5]:
+                event_count += 1
+                name = event.get('name', {}).get(lang, event.get('name', {}).get('en', 'Unnamed Event'))
+                location = event.get('location', 'Location TBD')
+                date_str = event.get('date_str', '')
+                time_str = event.get('time', '')
+                
+                # Format date and time
+                date_time_str = date_str
+                if time_str:
+                    date_time_str += f" at {time_str}"
+                
+                response += f"**{event_count}. {name}**\n"
+                response += f"   📍 {location}\n"
+                response += f"   📅 {date_time_str}\n"
+                
+                # Add description if available
+                description = event.get('description', {})
+                if isinstance(description, dict):
+                    desc_text = description.get(lang, description.get('en', ''))
+                    if desc_text and len(desc_text) < 200:  # Only show short descriptions
+                        response += f"   ℹ️ {desc_text}\n"
+                
+                response += "\n"
+            
+            # Add footer with ticket information
+            if lang == "tr":
+                response += "🎫 **Bilet ve Detaylar:** www.iksv.org/tr/bilet\n"
+                response += "💡 **İpucu:** İstanbul Kültür Sanat Vakfı (İKSV), yıl boyunca dünya çapında sanatçıları İstanbul'a getiren önemli bir kültür kurumudur."
+            else:
+                response += "🎫 **Tickets & Details:** www.iksv.org/en/tickets\n"
+                response += "💡 **Tip:** Istanbul Foundation for Culture and Arts (İKSV) is a major cultural institution bringing world-class artists to Istanbul year-round."
+            
+        except Exception as e:
+            logger.error(f"Error generating event response: {e}")
+            if lang == "tr":
+                response = "🎭 Etkinlik bilgilerini alırken bir sorun oluştu. Lütfen İKSV web sitesini (www.iksv.org) ziyaret edin."
+            else:
+                response = "🎭 I encountered an issue fetching event information. Please visit İKSV's website (www.iksv.org) for the latest events."
         
         return response
     

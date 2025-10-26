@@ -1,24 +1,40 @@
 """
 Price Filter Service
-Enhanced budget-aware filtering and recommendations
+Enhanced budget-aware filtering and recommendations with comprehensive database
 """
 
 from typing import List, Dict, Tuple, Optional
 import logging
 
+# Import price database
+try:
+    from backend.data.price_database import (
+        ATTRACTIONS_PRICING,
+        RESTAURANTS_PRICING,
+        TRANSPORTATION_PRICING,
+        BUDGET_CATEGORIES,
+        get_venue_price,
+        get_budget_level_venues,
+        get_price_range_venues,
+        calculate_daily_budget
+    )
+    PRICE_DATABASE_AVAILABLE = True
+except ImportError:
+    PRICE_DATABASE_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
 class PriceFilterService:
-    """Enhanced price filtering with budget categories"""
+    """Enhanced price filtering with budget categories and comprehensive database"""
     
-    # Budget ranges in Turkish Lira per person
+    # Budget ranges in Turkish Lira per person (2025 prices)
     BUDGET_RANGES = {
         'free': (0, 0),
-        'budget': (0, 100),
-        'moderate': (100, 300),
-        'upscale': (300, 600),
-        'luxury': (600, float('inf'))
+        'budget': (0, 150),
+        'moderate': (150, 500),
+        'upscale': (500, 1000),
+        'luxury': (1000, float('inf'))
     }
     
     # Price level symbols
@@ -444,8 +460,12 @@ class PriceFilterService:
     ]
     
     def __init__(self):
-        """Initialize price filter service"""
-        logger.info("Price Filter Service initialized")
+        """Initialize price filter service with comprehensive database"""
+        self.database_available = PRICE_DATABASE_AVAILABLE
+        if self.database_available:
+            logger.info("✅ Price Filter Service initialized with comprehensive database")
+        else:
+            logger.info("⚠️ Price Filter Service initialized with legacy data only")
     
     def detect_budget_query(self, query: str) -> Optional[str]:
         """
@@ -547,14 +567,14 @@ class PriceFilterService:
         return response
     
     def _get_price_symbol_from_amount(self, amount: float) -> str:
-        """Get price symbol based on amount"""
+        """Get price symbol based on amount (2025 prices)"""
         if amount == 0:
             return '🆓'
-        elif amount < 100:
+        elif amount < 150:
             return '₺'
-        elif amount < 300:
+        elif amount < 500:
             return '₺₺'
-        elif amount < 600:
+        elif amount < 1000:
             return '₺₺₺'
         else:
             return '₺₺₺₺'
@@ -578,7 +598,7 @@ class PriceFilterService:
         return response
     
     def get_budget_summary(self, price_level: str) -> str:
-        """Get budget range summary"""
+        """Get budget range summary (2025 prices)"""
         min_price, max_price = self.BUDGET_RANGES.get(price_level, (0, 0))
         
         if price_level == 'free':
@@ -589,6 +609,233 @@ class PriceFilterService:
             return f"₺{min_price}+ per person"
         else:
             return f"₺{min_price}-₺{max_price} per person"
+    
+    def get_attraction_price(self, attraction_name: str) -> Optional[Dict]:
+        """Get detailed pricing for an attraction"""
+        if self.database_available:
+            return get_venue_price(attraction_name, 'attractions')
+        return None
+    
+    def get_restaurant_price(self, restaurant_name: str) -> Optional[Dict]:
+        """Get detailed pricing for a restaurant"""
+        if self.database_available:
+            return get_venue_price(restaurant_name, 'restaurants')
+        return None
+    
+    def get_venues_by_budget(self, budget_level: str, category: str = 'all') -> List[str]:
+        """Get all venues matching a budget level"""
+        if self.database_available:
+            return get_budget_level_venues(budget_level, category)
+        return []
+    
+    def get_venues_in_price_range(self, min_price: float, max_price: float, category: str = 'all') -> List[Dict]:
+        """Get venues within a specific price range"""
+        if self.database_available:
+            return get_price_range_venues(min_price, max_price, category)
+        return []
+    
+    def calculate_trip_budget(self, budget_level: str, days: int = 1) -> Dict:
+        """Calculate total trip budget based on level and duration"""
+        if self.database_available:
+            daily = calculate_daily_budget(budget_level)
+            return {
+                'daily_breakdown': daily,
+                'total_days': days,
+                'total_budget': daily['total'] * days,
+                'currency': 'TRY',
+                'budget_level': budget_level
+            }
+        return {}
+    
+    def get_budget_attractions(self, budget_level: str, limit: int = 10) -> List[Dict]:
+        """Get attractions matching budget level with enhanced details"""
+        if not self.database_available:
+            # Fallback to free attractions list
+            if budget_level == 'free':
+                return self.FREE_ATTRACTIONS[:limit]
+            return []
+        
+        attractions = []
+        for name, info in ATTRACTIONS_PRICING.items():
+            if info.get('budget_level') == budget_level:
+                attractions.append({
+                    'name': name,
+                    'price': info.get('price', 0),
+                    'budget_level': budget_level,
+                    'notes': info.get('notes', ''),
+                    'free_days': info.get('free_days'),
+                    'discounts': info.get('discounts', {}),
+                    'additional_costs': info.get('additional_costs', {})
+                })
+        
+        # Sort by price
+        attractions.sort(key=lambda x: x['price'])
+        return attractions[:limit]
+    
+    def get_budget_restaurants(self, budget_level: str, limit: int = 10) -> List[Dict]:
+        """Get restaurants matching budget level with enhanced details"""
+        if not self.database_available:
+            # Fallback to legacy budget eats
+            if budget_level in ['free', 'budget']:
+                return self.BUDGET_EATS[:limit]
+            return []
+        
+        restaurants = []
+        for name, info in RESTAURANTS_PRICING.items():
+            if info.get('budget_level') == budget_level:
+                restaurants.append({
+                    'name': name,
+                    'price': info.get('price', 0),
+                    'budget_level': budget_level,
+                    'location': info.get('location', 'Istanbul'),
+                    'type': info.get('type', 'restaurant'),
+                    'notes': info.get('notes', '')
+                })
+        
+        # Sort by price
+        restaurants.sort(key=lambda x: x['price'])
+        return restaurants[:limit]
+    
+    def format_enhanced_attractions_response(self, budget_level: str, limit: int = 10) -> str:
+        """Format attractions with enhanced database information"""
+        attractions = self.get_budget_attractions(budget_level, limit)
+        
+        if not attractions:
+            # Fallback to legacy free attractions
+            if budget_level == 'free':
+                return self.format_free_attractions_response()
+            return "No attractions found for this budget level."
+        
+        symbol = self.PRICE_SYMBOLS.get(budget_level, '')
+        response = f"{symbol} **{budget_level.title()} Attractions in Istanbul**\n\n"
+        
+        for i, attr in enumerate(attractions, 1):
+            response += f"**{i}. {attr['name']}**\n"
+            
+            if attr['price'] == 0:
+                response += "💰 FREE\n"
+            else:
+                response += f"💰 ₺{attr['price']}\n"
+            
+            if attr.get('notes'):
+                response += f"ℹ️ {attr['notes']}\n"
+            
+            if attr.get('free_days'):
+                response += f"🎁 Free entry: {attr['free_days']}\n"
+            
+            if attr.get('discounts'):
+                discounts_str = ", ".join([f"{k}: {v}" for k, v in attr['discounts'].items()])
+                response += f"🎟️ Discounts: {discounts_str}\n"
+            
+            if attr.get('additional_costs'):
+                extras = ", ".join([f"{k} (₺{v})" for k, v in attr['additional_costs'].items()])
+                response += f"➕ Extra options: {extras}\n"
+            
+            response += "\n"
+        
+        # Add budget tips
+        if budget_level == 'free':
+            response += "\n**💡 Pro Tips:**\n"
+            response += "- Most mosques are free (dress modestly)\n"
+            response += "- Parks and waterfront walks cost nothing\n"
+            response += "- Many museums free on specific days\n"
+        elif budget_level == 'budget':
+            response += "\n**💡 Pro Tips:**\n"
+            response += "- Museum Pass Istanbul covers many attractions (₺1200 for 5 days)\n"
+            response += "- Student discounts available with valid ID\n"
+            response += "- Book online to skip queues\n"
+        
+        return response
+    
+    def format_enhanced_restaurants_response(self, budget_level: str, limit: int = 10) -> str:
+        """Format restaurants with enhanced database information"""
+        restaurants = self.get_budget_restaurants(budget_level, limit)
+        
+        if not restaurants:
+            # Fallback to legacy budget eats
+            if budget_level in ['free', 'budget']:
+                return self.format_budget_eats_response()
+            return "No restaurants found for this budget level."
+        
+        symbol = self.PRICE_SYMBOLS.get(budget_level, '')
+        response = f"{symbol} **{budget_level.title()} Restaurants in Istanbul**\n\n"
+        
+        for i, rest in enumerate(restaurants, 1):
+            response += f"**{i}. {rest['name']}** "
+            price_symbol = self._get_price_symbol_from_amount(rest['price'])
+            response += f"{price_symbol}\n"
+            
+            response += f"📍 {rest['location']}\n"
+            response += f"🍽️ {rest['type'].replace('_', ' ').title()}\n"
+            
+            if rest['price'] == 0:
+                response += "💰 FREE\n"
+            else:
+                response += f"💰 Avg: ₺{rest['price']} per person\n"
+            
+            if rest.get('notes'):
+                response += f"ℹ️ {rest['notes']}\n"
+            
+            response += "\n"
+        
+        # Add contextual tips
+        if budget_level == 'budget':
+            response += "\n**💡 Money-Saving Tips:**\n"
+            response += "- Lunch menus (öğle yemeği) cheaper than dinner\n"
+            response += "- 'Lokanta' restaurants are authentic and affordable\n"
+            response += "- Turkish tea only ₺10-15 everywhere\n"
+            response += "- Avoid tourist traps in Sultanahmet area\n"
+        elif budget_level == 'moderate':
+            response += "\n**💡 Dining Tips:**\n"
+            response += "- Reservations recommended for popular spots\n"
+            response += "- Many offer set menus for better value\n"
+            response += "- Meyhane culture: order multiple small plates to share\n"
+        
+        return response
+    
+    def get_daily_budget_breakdown(self, budget_level: str) -> str:
+        """Get formatted daily budget breakdown"""
+        if not self.database_available:
+            return "Budget calculator unavailable."
+        
+        budget = calculate_daily_budget(budget_level)
+        symbol = self.PRICE_SYMBOLS.get(budget_level, '')
+        
+        response = f"{symbol} **Daily Budget Breakdown - {budget_level.title()}**\n\n"
+        response += f"**Total per day: ₺{budget['total']}**\n\n"
+        response += "**Breakdown:**\n"
+        response += f"🏨 Accommodation: ₺{budget['accommodation']}\n"
+        response += f"🍽️ Food & Drinks: ₺{budget['food']}\n"
+        response += f"🚇 Transportation: ₺{budget['transport']}\n"
+        response += f"🎭 Attractions: ₺{budget['attractions']}\n\n"
+        
+        # Add context for different budget levels
+        if budget_level == 'budget':
+            response += "**What this includes:**\n"
+            response += "- Hostels or budget hotels\n"
+            response += "- Street food and local restaurants\n"
+            response += "- Public transportation (Istanbulkart)\n"
+            response += "- 1-2 paid attractions per day\n"
+        elif budget_level == 'moderate':
+            response += "**What this includes:**\n"
+            response += "- 3-star hotels or boutique accommodation\n"
+            response += "- Mix of local and tourist restaurants\n"
+            response += "- Public transport + occasional taxis\n"
+            response += "- Multiple attractions and activities\n"
+        elif budget_level == 'upscale':
+            response += "**What this includes:**\n"
+            response += "- 4-star hotels or luxury boutiques\n"
+            response += "- Fine dining experiences\n"
+            response += "- Comfortable transportation\n"
+            response += "- Premium tours and attractions\n"
+        elif budget_level == 'luxury':
+            response += "**What this includes:**\n"
+            response += "- 5-star hotels with Bosphorus views\n"
+            response += "- Michelin-starred restaurants\n"
+            response += "- Private tours and transfers\n"
+            response += "- VIP experiences\n"
+        
+        return response
 
 
 # Global instance

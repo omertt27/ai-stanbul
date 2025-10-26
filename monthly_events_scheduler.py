@@ -19,6 +19,14 @@ except ImportError:
     print("⚠️ Web scraping libraries not available. Install: pip install aiohttp beautifulsoup4")
     WEB_SCRAPING_AVAILABLE = False
 
+# Import Selenium scraper for JavaScript-rendered content
+try:
+    from iksv_selenium_scraper import IKSVSeleniumScraper
+    SELENIUM_AVAILABLE = True
+except ImportError:
+    print("⚠️ Selenium scraper not available. Will use static scraping only.")
+    SELENIUM_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.WARNING,  # Reduced logging for cleaner output
@@ -38,19 +46,118 @@ class MonthlyEventsScheduler:
         self.current_events_file = self.data_directory / "current_events.json"
         self.last_fetch_file = self.data_directory / "last_fetch.json"
         
+        # Configuration for Selenium scraping
+        self.use_selenium = SELENIUM_AVAILABLE  # Use Selenium if available
+        self.selenium_primary = True  # Prefer Selenium over static scraping
+        
         logger.info("📅 Monthly Events Scheduler initialized")
+        if SELENIUM_AVAILABLE:
+            logger.info("✅ Selenium scraper available for JavaScript-rendered content")
+        else:
+            logger.info("⚠️ Selenium scraper not available - using static scraping only")
+    
+    async def fetch_iksv_events_selenium(self) -> List[Dict[str, Any]]:
+        """
+        Fetch events from İKSV using Selenium for JavaScript-rendered content
+        This is the primary method for fetching real events from the İKSV calendar
+        """
+        if not SELENIUM_AVAILABLE:
+            logger.warning("⚠️ Selenium not available, falling back to static scraping")
+            return await self.fetch_iksv_events_static()
+        
+        events = []
+        
+        try:
+            logger.info("🚀 Starting Selenium-based İKSV event fetch...")
+            
+            # Use context manager for automatic cleanup
+            with IKSVSeleniumScraper(headless=True) as scraper:
+                # 1. Scrape main calendar (highest priority - real events)
+                logger.info("📅 Fetching from main calendar...")
+                main_calendar_events = scraper.scrape_main_calendar("https://www.iksv.org/en")
+                if main_calendar_events:
+                    events.extend(main_calendar_events)
+                    logger.info(f"✅ Main calendar: {len(main_calendar_events)} events")
+                
+                # 2. Scrape festival-specific pages
+                festival_pages = [
+                    ("https://muzik.iksv.org/en", "Music Festival"),
+                    ("https://caz.iksv.org/en", "Jazz Festival"),
+                    ("https://film.iksv.org/en", "Film Festival"),
+                    ("https://tiyatro.iksv.org/en", "Theatre Festival"),
+                ]
+                
+                for url, festival_name in festival_pages:
+                    try:
+                        logger.info(f"🎭 Fetching {festival_name}...")
+                        festival_events = scraper.scrape_festival_page(url, festival_name)
+                        if festival_events:
+                            # Add festival context to events
+                            for event in festival_events:
+                                event['festival'] = festival_name
+                            events.extend(festival_events)
+                            logger.info(f"✅ {festival_name}: {len(festival_events)} events")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Error fetching {festival_name}: {e}")
+                        continue
+            
+            logger.info(f"🎉 Selenium fetch completed: {len(events)} total events")
+            
+            # If Selenium found no events, fall back to static scraping
+            if not events:
+                logger.warning("⚠️ Selenium found no events, falling back to static scraping")
+                return await self.fetch_iksv_events_static()
+            
+        except Exception as e:
+            logger.error(f"❌ Selenium fetch error: {e}")
+            logger.info("🔄 Falling back to static scraping...")
+            return await self.fetch_iksv_events_static()
+        
+        return events
     
     async def fetch_iksv_events(self) -> List[Dict[str, Any]]:
-        """Fetch events from İKSV website calendar sections"""
+        """
+        Main entry point for fetching İKSV events
+        Uses Selenium as primary method, falls back to static scraping
+        """
+        # Use Selenium if available and configured as primary
+        if self.use_selenium and self.selenium_primary:
+            return await self.fetch_iksv_events_selenium()
+        else:
+            return await self.fetch_iksv_events_static()
+    
+    async def fetch_iksv_events_static(self) -> List[Dict[str, Any]]:
+        """Fetch events from İKSV website calendar sections using static HTML scraping"""
         if not WEB_SCRAPING_AVAILABLE:
             logger.error("❌ Web scraping libraries not available")
             return []
         
         events = []
-        # Use the specific calendar section URLs as specified
+        # Expanded URL list to cover all major İKSV domains and event types
         urls = [
+            # Main İKSV calendar
             "https://www.iksv.org/en#event-calendar-section",
+            "https://www.iksv.org/tr#event-calendar-section",
             
+            # Festival-specific sites
+            "https://muzik.iksv.org/en",  # Music Festival
+            "https://muzik.iksv.org/tr",
+            "https://film.iksv.org/en",   # Film Festival
+            "https://film.iksv.org/tr",
+            "https://caz.iksv.org/en",    # Jazz Festival
+            "https://caz.iksv.org/tr",
+            "https://tiyatro.iksv.org/en", # Theatre Festival
+            "https://tiyatro.iksv.org/tr",
+            "https://bienal.iksv.org/en",  # Biennial
+            "https://bienal.iksv.org/tr",
+            
+            # Salon İKSV (venue for regular concerts)
+            "https://www.iksv.org/en/salon",
+            "https://www.iksv.org/tr/salon",
+            
+            # Additional venue pages
+            "https://www.iksv.org/en/events",
+            "https://www.iksv.org/tr/etkinlikler",
         ]
         
         try:
@@ -71,7 +178,7 @@ class MonthlyEventsScheduler:
                         async with session.get(url, timeout=30) as response:
                             if response.status == 200:
                                 html = await response.text()
-                                page_events = self._parse_iksv_html(html)
+                                page_events = self._parse_iksv_html(html, source_url=url)
                                 events.extend(page_events)
                                 logger.info(f"✅ Found {len(page_events)} events from {url}")
                             else:
@@ -85,143 +192,64 @@ class MonthlyEventsScheduler:
         
         return events
     
-    def _parse_iksv_html(self, html: str) -> List[Dict[str, Any]]:
-        """Parse İKSV HTML to extract specific events with dates, times, and venues"""
+    def _parse_iksv_html(self, html: str, source_url: str = None) -> List[Dict[str, Any]]:
+        """Parse İKSV HTML to extract specific events with dates, times, and venues
+        Uses domain-specific strategies for better extraction"""
         events = []
         
         try:
             soup = BeautifulSoup(html, 'html.parser')
-            logger.info("🔍 Parsing İKSV HTML for structured events...")
+            logger.info(f"🔍 Parsing İKSV HTML from {source_url}...")
             
-            # First try to find structured event calendar data
-            events = self._extract_calendar_events(soup)
+            # Determine domain-specific strategy
+            domain_strategy = self._get_domain_strategy(source_url)
+            logger.info(f"📋 Using {domain_strategy} parsing strategy")
             
-            if events:
-                logger.info(f"✅ Found {len(events)} calendar events")
-                return events
+            # Try to find API endpoints or JSON data first
+            json_events = self._extract_json_data(soup, html)
+            if json_events:
+                events.extend(json_events)
+                logger.info(f"✅ Found {len(json_events)} events from JSON/API data")
             
-            # Fallback: Look for event containers with specific patterns
-            event_selectors = [
-                # Calendar-specific patterns
-                '.calendar-event', '.event-calendar', '.schedule-item',
-                '.event-list-item', '.programme-item', '.show-item',
-                
-                # İKSV specific patterns  
-                '.event', '.program', '.activity', '.show',
-                '.event-card', '.program-card', '.activity-card',
-                '.event-item', '.program-item', '.activity-item',
-                
-                # Generic patterns
-                '[class*="event"]', '[class*="program"]', '[class*="calendar"]',
-                '.card', '.listing-item', '.content-item'
-            ]
+            # Apply domain-specific parsing
+            domain_events = self._parse_by_domain(soup, domain_strategy, source_url)
+            if domain_events:
+                events.extend(domain_events)
+                logger.info(f"✅ Found {len(domain_events)} events using domain-specific parsing")
             
-            event_containers = []
-            selector_used = None
-            for selector in event_selectors:
-                containers = soup.select(selector)
-                if containers and len(containers) >= 3:  # Only use if we find at least 3 containers
-                    event_containers = containers[:50]  # Increased limit to 50 events
-                    selector_used = selector
-                    logger.info(f"📋 Strategy 1: Using selector '{selector}' - found {len(containers)} containers (using {len(event_containers)})")
-                    break
+            # Try generic calendar extraction
+            calendar_events = self._extract_calendar_events(soup)
+            if calendar_events:
+                for event in calendar_events:
+                    if not self._is_duplicate_event(event, events):
+                        events.append(event)
+                logger.info(f"✅ Found {len(calendar_events)} events from calendar extraction")
             
-            # Strategy 2: If no containers found, look for elements with event-related text
-            if not event_containers:
-                logger.info("🔍 Strategy 2: Looking for elements with event-related keywords...")
-                all_elements = soup.find_all(['div', 'article', 'section', 'li', 'span'])
-                event_keywords = [
-                    # English keywords only
-                    'concert', 'exhibition', 'theater', 'theatre', 'festival', 'performance', 'show',
-                    'music', 'art', 'dance', 'opera', 'ballet', 'workshop', 'seminar', 'film', 'cinema'
-                ]
-                
-                for element in all_elements:
-                    text = element.get_text().lower()
-                    # More sophisticated matching
-                    keyword_matches = sum(1 for keyword in event_keywords if keyword in text)
-                    
-                    if keyword_matches >= 1:  # At least one keyword match
-                        # Check if this element has reasonable content length
-                        text_length = len(text.strip())
-                        if 10 < text_length < 2000:  # Reasonable content length
-                            # Check if it has typical event info patterns
-                            has_date_pattern = any(pattern in text for pattern in [
-                                '2024', '2025', 'january', 'february', 'march', 'april', 'may', 'june',
-                                'july', 'august', 'september', 'october', 'november', 'december',
-                                'ocak', 'şubat', 'mart', 'nisan', 'mayıs', 'haziran',
-                                'temmuz', 'ağustos', 'eylül', 'ekim', 'kasım', 'aralık'
-                            ])
-                            
-                            if has_date_pattern or keyword_matches >= 2:  # Strong indicator
-                                event_containers.append(element)
-                                if len(event_containers) >= 30:  # Increased limit to 30 events
-                                    break
-                
-                if event_containers:
-                    logger.info(f"📋 Strategy 2: Found {len(event_containers)} potential event containers")
+            # Enhanced container-based extraction
+            if len(events) < 5:
+                container_events = self._extract_from_containers_enhanced(soup)
+                for event in container_events:
+                    if not self._is_duplicate_event(event, events):
+                        events.append(event)
+                if container_events:
+                    logger.info(f"✅ Found {len(container_events)} events from container extraction")
             
-            # Strategy 3: If still no containers, look for any headings that might be events
-            if not event_containers:
-                logger.info("🔍 Strategy 3: Looking for event headings...")
-                headings = soup.find_all(['h1', 'h2', 'h3', 'h4'])
-                
-                for heading in headings:
-                    text = heading.get_text().strip()
-                    if len(text) > 10 and len(text) < 200:
-                        # Create a container from the heading and its parent
-                        container = heading.parent if heading.parent else heading
-                        event_containers.append(container)
-                        if len(event_containers) >= 10:  # Limit to 10 events
-                            break
-                
-                if event_containers:
-                    logger.info(f"📋 Strategy 3: Found {len(event_containers)} heading-based containers")
+            # Text pattern extraction as fallback
+            if len(events) < 3:
+                text_events = self._extract_events_from_text_patterns(soup)
+                for event in text_events:
+                    if not self._is_duplicate_event(event, events):
+                        events.append(event)
+                if text_events:
+                    logger.info(f"✅ Found {len(text_events)} events from text patterns")
             
-            # Parse each event container
-            for i, container in enumerate(event_containers):
-                try:
-                    event_data = self._extract_event_from_container(container, i+1)
-                    if event_data:
-                        # Check for duplicates before adding
-                        is_duplicate = any(
-                            self._are_titles_similar(event_data['title'].lower(), existing['title'].lower()) 
-                            for existing in events
-                        )
-                        if not is_duplicate:
-                            events.append(event_data)
-                except Exception as e:
-                    logger.debug(f"Error parsing event {i+1}: {e}")
-                    continue
-            
-            # Strategy 4: Always try text pattern extraction to complement container-based events
-            logger.info("🔍 Strategy 4: Running text pattern extraction to find additional events...")
-            text_events = self._extract_events_from_text_patterns(soup)
-            
-            # Filter out duplicate events (by title similarity)
-            existing_titles = [event['title'].lower() for event in events]
-            for text_event in text_events:
-                text_title = text_event['title'].lower()
-                # Check if this event is already found by container parsing
-                is_duplicate = any(
-                    self._are_titles_similar(text_title, existing_title) 
-                    for existing_title in existing_titles
-                )
-                if not is_duplicate:
-                    events.append(text_event)
-                    existing_titles.append(text_title)
-            
-            if text_events:
-                logger.info(f"📋 Strategy 4: Added {len(text_events)} events via text pattern extraction")
-            
-            # If we have no proper calendar events (events with specific dates and times), use sample events
-            proper_events = [e for e in events if 'date_str' in e and e['date_str'] and e['date_str'] != 'N/A']
+            # If still no proper events, create realistic samples
+            proper_events = [e for e in events if e.get('date_str') and e['date_str'] != 'N/A']
             
             if len(proper_events) < 3:
                 logger.info(f"🔍 Found only {len(proper_events)} proper calendar events - supplementing with realistic sample events...")
                 sample_events = self._create_sample_events()
                 
-                # Replace with sample events if we don't have enough real ones
                 if len(proper_events) == 0:
                     logger.info("📋 Using sample events as no real calendar events were found")
                     events = sample_events
@@ -234,294 +262,428 @@ class MonthlyEventsScheduler:
         
         return events
     
-    def _extract_event_from_container(self, container, event_num: int) -> Optional[Dict[str, Any]]:
-        """Extract event data from HTML container - focus only on actual events"""
-        try:
-            container_text = container.get_text(strip=True)
-            
-            # First check if this container actually contains event information
-            if not self._is_actual_event(container_text):
-                return None
-            
-            # Extract title (try multiple selectors and strategies)
-            title_selectors = ['h1', 'h2', 'h3', 'h4', '.title', '.event-title', '.name', '.event-name', 
-                              '.program-title', '.activity-title', '.show-title', 'a', '.link']
-            title = None
-            
-            for selector in title_selectors:
-                element = container.select_one(selector)
-                if element:
-                    title = element.get_text(strip=True)
-                    if title and len(title) > 3 and len(title) < 200:  # Reasonable title length
-                        break
-            
-            # If no title found with selectors, try to extract from container text
-            if not title:
-                if container_text and len(container_text) > 10:
-                    # Look for patterns that might be titles
-                    lines = [line.strip() for line in container_text.split('\n') if line.strip()]
-                    for line in lines[:3]:  # Check first 3 lines
-                        if 10 < len(line) < 200 and not line.isdigit():
-                            # Must contain specific event indicators
-                            if self._is_event_title(line):
-                                title = line
-                                break
-                    
-                    # If still no title, use first reasonable line only if it's event-like
-                    if not title and lines:
-                        first_line = lines[0] if len(lines[0]) > 5 else None
-                        if first_line and self._is_event_title(first_line):
-                            title = first_line
-            
-            if not title:
-                logger.debug(f"No valid event title found for event {event_num}")
-                return None
-            
-            # Extract venue
-            venue_selectors = ['.venue', '.location', '.place', '.address', '.where', '.hall', '.theater', '.museum']
-            venue = "İKSV Venue"  # Default
-            
-            for selector in venue_selectors:
-                element = container.select_one(selector)
-                if element:
-                    venue_text = element.get_text(strip=True)
-                    if venue_text and len(venue_text) > 2:
-                        venue = venue_text
-                        break
-            
-            # If no venue found with selectors, look in text for venue patterns
-            if venue == "İKSV Venue":
-                container_text = container.get_text().lower()
-                venue_keywords = ['center', 'hall', 'theater', 'theatre', 'museum', 'gallery', 'studio',
-                                'center', 'hall', 'auditorium', 'space', 'venue']
-                lines = container.get_text().split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if any(keyword in line.lower() for keyword in venue_keywords) and len(line) > 5:
-                        venue = line
-                        break
-            
-            # Extract date
-            date_selectors = ['.date', '.time', '.when', '.datetime', '.schedule', '.calendar-date']
-            date_str = None
-            
-            for selector in date_selectors:
-                element = container.select_one(selector)
-                if element:
-                    date_str = element.get_text(strip=True)
-                    if date_str and len(date_str) > 3:
-                        break
-            
-            # If no date found with selectors, look for date patterns in text
-            if not date_str:
-                container_text = container.get_text()
-                # Look for date patterns (various formats)
-                date_patterns = [
-                    r'\d{1,2}[/-]\d{1,2}[/-]\d{4}',  # DD/MM/YYYY or DD-MM-YYYY
-                    r'\d{4}[/-]\d{1,2}[/-]\d{1,2}',  # YYYY/MM/DD or YYYY-MM-DD
-                    r'\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}',
-                    r'\d{1,2}\s+(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+\d{4}',
-                    r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}',
-                    r'(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+\d{1,2},?\s+\d{4}'
-                ]
-                
-                for pattern in date_patterns:
-                    match = re.search(pattern, container_text, re.IGNORECASE)
-                    if match:
-                        date_str = match.group()
-                        break
-            
-            # Clean the title for better readability
-            cleaned_title = self._clean_event_title(title)
-            
-            # Create event data
-            event_data = {
-                'title': cleaned_title,
-                'venue': venue,
-                'date_str': date_str,
-                'source': 'İKSV',
-                'fetched_at': datetime.now().isoformat(),
-                'event_number': event_num
-            }
-            
-            logger.debug(f"📝 Extracted event {event_num}: {cleaned_title}")
-            return event_data
-            
-        except Exception as e:
-            logger.debug(f"Error extracting event {event_num}: {e}")
-            return None
-
-    def _extract_events_from_text_patterns(self, soup) -> List[Dict[str, Any]]:
-        """Extract events using comprehensive text pattern matching and element analysis"""
+    def _get_domain_strategy(self, url: str) -> str:
+        """Determine parsing strategy based on URL domain"""
+        if not url:
+            return "generic"
+        
+        url_lower = url.lower()
+        
+        if 'muzik.iksv.org' in url_lower:
+            return "music_festival"
+        elif 'film.iksv.org' in url_lower:
+            return "film_festival"
+        elif 'caz.iksv.org' in url_lower:
+            return "jazz_festival"
+        elif 'tiyatro.iksv.org' in url_lower:
+            return "theatre_festival"
+        elif 'bienal.iksv.org' in url_lower:
+            return "biennial"
+        elif 'salon' in url_lower:
+            return "salon_iksv"
+        elif 'event-calendar-section' in url_lower:
+            return "main_calendar"
+        elif 'events' in url_lower or 'etkinlikler' in url_lower:
+            return "events_page"
+        else:
+            return "generic"
+    
+    def _extract_json_data(self, soup, html: str) -> List[Dict[str, Any]]:
+        """Try to extract event data from JSON-LD, embedded JSON, or API responses"""
         events = []
         
         try:
-            # Strategy 1: Analyze structured elements that might contain events
-            content_selectors = [
-                'article', 'section', '.event', '.program', '.activity', '.item', '.card',
-                '.news-item', '.content-item', 'h1', 'h2', 'h3', 'h4', 'li', 'p'
-            ]
+            # Look for JSON-LD structured data
+            json_ld_scripts = soup.find_all('script', type='application/ld+json')
+            for script in json_ld_scripts:
+                try:
+                    data = json.loads(script.string)
+                    if isinstance(data, dict) and data.get('@type') == 'Event':
+                        event = self._parse_json_ld_event(data)
+                        if event:
+                            events.append(event)
+                    elif isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and item.get('@type') == 'Event':
+                                event = self._parse_json_ld_event(item)
+                                if event:
+                                    events.append(event)
+                except:
+                    continue
             
-            event_keywords = [
-                'concert', 'exhibition', 'theater', 'theatre', 'festival', 'performance', 'show',
-                'music', 'art', 'dance', 'opera', 'ballet', 'workshop', 'seminar', 'film', 'cinema'
-            ]
-            
-            date_patterns = [
-                r'\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}',  # DD/MM/YYYY formats
-                r'\d{4}[./\-]\d{1,2}[./\-]\d{1,2}',    # YYYY/MM/DD formats
-                r'(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}',
-                r'(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+\d{1,2}',
-                r'\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)',
-                r'\d{1,2}\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)',
-                r'202[4-9]'  # Years 2024-2029
-            ]
-            
-            # Look for structured content in specific elements
-            for selector in content_selectors:
-                elements = soup.select(selector)
-                for elem in elements:
-                    text = elem.get_text(strip=True)
-                    if 15 < len(text) < 400:  # Reasonable length for event description
-                        
-                        # Check for event keywords
-                        keyword_count = sum(1 for keyword in event_keywords if keyword.lower() in text.lower())
-                        
-                        # Check for date patterns
-                        has_date = any(re.search(pattern, text, re.IGNORECASE) for pattern in date_patterns)
-                        
-                        if keyword_count >= 1 or has_date:
-                            # Only proceed if this looks like an actual event
-                            if not self._is_actual_event(text):
-                                continue
-                                
-                            # Extract title (first meaningful part)
-                            lines = [line.strip() for line in text.split('\n') if line.strip()]
-                            title = lines[0] if lines else text[:80]
-                            
-                            # Clean and format title
-                            title = re.sub(r'^(\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4})\s*', '', title)
-                            title = title.strip()[:100]
-                            
-                            if len(title) > 10 and self._is_event_title(title):
-                                # Try to extract date
-                                date_match = None
-                                for pattern in date_patterns:
-                                    match = re.search(pattern, text, re.IGNORECASE)
-                                    if match:
-                                        date_match = match.group()
-                                        break
-                                
-                                # Try to extract venue information
-                                venue = "İKSV"
-                                venue_keywords = ['center', 'hall', 'theater', 'theatre', 'museum', 'gallery', 'space',
-                                                'auditorium', 'venue', 'stage', 'studio']
-                                for line in lines:
-                                    if any(word in line.lower() for word in venue_keywords):
-                                        venue = line[:50]
-                                        break
-                                
-                                event_data = {
-                                    'title': self._clean_event_title(title),
-                                    'description': text[:200] + "..." if len(text) > 200 else text,
-                                    'date': date_match if date_match else 'Date info available on İKSV website',
-                                    'time': 'Time info available on İKSV website',
-                                    'venue': venue,
-                                    'source': 'İKSV',
-                                    'url': 'https://iksv.org',
-                                    'fetched_at': datetime.now().isoformat(),
-                                }
-                                
-                                events.append(event_data)
-                                
-                                if len(events) >= 10:  # Limit text-extracted events
-                                    break
-                    
-                    if len(events) >= 10:
-                        break
-            
-            # Strategy 2: Look for clickable links that might be event titles
-            if len(events) < 8:
-                links = soup.find_all('a', href=True)
-                for link in links:
-                    text = link.get_text(strip=True)
-                    if 15 < len(text) < 100:  # Reasonable event title length
-                        has_event_keyword = any(keyword in text.lower() for keyword in event_keywords)
-                        
-                        # Check if it looks like an event title
-                        if has_event_keyword or any(char in text for char in [':', '–', '—', '|']):
-                            event_data = {
-                                'title': text,
-                                'description': "Detaylar için İKSV web sitesini ziyaret edin.",
-                                'date': 'Tarih bilgisi İKSV web sitesinde',
-                                'time': 'Saat bilgisi İKSV web sitesinde',
-                                'venue': 'İKSV',
-                                'source': 'İKSV (Link Pattern)',
-                                'url': link.get('href') if link.get('href').startswith('http') else f"https://iksv.org{link.get('href')}",
-                                'fetched_at': datetime.now().isoformat(),
-                            }
-                            
-                            events.append(event_data)
-                            
-                            if len(events) >= 10:
-                                break
-            
-            # Strategy 3: Full text analysis for remaining events
-            if len(events) < 5:
-                full_text = soup.get_text()
+            # Look for embedded JSON data in script tags
+            all_scripts = soup.find_all('script')
+            for script in all_scripts:
+                script_text = script.string or ''
+                # Look for patterns like: var events = [...] or window.events = [...]
+                json_patterns = [
+                    r'var\s+events\s*=\s*(\[.*?\])',
+                    r'window\.events\s*=\s*(\[.*?\])',
+                    r'data:\s*(\[.*?\])',
+                    r'"events":\s*(\[.*?\])'
+                ]
                 
-                # Split into potential event blocks
-                separators = ['\n\n', '  ', '\t', '•', '★', '◆', '►', '||', '>>']
-                text_blocks = [full_text]
-                
-                for separator in separators:
-                    new_blocks = []
-                    for block in text_blocks:
-                        new_blocks.extend(block.split(separator))
-                    text_blocks = new_blocks
-                
-                # Filter blocks that might be events
-                for block in text_blocks:
-                    block = block.strip()
-                    if 20 < len(block) < 300:
-                        keyword_count = sum(1 for keyword in event_keywords if keyword.lower() in block.lower())
-                        has_date = any(re.search(pattern, block, re.IGNORECASE) for pattern in date_patterns)
-                        
-                        if keyword_count >= 1 or has_date:
-                            lines = [line.strip() for line in block.split('\n') if line.strip()]
-                            if lines:
-                                title = lines[0][:100]
-                                
-                                # Find date in the block
-                                date_str = None
-                                for pattern in date_patterns:
-                                    match = re.search(pattern, block, re.IGNORECASE)
-                                    if match:
-                                        date_str = match.group()
-                                        break
-                                
-                                event_data = {
-                                    'title': title,
-                                    'description': block[:200] + "..." if len(block) > 200 else block,
-                                    'date': date_str if date_str else 'Tarih bilgisi İKSV web sitesinde',
-                                    'time': 'Saat bilgisi İKSV web sitesinde',
-                                    'venue': 'İKSV',
-                                    'source': 'İKSV (Full Text Pattern)',
-                                    'url': 'https://iksv.org',
-                                    'fetched_at': datetime.now().isoformat(),
-                                }
-                                
-                                events.append(event_data)
-                                
-                                if len(events) >= 10:
-                                    break
-        
+                for pattern in json_patterns:
+                    matches = re.findall(pattern, script_text, re.DOTALL)
+                    for match in matches:
+                        try:
+                            data = json.loads(match)
+                            if isinstance(data, list):
+                                for item in data:
+                                    if isinstance(item, dict) and any(key in item for key in ['title', 'name', 'event']):
+                                        event = self._parse_json_event(item)
+                                        if event:
+                                            events.append(event)
+                        except:
+                            continue
         except Exception as e:
-            logger.debug(f"Error in text pattern extraction: {e}")
+            logger.debug(f"Error extracting JSON data: {e}")
         
-        logger.info(f"📋 Text pattern strategy found {len(events)} events")
         return events
     
+    def _parse_json_ld_event(self, data: dict) -> Optional[Dict[str, Any]]:
+        """Parse JSON-LD Event schema data"""
+        try:
+            event = {
+                'title': data.get('name', data.get('title', 'İKSV Event')),
+                'venue': data.get('location', {}).get('name', 'İKSV Venue') if isinstance(data.get('location'), dict) else data.get('location', 'İKSV Venue'),
+                'date_str': data.get('startDate', 'TBA'),
+                'source': 'İKSV',
+                'fetched_at': datetime.now().isoformat(),
+                'event_number': 1
+            }
+            
+            # Add description if available
+            if data.get('description'):
+                event['description'] = data.get('description')[:200]
+            
+            # Add image if available
+            if data.get('image'):
+                event['image_url'] = data.get('image')
+            
+            return event
+        except:
+            return None
+    
+    def _parse_json_event(self, data: dict) -> Optional[Dict[str, Any]]:
+        """Parse generic JSON event data"""
+        try:
+            # Try various common field names
+            title = data.get('title') or data.get('name') or data.get('event_name') or data.get('eventName')
+            venue = data.get('venue') or data.get('location') or data.get('place') or 'İKSV Venue'
+            date = data.get('date') or data.get('startDate') or data.get('start_date') or data.get('when') or 'TBA'
+            
+            if title:
+                return {
+                    'title': title,
+                    'venue': venue,
+                    'date_str': date,
+                    'source': 'İKSV',
+                    'fetched_at': datetime.now().isoformat(),
+                    'event_number': 1
+                }
+        except:
+            pass
+        return None
+    
+    def _parse_by_domain(self, soup, strategy: str, url: str) -> List[Dict[str, Any]]:
+        """Apply domain-specific parsing strategies"""
+        events = []
+        
+        try:
+            if strategy == "music_festival" or strategy == "jazz_festival":
+                events = self._parse_music_festival(soup)
+            elif strategy == "film_festival":
+                events = self._parse_film_festival(soup)
+            elif strategy == "theatre_festival":
+                events = self._parse_theatre_festival(soup)
+            elif strategy == "biennial":
+                events = self._parse_biennial(soup)
+            elif strategy == "salon_iksv":
+                events = self._parse_salon_iksv(soup)
+            elif strategy == "main_calendar":
+                events = self._parse_main_calendar(soup)
+            elif strategy == "events_page":
+                events = self._parse_events_page(soup)
+        except Exception as e:
+            logger.debug(f"Error in domain-specific parsing ({strategy}): {e}")
+        
+        return events
+    
+    def _parse_music_festival(self, soup) -> List[Dict[str, Any]]:
+        """Parse music/jazz festival pages"""
+        events = []
+        
+        # Look for program/schedule sections
+        program_sections = soup.find_all(['section', 'div'], class_=lambda x: x and any(word in str(x).lower() for word in ['program', 'schedule', 'concert', 'performance']))
+        
+        for section in program_sections[:20]:  # Limit to avoid too much processing
+            # Look for concert/performance items
+            items = section.find_all(['div', 'article', 'li'], class_=lambda x: x and any(word in str(x).lower() for word in ['item', 'event', 'concert', 'show']))
+            
+            for item in items[:10]:
+                text = item.get_text(strip=True)
+                if 20 < len(text) < 500:
+                    # Look for artist names and dates
+                    lines = [l.strip() for l in text.split('\n') if l.strip()]
+                    if lines:
+                        title = lines[0]
+                        if self._is_event_title(title):
+                            event = {
+                                'title': self._clean_event_title(title),
+                                'venue': 'Music Festival Venue',
+                                'date_str': self._extract_date_from_text(text) or 'TBA',
+                                'category': 'Music',
+                                'source': 'İKSV',
+                                'fetched_at': datetime.now().isoformat(),
+                                'event_number': len(events) + 1
+                            }
+                            events.append(event)
+        
+        return events
+    
+    def _parse_film_festival(self, soup) -> List[Dict[str, Any]]:
+        """Parse film festival pages"""
+        events = []
+        
+        # Look for film listings
+        film_sections = soup.find_all(['div', 'article'], class_=lambda x: x and any(word in str(x).lower() for word in ['film', 'movie', 'screening']))
+        
+        for section in film_sections[:20]:
+            text = section.get_text(strip=True)
+            if 20 < len(text) < 500:
+                lines = [l.strip() for l in text.split('\n') if l.strip()]
+                if lines:
+                    title = lines[0]
+                    if len(title) > 5:
+                        event = {
+                            'title': self._clean_event_title(title),
+                            'venue': 'Film Festival Venue',
+                            'date_str': self._extract_date_from_text(text) or 'TBA',
+                            'category': 'Film',
+                            'source': 'İKSV',
+                            'fetched_at': datetime.now().isoformat(),
+                            'event_number': len(events) + 1
+                        }
+                        events.append(event)
+        
+        return events
+    
+    def _parse_theatre_festival(self, soup) -> List[Dict[str, Any]]:
+        """Parse theatre festival pages"""
+        events = []
+        
+        # Look for performance listings
+        performance_sections = soup.find_all(['div', 'article'], class_=lambda x: x and any(word in str(x).lower() for word in ['performance', 'play', 'show', 'theatre', 'theater']))
+        
+        for section in performance_sections[:20]:
+            text = section.get_text(strip=True)
+            if 20 < len(text) < 500:
+                lines = [l.strip() for l in text.split('\n') if l.strip()]
+                if lines:
+                    title = lines[0]
+                    if self._is_event_title(title):
+                        event = {
+                            'title': self._clean_event_title(title),
+                            'venue': 'Theatre Festival Venue',
+                            'date_str': self._extract_date_from_text(text) or 'TBA',
+                            'category': 'Theatre',
+                            'source': 'İKSV',
+                            'fetched_at': datetime.now().isoformat(),
+                            'event_number': len(events) + 1
+                        }
+                        events.append(event)
+        
+        return events
+    
+    def _parse_biennial(self, soup) -> List[Dict[str, Any]]:
+        """Parse biennial pages"""
+        events = []
+        
+        # Look for exhibition/art sections
+        art_sections = soup.find_all(['div', 'article'], class_=lambda x: x and any(word in str(x).lower() for word in ['exhibition', 'artwork', 'artist', 'installation']))
+        
+        for section in art_sections[:15]:
+            text = section.get_text(strip=True)
+            if 20 < len(text) < 500:
+                lines = [l.strip() for l in text.split('\n') if l.strip()]
+                if lines:
+                    title = lines[0]
+                    if len(title) > 10:
+                        event = {
+                            'title': self._clean_event_title(title),
+                            'venue': 'Biennial Venue',
+                            'date_str': self._extract_date_from_text(text) or 'Ongoing',
+                            'category': 'Art',
+                            'source': 'İKSV',
+                            'fetched_at': datetime.now().isoformat(),
+                            'event_number': len(events) + 1
+                        }
+                        events.append(event)
+        
+        return events
+    
+    def _parse_salon_iksv(self, soup) -> List[Dict[str, Any]]:
+        """Parse Salon İKSV concert pages"""
+        events = []
+        
+        # Look for concert listings
+        concert_sections = soup.find_all(['div', 'article', 'li'], class_=lambda x: x and any(word in str(x).lower() for word in ['concert', 'show', 'event', 'performance']))
+        
+        for section in concert_sections[:25]:
+            text = section.get_text(strip=True)
+            if 15 < len(text) < 500:
+                lines = [l.strip() for l in text.split('\n') if l.strip()]
+                if lines and self._is_event_title(lines[0]):
+                    event = {
+                        'title': self._clean_event_title(lines[0]),
+                        'venue': 'Salon İKSV',
+                        'date_str': self._extract_date_from_text(text) or 'TBA',
+                        'category': 'Music',
+                        'source': 'İKSV',
+                        'fetched_at': datetime.now().isoformat(),
+                        'event_number': len(events) + 1
+                    }
+                    events.append(event)
+        
+        return events
+    
+    def _parse_main_calendar(self, soup) -> List[Dict[str, Any]]:
+        """Parse main İKSV calendar section"""
+        events = []
+        
+        # Look for calendar-specific elements
+        calendar_section = soup.find(class_=lambda x: x and 'calendar' in str(x).lower())
+        if calendar_section:
+            # Find all interactive elements that might be event triggers
+            links = calendar_section.find_all('a', href=True)
+            for link in links:
+                href = link.get('href')
+                text = link.get_text(strip=True)
+                
+                # Check if this looks like an event link
+                if text and len(text) > 10 and any(word in href.lower() for word in ['event', 'concert', 'show', 'performance', 'exhibition']):
+                    event = {
+                        'title': self._clean_event_title(text),
+                        'venue': 'İKSV Venue',
+                        'date_str': 'Check website for dates',
+                        'url': href if href.startswith('http') else f"https://www.iksv.org{href}",
+                        'source': 'İKSV',
+                        'fetched_at': datetime.now().isoformat(),
+                        'event_number': len(events) + 1
+                    }
+                    events.append(event)
+        
+        return events
+    
+    def _parse_events_page(self, soup) -> List[Dict[str, Any]]:
+        """Parse general events listing pages"""
+        events = []
+        
+        # Look for event cards/items
+        event_items = soup.find_all(['div', 'article', 'li'], class_=lambda x: x and any(word in str(x).lower() for word in ['event', 'item', 'card', 'listing']))
+        
+        for item in event_items[:30]:
+            text = item.get_text(strip=True)
+            if 20 < len(text) < 600:
+                lines = [l.strip() for l in text.split('\n') if l.strip()]
+                if lines and self._is_event_title(lines[0]):
+                    event = {
+                        'title': self._clean_event_title(lines[0]),
+                        'venue': self._extract_venue_from_text(text) or 'İKSV Venue',
+                        'date_str': self._extract_date_from_text(text) or 'TBA',
+                        'source': 'İKSV',
+                        'fetched_at': datetime.now().isoformat(),
+                        'event_number': len(events) + 1
+                    }
+                    events.append(event)
+        
+        return events
+    
+    def _extract_from_containers_enhanced(self, soup) -> List[Dict[str, Any]]:
+        """Enhanced container-based event extraction with improved selectors"""
+        events = []
+        
+        # Comprehensive list of selectors
+        event_selectors = [
+            # Specific event patterns
+            '.event-item', '.event-card', '.event-container', '.event-box',
+            '.program-item', '.program-card', '.show-item', '.show-card',
+            '.concert-item', '.performance-item', '.exhibition-item',
+            
+            # Calendar patterns
+            '.calendar-event', '.calendar-item', '.schedule-item',
+            
+            # Generic patterns
+            '[class*="event-"]', '[class*="program-"]', '[class*="concert-"]',
+            '.card', '.item', '.listing', '.entry',
+            
+            # Article/content patterns
+            'article', 'section[class*="event"]', 'div[class*="event"]'
+        ]
+        
+        for selector in event_selectors:
+            try:
+                containers = soup.select(selector)
+                if len(containers) >= 3:  # Found meaningful content
+                    for i, container in enumerate(containers[:30]):
+                        event_data = self._extract_event_from_container(container, i+1)
+                        if event_data and not self._is_duplicate_event(event_data, events):
+                            events.append(event_data)
+                    
+                    if events:
+                        break  # Found events, stop trying other selectors
+            except:
+                continue
+        
+        return events
+    
+    def _extract_date_from_text(self, text: str) -> Optional[str]:
+        """Extract date information from text"""
+        date_patterns = [
+            r'\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}',
+            r'\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}',
+            r'\d{1,2}\s+(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+\d{4}',
+            r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}',
+            r'202[4-9][-/]\d{1,2}[-/]\d{1,2}'
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group()
+        
+        return None
+    
+    def _extract_venue_from_text(self, text: str) -> Optional[str]:
+        """Extract venue information from text"""
+        venue_keywords = ['zorlu', 'psm', 'salon', 'harbiye', 'stage', 'hall', 'theater', 'theatre', 'museum', 'gallery', 'center']
+        
+        lines = text.split('\n')
+        for line in lines:
+            line_lower = line.lower()
+            if any(keyword in line_lower for keyword in venue_keywords) and 5 < len(line) < 100:
+                return line.strip()
+        
+        return None
+    
+    def _is_duplicate_event(self, event: Dict[str, Any], existing_events: List[Dict[str, Any]]) -> bool:
+        """Check if event is a duplicate"""
+        event_title = event.get('title', '').lower()
+        event_date = event.get('date_str', '').lower()
+        
+        for existing in existing_events:
+            existing_title = existing.get('title', '').lower()
+            existing_date = existing.get('date_str', '').lower()
+            
+            # Check title similarity
+            if self._are_titles_similar(event_title, existing_title):
+                # If titles are similar and dates match (or both TBA), it's a duplicate
+                if event_date == existing_date or (not event_date) or (not existing_date):
+                    return True
+        
+        return False
+
     def _are_titles_similar(self, title1: str, title2: str, threshold: float = 0.8) -> bool:
         """
         Check if two event titles are similar enough to be considered duplicates
@@ -922,288 +1084,6 @@ class MonthlyEventsScheduler:
             r'dance performance.*down syndrome', r'turkiye down syndrome'
         ]
         
-        return any(re.search(pattern, text_lower) for pattern in event_title_patterns)
-
-    def _extract_calendar_events(self, soup) -> List[Dict[str, Any]]:
-        """Extract structured calendar events from İKSV website based on actual format"""
-        events = []
-        
-        try:
-            logger.info("🎭 Looking for İKSV calendar events in actual website format...")
-            
-            # Strategy 1: Look for the "WHAT'S ON?" calendar section with event blocks
-            # The real format found in the website:
-            # Theatre
-            # [Dance Performance by the Turkiye Down Syndrome Association]
-            # 20 October Monday 19.00
-            # Zorlu PSM
-            # [Free Admission]
-            
-            # Find all text elements that contain event information
-            all_text = soup.get_text()
-            lines = [line.strip() for line in all_text.split('\n') if line.strip()]
-            
-            # Look for the calendar section
-            calendar_start = -1
-            for i, line in enumerate(lines):
-                if 'what\'s on' in line.lower() or 'event categories' in line.lower():
-                    calendar_start = i
-                    break
-            
-            if calendar_start >= 0:
-                calendar_lines = lines[calendar_start:calendar_start + 200]  # Process next 200 lines
-                logger.info(f"📍 Found calendar section starting at line {calendar_start}")
-                
-                # Extract events from calendar section
-                i = 0
-                while i < len(calendar_lines) - 3:
-                    line = calendar_lines[i]
-                    
-                    # Look for category indicators (Theatre, Salon İKSV, etc.)
-                    if line in ['Theatre', 'Salon İKSV', 'Dance', 'Music', 'Film', 'Art']:
-                        category = line
-                        i += 1
-                        
-                        # Look for event title (should be next line, often has brackets or is a link)
-                        if i < len(calendar_lines):
-                            title_line = calendar_lines[i]
-                            
-                            # Clean title from brackets and links
-                            title = self._clean_event_title(title_line)
-                            
-                            # Look for date pattern in next few lines
-                            date_str = None
-                            venue = None
-                            
-                            for j in range(i + 1, min(i + 4, len(calendar_lines))):
-                                next_line = calendar_lines[j]
-                                
-                                # Check if this line contains date/time pattern
-                                if re.match(r'\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}[\.:]\d{2}', next_line):
-                                    date_str = next_line
-                                    
-                                    # Venue should be in the next line
-                                    if j + 1 < len(calendar_lines):
-                                        venue_line = calendar_lines[j + 1]
-                                        if self._looks_like_venue(venue_line):
-                                            venue = venue_line
-                                    break
-                            
-                            # If we found a valid event, add it
-                            if title and date_str and len(title) > 5:
-                                event_data = {
-                                    'title': title,
-                                    'date_str': date_str,
-                                    'venue': venue or "İKSV Venue",
-                                    'category': category,
-                                    'source': 'İKSV Calendar',
-                                    'fetched_at': datetime.now().isoformat(),
-                                    'event_number': len(events) + 1
-                                }
-                                events.append(event_data)
-                                logger.info(f"✅ Found event: {title[:50]}... on {date_str}")
-                                
-                                i = j + 2  # Skip past this event
-                            else:
-                                i += 1
-                    else:
-                        i += 1
-            
-            # Strategy 2: Look for markdown-style event links in the HTML
-            if len(events) < 3:
-                logger.info("🔍 Looking for markdown-style event links...")
-                
-                # Find all anchor tags that might be event links
-                event_links = soup.find_all('a', href=True)
-                
-                for link in event_links:
-                    href = link.get('href', '')
-                    link_text = link.get_text(strip=True)
-                    
-                    # Check if this looks like an event link
-                    if (('theater-festival' in href or 'salon' in href or 'iksv' in href) and 
-                        len(link_text) > 10 and 
-                        self._looks_like_event_title(link_text)):
-                        
-                        # Look for date and venue in the surrounding context
-                        parent = link.parent
-                        if parent:
-                            context_text = parent.get_text()
-                            
-                            # Look for date pattern in context
-                            date_match = re.search(r'(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}[\.:]\d{2})', context_text, re.IGNORECASE)
-                            
-                            if date_match:
-                                date_str = date_match.group(1)
-                                
-                                # Look for venue in context
-                                venue = "İKSV Venue"
-                                venue_keywords = ['zorlu', 'psm', 'salon', 'harbiye', 'stage']
-                                
-                                for keyword in venue_keywords:
-                                    if keyword in context_text.lower():
-                                        # Extract the venue line
-                                        lines = context_text.split('\n')
-                                        for line in lines:
-                                            if keyword in line.lower() and len(line.strip()) < 50:
-                                                venue = line.strip()
-                                                break
-                                        break
-                                
-                                event_data = {
-                                    'title': self._clean_event_title(link_text),
-                                    'date_str': date_str,
-                                    'venue': venue,
-                                    'source': 'İKSV Calendar',
-                                    'fetched_at': datetime.now().isoformat(),
-                                    'event_number': len(events) + 1
-                                }
-                                events.append(event_data)
-                                logger.info(f"✅ Found event from link: {link_text[:50]}...")
-            
-            # Strategy 3: Direct pattern matching for event blocks in text
-            if len(events) < 3:
-                logger.info("🔍 Trying direct pattern matching for event blocks...")
-                
-                # Look for the exact pattern: [Event Title](url) followed by date and venue
-                markdown_pattern = r'\[([^\]]+)\]\([^)]+\)\s*\n\s*(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}[\.:]\d{2})\s*\n\s*([^\n\[]+)'
-                
-                for match in re.finditer(markdown_pattern, all_text, re.IGNORECASE | re.MULTILINE):
-                    title = match.group(1).strip()
-                    date_str = match.group(2).strip()
-                    venue = match.group(3).strip()
-                    
-                    if self._is_valid_event_data(title, date_str, venue):
-                        # Check for duplicates
-                        is_duplicate = any(
-                            event['title'].lower() == title.lower() and event['date_str'] == date_str
-                            for event in events
-                        )
-                        
-                        if not is_duplicate:
-                            event_data = {
-                                'title': title,
-                                'date_str': date_str,
-                                'venue': venue,
-                                'source': 'İKSV Calendar',
-                                'fetched_at': datetime.now().isoformat(),
-                                'event_number': len(events) + 1
-                            }
-                            events.append(event_data)
-                            logger.info(f"✅ Found event via markdown pattern: {title[:50]}...")
-                
-                # Also try simpler date pattern matching
-                date_pattern = r'(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}[\.:]\d{2})'
-                
-                for match in re.finditer(date_pattern, all_text, re.IGNORECASE):
-                    date_str = match.group(1)
-                    match_start = match.start()
-                    match_end = match.end()
-                    
-                    # Look for title before this date (within 200 characters)
-                    text_before = all_text[max(0, match_start - 200):match_start]
-                    text_after = all_text[match_end:match_end + 100]
-                    
-                    # Extract title from text before (last meaningful line)
-                    before_lines = [line.strip() for line in text_before.split('\n') if line.strip()]
-                    title = None
-                    for line in reversed(before_lines):
-                        if len(line) > 10 and self._looks_like_event_title(line):
-                            title = self._clean_event_title(line)
-                            break
-                    
-                    # Extract venue from text after (first meaningful line)
-                    after_lines = [line.strip() for line in text_after.split('\n') if line.strip()]
-                    venue = None
-                    for line in after_lines:
-                        if self._looks_like_venue(line):
-                            venue = line
-                            break
-                    
-                    if title and self._is_valid_event_data(title, date_str, venue or "İKSV Venue"):
-                        # Check for duplicates
-                        is_duplicate = any(
-                            event['title'].lower() == title.lower() and event['date_str'] == date_str
-                            for event in events
-                        )
-                        
-                        if not is_duplicate:
-                            event_data = {
-                                'title': title,
-                                'date_str': date_str,
-                                'venue': venue or "İKSV Venue",
-                                'source': 'İKSV Calendar',
-                                'fetched_at': datetime.now().isoformat(),
-                                'event_number': len(events) + 1
-                            }
-                            events.append(event_data)
-            
-            logger.info(f"📅 Calendar extraction found {len(events)} structured events")
-            
-        except Exception as e:
-            logger.error(f"❌ Error in calendar event extraction: {e}")
-        
-        return events
-    
-    def _clean_event_title(self, title: str) -> str:
-        """Clean event title from brackets, links, and extra formatting"""
-        if not title:
-            return ""
-        
-        # Remove common brackets and formatting
-        title = re.sub(r'^\[|\]$', '', title)  # Remove outer brackets
-        title = re.sub(r'^\(|\)$', '', title)  # Remove outer parentheses
-        
-        # Remove link indicators
-        title = re.sub(r'^\s*[-•▸►]\s*', '', title)  # Remove bullet points
-        
-        return title.strip()
-    
-    def _looks_like_venue(self, text: str) -> bool:
-        """Check if text looks like a venue name"""
-        if not text or len(text) < 3:
-            return False
-        
-        text_lower = text.lower()
-        
-        # Known İKSV venues
-        venue_keywords = [
-            'zorlu', 'psm', 'salon', 'harbiye', 'stage', 'hall', 'center', 'centre',
-            'theater', 'theatre', 'museum', 'gallery', 'studio', 'auditorium'
-        ]
-        
-        return any(keyword in text_lower for keyword in venue_keywords)
-    
-    def _looks_like_event_title(self, text: str) -> bool:
-        """Check if text looks like an event title"""
-        if not text or len(text) < 5:
-            return False
-        
-        text_lower = text.lower()
-        
-        # Skip common UI elements
-        ui_elements = [
-            'tickets', 'free admission', 'more info', 'load more', 'search',
-            'categories', 'filter', 'subscribe', 'newsletter'
-        ]
-        
-        if any(ui in text_lower for ui in ui_elements):
-            return False
-        
-        # Event title indicators
-        title_indicators = [
-            'performance', 'concert', 'show', 'exhibition', 'festival', 'ballet', 'opera',
-            'theater', 'theatre', 'dance', 'music', 'presents', 'workshop', 'seminar'
-        ]
-        
-        has_indicators = any(indicator in text_lower for indicator in title_indicators)
-        
-        # Or looks like a proper title (has colon, dash, or capital letters)
-        has_title_structure = ':' in text or '–' in text or '—' in text or any(c.isupper() for c in text[:20])
-        
-        return has_indicators or has_title_structure
-    
-    def _is_valid_event_data(self, title: str, date_str: str, venue: str) -> bool:
         """Check if the extracted data represents a valid event"""
         if not title or not date_str or len(title) < 5:
             return False

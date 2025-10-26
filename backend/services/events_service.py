@@ -7,6 +7,28 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 import calendar
 import logging
+import sys
+import os
+
+# Add parent directory to path for events database import
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# Import events database functions
+try:
+    from backend.data.events_database import (
+        load_live_iksv_events,
+        get_all_events,
+        get_events_by_month,
+        get_current_and_upcoming_events,
+        search_events,
+        get_iksv_events_only,
+        get_live_events_metadata
+    )
+    EVENTS_DATABASE_AVAILABLE = True
+except ImportError:
+    EVENTS_DATABASE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +41,16 @@ class EventsService:
         self.recurring_events = self._load_recurring_events()
         self.seasonal_events = self._load_seasonal_events()
         self.venues = self._load_venues()
+        
+        # Load İKSV events from database
+        self.iksv_events = []
+        if EVENTS_DATABASE_AVAILABLE:
+            try:
+                self.iksv_events = load_live_iksv_events()
+                logger.info(f"✅ Loaded {len(self.iksv_events)} İKSV events from database")
+            except Exception as e:
+                logger.warning(f"Could not load İKSV events: {e}")
+                self.iksv_events = []
         
     def _load_recurring_events(self) -> Dict[str, List[Dict]]:
         """Load weekly recurring events"""
@@ -361,12 +393,34 @@ class EventsService:
         return None
     
     def get_events_by_timeframe(self, timeframe_data: Dict[str, Any]) -> List[Dict]:
-        """Get events for parsed timeframe"""
+        """Get events for parsed timeframe, including İKSV events"""
         if not timeframe_data:
             return []
         
         events = []
         timeframe_type = timeframe_data['type']
+        
+        # Helper function to check if İKSV event matches timeframe
+        def matches_iksv_event(event: Dict, start_date: datetime, end_date: datetime) -> bool:
+            """Check if İKSV event falls within timeframe"""
+            event_date_str = event.get('date', '')
+            if not event_date_str:
+                return False
+            
+            try:
+                # Parse various date formats
+                from dateutil import parser
+                event_date = parser.parse(event_date_str)
+                return start_date.date() <= event_date.date() <= end_date.date()
+            except:
+                # Fallback: check if date string contains month/year
+                try:
+                    if '-' in event_date_str:  # Format: YYYY-MM-DD
+                        event_date = datetime.strptime(event_date_str, '%Y-%m-%d')
+                        return start_date.date() <= event_date.date() <= end_date.date()
+                except:
+                    pass
+                return False
         
         if timeframe_type == 'specific_day':
             date = timeframe_data['date']
@@ -378,8 +432,18 @@ class EventsService:
                 events.append({
                     **event,
                     'date': date.strftime('%B %d, %Y'),
-                    'day': day_name.capitalize()
+                    'day': day_name.capitalize(),
+                    'source': 'recurring'
                 })
+            
+            # Add İKSV events for this specific day
+            for iksv_event in self.iksv_events:
+                if matches_iksv_event(iksv_event, date, date):
+                    events.append({
+                        **iksv_event,
+                        'source': 'iksv',
+                        'day': day_name.capitalize()
+                    })
         
         elif timeframe_type == 'tonight':
             date = timeframe_data['date']
@@ -398,10 +462,24 @@ class EventsService:
                                 **event,
                                 'date': date.strftime('%B %d, %Y'),
                                 'day': day_name.capitalize(),
-                                'timing': 'tonight'
+                                'timing': 'tonight',
+                                'source': 'recurring'
                             })
                     except:
                         pass
+            
+            # Add İKSV events that are suitable for tonight
+            for iksv_event in self.iksv_events:
+                if matches_iksv_event(iksv_event, date, date):
+                    # Check if it's an evening event
+                    event_type = iksv_event.get('type', '').lower()
+                    if any(keyword in event_type for keyword in ['concert', 'theater', 'performance', 'show']):
+                        events.append({
+                            **iksv_event,
+                            'source': 'iksv',
+                            'timing': 'tonight',
+                            'day': day_name.capitalize()
+                        })
         
         elif timeframe_type == 'weekend':
             for date in timeframe_data['dates']:
@@ -411,8 +489,20 @@ class EventsService:
                     events.append({
                         **event,
                         'date': date.strftime('%B %d, %Y'),
-                        'day': day_name.capitalize()
+                        'day': day_name.capitalize(),
+                        'source': 'recurring'
                     })
+                
+                # Add İKSV events for weekend days
+                for iksv_event in self.iksv_events:
+                    if matches_iksv_event(iksv_event, date, date):
+                        # Avoid duplicates
+                        if not any(e.get('id') == iksv_event.get('id') for e in events):
+                            events.append({
+                                **iksv_event,
+                                'source': 'iksv',
+                                'day': day_name.capitalize()
+                            })
         
         elif timeframe_type in ['week', 'month']:
             # Get all recurring events for the period
@@ -427,9 +517,20 @@ class EventsService:
                     events.append({
                         **event,
                         'date': current.strftime('%B %d, %Y'),
-                        'day': day_name.capitalize()
+                        'day': day_name.capitalize(),
+                        'source': 'recurring'
                     })
                 current += timedelta(days=1)
+            
+            # Add all İKSV events in this timeframe
+            for iksv_event in self.iksv_events:
+                if matches_iksv_event(iksv_event, start, end):
+                    # Avoid duplicates
+                    if not any(e.get('id') == iksv_event.get('id') for e in events):
+                        events.append({
+                            **iksv_event,
+                            'source': 'iksv'
+                        })
         
         return events
     
@@ -451,7 +552,7 @@ class EventsService:
     
     def format_events_response(self, events: List[Dict], timeframe_label: str = None, 
                                include_iksv: bool = True) -> str:
-        """Format events into readable response"""
+        """Format events into readable response with İKSV integration"""
         if not events and not include_iksv:
             return self._get_no_events_response(timeframe_label)
         
@@ -460,69 +561,122 @@ class EventsService:
             response += f" {timeframe_label.title()}"
         response += "**\n\n"
         
-        if include_iksv:
-            response += "💡 **Tip:** Check **İKSV** (Istanbul Foundation for Culture and Arts) for concerts and cultural events:\n"
-            response += "   🌐 iksv.org | Babylon, Salon İKSV, and major venues\n\n"
-        
         if events:
-            # Group events by type
-            grouped = {}
-            for event in events:
-                event_type = event.get('type', 'other')
-                if event_type not in grouped:
-                    grouped[event_type] = []
-                grouped[event_type].append(event)
+            # Separate İKSV events from recurring events
+            iksv_events = [e for e in events if e.get('source') == 'iksv']
+            recurring_events = [e for e in events if e.get('source') == 'recurring']
             
-            # Format by type
-            type_emojis = {
-                'market': '🛍️',
-                'music': '🎵',
-                'cultural': '🎭',
-                'religious': '🕌',
-                'nightlife': '🌙',
-                'food': '🍽️',
-                'entertainment': '🎪',
-                'art': '🎨',
-                'festival': '🎉'
-            }
-            
-            for event_type, type_events in grouped.items():
-                emoji = type_emojis.get(event_type, '📅')
-                response += f"**{emoji} {event_type.replace('_', ' ').title()}:**\n"
+            # Show İKSV events first (they're the real featured events!)
+            if iksv_events:
+                response += "🎪 **Featured İKSV Events:**\n\n"
+                for event in iksv_events[:5]:  # Show top 5 İKSV events
+                    # Get bilingual name
+                    name = event.get('name', {})
+                    if isinstance(name, dict):
+                        event_name = name.get('en', name.get('tr', 'Event'))
+                    else:
+                        event_name = name
+                    
+                    response += f"• **{event_name}**\n"
+                    
+                    # Date
+                    if event.get('date'):
+                        response += f"  📅 {event['date']}\n"
+                    
+                    # Venue
+                    venue = event.get('venue', {})
+                    if isinstance(venue, dict):
+                        venue_name = venue.get('en', venue.get('tr', ''))
+                    else:
+                        venue_name = venue
+                    if venue_name:
+                        response += f"  📍 {venue_name}\n"
+                    
+                    # Description (use shorter English version if available)
+                    description = event.get('description', {})
+                    if isinstance(description, dict):
+                        desc_text = description.get('en', description.get('tr', ''))
+                    else:
+                        desc_text = description
+                    if desc_text and len(desc_text) < 150:
+                        response += f"  ℹ️ {desc_text}\n"
+                    
+                    # Tags
+                    tags = event.get('tags', [])
+                    if tags:
+                        response += f"  �️ {', '.join(tags[:3])}\n"
+                    
+                    # Booking URL
+                    if event.get('booking_url'):
+                        response += f"  🎟️ Book at: {event['booking_url']}\n"
+                    
+                    response += "\n"
                 
-                for event in type_events:
-                    response += f"• **{event['name']}**"
-                    if event.get('day'):
-                        response += f" ({event['day']}"
-                        if event.get('time'):
-                            response += f", {event['time']}"
-                        response += ")"
-                    response += "\n"
+                response += "💡 More events at **iksv.org** and **Biletix.com**\n\n"
+            
+            # Then show recurring/regular events
+            if recurring_events:
+                response += "📅 **Regular Events & Activities:**\n\n"
+                
+                # Group recurring events by type
+                grouped = {}
+                for event in recurring_events:
+                    event_type = event.get('type', 'other')
+                    if event_type not in grouped:
+                        grouped[event_type] = []
+                    grouped[event_type].append(event)
+                
+                # Format by type
+                type_emojis = {
+                    'market': '🛍️',
+                    'music': '🎵',
+                    'cultural': '🎭',
+                    'religious': '🕌',
+                    'nightlife': '🌙',
+                    'food': '🍽️',
+                    'entertainment': '🎪',
+                    'art': '🎨',
+                    'festival': '🎉'
+                }
+                
+                for event_type, type_events in grouped.items():
+                    emoji = type_emojis.get(event_type, '📅')
+                    response += f"**{emoji} {event_type.replace('_', ' ').title()}:**\n"
                     
-                    if event.get('location'):
-                        response += f"  📍 {event['location']}\n"
-                    
-                    if event.get('description'):
-                        response += f"  ℹ️ {event['description']}\n"
-                    
-                    if event.get('visitor_note'):
-                        response += f"  💡 {event['visitor_note']}\n"
-                    
-                    if event.get('website'):
-                        response += f"  🌐 {event['website']}\n"
-                    
-                    response += "\n"
+                    for event in type_events[:3]:  # Limit to 3 per type
+                        response += f"• **{event['name']}**"
+                        if event.get('day'):
+                            response += f" ({event['day']}"
+                            if event.get('time'):
+                                response += f", {event['time']}"
+                            response += ")"
+                        response += "\n"
+                        
+                        if event.get('location'):
+                            response += f"  📍 {event['location']}\n"
+                        
+                        if event.get('description'):
+                            response += f"  ℹ️ {event['description']}\n"
+                        
+                        response += "\n"
         
-        # Add seasonal events
+        else:
+            # No events found, show İKSV info
+            if include_iksv:
+                response += "💡 **İKSV** (Istanbul Foundation for Culture and Arts):\n"
+                response += "   🌐 iksv.org | concerts, theater, exhibitions\n"
+                response += "   📍 Venues: Salon İKSV, Babylon, and more\n\n"
+        
+        # Add seasonal events if available
         seasonal = self.get_seasonal_events()
         if seasonal:
-            response += "\n**🌸 Seasonal Highlights:**\n"
+            response += "\n**🌸 This Season:**\n"
             for event in seasonal[:3]:  # Show top 3
                 response += f"• **{event['name']}** ({event.get('month', 'TBA')})\n"
                 if event.get('description'):
                     response += f"  {event['description']}\n"
         
-        response += "\n💡 **Pro Tip:** Most venues and events are active Thursday-Sunday. Book tickets in advance for popular shows!\n"
+        response += "\n💡 **Pro Tip:** Book tickets in advance via Biletix or venue websites!\n"
         
         return response
     

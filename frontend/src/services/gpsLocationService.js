@@ -11,10 +11,19 @@ class GPSLocationService {
     this.lastKnownPosition = null;
     this.locationCallbacks = new Set();
     this.errorCallbacks = new Set();
+    
+    // Maximum accuracy options - same as Google Maps!
     this.options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000 // Cache location for 1 minute
+      enableHighAccuracy: true,    // Use GPS chip for best accuracy (5-10 meters)
+      timeout: 15000,               // Wait up to 15 seconds for accurate position
+      maximumAge: 0                 // Don't use cached position, always get fresh GPS data
+    };
+    
+    // Continuous tracking options (for watchPosition)
+    this.watchOptions = {
+      enableHighAccuracy: true,    // Always use GPS
+      timeout: 10000,              // Faster timeout for continuous updates
+      maximumAge: 5000             // Allow 5-second cache for smooth tracking
     };
     
     // Load last known position from localStorage
@@ -76,17 +85,25 @@ class GPSLocationService {
       this.stopLocationTracking();
     }
 
+    console.log('🎯 Starting high-accuracy GPS tracking (Google Maps quality)...');
+
     this.watchId = navigator.geolocation.watchPosition(
       (position) => {
         const newPosition = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
           accuracy: position.coords.accuracy,
+          altitude: position.coords.altitude,
+          heading: position.coords.heading,
+          speed: position.coords.speed,
           timestamp: new Date()
         };
 
-        // Only update if position changed significantly (>10 meters)
-        if (this.hasPositionChanged(newPosition, this.currentPosition)) {
+        console.log(`📍 GPS Update: ${newPosition.lat.toFixed(6)}, ${newPosition.lng.toFixed(6)} (±${newPosition.accuracy.toFixed(1)}m)`);
+
+        // Update on every position change for maximum accuracy
+        // Only skip if position is identical (within 1 meter)
+        if (this.hasPositionChanged(newPosition, this.currentPosition, 1)) {
           this.currentPosition = newPosition;
           this.lastKnownPosition = { ...newPosition };
           this.saveLastKnownPosition();
@@ -94,9 +111,10 @@ class GPSLocationService {
         }
       },
       (error) => {
+        console.error('❌ GPS Error:', error.message);
         this.notifyErrorCallbacks(error);
       },
-      this.options
+      this.watchOptions  // Use continuous tracking options
     );
 
     return this.watchId;
@@ -214,9 +232,34 @@ class GPSLocationService {
           north: 41.0350, south: 41.0150, 
           east: 29.0350, west: 29.0050 
         }
+      },
+      'Taksim': {
+        bounds: { 
+          north: 41.0400, south: 41.0320, 
+          east: 28.9900, west: 28.9800 
+        }
+      },
+      'Ortaköy': {
+        bounds: { 
+          north: 41.0550, south: 41.0450, 
+          east: 29.0300, west: 29.0150 
+        }
+      },
+      'Karaköy': {
+        bounds: { 
+          north: 41.0280, south: 41.0200, 
+          east: 28.9800, west: 28.9700 
+        }
+      },
+      'Eminönü': {
+        bounds: { 
+          north: 41.0200, south: 41.0100, 
+          east: 28.9750, west: 28.9650 
+        }
       }
     };
 
+    // Check if location is in a known neighborhood
     for (const [name, data] of Object.entries(neighborhoods)) {
       const { bounds } = data;
       if (position.lat >= bounds.south && position.lat <= bounds.north &&
@@ -225,7 +268,27 @@ class GPSLocationService {
       }
     }
 
-    return 'Unknown Area';
+    // Fallback: Show friendly location description instead of "Unknown Area"
+    // Check if in Istanbul region (approximately)
+    const istanbulBounds = {
+      north: 41.3,
+      south: 40.8,
+      east: 29.5,
+      west: 28.5
+    };
+    
+    const isInIstanbul = position.lat >= istanbulBounds.south && 
+                        position.lat <= istanbulBounds.north &&
+                        position.lng >= istanbulBounds.west && 
+                        position.lng <= istanbulBounds.east;
+    
+    if (isInIstanbul) {
+      // In Istanbul but not in a mapped neighborhood
+      return `Istanbul (${position.lat.toFixed(4)}°, ${position.lng.toFixed(4)}°)`;
+    } else {
+      // Outside Istanbul
+      return `📍 ${position.lat.toFixed(4)}°N, ${position.lng.toFixed(4)}°E`;
+    }
   }
 
   /**
@@ -247,10 +310,10 @@ class GPSLocationService {
   /**
    * Private helper methods
    */
-  hasPositionChanged(newPos, oldPos) {
+  hasPositionChanged(newPos, oldPos, thresholdMeters = 10) {
     if (!oldPos) return true;
     const distance = this.calculateDistance(newPos, oldPos);
-    return distance > 10; // 10 meters threshold
+    return distance > thresholdMeters;
   }
 
   isPositionRecent(position) {

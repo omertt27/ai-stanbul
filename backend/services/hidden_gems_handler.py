@@ -1,20 +1,49 @@
 """
 Hidden Gems Handler
 Specialized handler for hidden gems and secret spots queries
+Enhanced with comprehensive database and intelligent filtering
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import random
+import sys
+import os
+
+# Add parent directory to path for imports
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# Import the comprehensive database
+try:
+    from backend.data.hidden_gems_database import (
+        HIDDEN_GEMS_DATABASE,
+        get_all_hidden_gems,
+        get_gems_by_neighborhood,
+        get_gems_by_type,
+        get_gems_by_category,
+        get_top_hidden_gems,
+        get_all_neighborhoods
+    )
+    DATABASE_LOADED = True
+except ImportError:
+    DATABASE_LOADED = False
+    HIDDEN_GEMS_DATABASE = {}
 
 
 class HiddenGemsHandler:
-    """Specialized handler for hidden gems and secret spots"""
+    """Enhanced handler for hidden gems and secret spots with intelligent filtering"""
     
     def __init__(self):
-        self.hidden_gems_db = self._load_hidden_gems_database()
+        self.database_available = DATABASE_LOADED
+        if not self.database_available:
+            # Fallback to inline database
+            self.hidden_gems_db = self._load_fallback_database()
+        else:
+            self.hidden_gems_db = HIDDEN_GEMS_DATABASE
         
-    def _load_hidden_gems_database(self) -> Dict:
-        """Load comprehensive hidden gems database"""
+    def _load_fallback_database(self) -> Dict:
+        """Fallback database if main database not available"""
         return {
             'sarıyer': [
                 {
@@ -241,51 +270,170 @@ class HiddenGemsHandler:
         self, 
         location: Optional[str] = None, 
         gem_type: Optional[str] = None,
-        limit: int = 5
+        category: Optional[str] = None,
+        budget: Optional[str] = None,
+        limit: int = 5,
+        min_hidden_factor: Optional[int] = None
     ) -> List[Dict]:
         """
-        Return curated hidden gems with local insights
+        Return curated hidden gems with intelligent filtering and ranking
         
         Args:
             location: Neighborhood name (optional)
-            gem_type: Type of gem (nature, food, historical, etc.)
+            gem_type: Type of gem (nature, food, historical, cafe, etc.)
+            category: Category filter (beach, hiking, restaurant, etc.)
+            budget: Budget filter ('free', 'cheap', 'moderate', 'expensive')
             limit: Maximum number of results
+            min_hidden_factor: Minimum hidden factor (1-10 scale)
             
         Returns:
-            List of hidden gem recommendations
+            List of hidden gem recommendations sorted by relevance
         """
-        if location:
-            # Normalize location name
-            location_lower = location.lower().replace('i̇', 'i')
-            gems = self.hidden_gems_db.get(location_lower, [])
+        if self.database_available:
+            # Use comprehensive database with helper functions
+            if location:
+                gems = get_gems_by_neighborhood(location)
+            else:
+                gems = get_all_hidden_gems()
+            
+            # Apply filters
+            if gem_type:
+                gems = [g for g in gems if g.get('type', '').lower() == gem_type.lower()]
+            
+            if category:
+                gems = [g for g in gems if g.get('category', '').lower() == category.lower()]
+            
+            if budget:
+                gems = self._filter_by_budget(gems, budget)
+            
+            if min_hidden_factor:
+                gems = [g for g in gems if g.get('hidden_factor', 0) >= min_hidden_factor]
+            
+            # Sort by hidden_factor for best results
+            gems = sorted(gems, key=lambda x: x.get('hidden_factor', 0), reverse=True)
         else:
-            # Get gems from all neighborhoods
-            gems = []
-            for neighborhood_gems in self.hidden_gems_db.values():
-                gems.extend(neighborhood_gems)
+            # Fallback to old method
+            if location:
+                location_lower = location.lower().replace('i̇', 'i')
+                gems = self.hidden_gems_db.get(location_lower, [])
+            else:
+                gems = []
+                for neighborhood_gems in self.hidden_gems_db.values():
+                    gems.extend(neighborhood_gems)
+            
+            if gem_type:
+                gems = [g for g in gems if g.get('type') == gem_type]
+            
+            # Add variety with shuffle
+            random.shuffle(gems)
         
-        # Filter by type if specified
-        if gem_type:
-            gems = [g for g in gems if g.get('type') == gem_type]
-        
-        # Shuffle for variety and limit
-        random.shuffle(gems)
         return gems[:limit]
     
+    def _filter_by_budget(self, gems: List[Dict], budget: str) -> List[Dict]:
+        """Filter gems by budget constraint"""
+        budget_map = {
+            'free': ['Free', 'free'],
+            'cheap': ['Free', 'free', '50-100 TL', '50-150 TL'],
+            'moderate': ['Free', 'free', '50-100 TL', '50-150 TL', '100-200 TL', '150-250 TL'],
+            'expensive': ['200-400 TL', '300-500 TL', '150-250 TL']
+        }
+        
+        allowed_costs = budget_map.get(budget.lower(), [])
+        if not allowed_costs:
+            return gems
+        
+        return [g for g in gems if any(cost in g.get('cost', '') for cost in allowed_costs)]
+    
+    def search_by_keywords(self, keywords: List[str], limit: int = 5) -> List[Dict]:
+        """Search gems by keywords in name, description, or tags"""
+        if self.database_available:
+            all_gems = get_all_hidden_gems()
+        else:
+            all_gems = []
+            for gems in self.hidden_gems_db.values():
+                all_gems.extend(gems)
+        
+        results = []
+        for gem in all_gems:
+            score = 0
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                # Check in name
+                if keyword_lower in gem.get('name', '').lower():
+                    score += 3
+                # Check in description
+                if keyword_lower in gem.get('description', '').lower():
+                    score += 2
+                # Check in tags
+                if 'tags' in gem and keyword_lower in ' '.join(gem['tags']).lower():
+                    score += 2
+                # Check in type
+                if keyword_lower in gem.get('type', '').lower():
+                    score += 1
+            
+            if score > 0:
+                gem_copy = gem.copy()
+                gem_copy['_relevance_score'] = score
+                results.append(gem_copy)
+        
+        # Sort by relevance and hidden_factor
+        results.sort(key=lambda x: (x.get('_relevance_score', 0), x.get('hidden_factor', 0)), reverse=True)
+        return results[:limit]
+    
+    def get_recommendations_by_time(self, time_of_day: str, limit: int = 5) -> List[Dict]:
+        """Get gems recommended for specific time of day"""
+        time_keywords = {
+            'morning': ['morning', 'breakfast', 'early'],
+            'afternoon': ['afternoon', 'lunch'],
+            'evening': ['evening', 'sunset', 'late afternoon'],
+            'night': ['night', 'nightlife', 'after dark']
+        }
+        
+        keywords = time_keywords.get(time_of_day.lower(), [])
+        if self.database_available:
+            all_gems = get_all_hidden_gems()
+        else:
+            all_gems = []
+            for gems in self.hidden_gems_db.values():
+                all_gems.extend(gems)
+        
+        filtered = []
+        for gem in all_gems:
+            best_time = gem.get('best_time', '').lower()
+            if any(kw in best_time for kw in keywords):
+                filtered.append(gem)
+        
+        # Sort by hidden_factor
+        filtered.sort(key=lambda x: x.get('hidden_factor', 0), reverse=True)
+        return filtered[:limit] if filtered else all_gems[:limit]
+    
     def format_hidden_gem_response(self, gems: List[Dict], query_location: Optional[str] = None) -> str:
-        """Format hidden gems into actionable response"""
+        """Format hidden gems into beautiful, actionable response with enhanced data"""
         if not gems:
             return self._get_fallback_response(query_location)
         
         location_header = f" in {query_location.title()}" if query_location else ""
         response = f"🔍 **Hidden Gems{location_header}** - Local Secrets Revealed!\n\n"
-        response += "Here are some amazing spots that most tourists never find:\n\n"
+        response += "✨ These amazing spots are known mainly to locals - you're getting insider access!\n\n"
         
         for i, gem in enumerate(gems, 1):
-            response += f"**{i}. {gem['name']}** {'✨' if i == 1 else ''}\n"
-            response += f"📍 **Type:** {gem['type'].title()}\n"
-            response += f"💡 **What It Is:** {gem['description']}\n"
+            # Star rating based on hidden_factor
+            hidden_factor = gem.get('hidden_factor', 5)
+            stars = '⭐' * min(hidden_factor // 2, 5) if hidden_factor else '✨'
             
+            response += f"**{i}. {gem['name']}** {stars}\n"
+            
+            # Type and category
+            gem_type = gem.get('type', 'N/A').title()
+            category = gem.get('category', '')
+            if category:
+                response += f"📍 **Type:** {gem_type} | **Category:** {category.title()}\n"
+            else:
+                response += f"📍 **Type:** {gem_type}\n"
+            
+            response += f"💡 **What It Is:** {gem.get('description', 'A hidden gem')}\n"
+            
+            # Enhanced fields from new database
             if gem.get('how_to_find'):
                 response += f"🗺️ **How to Find:** {gem['how_to_find']}\n"
             
@@ -298,14 +446,34 @@ class HiddenGemsHandler:
             if gem.get('cost'):
                 response += f"💰 **Cost:** {gem['cost']}\n"
             
+            # Additional enhanced fields
+            if gem.get('why_special'):
+                response += f"✨ **Why Special:** {gem['why_special']}\n"
+            
+            if gem.get('insider_knowledge'):
+                response += f"🤫 **Insider Tip:** {gem['insider_knowledge']}\n"
+            
             if gem.get('hidden_fact'):
-                response += f"🤫 **Secret:** {gem['hidden_fact']}\n"
+                response += f"🔍 **Hidden Fact:** {gem['hidden_fact']}\n"
+            
+            # Show tags if available
+            if gem.get('tags'):
+                tags_str = ' · '.join([f"#{tag}" for tag in gem['tags'][:5]])
+                response += f"🏷️ {tags_str}\n"
             
             response += "\n"
         
-        response += "💬 **Pro Tip:** These spots are authentic local favorites. "
-        response += "Don't be shy to ask locals for directions - they'll be happy to help!\n\n"
-        response += "Want more hidden gems? Ask me about a specific neighborhood! 🗺️"
+        # Add contextual footer
+        response += "💬 **Pro Tips:**\n"
+        response += "• These spots are authentic local favorites - perfect for avoiding tourist crowds\n"
+        response += "• Don't hesitate to ask locals for directions - they'll appreciate your interest\n"
+        response += "• Visit during recommended times for the best experience\n"
+        response += "• Share your discoveries but help keep them special! 🤫\n\n"
+        
+        if query_location:
+            response += f"Want more hidden gems in {query_location.title()} or other neighborhoods? Just ask! 🗺️"
+        else:
+            response += "Want gems for a specific neighborhood, time of day, or type? Just ask! 🗺️"
         
         return response
     
@@ -326,6 +494,42 @@ class HiddenGemsHandler:
         response += "Which neighborhood interests you? 😊"
         
         return response
+    
+    def extract_query_parameters(self, query: str) -> Dict[str, any]:
+        """Extract parameters from user query for intelligent filtering"""
+        query_lower = query.lower()
+        params = {
+            'location': None,
+            'gem_type': None,
+            'budget': None,
+            'time_of_day': None
+        }
+        
+        # Extract neighborhood
+        if self.database_available:
+            neighborhoods = get_all_neighborhoods()
+        else:
+            neighborhoods = list(self.hidden_gems_db.keys())
+        
+        for neighborhood in neighborhoods:
+            if neighborhood in query_lower:
+                params['location'] = neighborhood
+                break
+        
+        # Extract gem type
+        type_keywords = {
+            'nature': ['nature', 'outdoor', 'park'],
+            'cafe': ['cafe', 'coffee'],
+            'food': ['food', 'restaurant'],
+            'historical': ['historical', 'history']
+        }
+        
+        for type_name, keywords in type_keywords.items():
+            if any(kw in query_lower for kw in keywords):
+                params['gem_type'] = type_name
+                break
+        
+        return params
     
     def detect_hidden_gems_query(self, query: str) -> bool:
         """Detect if query is asking for hidden gems"""

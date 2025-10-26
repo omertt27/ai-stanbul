@@ -25,6 +25,8 @@ import DistrictInfo from './components/DistrictInfo';
 import ItineraryTimeline from './components/ItineraryTimeline';
 import MLInsights from './components/MLInsights';
 import ChatMapView from './components/ChatMapView';
+import TransportationInterface from './components/TransportationInterface';
+import { useLocation } from './contexts/LocationContext';
 import './components/Chatbot.css';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
@@ -472,6 +474,21 @@ const isExplicitPlacesRequest = (userInput) => {
 };
 
 function Chatbot() {
+  // Location Context - GPS Integration
+  const {
+    currentLocation,
+    hasLocation,
+    hasGPSLocation,
+    locationSummary,
+    neighborhood,
+    gpsPermission,
+    requestGPSLocation,
+    startGPSTracking,
+    stopGPSTracking,
+    isTracking,
+    formatLocationForAI
+  } = useLocation();
+
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
     try {
@@ -499,6 +516,10 @@ function Chatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const [typingMessage, setTypingMessage] = useState('KAM is thinking...');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  
+  // GPS UI state
+  const [showGPSStatus, setShowGPSStatus] = useState(false);
+  const [gpsEnabled, setGpsEnabled] = useState(false);
   
   // Enhanced error handling state
   const [currentError, setCurrentError] = useState(null);
@@ -577,6 +598,57 @@ function Chatbot() {
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
+  };
+
+  // GPS Location Handling
+  const handleGPSToggle = async () => {
+    try {
+      if (!gpsEnabled) {
+        setTypingMessage('Getting your precise location...');
+        setIsTyping(true);
+        
+        const location = await requestGPSLocation();
+        setGpsEnabled(true);
+        setShowGPSStatus(true);
+        
+        console.log('📍 GPS enabled with high accuracy:', location);
+        console.log(`   Accuracy: ±${location.accuracy?.toFixed(1)}m`);
+        
+        // Start continuous tracking for Google Maps-like experience
+        startGPSTracking();
+        console.log('🎯 Continuous GPS tracking active');
+        
+        setIsTyping(false);
+      } else {
+        setGpsEnabled(false);
+        stopGPSTracking();
+        setShowGPSStatus(false);
+        console.log('📍 GPS tracking stopped');
+      }
+    } catch (error) {
+      console.error('GPS toggle error:', error);
+      setIsTyping(false);
+      setCurrentError({
+        type: ErrorTypes.PERMISSION_DENIED,
+        message: 'Unable to access your location. Please enable location permissions in your browser settings.',
+        timestamp: Date.now()
+      });
+    }
+  };
+
+  // Format location context for AI
+  const getLocationContext = () => {
+    if (!hasLocation) return null;
+    
+    const locationData = formatLocationForAI();
+    return {
+      has_location: true,
+      latitude: locationData.lat,
+      longitude: locationData.lng,
+      accuracy: locationData.accuracy,
+      neighborhood: locationData.neighborhood || locationSummary,
+      source: locationData.source
+    };
   };
 
   // Enhanced effect hooks
@@ -808,12 +880,20 @@ function Chatbot() {
         });
       };
 
+      // Get location context if GPS is enabled
+      const locationContext = gpsEnabled && hasLocation ? getLocationContext() : null;
+      
+      if (locationContext) {
+        console.log('📍 Including location context:', locationContext);
+      }
+
       // Call streaming AI API with metadata support
       await fetchStreamingResults(
         processedInput,
         onChunk,
         onComplete,
-        onError
+        onError,
+        locationContext  // Include location data
       );
 
     } catch (error) {
@@ -1007,6 +1087,59 @@ function Chatbot() {
                         />
                       </div>
                     )}
+                    {/* Show transportation interface if transportation data is present */}
+                    {message.type === 'ai' && message.map_data && message.map_data.locations && message.map_data.locations.length > 1 && (
+                      <div className="transportation-container mt-4">
+                        <TransportationInterface
+                          mapData={message.map_data}
+                          initialOrigin={message.map_data.locations[0]}
+                          initialDestination={message.map_data.locations[message.map_data.locations.length - 1]}
+                          initialMode="transit"
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    )}
+                    {/* Show route timeline if route_data exists */}
+                    {message.type === 'ai' && message.route_data && message.route_data.segments && (
+                      <div className="route-timeline-container mt-4">
+                        <div className="route-summary">
+                          <h4>🗺️ Optimized Route</h4>
+                          <div className="route-stats">
+                            <span className="stat">
+                              <strong>Distance:</strong> {message.route_data.total_distance_km} km
+                            </span>
+                            <span className="stat">
+                              <strong>Duration:</strong> {message.route_data.total_duration_hours} hours
+                            </span>
+                          </div>
+                        </div>
+                        <ItineraryTimeline 
+                          itinerary={{
+                            stops: message.route_data.segments.map((seg, idx) => ({
+                              name: seg.from,
+                              description: `Walk ${seg.distance_km} km to ${seg.to}`,
+                              duration: `${seg.walking_time_min} minutes`,
+                              order: idx + 1
+                            }))
+                          }}
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    )}
+                    {/* Show ML insights if route has predictions */}
+                    {message.type === 'ai' && message.route_data && message.route_data.ml_predictions && (
+                      <div className="ml-insights-container mt-4">
+                        <MLInsights 
+                          insights={{
+                            predictions: message.route_data.ml_predictions,
+                            crowding_levels: message.route_data.ml_predictions.crowding_levels,
+                            weather_impact: message.route_data.ml_predictions.weather_impact,
+                            confidence: message.route_data.ml_predictions.confidence_score
+                          }}
+                          darkMode={darkMode}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1039,7 +1172,31 @@ function Chatbot() {
 
       {/* Chat Input */}
       <div className="chat-input-container">
+        {/* GPS Location Status */}
+        {showGPSStatus && hasLocation && (
+          <div className={`gps-status ${darkMode ? 'dark' : ''}`}>
+            <span className="location-icon">📍</span>
+            <span className="location-text">
+              {neighborhood || locationSummary}
+            </span>
+            <span className="location-accuracy">
+              {hasGPSLocation ? '(Live GPS)' : '(Cached)'}
+            </span>
+          </div>
+        )}
+        
         <div className="input-wrapper">
+          {/* GPS Toggle Button */}
+          <button
+            onClick={handleGPSToggle}
+            className={`gps-toggle-button ${gpsEnabled ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
+            aria-label="Toggle GPS location"
+            title={gpsEnabled ? 'GPS enabled - Click to disable' : 'Click to enable GPS location'}
+            disabled={loading}
+          >
+            {gpsEnabled ? '📍' : '📍'}
+          </button>
+          
           <input
             id="chat-input"
             type="text"

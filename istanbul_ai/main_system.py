@@ -629,7 +629,7 @@ class IstanbulDailyTalkAI:
         
         message_lower = message.lower().strip()
         
-        # CRITICAL: Exclude museum/attraction queries FIRST (EXPANDED LIST)
+        # CRITICAL: Exclude museum/attraction/event queries FIRST (EXPANDED LIST)
         # These should NEVER be classified as daily talk
         exclude_patterns = [
             # Museum and gallery keywords
@@ -648,6 +648,12 @@ class IstanbulDailyTalkAI:
             # Sightseeing action words
             'visit', 'see', 'show me', 'recommend', 'suggest', 'tell me about',
             'tour', 'sightseeing', 'explore', 'discover',
+            
+            # Events and entertainment keywords (IMPORTANT: These are NOT daily talk!)
+            'event', 'events', 'concert', 'concerts', 'show', 'shows', 'performance',
+            'theater', 'theatre', 'festival', 'festivals', 'cultural events',
+            'happening', 'going on', 'activities', 'entertainment', 'nightlife',
+            'iksv', 'İKSV', 'salon', 'babylon', 'music event', 'art event',
             
             # Specific services
             'restaurant', 'restaurants', 'eat', 'food', 'dining', 'lunch', 'dinner',
@@ -905,7 +911,14 @@ class IstanbulDailyTalkAI:
             return 'shopping'
         
         # Events/activities intent
-        event_keywords = ['event', 'activity', 'entertainment', 'nightlife', 'what to do']
+        event_keywords = [
+            'event', 'events', 'activity', 'activities', 'entertainment', 'nightlife', 
+            'what to do', 'things to do', 'happening', 'going on', 'concert', 'concerts', 
+            'show', 'shows', 'performance', 'performances', 'theater', 'theatre', 
+            'cultural', 'festival', 'festivals', 'exhibition', 'exhibitions', 'iksv', 
+            'İKSV', 'salon', 'babylon', 'music event', 'art event', 'tonight', 'this weekend',
+            'this week', 'this month'
+        ]
         if any(keyword in message_lower for keyword in event_keywords):
             return 'events'
         
@@ -1081,33 +1094,51 @@ class IstanbulDailyTalkAI:
             )
         
         elif intent == 'hidden_gems':
-            # Use specialized hidden gems handler
+            # Use specialized hidden gems handler with enhanced query extraction
             if self.hidden_gems_handler:
                 try:
-                    # Extract location from entities if available
-                    location = None
+                    # Extract parameters from query
+                    query_params = self.hidden_gems_handler.extract_query_parameters(message)
+                    
+                    # Override with entities if available
                     if 'location' in entities and entities['location']:
                         location = entities['location'][0] if isinstance(entities['location'], list) else entities['location']
+                        query_params['location'] = location
                     
-                    # Get hidden gems
+                    # Get hidden gems with intelligent filtering
                     gems = self.hidden_gems_handler.get_hidden_gems(
-                        location=location,
+                        location=query_params.get('location'),
+                        gem_type=query_params.get('gem_type'),
+                        budget=query_params.get('budget'),
                         limit=5
                     )
                     
-                    # Format response
-                    response = self.hidden_gems_handler.format_hidden_gem_response(gems, location)
+                    # If time-based query, get time-specific recommendations
+                    if query_params.get('time_of_day') and not gems:
+                        gems = self.hidden_gems_handler.get_recommendations_by_time(
+                            query_params['time_of_day'],
+                            limit=5
+                        )
+                    
+                    # Format response with enhanced data
+                    response = self.hidden_gems_handler.format_hidden_gem_response(
+                        gems, 
+                        query_params.get('location')
+                    )
                     
                     if return_structured:
                         return {
                             'response': response,
                             'map_data': {},
-                            'gems': gems
+                            'gems': gems,
+                            'query_params': query_params
                         }
                     return response
                     
                 except Exception as e:
                     logger.error(f"Hidden gems handler error: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
             
             # Fallback to response generator
             return self.response_generator.generate_comprehensive_recommendation(

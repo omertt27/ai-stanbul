@@ -417,6 +417,15 @@
   }
 }
 
+@keyframes gpsActivePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(138, 43, 226, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(138, 43, 226, 0);
+  }
+}
+
 /* Error States */
 .error-message {
   border-left: 4px solid #ff6b6b;
@@ -598,6 +607,77 @@
     width: 16px;
     height: 16px;
   }
+}
+
+/* GPS Location Button and Status */
+.gps-toggle-button {
+  background: rgba(138, 43, 226, 0.1);
+  border: 1px solid rgba(138, 43, 226, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 18px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.gps-toggle-button:hover:not(:disabled) {
+  background: rgba(138, 43, 226, 0.2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(138, 43, 226, 0.2);
+}
+
+.gps-toggle-button.active {
+  background: linear-gradient(135deg, #8a2be2 0%, #4b0082 100%);
+  border-color: rgba(138, 43, 226, 0.6);
+  animation: gpsActivePulse 2s ease-in-out infinite;
+}
+
+.gps-toggle-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gps-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(138, 43, 226, 0.1);
+  border: 1px solid rgba(138, 43, 226, 0.2);
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.gps-status.dark {
+  background: rgba(138, 43, 226, 0.15);
+  border-color: rgba(138, 43, 226, 0.3);
+}
+
+.gps-status .location-icon {
+  font-size: 16px;
+}
+
+.gps-status .location-text {
+  flex: 1;
+  font-size: 13px;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.gps-status .location-accuracy {
+  font-size: 11px;
+  color: #8a2be2;
+  opacity: 0.8;
+  font-weight: 500;
 }
 
 /* User Location Marker Styles */

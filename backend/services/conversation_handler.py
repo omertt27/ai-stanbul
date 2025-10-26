@@ -1,459 +1,519 @@
 """
-Conversation Handler
-Handle casual conversations, greetings, thanks, and planning queries
+Conversation Handler Service for Istanbul AI System
+Handles greetings, thanks, planning queries, farewells, and help requests
+Provides context-aware, multi-language responses
+Part of Phase 2C: Conversation Enhancement
 """
 
-from typing import Dict, List, Optional
-import random
 import re
+import logging
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+
+# Import conversation templates
+from backend.data.conversation_templates import (
+    get_random_greeting,
+    get_random_thanks_response,
+    get_random_farewell,
+    get_help_response,
+    get_itinerary_by_days,
+    PLANNING_HELP,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationHandler:
-    """Handle casual conversations and context-aware responses"""
+    """
+    Handles conversational interactions for the Istanbul AI system.
+    
+    Features:
+    - Multi-language greeting detection and response
+    - Thank you acknowledgments
+    - Trip planning assistance with itinerary generation
+    - Farewell responses
+    - Help and clarification requests
+    - Context-aware responses
+    """
     
     def __init__(self):
-        self.greeting_responses = self._load_greeting_responses()
-        self.thanks_responses = self._load_thanks_responses()
-        self.time_recommendations = self._load_time_recommendations()
-        self.help_responses = self._load_help_responses()
-    
-    def _load_greeting_responses(self) -> Dict[str, List[str]]:
-        """Load greeting response templates"""
-        return {
-            'merhaba': [
-                "🇹🇷 Merhaba! Welcome to Istanbul! I'm your AI guide. How can I help you explore this amazing city?",
-                "👋 Merhaba! Ready to discover Istanbul? Ask me anything about restaurants, attractions, or getting around!",
-                "🌟 Merhaba! I'm here to make your Istanbul experience unforgettable. What would you like to know?",
-            ],
-            'hello': [
-                "👋 Hello! Welcome to Istanbul! I'm here to help you have an amazing experience. What would you like to explore?",
-                "🌟 Hi! Great to meet you! I can help with restaurants, attractions, transportation, and local tips. What interests you?",
-                "😊 Hello there! I'm your Istanbul AI guide. Ready to discover the city? Just ask me anything!",
-                "🎉 Hey! Welcome! I know Istanbul inside and out. What can I help you with today?",
-            ],
-            'hi': [
-                "👋 Hi there! Welcome to Istanbul! What brings you to this beautiful city?",
-                "😊 Hi! Ready to explore Istanbul? I'm here to help with anything you need!",
-                "🌟 Hey! Let's make your Istanbul visit amazing. What would you like to know?",
-            ],
-            'good_morning': [
-                "☀️ Good morning! Perfect time to start exploring Istanbul! What are your plans for today?",
-                "🌅 Good morning! Istanbul is waking up beautifully. How can I help make your day amazing?",
-            ],
-            'good_evening': [
-                "🌙 Good evening! Istanbul comes alive at night! Looking for dinner spots or evening activities?",
-                "✨ Good evening! The city is magical after dark. What would you like to explore tonight?",
-            ],
-            'planning': [
-                "📋 Excited to help plan your Istanbul adventure! Let me know:\n\n" +
-                "• How many days will you be here?\n" +
-                "• What are you most interested in? (food, history, culture, nightlife)\n" +
-                "• Any specific neighborhoods you want to explore?\n\n" +
-                "Or just ask me specific questions - I'm here to help! 😊"
-            ]
-        }
-    
-    def _load_thanks_responses(self) -> List[str]:
-        """Load thank you response templates"""
-        return [
-            "😊 You're welcome! Enjoy exploring Istanbul! Feel free to ask if you need anything else.",
-            "🎉 My pleasure! Have a wonderful time in Istanbul! Don't hesitate to ask more questions.",
-            "👍 Happy to help! Wishing you an amazing Istanbul experience! Ask anytime! 🌟",
-            "💫 You're very welcome! Hope you have an incredible time in Istanbul!",
-            "✨ Glad I could help! Enjoy every moment in this beautiful city!",
-            "🙏 You're welcome! Have a fantastic Istanbul adventure! I'm here if you need more tips!",
-            "😊 No problem at all! Make the most of your Istanbul visit! Come back with more questions anytime!",
-            "🌟 Always happy to help! Enjoy Istanbul - you're going to love it!",
+        """Initialize the conversation handler"""
+        # Pattern definitions for intent detection
+        self.greeting_patterns = [
+            r'\b(hi|hello|hey|greetings?|good\s+(morning|afternoon|evening|day))\b',
+            r'\b(merhaba|selam|günaydın|iyi\s+günler|hoş\s+geldiniz)\b',
+            r'^(hi+|hey+|hello+)[\s!.]*$',  # Simple greetings
         ]
+        
+        self.thanks_patterns = [
+            r'\b(thanks?|thank\s+you|thx|tysm|appreciate)\b',
+            r'\b(teşekkür|teşekkürler|sağol|sağolun)\b',
+            r'^(thanks?|ty|thx)[\s!.]*$',
+        ]
+        
+        self.farewell_patterns = [
+            r'\b(bye|goodbye|see\s+you|farewell|take\s+care|cya)\b',
+            r'\b(güle\s+güle|hoşça\s+kal|görüşürüz|allaha\s+ısmarladık)\b',
+            r'^(bye+|cya|bb)[\s!.]*$',
+        ]
+        
+        self.planning_patterns = [
+            r'\b(plan|planning|itinerary|schedule|trip)\b',
+            r'\b(how\s+many\s+days?|staying\s+for|\d+\s+days?)\b',
+            r'\b(visit\s+plan|travel\s+plan|help\s+me\s+plan)\b',
+            r'\b(suggest.*itinerary|recommend.*itinerary|create.*plan)\b',
+            r'\b(plan|planlama|program|gezi\s+planı)\b',
+        ]
+        
+        self.help_patterns = [
+            r'\b(help|assist|support|guide|confused|don\'t\s+understand)\b',
+            r'\b(yardım|destek|anlamadım|anlayamadım)\b',
+            r'^(help|what|huh|\?)[\s!.]*$',
+            r'\b(what\s+can\s+you\s+do|how\s+do\s+you\s+work)\b',
+        ]
+        
+        logger.info("✅ Conversation Handler initialized successfully")
     
-    def _load_time_recommendations(self) -> Dict[str, Dict]:
-        """Load time-based itinerary recommendations"""
-        return {
-            '1_day': {
-                'itinerary': 'Sultanahmet Focus - The Highlights',
-                'realistic': "You'll see the main highlights but it will be rushed",
-                'spots': [
-                    'Hagia Sophia (1.5 hours)',
-                    'Blue Mosque (45 min)',
-                    'Grand Bazaar (1 hour)',
-                    'Topkapı Palace (2 hours)',
-                ],
-                'tip': 'Start early (8 AM) to beat crowds. Skip the palace if tight on time.',
-                'transportation': 'Walk between sites in Sultanahmet - everything is close!'
-            },
-            '2_days': {
-                'itinerary': 'Sultanahmet + Beyoğlu - Old & New Istanbul',
-                'realistic': 'Good introduction to both historical and modern Istanbul',
-                'day1': {
-                    'title': 'Day 1: Historical Peninsula',
-                    'spots': ['Hagia Sophia', 'Blue Mosque', 'Basilica Cistern', 'Grand Bazaar'],
-                    'tip': 'Lunch at local restaurant near Grand Bazaar'
-                },
-                'day2': {
-                    'title': 'Day 2: Modern Istanbul + Bosphorus',
-                    'spots': ['Galata Tower', 'Istiklal Street', 'Taksim Square', 'Bosphorus Ferry'],
-                    'tip': 'Take sunset Bosphorus ferry for best views'
-                },
-                'transportation': 'Day 1: Walk. Day 2: Tram + Metro + Ferry'
-            },
-            '3_days': {
-                'itinerary': 'Comprehensive Istanbul - Best Balance',
-                'realistic': "Perfect! You'll experience the real Istanbul with good pacing",
-                'day1': {
-                    'title': 'Day 1: Sultanahmet',
-                    'spots': ['Hagia Sophia', 'Blue Mosque', 'Topkapı Palace', 'Basilica Cistern'],
-                    'tip': 'Book Topkapı Palace ticket online to skip lines'
-                },
-                'day2': {
-                    'title': 'Day 2: Beyoğlu + Bosphorus',
-                    'spots': ['Galata Tower', 'Istiklal Street', 'Taksim', 'Bosphorus Cruise'],
-                    'tip': 'Have dinner in Karaköy - great food scene'
-                },
-                'day3': {
-                    'title': 'Day 3: Asian Side',
-                    'spots': ['Kadıköy Market', 'Moda Walk', 'Çamlıca Hill', 'Maiden\'s Tower'],
-                    'tip': 'Less touristy, more authentic local experience'
-                },
-                'transportation': 'Use Istanbulkart for all public transport'
-            },
-            '4_days': {
-                'itinerary': 'Extended Istanbul - Deeper Exploration',
-                'realistic': 'Excellent! Time to explore neighborhoods and hidden gems',
-                'highlights': [
-                    'Day 1: Sultanahmet basics',
-                    'Day 2: Beyoğlu + Bosphorus',
-                    'Day 3: Asian side',
-                    'Day 4: Balat/Fener + Ortaköy OR Princes\' Islands day trip'
-                ],
-                'tip': 'You have time for a Turkish bath experience and evening activities'
-            },
-            '5_days': {
-                'itinerary': 'Deep Dive Istanbul - Like a Local',
-                'realistic': 'Ideal! Time to explore like a local with no rushing',
-                'highlights': [
-                    'All major areas covered thoroughly',
-                    'Day trips possible (Princes\' Islands, Şile, Bursa)',
-                    'Time for local experiences (cooking class, hammam, etc.)',
-                    'Explore hidden neighborhoods',
-                    'Evening entertainment (rooftop bars, live music)'
-                ],
-                'tip': 'Add a day trip to Princes\' Islands or Bursa for variety'
-            },
-            '7_days': {
-                'itinerary': 'Ultimate Istanbul Experience',
-                'realistic': 'Perfect for slow travel and deep cultural immersion',
-                'highlights': [
-                    'All major attractions without rushing',
-                    'Multiple day trips',
-                    'Deep dive into specific neighborhoods',
-                    'Cultural experiences (workshops, classes)',
-                    'Time for spontaneous discoveries',
-                    'Experience local daily life'
-                ],
-                'tip': 'Consider splitting time: 5 days Istanbul + 2 days Cappadocia or Bursa'
-            }
-        }
-    
-    def _load_help_responses(self) -> Dict[str, str]:
-        """Load help and confused responses"""
-        return {
-            'help': """🤔 **Not sure what to ask? I can help with:**
-
-**🍽️ Food & Dining:**
-- Restaurant recommendations (by cuisine, area, budget)
-- Traditional Turkish dishes
-- Street food spots
-- Budget-friendly eats
-
-**🏛️ Places & Attractions:**
-- Must-see attractions
-- Hidden gems
-- Museums and historical sites
-- Neighborhoods to explore
-
-**🚇 Transportation:**
-- How to get around
-- Metro/tram/ferry routes
-- Airport transfers
-- Istanbulkart information
-
-**🗺️ Planning:**
-- Itinerary suggestions
-- Time-based recommendations
-- Day trips
-- Route planning
-
-**💰 Budget:**
-- Free things to do
-- Budget-friendly options
-- Cost estimates
-
-**🌤️ Weather & Timing:**
-- Weather-appropriate activities
-- Best times to visit places
-- Seasonal recommendations
-
-**💡 Local Tips:**
-- Insider advice
-- Cultural etiquette
-- Safety tips
-- Turkish phrases
-
-Just ask me anything! For example: "Best restaurants in Beyoğlu" or "Things to do on a rainy day" 😊""",
+    def detect_intent(self, query: str) -> Tuple[str, float]:
+        """
+        Detect the conversational intent of the query.
+        
+        Args:
+            query: User's input query
             
-            'confused': """😊 **I'm here to help! Let me make it easier:**
-
-Try asking me:
-• "Best restaurants near [location]"
-• "What to see in [neighborhood]"
-• "How to get from [A] to [B]"
-• "Free things to do in Istanbul"
-• "Hidden gems in Istanbul"
-• "Best places for [cuisine] food"
-• "What to do with [X] days in Istanbul"
-
-Or just tell me what you're interested in! 🌟""",
+        Returns:
+            Tuple of (intent_type, confidence_score)
+            intent_type: 'greeting', 'thanks', 'farewell', 'planning', 'help', or 'none'
+            confidence_score: 0.0 to 1.0
+        """
+        query_lower = query.lower().strip()
+        
+        # Check each pattern type with priority order
+        # Priority: farewell > greeting > thanks > planning > help
+        
+        # Check farewell (highest priority for clear exits)
+        for pattern in self.farewell_patterns:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                # Higher confidence for exact matches
+                confidence = 0.95 if len(query.split()) <= 3 else 0.85
+                return ('farewell', confidence)
+        
+        # Check greeting
+        for pattern in self.greeting_patterns:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                confidence = 0.95 if len(query.split()) <= 4 else 0.85
+                return ('greeting', confidence)
+        
+        # Check thanks
+        for pattern in self.thanks_patterns:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                confidence = 0.95 if len(query.split()) <= 5 else 0.80
+                return ('thanks', confidence)
+        
+        # Check planning
+        for pattern in self.planning_patterns:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                confidence = 0.90
+                return ('planning', confidence)
+        
+        # Check help
+        for pattern in self.help_patterns:
+            if re.search(pattern, query_lower, re.IGNORECASE):
+                confidence = 0.85
+                return ('help', confidence)
+        
+        return ('none', 0.0)
+    
+    def extract_trip_duration(self, query: str) -> Optional[int]:
+        """
+        Extract trip duration (number of days) from query.
+        
+        Args:
+            query: User's input query
             
-            'not_understood': """🤔 **I want to help, but I'm not quite sure what you're looking for.**
-
-Could you try:
-• Being more specific? (e.g., "seafood restaurants in Karaköy")
-• Asking about a particular topic? (food, attractions, transportation)
-• Rephrasing your question?
-
-Type "help" to see what I can do! 😊"""
-        }
-    
-    def detect_greeting(self, query: str) -> Optional[str]:
-        """Detect greeting type in query"""
-        query_lower = query.lower().strip()
-        
-        # Turkish greetings
-        if any(word in query_lower for word in ['merhaba', 'selam', 'selamlar']):
-            return 'merhaba'
-        
-        # Time-based greetings
-        if any(phrase in query_lower for phrase in ['good morning', 'günaydın']):
-            return 'good_morning'
-        if any(phrase in query_lower for phrase in ['good evening', 'iyi akşamlar', 'good night']):
-            return 'good_evening'
-        
-        # Planning queries
-        if any(word in query_lower for word in ['plan', 'planning', 'itinerary', 'schedule']):
-            if any(word in query_lower for word in ['help', 'need', 'want', 'how to']):
-                return 'planning'
-        
-        # Basic greetings
-        if query_lower in ['hi', 'hey', 'hello', 'yo', 'hola']:
-            if len(query.split()) <= 2:  # Short greeting
-                return 'hi' if query_lower in ['hi', 'hey', 'yo'] else 'hello'
-        
-        # Longer hello patterns
-        if query_lower.startswith(('hello ', 'hi ', 'hey ')):
-            return 'hello'
-        
-        return None
-    
-    def detect_thanks(self, query: str) -> bool:
-        """Detect thank you in query"""
-        query_lower = query.lower().strip()
-        
-        thanks_patterns = [
-            'thank', 'thanks', 'thx', 'ty', 'thank you',
-            'teşekkür', 'teşekkürler', 'sağol', 'sağolun',
-            'appreciate', 'grateful', 'awesome', 'perfect',
-            'great', 'excellent', 'helpful', 'nice'
-        ]
-        
-        # Check if it's a short thanks message
-        words = query_lower.split()
-        if len(words) <= 4:
-            return any(pattern in query_lower for pattern in thanks_patterns)
-        
-        # Check if thanks is prominent in longer messages
-        if len(words) <= 10:
-            return any(query_lower.startswith(pattern) for pattern in thanks_patterns[:8])
-        
-        return False
-    
-    def detect_help_request(self, query: str) -> Optional[str]:
-        """Detect help/confused queries"""
-        query_lower = query.lower().strip()
-        
-        # Direct help request
-        if query_lower in ['help', 'help me', 'yardım', 'yardım et']:
-            return 'help'
-        
-        # Confused/not sure
-        confused_patterns = [
-            "don't know", "not sure", "confused", "what can you",
-            "what do you", "can you help", "i need help"
-        ]
-        if any(pattern in query_lower for pattern in confused_patterns):
-            return 'confused'
-        
-        # Too vague
-        if query_lower in ['?', '??', 'hm', 'hmm', 'what', 'huh']:
-            return 'not_understood'
-        
-        return None
-    
-    def detect_time_duration(self, query: str) -> Optional[str]:
-        """Extract time duration from query (e.g., '3 days')"""
+        Returns:
+            Number of days as integer, or None if not found
+        """
         query_lower = query.lower()
         
-        # Pattern: number + day(s)
-        patterns = [
-            r'(\d+)\s*day',
-            r'one\s+day',
-            r'two\s+days',
-            r'three\s+days',
-            r'a\s+day',
-        ]
+        # Pattern 1: "X days" or "X day"
+        match = re.search(r'(\d+)\s*days?', query_lower)
+        if match:
+            return int(match.group(1))
         
-        for pattern in patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                if 'one' in query_lower or 'a day' in query_lower:
-                    return '1_day'
-                elif 'two' in query_lower:
-                    return '2_days'
-                elif 'three' in query_lower:
-                    return '3_days'
-                else:
-                    try:
-                        days = int(match.group(1))
-                        if days == 1:
-                            return '1_day'
-                        elif days == 2:
-                            return '2_days'
-                        elif days == 3:
-                            return '3_days'
-                        elif days == 4:
-                            return '4_days'
-                        elif days in [5, 6]:
-                            return '5_days'
-                        elif days >= 7:
-                            return '7_days'
-                    except (ValueError, IndexError):
-                        pass
+        # Pattern 2: "staying for X" or "X nights"
+        match = re.search(r'(?:staying|here)\s+(?:for\s+)?(\d+)', query_lower)
+        if match:
+            return int(match.group(1))
+        
+        # Pattern 3: Number words (one, two, three, etc.)
+        number_words = {
+            'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+            'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+            'bir': 1, 'iki': 2, 'üç': 3, 'dört': 4, 'beş': 5,
+            'altı': 6, 'yedi': 7, 'sekiz': 8, 'dokuz': 9, 'on': 10
+        }
+        
+        for word, number in number_words.items():
+            if re.search(r'\b' + word + r'\s+days?', query_lower):
+                return number
         
         return None
     
-    def handle_greeting(self, query: str) -> str:
-        """Generate context-aware greeting response"""
-        greeting_type = self.detect_greeting(query)
+    def detect_language(self, query: str) -> str:
+        """
+        Detect the language of the query (Turkish or English).
         
-        if greeting_type and greeting_type in self.greeting_responses:
-            responses = self.greeting_responses[greeting_type]
-            return random.choice(responses)
-        
-        # Default greeting
-        return random.choice(self.greeting_responses['hello'])
-    
-    def handle_thanks(self) -> str:
-        """Generate friendly acknowledgment"""
-        return random.choice(self.thanks_responses)
-    
-    def handle_help(self, help_type: str = 'help') -> str:
-        """Generate help response"""
-        return self.help_responses.get(help_type, self.help_responses['help'])
-    
-    def recommend_duration(self, query: str) -> Optional[str]:
-        """Generate personalized itinerary based on available time"""
-        duration = self.detect_time_duration(query)
-        
-        if not duration:
-            return None
-        
-        recommendation = self.time_recommendations.get(duration)
-        if not recommendation:
-            return None
-        
-        # Format response
-        response = f"**{recommendation['itinerary']}**\n\n"
-        response += f"✅ **Realistic Assessment:** {recommendation['realistic']}\n\n"
-        
-        if duration in ['1_day', '2_days', '3_days']:
-            if duration == '1_day':
-                response += "**Suggested Itinerary:**\n"
-                for spot in recommendation['spots']:
-                    response += f"• {spot}\n"
-                response += f"\n💡 **Pro Tip:** {recommendation['tip']}\n"
-                response += f"🚇 **Transportation:** {recommendation['transportation']}\n"
+        Args:
+            query: User's input query
             
-            elif duration == '2_days':
-                response += f"**{recommendation['day1']['title']}:**\n"
-                for spot in recommendation['day1']['spots']:
-                    response += f"• {spot}\n"
-                response += f"💡 Tip: {recommendation['day1']['tip']}\n\n"
-                
-                response += f"**{recommendation['day2']['title']}:**\n"
-                for spot in recommendation['day2']['spots']:
-                    response += f"• {spot}\n"
-                response += f"💡 Tip: {recommendation['day2']['tip']}\n\n"
-                
-                response += f"🚇 **Transportation:** {recommendation['transportation']}\n"
-            
-            elif duration == '3_days':
-                for day_key in ['day1', 'day2', 'day3']:
-                    day = recommendation[day_key]
-                    response += f"**{day['title']}:**\n"
-                    for spot in day['spots']:
-                        response += f"• {spot}\n"
-                    response += f"💡 Tip: {day['tip']}\n\n"
-                
-                response += f"🚇 **Transportation:** {recommendation['transportation']}\n"
+        Returns:
+            'turkish' or 'english'
+        """
+        query_lower = query.lower()
         
+        # Turkish-specific words and patterns
+        turkish_indicators = [
+            'merhaba', 'selam', 'teşekkür', 'sağol', 'güle', 'hoşça',
+            'günaydın', 'naber', 'nasılsın', 'yardım', 'lütfen',
+            'kaç', 'gün', 'gezi', 'plan', 'öner', 'göster'
+        ]
+        
+        # Count Turkish indicators
+        turkish_count = sum(1 for indicator in turkish_indicators if indicator in query_lower)
+        
+        # If we have Turkish indicators, it's Turkish
+        if turkish_count > 0:
+            return 'turkish'
+        
+        # Default to English
+        return 'english'
+    
+    def handle_greeting(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """
+        Handle greeting queries.
+        
+        Args:
+            query: User's greeting message
+            context: Optional conversation context
+            
+        Returns:
+            Response dictionary with message and metadata
+        """
+        language = self.detect_language(query)
+        greeting = get_random_greeting(language)
+        
+        # Add personalization if context available
+        if context and 'user_name' in context:
+            if language == 'turkish':
+                greeting = f"{greeting}\n\nHoş geldiniz {context['user_name']}! 🌟"
+            else:
+                greeting = f"{greeting}\n\nWelcome {context['user_name']}! 🌟"
+        
+        return {
+            'message': greeting,
+            'intent': 'greeting',
+            'language': language,
+            'confidence': 0.95
+        }
+    
+    def handle_thanks(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """
+        Handle thank you messages.
+        
+        Args:
+            query: User's thanks message
+            context: Optional conversation context
+            
+        Returns:
+            Response dictionary with message and metadata
+        """
+        language = self.detect_language(query)
+        thanks_response = get_random_thanks_response(language)
+        
+        return {
+            'message': thanks_response,
+            'intent': 'thanks',
+            'language': language,
+            'confidence': 0.90
+        }
+    
+    def handle_farewell(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """
+        Handle farewell messages.
+        
+        Args:
+            query: User's farewell message
+            context: Optional conversation context
+            
+        Returns:
+            Response dictionary with message and metadata
+        """
+        language = self.detect_language(query)
+        farewell = get_random_farewell(language)
+        
+        return {
+            'message': farewell,
+            'intent': 'farewell',
+            'language': language,
+            'confidence': 0.95,
+            'end_conversation': True  # Signal to end conversation
+        }
+    
+    def handle_help(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """
+        Handle help and clarification requests.
+        
+        Args:
+            query: User's help request
+            context: Optional conversation context
+            
+        Returns:
+            Response dictionary with message and metadata
+        """
+        language = self.detect_language(query)
+        help_response = get_help_response(language)
+        
+        return {
+            'message': help_response,
+            'intent': 'help',
+            'language': language,
+            'confidence': 0.85
+        }
+    
+    def handle_planning(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """
+        Handle trip planning queries with itinerary generation.
+        
+        Args:
+            query: User's planning query
+            context: Optional conversation context with preferences
+            
+        Returns:
+            Response dictionary with itinerary and metadata
+        """
+        language = self.detect_language(query)
+        
+        # Try to extract trip duration
+        days = self.extract_trip_duration(query)
+        
+        if days:
+            # Generate itinerary for specified duration
+            itinerary = get_itinerary_by_days(days)
+            response = self._format_itinerary_response(itinerary, days, language, context)
         else:
-            # 4+ days
-            response += "**Suggested Plan:**\n"
-            for highlight in recommendation['highlights']:
-                response += f"• {highlight}\n"
-            response += f"\n💡 **Pro Tip:** {recommendation['tip']}\n"
+            # Ask for duration if not specified
+            planning_help = PLANNING_HELP[language]
+            response = f"{planning_help['intro']}\n\n{planning_help['duration_question']}"
         
-        response += "\n\nWant specific recommendations for any part of your itinerary? Just ask! 😊"
+        return {
+            'message': response,
+            'intent': 'planning',
+            'language': language,
+            'confidence': 0.90,
+            'trip_duration': days,
+            'requires_followup': days is None  # Need more info if no duration
+        }
+    
+    def _format_itinerary_response(self, itinerary: Dict, days: int, 
+                                    language: str, context: Optional[Dict] = None) -> str:
+        """
+        Format itinerary data into a readable response.
+        
+        Args:
+            itinerary: Itinerary dictionary from templates
+            days: Number of days
+            language: Response language
+            context: Optional user context (budget, interests)
+            
+        Returns:
+            Formatted itinerary string
+        """
+        # Header
+        if language == 'turkish':
+            header = f"🗓️ **{days} Günlük İstanbul Gezisi**\n"
+            header += f"_{itinerary.get('description', '')}_ \n\n"
+        else:
+            header = f"🗓️ **{itinerary['title']}**\n"
+            header += f"_{itinerary.get('description', '')}_ \n\n"
+        
+        response = header
+        
+        # For 1-2 day itineraries, show detailed schedule
+        if days <= 2 and 'schedule' in itinerary:
+            response += self._format_detailed_schedule(itinerary['schedule'], language)
+        elif days == 2 and 'day1' in itinerary:
+            # 2-day format with separate days
+            response += f"**{itinerary['day1']['title']}:**\n"
+            response += self._format_detailed_schedule(itinerary['day1']['schedule'], language)
+            response += f"\n**{itinerary['day2']['title']}:**\n"
+            response += self._format_detailed_schedule(itinerary['day2']['schedule'], language)
+        else:
+            # For longer trips, show summary
+            response += self._format_summary_itinerary(itinerary, language)
+        
+        # Budget information
+        if 'total_cost' in itinerary:
+            if language == 'turkish':
+                response += "\n\n💰 **Tahmini Bütçe:**\n"
+            else:
+                response += "\n\n💰 **Estimated Budget:**\n"
+            
+            # Determine user's budget level from context
+            budget_level = 'moderate'  # default
+            if context and 'budget_level' in context:
+                budget_level = context['budget_level']
+            
+            for level, cost in itinerary['total_cost'].items():
+                marker = "➡️ " if level == budget_level else ""
+                level_name = level.capitalize()
+                response += f"{marker}**{level_name}:** {cost}\n"
+        
+        # Additional tips
+        if language == 'turkish':
+            response += "\n\n💡 **İpucu:** Daha detaylı bilgi için bana sorun!"
+        else:
+            response += "\n\n💡 **Tip:** Ask me for more details about any attraction or activity!"
         
         return response
     
+    def _format_detailed_schedule(self, schedule: List[Dict], language: str) -> str:
+        """Format detailed schedule for 1-2 day itineraries"""
+        formatted = ""
+        
+        for item in schedule:
+            time = item.get('time', '')
+            activity = item.get('activity', '')
+            details = item.get('details', '')
+            cost = item.get('cost', '')
+            tips = item.get('tips', '')
+            
+            formatted += f"\n**{time}** - {activity}\n"
+            if details:
+                formatted += f"_{details}_\n"
+            if cost:
+                formatted += f"💰 {cost}\n"
+            if tips:
+                formatted += f"💡 {tips}\n"
+        
+        return formatted
+    
+    def _format_summary_itinerary(self, itinerary: Dict, language: str) -> str:
+        """Format summary for longer itineraries (3+ days)"""
+        formatted = ""
+        
+        if 'summary' in itinerary:
+            formatted += f"{itinerary['summary']}\n\n"
+        
+        if 'highlights' in itinerary:
+            if language == 'turkish':
+                formatted += "**Öne Çıkanlar:**\n"
+            else:
+                formatted += "**Highlights:**\n"
+            
+            for highlight in itinerary['highlights']:
+                formatted += f"✨ {highlight}\n"
+        
+        if 'daily_highlights' in itinerary:
+            formatted += "\n"
+            for day_highlight in itinerary['daily_highlights']:
+                formatted += f"📍 {day_highlight}\n"
+        
+        return formatted
+    
+    def process_query(self, query: str, context: Optional[Dict] = None) -> Optional[Dict]:
+        """
+        Main entry point: detect intent and route to appropriate handler.
+        
+        Args:
+            query: User's input query
+            context: Optional conversation context
+            
+        Returns:
+            Response dictionary if conversational intent detected, None otherwise
+        """
+        # Detect intent
+        intent, confidence = self.detect_intent(query)
+        
+        # If no conversational intent or low confidence, return None
+        if intent == 'none' or confidence < 0.70:
+            return None
+        
+        # Route to appropriate handler
+        if intent == 'greeting':
+            return self.handle_greeting(query, context)
+        elif intent == 'thanks':
+            return self.handle_thanks(query, context)
+        elif intent == 'farewell':
+            return self.handle_farewell(query, context)
+        elif intent == 'planning':
+            return self.handle_planning(query, context)
+        elif intent == 'help':
+            return self.handle_help(query, context)
+        
+        return None
+    
+    # ============ Legacy compatibility methods ============
+    # These methods maintain backward compatibility with existing code
+    
     def is_conversational_query(self, query: str) -> bool:
-        """Check if query is conversational"""
-        return (
-            self.detect_greeting(query) is not None or
-            self.detect_thanks(query) or
-            self.detect_help_request(query) is not None or
-            self.detect_time_duration(query) is not None
-        )
+        """Check if query is conversational (legacy compatibility)"""
+        intent, confidence = self.detect_intent(query)
+        return intent != 'none' and confidence >= 0.70
     
     def handle_conversation(self, query: str) -> Optional[str]:
-        """Main handler for conversational queries"""
-        # Check for greeting
-        if self.detect_greeting(query):
-            return self.handle_greeting(query)
-        
-        # Check for thanks
-        if self.detect_thanks(query):
-            return self.handle_thanks()
-        
-        # Check for help
-        help_type = self.detect_help_request(query)
-        if help_type:
-            return self.handle_help(help_type)
-        
-        # Check for time-based planning
-        duration_response = self.recommend_duration(query)
-        if duration_response:
-            return duration_response
-        
+        """Main handler for conversational queries (legacy compatibility)"""
+        result = self.process_query(query)
+        if result:
+            return result['message']
+        return None
+    
+    def detect_greeting(self, query: str) -> Optional[str]:
+        """Detect greeting type in query (legacy compatibility)"""
+        intent, confidence = self.detect_intent(query)
+        if intent == 'greeting' and confidence >= 0.70:
+            return 'greeting'
+        return None
+    
+    def detect_thanks(self, query: str) -> bool:
+        """Detect thank you in query (legacy compatibility)"""
+        intent, confidence = self.detect_intent(query)
+        return intent == 'thanks' and confidence >= 0.70
+    
+    def detect_help_request(self, query: str) -> Optional[str]:
+        """Detect help/confused queries (legacy compatibility)"""
+        intent, confidence = self.detect_intent(query)
+        if intent == 'help' and confidence >= 0.70:
+            return 'help'
+        return None
+    
+    def recommend_duration(self, query: str) -> Optional[str]:
+        """Generate personalized itinerary based on available time (legacy compatibility)"""
+        result = self.process_query(query)
+        if result and result['intent'] == 'planning':
+            return result['message']
         return None
 
 
-# Singleton instance
-_conversation_handler = None
+# ==================== SINGLETON INSTANCE ====================
+
+_conversation_handler_instance = None
+
 
 def get_conversation_handler() -> ConversationHandler:
-    """Get or create conversation handler instance"""
-    global _conversation_handler
-    if _conversation_handler is None:
-        _conversation_handler = ConversationHandler()
-    return _conversation_handler
+    """Get or create singleton conversation handler instance"""
+    global _conversation_handler_instance
+    
+    if _conversation_handler_instance is None:
+        _conversation_handler_instance = ConversationHandler()
+        logger.info("💬 Conversation Handler instance created")
+    
+    return _conversation_handler_instance
+
+
+# ==================== EXPORT ====================
+
+__all__ = [
+    'ConversationHandler',
+    'get_conversation_handler',
+]
