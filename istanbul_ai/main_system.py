@@ -109,6 +109,37 @@ except ImportError as e:
     logger.warning(f"⚠️ Multi-Intent Query Handler not available: {e}")
     MULTI_INTENT_HANDLER_AVAILABLE = False
 
+# Import Advanced Personalization System
+try:
+    from backend.services.advanced_personalization import AdvancedPersonalizationSystem
+    ADVANCED_PERSONALIZATION_AVAILABLE = True
+    logger.info("✅ Advanced Personalization System loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Advanced Personalization System not available: {e}")
+    ADVANCED_PERSONALIZATION_AVAILABLE = False
+
+# Import Real-time Feedback Loop System
+try:
+    from backend.services.feedback_loop import FeedbackLoopSystem
+    FEEDBACK_LOOP_AVAILABLE = True
+    logger.info("✅ Real-time Feedback Loop System loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Real-time Feedback Loop System not available: {e}")
+    FEEDBACK_LOOP_AVAILABLE = False
+
+# Import ML-Enhanced Handlers
+try:
+    from istanbul_ai.handlers.event_handler import create_ml_enhanced_event_handler
+    from istanbul_ai.handlers.hidden_gems_handler import create_ml_enhanced_hidden_gems_handler
+    from istanbul_ai.handlers.weather_handler import create_ml_enhanced_weather_handler
+    from istanbul_ai.handlers.route_planning_handler import create_ml_enhanced_route_planning_handler
+    from istanbul_ai.handlers.neighborhood_handler import create_ml_enhanced_neighborhood_handler
+    ML_ENHANCED_HANDLERS_AVAILABLE = True
+    logger.info("✅ ML-Enhanced Handlers loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ ML-Enhanced Handlers not available: {e}")
+    ML_ENHANCED_HANDLERS_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -318,6 +349,155 @@ class IstanbulDailyTalkAI:
         except ImportError as e:
             logger.warning(f"Weather System not available: {e}")
             self.weather_client = None
+
+        # Initialize ML Context Builder once (shared across all ML handlers)
+        self.ml_context_builder = None
+        try:
+            from backend.services.ml_context_builder import MLContextBuilder
+            self.ml_context_builder = MLContextBuilder()
+            logger.info("🧠 ML Context Builder initialized (shared across handlers)")
+        except ImportError as e:
+            logger.warning(f"ML Context Builder not available: {e}")
+
+        # Initialize ML-Enhanced Handlers (with required dependencies)
+        try:
+            if self.events_service and self.neural_processor and self.response_generator:
+                ml_context_builder = self.ml_context_builder
+                
+                if ml_context_builder:
+                    self.ml_event_handler = create_ml_enhanced_event_handler(
+                        events_service=self.events_service,
+                        ml_context_builder=ml_context_builder,
+                        ml_processor=self.neural_processor,
+                        response_generator=self.response_generator
+                    )
+                    logger.info("🎭 ML-Enhanced Event Handler initialized successfully!")
+                else:
+                    logger.warning("ML Context Builder not available, skipping ML Event Handler")
+                    self.ml_event_handler = None
+            else:
+                logger.warning("Required dependencies not available for ML Event Handler")
+                self.ml_event_handler = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Event Handler: {e}")
+            self.ml_event_handler = None
+
+        try:
+            if self.hidden_gems_handler and self.neural_processor and self.response_generator:
+                ml_context_builder = self.ml_context_builder
+                
+                if ml_context_builder:
+                    self.ml_hidden_gems_handler = create_ml_enhanced_hidden_gems_handler(
+                        hidden_gems_service=self.hidden_gems_handler,
+                        ml_context_builder=ml_context_builder,
+                        ml_processor=self.neural_processor,
+                        response_generator=self.response_generator
+                    )
+                    logger.info("💎 ML-Enhanced Hidden Gems Handler initialized successfully!")
+                else:
+                    logger.warning("ML Context Builder not available, skipping ML Hidden Gems Handler")
+                    self.ml_hidden_gems_handler = None
+            else:
+                logger.warning("Required dependencies not available for ML Hidden Gems Handler")
+                self.ml_hidden_gems_handler = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Hidden Gems Handler: {e}")
+            self.ml_hidden_gems_handler = None
+
+        try:
+            if self.weather_client and self.weather_recommendations and self.neural_processor and self.response_generator:
+                ml_context_builder = self.ml_context_builder
+                
+                if ml_context_builder:
+                    self.ml_weather_handler = create_ml_enhanced_weather_handler(
+                        weather_service=self.weather_client,
+                        weather_recommendations_service=self.weather_recommendations,
+                        ml_context_builder=ml_context_builder,
+                        ml_processor=self.neural_processor,
+                        response_generator=self.response_generator
+                    )
+                    logger.info("🌤️ ML-Enhanced Weather Handler initialized successfully!")
+                else:
+                    logger.warning("ML Context Builder not available, skipping ML Weather Handler")
+                    self.ml_weather_handler = None
+            else:
+                logger.warning("Required dependencies not available for ML Weather Handler")
+                self.ml_weather_handler = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Weather Handler: {e}")
+            self.ml_weather_handler = None
+
+        try:
+            # Use the advanced route planner and transport system if available
+            route_service = getattr(self, 'advanced_route_planner', None) or getattr(self, 'gps_route_planner', None)
+            transport_service = getattr(self, 'transport_processor', None)
+            
+            if route_service and transport_service and self.neural_processor and self.response_generator:
+                ml_context_builder = self.ml_context_builder
+                
+                if ml_context_builder:
+                    self.ml_route_planning_handler = create_ml_enhanced_route_planning_handler(
+                        route_planner_service=route_service,
+                        transport_service=transport_service,
+                        ml_context_builder=ml_context_builder,
+                        ml_processor=self.neural_processor,
+                        response_generator=self.response_generator
+                    )
+                    logger.info("🗺️ ML-Enhanced Route Planning Handler initialized successfully!")
+                else:
+                    logger.warning("ML Context Builder not available, skipping ML Route Planning Handler")
+                    self.ml_route_planning_handler = None
+            else:
+                logger.warning("Required dependencies not available for ML Route Planning Handler")
+                self.ml_route_planning_handler = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Route Planning Handler: {e}")
+            self.ml_route_planning_handler = None
+
+        try:
+            # Use response generator as neighborhood service (it has neighborhood data)
+            if self.response_generator and self.neural_processor:
+                ml_context_builder = self.ml_context_builder
+                
+                if ml_context_builder:
+                    self.ml_neighborhood_handler = create_ml_enhanced_neighborhood_handler(
+                        neighborhood_service=self.response_generator,  # has neighborhood data
+                        ml_context_builder=ml_context_builder,
+                        ml_processor=self.neural_processor,
+                        response_generator=self.response_generator
+                    )
+                    logger.info("🏘️ ML-Enhanced Neighborhood Handler initialized successfully!")
+                else:
+                    logger.warning("ML Context Builder not available, skipping ML Neighborhood Handler")
+                    self.ml_neighborhood_handler = None
+            else:
+                logger.warning("Required dependencies not available for ML Neighborhood Handler")
+                self.ml_neighborhood_handler = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Neighborhood Handler: {e}")
+            self.ml_neighborhood_handler = None
+
+        # Initialize Advanced Personalization System
+        if ADVANCED_PERSONALIZATION_AVAILABLE:
+            try:
+                self.personalization_system = AdvancedPersonalizationSystem()
+                logger.info("🎯 Advanced Personalization System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize Advanced Personalization System: {e}")
+                self.personalization_system = None
+        else:
+            self.personalization_system = None
+
+        # Initialize Real-time Feedback Loop System
+        if FEEDBACK_LOOP_AVAILABLE:
+            try:
+                self.feedback_loop_system = FeedbackLoopSystem()
+                logger.info("🔄 Real-time Feedback Loop System initialized successfully!")
+            except Exception as e:
+                logger.error(f"Failed to initialize Feedback Loop System: {e}")
+                self.feedback_loop_system = None
+        else:
+            self.feedback_loop_system = None
 
         # System status
         self.system_ready = True
@@ -597,13 +777,32 @@ class IstanbulDailyTalkAI:
             # Record interaction (use text only)
             context.add_interaction(message, response_text, intent)
             
+            # Record interaction for personalization system
+            if self.personalization_system:
+                try:
+                    interaction_data = {
+                        'type': intent,
+                        'item_id': f"{intent}_{datetime.now().timestamp()}",
+                        'item_data': self._extract_personalization_data(entities, intent),
+                        'rating': 0.7,  # Default positive rating (can be updated with feedback)
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    self.personalization_system.record_interaction(user_id, interaction_data)
+                    logger.debug(f"Recorded interaction for personalization: {intent}")
+                except Exception as e:
+                    logger.warning(f"Failed to record personalization interaction: {e}")
+            
+            # Generate unique interaction ID for feedback
+            interaction_id = f"{user_id}_{datetime.now().timestamp()}"
+            
             # Return structured or string response based on parameter
             if return_structured:
                 return {
                     'response': response_text,
                     'map_data': map_data,
                     'intent': intent,
-                    'entities': entities
+                    'entities': entities,
+                    'interaction_id': interaction_id  # For feedback submission
                 }
             else:
                 return response_text
@@ -978,7 +1177,7 @@ class IstanbulDailyTalkAI:
     
     def _generate_contextual_response(self, message: str, intent: str, entities: Dict,
                                     user_profile: UserProfile, context: ConversationContext, 
-                                    neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]:
+                                    neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
         """Generate contextual response based on intent and entities, enhanced with neural insights
         
         Args:
@@ -1034,6 +1233,43 @@ class IstanbulDailyTalkAI:
             # Override intent to hidden_gems if detected
             intent = 'hidden_gems'
         
+        # Route to ML-Enhanced Handlers first (if available and applicable)
+        # This ensures ML handlers get priority over basic routing
+        
+        # ML Restaurant Handler
+        if intent == 'restaurant' and hasattr(self, 'ml_restaurant_handler') and self.ml_restaurant_handler:
+            try:
+                ml_response = self.ml_restaurant_handler.handle_query(
+                    message=message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context
+                )
+                if ml_response and ml_response.get('response'):
+                    logger.info("✅ ML Restaurant Handler processed query")
+                    if return_structured:
+                        return ml_response
+                    return ml_response['response']
+            except Exception as e:
+                logger.warning(f"ML Restaurant Handler failed, falling back: {e}")
+        
+        # ML Attraction Handler (for general attractions)
+        if intent == 'attraction' and hasattr(self, 'ml_attraction_handler') and self.ml_attraction_handler:
+            try:
+                ml_response = self.ml_attraction_handler.handle_query(
+                    message=message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context
+                )
+                if ml_response and ml_response.get('response'):
+                    logger.info("✅ ML Attraction Handler processed query")
+                    if return_structured:
+                        return ml_response
+                    return ml_response['response']
+            except Exception as e:
+                logger.warning(f"ML Attraction Handler failed, falling back: {e}")
+        
         # Use response generator for comprehensive responses
         if intent == 'attraction':
             # Check if this is a museum query - use advanced museum system if available
@@ -1070,23 +1306,78 @@ class IstanbulDailyTalkAI:
             if isinstance(response, str):
                 response = self._add_weather_context_to_attractions(response)
             return response
-        elif intent in ['restaurant', 'neighborhood']:
+        elif intent == 'restaurant':
             return self.response_generator.generate_comprehensive_recommendation(
                 intent, entities, user_profile, context, return_structured=return_structured
             )
         
-        # Handle specific intents
+        elif intent == 'neighborhood':
+            # Use ML-enhanced neighborhood handler
+            if self.ml_neighborhood_handler:
+                try:
+                    response = self.ml_neighborhood_handler.handle_neighborhood_query(
+                        message, entities, user_profile, context
+                    )
+                    if return_structured:
+                        return {
+                            'response': response,
+                            'intent': intent,
+                            'source': 'ml_neighborhood_handler'
+                        }
+                    return response
+                except Exception as e:
+                    logger.error(f"ML neighborhood handler error: {e}")
+            # Fallback to response generator
+            return self.response_generator.generate_comprehensive_recommendation(
+                intent, entities, user_profile, context, return_structured=return_structured
+            )
+        
+        # Handle specific intents (✅ NOW ALL RECEIVE NEURAL INSIGHTS)
         elif intent == 'transportation':
             return self._generate_transportation_response(message, entities, user_profile, context, neural_insights, return_structured=return_structured)
         
         elif intent == 'shopping':
-            return self._generate_shopping_response(entities, user_profile, context)
+            return self._generate_shopping_response(entities, user_profile, context, neural_insights)
         
         elif intent == 'events':
-            return self._generate_events_response(entities, user_profile, context, current_time)
+            # Use ML-enhanced event handler
+            if self.ml_event_handler:
+                try:
+                    response = self.ml_event_handler.handle_event_query(
+                        message, entities, user_profile, context
+                    )
+                    if return_structured:
+                        return {
+                            'response': response,
+                            'intent': intent,
+                            'source': 'ml_event_handler'
+                        }
+                    return response
+                except Exception as e:
+                    logger.error(f"ML event handler error: {e}")
+            # Fallback to legacy method
+            return self._generate_events_response(entities, user_profile, context, current_time, neural_insights)
         
         elif intent == 'weather':
-            return self._generate_weather_response(message, entities, user_profile, context)
+            # Use ML-enhanced weather handler
+            if self.ml_weather_handler:
+                try:
+                    response = self.ml_weather_handler.handle_weather_query(
+                        message, entities, user_profile, context
+                    )
+                    if return_structured:
+                        return {
+                            'response': response,
+                            'intent': intent,
+                            'source': 'ml_weather_handler'
+                        }
+                    return response
+                except Exception as e:
+                    logger.error(f"ML weather handler error: {e}")
+            # Fallback to response generator
+            return self.response_generator.generate_comprehensive_recommendation(
+                intent, entities, user_profile, context, return_structured=return_structured
+            )
         
         elif intent == 'airport_transport':
             return self.response_generator.generate_comprehensive_recommendation(
@@ -1094,7 +1385,28 @@ class IstanbulDailyTalkAI:
             )
         
         elif intent == 'hidden_gems':
-            # Use specialized hidden gems handler with enhanced query extraction
+            # Use ML-enhanced hidden gems handler
+            if self.ml_hidden_gems_handler:
+                try:
+                    response = self.ml_hidden_gems_handler.handle_hidden_gems_query(
+                        message, entities, user_profile, context
+                    )
+                    if return_structured:
+                        # Try to get additional data if available
+                        query_params = self.ml_hidden_gems_handler.extract_query_parameters(message) if hasattr(self.ml_hidden_gems_handler, 'extract_query_parameters') else {}
+                        return {
+                            'response': response,
+                            'intent': intent,
+                            'source': 'ml_hidden_gems_handler',
+                            'query_params': query_params
+                        }
+                    return response
+                except Exception as e:
+                    logger.error(f"ML hidden gems handler error: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Fallback to legacy hidden gems handler if available
             if self.hidden_gems_handler:
                 try:
                     # Extract parameters from query
@@ -1146,13 +1458,29 @@ class IstanbulDailyTalkAI:
             )
         
         elif intent == 'route_planning':
-            return self._generate_route_planning_response(message, user_profile, context)
+            # Use ML-enhanced route planning handler
+            if self.ml_route_planning_handler:
+                try:
+                    response = self.ml_route_planning_handler.handle_route_query(
+                        message, entities, user_profile, context
+                    )
+                    if return_structured:
+                        return {
+                            'response': response,
+                            'intent': intent,
+                            'source': 'ml_route_planning_handler'
+                        }
+                    return response
+                except Exception as e:
+                    logger.error(f"ML route planning handler error: {e}")
+            # Fallback to legacy method
+            return self._generate_route_planning_response(message, user_profile, context, neural_insights)
         
         elif intent == 'gps_route_planning':
-            return self._generate_gps_route_response(message, entities, user_profile, context)
+            return self._generate_gps_route_response(message, entities, user_profile, context, neural_insights)
         
         elif intent == 'museum_route_planning':
-            return self._generate_museum_route_response(message, entities, user_profile, context)
+            return self._generate_museum_route_response(message, entities, user_profile, context, neural_insights)
         
         elif intent == 'greeting':
             # Use conversation handler if available for better greetings
@@ -1225,7 +1553,7 @@ class IstanbulDailyTalkAI:
                 loop = asyncio.get_event_loop()
                 
                 # Build intelligent user context using ML insights
-                user_context = self._build_intelligent_user_context(message, temporal_context, sentiment)
+                user_context = self._build_intelligent_user_context(message, neural_insights, user_profile)
                 
                 result = loop.run_until_complete(
                     self.transportation_chat.handle_transportation_query(
@@ -1353,8 +1681,8 @@ class IstanbulDailyTalkAI:
 Need specific route directions? Tell me your starting point and destination!"""
     
     def _generate_shopping_response(self, entities: Dict, user_profile: UserProfile, 
-                                   context: ConversationContext) -> str:
-        """Generate comprehensive shopping response"""
+                                   context: ConversationContext, neural_insights: Dict = None) -> str:
+        """Generate comprehensive shopping response (ML-enhanced)"""
         
         return """🛍️ **Istanbul Shopping Paradise**
 
@@ -1403,8 +1731,9 @@ Need specific route directions? Tell me your starting point and destination!"""
 What type of shopping interests you most? I can provide specific store recommendations!"""
     
     def _generate_events_response(self, entities: Dict, user_profile: UserProfile, 
-                                 context: ConversationContext, current_time: datetime) -> str:
-        """Generate events and activities response with temporal parsing and live IKSV data"""
+                                 context: ConversationContext, current_time: datetime,
+                                 neural_insights: Dict = None) -> str:
+        """Generate events and activities response with ML-enhanced temporal parsing"""
         
         # Get the original query message
         query_message = context.conversation_history[-1].message if context.conversation_history else ""
@@ -1552,8 +1881,8 @@ What type of shopping interests you most? I can provide specific store recommend
 💡 **Tip:** Ask me about events "today", "tonight", "this weekend" or specific days for detailed schedules!"""
     
     def _generate_route_planning_response(self, message: str, user_profile: UserProfile, 
-                                        context: ConversationContext) -> str:
-        """Generate route planning response"""
+                                        context: ConversationContext, neural_insights: Dict = None) -> str:
+        """Generate ML-enhanced route planning response"""
         
         return """🗺️ **Istanbul Itinerary Planning**
 
@@ -1610,10 +1939,10 @@ Market tours → Cooking class → Traditional restaurants → Street food crawl
 Archaeological Museum → Topkapi → Hagia Sophia → Byzantine sites
 
 **💡 Practical Tips:**
-• Buy **Museum Pass** (325 TL) for multiple sites
+• Buy **Museum Pass** (₺850) for 12+ museums
 • Start early (9 AM) to avoid crowds
-• Wear comfortable walking shoes
-• Keep **Istanbulkart** handy for transport
+• Wear comfortable shoes
+• Keep Istanbulkart handy
 • Plan indoor backup for weather
 • Book dinner reservations in advance
 
@@ -1668,7 +1997,25 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             'attraction': ['visit', 'see', 'attraction', 'museum'],
             'transportation': ['transport', 'metro', 'bus', 'how to get'],
             'neighborhood': ['neighborhood', 'area', 'district'],
-            'shopping': ['shop', 'shopping', 'buy', 'bazaar']
+            'shopping': ['shop', 'shopping', 'buy', 'bazaar', 'market', 'souvenir']
+        }
+        
+        for intent, keywords in intent_keywords.items():
+            if any(keyword in message_lower for keyword in keywords):
+                intents.append(intent)
+        
+        return intents if intents else ['general']
+    
+    def _generate_location_aware_museum_response(self, message: str, entities: Dict, 
+                                               user_profile: UserProfile, context: ConversationContext) -> str:
+        """Generate location-aware museum recommendations using simplified detection"""
+        
+        intent_keywords = {
+            'restaurant': ['eat', 'food', 'restaurant', 'lunch', 'dinner'],
+            'attraction': ['visit', 'see', 'attraction', 'museum'],
+            'transportation': ['transport', 'metro', 'bus', 'how to get'],
+            'neighborhood': ['neighborhood', 'area', 'district'],
+            'shopping': ['shop', 'shopping', 'buy', 'bazaar', 'market', 'souvenir']
         }
         
         for intent, keywords in intent_keywords.items():
@@ -1730,24 +2077,6 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             data = location_museums[location]
             info = f"\n{data['info']}\n"
             info += f"📍 **Museums in {location.title()}:**\n"
-            for museum in data['museums']:
-                info += f"• {museum}\n"
-            return info
-        
-        return None
-
-    def _add_current_museum_hours(self, message: str) -> Optional[str]:
-        """Add current museum hours information"""
-        # This is a simplified version. The full implementation would use the hours_checker
-        message_lower = message.lower()
-        
-        # Check if asking about specific museums
-        if 'hagia sophia' in message_lower or 'ayasofya' in message_lower:
-            return "⏰ **Hagia Sophia:** Open 09:00-19:00 (closed during prayer times)"
-        elif 'topkapi' in message_lower:
-            return "⏰ **Topkapi Palace:** Open 09:00-18:00 (closed Tuesdays)"
-        elif 'istanbul modern' in message_lower:
-            return "⏰ **Istanbul Modern:** Open 10:00-18:00 (Thursdays until 20:00, closed Mondays)"
         
         return None
 
@@ -2253,55 +2582,11 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         response += "=" * 60 + "\n\n"
         response += "💡 **Planning Your Visit:**\n"
         response += "• Museum Pass Istanbul (₺850) covers 12+ museums for 5 days\n"
-        response += "• Many museums are closed Mondays - plan accordingly\n"
-        response += "• Morning visits (9-11am) are less crowded\n"
-        response += "• Guided tours highly recommended for historical museums\n\n"
-        response += "🎯 **Need help planning a museum route?** Just ask!"
-        
-        return response
-    def _calculate_haversine_distance(self, point1: Tuple[float, float], point2: Tuple[float, float]) -> float:
-        """Calculate distance between two GPS coordinates using Haversine formula"""
-        from math import radians, sin, cos, sqrt, atan2
-        lat1, lon1 = point1
-        lat2, lon2 = point2
-        # Convert to radians
-        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-        # Haversine formula
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * atan2(sqrt(a), sqrt(1-a))
-        r = 6371  # Earth's radius in kilometers
-        return c * r
-
-    def _is_complex_multi_intent_query(self, message: str) -> bool:
-        """
-        Detect if query is truly complex enough to warrant multi-intent processing.
-        
-        Simple queries like "Show me museums" should NOT trigger multi-intent handler.
-        """
-        message_lower = message.lower()
-        
-        # Indicators of complex multi-intent queries
-        complexity_indicators = [
-            # Multiple filter combinations
-            ' and ', ' with ', ' plus ', ' also ',
-            ' near ', ' nearby ', ' close to ',
-            ' then ', ' after ', ' before ',
-            # Multiple entities
-            'museum and restaurant', 'attraction and food', 'places and restaurants',
-            'monuments and eat', 'visit and dine', 'see and eat',
-            # Route planning with multiple stops
-            'from', 'to', 'via', 'through',
-            # Multiple time/condition clauses
-            'if ', ' when ', ' during ',
-            # Comparison queries
-            'versus', 'vs', 'compare', 'between',
-            'or', 'either'
-        ]
-        
-        # Count complexity indicators detected
-        complexity_count = sum(1 for indicator in complexity_indicators if indicator in message_lower)
+        response += "• Start early (9 AM) to avoid crowds\n"
+        response += "• Wear comfortable walking shoes\n"
+        response += "• Keep Istanbulkart handy for transport\n"
+        response += "• Plan indoor backup for weather\n"
+        response += "• Book dinner reservations in advance\n"
         
         # Also check for multiple question marks or commas (indicating multiple sub-queries)
         multiple_questions = message.count('?') > 1
@@ -2311,311 +2596,450 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         # - 2+ complexity indicators, OR
         # - Multiple questions, OR  
         # - 3+ filter words AND 2+ clauses
-        is_complex = (
-            complexity_count >= 2 or
-            multiple_questions or
-            (complexity_count >= 1 and multiple_clauses)
-        )
+        complexity_indicators = ['museum', 'exhibition', 'art', 'history', 'cultural', 'istanbul', 'visit', 'see', 'recommend']
+        complexity_count = sum(1 for indicator in complexity_indicators if indicator in message_lower)
         
+        is_complex = (complexity_count >= 2 or
+                      multiple_questions or
+                      (category and district and len(attractions) > 2) or  # Category + district filter with multiple results
+                      (complexity_count >= 1 and multiple_clauses)
+                     )
         if is_complex:
             logger.info(f"🔍 Complex query detected (indicators: {complexity_count}, questions: {multiple_questions}, clauses: {multiple_clauses})")
         
-        return is_complex
-
-    def _generate_weather_response(self, message: str, entities: Dict, user_profile: UserProfile, 
-                                 context: ConversationContext) -> str:
-        """Generate weather response using the enhanced weather client and recommendations service"""
-        try:
-            if not self.weather_client:
-                return "🌤️ Weather service is temporarily unavailable. Please try again later."
-            
-            # Get current weather data for Istanbul
-            weather_data = self.weather_client.get_current_weather()
-            
-            if not weather_data:
-                return "🌤️ Unable to fetch current weather data. Please try again later."
-            
-            # Extract weather data
-            temp = weather_data.get('temperature', 'N/A')
-            feels_like = weather_data.get('feels_like', temp)
-            description = weather_data.get('description', 'N/A')
-            humidity = weather_data.get('humidity', 'N/A')
-            wind_speed = weather_data.get('wind_speed', 'N/A')
-            pressure = weather_data.get('pressure', 'N/A')
-            visibility = weather_data.get('visibility', 'N/A')
-            current_time = datetime.now().strftime("%H:%M")
-            
-            # Get weather-based activity recommendations
-            recommendations = self._get_weather_based_recommendations(weather_data)
-            
-            # Build response
-            response = f"""🌤️ **Istanbul Weather** (Updated: {current_time})
-
-**📊 Current Conditions:**
-• **Temperature**: {temp}°C (feels like {feels_like}°C)
-• **Conditions**: {description.title()}
-• **Humidity**: {humidity}%
-• **Wind**: {wind_speed} km/h
-• **Pressure**: {pressure} hPa
-• **Visibility**: {visibility} km
-
-{recommendations}
-
-**💡 Travel Tips:**
-• Check weather before outdoor activities
-• Istanbul weather can change quickly
-• Consider indoor alternatives during rain
-• Dress in layers for temperature changes
-• Bosphorus can be windier than city center
-
-Would you like specific recommendations based on today's weather conditions?"""
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Weather response error: {e}")
-            return """🌤️ **Weather Service Temporarily Unavailable**
-            
-I'm currently unable to fetch real-time weather data for Istanbul. 
-
-**🌍 General Istanbul Weather Info:**
-• **Spring (Mar-May)**: Mild, 15-25°C, occasional rain
-• **Summer (Jun-Aug)**: Hot, 25-35°C, mostly sunny
-• **Fall (Sep-Nov)**: Pleasant, 15-25°C, some rain
-• **Winter (Dec-Feb)**: Cool, 5-15°C, frequent rain
-
-**☔ Weather Preparation:**
-• Umbrella recommended year-round
-• Layers useful for temperature changes
-• Waterproof jacket for winter visits
-• Sunscreen for summer sightseeing
-
-Please try asking about the weather again in a few moments!"""
+        return response
     
-    def _get_weather_based_recommendations(self, weather_data: Dict) -> str:
-        """Generate activity recommendations based on current weather"""
-        try:
-            temp = weather_data.get('temperature', 20)
-            description = weather_data.get('description', '').lower()
-            
-            # Determine weather condition
-            condition = 'clear'
-            if any(word in description for word in ['rain', 'drizzle', 'shower']):
-                condition = 'rain'
-            elif 'snow' in description:
-                condition = 'snow'
-            elif 'cloud' in description:
-                condition = 'cloudy'
-            
-            # Use weather recommendations service if available
-            if self.weather_recommendations:
-                try:
-                    weather_response = self.weather_recommendations.format_weather_activities_response(
-                        temperature=temp,
-                        weather_condition=condition,
-                        limit=5
-                    )
-                    return "\n**🎯 Weather-Based Recommendations:**\n" + weather_response
-                except Exception as e:
-                    logger.error(f"Weather recommendations service error: {e}")
-                    # Fall through to fallback recommendations
-            
-            # Fallback recommendations (original logic)
-            recommendations = "\n**🎯 Weather-Based Recommendations:**\n"
-            wind_speed = weather_data.get('wind_speed', 0)
-            
-            # Temperature-based recommendations
-            if temp >= 25:
-                recommendations += "• **Hot Weather** 🌡️: Visit air-conditioned museums, take Bosphorus ferry for breeze\n"
-                recommendations += "  **Top Picks**: \n"
-                recommendations += "  - Basilica Cistern (cool underground atmosphere)\n"
-                recommendations += "  - Grand Bazaar (covered market, naturally cool)\n"
-                recommendations += "  - Bosphorus Ferry (refreshing sea breeze)\n"
-                recommendations += "  - Turkish Bath Experience (Çemberlitaş Hamamı)\n"
-                recommendations += "• **Stay Cool**: Drink plenty of water, seek shade between 12-4 PM\n"
-            elif temp >= 15:
-                recommendations += "• **Pleasant Weather** ☀️: Perfect for walking tours and outdoor sightseeing\n"
-                recommendations += "  **Top Picks**:\n"
-                recommendations += "  - Sultanahmet Square & Blue Mosque\n"
-                recommendations += "  - Galata Bridge walk to Galata Tower\n"
-                recommendations += "  - Princes' Islands day trip\n"
-                recommendations += "  - Gülhane Park or Emirgan Park\n"
-                recommendations += "• **Perfect Time**: Ideal for most outdoor activities!\n"
-            else:
-                recommendations += "• **Cool Weather** 🧥: Focus on indoor attractions and cozy experiences\n"
-                recommendations += "  **Top Picks**:\n"
-                recommendations += "  - Topkapı Palace (indoor sections)\n"
-                recommendations += "  - Turkish Bath Experience (warm & relaxing)\n"
-                recommendations += "  - Grand Bazaar & Spice Bazaar (covered)\n"
-                recommendations += "  - Istanbul Modern Art Museum\n"
-                recommendations += "• **Warm Up**: Try traditional Turkish tea at Pierre Loti Café\n"
-            
-            # Weather condition recommendations
-            if condition == 'rain':
-                recommendations += "\n• **Rainy Day** ☔: Perfect for covered markets & underground attractions\n"
-                recommendations += "  **Stay Dry Options**:\n"
-                recommendations += "  - Grand Bazaar (4,000 covered shops)\n"
-                recommendations += "  - Basilica Cistern (underground wonder)\n"
-                recommendations += "  - Spice Bazaar (aromatic covered market)\n"
-                recommendations += "  - Hagia Sophia & Blue Mosque (indoor sections)\n"
-                recommendations += "  - Museum Route: Archaeological, Mosaic, or Istanbul Modern\n"
-            elif 'clear' in description or 'sunny' in description:
-                recommendations += "\n• **Sunny Day** ☀️: Excellent for Bosphorus tours and panoramic views\n"
-                recommendations += "  **Don't Miss**:\n"
-                recommendations += "  - Galata Tower (360° city views)\n"
-                recommendations += "  - Bosphorus Sunset Cruise\n"
-                recommendations += "  - Çamlıca Hill (highest viewpoint)\n"
-                recommendations += "  - Ortaköy waterfront\n"
-                recommendations += "  - Outdoor markets in Kadıköy\n"
-            elif condition == 'cloudy':
-                recommendations += "\n• **Cloudy Day** ⛅: Great for photography and comfortable walking\n"
-                recommendations += "  **Perfect For**:\n"
-                recommendations += "  - Photography tours (soft lighting)\n"
-                recommendations += "  - Balat & Fener colorful streets\n"
-                recommendations += "  - City exploration without harsh sun\n"
-                recommendations += "  - Longer walking tours\n"
-            
-            # Wind recommendations
-            if wind_speed > 20:
-                recommendations += "\n• **Windy Conditions** 💨: Be cautious on bridges & high viewpoints\n"
-                recommendations += "  **Better Choices**: Sheltered streets of Sultanahmet, indoor museums\n"
-            
-            return recommendations
-            
-        except Exception as e:
-            logger.error(f"Weather recommendations error: {e}")
-            return "\n**🎯 General Recommendations:**\n• Check current conditions before heading out\n• Have indoor backup plans ready\n"
-    
-    def _add_weather_context_to_attractions(self, response: str, weather_data: Optional[Dict] = None) -> str:
-        """Add weather context and recommendations to attraction responses"""
-        if not weather_data and self.weather_client:
-            try:
-                weather_data = self.weather_client.get_current_weather()
-            except Exception as e:
-                logger.debug(f"Could not fetch weather for context: {e}")
-                return response
+    def _calculate_haversine_distance(self, coords_1: Tuple[float, float], coords_2: Tuple[float, float]) -> float:
+        """Calculate Haversine distance between two sets of coordinates"""
+        from math import radians, sin, cos, sqrt, atan2
         
-        if not weather_data:
-            return response
+        lat1, lon1 = coords_1
+        lat2, lon2 = coords_2
         
-        # Extract weather conditions
-        temp = weather_data.get('temperature', 20)
-        description = weather_data.get('description', '').lower()
-        condition = 'clear'
+        # Convert to radians
+        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
         
-        # Determine weather condition
-        if any(word in description for word in ['rain', 'drizzle', 'shower']):
-            condition = 'rain'
-        elif 'snow' in description:
-            condition = 'snow'
-        elif 'cloud' in description:
-            condition = 'cloudy'
-        
-        # Add weather context header
-        weather_note = "\n\n**🌤️ Weather Tip for Today:**\n"
-        
-        # Use weather recommendations service if available
-        if self.weather_recommendations:
-            try:
-                # Get 3 quick weather-appropriate suggestions
-                weather_response = self.weather_recommendations.format_weather_activities_response(
-                    temperature=temp,
-                    weather_condition=condition,
-                    limit=3
-                )
-                weather_note += weather_response
-                return response + "\n" + weather_note
-            except Exception as e:
-                logger.error(f"Weather recommendations error: {e}")
-                # Fall through to basic weather note
-        
-        # Fallback to basic weather note
-        if condition == 'rain':
-            weather_note += "It's rainy today - prioritize indoor attractions or covered areas!\n"
-            weather_note += "💡 The suggestions above include indoor/covered options perfect for this weather.\n"
-        elif temp > 28:
-            weather_note += f"It's quite hot today ({temp}°C) - stay hydrated and take breaks in air-conditioned spaces!\n"
-            weather_note += "💡 Consider visiting during early morning or late afternoon.\n"
-        elif temp < 10:
-            weather_note += f"It's chilly today ({temp}°C) - dress warmly and enjoy cozy indoor attractions!\n"
-            weather_note += "💡 Perfect weather for museums and Turkish baths.\n"
-        else:
-            weather_note += f"Pleasant weather today ({temp}°C, {description}) - great for exploring!\n"
-            weather_note += "💡 Perfect conditions for outdoor sightseeing.\n"
-        
-        # Add wind speed note
-        wind_speed = weather_data.get('wind_speed', 0)
-        if wind_speed > 20:
-            weather_note += "💨 It's windy outside, especially on bridges and high points. Hold onto your hat!\n"
-        
-        return response + weather_note
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+        r = 6371  # Earth's radius in kilometers
+        return c * r
 
-    def _build_intelligent_user_context(self, message: str, temporal_context: Optional[Dict], 
-                                        sentiment: Optional[Dict]) -> Dict[str, Any]:
-        """Build intelligent user context using ML insights from neural processor
-        
-        Uses neural ML insights to detect:
-        - Time sensitivity (urgent queries, rush hour awareness)
-        - Luggage requirements (airport queries, heavy bags)
-        - Accessibility needs (wheelchair, stairs avoidance)
-        - Preferred transportation modes
+    def _extract_personalization_data(self, entities: Dict[str, Any], intent: str) -> Dict[str, Any]:
         """
+        Extract data from entities for personalization learning
         
-        message_lower = message.lower()
+        Args:
+            entities: Extracted entities from user query
+            intent: Detected intent
         
-        # Detect time sensitivity using ML sentiment + keywords
-        time_sensitive = False
-        urgent_keywords = ['urgent', 'quickly', 'fast', 'asap', 'hurry', 'late', 'rush', 'immediate']
-        has_urgent_keyword = any(keyword in message_lower for keyword in urgent_keywords)
+        Returns:
+            Dict with personalization-relevant data
+        """
+        personalization_data = {}
         
-        # Check ML sentiment for stress/urgency
-        is_stressed = False
-        if sentiment:
-            sentiment_score = sentiment.get('score', 0)
-            is_stressed = sentiment_score < -0.3  # Negative sentiment indicates stress
+        # Extract cuisine preferences
+        if 'cuisine' in entities:
+            personalization_data['cuisine'] = entities['cuisine'][0] if entities['cuisine'] else None
         
-        # Check temporal context for rush hour / time constraints
-        is_rush_time = False
-        if temporal_context:
-            time_of_day = temporal_context.get('time_of_day')
-            is_rush_time = time_of_day in ['morning', 'early_morning', 'evening']
-            
-            # "tomorrow morning" = time-sensitive planning
-            when = temporal_context.get('when')
-            if when in ['now', 'immediately', 'soon']:
-                time_sensitive = True
+        # Extract price range preferences
+        if 'price_range' in entities:
+            personalization_data['price_range'] = entities['price_range'][0] if entities['price_range'] else None
         
-        time_sensitive = has_urgent_keyword or is_stressed or is_rush_time
+        # Extract district preferences
+        if 'district' in entities or 'neighborhood' in entities:
+            district = (entities.get('district', []) + entities.get('neighborhood', []))
+            personalization_data['district'] = district[0] if district else None
         
-        # Detect luggage from keywords
-        has_luggage = False
-        luggage_keywords = ['luggage', 'suitcase', 'bags', 'baggage', 'airport', 'flight', 'hotel']
-        has_luggage = any(keyword in message_lower for keyword in luggage_keywords)
-        
-        # Detect accessibility needs
-        accessibility_needs = []
-        if 'wheelchair' in message_lower or 'disabled' in message_lower:
-            accessibility_needs.append('wheelchair_accessible')
-        if 'elevator' in message_lower or 'no stairs' in message_lower:
-            accessibility_needs.append('avoid_stairs')
-        if 'elderly' in message_lower or 'old' in message_lower:
-            accessibility_needs.append('easy_route')
-        
-        # Build context dictionary with ML insights
-        context = {
-            'has_luggage': has_luggage,
-            'time_sensitive': time_sensitive,
-            'is_stressed': is_stressed,
-            'accessibility_needs': accessibility_needs,
-            'temporal_context': temporal_context,
-            'sentiment': sentiment,
-            'urgency_level': 'high' if has_urgent_keyword else ('medium' if is_stressed else 'low')
+        # Map intent to activity/attraction types
+        intent_to_activity = {
+            'restaurant': {'activity_type': 'dining'},
+            'attraction': {'activity_type': 'cultural', 'attraction_type': 'historical'},
+            'museum': {'activity_type': 'cultural', 'attraction_type': 'museum'},
+            'event': {'activity_type': 'entertainment'},
+            'nightlife': {'activity_type': 'nightlife'},
+            'shopping': {'activity_type': 'shopping'},
+            'hidden_gem': {'activity_type': 'adventure'},
+            'park': {'activity_type': 'relaxation', 'attraction_type': 'nature'}
         }
         
-        # Log ML-powered context detection
-        if time_sensitive or has_luggage or accessibility_needs:
-            logger.info(f"🧠 ML Context Detection: time_sensitive={time_sensitive}, "
-                       f"luggage={has_luggage}, accessibility={accessibility_needs}, "
-                       f"stress={is_stressed}, urgency={context['urgency_level']}")
+        if intent in intent_to_activity:
+            personalization_data.update(intent_to_activity[intent])
         
-        return context
+        # Extract time of day context
+        time_entities = entities.get('time', [])
+        if time_entities:
+            time_str = str(time_entities[0]).lower()
+            if any(t in time_str for t in ['morning', 'breakfast', 'sabah']):
+                personalization_data['time_of_day'] = 'morning'
+            elif any(t in time_str for t in ['afternoon', 'lunch', 'öğle']):
+                personalization_data['time_of_day'] = 'afternoon'
+            elif any(t in time_str for t in ['evening', 'dinner', 'akşam']):
+                personalization_data['time_of_day'] = 'evening'
+            elif any(t in time_str for t in ['night', 'gece']):
+                personalization_data['time_of_day'] = 'night'
+        
+        # Extract transportation preferences if relevant
+        if intent == 'transportation':
+            transport_keywords = {
+                'metro': ['metro', 'subway'],
+                'bus': ['bus', 'otobüs'],
+                'tram': ['tram', 'tramvay'],
+                'ferry': ['ferry', 'vapur', 'boat'],
+                'taxi': ['taxi', 'taksi', 'uber']
+            }
+            for mode, keywords in transport_keywords.items():
+                if any(kw in str(entities).lower() for kw in keywords):
+                    personalization_data['transportation_mode'] = mode
+                    break
+        
+        return personalization_data
+    
+    def submit_feedback(self, user_id: str, interaction_id: str, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Submit user feedback for an interaction
+        
+        Args:
+            user_id: User identifier
+            interaction_id: Interaction identifier from response
+            feedback_data: Feedback data including satisfaction_score, was_helpful, etc.
+        
+        Returns:
+            Dict with submission status and feedback summary
+        """
+        if not self.feedback_loop_system:
+            return {
+                'status': 'error',
+                'message': 'Feedback system not available'
+            }
+        
+        try:
+            # Submit to feedback loop system
+            result = self.feedback_loop_system.submit_feedback(
+                user_id=user_id,
+                interaction_id=interaction_id,
+                feedback_data=feedback_data
+            )
+            
+            # Update personalization if rating is provided
+            if self.personalization_system and 'satisfaction_score' in feedback_data:
+                try:
+                    # Normalize satisfaction score to 0-1 range
+                    normalized_rating = feedback_data['satisfaction_score'] / 5.0
+                    
+                    interaction_data = {
+                        'type': feedback_data.get('intent', 'unknown'),
+                        'item_id': interaction_id,
+                        'item_data': feedback_data.get('item_data', {}),
+                        'rating': normalized_rating,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    self.personalization_system.record_interaction(user_id, interaction_data)
+                except Exception as e:
+                    logger.warning(f"Failed to update personalization with feedback: {e}")
+            
+            return {
+                'status': 'success',
+                'message': 'Feedback submitted successfully',
+                'feedback_id': result.get('feedback_id'),
+                'aggregate_metrics': self.feedback_loop_system.get_aggregate_metrics()
+            }
+        
+        except Exception as e:
+            logger.error(f"Error submitting feedback: {e}")
+            return {
+                'status': 'error',
+                'message': f'Failed to submit feedback: {str(e)}'
+            }
+    
+    def get_feedback_metrics(self, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Get feedback metrics for dashboard/monitoring
+        
+        Args:
+            filters: Optional filters (intent, feature, time_range, etc.)
+        
+        Returns:
+            Dict with feedback metrics and insights
+        """
+        if not self.feedback_loop_system:
+            return {
+                'status': 'error',
+                'message': 'Feedback system not available'
+            }
+        
+        try:
+            metrics = {
+                'aggregate': self.feedback_loop_system.get_aggregate_metrics(),
+                'by_intent': self.feedback_loop_system.get_feedback_by_intent(),
+                'by_feature': self.feedback_loop_system.get_feedback_by_feature(),
+                'improvement_status': self.feedback_loop_system.get_improvement_status()
+            }
+            
+            # Apply filters if provided
+            if filters:
+                if 'intent' in filters:
+                    metrics['filtered_intent'] = metrics['by_intent'].get(filters['intent'], {})
+                if 'feature' in filters:
+                    metrics['filtered_feature'] = metrics['by_feature'].get(filters['feature'], {})
+            
+            return metrics
+        
+        except Exception as e:
+            logger.error(f"Error getting feedback metrics: {e}")
+            return {
+                'status': 'error',
+                'message': f'Failed to get metrics: {str(e)}'
+            }
+    
+    def get_personalization_insights(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get personalization insights for a user
+        
+        Args:
+            user_id: User identifier
+        
+        Returns:
+            Dict with user preferences, similar users, and personalization status
+        """
+        if not self.personalization_system:
+            return {
+                'status': 'error',
+                'message': 'Personalization system not available'
+            }
+        
+        try:
+            insights = self.personalization_system.get_user_insights(user_id)
+            
+            # Add A/B test assignments
+            insights['ab_tests'] = {
+                'response_format': self.personalization_system.get_response_format(user_id),
+                'recommendation_algo': self.personalization_system.ab_testing.user_assignments.get(
+                    user_id, {}
+                ).get('recommendation_algo', 'hybrid')
+            }
+            
+            return {
+                'status': 'success',
+                'insights': insights
+            }
+        
+        except Exception as e:
+            logger.error(f"Error getting personalization insights: {e}")
+            return {
+                'status': 'error',
+                'message': f'Failed to get insights: {str(e)}'
+            }
+    
+    def apply_personalization(self, user_id: str, candidates: List[Dict[str, Any]], 
+                            top_n: int = 5) -> List[Dict[str, Any]]:
+        """
+        Apply personalization to recommendation candidates
+        
+        Args:
+            user_id: User identifier
+            candidates: List of candidate recommendations
+            top_n: Number of recommendations to return
+        
+        Returns:
+            Personalized list of recommendations
+        """
+        if not self.personalization_system or not candidates:
+            return candidates[:top_n]
+        
+        try:
+            personalized = self.personalization_system.personalize_recommendations(
+                user_id=user_id,
+                candidates=candidates,
+                top_n=top_n
+            )
+            
+            logger.info(f"Applied personalization for user {user_id}: {len(candidates)} -> {len(personalized)} items")
+            return personalized
+        
+        except Exception as e:
+            logger.warning(f"Failed to apply personalization: {e}")
+            return candidates[:top_n]
+    
+    def get_dashboard_data(self) -> Dict[str, Any]:
+        """
+        Get comprehensive dashboard data for monitoring
+        
+        Returns:
+            Dict with system metrics, feedback data, and improvement status
+        """
+        dashboard = {
+            'system_status': {
+                'ready': self.system_ready,
+                'components': {
+                    'personalization': self.personalization_system is not None,
+                    'feedback_loop': self.feedback_loop_system is not None,
+                    'neural_processor': self.neural_processor is not None,
+                    'ml_handlers': ML_ENHANCED_HANDLERS_AVAILABLE
+                }
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        # Add feedback metrics
+        if self.feedback_loop_system:
+            try:
+                dashboard['feedback'] = {
+                    'aggregate': self.feedback_loop_system.get_aggregate_metrics(),
+                    'by_intent': self.feedback_loop_system.get_feedback_by_intent(),
+                    'by_feature': self.feedback_loop_system.get_feedback_by_feature(),
+                    'improvement_status': self.feedback_loop_system.get_improvement_status()
+                }
+            except Exception as e:
+                logger.error(f"Error getting feedback data for dashboard: {e}")
+                dashboard['feedback'] = {'error': str(e)}
+        
+        # Add A/B test results
+        if self.personalization_system:
+            try:
+                dashboard['ab_tests'] = {
+                    'response_format': self.personalization_system.ab_testing.get_experiment_results('response_format'),
+                    'recommendation_algo': self.personalization_system.ab_testing.get_experiment_results('recommendation_algo')
+                }
+            except Exception as e:
+                logger.error(f"Error getting A/B test data for dashboard: {e}")
+                dashboard['ab_tests'] = {'error': str(e)}
+        
+        return dashboard
+    
+    def health_check(self) -> Dict[str, Any]:
+        """
+        System health check endpoint for monitoring and uptime tracking
+        
+        Returns:
+            Dict with health status, component availability, and system metrics
+            
+        Example:
+            >>> ai = IstanbulDailyTalkAI()
+            >>> health = ai.health_check()
+            >>> print(f"Status: {health['status']}, Score: {health['health_score']}")
+        """
+        health_status = {
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'uptime_check': 'passed',
+            'system_ready': self.system_ready
+        }
+        
+        # Core Components Check
+        core_components = {
+            'entity_recognizer': self.entity_recognizer is not None,
+            'response_generator': self.response_generator is not None,
+            'user_manager': self.user_manager is not None,
+        }
+        
+        # ML/AI Components Check
+        ml_components = {
+            'neural_processor': self.neural_processor is not None,
+            'ml_context_builder': self.ml_context_builder is not None,
+            'personalization_system': self.personalization_system is not None,
+            'feedback_loop_system': self.feedback_loop_system is not None,
+        }
+        
+        # Service Components Check
+        service_components = {
+            'hidden_gems_handler': self.hidden_gems_handler is not None,
+            'price_filter_service': self.price_filter_service is not None,
+            'conversation_handler': self.conversation_handler is not None,
+            'events_service': self.events_service is not None,
+            'weather_recommendations': self.weather_recommendations is not None,
+            'location_detector': self.location_detector is not None,
+            'transport_processor': self.transport_processor is not None,
+            'weather_client': self.weather_client is not None,
+        }
+        
+        # ML Handlers Check
+        ml_handlers = {
+            'ml_event_handler': hasattr(self, 'ml_event_handler') and self.ml_event_handler is not None,
+            'ml_hidden_gems_handler': hasattr(self, 'ml_hidden_gems_handler') and self.ml_hidden_gems_handler is not None,
+            'ml_weather_handler': hasattr(self, 'ml_weather_handler') and self.ml_weather_handler is not None,
+            'ml_route_planning_handler': hasattr(self, 'ml_route_planning_handler') and self.ml_route_planning_handler is not None,
+            'ml_neighborhood_handler': hasattr(self, 'ml_neighborhood_handler') and self.ml_neighborhood_handler is not None,
+        }
+        
+        # Calculate component health scores
+        core_health = sum(core_components.values()) / len(core_components) * 100 if core_components else 0
+        ml_health = sum(ml_components.values()) / len(ml_components) * 100 if ml_components else 0
+        service_health = sum(service_components.values()) / len(service_components) * 100 if service_components else 0
+        ml_handlers_health = sum(ml_handlers.values()) / len(ml_handlers) * 100 if ml_handlers else 0
+        
+        # Overall health score (weighted average)
+        overall_health = (
+            core_health * 0.40 +      # Core components are critical (40%)
+            ml_health * 0.25 +         # ML components are important (25%)
+            service_health * 0.25 +    # Services are important (25%)
+            ml_handlers_health * 0.10  # ML handlers are nice-to-have (10%)
+        )
+        
+        # Determine overall status
+        if overall_health >= 90:
+            health_status['status'] = 'healthy'
+        elif overall_health >= 70:
+            health_status['status'] = 'degraded'
+        else:
+            health_status['status'] = 'unhealthy'
+        
+        health_status['health_score'] = round(overall_health, 2)
+        health_status['components'] = {
+            'core': {
+                'health': round(core_health, 2),
+                'details': core_components
+            },
+            'ml': {
+                'health': round(ml_health, 2),
+                'details': ml_components
+            },
+            'services': {
+                'health': round(service_health, 2),
+                'details': service_components
+            },
+            'ml_handlers': {
+                'health': round(ml_handlers_health, 2),
+                'details': ml_handlers
+            }
+        }
+        
+        # Add feedback system health if available
+        if self.feedback_loop_system:
+            try:
+                feedback_health = self.feedback_loop_system.get_improvement_status()
+                health_status['feedback_system'] = {
+                    'health_score': feedback_health.get('health_score', 0),
+                    'status': feedback_health.get('status', 'unknown'),
+                    'avg_satisfaction': feedback_health.get('avg_satisfaction', 0),
+                    'total_ratings': feedback_health.get('total_ratings', 0)
+                }
+            except Exception as e:
+                health_status['feedback_system'] = {'error': str(e)}
+        
+        # Add system metrics
+        try:
+            import psutil
+            import os
+            process = psutil.Process(os.getpid())
+            health_status['system_metrics'] = {
+                'memory_usage_mb': round(process.memory_info().rss / 1024 / 1024, 2),
+                'cpu_percent': process.cpu_percent(interval=0.1),
+            }
+        except Exception as e:
+            logger.debug(f"Could not get system metrics: {e}")
+        
+        # Add recommendations if system is degraded
+        if health_status['status'] in ['degraded', 'unhealthy']:
+            recommendations = []
+            if core_health < 100:
+                recommendations.append("Core components missing - check initialization errors")
+            if ml_health < 50:
+                recommendations.append("ML components unavailable - advanced features may not work")
+            if service_health < 70:
+                recommendations.append("Some services unavailable - functionality may be limited")
+            health_status['recommendations'] = recommendations
+        
+        return health_status
