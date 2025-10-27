@@ -6,6 +6,7 @@ import { useBlog } from '../contexts/BlogContext';
 import { useTranslation } from 'react-i18next';
 import { trackBlogEvent, trackSearch } from '../utils/analytics';
 import WeatherAwareBlogRecommendations from '../components/WeatherAwareBlogRecommendations';
+import BlogPostSkeleton from '../components/BlogPostSkeleton';
 import { formatLikesCount, getNumberTextSize } from '../utils/formatNumbers';
 import SEOHead from '../components/SEOHead';
 import '../App.css';
@@ -215,10 +216,19 @@ const BlogList = () => {
         darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50'
       }`}>
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center items-center py-20">
-            <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${
-              darkMode ? 'border-indigo-500' : 'border-indigo-600'
+          {/* Header skeleton */}
+          <div className="text-center py-8 sm:py-12 mb-8">
+            <div className={`h-12 w-96 mx-auto mb-4 rounded animate-pulse ${
+              darkMode ? 'bg-gray-800' : 'bg-gray-200'
             }`}></div>
+            <div className={`h-6 w-128 mx-auto mb-6 rounded animate-pulse ${
+              darkMode ? 'bg-gray-800' : 'bg-gray-200'
+            }`}></div>
+          </div>
+          
+          {/* Loading skeletons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <BlogPostSkeleton darkMode={darkMode} count={6} />
           </div>
         </div>
       </div>

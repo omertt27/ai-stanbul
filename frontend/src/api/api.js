@@ -17,7 +17,7 @@ const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 // Correct API endpoints - backend uses /ai/chat not /ai/ai/chat
 const API_URL = `${cleanBaseUrl}/ai/chat`;  // Fixed: direct path to chat endpoint
 const STREAM_API_URL = `${cleanBaseUrl}/ai/stream`;
-const RESTAURANTS_API_URL = `${cleanBaseUrl}/restaurants/search`;
+const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
 const PLACES_API_URL = `${cleanBaseUrl}/places/`;
 // Chat history endpoints  
 const CHAT_HISTORY_API_URL = `${cleanBaseUrl}/chat/history`;

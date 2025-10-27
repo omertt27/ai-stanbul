@@ -978,7 +978,7 @@ class IstanbulDailyTalkAI:
     
     def _generate_contextual_response(self, message: str, intent: str, entities: Dict,
                                     user_profile: UserProfile, context: ConversationContext, 
-                                    neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+                                    neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]:
         """Generate contextual response based on intent and entities, enhanced with neural insights
         
         Args:
@@ -1077,7 +1077,7 @@ class IstanbulDailyTalkAI:
         
         # Handle specific intents
         elif intent == 'transportation':
-            return self._generate_transportation_response(message, entities, user_profile, context, return_structured=return_structured)
+            return self._generate_transportation_response(message, entities, user_profile, context, neural_insights, return_structured=return_structured)
         
         elif intent == 'shopping':
             return self._generate_shopping_response(entities, user_profile, context)
@@ -1181,11 +1181,27 @@ class IstanbulDailyTalkAI:
                 return self.response_generator._generate_fallback_response(context, user_profile)
     
     def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
-                                        context: ConversationContext, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
-        """Generate comprehensive transportation response with advanced AI and real-time data"""
+                                        context: ConversationContext, neural_insights: Optional[Dict] = None,
+                                        return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate comprehensive transportation response with advanced AI and real-time data
+        
+        Args:
+            neural_insights: ML-powered insights (sentiment, temporal context, keywords, etc.)
+        """
         try:
+            # Extract temporal and sentiment context from neural insights
+            temporal_context = neural_insights.get('temporal_context') if neural_insights else None
+            sentiment = neural_insights.get('sentiment') if neural_insights else None
+            
+            logger.info(f"🧠 Transportation query with ML insights: temporal={temporal_context}, sentiment={sentiment}")
+            
             # Check if this is a specific route request
-            route_indicators = ['from', 'to', 'how to get', 'directions', 'route from', 'route to']
+            route_indicators = [
+                'from', 'to', 'how to get', 'how do i get', 'how can i get', 
+                'how to go', 'how do i go', 'how can i go',
+                'directions', 'route from', 'route to', 'way to get', 'way to go',
+                'get to', 'go to', 'travel to', 'reach'
+            ]
             is_route_query = any(indicator in message.lower() for indicator in route_indicators)
             
             # Use new transfer instructions & map visualization integration if available
@@ -1207,16 +1223,16 @@ class IstanbulDailyTalkAI:
                 # Process the transportation query (async)
                 import asyncio
                 loop = asyncio.get_event_loop()
+                
+                # Build intelligent user context using ML insights
+                user_context = self._build_intelligent_user_context(message, temporal_context, sentiment)
+                
                 result = loop.run_until_complete(
                     self.transportation_chat.handle_transportation_query(
                         query=message,
                         user_location=user_location,
                         destination=destination,
-                        user_context={
-                            'has_luggage': False,
-                            'time_sensitive': False,
-                            'accessibility_needs': []
-                        }
+                        user_context=user_context
                     )
                 )
                 
@@ -2527,4 +2543,79 @@ Please try asking about the weather again in a few moments!"""
             weather_note += f"Pleasant weather today ({temp}°C, {description}) - great for exploring!\n"
             weather_note += "💡 Perfect conditions for outdoor sightseeing.\n"
         
+        # Add wind speed note
+        wind_speed = weather_data.get('wind_speed', 0)
+        if wind_speed > 20:
+            weather_note += "💨 It's windy outside, especially on bridges and high points. Hold onto your hat!\n"
+        
         return response + weather_note
+
+    def _build_intelligent_user_context(self, message: str, temporal_context: Optional[Dict], 
+                                        sentiment: Optional[Dict]) -> Dict[str, Any]:
+        """Build intelligent user context using ML insights from neural processor
+        
+        Uses neural ML insights to detect:
+        - Time sensitivity (urgent queries, rush hour awareness)
+        - Luggage requirements (airport queries, heavy bags)
+        - Accessibility needs (wheelchair, stairs avoidance)
+        - Preferred transportation modes
+        """
+        
+        message_lower = message.lower()
+        
+        # Detect time sensitivity using ML sentiment + keywords
+        time_sensitive = False
+        urgent_keywords = ['urgent', 'quickly', 'fast', 'asap', 'hurry', 'late', 'rush', 'immediate']
+        has_urgent_keyword = any(keyword in message_lower for keyword in urgent_keywords)
+        
+        # Check ML sentiment for stress/urgency
+        is_stressed = False
+        if sentiment:
+            sentiment_score = sentiment.get('score', 0)
+            is_stressed = sentiment_score < -0.3  # Negative sentiment indicates stress
+        
+        # Check temporal context for rush hour / time constraints
+        is_rush_time = False
+        if temporal_context:
+            time_of_day = temporal_context.get('time_of_day')
+            is_rush_time = time_of_day in ['morning', 'early_morning', 'evening']
+            
+            # "tomorrow morning" = time-sensitive planning
+            when = temporal_context.get('when')
+            if when in ['now', 'immediately', 'soon']:
+                time_sensitive = True
+        
+        time_sensitive = has_urgent_keyword or is_stressed or is_rush_time
+        
+        # Detect luggage from keywords
+        has_luggage = False
+        luggage_keywords = ['luggage', 'suitcase', 'bags', 'baggage', 'airport', 'flight', 'hotel']
+        has_luggage = any(keyword in message_lower for keyword in luggage_keywords)
+        
+        # Detect accessibility needs
+        accessibility_needs = []
+        if 'wheelchair' in message_lower or 'disabled' in message_lower:
+            accessibility_needs.append('wheelchair_accessible')
+        if 'elevator' in message_lower or 'no stairs' in message_lower:
+            accessibility_needs.append('avoid_stairs')
+        if 'elderly' in message_lower or 'old' in message_lower:
+            accessibility_needs.append('easy_route')
+        
+        # Build context dictionary with ML insights
+        context = {
+            'has_luggage': has_luggage,
+            'time_sensitive': time_sensitive,
+            'is_stressed': is_stressed,
+            'accessibility_needs': accessibility_needs,
+            'temporal_context': temporal_context,
+            'sentiment': sentiment,
+            'urgency_level': 'high' if has_urgent_keyword else ('medium' if is_stressed else 'low')
+        }
+        
+        # Log ML-powered context detection
+        if time_sensitive or has_luggage or accessibility_needs:
+            logger.info(f"🧠 ML Context Detection: time_sensitive={time_sensitive}, "
+                       f"luggage={has_luggage}, accessibility={accessibility_needs}, "
+                       f"stress={is_stressed}, urgency={context['urgency_level']}")
+        
+        return context

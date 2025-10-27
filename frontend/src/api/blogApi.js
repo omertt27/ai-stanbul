@@ -9,7 +9,7 @@ import {
 // API configuration
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/ai\/?$/, '');
-const BLOG_API_URL = `${cleanBaseUrl}/blog/`;
+const BLOG_API_URL = `${cleanBaseUrl}/api/blog/posts/`;
 
 // Debug logging
 console.log('🔧 API Configuration:');
@@ -164,11 +164,16 @@ export const uploadBlogImage = async (file) => {
   });
 };
 
-export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
+export const likeBlogPost = async (postId, userIdentifier = null) => {
   return blogCircuitBreaker.call(async () => {
     try {
-      console.log('❤️ Liking blog post:', postId, 'Type:', typeof postId);
-      console.log('🔗 Full like URL:', `${BLOG_API_URL}${postId}/like`);
+      // Generate or use stored user identifier
+      if (!userIdentifier) {
+        userIdentifier = localStorage.getItem('user_identifier') || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('user_identifier', userIdentifier);
+      }
+      
+      console.log('❤️ Toggling like for post:', postId, 'User:', userIdentifier.substr(0, 10) + '...');
       
       // Use the new database-backed endpoint
       const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/like`, {
@@ -177,6 +182,7 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
+        body: JSON.stringify({ user_identifier: userIdentifier }),
         timeout: 5000
       }, {
         maxAttempts: 2,
@@ -184,8 +190,8 @@ export const likeBlogPost = async (postId, userIdentifier = 'default_user') => {
       });
       
       const data = await response.json();
-      console.log('✅ Post like response:', data);
-      return data;
+      console.log('✅ Post like toggled:', data);
+      return data; // { success: true, is_liked: boolean, likes_count: number }
       
     } catch (error) {
       console.error('❌ Like failed for post ID:', postId, 'Error:', error.message);
@@ -434,4 +440,62 @@ export const safeLikeBlogPost = async (postId, userIdentifier = 'default_user') 
   }
   
   return likeBlogPost(postId, userIdentifier);
+};
+
+// =============================
+// COMMENT API FUNCTIONS
+// =============================
+
+export const fetchComments = async (postId) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('💬 Fetching comments for post:', postId);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/comments`, {
+        method: 'GET',
+        headers: { 
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 500
+      });
+      
+      const data = await response.json();
+      console.log('✅ Comments fetched:', data.comments?.length || 0, 'comments');
+      return data; // { comments: [...], total: number }
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Fetch Comments');
+    }
+  });
+};
+
+export const createComment = async (postId, commentData) => {
+  return blogCircuitBreaker.call(async () => {
+    try {
+      console.log('✍️ Creating comment on post:', postId);
+      
+      const response = await fetchWithRetry(`${BLOG_API_URL}${postId}/comments`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(commentData),
+        timeout: 10000
+      }, {
+        maxAttempts: 2,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      console.log('✅ Comment created:', data.id);
+      return data;
+      
+    } catch (error) {
+      throw handleBlogApiError(error, null, 'Create Comment');
+    }
+  });
 };

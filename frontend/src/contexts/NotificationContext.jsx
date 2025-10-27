@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
+// 🔧 TEMPORARY: Disable notifications until backend endpoints are ready
+const NOTIFICATIONS_ENABLED = false;
+
 const NotificationContext = createContext();
 
 export const useNotifications = () => {
@@ -28,10 +31,15 @@ export const NotificationProvider = ({ children }) => {
   
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
   // Initialize notifications system
   useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED) {
+      console.log('ℹ️ Notifications disabled - backend endpoints not ready yet');
+      return;
+    }
+    
     initializeNotifications();
     return () => {
       cleanup();

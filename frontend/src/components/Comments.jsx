@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
+import { fetchComments, createComment } from '../api/blogApi';
 
 const Comments = ({ postId }) => {
   const { darkMode } = useTheme();
@@ -16,35 +17,16 @@ const Comments = ({ postId }) => {
 
   const loadComments = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await fetchComments(postId);
-      // setComments(response.comments || []);
-      
-      // Mock data for now
-      setComments([
-        {
-          id: 1,
-          author_name: 'Sarah Johnson',
-          content: 'What a beautiful place! I visited last month and it was absolutely stunning. Thanks for sharing this hidden gem!',
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-        },
-        {
-          id: 2,
-          author_name: 'Mehmet Özkan',
-          content: 'Great post! I\'ve been living in Istanbul for years but never knew about this spot. Definitely adding it to my list.',
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-        },
-        {
-          id: 3,
-          author_name: 'Emily Chen',
-          content: 'The photos are gorgeous! Is it easy to get there by public transport?',
-          created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-        }
-      ]);
+      const response = await fetchComments(postId);
+      setComments(response.comments || []);
+      console.log(`✅ Loaded ${response.comments?.length || 0} comments for post ${postId}`);
     } catch (err) {
       setError('Failed to load comments');
       console.error('Error loading comments:', err);
+      // Set empty array on error
+      setComments([]);
     } finally {
       setLoading(false);
     }
@@ -62,23 +44,20 @@ const Comments = ({ postId }) => {
     setError(null);
 
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await createComment(postId, { author_name: authorName, content: newComment });
-      
-      // Mock success for now
-      const mockComment = {
-        id: Date.now(),
+      const commentData = {
         author_name: authorName,
         content: newComment,
-        created_at: new Date().toISOString()
+        author_email: null // Optional
       };
-
-      setComments(prev => [mockComment, ...prev]);
+      
+      const response = await createComment(postId, commentData);
+      
+      // Add new comment to the list
+      setComments(prev => [response, ...prev]);
       setNewComment('');
       setAuthorName('');
       
-      // Show success message
-      alert('Comment added successfully!');
+      console.log('✅ Comment posted successfully');
       
     } catch (err) {
       setError('Failed to post comment. Please try again.');

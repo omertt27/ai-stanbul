@@ -147,31 +147,16 @@ class TransportationChatIntegration:
         # Common patterns
         query_lower = query.lower()
         
-        # Pattern: "from X to Y" or "X to Y"
-        import re
-        
-        # Try various patterns
-        patterns = [
-            r'from\s+([a-z\s]+)\s+to\s+([a-z\s]+)',
-            r'([a-z\s]+)\s+to\s+([a-z\s]+)',
-            r'how.*get.*from\s+([a-z\s]+)\s+to\s+([a-z\s]+)',
-            r'route.*from\s+([a-z\s]+)\s+to\s+([a-z\s]+)',
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                return {
-                    'origin': match.group(1).strip().title(),
-                    'destination': match.group(2).strip().title()
-                }
-        
-        # Try to extract known locations
+        # First, try to extract known locations (most reliable)
         known_locations = [
             'Taksim', 'Kadıköy', 'Sultanahmet', 'Beşiktaş', 'Üsküdar',
             'Airport', 'Istanbul Airport', 'Sabiha Gökçen', 'Atatürk Airport',
             'Levent', 'Mecidiyeköy', 'Şişli', 'Beyoğlu', 'Kabataş',
-            'Eminönü', 'Karaköy', 'Galata', 'Ortaköy', 'Sarıyer'
+            'Eminönü', 'Karaköy', 'Galata', 'Ortaköy', 'Sarıyer',
+            'Galata Tower', 'Grand Bazaar', 'Spice Bazaar', 'Blue Mosque',
+            'Hagia Sophia', 'Topkapi Palace', 'Dolmabahçe', 'Dolmabahce',
+            'Ortaköy Mosque', 'Maiden Tower', 'Bosphorus', 'Golden Horn',
+            'Bebek', 'Arnavutköy', 'Rumeli Fortress', 'Anadolu Fortress'
         ]
         
         found_locations = []
@@ -179,10 +164,49 @@ class TransportationChatIntegration:
             if location.lower() in query_lower:
                 found_locations.append(location)
         
+        # Pattern: "from X to Y" - use regex only if we have found locations
+        import re
+        
         if len(found_locations) >= 2:
+            # Try to determine order using patterns
+            patterns = [
+                (r'from\s+(.+?)\s+to\s+(.+?)(?:\s|$|[?.,!])', 'from_to'),
+                (r'(.+?)\s+to\s+(.+?)(?:\s|$|[?.,!])', 'to_pattern')
+            ]
+            
+            for pattern, pattern_type in patterns:
+                match = re.search(pattern, query_lower)
+                if match:
+                    origin_text = match.group(1).strip()
+                    dest_text = match.group(2).strip()
+                    
+                    # Find which locations match
+                    origin_loc = None
+                    dest_loc = None
+                    
+                    for loc in found_locations:
+                        if loc.lower() in origin_text:
+                            origin_loc = loc
+                        if loc.lower() in dest_text:
+                            dest_loc = loc
+                    
+                    if origin_loc and dest_loc:
+                        return {
+                            'origin': origin_loc,
+                            'destination': dest_loc
+                        }
+            
+            # If pattern matching failed, use order of appearance
             return {
                 'origin': found_locations[0],
                 'destination': found_locations[1]
+            }
+        
+        elif len(found_locations) == 1:
+            # If only one location found, assume it's the destination
+            return {
+                'origin': None,
+                'destination': found_locations[0]
             }
         
         return {'origin': None, 'destination': None}

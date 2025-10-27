@@ -5,6 +5,9 @@
  * @version 1.0.0
  */
 
+// 🔧 TEMPORARY: Disable offline sync until backend endpoints are ready
+const OFFLINE_SYNC_ENABLED = false;
+
 import offlineMapTileCache from './offlineMapTileCache.js';
 import offlineIntentDetector from './offlineIntentDetector.js';
 import offlineDatabase from './offlineDatabase.js';
@@ -179,6 +182,17 @@ class OfflineEnhancementManager {
    * @returns {Promise<object>} Sync results
    */
   async syncAllData() {
+    if (!OFFLINE_SYNC_ENABLED) {
+      console.log('ℹ️ Offline sync disabled - backend endpoints not ready yet');
+      return {
+        success: true,
+        disabled: true,
+        restaurants: { skipped: true },
+        attractions: { skipped: true },
+        pois: { skipped: true }
+      };
+    }
+    
     console.log('🔄 Syncing all offline data...');
     
     const results = {

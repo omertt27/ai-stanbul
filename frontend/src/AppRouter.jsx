@@ -9,6 +9,9 @@ import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import Donate from "./pages/Donate";
 import OfflineSettings from "./pages/OfflineSettings";
+import BlogList from "./pages/BlogList";
+import BlogPost from "./pages/BlogPost";
+import NewBlogPost from "./pages/NewBlogPost";
 import './App.css';
 
 function AppRouter() {
@@ -25,6 +28,9 @@ function AppRouter() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/donate" element={<Donate />} />
+            <Route path="/blog" element={<BlogList />} />
+            <Route path="/blog/new" element={<NewBlogPost />} />
+            <Route path="/blog/:id" element={<BlogPost />} />
             <Route path="/offline-settings" element={<OfflineSettings />} />
           </Routes>
         </main>

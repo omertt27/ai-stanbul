@@ -1285,6 +1285,18 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# Include Blog API Router
+try:
+    from blog_api import router as blog_router
+    app.include_router(blog_router)
+    print("✅ Blog API endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Blog API endpoints not available: {e}")
+    app.include_router(blog_router)
+    print("✅ Blog API endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Blog API endpoints not available: {e}")
+
 # Initialize Enhanced Authentication Manager
 auth_manager = None
 if ENHANCED_AUTH_AVAILABLE:
@@ -1876,7 +1888,7 @@ async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
             status="success",
             feedback_id=feedback_id,
             message="Thank you for the correction! This helps improve our system."
-        )
+               )
     
     except Exception as e:
         logger.error(f"Failed to collect intent correction: {e}")
@@ -2454,14 +2466,13 @@ async def chat_endpoint(request: ChatRequest):
                 # ===== 3. CULTURAL TIPS & ETIQUETTE =====
                 if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
                     cultural_tips = [
-                        'Remove
-                        'Dress modestly when visiting religious sites',
-                        'Women may need to cover their hair in mosques',
-                        'No photography during prayer times',
-                        'Respect local customs and traditions'
+                        'Remove shoes before entering mosques',
+                        'Dress modestly (cover shoulders and knees)',
+                        'Women should cover hair in mosques (scarves provided)',
+                        'Avoid visiting during prayer times (5x daily)',
+                        'Photography restrictions may apply inside'
                     ]
                     metadata['cultural_tips'] = cultural_tips
-                    logger.info(f"📚 Added {len(cultural_tips)} cultural tips")
                 
                 # ===== 4. ROUTE PLANNING & DISTANCE CALCULATIONS =====
                 if metadata.get('pois') and len(metadata['pois']) > 1:
@@ -2777,230 +2788,49 @@ async def chat_endpoint(request: ChatRequest):
                                 for m in museums[:5]:  # Top 5 museums
                                     poi = {
                                         'name': m.get('name', ''),
-        "I can help with restaurants, attractions, transportation, and neighborhood recommendations!"
-    )
-
-# =============================
-# AI CHAT ENDPOINTS (MAIN CHAT INTERFACE)
-# =============================
-
-@app.post("/api/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_endpoint(request: ChatRequest):
-    """
-    Main chat endpoint for AI interactions
-    Processes user query and returns AI response with rich data
-    
-    Returns comprehensive POI data, district info, cultural tips, and route suggestions
-    """
-    try:
-        # Sanitize user input
-        user_input = sanitize_user_input(request.message)
-        session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
-        user_id = request.user_id or session_id
-        
-        logger.info(f"💬 Chat request - Session: {session_id}, Query: '{user_input[:50]}...'")
-        
-        # Run query preprocessing pipeline
-        query_analysis = {}
-        if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
-            try:
-                query_analysis = process_enhanced_query(user_input, session_id)
-                if query_analysis.get('success'):
-                    logger.info(f"🔧 Query preprocessed - Intent: {query_analysis['intent']} "
-                              f"(confidence: {query_analysis['confidence']:.2f})")
-                    if query_analysis.get('corrections'):
-                        logger.info(f"✏️ Applied {len(query_analysis['corrections'])} corrections")
-                    if query_analysis.get('entities'):
-                        logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
-            except Exception as e:
-                logger.warning(f"Preprocessing error: {e}")
-        
-        # Initialize comprehensive metadata
-        metadata = {}
-        cultural_tips = []
-        
-        # Add preprocessing results to metadata
-        if query_analysis:
-            metadata['query_preprocessing'] = {
-                'original_query': query_analysis.get('original_query', user_input),
-                'processed_query': query_analysis.get('normalized_query', user_input),
-                'corrections_applied': len(query_analysis.get('corrections', [])),
-                'entities_extracted': list(query_analysis.get('entities', {}).keys()),
-                'detected_intent': query_analysis.get('intent'),
-                'confidence': query_analysis.get('confidence'),
-                'statistics': query_analysis.get('preprocessing_stats')
-            }
-        
-        # Use Istanbul Daily Talk AI if available
-        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-            try:
-                # Process message with the AI system using structured response format
-                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
+                                        'type': m.get('type', 'museum'),
+                                        'description': m.get('description', ''),
+                                        'location': m.get('location', {}),
+                                        'rating': m.get('rating'),
+                                        'opening_hours': m.get('opening_hours')
+                                    }
+                                    pois.append(poi)
+                                metadata['pois'] = pois
+                                logger.info(f"🏛️ Added {len(pois)} POI recommendations")
+                        except Exception as e:
+                            logger.warning(f"Museum search error: {e}")
                 
-                # Handle both dict (structured) and str (fallback) responses
-                if isinstance(ai_result, dict):
-                    ai_response = ai_result.get('response', '')
-                    # Extract map data from structured response
-                    if 'map_data' in ai_result and ai_result['map_data']:
-                        metadata['map_data'] = ai_result['map_data']
-                        logger.info(f"🗺️ Map data extracted: {len(ai_result['map_data'].get('locations', []))} locations")
-                    # Extract intent and entities if available
-                    if 'intent' in ai_result:
-                        metadata['detected_intent'] = ai_result['intent']
-                    if 'entities' in ai_result:
-                        metadata['extracted_entities'] = ai_result['entities']
-                else:
-                    ai_response = ai_result
+                # Return structured response
+                return ChatResponse(
+                    response=ai_response,
+                    metadata=metadata,
+                    cultural_tips=cultural_tips,
+                    session_id=session_id
+                )
+                
             except Exception as e:
                 logger.error(f"Istanbul Daily Talk AI error: {e}", exc_info=True)
-                ai_response = create_fallback_response(user_input)
-        
-        else:
-            ai_response = create_fallback_response(user_input)
-        
-        # Stream response word by word for realistic effect
-        words = ai_response.split()
-        for i, word in enumerate(words):
-            chunk_data = {
-                "chunk": word + (" " if i < len(words) - 1 else ""),
-                "done": False
-            }
-            yield f"data: {json.dumps(chunk_data)}\n\n"
-            await asyncio.sleep(0.03)  # Small delay for streaming effect
-        
-        # Send completion signal with metadata
-        completion_data = {
-            'done': True, 
-            'session_id': session_id
-        }
-        if metadata:
-            completion_data['metadata'] = metadata
-            logger.info(f"📊 Sending metadata with completion signal")
-        
-        yield f"data: {json.dumps(completion_data)}\n\n"
-        
-    except Exception as e:
-        logger.error(f"Streaming error: {e}", exc_info=True)
-        error_data = {"error": str(e), "done": True}
-        yield f"data: {json.dumps(error_data)}\n\n"
-    
-    finally:
-        # Ensure any final cleanup or logging
-        logger.info(f"🌟 Streaming session {session_id} completed")
-
-
-@app.post("/api/route/gps-optimize", response_model=RouteResponse, tags=["GPS Route Planning"])
-async def optimize_route_from_gps(
-    user_location: Dict[str, float] = Body(..., description="User's GPS location"),
-    destinations: List[Dict[str, Any]] = Body(..., description="List of destinations to visit"),
-    preferences: Optional[Dict[str, Any]] = Body(None, description="Route optimization preferences")
-):
-    """
-    Optimize route order based on user's GPS location and destinations
-    Uses TSP algorithm for optimal routing
-    """
-    try:
-        print(f"🗺️ GPS route optimization from {user_location} to {len(destinations)} destinations")
-        
-        if not destinations:
-            raise HTTPException(status_code=400, detail="No destinations provided")
-        
-        # Create route optimization query
-        destination_names = [dest.get("name", "Unknown") for dest in destinations]
-        destinations_str = ", ".join(destination_names)
-        
-        optimization_query = (
-            f"I'm at GPS location {user_location['lat']:.4f}, {user_location['lon']:.4f} "
-            f"and want to visit these places: {destinations_str}. "
-            f"What's the most efficient route order?"
-        )
-        
-        session_id = f"optimize_{uuid.uuid4().hex[:8]}"
-        
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            # Use Istanbul Daily Talk AI for route optimization
-            optimization_response = istanbul_daily_talk_ai.process_message(optimization_query, session_id)
-            
-            # Try to extract optimized order from response
-            optimized_waypoints = []
-            if "→" in optimization_response:
-                ordered_places = [place.strip() for place in optimization_response.split("→")]
-                for i, place in enumerate(ordered_places):
-                    # Find matching destination
-                    matching_dest = None
-                    for dest in destinations:
-                        if dest.get("name", "").lower() in place.lower():
-                            matching_dest = dest
-                            break
-                    
-                    waypoint = {
-                        "order": i + 1,
-                        "name": place,
-                        "description": matching_dest.get("description", f"Visit {place}") if matching_dest else f"Visit {place}",
-                        "estimated_time": "60-90 minutes",
-                        "distance_from_start": f"{matching_dest.get('distance_from_start', 0):.1f} km" if matching_dest else "Unknown",
-                        "lat": matching_dest.get("location", {}).get("lat") if matching_dest else None,
-                        "lng": matching_dest.get("location", {}).get("lng") if matching_dest else None
-                    }
-                    optimized_waypoints.append(waypoint)
-            else:
-                # Fallback: use original order
-                for i, dest in enumerate(destinations):
-                    optimized_waypoints.append({
-                        "order": i + 1,
-                        "name": dest.get("name", f"Destination {i+1}"),
-                        "description": dest.get("description", ""),
-                        "estimated_time": "60-90 minutes",
-                        "distance_from_start": f"{dest.get('distance_from_start', 0):.1f} km" if dest else "Unknown",
-                        "lat": dest.get("location", {}).get("lat") if dest else None,
-                        "lng": dest.get("location", {}).get("lng") if dest else None
-                    })
-            
-            route_data = {
-                "description": optimization_response,
-                "optimized": True,
-                "algorithm": "GPS-aware TSP optimization",
-                "start_point": user_location,
-                "end_point": user_location,
-                "gps_based": True
-            }
-            
-            return RouteResponse(
-                route=route_data,
-                total_duration=f"{len(optimized_waypoints) * 1.5:.1f} hours",
-                total_distance=f"{len(optimized_waypoints) * 1.8:.1f} km",
-                waypoints=optimized_waypoints,
-                suggestions=[
-                    "Route optimized for minimum travel time",
-                    "Consider traffic conditions during peak hours",
-                    "Allow extra time for popular attractions",
-                    "Check opening hours before visiting"
-                ]
-            )
-        else:
+                # Fall through to fallback
         
         # Fallback response
-        fallback_response = create_fallback_response(user_input)
-        
+        ai_response = create_fallback_response(user_input)
         return ChatResponse(
-            response=fallback_response,
-            session_id=session_id,
-            intent="general_query",
-            confidence=0.5,
-            suggestions=[
-                "Show me museums in Sultanahmet",
-                "Find restaurants in Beyoğlu",
-                "Plan a day tour",
-                "Tell me about Turkish culture"
-            ]
+            response=ai_response,
+            metadata=metadata,
+            cultural_tips=[],
+            session_id=session_id
         )
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Chat endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+# =============================
+# AI STREAMING ENDPOINT
+# =============================
 
 @app.post("/ai/stream", tags=["AI Chat"])
 async def chat_stream_endpoint(request: ChatRequest):
