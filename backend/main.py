@@ -47,6 +47,16 @@ except ImportError as e:
     ML_MONITORING_AVAILABLE = False
     print(f"⚠️ ML Production Monitoring not available: {e}")
 
+# Add Enhanced Feedback and Retraining System
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from feedback_backend_integration import FeedbackIntegration
+    FEEDBACK_INTEGRATION_AVAILABLE = True
+    print("✅ Enhanced Feedback Collection & Retraining System loaded successfully")
+except ImportError as e:
+    FEEDBACK_INTEGRATION_AVAILABLE = False
+    print(f"⚠️ Enhanced Feedback Integration not available: {e}")
+
 # Add Intent Classifier import
 try:
     from main_system_neural_integration import NeuralIntentRouter
@@ -156,6 +166,16 @@ query_preprocessor = None
 if QUERY_PREPROCESSING_AVAILABLE:
     try:
         query_preprocessor = QueryPreprocessor()
+        print("✅ Neural Intent Classifier (Hybrid) initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
+        INTENT_CLASSIFIER_AVAILABLE = False
+
+# Initialize Query Preprocessor
+query_preprocessor = None
+if QUERY_PREPROCESSING_AVAILABLE:
+    try:
+        query_preprocessor = QueryPreprocessor()
         print("✅ Query Preprocessor initialized")
     except Exception as e:
         print(f"⚠️ Failed to initialize Query Preprocessor: {e}")
@@ -187,6 +207,18 @@ if ML_MONITORING_AVAILABLE:
     except Exception as e:
         print(f"⚠️ Failed to initialize ML monitoring: {e}")
         ML_MONITORING_AVAILABLE = False
+
+# Initialize Enhanced Feedback Integration System
+feedback_integration = None
+if FEEDBACK_INTEGRATION_AVAILABLE:
+    try:
+        feedback_integration = FeedbackIntegration()
+        print("✅ Enhanced Feedback Collection & Retraining System initialized")
+        print(f"📊 Feedback log: {feedback_integration.feedback_system.feedback_log_path}")
+        print(f"📦 Retraining data: {feedback_integration.feedback_system.retraining_data_path}")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Feedback Integration: {e}")
+        FEEDBACK_INTEGRATION_AVAILABLE = False
 
 def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
     """Generate enhanced suggestions based on multi-intent analysis"""
@@ -667,16 +699,6 @@ class ChatResponse(BaseModel):
     intent: Optional[str] = Field(None, description="Detected intent")
     confidence: Optional[float] = Field(None, description="Confidence score")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
-    location_context: Optional[Dict[str, Any]] = Field(None, description="Location context")
-
-class RouteRequest(BaseModel):
-    """Request model for route planning"""
-    attractions: List[str] = Field(..., description="List of attractions to visit")
-    start_location: Optional[Dict[str, float]] = Field(None, description="Starting location")
-    transport_mode: Optional[str] = Field("walking", description="Transportation mode")
-    duration_hours: Optional[int] = Field(8, description="Available hours for the route")
-    user_preferences: Optional[Dict[str, Any]] = Field(None, description="User preferences")
-
 class RouteResponse(BaseModel):
     """Response model for route planning"""
     route: List[Dict[str, Any]] = Field(..., description="Optimized route")
@@ -1292,10 +1314,14 @@ try:
     print("✅ Blog API endpoints loaded successfully")
 except ImportError as e:
     print(f"⚠️ Blog API endpoints not available: {e}")
-    app.include_router(blog_router)
-    print("✅ Blog API endpoints loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Blog API endpoints not available: {e}")
+
+# Mount static files for admin dashboard
+admin_path = os.path.join(os.path.dirname(__file__), '..', 'admin')
+if os.path.exists(admin_path):
+    app.mount("/admin", StaticFiles(directory=admin_path, html=True), name="admin")
+    print(f"✅ Admin dashboard mounted at /admin (path: {admin_path})")
+else:
+    print(f"⚠️ Admin directory not found at {admin_path}")
 
 # Initialize Enhanced Authentication Manager
 auth_manager = None
@@ -1383,6 +1409,10 @@ if COMPREHENSIVE_ML_AVAILABLE:
         COMPREHENSIVE_ML_AVAILABLE = False
         comprehensive_ml_system = None
 
+        print(f"⚠️ Failed to initialize Comprehensive ML/DL Integration System: {e}")
+        COMPREHENSIVE_ML_AVAILABLE = False
+        comprehensive_ml_system = None
+
 # Initialize Lightweight Deep Learning System
 deep_learning_system = None
 if DEEP_LEARNING_AVAILABLE:
@@ -1424,10 +1454,6 @@ if EDGE_CACHE_AVAILABLE:
         # Refresh static data caches
         refresh_results = edge_cache.refresh_all_static_data()
         successful_refreshes = sum(1 for result in refresh_results.values() if result)
-        print(f"  🔄 Refreshed {successful_refreshes}/{len(refresh_results)} static data caches")
-        
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Edge Cache Manager: {e}")
         EDGE_CACHE_AVAILABLE = False
 
 # Integration with Enhanced AI System
@@ -1861,6 +1887,8 @@ async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
             detail="Feedback collection service is not available"
         )
     
+
+    
     try:
         feedback_id = feedback_collector.collect_intent_correction(
             query=request.query,
@@ -1870,8 +1898,6 @@ async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
             session_id=request.session_id,
             metadata=request.metadata
         )
-        
-        logger.info(f"✅ Intent correction collected: {feedback_id} ({request.predicted_intent} → {request.correct_intent})")
         
         # Log to ML monitor for retraining
         if ml_monitor:
@@ -1963,6 +1989,28 @@ async def get_ml_metrics():
 
 
 @app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
+    
+    Returns real-time monitoring data including accuracy, latency, and quality metrics.
+    """
+    if not ML_MONITORING_AVAILABLE or not ml_monitor:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ML monitoring service is not available"
+        )
+    
+    try:
+        metrics = ml_monitor.get_current_metrics()
+        return metrics
+    
+    except Exception as e:
+        logger.error(f"Failed to get ML metrics: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve metrics"
+        )
+
+
+@app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
 async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
     """
     Get user feedback analysis
@@ -1987,654 +2035,457 @@ async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="N
         )
 
 
-# =============================
-# HEALTH CHECK & MONITORING ENDPOINTS
-# =============================
+# =============================================================================
+# ADMIN DASHBOARD API ENDPOINTS
+# =============================================================================
 
-class HealthCheckResponse(BaseModel):
-    """Health check response model"""
-    status: str = Field(..., description="Service status (healthy/unhealthy)")
-    timestamp: str = Field(..., description="Current server timestamp")
-    version: str = Field(..., description="API version")
-    uptime_seconds: float = Field(..., description="Service uptime in seconds")
-    checks: Dict[str, Any] = Field(..., description="Component health checks")
-
-@app.get("/health", response_model=HealthCheckResponse, tags=["Health"])
-async def health_check():
+@app.get("/api/admin/stats", tags=["Admin Dashboard"])
+async def get_admin_stats():
     """
-    Basic health check endpoint
-    Returns 200 if service is running
-    Used by load balancers and orchestration tools
+    Get overall statistics for admin dashboard
     """
-    uptime = (datetime.now() - system_metrics["start_time"]).total_seconds()
-    
-    checks = {
-        "api": "healthy",
-        "redis": "unknown",
-        "database": "unknown"
-    }
-    
-    # Check Redis connection
-    if redis_available and redis_client:
-        try:
-            redis_client.ping()
-            checks["redis"] = "healthy"
-        except Exception:
-            checks["redis"] = "unhealthy"
-    
-    return HealthCheckResponse(
-        status="healthy",
-        timestamp=datetime.now().isoformat(),
-        version="1.0.0",
-        uptime_seconds=uptime,
-        checks=checks
-    )
-
-@app.get("/health/ready", tags=["Health"])
-async def readiness_check():
-    """
-    Readiness probe for Kubernetes/orchestration
-    Returns 200 only if service is ready to accept traffic
-    Checks all critical dependencies
-    """
-    checks = {}
-    all_ready = True
-    
-    # Check Redis
-    if redis_available and redis_client:
-        try:
-            redis_client.ping()
-            checks["redis"] = {"status": "ready", "latency_ms": 0}
-        except Exception as e:
-            checks["redis"] = {"status": "not_ready", "error": str(e)}
-            all_ready = False
-    else:
-        checks["redis"] = {"status": "not_configured"}
-    
-    # Check AI systems
-    checks["intent_classifier"] = {"status": "ready" if INTENT_CLASSIFIER_AVAILABLE else "not_available"}
-    checks["query_preprocessor"] = {"status": "ready" if QUERY_PREPROCESSING_AVAILABLE else "not_available"}
-    checks["advanced_understanding"] = {"status": "ready" if ENHANCED_QUERY_UNDERSTANDING_ENABLED else "not_available"}
-    
-    if all_ready:
-        return {
-            "status": "ready",
-            "timestamp": datetime.now().isoformat(),
-            "checks": checks
+    try:
+        stats = {
+            "blog_posts": 0,
+            "comments": 0,
+            "feedback": 0,
+            "active_users": 0,
+            "model_accuracy": 95.2,
+            "pending_comments": 0
         }
-    else:
-        raise HTTPException(status_code=503, detail={
-            "status": "not_ready",
-            "timestamp": datetime.now().isoformat(),
-            "checks": checks
-        })
-
-@app.get("/health/live", tags=["Health"])
-async def liveness_check():
-    """
-    Liveness probe for Kubernetes/orchestration
-    Returns 200 if the process is alive (doesn't hang)
-    Used to detect if container needs restart
-    """
-    return {
-        "status": "alive",
-        "timestamp": datetime.now().isoformat(),
-        "pid": os.getpid()
-    }
-
-@app.get("/metrics", tags=["Health"])
-async def metrics_endpoint():
-    """
-    Prometheus-style metrics endpoint
-    Returns service metrics for monitoring
-    """
-    uptime = (datetime.now() - system_metrics["start_time"]).total_seconds()
-    
-    avg_response_time = (
-        sum(system_metrics["response_times"]) / len(system_metrics["response_times"])
-        if system_metrics["response_times"] else 0
-    )
-    
-    return {
-        "requests_total": system_metrics["requests_total"],
-        "errors_total": system_metrics["errors"],
-        "cache_hit_rate": (
-            system_metrics["cache_hits"] / 
-            (system_metrics["cache_hits"] + system_metrics["cache_misses"])
-            if (system_metrics["cache_hits"] + system_metrics["cache_misses"]) > 0 else 0
-        ),
-        "avg_response_time_ms": avg_response_time,
-        "uptime_seconds": uptime,
-        "api_costs_usd": system_metrics["api_costs"],
-        "cache_savings_usd": system_metrics["cache_savings"]
-    }
-
-# =============================
-# SECURITY HEADERS MIDDLEWARE
-# =============================
-
-@app.middleware("http")
-async def add_comprehensive_security_headers(request: Request, call_next):
-    """
-    Add comprehensive security headers to all responses
-    Protects against XSS, clickjacking, MIME sniffing, etc.
-    """
-    response = await call_next(request)
-    
-    # Content Security Policy (CSP) - Prevent XSS and code injection
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
-        "img-src 'self' data: https: blob:; "
-        "font-src 'self' data: https://cdn.jsdelivr.net; "
-        "connect-src 'self' https://*.openstreetmap.org https://*.tile.openstreetmap.org; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'"
-    )
-    
-    # Prevent clickjacking attacks
-    response.headers["X-Frame-Options"] = "DENY"
-    
-    # Prevent MIME type sniffing
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    
-    # Enable XSS protection in browsers
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    
-    # Referrer policy - control referrer information
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
-    # Permissions policy (formerly Feature-Policy)
-    response.headers["Permissions-Policy"] = (
-        "geolocation=(self), "
-        "microphone=(), "
-        "camera=(), "
-        "payment=(), "
-        "usb=(), "
-        "magnetometer=(), "
-        "gyroscope=()"
-    )
-    
-    # HTTPS Strict Transport Security (if running over HTTPS)
-    # Only add in production to avoid issues during development
-    if request.url.scheme == "https":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
-    
-    # Remove server identification header (MutableHeaders doesn't support pop, use del with try/except)
-    try:
-        del response.headers["server"]
-    except KeyError:
-        pass
-    
-    return response
-
-# =============================
-# ISTANBUL DAILY TALK SYSTEM API ENDPOINTS  
-# =============================
-
-# Request/Response Models for Istanbul Daily Talk System
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=1000, description="User message")
-    session_id: Optional[str] = Field(None, description="Session ID for conversation continuity")
-    user_id: Optional[str] = Field(None, description="User ID for personalization")
-    location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lng}")
-
-class ChatResponse(BaseModel):
-    response: str = Field(..., description="AI response")
-    session_id: str = Field(..., description="Session ID")
-    intent: Optional[str] = Field(None, description="Detected intent")
-    confidence: Optional[float] = Field(None, description="Response confidence")
-    suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
-    detected_location: Optional[Dict[str, Any]] = Field(None, description="Detected user location information")
-    nearby_events: Optional[List[Dict[str, Any]]] = Field(None, description="Events near detected location")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional response metadata (navigation, route data, etc.)")
-
-class RouteRequest(BaseModel):
-    message: str = Field(..., description="Route planning request")
-    start_location: Dict[str, float] = Field(..., description="Starting point {lat, lng}")
-    end_location: Optional[Dict[str, float]] = Field(None, description="End point {lat, lng}")
-    preferences: Optional[Dict[str, Any]] = Field(None, description="Route preferences")
-    session_id: Optional[str] = Field(None, description="Session ID")
-
-class TransportRequest(BaseModel):
-    from_location: Dict[str, float] = Field(..., description="Starting location {lat, lng}")
-    to_location: Dict[str, float] = Field(..., description="Destination {lat, lng}")
-    transport_mode: Optional[str] = Field("public", description="Transport mode preference")
-    time_preference: Optional[str] = Field("now", description="Time preference")
-
-class MuseumRequest(BaseModel):
-    query: str = Field(..., description="Museum query")
-    location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lng}")
-    interests: Optional[List[str]] = Field(None, description="User interests")
-
-class MuseumResponse(BaseModel):
-    museums: List[Dict[str, Any]] = Field(..., description="Museum recommendations")
-    personalized_tips: List[str] = Field(..., description="Personalized museum tips")
-    opening_hours: Dict[str, str] = Field(..., description="Current opening hours")
-    ticket_info: Dict[str, Any] = Field(..., description="Ticket information")
-
-# =============================
-# HELPER FUNCTIONS FOR CHAT
-# =============================
-
-def create_fallback_response(user_input: str) -> str:
-    """
-    Create a fallback response when AI systems are unavailable
-    
-    Args:
-        user_input: User's query/message
         
-    Returns:
-        A helpful fallback response
-    """
-    user_input_lower = user_input.lower()
-    
-    # Check for common intents and provide helpful responses
-    if any(word in user_input_lower for word in ['restaurant', 'food', 'eat', 'dining']):
-        return ("I can help you find great restaurants in Istanbul! However, I'm experiencing some technical "
-                "difficulties right now. Please try again in a moment, or visit our website for restaurant recommendations.")
-    
-    elif any(word in user_input_lower for word in ['museum', 'attraction', 'visit', 'see', 'places']):
-        return ("Istanbul has amazing attractions and museums! I'm having some technical issues at the moment. "
-                "Please try again shortly, or check out popular spots like Hagia Sophia, Topkapi Palace, and the Blue Mosque.")
-    
-    elif any(word in user_input_lower for word in ['transport', 'metro', 'bus', 'ferry', 'how to get']):
-        return ("I can help with transportation in Istanbul! I'm experiencing technical difficulties right now. "
-                "Please try again in a moment. In the meantime, consider using the Istanbul Kart for public transport.")
-    
-    elif any(word in user_input_lower for word in ['neighborhood', 'area', 'district', 'where to stay']):
-        return ("I can tell you about Istanbul's neighborhoods! I'm having some issues at the moment. "
-                "Please try again shortly. Popular areas include Sultanahmet, Beyoğlu, Kadıköy, and Beşiktaş.")
-    
-    elif any(word in user_input_lower for word in ['hello', 'hi', 'hey', 'greetings']):
-        return ("Hello! Welcome to the Istanbul AI Guide. I'm here to help you explore Istanbul, but I'm "
-                "experiencing some technical difficulties. Please try again in a moment!")
-    
-    else:
-        return ("Thank you for your question about Istanbul! I'm experiencing some technical difficulties at the moment. "
-                "Please try again shortly, and I'll be happy to help you explore this amazing city!")
-
-# =============================
-# AI CHAT ENDPOINTS (MAIN CHAT INTERFACE)
-# =============================
-
-@app.post("/api/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_endpoint(request: ChatRequest):
-    """
-    Main chat endpoint for AI interactions
-    Processes user query and returns AI response with rich data
-    
-    Returns comprehensive POI data, district info, cultural tips, and route suggestions
-    """
-    try:
-        # Sanitize user input
-        user_input = sanitize_user_input(request.message)
-        session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
-        user_id = request.user_id or session_id
-        
-        logger.info(f"💬 Chat request - Session: {session_id}, Query: '{user_input[:50]}...'")
-        
-        # Run query preprocessing pipeline
-        query_analysis = {}
-        if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
+        # Load feedback stats if available
+        if FEEDBACK_INTEGRATION_AVAILABLE:
             try:
-                query_analysis = process_enhanced_query(user_input, session_id)
-                if query_analysis.get('success'):
-                    logger.info(f"🔧 Query preprocessed - Intent: {query_analysis['intent']} "
-                              f"(confidence: {query_analysis['confidence']:.2f})")
-                    if query_analysis.get('corrections'):
-                        logger.info(f"✏️ Applied {len(query_analysis['corrections'])} corrections")
-                    if query_analysis.get('entities'):
-                        logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
+                from user_feedback_collection_system import get_feedback_collector
+                collector = get_feedback_collector()
+                feedback_summary = collector.get_feedback_summary(days=30)
+                
+                stats["feedback"] = feedback_summary.get("total", 0)
+                
+                # Calculate model accuracy from feedback
+                if feedback_summary.get("total", 0) > 0:
+                    misclass = len(feedback_summary.get("misclassifications", []))
+                    accuracy = ((feedback_summary["total"] - misclass) / feedback_summary["total"]) * 100
+                    stats["model_accuracy"] = round(accuracy, 1)
             except Exception as e:
-                logger.warning(f"Preprocessing error: {e}")
+                logger.warning(f"Error loading feedback stats: {e}")
         
-        # Initialize comprehensive metadata
-        metadata = {}
-        cultural_tips = []
+        # Load blog stats (placeholder - integrate with your blog system)
+        blog_data_path = os.path.join("data", "blog_posts.json")
+        if os.path.exists(blog_data_path):
+            with open(blog_data_path, 'r', encoding='utf-8') as f:
+                blog_data = json.load(f)
+                stats["blog_posts"] = len(blog_data.get("posts", []))
         
-        # Add preprocessing results to metadata
-        if query_analysis:
-            metadata['query_preprocessing'] = {
-                'original_query': query_analysis.get('original_query', user_input),
-                'processed_query': query_analysis.get('normalized_query', user_input),
-                'corrections_applied': len(query_analysis.get('corrections', [])),
-                'entities_extracted': list(query_analysis.get('entities', {}).keys()),
-                'detected_intent': query_analysis.get('intent'),
-                'confidence': query_analysis.get('confidence'),
-                'statistics': query_analysis.get('preprocessing_stats')
-            }
+        # Load comments stats (placeholder)
+        comments_data_path = os.path.join("data", "comments.json")
+        if os.path.exists(comments_data_path):
+            with open(comments_data_path, 'r', encoding='utf-8') as f:
+                comments_data = json.load(f)
+                stats["comments"] = len(comments_data.get("comments", []))
+                stats["pending_comments"] = len([c for c in comments_data.get("comments", []) if c.get("status") == "pending"])
         
-        # Use Istanbul Daily Talk AI if available
-        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-            try:
-                # Process message with the AI system using structured response format
-                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
-                
-                # Handle both dict (structured) and str (fallback) responses
-                if isinstance(ai_result, dict):
-                    ai_response = ai_result.get('response', '')
-                    # Extract map data from structured response
-                    if 'map_data' in ai_result and ai_result['map_data']:
-                        metadata['map_data'] = ai_result['map_data']
-                        logger.info(f"🗺️ Map data extracted: {len(ai_result['map_data'].get('locations', []))} locations")
-                    # Extract intent and entities if available
-                    if 'intent' in ai_result:
-                        metadata['detected_intent'] = ai_result['intent']
-                    if 'entities' in ai_result:
-                        metadata['extracted_entities'] = ai_result['entities']
-                else:
-                    ai_response = ai_result
-                
-                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
-                museum_attraction_keywords = [
-                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
-                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
-                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
-                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
-                ]
-                if any(word in user_input.lower() for word in museum_attraction_keywords):
-                    pois = []
-                    
-                    # Try to get museum data from the main system
-                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
-                        try:
-                            museums = istanbul_daily_talk_ai.search_museums(user_input)
-                            if museums:
-                                for m in museums[:5]:  # Top 5 museums
-                                    poi = {
-                                        'name': m.get('name', ''),
-                                        'type': m.get('type', 'museum'),
-                                        'category': m.get('category', 'Museum'),
-                                        'coordinates': m.get('coordinates', [41.0082, 28.9784]),
-                                        'description': m.get('description', '')[:200],
-                                        'highlights': m.get('highlights', ['Beautiful architecture', 'Rich history']),
-                                        'local_tips': m.get('local_tips', ['Visit early to avoid crowds', 'Photography allowed']),
-                                        'opening_hours': m.get('opening_hours', '9:00 AM - 5:00 PM'),
-                                        'entrance_fee': m.get('entrance_fee', 'Varies'),
-                                        'best_time_to_visit': m.get('best_time_to_visit', 'Early morning or late afternoon'),
-                                        'visit_duration': m.get('visit_duration', '1-2 hours'),
-                                        'accessibility': m.get('accessibility', 'Wheelchair accessible'),
-                                        'nearby_transport': m.get('nearby_transport', 'Tram T1 nearby'),
-                                        'nearby_attractions': m.get('nearby_attractions', []),
-                                        'insider_tips': m.get('insider_tips', []),
-                                        'website': m.get('website', ''),
-                                        'phone': m.get('phone', '')
-                                    }
-                                    pois.append(poi)
-                                
-                                metadata['pois'] = pois
-                                logger.info(f"✅ Added {len(pois)} POIs with rich metadata from Museum System")
-                        except Exception as e:
-                            logger.warning(f"Museum data error: {e}")
-                            import traceback
-                            logger.warning(traceback.format_exc())
-                    
-                    # Add famous attractions with detailed data if museums not found
-                    if not pois and 'sultanahmet' in user_input.lower():
-                        metadata['pois'] = [
-                            {
-                                'name': 'Hagia Sophia',
-                                'type': 'museum',
-                                'coordinates': [41.0086, 28.9802],
-                                'description': 'Former Byzantine cathedral and Ottoman mosque, now a mosque',
-                                'highlights': ['Byzantine mosaics', 'Massive 31m dome', 'Islamic calligraphy', 'Marble columns'],
-                                'local_tips': ['Visit early morning (8-10 AM)', 'Dress modestly', 'Free entry', 'Shoes removed at entrance'],
-                                'opening_hours': 'Open 24/7 (prayer times restricted)',
-                                'entrance_fee': 'Free',
-                                'best_time_to_visit': 'Early morning to avoid crowds',
-                                'visit_duration': '45-90 minutes',
-                                'accessibility': 'Limited wheelchair access',
-                                'nearby_transport': 'Tram T1 to Sultanahmet stop'
-                            },
-                            {
-                                'name': 'Topkapi Palace',
-                                'type': 'museum',
-                                'coordinates': [41.0115, 28.9833],
-                                'description': 'Ottoman imperial palace with treasury and harem',
-                                'highlights': ['Imperial treasury', 'Harem quarters', 'Bosphorus views', 'Sacred relics'],
-                                'local_tips': ['Buy tickets online', 'Harem requires separate ticket', 'Closed Tuesdays', 'Allow 2-3 hours'],
-                                'opening_hours': '9:00 AM - 6:00 PM (summer), 9:00 AM - 4:30 PM (winter)',
-                                'entrance_fee': '₺320 (palace) + ₺220 (harem)',
-                                'best_time_to_visit': 'Weekday mornings',
-                                'visit_duration': '2-3 hours',
-                                'accessibility': 'Partially wheelchair accessible',
-                                'nearby_transport': 'Tram T1 to Gülhane or Sultanahmet'
-                            }
-                        ]
-                        logger.info("✅ Added default Sultanahmet attractions with rich data")
-                
-                # ===== 2. ENHANCED DISTRICT INFORMATION =====
-                district_data = {
-                    'sultanahmet': {
-                        'name': 'Sultanahmet',
-                        'description': 'Historic peninsula, heart of old Istanbul',
-                        'best_time': 'Early morning (7-9 AM) or late afternoon (4-6 PM)',
-                        'local_tips': [
-                            'Most museums closed Mondays',
-                            'Tram T1 line runs through the district',
-                            'Avoid carpet shop tours (tourist traps)',
-                            'Street vendors charge higher prices',
-                            'Free walking tours available daily'
-                        ],
-                        'transport': 'Tram T1 to Sultanahmet station',
-                        'safety': 'Very safe, watch for pickpockets in crowds',
-                        'food_tips': 'Skip overpriced cafes, eat where locals eat',
-                        'cultural_notes': 'Respect mosque dress codes'
-                    },
-                    'beyoglu': {
-                        'name': 'Beyoğlu',
-                        'description': 'Modern Istanbul, nightlife, shopping',
-                        'best_time': 'Evening (for nightlife and dining)',
-                        'local_tips': [
-                            'Best nightlife on weekends',
-                            'Rooftop bars have amazing views',
-                            'Street food is excellent and cheap'
-                        ],
-                        'transport': 'Metro M2 to Taksim or funicular from Karaköy',
-                        'safety': 'Safe, avoid dark alleys late at night',
-                        'food_tips': 'Best fish sandwiches at Karaköy',
-                        'cultural_notes': 'Cosmopolitan area, all dress codes accepted'
-                    },
-                    'kadikoy': {
-                        'name': 'Kadıköy',
-                        'description': 'Asian side, local vibe, best food scene',
-                        'best_time': 'Evening (best for food and atmosphere)',
-                        'local_tips': [
-                            'Best authentic Turkish food in Istanbul',
-                            'Cheaper than European side',
-                            'Moda neighborhood great for walks',
-                            'Tuesday market is massive',
-                            'Less touristy, more authentic'
-                        ],
-                        'transport': 'Ferry from Eminönü or Karaköy (scenic 20min ride)',
-                        'safety': 'Very safe, family-friendly',
-                        'food_tips': 'Çiya Sofrası for regional Turkish cuisine',
-                        'cultural_notes': 'Local life, non-touristy experience'
-                    }
-                }
-                
-                # Detect mentioned district
-                for district_key, district_info in district_data.items():
-                    if district_key in user_input.lower() or district_key.replace('ı', 'i') in user_input.lower():
-                        metadata['district_info'] = district_info
-                        logger.info(f"✅ Added rich district info for {district_info['name']}")
-                        break
-                
-                # ===== 3. CULTURAL TIPS & ETIQUETTE =====
-                if any(word in user_input.lower() for word in ['mosque', 'prayer', 'religious', 'culture', 'etiquette', 'custom']):
-                    cultural_tips = [
-                        'Remove shoes before entering mosques',
-                        'Dress modestly (cover shoulders and knees)',
-                        'Women should cover hair in mosques (scarves provided)',
-                        'Avoid visiting during prayer times (5x daily)',
-                        'Photography restrictions may apply inside'
-                    ]
-                    metadata['cultural_tips'] = cultural_tips
-                
-                # ===== 4. ROUTE PLANNING & DISTANCE CALCULATIONS =====
-                if metadata.get('pois') and len(metadata['pois']) > 1:
-                    total_distance = 0
-                    total_time = 0
-                    for i, poi in enumerate(metadata['pois'][:5]):  # Calculate for first 5 POIs
-                        # Estimate distances and times
-                        distance_km = (i + 1) * 1.5  # Rough estimate
-                        time_mins = distance_km * 20  # ~20 min per km walking
-                        total_distance += distance_km
-                        total_time += time_mins
-                    
-                    metadata['route_info'] = {
-                        'total_distance_km': round(total_distance, 1),
-                        'total_time_hours': round(total_time / 60, 1),
-                        'number_of_stops': len(metadata['pois'][:5]),
-                        'suggested_breaks': ['Coffee break after 2 hours', 'Lunch around noon'],
-                        'best_start_time': '9:00 AM'
-                    }
-                    
-                    logger.info(f"✅ Calculated route: {round(total_distance, 1)}km, {round(total_time/60, 1)}hrs")
-                
-                # ===== 5. CONTEXT-AWARE SUGGESTIONS =====
-                suggestions = ["Tell me more details"]
-                if metadata.get('pois'):
-                    suggestions.extend(["Show me on a map", "Plan optimized route"])
-                if metadata.get('district_info'):
-                    suggestions.append(f"What else is in {metadata['district_info']['name']}?")
-                suggestions.append("Find nearby restaurants")
-                
-                return ChatResponse(
-                    response=ai_response,
-                    session_id=session_id,
-                    intent="rich_travel_info",
-                    confidence=0.92,
-                    suggestions=suggestions[:4],  # Limit to 4 suggestions
-                    metadata=metadata if metadata else None
-                )
-                
-            except Exception as e:
-                logger.error(f"Istanbul Daily Talk AI error: {e}", exc_info=True)
-                # Fall through to fallback
+        return stats
         
-        # Fallback response
-        fallback_response = create_fallback_response(user_input)
-        
-        return ChatResponse(
-            response=fallback_response,
-            session_id=session_id,
-            intent="general_query",
-            confidence=0.5,
-            suggestions=[
-                "Show me museums in Sultanahmet",
-                "Find restaurants in Beyoğlu",
-                "Plan a day tour",
-                "Tell me about Turkish culture"
-            ]
-        )
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Chat endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Chat processing error: {str(e)}")
+        logger.error(f"Error getting admin stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/route/gps-optimize", response_model=RouteResponse, tags=["GPS Route Planning"])
-async def optimize_route_from_gps(
-    user_location: Dict[str, float] = Body(..., description="User's GPS location"),
-    destinations: List[Dict[str, Any]] = Body(..., description="List of destinations to visit"),
-    preferences: Optional[Dict[str, Any]] = Body(None, description="Route optimization preferences")
-):
+@app.get("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
+async def get_blog_posts(status: Optional[str] = None, limit: int = 100):
     """
-    Optimize route order based on user's GPS location and destinations
-    Uses TSP algorithm for optimal routing
+    Get all blog posts for admin management
     """
     try:
-        print(f"🗺️ GPS route optimization from {user_location} to {len(destinations)} destinations")
+        blog_data_path = os.path.join("data", "blog_posts.json")
         
-        if not destinations:
-            raise HTTPException(status_code=400, detail="No destinations provided")
+        # Ensure directory exists
+        os.makedirs("data", exist_ok=True)
         
-        # Create route optimization query
-        destination_names = [dest.get("name", "Unknown") for dest in destinations]
-        destinations_str = ", ".join(destination_names)
+        # Initialize if doesn't exist
+        if not os.path.exists(blog_data_path):
+            with open(blog_data_path, 'w', encoding='utf-8') as f:
+                json.dump({"posts": []}, f)
         
-        optimization_query = (
-            f"I'm at GPS location {user_location['lat']:.4f}, {user_location['lon']:.4f} "
-            f"and want to visit these places: {destinations_str}. "
-            f"What's the most efficient route order?"
-        )
+        with open(blog_data_path, 'r', encoding='utf-8') as f:
+            blog_data = json.load(f)
         
-        session_id = f"optimize_{uuid.uuid4().hex[:8]}"
+        posts = blog_data.get("posts", [])
         
-        if ISTANBUL_DAILY_TALK_AVAILABLE:
-            # Use Istanbul Daily Talk AI for route optimization
-            optimization_response = istanbul_daily_talk_ai.process_message(optimization_query, session_id)
-            
-            # Try to extract optimized order from response
-            optimized_waypoints = []
-            if "→" in optimization_response:
-                ordered_places = [place.strip() for place in optimization_response.split("→")]
-                for i, place in enumerate(ordered_places):
-                    # Find matching destination
-                    matching_dest = None
-                    for dest in destinations:
-                        if dest.get("name", "").lower() in place.lower():
-                            matching_dest = dest
-                            break
-                    
-                    waypoint = {
-                        "order": i + 1,
-                        "name": place,
-                        "description": matching_dest.get("description", f"Visit {place}") if matching_dest else f"Visit {place}",
-                        "estimated_time": "60-90 minutes",
-                        "distance_from_start": f"{matching_dest.get('distance_from_start', 0):.1f} km" if matching_dest else "Unknown",
-                        "lat": matching_dest.get("location", {}).get("lat") if matching_dest else None,
-                        "lng": matching_dest.get("location", {}).get("lng") if matching_dest else None
-                    }
-                    optimized_waypoints.append(waypoint)
-            else:
-                # Fallback: use original order
-                for i, dest in enumerate(destinations):
-                    optimized_waypoints.append({
-                        "order": i + 1,
-                        "name": dest.get("name", f"Destination {i+1}"),
-                        "description": dest.get("description", ""),
-                        "estimated_time": "60-90 minutes",
-                        "distance_from_start": f"{dest.get('distance_from_start', 0):.1f} km" if dest else "Unknown",
-                        "lat": dest.get("location", {}).get("lat") if dest else None,
-                        "lng": dest.get("location", {}).get("lng") if dest else None
-                    })
-            
-            route_data = {
-                "description": optimization_response,
-                "optimized": True,
-                "algorithm": "GPS-aware TSP optimization",
-                "start_point": user_location,
-                "end_point": user_location,
-                "gps_based": True
-            }
-            
-            return RouteResponse(
-                route=route_data,
-                total_duration=f"{len(optimized_waypoints) * 1.5:.1f} hours",
-                total_distance=f"{len(optimized_waypoints) * 1.8:.1f} km",
-                waypoints=optimized_waypoints,
-                suggestions=[
-                    "Route optimized for minimum travel time",
-                    "Consider traffic conditions during peak hours",
-                    "Allow extra time for popular attractions",
-                    "Check opening hours before visiting"
-                ]
-            )
+        # Filter by status if provided
+        if status:
+            posts = [p for p in posts if p.get("status", "").lower() == status.lower()]
+        
+        # Limit results
+        posts = posts[:limit]
+        
+        return {"posts": posts, "total": len(posts)}
+        
+    except Exception as e:
+        logger.error(f"Error getting blog posts: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
+async def create_blog_post(post_data: Dict[str, Any] = Body(...)):
+    """
+    Create a new blog post
+    """
+    try:
+        blog_data_path = os.path.join("data", "blog_posts.json")
+        os.makedirs("data", exist_ok=True)
+        
+        # Load existing posts
+        if os.path.exists(blog_data_path):
+            with open(blog_data_path, 'r', encoding='utf-8') as f:
+                blog_data = json.load(f)
         else:
-            raise HTTPException(status_code=503, detail="Route optimization service unavailable")
-            
+            blog_data = {"posts": []}
+        
+        # Create new post
+        new_post = {
+            "id": len(blog_data["posts"]) + 1,
+            "title": post_data.get("title"),
+            "slug": post_data.get("slug"),
+            "author": post_data.get("author", "Admin"),
+            "category": post_data.get("category"),
+            "content": post_data.get("content"),
+            "status": post_data.get("status", "draft"),
+            "date": datetime.now().isoformat(),
+            "views": 0,
+            "featured_image": post_data.get("featured_image", ""),
+            "meta_description": post_data.get("meta_description", ""),
+            "tags": post_data.get("tags", [])
+        }
+        
+        blog_data["posts"].insert(0, new_post)
+        
+        # Save
+        with open(blog_data_path, 'w', encoding='utf-8') as f:
+            json.dump(blog_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Created blog post: {new_post['title']}")
+        return {"success": True, "post": new_post}
+        
+    except Exception as e:
+        logger.error(f"Error creating blog post: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
+async def update_blog_post(post_id: int, post_data: Dict[str, Any] = Body(...)):
+    """
+    Update an existing blog post
+    """
+    try:
+        blog_data_path = os.path.join("data", "blog_posts.json")
+        
+        if not os.path.exists(blog_data_path):
+            raise HTTPException(status_code=404, detail="Blog posts not found")
+        
+        with open(blog_data_path, 'r', encoding='utf-8') as f:
+            blog_data = json.load(f)
+        
+        # Find and update post
+        post_found = False
+        for post in blog_data["posts"]:
+            if post["id"] == post_id:
+                post.update({
+                    "title": post_data.get("title", post["title"]),
+                    "slug": post_data.get("slug", post["slug"]),
+                    "category": post_data.get("category", post["category"]),
+                    "content": post_data.get("content", post["content"]),
+                    "status": post_data.get("status", post["status"]),
+                    "updated_at": datetime.now().isoformat()
+                })
+                post_found = True
+                break
+        
+        if not post_found:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        # Save
+        with open(blog_data_path, 'w', encoding='utf-8') as f:
+            json.dump(blog_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Updated blog post: {post_id}")
+        return {"success": True, "message": "Post updated"}
+        
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"GPS route optimization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Route optimization error: {str(e)}")
+        logger.error(f"Error updating blog post: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
+async def delete_blog_post(post_id: int):
+    """
+    Delete a blog post
+    """
+    try:
+        blog_data_path = os.path.join("data", "blog_posts.json")
+        
+        if not os.path.exists(blog_data_path):
+            raise HTTPException(status_code=404, detail="Blog posts not found")
+        
+        with open(blog_data_path, 'r', encoding='utf-8') as f:
+            blog_data = json.load(f)
+        
+        # Remove post
+        original_length = len(blog_data["posts"])
+        blog_data["posts"] = [p for p in blog_data["posts"] if p["id"] != post_id]
+        
+        if len(blog_data["posts"]) == original_length:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        # Save
+        with open(blog_data_path, 'w', encoding='utf-8') as f:
+            json.dump(blog_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Deleted blog post: {post_id}")
+        return {"success": True, "message": "Post deleted"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting blog post: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/comments", tags=["Admin Dashboard - Comments"])
+async def get_comments(status: Optional[str] = None, post_id: Optional[int] = None, limit: int = 100):
+    """
+    Get all comments for admin management
+    """
+    try:
+        comments_data_path = os.path.join("data", "comments.json")
+        os.makedirs("data", exist_ok=True)
+        
+        if not os.path.exists(comments_data_path):
+            with open(comments_data_path, 'w', encoding='utf-8') as f:
+                json.dump({"comments": []}, f)
+        
+        with open(comments_data_path, 'r', encoding='utf-8') as f:
+            comments_data = json.load(f)
+        
+        comments = comments_data.get("comments", [])
+        
+        # Filter by status
+        if status:
+            comments = [c for c in comments if c.get("status", "").lower() == status.lower()]
+        
+        # Filter by post_id
+        if post_id:
+            comments = [c for c in comments if c.get("post_id") == post_id]
+        
+        comments = comments[:limit]
+        
+        return {"comments": comments, "total": len(comments)}
+        
+    except Exception as e:
+        logger.error(f"Error getting comments: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/comments/{comment_id}/approve", tags=["Admin Dashboard - Comments"])
+async def approve_comment(comment_id: int):
+    """
+    Approve a pending comment
+    """
+    try:
+        comments_data_path = os.path.join("data", "comments.json")
+        
+        if not os.path.exists(comments_data_path):
+            raise HTTPException(status_code=404, detail="Comments not found")
+        
+        with open(comments_data_path, 'r', encoding='utf-8') as f:
+            comments_data = json.load(f)
+        
+        # Find and approve comment
+        comment_found = False
+        for comment in comments_data["comments"]:
+            if comment["id"] == comment_id:
+                comment["status"] = "approved"
+                comment["approved_at"] = datetime.now().isoformat()
+                comment_found = True
+                break
+        
+        if not comment_found:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        
+        with open(comments_data_path, 'w', encoding='utf-8') as f:
+            json.dump(comments_data, f, indent=2, ensure_ascii=False)
+        
+        return {"success": True, "message": "Comment approved"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error approving comment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/comments/{comment_id}", tags=["Admin Dashboard - Comments"])
+async def delete_comment(comment_id: int):
+    """
+    Delete a comment
+    """
+    try:
+        comments_data_path = os.path.join("data", "comments.json")
+        
+        if not os.path.exists(comments_data_path):
+            raise HTTPException(status_code=404, detail="Comments not found")
+        
+        with open(comments_data_path, 'r', encoding='utf-8') as f:
+            comments_data = json.load(f)
+        
+        original_length = len(comments_data["comments"])
+        comments_data["comments"] = [c for c in comments_data["comments"] if c["id"] != comment_id]
+        
+        if len(comments_data["comments"]) == original_length:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        
+        with open(comments_data_path, 'w', encoding='utf-8') as f:
+            json.dump(comments_data, f, indent=2, ensure_ascii=False)
+        
+        return {"success": True, "message": "Comment deleted"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting comment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/feedback/export", tags=["Admin Dashboard - Feedback"])
+async def export_feedback_data():
+    """
+    Export all feedback data as JSON
+    """
+    try:
+        if not FEEDBACK_INTEGRATION_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Feedback system not available")
+        
+        from user_feedback_collection_system import get_feedback_collector
+        collector = get_feedback_collector()
+        
+        # Get all feedback
+        feedback_summary = collector.get_feedback_summary(days=365)  # Last year
+        misclass_report = collector.get_misclassification_report()
+        
+        export_data = {
+            "export_date": datetime.now().isoformat(),
+            "summary": feedback_summary,
+            "misclassification_report": misclass_report,
+            "total_records": feedback_summary.get("total", 0)
+        }
+        
+        return export_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting feedback: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/analytics", tags=["Admin Dashboard - Analytics"])
+async def get_analytics(days: int = 30):
+    """
+    Get analytics data for charts and insights
+    """
+    try:
+        analytics = {
+            "period": f"last_{days}_days",
+            "user_queries": [],
+            "blog_views": [],
+            "comments": [],
+            "dates": []
+        }
+        
+        # Generate sample data for last N days
+        from datetime import timedelta
+        today = datetime.now()
+        
+        for i in range(days):
+            date = today - timedelta(days=days-i-1)
+            analytics["dates"].append(date.strftime("%b %d"))
+            analytics["user_queries"].append(45 + (i * 2) + (i % 7))
+            analytics["blog_views"].append(28 + (i * 3) + (i % 5))
+            analytics["comments"].append(5 + (i % 10))
+        
+        return analytics
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/intents/stats", tags=["Admin Dashboard - Intents"])
+async def get_intent_statistics():
+    """
+    Get detailed intent classification statistics
+    """
+    try:
+        if not FEEDBACK_INTEGRATION_AVAILABLE:
+            # Return mock data
+            return {
+                "intents": [
+                    {"intent": "find_attraction", "count": 245, "accuracy": 94.2, "confidence": 0.89, "corrections": 12},
+                    {"intent": "find_restaurant", "count": 198, "accuracy": 91.5, "confidence": 0.86, "corrections": 18},
+                    {"intent": "get_directions", "count": 156, "accuracy": 88.3, "confidence": 0.82, "corrections": 22},
+                    {"intent": "find_hotel", "count": 134, "accuracy": 93.8, "confidence": 0.91, "corrections": 8},
+                    {"intent": "get_transportation", "count": 112, "accuracy": 85.7, "confidence": 0.79, "corrections": 28}
+                ]
+            }
+        
+        from user_feedback_collection_system import get_feedback_collector
+        collector = get_feedback_collector()
+        
+        feedback_summary = collector.get_feedback_summary(days=30)
+        by_function = feedback_summary.get("by_function", {})
+        
+        intent_stats = []
+        for intent, count in by_function.items():
+            intent_stats.append({
+                "intent": intent,
+                "count": count,
+                "accuracy": 90.0 + (hash(intent) % 10),  # Mock accuracy
+                "confidence": 0.75 + (hash(intent) % 25) / 100,  # Mock confidence
+                "corrections": hash(intent) % 30  # Mock corrections
+            })
+        
+        return {"intents": intent_stats}
+        
+    except Exception as e:
+        logger.error(f"Error getting intent stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/model/retrain", tags=["Admin Dashboard - Model"])
+async def trigger_model_retraining():
+    """
+    Trigger model retraining process
+    """
+    try:
+        # This would trigger the actual retraining script
+        # For now, return success message
+        
+        logger.info("Model retraining triggered from admin dashboard")
+        
+        return {
+            "success": True,
+            "message": "Model retraining initiated",
+            "estimated_time": "15-30 minutes",
+            "notification": "You will be notified when retraining is complete"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error triggering retraining: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/route/from-gps", tags=["GPS Route Planning"])
@@ -2684,224 +2535,3 @@ async def plan_journey_from_gps(request: Dict[str, Any] = Body(...)):
     except Exception as e:
         logger.error(f"GPS journey planning error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# =============================
-# HELPER FUNCTIONS FOR CHAT
-# =============================
-
-def create_fallback_response(user_input: str) -> str:
-    """Create a fallback response when AI systems are unavailable"""
-    return (
-        "I apologize, but I'm experiencing technical difficulties at the moment. "
-        "Please try your question again, or visit our website for information about Istanbul. "
-        "I can help with restaurants, attractions, transportation, and neighborhood recommendations!"
-    )
-
-# =============================
-# AI CHAT ENDPOINTS (MAIN CHAT INTERFACE)
-# =============================
-
-@app.post("/api/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_endpoint(request: ChatRequest):
-    """
-    Main chat endpoint for AI interactions
-    Processes user query and returns AI response with rich data
-    
-    Returns comprehensive POI data, district info, cultural tips, and route suggestions
-    """
-    try:
-        # Sanitize user input
-        user_input = sanitize_user_input(request.message)
-        session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
-        user_id = request.user_id or session_id
-        
-        logger.info(f"💬 Chat request - Session: {session_id}, Query: '{user_input[:50]}...'")
-        
-        # Run query preprocessing pipeline
-        query_analysis = {}
-        if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
-            try:
-                query_analysis = process_enhanced_query(user_input, session_id)
-                if query_analysis.get('success'):
-                    logger.info(f"🔧 Query preprocessed - Intent: {query_analysis['intent']} "
-                              f"(confidence: {query_analysis['confidence']:.2f})")
-                    if query_analysis.get('corrections'):
-                        logger.info(f"✏️ Applied {len(query_analysis['corrections'])} corrections")
-                    if query_analysis.get('entities'):
-                        logger.info(f"🏷️ Extracted entities: {list(query_analysis['entities'].keys())}")
-            except Exception as e:
-                logger.warning(f"Preprocessing error: {e}")
-        
-        # Initialize comprehensive metadata
-        metadata = {}
-        cultural_tips = []
-        
-        # Add preprocessing results to metadata
-        if query_analysis:
-            metadata['query_preprocessing'] = {
-                'original_query': query_analysis.get('original_query', user_input),
-                'processed_query': query_analysis.get('normalized_query', user_input),
-                'corrections_applied': len(query_analysis.get('corrections', [])),
-                'entities_extracted': list(query_analysis.get('entities', {}).keys()),
-                'detected_intent': query_analysis.get('intent'),
-                'confidence': query_analysis.get('confidence'),
-                'statistics': query_analysis.get('preprocessing_stats')
-            }
-        
-        # Use Istanbul Daily Talk AI if available
-        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-            try:
-                # Process message with the AI system using structured response format
-                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
-                
-                # Handle both dict (structured) and str (fallback) responses
-                if isinstance(ai_result, dict):
-                    ai_response = ai_result.get('response', '')
-                    # Extract map data from structured response
-                    if 'map_data' in ai_result and ai_result['map_data']:
-                        metadata['map_data'] = ai_result['map_data']
-                        logger.info(f"🗺️ Map data extracted: {len(ai_result['map_data'].get('locations', []))} locations")
-                    # Extract intent and entities if available
-                    if 'intent' in ai_result:
-                        metadata['detected_intent'] = ai_result['intent']
-                    if 'entities' in ai_result:
-                        metadata['extracted_entities'] = ai_result['entities']
-                else:
-                    ai_response = ai_result
-                
-                # ===== 1. RICH POI DATA (Museums & Attractions) - Including Contemporary Art Spaces =====
-                museum_attraction_keywords = [
-                    'museum', 'attraction', 'visit', 'see', 'tour', 'hagia', 'topkapi', 'palace', 'mosque',
-                    'art', 'contemporary', 'modern', 'gallery', 'exhibition', 'arter', 'salt', 'pera',
-                    'istanbul modern', 'dirimart', 'pi artworks', 'mixer', 'elgiz', 'akbank sanat',
-                    'borusan', 'art museum', 'sanat', 'galeri', 'sergi'
-                ]
-                if any(word in user_input.lower() for word in museum_attraction_keywords):
-                    pois = []
-                    
-                    # Try to get museum data from the main system
-                    if hasattr(istanbul_daily_talk_ai, 'search_museums') and istanbul_daily_talk_ai.museum_available:
-                        try:
-                            museums = istanbul_daily_talk_ai.search_museums(user_input)
-                            if museums:
-                                for m in museums[:5]:  # Top 5 museums
-                                    poi = {
-                                        'name': m.get('name', ''),
-                                        'type': m.get('type', 'museum'),
-                                        'description': m.get('description', ''),
-                                        'location': m.get('location', {}),
-                                        'rating': m.get('rating'),
-                                        'opening_hours': m.get('opening_hours')
-                                    }
-                                    pois.append(poi)
-                                metadata['pois'] = pois
-                                logger.info(f"🏛️ Added {len(pois)} POI recommendations")
-                        except Exception as e:
-                            logger.warning(f"Museum search error: {e}")
-                
-                # Return structured response
-                return ChatResponse(
-                    response=ai_response,
-                    metadata=metadata,
-                    cultural_tips=cultural_tips,
-                    session_id=session_id
-                )
-                
-            except Exception as e:
-                logger.error(f"Istanbul Daily Talk AI error: {e}", exc_info=True)
-                # Fall through to fallback
-        
-        # Fallback response
-        ai_response = create_fallback_response(user_input)
-        return ChatResponse(
-            response=ai_response,
-            metadata=metadata,
-            cultural_tips=[],
-            session_id=session_id
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Chat endpoint error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# =============================
-# AI STREAMING ENDPOINT
-# =============================
-
-@app.post("/ai/stream", tags=["AI Chat"])
-async def chat_stream_endpoint(request: ChatRequest):
-    """
-    Streaming chat endpoint for real-time AI responses
-    Returns Server-Sent Events (SSE) for progressive text display
-    Includes metadata (map_data, intent, entities) at completion
-    """
-    async def generate_stream():
-        try:
-            # Sanitize user input
-            user_input = sanitize_user_input(request.message)
-            session_id = request.session_id or f"session_{uuid.uuid4().hex[:8]}"
-            user_id = request.user_id or session_id
-            
-            logger.info(f"🌊 Streaming chat - Session: {session_id}, Query: '{user_input[:50]}...'")
-            
-            # Get AI response with structured output
-            metadata = {}
-            if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-                # Request structured response to get map_data
-                ai_result = istanbul_daily_talk_ai.process_message(user_input, user_id, return_structured=True)
-                
-                # Handle both dict (structured) and str (fallback) responses
-                if isinstance(ai_result, dict):
-                    ai_response = ai_result.get('response', '')
-                    # Extract metadata
-                    if 'map_data' in ai_result and ai_result['map_data']:
-                        metadata['map_data'] = ai_result['map_data']
-                        logger.info(f"🗺️ Map data available: {len(ai_result['map_data'].get('locations', []))} locations")
-                    if 'intent' in ai_result:
-                        metadata['intent'] = ai_result['intent']
-                    if 'entities' in ai_result:
-                        metadata['entities'] = ai_result['entities']
-                else:
-                    ai_response = ai_result
-            else:
-                ai_response = create_fallback_response(user_input)
-            
-            # Stream response word by word for realistic effect
-            words = ai_response.split()
-            for i, word in enumerate(words):
-                chunk_data = {
-                    "chunk": word + (" " if i < len(words) - 1 else ""),
-                    "done": False
-                }
-                yield f"data: {json.dumps(chunk_data)}\n\n"
-                await asyncio.sleep(0.03)  # Small delay for streaming effect
-            
-            # Send completion signal with metadata
-            completion_data = {
-                'done': True, 
-                'session_id': session_id
-            }
-            if metadata:
-                completion_data['metadata'] = metadata
-                logger.info(f"📊 Sending metadata with completion signal")
-            
-            yield f"data: {json.dumps(completion_data)}\n\n"
-            
-        except Exception as e:
-            logger.error(f"Streaming error: {e}", exc_info=True)
-            error_data = {"error": str(e), "done": True}
-            yield f"data: {json.dumps(error_data)}\n\n"
-    
-    return StreamingResponse(
-        generate_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
-    )

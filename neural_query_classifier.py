@@ -66,7 +66,7 @@ class NeuralQueryClassifier:
     
     def __init__(
         self,
-        model_path: str = "models/istanbul_intent_classifier_finetuned",  # Updated to use fine-tuned model
+        model_path: str = "models/distilbert_intent_classifier",  # Updated to use newly trained DistilBERT model
         confidence_threshold: float = 0.70,
         device: str = "auto",
         enable_logging: bool = True,
