@@ -933,7 +933,7 @@ except ImportError as e:
     raise
 
 try:
-    from models import Base, Restaurant, Museum, Place, UserFeedback, ChatSession, BlogPost, BlogComment, ChatHistory
+    from models import Base, Restaurant, Museum, Place, UserFeedback, ChatSession, BlogPost, BlogComment, ChatHistory, UserSession, BlogLike, UserInteraction, EnhancedChatHistory
     from sqlalchemy.orm import Session
     print("✅ Models import successful")
 except ImportError as e:
@@ -1315,14 +1315,6 @@ try:
 except ImportError as e:
     print(f"⚠️ Blog API endpoints not available: {e}")
 
-# Mount static files for admin dashboard
-admin_path = os.path.join(os.path.dirname(__file__), '..', 'admin')
-if os.path.exists(admin_path):
-    app.mount("/admin", StaticFiles(directory=admin_path, html=True), name="admin")
-    print(f"✅ Admin dashboard mounted at /admin (path: {admin_path})")
-else:
-    print(f"⚠️ Admin directory not found at {admin_path}")
-
 # Initialize Enhanced Authentication Manager
 auth_manager = None
 if ENHANCED_AUTH_AVAILABLE:
@@ -1454,6 +1446,8 @@ if EDGE_CACHE_AVAILABLE:
         # Refresh static data caches
         refresh_results = edge_cache.refresh_all_static_data()
         successful_refreshes = sum(1 for result in refresh_results.values() if result)
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Edge Cache: {e}")
         EDGE_CACHE_AVAILABLE = False
 
 # Integration with Enhanced AI System
@@ -1493,6 +1487,10 @@ print("✅ CORS middleware configured")
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
+    
+    # Skip security headers for admin dashboard during development
+    if request.url.path.startswith("/admin"):
+        return response
     
     # Essential security headers for production
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -1989,28 +1987,6 @@ async def get_ml_metrics():
 
 
 @app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
-    
-    Returns real-time monitoring data including accuracy, latency, and quality metrics.
-    """
-    if not ML_MONITORING_AVAILABLE or not ml_monitor:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="ML monitoring service is not available"
-        )
-    
-    try:
-        metrics = ml_monitor.get_current_metrics()
-        return metrics
-    
-    except Exception as e:
-        logger.error(f"Failed to get ML metrics: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve metrics"
-        )
-
-
-@app.get("/api/monitoring/feedback-analysis", tags=["ML Monitoring"])
 async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="Number of days to analyze")):
     """
     Get user feedback analysis
@@ -2040,11 +2016,14 @@ async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="N
 # =============================================================================
 
 @app.get("/api/admin/stats", tags=["Admin Dashboard"])
-async def get_admin_stats():
+async def get_admin_stats(db: Session = Depends(get_db)):
     """
-    Get overall statistics for admin dashboard
+    Get overall statistics for admin dashboard using real database data
     """
     try:
+        from sqlalchemy import func, and_
+        from datetime import timedelta
+        
         stats = {
             "blog_posts": 0,
             "comments": 0,
@@ -2054,37 +2033,39 @@ async def get_admin_stats():
             "pending_comments": 0
         }
         
-        # Load feedback stats if available
-        if FEEDBACK_INTEGRATION_AVAILABLE:
-            try:
-                from user_feedback_collection_system import get_feedback_collector
-                collector = get_feedback_collector()
-                feedback_summary = collector.get_feedback_summary(days=30)
-                
-                stats["feedback"] = feedback_summary.get("total", 0)
-                
-                # Calculate model accuracy from feedback
-                if feedback_summary.get("total", 0) > 0:
-                    misclass = len(feedback_summary.get("misclassifications", []))
-                    accuracy = ((feedback_summary["total"] - misclass) / feedback_summary["total"]) * 100
-                    stats["model_accuracy"] = round(accuracy, 1)
-            except Exception as e:
-                logger.warning(f"Error loading feedback stats: {e}")
+        # Get real blog post count from database
+        stats["blog_posts"] = db.query(func.count(BlogPost.id)).scalar() or 0
         
-        # Load blog stats (placeholder - integrate with your blog system)
-        blog_data_path = os.path.join("data", "blog_posts.json")
-        if os.path.exists(blog_data_path):
-            with open(blog_data_path, 'r', encoding='utf-8') as f:
-                blog_data = json.load(f)
-                stats["blog_posts"] = len(blog_data.get("posts", []))
+        # Get real comments count and pending count from database
+        stats["comments"] = db.query(func.count(BlogComment.id)).scalar() or 0
+        stats["pending_comments"] = db.query(func.count(BlogComment.id)).filter(
+            BlogComment.is_approved == False
+        ).scalar() or 0
         
-        # Load comments stats (placeholder)
-        comments_data_path = os.path.join("data", "comments.json")
-        if os.path.exists(comments_data_path):
-            with open(comments_data_path, 'r', encoding='utf-8') as f:
-                comments_data = json.load(f)
-                stats["comments"] = len(comments_data.get("comments", []))
-                stats["pending_comments"] = len([c for c in comments_data.get("comments", []) if c.get("status") == "pending"])
+        # Get real feedback count from database (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        stats["feedback"] = db.query(func.count(UserFeedback.id)).filter(
+            UserFeedback.timestamp >= thirty_days_ago
+        ).scalar() or 0
+        
+        # Get active users count (users with activity in last 7 days)
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        stats["active_users"] = db.query(func.count(UserSession.id.distinct())).filter(
+            UserSession.last_activity >= seven_days_ago
+        ).scalar() or 0
+        
+        # Calculate model accuracy from feedback
+        if stats["feedback"] > 0:
+            # Count negative feedback (dislikes) as model errors
+            negative_feedback = db.query(func.count(UserFeedback.id)).filter(
+                and_(
+                    UserFeedback.timestamp >= thirty_days_ago,
+                    UserFeedback.feedback_type == "dislike"
+                )
+            ).scalar() or 0
+            
+            accuracy = ((stats["feedback"] - negative_feedback) / stats["feedback"]) * 100
+            stats["model_accuracy"] = round(accuracy, 1)
         
         return stats
         
@@ -2094,34 +2075,39 @@ async def get_admin_stats():
 
 
 @app.get("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
-async def get_blog_posts(status: Optional[str] = None, limit: int = 100):
+async def get_blog_posts(status: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
     """
-    Get all blog posts for admin management
+    Get all blog posts for admin management (from database)
     """
     try:
-        blog_data_path = os.path.join("data", "blog_posts.json")
+        from models import BlogPost
         
-        # Ensure directory exists
-        os.makedirs("data", exist_ok=True)
+        # Query database for blog posts
+        query = db.query(BlogPost)
         
-        # Initialize if doesn't exist
-        if not os.path.exists(blog_data_path):
-            with open(blog_data_path, 'w', encoding='utf-8') as f:
-                json.dump({"posts": []}, f)
+        # Note: status filter is not applied as BlogPost model doesn't have a status field
+        # All posts are considered published
         
-        with open(blog_data_path, 'r', encoding='utf-8') as f:
-            blog_data = json.load(f)
+        # Get all posts ordered by created_at descending
+        posts = query.order_by(BlogPost.created_at.desc()).limit(limit).all()
         
-        posts = blog_data.get("posts", [])
+        # Convert to dict format for API response
+        posts_list = []
+        for post in posts:
+            posts_list.append({
+                "id": post.id,
+                "title": post.title,
+                "content": post.content,
+                "author": post.author or "Admin",
+                "district": post.district,
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "likes_count": post.likes_count or 0,
+                "status": "published",  # All posts are published by default
+                "slug": post.title.lower().replace(" ", "-") if post.title else "",
+                "category": post.district or "General"
+            })
         
-        # Filter by status if provided
-        if status:
-            posts = [p for p in posts if p.get("status", "").lower() == status.lower()]
-        
-        # Limit results
-        posts = posts[:limit]
-        
-        return {"posts": posts, "total": len(posts)}
+        return {"posts": posts_list, "total": len(posts_list)}
         
     except Exception as e:
         logger.error(f"Error getting blog posts: {e}", exc_info=True)
@@ -2129,86 +2115,74 @@ async def get_blog_posts(status: Optional[str] = None, limit: int = 100):
 
 
 @app.post("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
-async def create_blog_post(post_data: Dict[str, Any] = Body(...)):
+async def create_blog_post(post_data: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """
-    Create a new blog post
+    Create a new blog post in the database
     """
     try:
-        blog_data_path = os.path.join("data", "blog_posts.json")
-        os.makedirs("data", exist_ok=True)
-        
-        # Load existing posts
-        if os.path.exists(blog_data_path):
-            with open(blog_data_path, 'r', encoding='utf-8') as f:
-                blog_data = json.load(f)
-        else:
-            blog_data = {"posts": []}
+        from models import BlogPost
         
         # Create new post
-        new_post = {
-            "id": len(blog_data["posts"]) + 1,
-            "title": post_data.get("title"),
-            "slug": post_data.get("slug"),
-            "author": post_data.get("author", "Admin"),
-            "category": post_data.get("category"),
-            "content": post_data.get("content"),
-            "status": post_data.get("status", "draft"),
-            "date": datetime.now().isoformat(),
-            "views": 0,
-            "featured_image": post_data.get("featured_image", ""),
-            "meta_description": post_data.get("meta_description", ""),
-            "tags": post_data.get("tags", [])
+        new_post = BlogPost(
+            title=post_data.get("title", "Untitled"),
+            content=post_data.get("content", ""),
+            author=post_data.get("author", "Admin"),
+            district=post_data.get("category") or post_data.get("district"),
+            likes_count=0
+        )
+        
+        db.add(new_post)
+        db.commit()
+        db.refresh(new_post)
+        
+        logger.info(f"Created blog post: {new_post.title}")
+        
+        return {
+            "success": True, 
+            "post": {
+                "id": new_post.id,
+                "title": new_post.title,
+                "content": new_post.content,
+                "author": new_post.author,
+                "district": new_post.district,
+                "created_at": new_post.created_at.isoformat(),
+                "likes_count": new_post.likes_count,
+                "status": "published"
+            }
         }
         
-        blog_data["posts"].insert(0, new_post)
-        
-        # Save
-        with open(blog_data_path, 'w', encoding='utf-8') as f:
-            json.dump(blog_data, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"Created blog post: {new_post['title']}")
-        return {"success": True, "post": new_post}
-        
     except Exception as e:
+        db.rollback()
         logger.error(f"Error creating blog post: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.put("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
-async def update_blog_post(post_id: int, post_data: Dict[str, Any] = Body(...)):
+async def update_blog_post(post_id: int, post_data: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """
-    Update an existing blog post
+    Update an existing blog post in the database
     """
     try:
-        blog_data_path = os.path.join("data", "blog_posts.json")
+        from models import BlogPost
         
-        if not os.path.exists(blog_data_path):
-            raise HTTPException(status_code=404, detail="Blog posts not found")
+        # Find post
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
         
-        with open(blog_data_path, 'r', encoding='utf-8') as f:
-            blog_data = json.load(f)
-        
-        # Find and update post
-        post_found = False
-        for post in blog_data["posts"]:
-            if post["id"] == post_id:
-                post.update({
-                    "title": post_data.get("title", post["title"]),
-                    "slug": post_data.get("slug", post["slug"]),
-                    "category": post_data.get("category", post["category"]),
-                    "content": post_data.get("content", post["content"]),
-                    "status": post_data.get("status", post["status"]),
-                    "updated_at": datetime.now().isoformat()
-                })
-                post_found = True
-                break
-        
-        if not post_found:
+        if not post:
             raise HTTPException(status_code=404, detail="Post not found")
         
-        # Save
-        with open(blog_data_path, 'w', encoding='utf-8') as f:
-            json.dump(blog_data, f, indent=2, ensure_ascii=False)
+        # Update fields
+        if "title" in post_data:
+            post.title = post_data["title"]
+        if "content" in post_data:
+            post.content = post_data["content"]
+        if "author" in post_data:
+            post.author = post_data["author"]
+        if "category" in post_data or "district" in post_data:
+            post.district = post_data.get("category") or post_data.get("district")
+        
+        db.commit()
+        db.refresh(post)
         
         logger.info(f"Updated blog post: {post_id}")
         return {"success": True, "message": "Post updated"}
@@ -2216,34 +2190,28 @@ async def update_blog_post(post_id: int, post_data: Dict[str, Any] = Body(...)):
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error updating blog post: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/admin/blog/posts/{post_id}", tags=["Admin Dashboard - Blog"])
-async def delete_blog_post(post_id: int):
+async def delete_blog_post(post_id: int, db: Session = Depends(get_db)):
     """
-    Delete a blog post
+    Delete a blog post from the database
     """
     try:
-        blog_data_path = os.path.join("data", "blog_posts.json")
+        from models import BlogPost
         
-        if not os.path.exists(blog_data_path):
-            raise HTTPException(status_code=404, detail="Blog posts not found")
+        # Find post
+        post = db.query(BlogPost).filter(BlogPost.id == post_id).first()
         
-        with open(blog_data_path, 'r', encoding='utf-8') as f:
-            blog_data = json.load(f)
-        
-        # Remove post
-        original_length = len(blog_data["posts"])
-        blog_data["posts"] = [p for p in blog_data["posts"] if p["id"] != post_id]
-        
-        if len(blog_data["posts"]) == original_length:
+        if not post:
             raise HTTPException(status_code=404, detail="Post not found")
         
-        # Save
-        with open(blog_data_path, 'w', encoding='utf-8') as f:
-            json.dump(blog_data, f, indent=2, ensure_ascii=False)
+        # Delete post (related comments will be handled by cascade if configured)
+        db.delete(post)
+        db.commit()
         
         logger.info(f"Deleted blog post: {post_id}")
         return {"success": True, "message": "Post deleted"}
@@ -2251,39 +2219,66 @@ async def delete_blog_post(post_id: int):
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error deleting blog post: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/admin/comments", tags=["Admin Dashboard - Comments"])
-async def get_comments(status: Optional[str] = None, post_id: Optional[int] = None, limit: int = 100):
+async def get_comments(status: Optional[str] = None, post_id: Optional[int] = None, limit: int = 100, db: Session = Depends(get_db)):
     """
-    Get all comments for admin management
+    Get all comments for admin management (from database)
     """
     try:
-        comments_data_path = os.path.join("data", "comments.json")
-        os.makedirs("data", exist_ok=True)
+        from models import BlogComment
         
-        if not os.path.exists(comments_data_path):
-            with open(comments_data_path, 'w', encoding='utf-8') as f:
-                json.dump({"comments": []}, f)
+        # Query database for comments
+        query = db.query(BlogComment)
         
-        with open(comments_data_path, 'r', encoding='utf-8') as f:
-            comments_data = json.load(f)
-        
-        comments = comments_data.get("comments", [])
-        
-        # Filter by status
+        # Filter by approval status
         if status:
-            comments = [c for c in comments if c.get("status", "").lower() == status.lower()]
+            if status.lower() == "approved":
+                query = query.filter(BlogComment.is_approved == True)
+            elif status.lower() == "pending":
+                query = query.filter(BlogComment.is_approved == False)
+            elif status.lower() == "flagged":
+                query = query.filter(BlogComment.is_flagged == True)
+            elif status.lower() == "spam":
+                query = query.filter(BlogComment.is_spam == True)
         
         # Filter by post_id
         if post_id:
-            comments = [c for c in comments if c.get("post_id") == post_id]
+            query = query.filter(BlogComment.blog_post_id == post_id)
         
-        comments = comments[:limit]
+        # Get comments ordered by created_at descending
+        comments = query.order_by(BlogComment.created_at.desc()).limit(limit).all()
         
-        return {"comments": comments, "total": len(comments)}
+        # Convert to dict format for API response
+        comments_list = []
+        for comment in comments:
+            # Determine status based on flags
+            comment_status = "approved" if comment.is_approved else "pending"
+            if comment.is_spam:
+                comment_status = "spam"
+            elif comment.is_flagged:
+                comment_status = "flagged"
+            
+            comments_list.append({
+                "id": comment.id,
+                "post_id": comment.blog_post_id,
+                "author": comment.author_name,
+                "email": comment.author_email,
+                "content": comment.content,
+                "status": comment_status,
+                "is_approved": comment.is_approved,
+                "is_flagged": comment.is_flagged,
+                "is_spam": comment.is_spam,
+                "created_at": comment.created_at.isoformat() if comment.created_at else None,
+                "approved_at": comment.approved_at.isoformat() if comment.approved_at else None,
+                "approved_by": comment.approved_by
+            })
+        
+        return {"comments": comments_list, "total": len(comments_list)}
         
     except Exception as e:
         logger.error(f"Error getting comments: {e}", exc_info=True)
@@ -2291,71 +2286,62 @@ async def get_comments(status: Optional[str] = None, post_id: Optional[int] = No
 
 
 @app.put("/api/admin/comments/{comment_id}/approve", tags=["Admin Dashboard - Comments"])
-async def approve_comment(comment_id: int):
+async def approve_comment(comment_id: int, db: Session = Depends(get_db)):
     """
-    Approve a pending comment
+    Approve a pending comment in the database
     """
     try:
-        comments_data_path = os.path.join("data", "comments.json")
+        from models import BlogComment
         
-        if not os.path.exists(comments_data_path):
-            raise HTTPException(status_code=404, detail="Comments not found")
+        # Find comment
+        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
         
-        with open(comments_data_path, 'r', encoding='utf-8') as f:
-            comments_data = json.load(f)
-        
-        # Find and approve comment
-        comment_found = False
-        for comment in comments_data["comments"]:
-            if comment["id"] == comment_id:
-                comment["status"] = "approved"
-                comment["approved_at"] = datetime.now().isoformat()
-                comment_found = True
-                break
-        
-        if not comment_found:
+        if not comment:
             raise HTTPException(status_code=404, detail="Comment not found")
         
-        with open(comments_data_path, 'w', encoding='utf-8') as f:
-            json.dump(comments_data, f, indent=2, ensure_ascii=False)
+        # Approve comment
+        comment.is_approved = True
+        comment.approved_at = datetime.utcnow()
+        comment.approved_by = "Admin"  # You can update this with actual admin user
+        comment.is_flagged = False
+        comment.is_spam = False
+        
+        db.commit()
         
         return {"success": True, "message": "Comment approved"}
         
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error approving comment: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/admin/comments/{comment_id}", tags=["Admin Dashboard - Comments"])
-async def delete_comment(comment_id: int):
+async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     """
-    Delete a comment
+    Delete a comment from the database
     """
     try:
-        comments_data_path = os.path.join("data", "comments.json")
+        from models import BlogComment
         
-        if not os.path.exists(comments_data_path):
-            raise HTTPException(status_code=404, detail="Comments not found")
+        # Find comment
+        comment = db.query(BlogComment).filter(BlogComment.id == comment_id).first()
         
-        with open(comments_data_path, 'r', encoding='utf-8') as f:
-            comments_data = json.load(f)
-        
-        original_length = len(comments_data["comments"])
-        comments_data["comments"] = [c for c in comments_data["comments"] if c["id"] != comment_id]
-        
-        if len(comments_data["comments"]) == original_length:
+        if not comment:
             raise HTTPException(status_code=404, detail="Comment not found")
         
-        with open(comments_data_path, 'w', encoding='utf-8') as f:
-            json.dump(comments_data, f, indent=2, ensure_ascii=False)
+        # Delete comment
+        db.delete(comment)
+        db.commit()
         
         return {"success": True, "message": "Comment deleted"}
         
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         logger.error(f"Error deleting comment: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2381,7 +2367,7 @@ async def export_feedback_data():
             "summary": feedback_summary,
             "misclassification_report": misclass_report,
             "total_records": feedback_summary.get("total", 0)
-        }
+        };
         
         return export_data
         
@@ -2393,11 +2379,14 @@ async def export_feedback_data():
 
 
 @app.get("/api/admin/analytics", tags=["Admin Dashboard - Analytics"])
-async def get_analytics(days: int = 30):
+async def get_analytics(days: int = 30, db: Session = Depends(get_db)):
     """
-    Get analytics data for charts and insights
+    Get analytics data for charts and insights using real database data
     """
     try:
+        from sqlalchemy import func, and_
+        from datetime import timedelta
+        
         analytics = {
             "period": f"last_{days}_days",
             "user_queries": [],
@@ -2406,16 +2395,44 @@ async def get_analytics(days: int = 30):
             "dates": []
         }
         
-        # Generate sample data for last N days
-        from datetime import timedelta
         today = datetime.now()
         
         for i in range(days):
             date = today - timedelta(days=days-i-1)
-            analytics["dates"].append(date.strftime("%b %d"))
-            analytics["user_queries"].append(45 + (i * 2) + (i % 7))
-            analytics["blog_views"].append(28 + (i * 3) + (i % 5))
-            analytics["comments"].append(5 + (i % 10))
+            date_str = date.strftime("%b %d")
+            analytics["dates"].append(date_str)
+            
+            # Get real user query count for this day
+            start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = start_of_day + timedelta(days=1)
+            
+            # Count chat history entries for this day
+            query_count = db.query(func.count(ChatHistory.id)).filter(
+                and_(
+                    ChatHistory.timestamp >= start_of_day,
+                    ChatHistory.timestamp < end_of_day
+                )
+            ).scalar() or 0
+            analytics["user_queries"].append(query_count)
+            
+            # Count blog views (using blog likes as proxy for views)
+            from models import BlogLike
+            blog_views = db.query(func.count(BlogLike.id)).filter(
+                and_(
+                    BlogLike.created_at >= start_of_day,
+                    BlogLike.created_at < end_of_day
+                )
+            ).scalar() or 0
+            analytics["blog_views"].append(blog_views)
+            
+            # Count comments for this day
+            comment_count = db.query(func.count(BlogComment.id)).filter(
+                and_(
+                    BlogComment.created_at >= start_of_day,
+                    BlogComment.created_at < end_of_day
+                )
+            ).scalar() or 0
+            analytics["comments"].append(comment_count)
         
         return analytics
         
@@ -2425,38 +2442,77 @@ async def get_analytics(days: int = 30):
 
 
 @app.get("/api/admin/intents/stats", tags=["Admin Dashboard - Intents"])
-async def get_intent_statistics():
+async def get_intent_statistics(db: Session = Depends(get_db)):
     """
-    Get detailed intent classification statistics
+    Get detailed intent classification statistics from real database data
     """
     try:
-        if not FEEDBACK_INTEGRATION_AVAILABLE:
-            # Return mock data
-            return {
-                "intents": [
-                    {"intent": "find_attraction", "count": 245, "accuracy": 94.2, "confidence": 0.89, "corrections": 12},
-                    {"intent": "find_restaurant", "count": 198, "accuracy": 91.5, "confidence": 0.86, "corrections": 18},
-                    {"intent": "get_directions", "count": 156, "accuracy": 88.3, "confidence": 0.82, "corrections": 22},
-                    {"intent": "find_hotel", "count": 134, "accuracy": 93.8, "confidence": 0.91, "corrections": 8},
-                    {"intent": "get_transportation", "count": 112, "accuracy": 85.7, "confidence": 0.79, "corrections": 28}
-                ]
-            }
+        from sqlalchemy import func, and_
+        from datetime import timedelta
+        from models import UserInteraction, EnhancedChatHistory
         
-        from user_feedback_collection_system import get_feedback_collector
-        collector = get_feedback_collector()
+        # Get intent statistics from UserInteraction table (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         
-        feedback_summary = collector.get_feedback_summary(days=30)
-        by_function = feedback_summary.get("by_function", {})
+        # Query intent counts and average confidence
+        intent_data = db.query(
+            UserInteraction.processed_intent,
+            func.count(UserInteraction.id).label('count'),
+            func.avg(UserInteraction.confidence_score).label('avg_confidence')
+        ).filter(
+            UserInteraction.timestamp >= thirty_days_ago,
+            UserInteraction.processed_intent.isnot(None)
+        ).group_by(
+            UserInteraction.processed_intent
+        ).all()
         
+        # Also query from EnhancedChatHistory as a fallback/supplement
+        if not intent_data or len(intent_data) == 0:
+            intent_data = db.query(
+                EnhancedChatHistory.detected_intent,
+                func.count(EnhancedChatHistory.id).label('count'),
+                func.avg(EnhancedChatHistory.intent_confidence).label('avg_confidence')
+            ).filter(
+                EnhancedChatHistory.timestamp >= thirty_days_ago,
+                EnhancedChatHistory.detected_intent.isnot(None)
+            ).group_by(
+                EnhancedChatHistory.detected_intent
+            ).all()
+        
+        # Calculate accuracy based on user feedback
         intent_stats = []
-        for intent, count in by_function.items():
+        for intent_name, count, avg_conf in intent_data:
+            if not intent_name:
+                continue
+                
+            # Count negative feedback for this intent
+            negative_feedback = db.query(func.count(UserFeedback.id)).filter(
+                and_(
+                    UserFeedback.timestamp >= thirty_days_ago,
+                    UserFeedback.feedback_type == "dislike",
+                    UserFeedback.message_content.contains(intent_name)
+                )
+            ).scalar() or 0
+            
+            # Calculate accuracy (percentage of non-negative feedback)
+            accuracy = 100.0
+            if count > 0:
+                accuracy = ((count - negative_feedback) / count) * 100
+            
             intent_stats.append({
-                "intent": intent,
+                "intent": intent_name,
                 "count": count,
-                "accuracy": 90.0 + (hash(intent) % 10),  # Mock accuracy
-                "confidence": 0.75 + (hash(intent) % 25) / 100,  # Mock confidence
-                "corrections": hash(intent) % 30  # Mock corrections
+                "accuracy": round(accuracy, 1),
+                "confidence": round(float(avg_conf or 0.85), 2),
+                "corrections": negative_feedback
             })
+        
+        # Sort by count (most frequent first)
+        intent_stats.sort(key=lambda x: x['count'], reverse=True)
+        
+        # If no data found, return empty array instead of mock data
+        if not intent_stats:
+            return {"intents": []}
         
         return {"intents": intent_stats}
         
@@ -2535,3 +2591,97 @@ async def plan_journey_from_gps(request: Dict[str, Any] = Body(...)):
     except Exception as e:
         logger.error(f"GPS journey planning error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# ADMIN DASHBOARD HTML ROUTES
+# =============================================================================
+
+from fastapi.responses import HTMLResponse, FileResponse
+
+admin_path = os.path.join(os.path.dirname(__file__), '..', 'admin')
+
+@app.get("/admin/", response_class=HTMLResponse)
+@app.get("/admin/index.html", response_class=HTMLResponse)
+async def serve_admin_index():
+    """Serve admin dashboard index page"""
+    index_file = os.path.join(admin_path, 'index.html')
+    if os.path.exists(index_file):
+        with open(index_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Admin Dashboard Not Found</h1>"
+
+@app.get("/admin/dashboard.html", response_class=HTMLResponse)
+async def serve_admin_dashboard():
+    """Serve admin dashboard main page"""
+    dashboard_file = os.path.join(admin_path, 'dashboard.html')
+    if os.path.exists(dashboard_file):
+        with open(dashboard_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Dashboard Not Found</h1>"
+
+@app.get("/admin/dashboard.js")
+async def serve_admin_js():
+    """Serve admin dashboard JavaScript"""
+    js_file = os.path.join(admin_path, 'dashboard.js')
+    if os.path.exists(js_file):
+        return FileResponse(js_file, media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="JavaScript file not found")
+
+@app.get("/admin/{filename}")
+async def serve_admin_static(filename: str):
+    """Serve other admin static files"""
+    file_path = os.path.join(admin_path, filename)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
+
+print(f"✅ Admin dashboard routes configured (path: {admin_path})")
+
+# Use istanbul_ai_system directly for all AI processing
+custom_ai_system = None
+
+# --- Legacy imports and system setup ---
+
+# Initialize logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Istanbul AI Guide API",
+    description="AI-powered Istanbul travel guide with enhanced authentication",
+    version="2.0.0"
+)
+
+# Include Blog API Router
+try:
+    from blog_api import router as blog_router
+    app.include_router(blog_router)
+    print("✅ Blog API endpoints loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Blog API endpoints not available: {e}")
+
+# Initialize Enhanced Authentication Manager
+auth_manager = None
+if ENHANCED_AUTH_AVAILABLE:
+    try:
+        auth_manager = EnhancedAuthManager()
+        logger.info("✅ Enhanced Authentication Manager initialized successfully")
+        print("✅ Enhanced Authentication Manager initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize Enhanced Authentication Manager: {e}")
+        print(f"⚠️ Failed to initialize Enhanced Authentication Manager: {e}")
+        ENHANCED_AUTH_AVAILABLE = False
+else:
+    logger.warning("Enhanced Authentication not available - authentication endpoints will be disabled")
+    print("⚠️ Enhanced Authentication not available - authentication endpoints will be disabled")
+
+print("✅ FastAPI app initialized successfully")
+
+# Initialize Location Intent Detector
+location_detector = None
+if LOCATION_INTENT_AVAILABLE:
+    try:
+        location_detector = LocationIntentDetector()
+        print("✅ Location Intent Detector initialized successfully")

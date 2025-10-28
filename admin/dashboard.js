@@ -1,6 +1,9 @@
 // Admin Dashboard JavaScript
 // API Configuration
-const API_BASE_URL = 'https://api.aistanbul.net';
+// Detect if running locally or in production
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? `http://${window.location.hostname}:5001` 
+    : 'https://api.aistanbul.net';
 
 // State Management
 let currentSection = 'dashboard';
@@ -51,6 +54,31 @@ async function loadDashboardData() {
     try {
         showLoading('dashboard');
         
+        // Load admin stats first
+        const statsResponse = await fetch(`${API_BASE_URL}/api/admin/stats`);
+        if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            // Update stats in dashboard
+            if (document.getElementById('total-posts')) {
+                document.getElementById('total-posts').textContent = stats.blog_posts || 0;
+            }
+            if (document.getElementById('total-comments')) {
+                document.getElementById('total-comments').textContent = stats.comments || 0;
+            }
+            if (document.getElementById('total-feedback')) {
+                document.getElementById('total-feedback').textContent = stats.feedback || 0;
+            }
+            if (document.getElementById('total-users')) {
+                document.getElementById('total-users').textContent = stats.active_users || 0;
+            }
+            if (document.getElementById('pending-comments')) {
+                document.getElementById('pending-comments').textContent = stats.pending_comments || 0;
+            }
+            if (document.getElementById('model-accuracy')) {
+                document.getElementById('model-accuracy').textContent = `${stats.model_accuracy || 0}%`;
+            }
+        }
+        
         // Load all data
         await Promise.all([
             loadBlogPosts(),
@@ -59,11 +87,11 @@ async function loadDashboardData() {
             loadUsers()
         ]);
         
-        updateDashboardStats();
         hideLoading('dashboard');
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         showError('Failed to load dashboard data');
+        hideLoading('dashboard');
     }
 }
 
@@ -98,40 +126,10 @@ async function loadSectionData(section) {
 // Blog Posts Functions
 async function loadBlogPosts() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/blog/posts`);
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog/posts`);
         if (response.ok) {
-            blogPosts = await response.json();
-        } else {
-            // Mock data for demo
-            blogPosts = [
-                {
-                    id: 1,
-                    title: 'Top 10 Must-Visit Places in Istanbul',
-                    author: 'Admin',
-                    status: 'Published',
-                    date: '2025-10-15',
-                    views: 1250,
-                    slug: 'top-10-must-visit-places'
-                },
-                {
-                    id: 2,
-                    title: 'Best Turkish Food to Try in Istanbul',
-                    author: 'Admin',
-                    status: 'Published',
-                    date: '2025-10-20',
-                    views: 890,
-                    slug: 'best-turkish-food'
-                },
-                {
-                    id: 3,
-                    title: 'Istanbul Transportation Guide 2025',
-                    author: 'Admin',
-                    status: 'Draft',
-                    date: '2025-10-25',
-                    views: 0,
-                    slug: 'istanbul-transportation-guide'
-                }
-            ];
+            const data = await response.json();
+            blogPosts = data.posts || [];
         }
         return blogPosts;
     } catch (error) {
@@ -213,7 +211,7 @@ async function saveBlogPost(event) {
     };
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/blog/posts`, {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog/posts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(postData)
@@ -263,7 +261,7 @@ async function deleteBlogPost(id) {
     if (!confirm('Are you sure you want to delete this blog post?')) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/api/blog/posts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/admin/blog/posts/${id}`, {
             method: 'DELETE'
         });
         
@@ -282,37 +280,10 @@ async function deleteBlogPost(id) {
 // Comments Functions
 async function loadComments() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/blog/comments`);
+        const response = await fetch(`${API_BASE_URL}/api/admin/comments`);
         if (response.ok) {
-            comments = await response.json();
-        } else {
-            // Mock data
-            comments = [
-                {
-                    id: 1,
-                    comment: 'Great article! Very helpful for my upcoming trip.',
-                    author: 'John Doe',
-                    post: 'Top 10 Must-Visit Places',
-                    status: 'Approved',
-                    date: '2025-10-26 14:30'
-                },
-                {
-                    id: 2,
-                    comment: 'Can you recommend some budget-friendly hotels?',
-                    author: 'Jane Smith',
-                    post: 'Top 10 Must-Visit Places',
-                    status: 'Pending',
-                    date: '2025-10-27 09:15'
-                },
-                {
-                    id: 3,
-                    comment: 'Thanks for the food recommendations!',
-                    author: 'Mike Johnson',
-                    post: 'Best Turkish Food',
-                    status: 'Approved',
-                    date: '2025-10-27 16:45'
-                }
-            ];
+            const data = await response.json();
+            comments = data.comments || [];
         }
         return comments;
     } catch (error) {
@@ -415,38 +386,83 @@ function deleteSpamComments() {
 // Feedback Functions
 async function loadFeedback() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/feedback/stats`);
+        const response = await fetch(`${API_BASE_URL}/api/admin/feedback/export`);
         if (response.ok) {
             const data = await response.json();
-            feedbackData = data.feedback || [];
-        } else {
-            // Mock data
-            feedbackData = [
-                {
-                    id: 1,
-                    query: 'Where is Blue Mosque?',
-                    predicted_intent: 'find_attraction',
-                    confidence: 0.95,
-                    feedback: 'Correct',
-                    date: '2025-10-27 10:30'
-                },
-                {
-                    id: 2,
-                    query: 'Best restaurants in Taksim',
-                    predicted_intent: 'find_restaurant',
-                    confidence: 0.88,
-                    feedback: 'Correct',
-                    date: '2025-10-27 11:15'
-                },
-                {
-                    id: 3,
-                    query: 'How to get to airport',
-                    predicted_intent: 'get_directions',
-                    confidence: 0.65,
-                    feedback: 'Corrected to: get_transportation',
-                    date: '2025-10-27 12:00'
-                }
-            ];
+            // Convert the summary object into an array of feedback items
+            feedbackData = [];
+            
+            // Add misclassifications
+            if (data.summary && data.summary.misclassifications) {
+                data.summary.misclassifications.forEach((item, idx) => {
+                    feedbackData.push({
+                        id: idx + 1,
+                        query: item.query || 'N/A',
+                        predicted_intent: item.predicted_intent || 'N/A',
+                        confidence: item.confidence || 0,
+                        feedback: 'Misclassified',
+                        date: item.timestamp || new Date().toISOString()
+                    });
+                });
+            }
+            
+            // Add corrections
+            if (data.summary && data.summary.corrections) {
+                data.summary.corrections.forEach((item, idx) => {
+                    feedbackData.push({
+                        id: feedbackData.length + 1,
+                        query: item.query || 'N/A',
+                        predicted_intent: item.predicted_intent || 'N/A',
+                        confidence: item.confidence || 0,
+                        feedback: `Corrected to: ${item.correct_intent || 'N/A'}`,
+                        date: item.timestamp || new Date().toISOString()
+                    });
+                });
+            }
+            
+            // Add low confidence items
+            if (data.summary && data.summary.low_confidence) {
+                data.summary.low_confidence.forEach((item, idx) => {
+                    feedbackData.push({
+                        id: feedbackData.length + 1,
+                        query: item.query || 'N/A',
+                        predicted_intent: item.predicted_intent || 'N/A',
+                        confidence: item.confidence || 0,
+                        feedback: 'Low Confidence',
+                        date: item.timestamp || new Date().toISOString()
+                    });
+                });
+            }
+            
+            // If no feedback data, use mock data
+            if (feedbackData.length === 0) {
+                feedbackData = [
+                    {
+                        id: 1,
+                        query: 'Where is Blue Mosque?',
+                        predicted_intent: 'find_attraction',
+                        confidence: 0.95,
+                        feedback: 'Correct',
+                        date: '2025-10-27 10:30'
+                    },
+                    {
+                        id: 2,
+                        query: 'Best restaurants in Taksim',
+                        predicted_intent: 'find_restaurant',
+                        confidence: 0.88,
+                        feedback: 'Correct',
+                        date: '2025-10-27 11:15'
+                    },
+                    {
+                        id: 3,
+                        query: 'How to get to airport',
+                        predicted_intent: 'get_directions',
+                        confidence: 0.65,
+                        feedback: 'Corrected to: get_transportation',
+                        date: '2025-10-27 12:00'
+                    }
+                ];
+            }
         }
         return feedbackData;
     } catch (error) {
@@ -508,7 +524,7 @@ function viewFeedbackDetails(id) {
 
 async function exportFeedback() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/feedback/export`);
+        const response = await fetch(`${API_BASE_URL}/api/admin/feedback/export`);
         if (response.ok) {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -536,58 +552,79 @@ async function exportFeedback() {
 
 // Analytics Functions
 async function loadAnalytics() {
-    const canvas = document.getElementById('analytics-chart');
-    const ctx = canvas.getContext('2d');
+    try {
+        // Fetch real analytics data
+        const response = await fetch(`${API_BASE_URL}/api/admin/analytics?days=7`);
+        let analyticsData;
+        
+        if (response.ok) {
+            analyticsData = await response.json();
+        } else {
+            // No data available
+            analyticsData = {
+                dates: [],
+                user_queries: [],
+                blog_views: [],
+                comments: []
+            };
+        }
     
-    // Destroy existing chart if any
-    if (analyticsChart) {
-        analyticsChart.destroy();
-    }
-    
-    // Create new chart
-    analyticsChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Oct 21', 'Oct 22', 'Oct 23', 'Oct 24', 'Oct 25', 'Oct 26', 'Oct 27'],
-            datasets: [
-                {
-                    label: 'User Queries',
-                    data: [45, 52, 38, 65, 59, 70, 82],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4
-                },
-                {
-                    label: 'Blog Views',
-                    data: [28, 35, 42, 48, 55, 62, 70],
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4
-                },
-                {
-                    label: 'Comments',
-                    data: [5, 8, 6, 12, 9, 15, 18],
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    tension: 0.4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
+        const canvas = document.getElementById('analytics-chart');
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart if any
+        if (analyticsChart) {
+            analyticsChart.destroy();
+        }
+        
+        // Create new chart
+        analyticsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: analyticsData.dates,
+                datasets: [
+                    {
+                        label: 'User Queries',
+                        data: analyticsData.user_queries,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Blog Views',
+                        data: analyticsData.blog_views,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Comments',
+                        data: analyticsData.comments,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        tension: 0.4
+                    }
+                ]
             },
-            scales: {
-                y: {
-                    beginAtZero: true
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+        showError('Failed to load analytics');
+    }
 }
 
 function updateAnalyticsPeriod(days) {
@@ -598,29 +635,50 @@ function updateAnalyticsPeriod(days) {
 
 // Intent Stats Functions
 async function loadIntentStats() {
-    const tbody = document.getElementById('intents-table-body');
-    
-    const intentStats = [
-        { intent: 'find_attraction', count: 245, accuracy: 94.2, confidence: 0.89, corrections: 12 },
-        { intent: 'find_restaurant', count: 198, accuracy: 91.5, confidence: 0.86, corrections: 18 },
-        { intent: 'get_directions', count: 156, accuracy: 88.3, confidence: 0.82, corrections: 22 },
-        { intent: 'find_hotel', count: 134, accuracy: 93.8, confidence: 0.91, corrections: 8 },
-        { intent: 'get_transportation', count: 112, accuracy: 85.7, confidence: 0.79, corrections: 28 }
-    ];
-    
-    tbody.innerHTML = intentStats.map(stat => `
-        <tr>
-            <td><strong>${stat.intent}</strong></td>
-            <td>${stat.count}</td>
-            <td>
-                <span class="badge ${stat.accuracy >= 90 ? 'badge-success' : stat.accuracy >= 85 ? 'badge-warning' : 'badge-danger'}">
-                    ${stat.accuracy}%
-                </span>
-            </td>
-            <td>${(stat.confidence * 100).toFixed(1)}%</td>
-            <td>${stat.corrections}</td>
-        </tr>
-    `).join('');
+    try {
+        const tbody = document.getElementById('intents-table-body');
+        
+        // Fetch real intent statistics
+        const response = await fetch(`${API_BASE_URL}/api/admin/intents/stats`);
+        let intentStats;
+        
+        if (response.ok) {
+            const data = await response.json();
+            intentStats = data.intents || [];
+        }
+        
+        if (intentStats.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class="fas fa-brain"></i>
+                            <h4>No intent data yet</h4>
+                            <p>Intent statistics will appear here as users interact with the system</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = intentStats.map(stat => `
+            <tr>
+                <td><strong>${stat.intent}</strong></td>
+                <td>${stat.count}</td>
+                <td>
+                    <span class="badge ${stat.accuracy >= 90 ? 'badge-success' : stat.accuracy >= 85 ? 'badge-warning' : 'badge-danger'}">
+                        ${stat.accuracy}%
+                    </span>
+                </td>
+                <td>${(stat.confidence * 100).toFixed(1)}%</td>
+                <td>${stat.corrections}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading intent stats:', error);
+        showError('Failed to load intent statistics');
+    }
 }
 
 function retrainModel() {

@@ -88,6 +88,22 @@ except ImportError as e:
     logger.warning(f"⚠️ ML-Enhanced Daily Talks Bridge not available: {e}")
     ML_DAILY_TALKS_AVAILABLE = False
 
+# Import Enhanced Bilingual Daily Talks System (PRIMARY)
+try:
+    import sys
+    import os
+    # Add parent directory to path to import enhanced_bilingual_daily_talks
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    
+    from enhanced_bilingual_daily_talks import EnhancedBilingualDailyTalks, UserContext as DailyTalkContext, Language
+    ENHANCED_DAILY_TALKS_AVAILABLE = True
+    logger.info("✅ Enhanced Bilingual Daily Talks System loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Enhanced Bilingual Daily Talks System not available: {e}")
+    ENHANCED_DAILY_TALKS_AVAILABLE = False
+
 # Import Lightweight Neural Query Enhancement System (Budget-Friendly!)
 try:
     from backend.services.lightweight_neural_query_enhancement import (
@@ -244,16 +260,27 @@ class IstanbulDailyTalkAI:
         else:
             self.transportation_chat = None
 
-        # Initialize ML-Enhanced Daily Talks Bridge
+        # Initialize ML-Enhanced Daily Talks Bridge (Legacy fallback)
         if ML_DAILY_TALKS_AVAILABLE:
             try:
                 self.daily_talks_bridge = MLEnhancedDailyTalksBridge()
-                logger.info("🤖 ML-Enhanced Daily Talks Bridge initialized")
+                logger.info("🤖 ML-Enhanced Daily Talks Bridge initialized (legacy)")
             except Exception as e:
                 logger.error(f"Failed to initialize daily talks bridge: {e}")
                 self.daily_talks_bridge = None
         else:
             self.daily_talks_bridge = None
+        
+        # Initialize Enhanced Bilingual Daily Talks System (PRIMARY)
+        if ENHANCED_DAILY_TALKS_AVAILABLE:
+            try:
+                self.enhanced_daily_talks = EnhancedBilingualDailyTalks()
+                logger.info("💬 Enhanced Bilingual Daily Talks System initialized (PRIMARY)")
+            except Exception as e:
+                logger.error(f"Failed to initialize enhanced daily talks: {e}")
+                self.enhanced_daily_talks = None
+        else:
+            self.enhanced_daily_talks = None
 
         # Initialize Lightweight Neural Query Enhancement System (Budget-Friendly!)
         if NEURAL_QUERY_ENHANCEMENT_AVAILABLE:
@@ -921,117 +948,254 @@ class IstanbulDailyTalkAI:
     def _handle_daily_talk_query(self, message: str, user_id: str, session_id: str, 
                                 user_profile: UserProfile, context: ConversationContext,
                                 neural_insights: Optional[Dict] = None) -> str:
-        """Handle daily talk queries through ML-enhanced bridge, enhanced with neural insights"""
+        """Handle daily talk queries through enhanced bilingual system with fallback"""
         
-        if not ML_DAILY_TALKS_AVAILABLE or not self.daily_talks_bridge:
-            # Fallback to basic daily talk response
-            return self._generate_basic_daily_talk_response(message, user_profile, context)
-        
-        try:
-            # Prepare context data for the ML bridge
-            user_type_value = 'first_time_visitor'  # default
-            if hasattr(user_profile, 'user_type'):
-                if hasattr(user_profile.user_type, 'value'):
-                    user_type_value = user_profile.user_type.value
-                elif isinstance(user_profile.user_type, dict):
-                    user_type_value = user_profile.user_type.get('value', 'first_time_visitor')
-                else:
-                    user_type_value = str(user_profile.user_type)
-            
-            context_data = {
-                'location': getattr(user_profile, 'current_location', None),
-                'preferences': {
-                    'interests': getattr(user_profile, 'interests', []),
-                    'user_type': user_type_value,
-                    'language_preference': getattr(user_profile, 'language_preference', 'english')
-                },
-                'mood': getattr(context, 'current_mood', None),
-                'weather': None,  # Could be enhanced with real weather data
-                'time_of_day': datetime.now().strftime('%H:%M')
-            }
-            
-            # Process through ML-enhanced daily talks bridge using asyncio
-            import asyncio
+        # PRIMARY: Try Enhanced Bilingual Daily Talks System
+        if ENHANCED_DAILY_TALKS_AVAILABLE and self.enhanced_daily_talks:
             try:
-                # Try to get existing event loop
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # If loop is already running, create a task but don't await it directly
-                    # Instead, use the comprehensive daily talks system synchronously
-                    bridge_result = asyncio.create_task(
-                        self.daily_talks_bridge.process_daily_talk_request(
-                            message, user_id, session_id, context_data
-                        )
-                    )
-                    # For now, fall back to basic response to avoid blocking
-                    return self._generate_basic_daily_talk_response(message, user_profile, context)
+                # Prepare context for enhanced daily talks
+                daily_talk_context = DailyTalkContext()
+                
+                # Map language preference to Language enum
+                lang_pref = getattr(user_profile, 'language_preference', 'english').lower()
+                if lang_pref == 'turkish' or lang_pref == 'tr':
+                    daily_talk_context.language = Language.TURKISH
+                elif lang_pref == 'english' or lang_pref == 'en':
+                    daily_talk_context.language = Language.ENGLISH
                 else:
-                    # No loop running, we can use run_until_complete
-                    bridge_result = loop.run_until_complete(
-                        self.daily_talks_bridge.process_daily_talk_request(
-                            message, user_id, session_id, context_data
-                        )
-                    )
-            except RuntimeError:
-                # No event loop, create one
-                bridge_result = asyncio.run(
-                    self.daily_talks_bridge.process_daily_talk_request(
-                        message, user_id, session_id, context_data
-                    )
+                    daily_talk_context.language = Language.MIXED
+                
+                # Set user location if available
+                if hasattr(user_profile, 'current_location') and user_profile.current_location:
+                    daily_talk_context.location = user_profile.current_location
+                
+                # Set interests
+                if hasattr(user_profile, 'interests') and user_profile.interests:
+                    daily_talk_context.interests = user_profile.interests
+                
+                # Transfer conversation history
+                if hasattr(context, 'conversation_history') and context.conversation_history:
+                    # Convert conversation history to daily talk format
+                    for hist in context.conversation_history[-5:]:  # Last 5 exchanges
+                        if isinstance(hist, dict):
+                            daily_talk_context.conversation_history.append({
+                                'user': hist.get('user_message', ''),
+                                'ai': hist.get('response', ''),
+                                'intent': hist.get('intent', 'unknown'),
+                                'timestamp': hist.get('timestamp', datetime.now().isoformat())
+                            })
+                
+                # Generate response using enhanced bilingual system
+                response, updated_context = self.enhanced_daily_talks.generate_response(
+                    message, daily_talk_context
                 )
-            
-            # Extract response from bridge result
-            if isinstance(bridge_result, dict) and 'response' in bridge_result:
-                response_data = bridge_result['response']
-                if isinstance(response_data, dict) and 'message' in response_data:
-                    response = response_data['message']
-                elif isinstance(response_data, str):
-                    response = response_data
+                
+                # Record interaction in main context
+                context.add_interaction(message, response, 'daily_talk')
+                
+                logger.info(f"✅ Enhanced bilingual daily talk response generated (lang: {updated_context.language.value})")
+                return response
+                
+            except Exception as e:
+                logger.error(f"Error in enhanced daily talks: {e}")
+                # Fall through to legacy ML bridge
+        
+        # FALLBACK 1: Try ML-Enhanced Daily Talks Bridge (legacy)
+        if ML_DAILY_TALKS_AVAILABLE and self.daily_talks_bridge:
+            try:
+                # Prepare context data for the ML bridge
+                user_type_value = 'first_time_visitor'  # default
+                if hasattr(user_profile, 'user_type'):
+                    if hasattr(user_profile.user_type, 'value'):
+                        user_type_value = user_profile.user_type.value
+                    elif isinstance(user_profile.user_type, dict):
+                        user_type_value = user_profile.user_type.get('value', 'first_time_visitor')
+                    else:
+                        user_type_value = str(user_profile.user_type)
+                
+                context_data = {
+                    'location': getattr(user_profile, 'current_location', None),
+                    'preferences': {
+                        'interests': getattr(user_profile, 'interests', []),
+                        'user_type': user_type_value,
+                        'language_preference': getattr(user_profile, 'language_preference', 'english')
+                    },
+                    'mood': getattr(context, 'current_mood', None),
+                    'weather': None,  # Could be enhanced with real weather data
+                    'time_of_day': datetime.now().strftime('%H:%M')
+                }
+                
+                # Process through ML-enhanced daily talks bridge using asyncio
+                import asyncio
+                try:
+                    # Try to get existing event loop
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is already running, fall back to basic response
+                        return self._generate_basic_daily_talk_response(message, user_profile, context)
+                    else:
+                        # No loop running, we can use run_until_complete
+                        bridge_result = loop.run_until_complete(
+                            self.daily_talks_bridge.process_daily_talk_request(
+                                message, user_id, session_id, context_data
+                            )
+                        )
+                except RuntimeError:
+                    # No event loop, create one
+                    bridge_result = asyncio.run(
+                        self.daily_talks_bridge.process_daily_talk_request(
+                            message, user_id, session_id, context_data
+                        )
+                    )
+                
+                # Extract response from bridge result
+                if isinstance(bridge_result, dict) and 'response' in bridge_result:
+                    response_data = bridge_result['response']
+                    if isinstance(response_data, dict) and 'message' in response_data:
+                        response = response_data['message']
+                    elif isinstance(response_data, str):
+                        response = response_data
+                    else:
+                        response = str(response_data)
                 else:
-                    response = str(response_data)
-            else:
-                response = str(bridge_result)
-            
-            # Record interaction
-            context.add_interaction(message, response, 'daily_talk')
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error in ML daily talks bridge: {e}")
-            # Fallback to basic response
-            return self._generate_basic_daily_talk_response(message, user_profile, context)
+                    response = str(bridge_result)
+                
+                # Record interaction
+                context.add_interaction(message, response, 'daily_talk')
+                
+                logger.info("✅ ML bridge daily talk response generated (legacy fallback)")
+                return response
+                
+            except Exception as e:
+                logger.error(f"Error in ML daily talks bridge: {e}")
+                # Fall through to basic response
+        
+        # FALLBACK 2: Basic daily talk response
+        return self._generate_basic_daily_talk_response(message, user_profile, context)
     
     def _generate_basic_daily_talk_response(self, message: str, user_profile: UserProfile, 
                                           context: ConversationContext) -> str:
-        """Generate basic daily talk response as fallback"""
+        """Generate basic bilingual daily talk response as final fallback"""
         
         message_lower = message.lower()
         current_hour = datetime.now().hour
         
-        # Greeting responses
-        if any(greeting in message_lower for greeting in ['hi', 'hello', 'hey', 'merhaba']):
-            if current_hour < 12:
-                return "🌅 Good morning! What a beautiful day to explore Istanbul! How can I help you discover something amazing today?"
-            elif current_hour < 17:
-                return "☀️ Good afternoon! Perfect time to explore Istanbul! What would you like to discover today?"
+        # Detect language preference from multiple sources
+        # 1. Check session_context first
+        lang = user_profile.session_context.get('language_preference', 'english').lower()
+        # 2. Fallback to direct attribute if available
+        if hasattr(user_profile, 'language_preference'):
+            lang = getattr(user_profile, 'language_preference', lang).lower()
+        
+        is_turkish = lang in ['turkish', 'tr', 'türkçe']
+        
+        # Turkish greeting keywords
+        turkish_greetings = ['merhaba', 'selam', 'günaydın', 'iyi günler', 'iyi akşamlar']
+        # English greeting keywords
+        english_greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening']
+        
+        # Detect language from message if not set in profile
+        has_turkish_greeting = any(greet in message_lower for greet in turkish_greetings)
+        has_english_greeting = any(greet in message_lower for greet in english_greetings)
+        
+        # Override language detection based on actual message
+        if has_turkish_greeting and not has_english_greeting:
+            is_turkish = True
+        elif has_english_greeting and not has_turkish_greeting:
+            is_turkish = False
+        
+        # === GREETING RESPONSES ===
+        if any(greeting in message_lower for greeting in turkish_greetings + english_greetings):
+            if is_turkish:
+                if current_hour < 12:
+                    return "🌅 Günaydın! İstanbul'u keşfetmek için harika bir gün! Bugün size nasıl yardımcı olabilirim?"
+                elif current_hour < 17:
+                    return "☀️ İyi günler! İstanbul'u keşfetmek için mükemmel bir zaman! Bugün neyi keşfetmek istersiniz?"
+                else:
+                    return "🌆 İyi akşamlar! İstanbul'un büyüleyici akşam atmosferi sizi bekliyor! Bu akşam size nasıl yardımcı olabilirim?"
             else:
-                return "🌆 Good evening! Istanbul's evening magic awaits! How can I help you experience the city tonight?"
+                if current_hour < 12:
+                    return "🌅 Good morning! What a beautiful day to explore Istanbul! How can I help you discover something amazing today?"
+                elif current_hour < 17:
+                    return "☀️ Good afternoon! Perfect time to explore Istanbul! What would you like to discover today?"
+                else:
+                    return "🌆 Good evening! Istanbul's evening magic awaits! How can I help you experience the city tonight?"
         
-        # Enhanced weather responses
-        if any(weather in message_lower for weather in ['weather', 'temperature', 'rain', 'sunny', 'cold', 'hot']):
-            return self._generate_weather_aware_response(message, user_profile, context)
+        # === WEATHER RESPONSES ===
+        weather_keywords_en = ['weather', 'temperature', 'rain', 'sunny', 'cold', 'hot', 'forecast']
+        weather_keywords_tr = ['hava', 'hava durumu', 'sıcaklık', 'yağmur', 'güneşli', 'soğuk', 'sıcak', 'derece']
         
-        # Thank you responses
-        if any(thanks in message_lower for thanks in ['thank', 'thanks']):
-            return "🙏 You're very welcome! I'm here to help you discover the best of Istanbul. Anything else you'd like to know?"
+        if any(w in message_lower for w in weather_keywords_en + weather_keywords_tr):
+            if is_turkish or any(w in message_lower for w in weather_keywords_tr):
+                return ("🌤️ İstanbul'da hava şu anda çok güzel! Havanın tadını çıkararak şehri keşfetmek için "
+                        "harika bir zaman. Size şehirde gezebileceğiniz yerler veya yapabileceğiniz aktiviteler "
+                        "önerebilirim. Ne yapmak istersiniz?")
+            else:
+                return ("🌤️ The weather in Istanbul is lovely right now! It's a great time to explore the city. "
+                        "I can suggest places to visit or activities that would be perfect for today's conditions. "
+                        "What interests you?")
         
-        # Goodbye responses
-        if any(bye in message_lower for bye in ['bye', 'goodbye', 'see you']):
-            return "👋 Güle güle! (Goodbye in Turkish) Have a wonderful time in Istanbul! Feel free to ask me anything anytime!"
+        # === THANK YOU RESPONSES ===
+        thanks_keywords_en = ['thank', 'thanks', 'appreciate']
+        thanks_keywords_tr = ['teşekkür', 'teşekkürler', 'sağol', 'sağolun', 'minnettarım']
         
-        # Default casual response
-        return "😊 I'm your Istanbul AI guide, always ready to help! Whether you want restaurant recommendations, cultural insights, or help getting around the city, just let me know. What interests you most about Istanbul?"
+        if any(t in message_lower for t in thanks_keywords_en + thanks_keywords_tr):
+            if is_turkish or any(t in message_lower for t in thanks_keywords_tr):
+                return ("🙏 Rica ederim! İstanbul'un en güzel yerlerini keşfetmenize yardımcı olmak için buradayım. "
+                        "Başka bilmek istediğiniz bir şey var mı?")
+            else:
+                return ("🙏 You're very welcome! I'm here to help you discover the best of Istanbul. "
+                        "Anything else you'd like to know?")
+        
+        # === GOODBYE RESPONSES ===
+        bye_keywords_en = ['bye', 'goodbye', 'see you', 'farewell']
+        bye_keywords_tr = ['hoşça kal', 'hoşçakal', 'güle güle', 'görüşürüz', 'bay']
+        
+        if any(b in message_lower for b in bye_keywords_en + bye_keywords_tr):
+            if is_turkish or any(b in message_lower for b in bye_keywords_tr):
+                return ("👋 Güle güle! İstanbul'da harika vakit geçirin! İstediğiniz zaman soru sorabilirsiniz. "
+                        "İyi günler! 🌟")
+            else:
+                return ("👋 Güle güle! (Goodbye in Turkish) Have a wonderful time in Istanbul! "
+                        "Feel free to ask me anything anytime! 🌟")
+        
+        # === HOW ARE YOU RESPONSES ===
+        how_are_you_en = ['how are you', 'how do you do', 'how\'s it going']
+        how_are_you_tr = ['nasılsın', 'nasılsınız', 'ne haber', 'naber']
+        
+        if any(h in message_lower for h in how_are_you_en + how_are_you_tr):
+            if is_turkish or any(h in message_lower for h in how_are_you_tr):
+                return ("😊 Ben harikayım, teşekkür ederim! İstanbul hakkında sizinle konuşmayı seviyorum. "
+                        "Size bugün nasıl yardımcı olabilirim? Restoran önerileri, kültürel mekanlar, "
+                        "ya da şehirde dolaşma konusunda yardım edebilirim.")
+            else:
+                return ("😊 I'm doing great, thank you for asking! I love talking about Istanbul with visitors. "
+                        "How can I help you today? I can provide restaurant recommendations, cultural insights, "
+                        "or help you navigate the city.")
+        
+        # === CASUAL/SMALL TALK RESPONSES ===
+        casual_en = ['nice', 'cool', 'awesome', 'great', 'perfect', 'ok', 'okay']
+        casual_tr = ['güzel', 'harika', 'mükemmel', 'süper', 'tamam', 'peki']
+        
+        if any(c in message_lower for c in casual_en + casual_tr):
+            if is_turkish or any(c in message_lower for c in casual_tr):
+                return ("😊 Harika! Size daha fazla yardımcı olabilmem için ne öğrenmek istersiniz? "
+                        "Restoran tavsiyeleri, müze ve turistik yerler, ulaşım bilgileri, veya İstanbul hakkında "
+                        "başka konularda yardımcı olabilirim. Neyle ilgileniyorsunuz?")
+            else:
+                return ("😊 Great! What would you like to learn more about? I can help with restaurant recommendations, "
+                        "museums and attractions, transportation info, or any other questions about Istanbul. "
+                        "What interests you most?")
+        
+        # === DEFAULT FALLBACK RESPONSE ===
+        if is_turkish:
+            return ("😊 Ben sizin İstanbul yapay zeka rehberinizim, her zaman yardıma hazırım! "
+                    "Restoran önerileri, kültürel içgörüler, şehirde gezinme yardımı veya başka herhangi "
+                    "bir konuda size yardımcı olabilirim. İstanbul hakkında en çok neyi merak ediyorsunuz?")
+        else:
+            return ("😊 I'm your Istanbul AI guide, always ready to help! Whether you want restaurant recommendations, "
+                    "cultural insights, or help getting around the city, just let me know. "
+                    "What interests you most about Istanbul?")
     
     def _generate_personalized_greeting(self, user_profile: UserProfile, context: ConversationContext) -> str:
         """Generate personalized greeting based on user profile"""
