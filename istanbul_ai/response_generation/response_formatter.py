@@ -234,6 +234,12 @@ class ResponseFormatter:
         Returns:
             Formatted distance string
         """
+        # Handle invalid or non-numeric values
+        try:
+            distance_km = float(distance_km)
+        except (TypeError, ValueError):
+            return ""
+        
         if distance_km < 1:
             meters = int(distance_km * 1000)
             return f"{meters}m" if language == 'en' else f"{meters}m"
@@ -252,6 +258,12 @@ class ResponseFormatter:
         Returns:
             Formatted price string
         """
+        # Handle invalid or non-numeric values
+        try:
+            price = float(price)
+        except (TypeError, ValueError):
+            return ""
+        
         if price == 0:
             return "FREE ✨" if language == 'en' else "ÜCRETSİZ ✨"
         

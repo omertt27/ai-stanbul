@@ -1,29 +1,60 @@
-# Render Blueprint for AI Istanbul (KAM)
-# Automatically provisions: Web Service + PostgreSQL + Redis
+# Render Blueprint for Istanbul AI - Production Scalability (10K Monthly Users)
+# Automatically provisions: Web Service + Redis Cache
+# Supports: Async Processing, Caching, Rate Limiting, GPU (T4), Monitoring
 # Deploy: Push this file to GitHub and import as Blueprint in Render
 
 services:
-  # Backend API Service
+  # Production Backend API Service with Scalability Features
   - type: web
-    name: ai-istanbul-backend
+    name: istanbul-ai-production
     env: python
+    runtime: python
     region: oregon  # Options: oregon (US West), frankfurt (EU), singapore (Asia)
-    plan: free  # Options: free, starter ($7/mo), standard ($25/mo)
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 2
+    
+    # Plan Selection:
+    # - free: 512MB RAM, shared CPU (good for testing)
+    # - starter ($7/mo): 512MB RAM, 0.5 CPU
+    # - standard ($25/mo): 2GB RAM, 1 CPU
+    # - pro ($85/mo): 4GB RAM, 2 CPU
+    # - pro-plus ($185/mo): 8GB RAM, 4 CPU (recommended for 10K users)
+    plan: starter  # Upgrade to 'pro-plus' for production with 10K users
+    
+    # Build Configuration
+    buildCommand: |
+      echo "🚀 Installing production dependencies..."
+      pip install --upgrade pip
+      pip install -r production_requirements.txt
+      echo "✅ Dependencies installed"
+      
+    # Start Command - Uses production server with async, caching, rate limiting
+    startCommand: |
+      echo "🌟 Starting Istanbul AI Production Server..."
+      uvicorn production_server:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info
+      
     healthCheckPath: /health
     autoDeploy: true  # Auto-deploy on git push
+    
+    # Disk storage for models and cache
+    disk:
+      name: istanbul-ai-storage
+      mountPath: /data
+      sizeGB: 10
     
     envVars:
       # Python Configuration
       - key: PYTHON_VERSION
         value: "3.11.0"
       
+      - key: PYTHONPATH
+        value: "/opt/render/project/src"
+      
       # Environment
       - key: ENVIRONMENT
         value: production
+        
       - key: DEBUG
         value: "False"
+        
       - key: LOG_LEVEL
         value: INFO
       
@@ -31,17 +62,67 @@ services:
       - key: PORT
         generateValue: true
       
-      # Database Connection (auto-linked from database below)
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ai-istanbul-db
-          property: connectionString
-      
       # Redis Connection (auto-linked from redis below)
       - key: REDIS_URL
         fromDatabase:
-          name: ai-istanbul-redis
+          name: istanbul-ai-redis
           property: connectionString
+      
+      # Redis Configuration
+      - key: REDIS_ENABLED
+        value: "True"
+        
+      - key: REDIS_MAX_CONNECTIONS
+        value: "50"
+        
+      - key: REDIS_SOCKET_KEEPALIVE
+        value: "True"
+      
+      # Cache Configuration
+      - key: CACHE_ENABLED
+        value: "True"
+        
+      - key: CACHE_TTL_DEFAULT
+        value: "1800"  # 30 minutes
+        
+      - key: CACHE_TTL_USER_PROFILE
+        value: "3600"  # 1 hour
+        
+      - key: CACHE_TTL_STATIC_DATA
+        value: "86400"  # 24 hours
+      
+      # Rate Limiting Configuration
+      - key: RATE_LIMIT_ENABLED
+        value: "True"
+        
+      - key: RATE_LIMIT_FREE_TIER_REQUESTS
+        value: "100"
+        
+      - key: RATE_LIMIT_FREE_TIER_WINDOW
+        value: "3600"  # 1 hour
+        
+      - key: RATE_LIMIT_PREMIUM_TIER_REQUESTS
+        value: "1000"
+        
+      - key: RATE_LIMIT_PREMIUM_TIER_WINDOW
+        value: "3600"
+      
+      # Async Processing Configuration
+      - key: MAX_CONCURRENT_REQUESTS
+        value: "50"  # For pro-plus plan
+        
+      - key: REQUEST_TIMEOUT
+        value: "30"  # seconds
+      
+      # GPU Configuration (if available on paid plans)
+      - key: CUDA_VISIBLE_DEVICES
+        value: "0"  # Use first GPU if available
+        
+      - key: TORCH_DEVICE
+        value: "cuda"  # Will fallback to 'cpu' if no GPU
+        
+      - key: GPU_MEMORY_FRACTION
+        value: "0.8"  # Use 80% of GPU memory
       
       # Security - IMPORTANT: Generate these manually!
       # Run: python -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -51,49 +132,63 @@ services:
       # CORS Configuration
       # Update with your actual Vercel frontend URL after deployment
       - key: ALLOWED_ORIGINS
-        value: '["https://ai-istanbul.vercel.app","https://www.ai-istanbul.vercel.app"]'
+        value: '["https://ai-istanbul.vercel.app","https://www.aistanbul.net","http://localhost:3000","http://localhost:5173"]'
       
-      # Rate Limiting
-      - key: RATE_LIMIT_ENABLED
+      # Monitoring & Performance
+      - key: PERFORMANCE_MONITORING_ENABLED
         value: "True"
-      - key: RATE_LIMIT_REQUESTS
-        value: "100"
-      - key: RATE_LIMIT_WINDOW
-        value: "3600"
+        
+      - key: METRICS_COLLECTION_INTERVAL
+        value: "60"  # seconds
       
-      # Sentry Error Tracking (Optional)
+      # Sentry Error Tracking (Optional but recommended)
       # Get DSN from: https://sentry.io/
       - key: SENTRY_DSN
         sync: false  # Must set manually if using Sentry
+        
       - key: SENTRY_ENVIRONMENT
         value: production
+        
       - key: SENTRY_TRACES_SAMPLE_RATE
         value: "0.1"
+        
       - key: SENTRY_PROFILES_SAMPLE_RATE
         value: "0.1"
       
       # Feature Flags
       - key: USE_NEURAL_RANKING
         value: "True"
+        
       - key: ADVANCED_UNDERSTANDING_ENABLED
         value: "True"
+        
+      - key: ML_GPU_ACCELERATION
+        value: "True"  # Will use GPU if available
       
-      # Optional API Keys (set manually if needed)
+      # External API Keys (set manually)
       - key: OPENWEATHER_API_KEY
         sync: false
+        
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+        
+      - key: MAPBOX_ACCESS_TOKEN
+        sync: false
+      
+      # Database (if needed for user data)
+      - key: DATABASE_URL
+        sync: false  # Set if using PostgreSQL
 
 databases:
-  # PostgreSQL Database
-  - name: ai-istanbul-db
-    databaseName: ai_istanbul
-    user: ai_istanbul_user
-    plan: free  # Options: free (90 days), starter ($7/mo), standard ($50/mo)
-    region: oregon  # Must match web service region
-    ipAllowList: []  # Empty = allow all (good for development)
+  # Redis Cache for Production Scalability
+  - name: istanbul-ai-redis
+    # Plan Options:
+    # - free: 25MB, expires after 90 days (testing only)
+    # - starter ($10/mo): 256MB (good for moderate traffic)
+    # - standard ($50/mo): 1GB (recommended for 10K monthly users)
+    # - pro ($200/mo): 5GB (for high traffic)
+    plan: starter  # Upgrade to 'standard' for 10K users
     
-  # Redis Cache
-  - name: ai-istanbul-redis
-    plan: free  # Options: free (25MB, expires after 90 days), starter ($10/mo - 256MB)
     region: oregon  # Must match web service region
     maxmemoryPolicy: allkeys-lru  # Evict least recently used keys when full
     ipAllowList: []  # Empty = allow all

@@ -130,21 +130,38 @@ class LanguageHandler:
         
         # Check user profile preferences
         if user_profile:
-            # Check session context first
-            if hasattr(user_profile, 'session_context'):
-                lang = user_profile.session_context.get('language_preference', '').lower()
+            # Handle dict-type user profile
+            if isinstance(user_profile, dict):
+                # Check language key directly
+                lang = user_profile.get('language', '').lower()
                 if lang in ['turkish', 'tr', 'türkçe']:
                     return 'tr'
                 elif lang in ['english', 'en']:
                     return 'en'
-            
-            # Check direct attribute
-            if hasattr(user_profile, 'language_preference'):
-                lang = getattr(user_profile, 'language_preference', '').lower()
+                
+                # Check language_preference key
+                lang = user_profile.get('language_preference', '').lower()
                 if lang in ['turkish', 'tr', 'türkçe']:
                     return 'tr'
                 elif lang in ['english', 'en']:
                     return 'en'
+            else:
+                # Handle object-type user profile
+                # Check session context first
+                if hasattr(user_profile, 'session_context'):
+                    lang = user_profile.session_context.get('language_preference', '').lower()
+                    if lang in ['turkish', 'tr', 'türkçe']:
+                        return 'tr'
+                    elif lang in ['english', 'en']:
+                        return 'en'
+                
+                # Check direct attribute
+                if hasattr(user_profile, 'language_preference'):
+                    lang = getattr(user_profile, 'language_preference', '').lower()
+                    if lang in ['turkish', 'tr', 'türkçe']:
+                        return 'tr'
+                    elif lang in ['english', 'en']:
+                        return 'en'
         
         # Analyze message content
         # 1. Check for Turkish characters

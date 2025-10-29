@@ -96,9 +96,9 @@ class ResponseOrchestrator:
             # 3. Build context
             context = self.context_builder.build_response_context(
                 user_profile=user_profile,
-                session_context=session_context,
-                entities=entities,
-                conversation_history=conversation_history
+                conversation_context=session_context,
+                message=query,
+                entities=entities
             )
             
             # 4. Check if we have results
@@ -255,38 +255,44 @@ class ResponseOrchestrator:
     ) -> Optional[Dict[str, Any]]:
         """Handle special cases like greetings, thanks, goodbye"""
         
+        # Normalize query for detection (lowercase)
+        query_normalized = query.lower()
+        
         # Check for greeting
-        if self.language_handler.is_greeting(query):
+        if self.language_handler.is_greeting(query_normalized):
             time_of_day = self._get_time_of_day()
             template_key = f'greeting_{time_of_day}'
-            response_text = self.language_handler.get_bilingual_template(template_key, language)
+            response_text = self.bilingual_responder.get_special_case_response(template_key, language)
             
             return {
                 'text': response_text,
                 'language': language,
                 'intent': 'greeting',
+                'result_count': 0,
                 'is_special_case': True,
                 'timestamp': datetime.now().isoformat()
             }
         
         # Check for thanks
-        if self.language_handler.is_thanks(query):
-            response_text = self.language_handler.get_bilingual_template('thanks', language)
+        if self.language_handler.is_thanks(query_normalized):
+            response_text = self.bilingual_responder.get_special_case_response('thanks', language)
             return {
                 'text': response_text,
                 'language': language,
                 'intent': 'thanks',
+                'result_count': 0,
                 'is_special_case': True,
                 'timestamp': datetime.now().isoformat()
             }
         
         # Check for goodbye
-        if self.language_handler.is_goodbye(query):
-            response_text = self.language_handler.get_bilingual_template('goodbye', language)
+        if self.language_handler.is_goodbye(query_normalized):
+            response_text = self.bilingual_responder.get_special_case_response('goodbye', language)
             return {
                 'text': response_text,
                 'language': language,
                 'intent': 'goodbye',
+                'result_count': 0,
                 'is_special_case': True,
                 'timestamp': datetime.now().isoformat()
             }
@@ -337,6 +343,7 @@ class ResponseOrchestrator:
             'text': response_text,
             'language': language,
             'intent': 'error',
+            'result_count': 0,
             'is_error': True,
             'timestamp': datetime.now().isoformat()
         }

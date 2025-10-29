@@ -133,6 +133,18 @@ class IstanbulDailyTalkAI:
 
     def _init_services(self):
         """Initialize advanced services"""
+        # Initialize museum database first
+        self.museum_available = False
+        self.museum_database = None
+        try:
+            from accurate_museum_database import get_all_museums
+            self.museum_database_data = get_all_museums()
+            self.museum_database = type('MuseumDB', (), {'get_all_museums': lambda: self.museum_database_data})()
+            self.museum_available = True
+            logger.info("🏛️ Museum Database loaded successfully")
+        except ImportError as e:
+            logger.warning(f"⚠️ Museum Database not available: {e}")
+        
         try:
             from ..services.intelligent_location_detector import IntelligentLocationDetector
             from ..services.gps_location_service import GPSLocationService
@@ -183,23 +195,41 @@ class IstanbulDailyTalkAI:
             self.personality = None
             self.personality_available = False
         
-        # Initialize museum advising system with comprehensive database
+        # Initialize museum database
         try:
-            import sys
-            import os
-            parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            backend_dir = os.path.join(parent_dir, 'backend')
-            if backend_dir not in sys.path:
-                sys.path.append(backend_dir)
-            
-            from accurate_museum_database import IstanbulMuseumDatabase
-            self.museum_database = IstanbulMuseumDatabase()
+            from accurate_museum_database import get_all_museums
+            self.museum_database_data = get_all_museums()
+            self.museum_database = type('MuseumDB', (), {'get_all_museums': lambda: self.museum_database_data})()
             self.museum_available = True
-            logger.info("🏛️ Museum Advising System loaded successfully (40 museums)")
+            logger.info("🏛️ Museum Database loaded successfully")
         except ImportError as e:
             logger.warning(f"⚠️ Museum Database not available: {e}")
             self.museum_database = None
             self.museum_available = False
+        
+        # Initialize Response Generation Layer (Week 7-8)
+        try:
+            from ..response_generation.language_handler import LanguageHandler
+            from ..response_generation.context_builder import ContextBuilder
+            from ..response_generation.response_formatter import ResponseFormatter
+            from ..response_generation.bilingual_responder import BilingualResponder
+            from ..response_generation.response_orchestrator import ResponseOrchestrator
+            
+            self.language_handler = LanguageHandler()
+            self.context_builder = ContextBuilder()
+            self.response_formatter = ResponseFormatter()
+            self.bilingual_responder = BilingualResponder()
+            self.response_orchestrator = ResponseOrchestrator(
+                language_handler=self.language_handler,
+                context_builder=self.context_builder,
+                response_formatter=self.response_formatter,
+                bilingual_responder=self.bilingual_responder
+            )
+            self.response_generation_available = True
+            logger.info("✅ Response Generation Layer loaded successfully (Week 7-8)")
+        except ImportError as e:
+            logger.warning(f"⚠️ Response Generation Layer not available: {e}")
+            self.response_generation_available = False
 
     def get_or_create_user_profile(self, user_id: str) -> UserProfile:
         """Get or create user profile"""
@@ -289,6 +319,69 @@ class IstanbulDailyTalkAI:
                     logger.warning(f"⚠️ Intent analysis error: {e}")
             
             # 🎭 STEP 3: PERSONALITY ENHANCEMENT: Check for greetings, goodbyes, thanks with warm responses
+            # Use new Response Generation Layer if available (Week 7-8)
+            if self.response_generation_available and hasattr(self, 'response_orchestrator'):
+                # Get language preference from user profile or session (if explicitly set)
+                # Don't pass language if not set - let LanguageHandler detect from message content
+                user_profile_dict = {}
+                if hasattr(user_profile, 'preferences') and 'language' in user_profile.preferences:
+                    user_profile_dict['language'] = user_profile.preferences.get('language')
+                elif hasattr(user_profile, 'session_context') and 'language' in user_profile.session_context:
+                    user_profile_dict['language'] = user_profile.session_context.get('language')
+                # If no explicit language preference, leave dict empty - LanguageHandler will detect from message
+                
+                # Handle greetings
+                if self.language_handler.is_greeting(user_input.lower()):
+                    response = self.response_orchestrator.generate_response(
+                        query=user_input,
+                        intent='greeting',
+                        user_profile=user_profile_dict if user_profile_dict else None,
+                        session_context={'session_id': session_id}
+                    )
+                    logger.info("🎭 Response Generation: Greeting handled")
+                    return response['text']
+                
+                # Handle thank you messages
+                if self.language_handler.is_thanks(user_input.lower()):
+                    response = self.response_orchestrator.generate_response(
+                        query=user_input,
+                        intent='thanks',
+                        user_profile=user_profile_dict if user_profile_dict else None,
+                        session_context={'session_id': session_id}
+                    )
+                    logger.info("🎭 Response Generation: Thanks handled")
+                    return response['text']
+                
+                # Handle goodbyes
+                if self.language_handler.is_goodbye(user_input.lower()):
+                    response = self.response_orchestrator.generate_response(
+                        query=user_input,
+                        intent='goodbye',
+                        user_profile=user_profile_dict if user_profile_dict else None,
+                        session_context={'session_id': session_id}
+                    )
+                    logger.info("🎭 Response Generation: Goodbye handled")
+                    return response['text']
+            
+            # Fallback to personality module if Response Generation Layer not available
+            elif self.personality_available and self.personality:
+                # Handle greetings
+                greeting_response = self.personality.get_greeting(user_input)
+                if greeting_response:
+                    logger.info("🎭 Personality: Warm greeting response")
+                    return greeting_response
+                
+                # Handle thank you messages
+                if any(word in user_input.lower() for word in ['thank', 'thanks', 'teşekkür', 'sağol', 'appreciate']):
+                    logger.info("🎭 Personality: Grateful response")
+                    return self.personality.handle_thanks(user_input)
+                
+                # Handle goodbyes
+                if any(word in user_input.lower() for word in ['goodbye', 'bye', 'see you', 'görüşürüz', 'hoşçakal', 'cya']):
+                    logger.info("🎭 Personality: Warm goodbye")
+                    return self.personality.handle_goodbye(user_input)
+            
+            # Handle small talk (continue with personality module for now)
             if self.personality_available and self.personality:
                 # Handle greetings
                 greeting_response = self.personality.get_greeting(user_input)
@@ -341,7 +434,25 @@ class IstanbulDailyTalkAI:
                     cultural_response = self._handle_cultural_query(user_input)
                     return self.personality.add_personality_to_response(cultural_response, 'cultural')
             
-            # 🏛️ STEP 4: MUSEUM SYSTEM - Handle museum queries with comprehensive database
+            # 🗺️ STEP 4A: MUSEUM ROUTE PLANNING - Handle museum tour/route/itinerary requests
+            museum_route_keywords = [
+                'museum tour', 'museum route', 'museum itinerary', 'museum plan',
+                'visit museums', 'museum day', 'museum trip', 'plan my museum',
+                'museum walk', 'museums in', 'tour of museums', 'museum hopping',
+                'müze turu', 'müze rotası', 'müze gezisi'
+            ]
+            
+            if any(keyword in user_input.lower() for keyword in museum_route_keywords):
+                logger.info(f"🗺️ Museum Route Planning: Request detected (Location: {detected_location or 'Not specified'})")
+                return self._handle_museum_route_planning(
+                    user_input,
+                    detected_location,
+                    location_context,
+                    user_profile,
+                    context
+                )
+            
+            # 🏛️ STEP 4B: MUSEUM SYSTEM - Handle museum queries with comprehensive database
             if self.museum_available and self.museum_database:
                 museum_keywords = [
                     'museum', 'müze', 'palace', 'saray', 'mosque', 'cami',
@@ -1110,7 +1221,7 @@ Enjoy experiencing Turkish hospitality and culture! 🇹🇷"""
         query_lower = query.lower()
         
         # Check for cuisine
-        cuisines = ['turkish', 'italian', 'seafood', 'kebab', 'asian', 'french', 'mediterranean']
+        cuisines = ['turkish', 'seafood', 'italian', 'kebab', 'asian', 'french', 'mediterranean']
         if not any(c in query_lower for c in cuisines):
             missing.append("🍲 **Cuisine**: Turkish, seafood, Italian, vegetarian, etc.?")
         
@@ -1363,3 +1474,335 @@ Enjoy experiencing Turkish hospitality and culture! 🇹🇷"""
         response_parts.append("Example: 'How do I get from Taksim to Kadıköy?'")
         
         return "\n".join(response_parts)
+    
+    def _handle_museum_route_planning(
+        self,
+        user_input: str,
+        detected_location: Optional[str],
+        location_context: Dict,
+        user_profile,
+        context
+    ) -> str:
+        """
+        Handle museum route planning requests with map visualization
+        
+        Creates optimized museum tours with:
+        - Duration-based planning (short/standard/long)
+        - District filtering
+        - Interactive map visualization
+        - Walking directions between museums
+        """
+        import asyncio
+        from museum_route_map_generator import MuseumRouteMapGenerator
+        
+        logger.info("🗺️ Processing museum route planning request")
+        
+        try:
+            # Initialize museum route planner if available
+            if not hasattr(self, 'museum_route_planner'):
+                # Try to load the planner
+                try:
+                    from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
+                    self.museum_route_planner = EnhancedMuseumRoutePlanner()
+                    logger.info("✅ Museum route planner initialized")
+                except ImportError as e:
+                    logger.warning(f"⚠️ Museum route planner not available: {e}")
+                    return self._museum_route_fallback(user_input, detected_location)
+            
+            # Parse user requirements
+            duration = self._extract_duration_from_query(user_input)
+            district = self._extract_district_from_query(user_input, detected_location)
+            interests = self._extract_interests_from_query(user_input)
+            tour_type = self._determine_tour_type(duration)
+            max_museums = self._get_museum_count_for_duration(duration)
+            
+            logger.info(f"📊 Route params: duration={duration}h, district={district}, interests={interests}, type={tour_type}")
+            
+            # Build preferences for route planner
+            preferences = {
+                'interests': interests,
+                'max_museums': max_museums,
+                'budget_tl': 1000,  # Default budget
+                'accessibility_needed': False,
+                'duration_hours': duration
+            }
+            
+            # Add location filter (check if it's a neighborhood or district)
+            if district:
+                # Neighborhoods that aren't districts
+                neighborhoods = ['Sultanahmet', 'Taksim', 'Galata', 'Karaköy', 'Ortaköy', 'Eminönü']
+                if district in neighborhoods:
+                    preferences['neighborhoods'] = [district]
+                else:
+                    preferences['districts'] = [district]
+            
+            # Create museum route (handle async properly)
+            import concurrent.futures
+            import threading
+            
+            def run_async_route():
+                """Run async route planning in separate thread with own event loop"""
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result = new_loop.run_until_complete(
+                        self.museum_route_planner.create_museum_route(preferences, duration_hours=duration)
+                    )
+                    return result
+                finally:
+                    new_loop.close()
+            
+            # Execute in thread pool to avoid event loop conflicts
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(run_async_route)
+                try:
+                    route = future.result(timeout=15)
+                except concurrent.futures.TimeoutError:
+                    logger.error("Museum route planning timed out")
+                    return self._museum_route_fallback(user_input, detected_location)
+                except Exception as e:
+                    logger.error(f"Error in async execution: {e}")
+                    return self._museum_route_fallback(user_input, detected_location)
+            
+            if not route or not route.get('museums'):
+                logger.warning("No museums in route, using fallback")
+                return self._museum_route_fallback(user_input, detected_location)
+            
+            # Generate map visualization
+            map_generator = MuseumRouteMapGenerator()
+            
+            # Create text response
+            response = self._format_museum_route_response(route, tour_type, district)
+            
+            # Note: In production, we would save the map HTML and return a URL
+            # For now, we'll include the map details in the response
+            # You can uncomment the lines below to save the map
+            
+            # map_html = map_generator.create_interactive_map(route)
+            # map_url = self._save_and_get_map_url(map_html, context.session_id)
+            # response += f"\n\n🗺️ **Interactive Map:** {map_url}"
+            
+            google_maps_url = map_generator.create_google_maps_url(route.get('museums', []))
+            if google_maps_url:
+                response += f"\n\n🗺️ **View Route on Google Maps:** [Open Map]({google_maps_url})"
+
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in museum route planning: {e}", exc_info=True)
+            return self._museum_route_fallback(user_input, detected_location)
+    
+    def _extract_duration_from_query(self, query: str) -> float:
+        """Extract duration in hours from query"""
+        import re
+        
+        query_lower = query.lower()
+        
+        # Look for explicit hour mentions
+        hour_patterns = [
+            r'(\d+)\s*hour',
+            r'(\d+)\s*hr',
+            r'(\d+)h',
+            r'(\d+)\s*saat'
+        ]
+        
+        for pattern in hour_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                return float(match.group(1))
+        
+        # Look for time-of-day mentions
+        if any(word in query_lower for word in ['morning', 'sabah', 'half day', 'yarım gün']):
+            return 4.0
+        elif any(word in query_lower for word in ['afternoon', 'öğleden sonra']):
+            return 5.0
+        elif any(word in query_lower for word in ['full day', 'whole day', 'tüm gün', 'bütün gün']):
+            return 8.0
+        elif any(word in query_lower for word in ['quick', 'short', 'brief', 'kısa']):
+            return 3.0
+        elif any(word in query_lower for word in ['long', 'extended', 'uzun']):
+            return 7.0
+        
+        # Default to standard tour
+        return 5.0
+    
+    def _extract_district_from_query(self, query: str, detected_location: Optional[str]) -> Optional[str]:
+        """Extract district or neighborhood from query"""
+        query_lower = query.lower()
+        
+        # Map neighborhoods to their actual districts or use neighborhood name
+        # EnhancedMuseumRoutePlanner filters by both district AND neighborhood
+        location_mapping = {
+            # Neighborhoods → Keep as is (planner handles both)
+            'sultanahmet': 'Sultanahmet',  # Will be used as neighborhood filter
+            'taksim': 'Taksim',
+            'galata': 'Galata',
+            'karaköy': 'Karaköy',
+            'karakoy': 'Karaköy',
+            'ortaköy': 'Ortaköy',
+            'ortakoy': 'Ortaköy',
+            'eminönü': 'Eminönü',
+            'eminonu': 'Eminönü',
+            # Districts
+            'beyoğlu': 'Beyoğlu',
+            'beyoglu': 'Beyoğlu',
+            'beşiktaş': 'Beşiktaş',
+            'besiktas': 'Beşiktaş',
+            'kadıköy': 'Kadıköy',
+            'kadikoy': 'Kadıköy',
+            'üsküdar': 'Üsküdar',
+            'uskudar': 'Üsküdar',
+            'fatih': 'Fatih',
+            'şişli': 'Şişli',
+            'sisli': 'Şişli',
+            'sarıyer': 'Sarıyer',
+            'sariyer': 'Sarıyer'
+        }
+        
+        # Priority 1: Use detected location
+        if detected_location:
+            detected_lower = detected_location.lower()
+            return location_mapping.get(detected_lower, detected_location)
+        
+        # Priority 2: Look for location mentions in query
+        for key, value in location_mapping.items():
+            if key in query_lower:
+                return value
+        
+        return None
+    
+    def _extract_interests_from_query(self, query: str) -> List[str]:
+        """Extract interests from query"""
+        query_lower = query.lower()
+        interests = []
+        
+        interest_keywords = {
+            'history': ['history', 'historical', 'tarih', 'tarihi'],
+            'art': ['art', 'sanat', 'painting', 'sculpture'],
+            'culture': ['culture', 'kültür', 'cultural', 'kültürel'],
+            'archaeology': ['archaeology', 'arkeoloji', 'ancient', 'antik'],
+            'contemporary': ['contemporary', 'modern', 'çağdaş']
+        }
+        
+        for interest, keywords in interest_keywords.items():
+            if any(keyword in query_lower for keyword in keywords):
+                interests.append(interest)
+        
+        # Default to general if no specific interest found
+        if not interests:
+            interests = ['history', 'art']
+        
+        return interests
+    
+    def _determine_tour_type(self, duration: float) -> str:
+        """Determine tour type based on duration"""
+        if duration <= 3:
+            return "short"
+        elif duration <= 5:
+            return "standard"
+        else:
+            return "long"
+    
+    def _get_museum_count_for_duration(self, duration: float) -> int:
+        """Get recommended museum count for duration"""
+        if duration <= 3:
+            return 2
+        elif duration <= 5:
+            return 3
+        elif duration <= 7:
+            return 4
+        else:
+            return 5
+    
+    def _format_museum_route_response(
+        self,
+        route: Dict[str, Any],
+        tour_type: str,
+        district: Optional[str]
+    ) -> str:
+        """Format museum route response with all details"""
+        museums = route.get('museums', [])
+        
+        response = f"🗺️ **Your {tour_type.title()} Museum Tour"
+        if district:
+            response += f" in {district}"
+        response += "**\n\n"
+        
+        # Summary statistics
+        response += "📊 **Tour Summary:**\n"
+        response += f"• 🏛️ Museums: {len(museums)}\n"
+        response += f"• ⏱️ Duration: {route.get('total_duration_hours', 0):.1f} hours\n"
+        response += f"• 💰 Total Cost: {route.get('total_cost_tl', 0):.0f} TL\n"
+        response += f"• 🚶 Walking: {route.get('total_walking_distance_km', 0):.1f} km\n\n"
+        
+        # Detailed itinerary
+        response += "🎯 **Detailed Itinerary:**\n\n"
+        
+        for i, museum_info in enumerate(museums, 1):
+            museum = museum_info.get('museum')
+            if not museum:
+                continue
+            
+            response += f"**{i}. {museum.name}**\n"
+            response += f"📍 {museum.district} - {museum.neighborhood}\n"
+            response += f"🕒 Arrival: {museum_info.get('arrival_time', 'N/A')}\n"
+            response += f"⏱️ Visit Duration: {museum.visit_duration_minutes} minutes\n"
+            response += f"💰 Entry Fee: {museum.entry_fee_tl} TL\n"
+            
+            # Top highlights
+            if hasattr(museum, 'highlights') and museum.highlights:
+                response += f"✨ **Don't Miss:** {museum.highlights[0]}\n"
+            
+            # Top local tip
+            if hasattr(museum, 'local_tips') and museum.local_tips:
+                top_tips = [tip for tip in museum.local_tips if tip.importance >= 4]
+                if top_tips:
+                    response += f"💡 **Local Tip:** {top_tips[0].description}\n"
+            
+            # Walking distance to next
+            if i < len(museums):
+                walking_dist = museum_info.get('walking_distance', None)
+                if walking_dist:
+                    response += f"🚶 Walk to next: {walking_dist}\n"
+            
+            response += "\n"
+        
+        # Additional tips
+        response += "💡 **Smart Tips:**\n"
+        response += "• Start early to avoid crowds (9 AM recommended)\n"
+        response += "• Get the Museum Pass Istanbul for discounts\n"
+        response += "• Wear comfortable walking shoes\n"
+        response += "• Bring water and snacks\n"
+        
+        return response
+    
+    def _museum_route_fallback(self, query: str, location: Optional[str]) -> str:
+        """Fallback response when route planning fails"""
+        response = "🗺️ **Museum Tour Planning**\n\n"
+        response += "I can help you plan a perfect museum tour! Here are some popular options:\n\n"
+        
+        if location and 'sultanahmet' in location.lower():
+            response += "**Sultanahmet Historical Tour (5-6 hours):**\n"
+            response += "1. Hagia Sophia (90 min) - 200 TL\n"
+            response += "2. Topkapi Palace (120 min) - 200 TL\n"
+            response += "3. Istanbul Archaeological Museums (90 min) - 100 TL\n"
+            response += "4. Turkish & Islamic Arts Museum (60 min) - 100 TL\n\n"
+        elif location and 'beyoğlu' in location.lower():
+            response += "**Beyoğlu Art & Culture Tour (4-5 hours):**\n"
+            response += "1. Pera Museum (90 min) - 150 TL\n"
+            response += "2. Istanbul Modern (120 min) - 200 TL\n"
+            response += "3. SALT Galata (60 min) - Free\n"
+            response += "4. Arter (90 min) - 80 TL\n\n"
+        else:
+            response += "**Classic Istanbul Museum Tour (Full Day):**\n"
+            response += "• Morning: Hagia Sophia + Topkapi Palace (Sultanahmet)\n"
+            response += "• Afternoon: Archaeological Museums + Basilica Cistern\n"
+            response += "• Total Cost: ~600 TL | Duration: 6-7 hours\n\n"
+        
+        response += "💡 **Tell me:**\n"
+        response += "• How many hours do you have? (e.g., '4 hours', 'half day', 'full day')\n"
+        response += "• Which district? (e.g., 'Sultanahmet', 'Beyoğlu', 'Kadıköy')\n"
+        response += "• What interests you? (e.g., 'history', 'art', 'archaeology')\n\n"
+        response += "Example: 'Plan a 5-hour art museum tour in Beyoğlu'"
+        
+        return response

@@ -31,6 +31,7 @@ class BilingualResponder:
         self.emergency_templates = self._initialize_emergency_templates()
         self.clarification_templates = self._initialize_clarification_templates()
         self.no_results_templates = self._initialize_no_results_templates()
+        self.special_case_templates = self._initialize_special_case_templates()
         
         logger.info("✅ BilingualResponder initialized")
     
@@ -139,6 +140,35 @@ class BilingualResponder:
             'general': {
                 'tr': "😔 Üzgünüm, bu arama için sonuç bulamadım. Sorunuzu farklı şekilde sormayı deneyin.",
                 'en': "😔 Sorry, I couldn't find results for that search. Try rephrasing your question."
+            }
+        }
+    
+    def _initialize_special_case_templates(self) -> Dict[str, Dict[str, str]]:
+        """Initialize special case templates (greetings, thanks, goodbye)"""
+        return {
+            'greeting_morning': {
+                'tr': "🌅 Günaydın! İstanbul'da size nasıl yardımcı olabilirim?",
+                'en': "🌅 Good morning! How can I help you with Istanbul today?"
+            },
+            'greeting_afternoon': {
+                'tr': "☀️ İyi günler! İstanbul hakkında size nasıl yardımcı olabilirim?",
+                'en': "☀️ Good afternoon! How can I help you with Istanbul?"
+            },
+            'greeting_evening': {
+                'tr': "🌆 İyi akşamlar! İstanbul'da size nasıl yardımcı olabilirim?",
+                'en': "🌆 Good evening! How can I help you with Istanbul?"
+            },
+            'greeting_general': {
+                'tr': "👋 Merhaba! İstanbul'da size nasıl yardımcı olabilirim?",
+                'en': "👋 Hello! How can I help you with Istanbul?"
+            },
+            'thanks': {
+                'tr': "😊 Rica ederim! Başka bir konuda yardımcı olmamı ister misiniz?",
+                'en': "😊 You're welcome! Is there anything else I can help you with?"
+            },
+            'goodbye': {
+                'tr': "👋 Hoşça kalın! İstanbul'da güzel vakit geçirin! 🌟",
+                'en': "👋 Goodbye! Have a wonderful time in Istanbul! 🌟"
             }
         }
     
@@ -266,6 +296,30 @@ class BilingualResponder:
                 response += f"\n• {suggestion}"
         
         return response
+    
+    def get_special_case_response(
+        self,
+        case_type: str,
+        language: str = 'en'
+    ) -> str:
+        """
+        Get special case response (greeting, thanks, goodbye)
+        
+        Args:
+            case_type: Type of special case (greeting_morning, thanks, goodbye, etc.)
+            language: Language code ('en' or 'tr')
+        
+        Returns:
+            Special case response string
+        """
+        lang_key = 'tr' if language == 'tr' else 'en'
+        
+        # Try to get specific special case response
+        if case_type in self.special_case_templates:
+            return self.special_case_templates[case_type][lang_key]
+        
+        # Return general greeting as fallback
+        return self.special_case_templates['greeting_general'][lang_key]
     
     def format_bilingual_list(
         self,
