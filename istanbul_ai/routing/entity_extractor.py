@@ -70,6 +70,10 @@ class EntityExtractor:
         Returns:
             Dictionary of extracted entities
         """
+        # Handle None message
+        if message is None:
+            return {}
+        
         # Use base entity recognizer
         entities = self.entity_recognizer.extract_entities(message)
         
@@ -130,6 +134,9 @@ class EntityExtractor:
         Returns:
             Budget level string or None
         """
+        if message is None:
+            return None
+        
         message_lower = message.lower()
         
         # Check each budget category

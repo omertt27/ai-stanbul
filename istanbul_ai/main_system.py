@@ -946,8 +946,19 @@ class IstanbulDailyTalkAI:
     
     def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
                                         context: ConversationContext, neural_insights: Optional[Dict] = None,
-                                        return_structured: bool = False) -> Union[str, Dict[str,
+                                        return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate transportation response with neural insights
+        
+        Args:
+            message: User's query
+            entities: Extracted entities
+            user_profile: User profile
+            context: Conversation context
             neural_insights: ML-powered insights (sentiment, temporal context, keywords, etc.)
+            return_structured: Whether to return structured response
+            
+        Returns:
+            Transportation response (string or dict based on return_structured)
         """
         try:
             # Extract temporal and sentiment context from neural insights
