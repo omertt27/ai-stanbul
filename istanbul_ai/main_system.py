@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Istanbul Daily Talk AI - Main System
 The main orchestration class for the Istanbul AI system.
@@ -14,6 +15,17 @@ from .core.models import UserProfile, ConversationContext
 from .core.entity_recognition import IstanbulEntityRecognizer
 from .core.response_generator import ResponseGenerator
 from .core.user_management import UserManager
+
+# Week 1 Modularization: Import initialization modules
+from .initialization import ServiceInitializer, HandlerInitializer, SystemConfig
+
+# Week 2 Modularization: Import routing layer modules
+from .routing import (
+    IntentClassifier,
+    EntityExtractor,
+    QueryPreprocessor,
+    ResponseRouter
+)
 
 # Configure logging first
 logging.basicConfig(level=logging.INFO)
@@ -165,367 +177,85 @@ class IstanbulDailyTalkAI:
     """
     
     def __init__(self):
-        """Initialize the Istanbul AI system"""
-        logger.info("🚀 Initializing Istanbul Daily Talk AI System...")
+        """Initialize the Istanbul AI system with modular architecture (Week 1)"""
+        logger.info("🚀 Initializing Istanbul Daily Talk AI System (Modular Architecture)...")
         
-        # Initialize core components
+        # Week 1 Modularization: Get system configuration
+        self.config = SystemConfig()
+        
+        # Week 1 Modularization: Initialize core components
         self.entity_recognizer = IstanbulEntityRecognizer()
         self.response_generator = ResponseGenerator()
         self.user_manager = UserManager()
         
-        # Initialize hidden gems handler
-        if HIDDEN_GEMS_HANDLER_AVAILABLE:
-            try:
-                self.hidden_gems_handler = HiddenGemsHandler()
-                logger.info("💎 Hidden Gems Handler initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize hidden gems handler: {e}")
-                self.hidden_gems_handler = None
-        else:
-            self.hidden_gems_handler = None
+        # Week 1 Modularization: Initialize all services using ServiceInitializer
+        service_initializer = ServiceInitializer()
+        services = service_initializer.initialize_all_services()
         
-        # Initialize price filter service
-        if PRICE_FILTER_AVAILABLE:
-            try:
-                self.price_filter_service = PriceFilterService()
-                logger.info("💰 Price Filter Service initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize price filter: {e}")
-                self.price_filter_service = None
-        else:
-            self.price_filter_service = None
+        # Assign initialized services to instance variables
+        for service_name, service_instance in services.items():
+            setattr(self, service_name, service_instance)
         
-        # Initialize conversation handler
-        try:
-            from backend.services.conversation_handler import get_conversation_handler
-            self.conversation_handler = get_conversation_handler()
-            logger.info("💬 Conversation Handler initialized successfully!")
-        except Exception as e:
-            logger.error(f"Failed to initialize conversation handler: {e}")
-            self.conversation_handler = None
+        logger.info(f"✅ Initialized {len(services)} services via ServiceInitializer")
         
-        # Initialize events service
-        if EVENTS_SERVICE_AVAILABLE:
-            try:
-                self.events_service = get_events_service()
-                logger.info("🎭 Events Service initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize events service: {e}")
-                self.events_service = None
-        else:
-            self.events_service = None
+        # Week 1 Modularization: Initialize ML handlers using HandlerInitializer
+        handler_initializer = HandlerInitializer(
+            events_service=self.events_service,
+            hidden_gems_handler=self.hidden_gems_handler,
+            weather_client=self.weather_client,
+            weather_recommendations=self.weather_recommendations,
+            gps_route_planner=self.gps_route_planner,
+            advanced_route_planner=self.advanced_route_planner,
+            transport_processor=self.transport_processor,
+            response_generator=self.response_generator,
+            neural_processor=self.neural_processor,
+            ml_context_builder=self.ml_context_builder
+        )
         
-        # Initialize weather recommendations service
-        if WEATHER_RECOMMENDATIONS_AVAILABLE:
-            try:
-                self.weather_recommendations = get_weather_recommendations_service()
-                logger.info("🌤️ Weather Recommendations Service initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize weather recommendations: {e}")
-                self.weather_recommendations = None
-        else:
-            self.weather_recommendations = None
+        handlers = handler_initializer.initialize_all_handlers()
         
-        # Initialize location detector if available
-        try:
-            from .services.intelligent_location_detector import IntelligentLocationDetector
-            self.location_detector = IntelligentLocationDetector()
-            logger.info("📍 Intelligent Location Detector loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Location detection not available: {e}")
-            self.location_detector = None
+        # Assign initialized handlers to instance variables
+        for handler_name, handler_instance in handlers.items():
+            setattr(self, handler_name, handler_instance)
         
-        # Initialize advanced transportation system
-        if ADVANCED_TRANSPORT_AVAILABLE:
-            try:
-                self.transport_processor = TransportationQueryProcessor()
-                self.ml_transport_system = create_ml_enhanced_transportation_system()
-                logger.info("🚇 Advanced transportation system with IBB API initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize advanced transportation: {e}")
-                self.transport_processor = None
-                self.ml_transport_system = None
-        else:
-            self.transport_processor = None
-            self.ml_transport_system = None
+        logger.info(f"✅ Initialized {len(handlers)} ML handlers via HandlerInitializer")
         
-        # Initialize Transfer Instructions & Map Visualization Integration
-        if TRANSFER_MAP_INTEGRATION_AVAILABLE:
-            try:
-                self.transportation_chat = TransportationChatIntegration()
-                logger.info("🗺️ Transfer Instructions & Map Visualization integration initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize transfer instructions integration: {e}")
-                self.transportation_chat = None
-        else:
-            self.transportation_chat = None
-
-        # Initialize ML-Enhanced Daily Talks Bridge (Legacy fallback)
-        if ML_DAILY_TALKS_AVAILABLE:
-            try:
-                self.daily_talks_bridge = MLEnhancedDailyTalksBridge()
-                logger.info("🤖 ML-Enhanced Daily Talks Bridge initialized (legacy)")
-            except Exception as e:
-                logger.error(f"Failed to initialize daily talks bridge: {e}")
-                self.daily_talks_bridge = None
-        else:
-            self.daily_talks_bridge = None
+        # Week 2 Modularization: Initialize routing layer components
+        logger.info("🎯 Initializing routing layer components...")
         
-        # Initialize Enhanced Bilingual Daily Talks System (PRIMARY)
-        if ENHANCED_DAILY_TALKS_AVAILABLE:
-            try:
-                self.enhanced_daily_talks = EnhancedBilingualDailyTalks()
-                logger.info("💬 Enhanced Bilingual Daily Talks System initialized (PRIMARY)")
-            except Exception as e:
-                logger.error(f"Failed to initialize enhanced daily talks: {e}")
-                self.enhanced_daily_talks = None
-        else:
-            self.enhanced_daily_talks = None
-
-        # Initialize Lightweight Neural Query Enhancement System (Budget-Friendly!)
-        if NEURAL_QUERY_ENHANCEMENT_AVAILABLE:
-            try:
-                self.neural_processor = get_lightweight_neural_processor()
-                logger.info("🧠 Lightweight Neural Query Enhancement System initialized (CPU-optimized, <100ms latency)")
-            except Exception as e:
-                logger.error(f"Failed to initialize neural query processor: {e}")
-                self.neural_processor = None
-        else:
-            self.neural_processor = None
-
-        # Initialize museum system with location integration
-        try:
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-            from museum_response_generator import MuseumResponseGenerator
-            from google_maps_hours_checker import GoogleMapsHoursChecker
-            from updated_museum_database import UpdatedIstanbulMuseumDatabase
-            
-            self.museum_generator = MuseumResponseGenerator()
-            self.hours_checker = GoogleMapsHoursChecker()
-            self.museum_db = UpdatedIstanbulMuseumDatabase()
-            logger.info("🏛️ Museum system with location integration loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Museum system not available: {e}")
-            self.museum_generator = None
-            self.hours_checker = None
-            self.museum_db = None
-
-        # Initialize advanced museum system (ML-powered with GPS, filtering, typo correction)
-        try:
-            from museum_advising_system import IstanbulMuseumSystem
-            self.advanced_museum_system = IstanbulMuseumSystem()
-            logger.info("🎨 Advanced Museum System (ML-powered) loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Advanced Museum System not available: {e}")
-            self.advanced_museum_system = None
-
-        # Initialize advanced attractions system (78+ curated attractions with category/district filtering)
-        try:
-            from istanbul_attractions_system import IstanbulAttractionsSystem
-            self.advanced_attractions_system = IstanbulAttractionsSystem()
-            logger.info("🌟 Advanced Attractions System loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Advanced Attractions System not available: {e}")
-            self.advanced_attractions_system = None
-
-        # Initialize Multi-Intent Query Handler for complex multi-part queries
-        if MULTI_INTENT_HANDLER_AVAILABLE:
-            try:
-                self.multi_intent_handler = MultiIntentQueryHandler()
-                logger.info("🎯 Multi-Intent Query Handler initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize Multi-Intent Query Handler: {e}")
-                self.multi_intent_handler = None
-        else:
-            self.multi_intent_handler = None
-
-        # Initialize enhanced museum route planner
-        try:
-            from enhanced_museum_route_planner import EnhancedMuseumRoutePlanner
-            self.museum_route_planner = EnhancedMuseumRoutePlanner()
-            logger.info("🗺️ Enhanced Museum Route Planner loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Enhanced Museum Route Planner not available: {e}")
-            self.museum_route_planner = None
-
-        # Initialize enhanced GPS route planner with fallback location detection
-        try:
-            from enhanced_gps_route_planner import EnhancedGPSRoutePlanner
-            self.gps_route_planner = EnhancedGPSRoutePlanner()
-            logger.info("🗺️ Enhanced GPS Route Planner with fallback location detection loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Enhanced GPS Route Planner not available: {e}")
-            self.gps_route_planner = None
+        # Initialize Intent Classifier
+        self.intent_classifier = IntentClassifier(
+            multi_intent_handler=self.multi_intent_handler,
+            neural_processor=self.neural_processor
+        )
         
-        # Initialize Enhanced Route Planner V2 (advanced multi-feature planner)
-        try:
-            from enhanced_route_planner_v2 import EnhancedRoutePlannerV2
-            self.advanced_route_planner = EnhancedRoutePlannerV2()
-            logger.info("🧭 Enhanced Route Planner V2 loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Enhanced Route Planner V2 not available: {e}")
-            self.advanced_route_planner = None
-
-        # Initialize Weather System
-        try:
-            from backend.api_clients.enhanced_weather import EnhancedWeatherClient
-            self.weather_client = EnhancedWeatherClient()
-            logger.info("🌤️ Enhanced Weather System loaded successfully!")
-        except ImportError as e:
-            logger.warning(f"Weather System not available: {e}")
-            self.weather_client = None
-
-        # Initialize ML Context Builder once (shared across all ML handlers)
-        self.ml_context_builder = None
-        try:
-            from backend.services.ml_context_builder import MLContextBuilder
-            self.ml_context_builder = MLContextBuilder()
-            logger.info("🧠 ML Context Builder initialized (shared across handlers)")
-        except ImportError as e:
-            logger.warning(f"ML Context Builder not available: {e}")
-
-        # Initialize ML-Enhanced Handlers (with required dependencies)
-        try:
-            if self.events_service and self.neural_processor and self.response_generator:
-                ml_context_builder = self.ml_context_builder
-                
-                if ml_context_builder:
-                    self.ml_event_handler = create_ml_enhanced_event_handler(
-                        events_service=self.events_service,
-                        ml_context_builder=ml_context_builder,
-                        ml_processor=self.neural_processor,
-                        response_generator=self.response_generator
-                    )
-                    logger.info("🎭 ML-Enhanced Event Handler initialized successfully!")
-                else:
-                    logger.warning("ML Context Builder not available, skipping ML Event Handler")
-                    self.ml_event_handler = None
-            else:
-                logger.warning("Required dependencies not available for ML Event Handler")
-                self.ml_event_handler = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ML-Enhanced Event Handler: {e}")
-            self.ml_event_handler = None
-
-        try:
-            if self.hidden_gems_handler and self.neural_processor and self.response_generator:
-                ml_context_builder = self.ml_context_builder
-                
-                if ml_context_builder:
-                    self.ml_hidden_gems_handler = create_ml_enhanced_hidden_gems_handler(
-                        hidden_gems_service=self.hidden_gems_handler,
-                        ml_context_builder=ml_context_builder,
-                        ml_processor=self.neural_processor,
-                        response_generator=self.response_generator
-                    )
-                    logger.info("💎 ML-Enhanced Hidden Gems Handler initialized successfully!")
-                else:
-                    logger.warning("ML Context Builder not available, skipping ML Hidden Gems Handler")
-                    self.ml_hidden_gems_handler = None
-            else:
-                logger.warning("Required dependencies not available for ML Hidden Gems Handler")
-                self.ml_hidden_gems_handler = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ML-Enhanced Hidden Gems Handler: {e}")
-            self.ml_hidden_gems_handler = None
-
-        try:
-            if self.weather_client and self.weather_recommendations and self.neural_processor and self.response_generator:
-                ml_context_builder = self.ml_context_builder
-                
-                if ml_context_builder:
-                    self.ml_weather_handler = create_ml_enhanced_weather_handler(
-                        weather_service=self.weather_client,
-                        weather_recommendations_service=self.weather_recommendations,
-                        ml_context_builder=ml_context_builder,
-                        ml_processor=self.neural_processor,
-                        response_generator=self.response_generator
-                    )
-                    logger.info("🌤️ ML-Enhanced Weather Handler initialized successfully!")
-                else:
-                    logger.warning("ML Context Builder not available, skipping ML Weather Handler")
-                    self.ml_weather_handler = None
-            else:
-                logger.warning("Required dependencies not available for ML Weather Handler")
-                self.ml_weather_handler = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ML-Enhanced Weather Handler: {e}")
-            self.ml_weather_handler = None
-
-        try:
-            # Use the advanced route planner and transport system if available
-            route_service = getattr(self, 'advanced_route_planner', None) or getattr(self, 'gps_route_planner', None)
-            transport_service = getattr(self, 'transport_processor', None)
-            
-            if route_service and transport_service and self.neural_processor and self.response_generator:
-                ml_context_builder = self.ml_context_builder
-                
-                if ml_context_builder:
-                    self.ml_route_planning_handler = create_ml_enhanced_route_planning_handler(
-                        route_planner_service=route_service,
-                        transport_service=transport_service,
-                        ml_context_builder=ml_context_builder,
-                        ml_processor=self.neural_processor,
-                        response_generator=self.response_generator
-                    )
-                    logger.info("🗺️ ML-Enhanced Route Planning Handler initialized successfully!")
-                else:
-                    logger.warning("ML Context Builder not available, skipping ML Route Planning Handler")
-                    self.ml_route_planning_handler = None
-            else:
-                logger.warning("Required dependencies not available for ML Route Planning Handler")
-                self.ml_route_planning_handler = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ML-Enhanced Route Planning Handler: {e}")
-            self.ml_route_planning_handler = None
-
-        try:
-            # Use response generator as neighborhood service (it has neighborhood data)
-            if self.response_generator and self.neural_processor:
-                ml_context_builder = self.ml_context_builder
-                
-                if ml_context_builder:
-                    self.ml_neighborhood_handler = create_ml_enhanced_neighborhood_handler(
-                        neighborhood_service=self.response_generator,  # has neighborhood data
-                        ml_context_builder=ml_context_builder,
-                        ml_processor=self.neural_processor,
-                        response_generator=self.response_generator
-                    )
-                    logger.info("🏘️ ML-Enhanced Neighborhood Handler initialized successfully!")
-                else:
-                    logger.warning("ML Context Builder not available, skipping ML Neighborhood Handler")
-                    self.ml_neighborhood_handler = None
-            else:
-                logger.warning("Required dependencies not available for ML Neighborhood Handler")
-                self.ml_neighborhood_handler = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ML-Enhanced Neighborhood Handler: {e}")
-            self.ml_neighborhood_handler = None
-
-        # Initialize Advanced Personalization System
-        if ADVANCED_PERSONALIZATION_AVAILABLE:
-            try:
-                self.personalization_system = AdvancedPersonalizationSystem()
-                logger.info("🎯 Advanced Personalization System initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize Advanced Personalization System: {e}")
-                self.personalization_system = None
-        else:
-            self.personalization_system = None
-
-        # Initialize Real-time Feedback Loop System
-        if FEEDBACK_LOOP_AVAILABLE:
-            try:
-                self.feedback_loop_system = FeedbackLoopSystem()
-                logger.info("🔄 Real-time Feedback Loop System initialized successfully!")
-            except Exception as e:
-                logger.error(f"Failed to initialize Feedback Loop System: {e}")
-                self.feedback_loop_system = None
-        else:
-            self.feedback_loop_system = None
-
+        # Initialize Entity Extractor (wraps and enhances entity_recognizer)
+        self.entity_extractor = EntityExtractor(
+            entity_recognizer=self.entity_recognizer
+        )
+        
+        # Initialize Query Preprocessor
+        self.query_preprocessor = QueryPreprocessor(
+            neural_processor=self.neural_processor
+        )
+        
+        # Initialize Response Router
+        self.response_router = ResponseRouter(
+            ml_restaurant_handler=handlers.get('ml_restaurant_handler'),
+            ml_attraction_handler=handlers.get('ml_attraction_handler'),
+            ml_event_handler=handlers.get('ml_event_handler'),
+            ml_hidden_gems_handler=handlers.get('ml_hidden_gems_handler'),
+            ml_weather_handler=handlers.get('ml_weather_handler'),
+            ml_route_planning_handler=handlers.get('ml_route_planning_handler'),
+            ml_neighborhood_handler=handlers.get('ml_neighborhood_handler'),
+            response_generator=self.response_generator,
+            conversation_handler=self.conversation_handler,
+            price_filter_service=self.price_filter_service,
+            hidden_gems_handler=self.hidden_gems_handler
+        )
+        
+        logger.info("✅ Routing layer components initialized successfully!")
+        
         # System status
         self.system_ready = True
         logger.info("✅ Istanbul Daily Talk AI System initialized successfully!")
@@ -644,7 +374,7 @@ class IstanbulDailyTalkAI:
             return "🌟 Welcome to Istanbul! I'm your AI guide ready to help you discover this amazing city. How can I assist you today?"
     
     def process_message(self, message: str, user_id: str, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
-        """Process user message and generate response
+        """Process user message and generate response (Week 2: Using modular routing layer)
         
         Args:
             message: User's input message
@@ -674,122 +404,58 @@ class IstanbulDailyTalkAI:
             
             context = self.user_manager.get_conversation_context(session_id)
             
-            # Step 3: Lightweight Neural Query Enhancement - Fast & budget-friendly!
-            neural_insights = None
-            if NEURAL_QUERY_ENHANCEMENT_AVAILABLE and self.neural_processor:
-                try:
-                    # Skip neural processing if already in an async context (avoid deadlock)
-                    try:
-                        loop = asyncio.get_running_loop()
-                        # We're in an async context, skip neural processing to avoid deadlock
-                        logger.debug("Skipping neural processing (already in async context)")
-                        neural_insights = None
-                    except RuntimeError:
-                        # No event loop running, safe to create one
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            neural_result = loop.run_until_complete(
-                                self.neural_processor.process_query(
-                                    query=message,
-                                    context={
-                                        'session_id': session_id,
-                                        'user_profile': {
-                                            'interests': getattr(user_profile, 'interests', []),
-                                            'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
-                                            'language_preference': getattr(user_profile, 'language_preference', 'english')
-                                        }
-                                    }
-                                )
-                                    )
-                            
-                            # Convert LightweightNeuralInsights to dict format
-                            neural_insights = {
-                                'entities': {entity['type']: [entity['text']] for entity in neural_result.entities},
-                                'intent': {
-                                    'primary': neural_result.intent,
-                                    'confidence': neural_result.intent_confidence
-                                },
-                                'sentiment': neural_result.sentiment,
-                                'keywords': neural_result.keywords,
-                                'complexity': neural_result.query_complexity,
-                                'location_context': neural_result.location_context,
-                                'temporal_context': neural_result.temporal_context
-                            }
-                            
-                            logger.info(f"✨ Lightweight neural processing complete ({neural_result.processing_time_ms:.1f}ms) - "
-                                       f"Intent: {neural_result.intent}, Confidence: {neural_result.intent_confidence:.2f}")
-                        finally:
-                            loop.close()
-                except Exception as e:
-                    logger.warning(f"Neural processing failed, continuing with standard processing: {e}")
-                    neural_insights = None
+            # Week 2: Use QueryPreprocessor for comprehensive query analysis
+            preprocessed_query = self.query_preprocessor.preprocess_query(
+                message=message,
+                user_profile=user_profile,
+                context=context,
+                session_id=session_id
+            )
+            
+            # Extract neural insights from preprocessed query
+            neural_insights = preprocessed_query.neural_insights
             
             # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
             if self._is_daily_talk_query(message):
                 return self._handle_daily_talk_query(message, user_id, session_id, user_profile, context, neural_insights)
             
-            # Extract entities from message (enhanced with neural insights if available)
-            entities = self.entity_recognizer.extract_entities(message)
+            # Week 2: Use EntityExtractor for comprehensive entity extraction
+            entities = self.entity_extractor.extract_entities(
+                message=message,
+                neural_insights=neural_insights,
+                user_context=preprocessed_query.user_context
+            )
             
-            # Merge neural entities with traditional entities
-            if neural_insights and 'entities' in neural_insights:
-                neural_entities = neural_insights['entities']
-                for entity_type, entity_values in neural_entities.items():
-                    if entity_type not in entities:
-                        entities[entity_type] = []
-                    entities[entity_type].extend(entity_values)
+            # Week 2: Use IntentClassifier for intelligent intent classification
+            intent_result = self.intent_classifier.classify_intent(
+                message=message,
+                entities=entities,
+                context=context,
+                neural_insights=neural_insights,
+                preprocessed_query=preprocessed_query
+            )
             
-            # Check for multi-intent queries using MultiIntentQueryHandler
-            # OPTIMIZED: Only invoke for truly complex queries with multiple components
-            multi_intent_result = None
-            if self.multi_intent_handler and self._is_complex_multi_intent_query(message):
-                try:
-                    multi_intent_context = {
-                        'user_profile': {
-                            'interests': getattr(user_profile, 'interests', []),
-                            'user_type': getattr(user_profile, 'user_type', 'first_time_visitor'),
-                            'language_preference': getattr(user_profile, 'language_preference', 'english')
-                        },
-                        'conversation_history': context.interactions[-3:] if hasattr(context, 'interactions') else [],
-                        'entities': entities
+            # Handle multi-intent queries if detected
+            if intent_result.is_multi_intent and intent_result.multi_intent_response:
+                context.add_interaction(message, intent_result.multi_intent_response, 'multi_intent')
+                if return_structured:
+                    return {
+                        'response': intent_result.multi_intent_response,
+                        'map_data': {},
+                        'intent': 'multi_intent',
+                        'intents': intent_result.intents
                     }
-                    multi_intent_result = self.multi_intent_handler.analyze_query(message, multi_intent_context)
-                    
-                    # If complex multi-intent query detected, handle it specially
-                    if multi_intent_result and multi_intent_result.query_complexity > 0.7:  # Raised threshold from 0.6 to 0.7
-                        logger.info(f"🎯 Multi-intent query detected (complexity: {multi_intent_result.query_complexity:.2f})")
-                        if hasattr(multi_intent_result, 'response_text') and multi_intent_result.response_text:
-                            context.add_interaction(message, multi_intent_result.response_text, 'multi_intent')
-                            return multi_intent_result.response_text
-                except Exception as e:
-                    logger.warning(f"Multi-intent processing failed, continuing with standard processing: {e}")
-                    multi_intent_result = None
+                return intent_result.multi_intent_response
             
-            # Classify intent with context (use neural intent if available and confident)
-            # Lower confidence threshold for museum/attraction queries since ML is better at detecting them
-            neural_confidence_threshold = 0.7
-            if neural_insights and neural_insights.get('intent'):
-                neural_intent = neural_insights['intent']['primary']
-                neural_confidence = neural_insights.get('intent', {}).get('confidence', 0)
-                
-                # Use lower threshold for attraction-related intents (ML is good at these)
-                if neural_intent in ['attraction', 'sightseeing', 'museum', 'landmark']:
-                    neural_confidence_threshold = 0.5  # More lenient for places/attractions
-                
-                if neural_confidence > neural_confidence_threshold:
-                    intent = neural_intent
-                    logger.info(f"Using neural intent: {intent} (confidence: {neural_confidence:.2f})")
-                else:
-                    intent = self._classify_intent_with_context(message, entities, context)
-                    logger.info(f"Using traditional intent: {intent} (neural confidence too low: {neural_confidence:.2f})")
-            else:
-                intent = self._classify_intent_with_context(message, entities, context)
-                logger.info(f"Using traditional intent: {intent}")
-            
-            # Generate contextual response (enhanced with neural insights)
-            response_result = self._generate_contextual_response(
-                message, intent, entities, user_profile, context, neural_insights, return_structured=return_structured
+            # Week 2: Use ResponseRouter for intelligent response generation
+            response_result = self.response_router.route_query(
+                message=message,
+                intent=intent_result.primary_intent,
+                entities=entities,
+                user_profile=user_profile,
+                context=context,
+                neural_insights=neural_insights,
+                return_structured=return_structured
             )
             
             # Extract response text and map_data
@@ -802,20 +468,20 @@ class IstanbulDailyTalkAI:
                 map_data = {}
             
             # Record interaction (use text only)
-            context.add_interaction(message, response_text, intent)
+            context.add_interaction(message, response_text, intent_result.primary_intent)
             
             # Record interaction for personalization system
             if self.personalization_system:
                 try:
                     interaction_data = {
-                        'type': intent,
-                        'item_id': f"{intent}_{datetime.now().timestamp()}",
-                        'item_data': self._extract_personalization_data(entities, intent),
+                        'type': intent_result.primary_intent,
+                        'item_id': f"{intent_result.primary_intent}_{datetime.now().timestamp()}",
+                        'item_data': self._extract_personalization_data(entities, intent_result.primary_intent),
                         'rating': 0.7,  # Default positive rating (can be updated with feedback)
                         'timestamp': datetime.now().isoformat()
                     }
                     self.personalization_system.record_interaction(user_id, interaction_data)
-                    logger.debug(f"Recorded interaction for personalization: {intent}")
+                    logger.debug(f"Recorded interaction for personalization: {intent_result.primary_intent}")
                 except Exception as e:
                     logger.warning(f"Failed to record personalization interaction: {e}")
             
@@ -827,9 +493,10 @@ class IstanbulDailyTalkAI:
                 return {
                     'response': response_text,
                     'map_data': map_data,
-                    'intent': intent,
+                    'intent': intent_result.primary_intent,
                     'entities': entities,
-                    'interaction_id': interaction_id  # For feedback submission
+                    'interaction_id': interaction_id,  # For feedback submission
+                    'confidence': intent_result.confidence
                 }
             else:
                 return response_text
@@ -1223,461 +890,63 @@ class IstanbulDailyTalkAI:
         return base_greeting
     
     def _classify_intent_with_context(self, message: str, entities: Dict, context: ConversationContext) -> str:
-        """Classify user intent with contextual awareness"""
+        """DEPRECATED: Legacy intent classification method (Week 2 refactoring)
+        
+        This method has been replaced by IntentClassifier in the routing layer.
+        Kept for backward compatibility only.
+        
+        Use: self.intent_classifier.classify_intent() instead
+        """
+        logger.warning("⚠️ Using deprecated _classify_intent_with_context method. Use IntentClassifier instead.")
+        
+        # Delegate to the new routing layer for backward compatibility
+        intent_result = self.intent_classifier.classify_intent(
+            message=message,
+            entities=entities,
+            context=context
+        )
+        return intent_result.primary_intent
         
         message_lower = message.lower()
         
-        # Restaurant/food intent
-        food_keywords = ['eat', 'food', 'restaurant', 'lunch', 'dinner', 'breakfast', 'hungry', 'cuisine']
-        if any(keyword in message_lower for keyword in food_keywords) or entities.get('cuisines'):
-            return 'restaurant'
+        # Delegate to IntentClassifier for backward compatibility
+        logger.warning("⚠️ Using deprecated _classify_intent_with_context logic. This method will be removed in future versions.")
         
-        # Attraction/sightseeing intent (ENHANCED with more museum/attraction keywords)
-        attraction_keywords = [
-            # General attraction words
-            'visit', 'see', 'attraction', 'attractions', 'tour', 'sightseeing', 'tourist', 'landmark', 'landmarks',
-            # Museum keywords
-            'museum', 'museums', 'gallery', 'galleries', 'exhibition', 'exhibitions', 'art museum', 'art museums',
-            'historical museum', 'history museum', 'archaeological', 'archaeology',
-            # Specific place types
-            'mosque', 'mosques', 'palace', 'palaces', 'church', 'churches', 'synagogue',
-            'monument', 'monuments', 'memorial', 'historical site', 'historical sites',
-            # Descriptive words for museums
-            'historical', 'ancient', 'cultural site', 'heritage', 'artifact', 'artifacts',
-            # Action words for attractions
-            'explore', 'discover', 'show me', 'what to see', 'worth seeing', 'must see', 'should i see',
-            # Specific queries
-            'places to visit', 'places to see', 'what can i visit', 'what can i see',
-            'best attractions', 'top attractions', 'famous places', 'popular places'
-        ]
+        # Use the new IntentClassifier
+        intent_result = self.intent_classifier.classify_intent(
+            message=message,
+            entities=entities,
+            context=context
+        )
         
-        # Also check if message is asking about specific types
-        museum_specific = any(word in message_lower for word in ['museum', 'museums', 'gallery', 'galleries', 'exhibition'])
-        attraction_specific = any(word in message_lower for word in ['attraction', 'attractions', 'landmark', 'palace', 'mosque'])
-        
-        if museum_specific or attraction_specific or any(keyword in message_lower for keyword in attraction_keywords) or entities.get('landmarks'):
-            return 'attraction'
-        
-        # Transportation intent
-        transport_keywords = ['transport', 'metro', 'bus', 'taxi', 'ferry', 'how to get', 'travel']
-        if any(keyword in message_lower for keyword in transport_keywords) or entities.get('transportation'):
-            return 'transportation'
-        
-        # Neighborhood/area intent
-        area_keywords = ['neighborhood', 'area', 'district', 'where to stay', 'which area']
-        if any(keyword in message_lower for keyword in area_keywords) or entities.get('neighborhoods'):
-            return 'neighborhood'
-        
-        # Shopping intent
-        shopping_keywords = ['shop', 'shopping', 'buy', 'bazaar', 'market', 'souvenir']
-        if any(keyword in message_lower for keyword in shopping_keywords):
-            return 'shopping'
-        
-        # Events/activities intent
-        event_keywords = [
-            'event', 'events', 'activity', 'activities', 'entertainment', 'nightlife', 
-            'what to do', 'things to do', 'happening', 'going on', 'concert', 'concerts', 
-            'show', 'shows', 'performance', 'performances', 'theater', 'theatre', 
-            'cultural', 'festival', 'festivals', 'exhibition', 'exhibitions', 'iksv', 
-            'İKSV', 'salon', 'babylon', 'music event', 'art event', 'tonight', 'this weekend',
-            'this week', 'this month'
-        ]
-        if any(keyword in message_lower for keyword in event_keywords):
-            return 'events'
-        
-        # Weather intent
-        weather_keywords = ['weather', 'temperature', 'forecast', 'rain', 'sunny', 'cloudy', 'hot', 'cold', 
-                           'what\'s the weather', 'how\'s the weather', 'weather today', 'weather tomorrow',
-                           'will it rain', 'is it sunny', 'degrees', 'celsius', 'fahrenheit', 'humidity',
-                           'wind', 'precipitation', 'weather conditions', 'climate']
-        if any(keyword in message_lower for keyword in weather_keywords):
-            return 'weather'
-        
-        # Airport transport intent
-        airport_keywords = [
-            'airport', 'ist', 'saw', 'atatürk', 'ataturk', 'istanbul airport', 'sabiha gökçen', 
-            'sabiha gokcen', 'new airport', 'airport transfer', 'airport transport', 'from airport',
-            'to airport', 'airport shuttle', 'airport bus', 'airport metro', 'flight', 'departure',
-            'arrival', 'terminal', 'baggage', 'customs', 'immigration'
-        ]
-        if any(keyword in message_lower for keyword in airport_keywords):
-            return 'airport_transport'
-        
-        # Hidden gems intent
-        hidden_gems_keywords = [
-            'hidden', 'secret', 'local', 'authentic', 'off-beaten', 'off the beaten path', 'unknown', 
-            'undiscovered', 'gems', 'hidden gems', 'secret spots', 'local favorites', 'insider',
-            'less touristy', 'not touristy', 'avoid crowds', 'unique places', 'special places',
-            'locals know', 'local secrets', 'hidden treasures', 'underground', 'alternative',
-            'unconventional', 'non-touristy', 'lesser known', 'hidden places'
-        ]
-        if any(keyword in message_lower for keyword in hidden_gems_keywords):
-            return 'hidden_gems'
-        
-        # Route planning intent
-        route_keywords = ['route', 'itinerary', 'plan', 'schedule', 'day trip']
-        if any(keyword in message_lower for keyword in route_keywords):
-            return 'route_planning'
-        
-        # GPS-based route planning intent (more specific)
-        gps_route_keywords = ['directions', 'navigation', 'how to get', 'from', 'to', 'nearest', 'distance', 'walking route', 'driving route', 'public transport route']
-        location_indicators = ['from', 'to', 'near', 'closest', 'nearby', 'distance']
-        if (any(keyword in message_lower for keyword in gps_route_keywords) or 
-            any(indicator in message_lower for indicator in location_indicators) and any(rk in message_lower for rk in ['route', 'get', 'go', 'directions'])):
-            return 'gps_route_planning'
-        
-        # Museum route planning intent (more specific)
-        museum_route_keywords = ['museum route', 'museum tour', 'museum plan', 'museum itinerary', 'museums near', 'museum walk']
-        if any(keyword in message_lower for keyword in museum_route_keywords) or \
-           ('museum' in message_lower and any(rk in message_lower for rk in ['route', 'plan', 'tour', 'visit'])):
-            return 'museum_route_planning'
-        
-        # Greeting/general intent
-        greeting_keywords = ['hello', 'hi', 'merhaba', 'help', 'start']
-        if any(keyword in message_lower for keyword in greeting_keywords):
-            return 'greeting'
-        
-        return 'general'
+        return intent_result.primary_intent
     
     def _generate_contextual_response(self, message: str, intent: str, entities: Dict,
                                     user_profile: UserProfile, context: ConversationContext, 
                                     neural_insights: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
-        """Generate contextual response based on intent and entities, enhanced with neural insights
+        """DEPRECATED: Legacy response generation method (Week 2 refactoring)
         
-        Args:
-            return_structured: If True, return dict with response and map_data; if False, return string
+        This method has been replaced by ResponseRouter in the routing layer.
+        Kept for backward compatibility only.
+        
+        Use: self.response_router.route_query() instead
         """
+        logger.warning("⚠️ Using deprecated _generate_contextual_response method. Use ResponseRouter instead.")
         
-        current_time = datetime.now()
-        
-        # Check for conversational queries first (thanks, help, planning)
-        if self.conversation_handler:
-            try:
-                if self.conversation_handler.is_conversational_query(message):
-                    conv_response = self.conversation_handler.handle_conversation(message)
-                    if conv_response:
-                        if return_structured:
-                            return {
-                                'response': conv_response,
-                                'map_data': {},
-                                'conversation_type': 'conversational'
-                            }
-                        return conv_response
-            except Exception as e:
-                logger.error(f"Conversation handler error: {e}")
-        
-        # Check for budget-related queries first using price filter service
-        if self.price_filter_service:
-            budget_level = self.price_filter_service.detect_budget_query(message)
-            
-            # Handle explicit free/budget attraction queries
-            if budget_level == 'free' and intent in ['attraction', 'activity', 'things_to_do']:
-                response = self.price_filter_service.format_free_attractions_response()
-                if return_structured:
-                    return {
-                        'response': response,
-                        'map_data': {},
-                        'budget_level': 'free'
-                    }
-                return response
-            
-            # Handle budget restaurant queries
-            if budget_level in ['free', 'budget'] and intent == 'restaurant':
-                response = self.price_filter_service.format_budget_eats_response()
-                if return_structured:
-                    return {
-                        'response': response,
-                        'map_data': {},
-                        'budget_level': budget_level
-                    }
-                return response
-        
-        # Check for hidden gems query using hidden gems handler
-        if self.hidden_gems_handler and self.hidden_gems_handler.detect_hidden_gems_query(message):
-            # Override intent to hidden_gems if detected
-            intent = 'hidden_gems'
-        
-        # Route to ML-Enhanced Handlers first (if available and applicable)
-        # This ensures ML handlers get priority over basic routing
-        
-        # ML Restaurant Handler
-        if intent == 'restaurant' and hasattr(self, 'ml_restaurant_handler') and self.ml_restaurant_handler:
-            try:
-                ml_response = self.ml_restaurant_handler.handle_query(
-                    message=message,
-                    entities=entities,
-                    user_profile=user_profile,
-                    context=context
-                )
-                if ml_response and ml_response.get('response'):
-                    logger.info("✅ ML Restaurant Handler processed query")
-                    if return_structured:
-                        return ml_response
-                    return ml_response['response']
-            except Exception as e:
-                logger.warning(f"ML Restaurant Handler failed, falling back: {e}")
-        
-        # ML Attraction Handler (for general attractions)
-        if intent == 'attraction' and hasattr(self, 'ml_attraction_handler') and self.ml_attraction_handler:
-            try:
-                ml_response = self.ml_attraction_handler.handle_query(
-                    message=message,
-                    entities=entities,
-                    user_profile=user_profile,
-                    context=context
-                )
-                if ml_response and ml_response.get('response'):
-                    logger.info("✅ ML Attraction Handler processed query")
-                    if return_structured:
-                        return ml_response
-                    return ml_response['response']
-            except Exception as e:
-                logger.warning(f"ML Attraction Handler failed, falling back: {e}")
-        
-        # Use response generator for comprehensive responses
-        if intent == 'attraction':
-            # Check if this is a museum query - use advanced museum system if available
-            message_lower = message.lower()
-            museum_keywords = ['museum', 'museums', 'gallery', 'exhibition', 'art', 'historical sites', 'cultural sites']
-            attractions_keywords = ['attraction', 'attractions', 'place', 'places', 'landmark', 'landmarks', 'sight', 'sights', 'visit', 'see', 'tower', 'palace', 'mosque', 'bazaar']
-            
-            # Route to advanced museum system if museum query and advanced system available
-            if any(keyword in message_lower for keyword in museum_keywords):
-                if self.advanced_museum_system:
-                    response = self._generate_advanced_museum_response(message, entities, user_profile, context)
-                    # Add weather context to response
-                    if isinstance(response, str):
-                        response = self._add_weather_context_to_attractions(response)
-                    return response
-                elif self.museum_generator:
-                    response = self._generate_location_aware_museum_response(message, entities, user_profile, context)
-                    if isinstance(response, str):
-                        response = self._add_weather_context_to_attractions(response)
-                    return response
-            
-            # Route to advanced attractions system if attraction query and advanced system available
-            elif any(keyword in message_lower for keyword in attractions_keywords):
-                if self.advanced_attractions_system:
-                    response = self._generate_advanced_attractions_response(message, entities, user_profile, context)
-                    if isinstance(response, str):
-                        response = self._add_weather_context_to_attractions(response)
-                    return response
-            
-            # Fallback to basic response generator with weather context
-            response = self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-            if isinstance(response, str):
-                response = self._add_weather_context_to_attractions(response)
-            return response
-        elif intent == 'restaurant':
-            return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-        
-        elif intent == 'neighborhood':
-            # Use ML-enhanced neighborhood handler
-            if self.ml_neighborhood_handler:
-                try:
-                    response = self.ml_neighborhood_handler.handle_neighborhood_query(
-                        message, entities, user_profile, context
-                    )
-                    if return_structured:
-                        return {
-                            'response': response,
-                            'intent': intent,
-                            'source': 'ml_neighborhood_handler'
-                        }
-                    return response
-                except Exception as e:
-                    logger.error(f"ML neighborhood handler error: {e}")
-            # Fallback to response generator
-            return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-        
-        # Handle specific intents (✅ NOW ALL RECEIVE NEURAL INSIGHTS)
-        elif intent == 'transportation':
-            return self._generate_transportation_response(message, entities, user_profile, context, neural_insights, return_structured=return_structured)
-        
-        elif intent == 'shopping':
-            return self._generate_shopping_response(entities, user_profile, context, neural_insights)
-        
-        elif intent == 'events':
-            # Use ML-enhanced event handler
-            if self.ml_event_handler:
-                try:
-                    response = self.ml_event_handler.handle_event_query(
-                        message, entities, user_profile, context
-                    )
-                    if return_structured:
-                        return {
-                            'response': response,
-                            'intent': intent,
-                            'source': 'ml_event_handler'
-                        }
-                    return response
-                except Exception as e:
-                    logger.error(f"ML event handler error: {e}")
-            # Fallback to legacy method
-            return self._generate_events_response(entities, user_profile, context, current_time, neural_insights)
-        
-        elif intent == 'weather':
-            # Use ML-enhanced weather handler
-            if self.ml_weather_handler:
-                try:
-                    response = self.ml_weather_handler.handle_weather_query(
-                        message, entities, user_profile, context
-                    )
-                    if return_structured:
-                        return {
-                            'response': response,
-                            'intent': intent,
-                            'source': 'ml_weather_handler'
-                        }
-                    return response
-                except Exception as e:
-                    logger.error(f"ML weather handler error: {e}")
-            # Fallback to response generator
-            return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-        
-        elif intent == 'airport_transport':
-            return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-        
-        elif intent == 'hidden_gems':
-            # Use ML-enhanced hidden gems handler
-            if self.ml_hidden_gems_handler:
-                try:
-                    response = self.ml_hidden_gems_handler.handle_hidden_gems_query(
-                        message, entities, user_profile, context
-                    )
-                    if return_structured:
-                        # Try to get additional data if available
-                        query_params = self.ml_hidden_gems_handler.extract_query_parameters(message) if hasattr(self.ml_hidden_gems_handler, 'extract_query_parameters') else {}
-                        return {
-                            'response': response,
-                            'intent': intent,
-                            'source': 'ml_hidden_gems_handler',
-                            'query_params': query_params
-                        }
-                    return response
-                except Exception as e:
-                    logger.error(f"ML hidden gems handler error: {e}")
-                    import traceback
-                    logger.error(f"Traceback: {traceback.format_exc()}")
-            
-            # Fallback to legacy hidden gems handler if available
-            if self.hidden_gems_handler:
-                try:
-                    # Extract parameters from query
-                    query_params = self.hidden_gems_handler.extract_query_parameters(message)
-                    
-                    # Override with entities if available
-                    if 'location' in entities and entities['location']:
-                        location = entities['location'][0] if isinstance(entities['location'], list) else entities['location']
-                        query_params['location'] = location
-                    
-                    # Get hidden gems with intelligent filtering
-                    gems = self.hidden_gems_handler.get_hidden_gems(
-                        location=query_params.get('location'),
-                        gem_type=query_params.get('gem_type'),
-                        budget=query_params.get('budget'),
-                        limit=5
-                    )
-                    
-                    # If time-based query, get time-specific recommendations
-                    if query_params.get('time_of_day') and not gems:
-                        gems = self.hidden_gems_handler.get_recommendations_by_time(
-                            query_params['time_of_day'],
-                            limit=5
-                        )
-                    
-                    # Format response with enhanced data
-                    response = self.hidden_gems_handler.format_hidden_gem_response(
-                        gems, 
-                        query_params.get('location')
-                    )
-                    
-                    if return_structured:
-                        return {
-                            'response': response,
-                            'map_data': {},
-                            'gems': gems,
-                            'query_params': query_params
-                        }
-                    return response
-                    
-                except Exception as e:
-                    logger.error(f"Hidden gems handler error: {e}")
-                    import traceback
-                    logger.error(f"Traceback: {traceback.format_exc()}")
-            
-            # Fallback to response generator
-            return self.response_generator.generate_comprehensive_recommendation(
-                intent, entities, user_profile, context, return_structured=return_structured
-            )
-        
-        elif intent == 'route_planning':
-            # Use ML-enhanced route planning handler
-            if self.ml_route_planning_handler:
-                try:
-                    response = self.ml_route_planning_handler.handle_route_query(
-                        message, entities, user_profile, context
-                    )
-                    if return_structured:
-                        return {
-                            'response': response,
-                            'intent': intent,
-                            'source': 'ml_route_planning_handler'
-                        }
-                    return response
-                except Exception as e:
-                    logger.error(f"ML route planning handler error: {e}")
-            # Fallback to legacy method
-            return self._generate_route_planning_response(message, user_profile, context, neural_insights)
-        
-        elif intent == 'gps_route_planning':
-            return self._generate_gps_route_response(message, entities, user_profile, context, neural_insights)
-        
-        elif intent == 'museum_route_planning':
-            return self._generate_museum_route_response(message, entities, user_profile, context, neural_insights)
-        
-        elif intent == 'greeting':
-            # Use conversation handler if available for better greetings
-            if self.conversation_handler:
-                try:
-                    response = self.conversation_handler.handle_conversation(message)
-                    if response:
-                        return response
-                except Exception as e:
-                    logger.error(f"Conversation handler error: {e}")
-            
-            # Fallback to original greeting
-            return self._generate_greeting_response(user_profile, context)
-        
-        else:
-            # Multiple intents detected, enhance response
-            detected_intents = self._detect_multiple_intents(message, entities)
-            if len(detected_intents) > 1:
-                base_response = self.response_generator.generate_comprehensive_recommendation(
-                    detected_intents[0], entities, user_profile, context
-                )
-                return self.response_generator._enhance_multi_intent_response(
-                    base_response, detected_intents, entities, user_profile
-                )
-            else:
-                return self.response_generator._generate_fallback_response(context, user_profile)
+        # Delegate to the new routing layer for backward compatibility
+        return self.response_router.route_query(
+            message=message,
+            intent=intent,
+            entities=entities,
+            user_profile=user_profile,
+            context=context,
+            neural_insights=neural_insights,
+            return_structured=return_structured
+        )
     
     def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
                                         context: ConversationContext, neural_insights: Optional[Dict] = None,
-                                        return_structured: bool = False) -> Union[str, Dict[str, Any]]:
-        """Generate comprehensive transportation response with advanced AI and real-time data
-        
-        Args:
+                                        return_structured: bool = False) -> Union[str, Dict[str,
             neural_insights: ML-powered insights (sentiment, temporal context, keywords, etc.)
         """
         try:
