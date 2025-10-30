@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TypingIndicator = ({ message = "AI is thinking..." }) => {
+const TypingIndicator = ({ message = "Thinking..." }) => {
   return (
     <div className="typing-indicator">
       <span className="typing-message">{message}</span>

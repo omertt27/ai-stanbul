@@ -8,7 +8,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from istanbul_ai.core.main_system import IstanbulDailyTalkAI
+# Updated to use unified root-level main_system.py
+from istanbul_ai.main_system import IstanbulDailyTalkAI
 
 def test_single_query(ai, test_num, query, gps=None, description=""):
     """Test a single query and analyze the response"""

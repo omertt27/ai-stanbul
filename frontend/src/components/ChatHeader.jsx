@@ -8,7 +8,8 @@ const ChatHeader = ({
   isOnline = true, 
   apiHealth = 'healthy',
   sessionId = '',
-  isHistoryLoading = false
+  isHistoryLoading = false,
+  onToggleSessionsPanel
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
@@ -75,6 +76,22 @@ const ChatHeader = ({
 
       {/* Right side - Status and controls */}
       <div className="flex items-center space-x-3">
+        {/* Chat Sessions Button - Prominent like ChatGPT */}
+        <button
+          onClick={onToggleSessionsPanel}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium border ${
+            darkMode 
+              ? 'bg-gray-800 hover:bg-gray-700 text-gray-200 border-gray-600 hover:border-gray-500' 
+              : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 shadow-sm hover:shadow'
+          }`}
+          title="View and manage chat sessions"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+          </svg>
+          <span className="hidden sm:inline">Sessions</span>
+        </button>
+
         {/* Network status indicator - Enhanced */}
         <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded-full transition-all ${
           isHealthy

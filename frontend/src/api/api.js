@@ -16,6 +16,7 @@ const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Correct API endpoints - backend uses /ai/chat not /ai/ai/chat
 const API_URL = `${cleanBaseUrl}/ai/chat`;  // Fixed: direct path to chat endpoint
+const UNIFIED_CHAT_URL = `${cleanBaseUrl}/api/chat`;  // NEW: Unified ML-powered endpoint
 const STREAM_API_URL = `${cleanBaseUrl}/ai/stream`;
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
 const PLACES_API_URL = `${cleanBaseUrl}/places/`;
@@ -44,6 +45,7 @@ export const clearSession = () => {
 console.log('API Configuration:', {
   BASE_URL: cleanBaseUrl,
   API_URL,
+  UNIFIED_CHAT_URL,
   STREAM_API_URL,
   RESTAURANTS_API_URL,
   PLACES_API_URL,
@@ -123,6 +125,73 @@ export const fetchResults = async (query, sessionId = null) => {
       
     } catch (error) {
       throw handleApiError(error, null, 'Chat API');
+    }
+  });
+};
+
+/**
+ * NEW: Unified chat endpoint with ML integration and map visualization
+ * This endpoint provides:
+ * - Intent classification
+ * - Query preprocessing
+ * - Map visualization data for transportation queries
+ * - GPS location support
+ * - Caching and rate limiting
+ */
+export const fetchUnifiedChat = async (query, options = {}) => {
+  return chatCircuitBreaker.call(async () => {
+    try {
+      const sessionId = options.sessionId || getSessionId();
+      const userId = options.userId || 'anonymous';
+      const gpsLocation = options.gpsLocation || null;
+      
+      console.log('🎯 Making unified chat API request:', {
+        url: UNIFIED_CHAT_URL,
+        query: query.substring(0, 50) + '...',
+        sessionId,
+        hasGPS: !!gpsLocation
+      });
+      
+      const requestBody = { 
+        message: query,
+        session_id: sessionId,
+        user_id: userId
+      };
+      
+      // Add GPS location if available
+      if (gpsLocation) {
+        requestBody.gps_location = gpsLocation;
+      }
+      
+      const response = await fetchWithRetry(UNIFIED_CHAT_URL, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        timeout: 30000
+      }, {
+        maxAttempts: 3,
+        baseDelay: 1000
+      });
+      
+      const data = await response.json();
+      
+      console.log('✅ Unified chat response:', {
+        intent: data.intent,
+        confidence: data.confidence,
+        hasMapData: !!data.map_data,
+        cacheHit: data.cache_hit,
+        mlEnabled: data.ml_enabled,
+        method: data.method,
+        processingTime: data.processing_time_ms
+      });
+      
+      return data;
+      
+    } catch (error) {
+      throw handleApiError(error, null, 'Unified Chat API');
     }
   });
 };

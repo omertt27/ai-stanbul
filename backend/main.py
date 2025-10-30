@@ -13,6 +13,58 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 import traceback
 
+# ═══════════════════════════════════════════════════════════════════
+# PRODUCTION INFRASTRUCTURE COMPONENTS
+# ═══════════════════════════════════════════════════════════════════
+print("\n🏗️ Initializing Production Infrastructure...")
+
+# Import core infrastructure components
+try:
+    from utils.ttl_cache import TTLCache
+    from utils.rate_limiter import RateLimiter
+    from utils.response_cache import SmartResponseCache
+    from utils.system_monitor import SystemMonitor
+    from utils.graceful_degradation import GracefulDegradation
+    from config.feature_manager import FeatureManager, FeatureModule
+    INFRASTRUCTURE_AVAILABLE = True
+    print("✅ Production Infrastructure loaded successfully")
+    print("   - TTLCache (Memory Management)")
+    print("   - RateLimiter (API Protection)")
+    print("   - SmartResponseCache (Performance)")
+    print("   - SystemMonitor (Observability)")
+    print("   - GracefulDegradation (Error Recovery)")
+    print("   - FeatureManager (Module Loading)")
+except ImportError as e:
+    INFRASTRUCTURE_AVAILABLE = False
+    print(f"⚠️ Production Infrastructure not available: {e}")
+    print("   System will run without production enhancements")
+
+# ═══════════════════════════════════════════════════════════════════
+# INITIALIZE INFRASTRUCTURE COMPONENTS
+# ═══════════════════════════════════════════════════════════════════
+if INFRASTRUCTURE_AVAILABLE:
+    # Initialize core systems
+    feature_manager = FeatureManager()
+    rate_limiter = RateLimiter()
+    system_monitor = SystemMonitor()
+    graceful_degradation = GracefulDegradation()
+    response_cache = SmartResponseCache()
+    
+    print("✅ Infrastructure components initialized")
+else:
+    feature_manager = None
+    rate_limiter = None
+    system_monitor = None
+    graceful_degradation = None
+    response_cache = None
+
+print("=" * 70)
+print()
+
+# ═══════════════════════════════════════════════════════════════════
+# LEGACY MODULE LOADING (TO BE REFACTORED WITH FEATUREMANAGER)
+# ═══════════════════════════════════════════════════════════════════
+
 # Add location intent detection import
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'load-testing'))
 try:
@@ -1303,255 +1355,50 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(
     title="Istanbul AI Guide API",
-    description="AI-powered Istanbul travel guide with enhanced authentication",
-    version="2.0.0"
+    description="AI-powered Istanbul travel guide with enhanced authentication and production infrastructure",
+    version="2.1.0"  # Bumped version for infrastructure updates
 )
 
-# Include Blog API Router
-try:
-    from blog_api import router as blog_router
-    app.include_router(blog_router)
-    print("✅ Blog API endpoints loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Blog API endpoints not available: {e}")
+# ═══════════════════════════════════════════════════════════════════
+# PRODUCTION ENDPOINTS: Health Checks & Monitoring
+# ═══════════════════════════════════════════════════════════════════
+@app.get("/health", tags=["Infrastructure"])
+async def health_check():
+    """System health check endpoint"""
+    if system_monitor:
+        return system_monitor.get_health_check()
+    return {
+        "status": "healthy",
+        "message": "System running (monitoring disabled)",
+        "timestamp": datetime.now().isoformat()
+    }
 
-# Initialize Enhanced Authentication Manager
-auth_manager = None
-if ENHANCED_AUTH_AVAILABLE:
-    try:
-        auth_manager = EnhancedAuthManager()
-        logger.info("✅ Enhanced Authentication Manager initialized successfully")
-        print("✅ Enhanced Authentication Manager initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize Enhanced Authentication Manager: {e}")
-        print(f"⚠️ Failed to initialize Enhanced Authentication Manager: {e}")
-        ENHANCED_AUTH_AVAILABLE = False
-else:
-    logger.warning("Enhanced Authentication not available - authentication endpoints will be disabled")
-    print("⚠️ Enhanced Authentication not available - authentication endpoints will be disabled")
+@app.get("/metrics", tags=["Infrastructure"])
+async def get_metrics():
+    """System metrics endpoint"""
+    if system_monitor:
+        return system_monitor.get_stats()
+    return {"message": "Metrics not available"}
 
-print("✅ FastAPI app initialized successfully")
+@app.get("/infrastructure/status", tags=["Infrastructure"])
+async def infrastructure_status():
+    """Infrastructure components status"""
+    return {
+        "infrastructure_available": INFRASTRUCTURE_AVAILABLE,
+        "components": {
+            "ttl_cache": INFRASTRUCTURE_AVAILABLE,
+            "rate_limiter": INFRASTRUCTURE_AVAILABLE,
+            "response_cache": INFRASTRUCTURE_AVAILABLE,
+            "system_monitor": INFRASTRUCTURE_AVAILABLE,
+            "graceful_degradation": INFRASTRUCTURE_AVAILABLE,
+            "feature_manager": INFRASTRUCTURE_AVAILABLE
+        },
+        "cache_stats": response_cache.get_stats() if response_cache else None,
+        "timestamp": datetime.now().isoformat()
+    }
 
-# Initialize Location Intent Detector
-location_detector = None
-if LOCATION_INTENT_AVAILABLE:
-    try:
-        location_detector = LocationIntentDetector()
-        print("✅ Location Intent Detector initialized successfully")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Location Intent Detector: {e}")
-        LOCATION_INTENT_AVAILABLE = False
-
-# Initialize Advanced Understanding System
-advanced_understanding = None
-if ADVANCED_UNDERSTANDING_AVAILABLE:
-    try:
-        # Initialize Redis client if available
-        redis_client = None
-        if REDIS_AVAILABLE:
-            try:
-                redis_client = redis.Redis(
-                    host=os.getenv('REDIS_HOST', 'localhost'),
-                    port=int(os.getenv('REDIS_PORT', 6379)),
-                    db=int(os.getenv('REDIS_DB', 2)),  # Use separate DB for context memory
-                    decode_responses=True
-                )
-                # Test connection
-                redis_client.ping()
-                print("✅ Redis connection established for context memory")
-            except Exception as e:
-                print(f"⚠️ Redis not available for context memory: {e}")
-                redis_client = None
-        
-        # Initialize the Advanced Understanding System
-        advanced_understanding = AdvancedUnderstandingSystem(redis_client=redis_client)
-        print("✅ Advanced Understanding System initialized successfully")
-        print("  🧠 Semantic Similarity Engine: Ready")
-        print("  🧠 Enhanced Context Memory: Ready")
-        print("  🎯 Multi-Intent Query Handler: Ready")
-        
-        # Integrate with Istanbul Daily Talk AI System
-        if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
-            istanbul_daily_talk_ai.multi_intent_handler = advanced_understanding.multi_intent_handler
-            print("✅ Multi-Intent Query Handler integrated with Istanbul Daily Talk AI")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Advanced Understanding System: {e}")
-        ADVANCED_UNDERSTANDING_AVAILABLE = False
-        advanced_understanding = None
-
-# Initialize Comprehensive ML/DL Integration System
-comprehensive_ml_system = None
-if COMPREHENSIVE_ML_AVAILABLE:
-    try:
-        comprehensive_ml_system = ComprehensiveMLDLIntegration()
-        print("✅ Comprehensive ML/DL Integration System initialized successfully")
-        print("  🚀 ML Enhancement Systems: Ready")
-        print("  🧠 Typo Correction: Ready")
-        print("  ☀️ Weather Advisor: Ready")
-        print("  🗺️ Route Optimizer: Ready")
-        print("  🎭 Event Predictor: Ready")
-        print("  🏘️ Neighborhood Matcher: Ready")
-        
-        # Integrate with Advanced Understanding System if available
-        if advanced_understanding and hasattr(advanced_understanding, 'multi_intent_handler'):
-            # The multi_intent_handler already has comprehensive_ml_system initialized
-            print("✅ Comprehensive ML/DL Integration connected to Multi-Intent Handler")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Comprehensive ML/DL Integration System: {e}")
-        COMPREHENSIVE_ML_AVAILABLE = False
-        comprehensive_ml_system = None
-
-        print(f"⚠️ Failed to initialize Comprehensive ML/DL Integration System: {e}")
-        COMPREHENSIVE_ML_AVAILABLE = False
-        comprehensive_ml_system = None
-
-# Initialize Lightweight Deep Learning System
-deep_learning_system = None
-if DEEP_LEARNING_AVAILABLE:
-    try:
-        deep_learning_system = create_lightweight_deep_learning_system()
-        print("✅ Lightweight Deep Learning System initialized successfully")
-        print("  🧠 Intent Classification: Ready")
-        print("  📈 Learning Enhancement: Ready")
-        
-        # Integrate with Advanced Understanding System if available
-        if advanced_understanding and hasattr(advanced_understanding, 'multi_intent_handler'):
-            # The multi_intent_handler already has deep_learning_system initialized
-            print("✅ Deep Learning System connected to Multi-Intent Handler")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Lightweight Deep Learning System: {e}")
-        DEEP_LEARNING_AVAILABLE = False
-        deep_learning_system = None
-
-# Initialize Caching Systems
-ml_cache = None
-edge_cache = None
-
-if ML_CACHE_AVAILABLE:
-    try:
-        ml_cache = get_ml_cache()
-        print("✅ ML Result Cache initialized successfully")
-        print(f"  📊 Cache entries: {len(ml_cache.memory_cache)}")
-        print(f"  💾 Cache size: {ml_cache._get_cache_size_mb():.2f} MB")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize ML Result Cache: {e}")
-        ML_CACHE_AVAILABLE = False
-
-if EDGE_CACHE_AVAILABLE:
-    try:
-        edge_cache = get_edge_cache()
-        print("✅ Edge Cache Manager initialized successfully")
-        print(f"  🌐 Cache entries: {len(edge_cache.cache_entries)}")
-        
-        # Refresh static data caches
-        refresh_results = edge_cache.refresh_all_static_data()
-        successful_refreshes = sum(1 for result in refresh_results.values() if result)
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Edge Cache: {e}")
-        EDGE_CACHE_AVAILABLE = False
-
-# Integration with Enhanced AI System
-try:
-    from istanbul_ai_system_enhancement import EnhancedIstanbulAISystem
-    enhanced_ai_system = EnhancedIstanbulAISystem()
-    ENHANCED_FEATURES_AVAILABLE = True
-    logger.info("🚀 Enhanced Istanbul AI System integrated successfully!")
-except ImportError as e:
-    logger.warning(f"Enhanced features not available: {e}")
-    ENHANCED_FEATURES_AVAILABLE = False
-    enhanced_ai_system = None
-
-# Add CORS middleware to allow frontend access
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
-        "http://localhost:3001", 
-        "http://127.0.0.1:3001",
-        "http://localhost:3002", 
-        "http://127.0.0.1:3002",
-        "http://localhost:3003", 
-        "http://127.0.0.1:3003",
-        "http://localhost:5173",  # Vite default port
-        "http://127.0.0.1:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-print("✅ CORS middleware configured")
-
-# Add security headers middleware for production
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    
-    # Skip security headers for admin dashboard during development
-    if request.url.path.startswith("/admin"):
-        return response
-    
-    # Essential security headers for production
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
-    return response
-
-print("✅ Security headers middleware configured")
-
-# --- Rate Limiting Removed ---
-# Rate limiting has been completely removed for unrestricted testing
-limiter = None
-print("✅ Rate limiting completely removed for unrestricted testing")
-
-# --- Optional Enhancement Systems Initialization ---
-# Initialize Optional Enhancement Systems
-hybrid_search = None
-personalization_engine = None
-mini_nlp = None
-OPTIONAL_ENHANCEMENTS_ENABLED = False
-
-try:
-    from hybrid_search_system import HybridSearchSystem
-    from lightweight_personalization_engine import LightweightPersonalizationEngine
-    from mini_nlp_modules import MiniNLPProcessor
-    OPTIONAL_ENHANCEMENTS_ENABLED = True
-    print("✅ Optional enhancement systems loaded successfully")
-    
-    # Initialize Hybrid Search System
-    hybrid_search = HybridSearchSystem()
-    print("✅ Hybrid Search System initialized")
-    
-    # Initialize Personalization Engine  
-    personalization_engine = LightweightPersonalizationEngine()
-    print("✅ Personalization Engine initialized")
-    
-    # Initialize Mini NLP Modules
-    mini_nlp = MiniNLPProcessor()
-    print("✅ Mini NLP Modules initialized")
-    
-    print("🚀 All optional enhancement systems ready!")
-    
-except ImportError as e:
-    print(f"⚠️ Optional enhancement systems not available: {e}")
-    OPTIONAL_ENHANCEMENTS_ENABLED = False
-    hybrid_search = None
-    personalization_engine = None  
-    mini_nlp = None
-except Exception as e:
-    print(f"⚠️ Optional enhancement systems initialization failed: {e}")
-    OPTIONAL_ENHANCEMENTS_ENABLED = False
-    hybrid_search = None
-    personalization_engine = None
-    mini_nlp = None
-
-print(f"Optional Enhancement Systems Status: {'✅ ENABLED' if OPTIONAL_ENHANCEMENTS_ENABLED else '❌ DISABLED'}")
+print("✅ Production endpoints registered: /health, /metrics, /infrastructure/status")
+print()
 
 # =============================
 # AUTHENTICATION ENDPOINTS
@@ -2087,6 +1934,8 @@ async def get_blog_posts(status: Optional[str] = None, limit: int = 100, db: Ses
         
         # Note: status filter is not applied as BlogPost model doesn't have a status field
         # All posts are considered published
+        
+
         
         # Get all posts ordered by created_at descending
         posts = query.order_by(BlogPost.created_at.desc()).limit(limit).all()
@@ -2637,51 +2486,3 @@ async def serve_admin_static(filename: str):
     raise HTTPException(status_code=404, detail="File not found")
 
 print(f"✅ Admin dashboard routes configured (path: {admin_path})")
-
-# Use istanbul_ai_system directly for all AI processing
-custom_ai_system = None
-
-# --- Legacy imports and system setup ---
-
-# Initialize logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize FastAPI app
-app = FastAPI(
-    title="Istanbul AI Guide API",
-    description="AI-powered Istanbul travel guide with enhanced authentication",
-    version="2.0.0"
-)
-
-# Include Blog API Router
-try:
-    from blog_api import router as blog_router
-    app.include_router(blog_router)
-    print("✅ Blog API endpoints loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Blog API endpoints not available: {e}")
-
-# Initialize Enhanced Authentication Manager
-auth_manager = None
-if ENHANCED_AUTH_AVAILABLE:
-    try:
-        auth_manager = EnhancedAuthManager()
-        logger.info("✅ Enhanced Authentication Manager initialized successfully")
-        print("✅ Enhanced Authentication Manager initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize Enhanced Authentication Manager: {e}")
-        print(f"⚠️ Failed to initialize Enhanced Authentication Manager: {e}")
-        ENHANCED_AUTH_AVAILABLE = False
-else:
-    logger.warning("Enhanced Authentication not available - authentication endpoints will be disabled")
-    print("⚠️ Enhanced Authentication not available - authentication endpoints will be disabled")
-
-print("✅ FastAPI app initialized successfully")
-
-# Initialize Location Intent Detector
-location_detector = None
-if LOCATION_INTENT_AVAILABLE:
-    try:
-        location_detector = LocationIntentDetector()
-        print("✅ Location Intent Detector initialized successfully")

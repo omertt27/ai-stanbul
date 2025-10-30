@@ -100,19 +100,6 @@ except ImportError as e:
     logger.warning(f"⚠️ ML-Enhanced Daily Talks Bridge not available: {e}")
     ML_DAILY_TALKS_AVAILABLE = False
 
-# Import production infrastructure components (TTLCache for memory management)
-try:
-    backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend')
-    if backend_path not in sys.path:
-        sys.path.append(backend_path)
-    
-    from utils.ttl_cache import TTLCache
-    INFRASTRUCTURE_AVAILABLE = True
-    logger.info("✅ Production infrastructure (TTLCache) loaded successfully")
-except ImportError as e:
-    INFRASTRUCTURE_AVAILABLE = False
-    logger.warning(f"⚠️ Production infrastructure not available: {e}")
-
 # Import Enhanced Bilingual Daily Talks System (PRIMARY)
 try:
     import sys
@@ -212,22 +199,20 @@ class IstanbulDailyTalkAI:
         logger.info(f"✅ Initialized {len(services)} services via ServiceInitializer")
         
         # Week 1 Modularization: Initialize ML handlers using HandlerInitializer
-        # Build services dictionary with all required dependencies
-        handler_services = {
-            'events_service': getattr(self, 'events_service', None),
-            'hidden_gems_handler': getattr(self, 'hidden_gems_handler', None),
-            'weather_client': getattr(self, 'weather_client', None),
-            'weather_recommendations': getattr(self, 'weather_recommendations', None),
-            'gps_route_planner': getattr(self, 'gps_route_planner', None),
-            'advanced_route_planner': getattr(self, 'advanced_route_planner', None),
-            'transport_processor': getattr(self, 'transport_processor', None),
-            'response_generator': self.response_generator,
-            'neural_processor': getattr(self, 'neural_processor', None),
-            'ml_context_builder': getattr(self, 'ml_context_builder', None)
-        }
+        handler_initializer = HandlerInitializer(
+            events_service=self.events_service,
+            hidden_gems_handler=self.hidden_gems_handler,
+            weather_client=self.weather_client,
+            weather_recommendations=self.weather_recommendations,
+            gps_route_planner=self.gps_route_planner,
+            advanced_route_planner=self.advanced_route_planner,
+            transport_processor=self.transport_processor,
+            response_generator=self.response_generator,
+            neural_processor=self.neural_processor,
+            ml_context_builder=self.ml_context_builder
+        )
         
-        handler_initializer = HandlerInitializer()
-        handlers = handler_initializer.initialize_all_handlers(handler_services)
+        handlers = handler_initializer.initialize_all_handlers()
         
         # Assign initialized handlers to instance variables
         for handler_name, handler_instance in handlers.items():
@@ -238,22 +223,36 @@ class IstanbulDailyTalkAI:
         # Week 2 Modularization: Initialize routing layer components
         logger.info("🎯 Initializing routing layer components...")
         
-        # Initialize Intent Classifier (simple keyword-based)
-        self.intent_classifier = IntentClassifier()
+        # Initialize Intent Classifier
+        self.intent_classifier = IntentClassifier(
+            multi_intent_handler=self.multi_intent_handler,
+            neural_processor=self.neural_processor
+        )
         
         # Initialize Entity Extractor (wraps and enhances entity_recognizer)
         self.entity_extractor = EntityExtractor(
             entity_recognizer=self.entity_recognizer
         )
         
-        # Initialize Query Preprocessor (no constructor params - uses neural_processor at runtime)
-        self.query_preprocessor = QueryPreprocessor()
+        # Initialize Query Preprocessor
+        self.query_preprocessor = QueryPreprocessor(
+            neural_processor=self.neural_processor
+        )
         
-        # Initialize Response Router (no constructor params - uses handlers at runtime)
-        self.response_router = ResponseRouter()
-        
-        # Store ML handlers for routing
-        self.ml_handlers = handlers
+        # Initialize Response Router
+        self.response_router = ResponseRouter(
+            ml_restaurant_handler=handlers.get('ml_restaurant_handler'),
+            ml_attraction_handler=handlers.get('ml_attraction_handler'),
+            ml_event_handler=handlers.get('ml_event_handler'),
+            ml_hidden_gems_handler=handlers.get('ml_hidden_gems_handler'),
+            ml_weather_handler=handlers.get('ml_weather_handler'),
+            ml_route_planning_handler=handlers.get('ml_route_planning_handler'),
+            ml_neighborhood_handler=handlers.get('ml_neighborhood_handler'),
+            response_generator=self.response_generator,
+            conversation_handler=self.conversation_handler,
+            price_filter_service=self.price_filter_service,
+            hidden_gems_handler=self.hidden_gems_handler
+        )
         
         logger.info("✅ Routing layer components initialized successfully!")
         
@@ -263,49 +262,6 @@ class IstanbulDailyTalkAI:
         
         # Log cache integration status
         self._log_cache_status()
-    
-    # ==================================================================
-    # User Management Methods (delegate to UserManager)
-    # ==================================================================
-    
-    def get_or_create_user_profile(self, user_id: str):
-        """
-        Get or create user profile (delegates to UserManager)
-        
-        Args:
-            user_id: User identifier
-        
-        Returns:
-            UserProfile instance
-        """
-        return self.user_manager.get_or_create_user_profile(user_id)
-    
-    def get_or_create_conversation_context(self, session_id: str, user_profile):
-        """
-        Get or create conversation context (delegates to UserManager)
-        
-        Args:
-            session_id: Session identifier
-            user_profile: User profile instance (for compatibility - not used)
-        
-        Returns:
-            ConversationContext instance
-        """
-        # Try to get existing context
-        context = self.user_manager.get_conversation_context(session_id)
-        
-        # If not found, start a new conversation for this user
-        if context is None:
-            # Start a new conversation which creates the context
-            user_id = user_profile.user_id if hasattr(user_profile, 'user_id') else 'unknown'
-            new_session_id = self.user_manager.start_conversation(user_id)
-            context = self.user_manager.get_conversation_context(new_session_id)
-        
-        return context
-    
-    # ==================================================================
-    # Cache Status Methods
-    # ==================================================================
     
     def _log_cache_status(self):
         """Log ML cache integration status"""
@@ -417,13 +373,12 @@ class IstanbulDailyTalkAI:
             logger.error(f"Error starting conversation: {e}")
             return "🌟 Welcome to Istanbul! I'm your AI guide ready to help you discover this amazing city. How can I assist you today?"
     
-    def process_message(self, user_input: str, user_id: str, gps_location: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+    def process_message(self, message: str, user_id: str, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
         """Process user message and generate response (Week 2: Using modular routing layer)
         
         Args:
-            user_input: User's input message
+            message: User's input message
             user_id: User identifier
-            gps_location: Optional GPS location dict with 'latitude' and 'longitude'
             return_structured: If True, return dict with response and map_data; if False, return string (default)
             
         Returns:
@@ -436,25 +391,12 @@ class IstanbulDailyTalkAI:
                 logger.warning(f"Invalid user_id type: {type(user_id)}. Converting to string.")
                 user_id = str(user_id)
             
-            if not isinstance(user_input, str):
-                logger.warning(f"Invalid message type: {type(user_input)}. Converting to string.")
-                user_input = str(user_input)
-            
-            # Store GPS location if provided
-            message = user_input
+            if not isinstance(message, str):
+                logger.warning(f"Invalid message type: {type(message)}. Converting to string.")
+                message = str(message)
             
             # Get or create user context
             user_profile = self.user_manager.get_or_create_user_profile(user_id)
-            
-            # Update user location if GPS provided
-            if gps_location and isinstance(gps_location, dict):
-                if 'latitude' in gps_location and 'longitude' in gps_location:
-                    user_profile.current_location = (
-                        gps_location['latitude'], 
-                        gps_location['longitude']
-                    )
-                    logger.info(f"📍 Updated user location: {user_profile.current_location}")
-            
             session_id = self.user_manager._get_active_session_id(user_id)
             
             if not session_id:
@@ -1716,7 +1658,6 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                     break
             
             # ENHANCED: Detect GPS coordinates more reliably
-           
             gps_pattern = r'(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)'
             gps_match = re.search(gps_pattern, message)
             user_location = None

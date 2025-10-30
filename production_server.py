@@ -13,8 +13,8 @@ import time
 from typing import Optional, Dict, Any
 import asyncio
 
-# Import core system
-from istanbul_ai.core.main_system import IstanbulDailyTalkAI
+# Import core system (Updated to use unified root-level main_system.py)
+from istanbul_ai.main_system import IstanbulDailyTalkAI
 
 # Import scalability components
 from istanbul_ai.core.async_orchestrator import get_orchestrator, AsyncOrchestrator

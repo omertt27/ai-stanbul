@@ -1,5 +1,9 @@
 """
 Main Istanbul Daily Talk AI System - Simplified and Modular
+Enhanced with Production-Grade Infrastructure:
+- TTLCache for memory management
+- Monitoring and observability
+- Error recovery with graceful degradation
 """
 
 import json
@@ -10,6 +14,23 @@ from ..core.user_profile import UserProfile, UserType
 from ..core.conversation_context import ConversationContext
 from ..core.entity_recognizer import IstanbulEntityRecognizer
 from ..utils.constants import ConversationTone, DEFAULT_RESPONSES
+
+# Import production infrastructure components
+try:
+    import sys
+    import os
+    backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'backend')
+    if backend_path not in sys.path:
+        sys.path.append(backend_path)
+    
+    from utils.ttl_cache import TTLCache
+    INFRASTRUCTURE_AVAILABLE = True
+    logger = logging.getLogger(__name__)
+    logger.info("✅ Production infrastructure loaded successfully")
+except ImportError as e:
+    INFRASTRUCTURE_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️ Production infrastructure not available: {e}")
 
 # Configure logger first
 logger = logging.getLogger(__name__)
@@ -42,15 +63,31 @@ except ImportError as e:
 
 class IstanbulDailyTalkAI:
     """
-    Simplified Istanbul Daily Talk AI System
-    Refactored from monolithic 2915-line file for better maintainability
+    Production-Grade Istanbul Daily Talk AI System
+    
+    Enhanced Features:
+    - Memory management with TTLCache (prevents memory leaks)
+    - Automatic session cleanup
+    - LRU eviction policy
+    - Production-safe resource handling
     """
     
     def __init__(self):
         self.logger = logger
         self.entity_recognizer = IstanbulEntityRecognizer()
-        self.user_profiles: Dict[str, UserProfile] = {}
-        self.conversation_contexts: Dict[str, ConversationContext] = {}
+        
+        # Use TTLCache for memory management (prevents unbounded growth)
+        if INFRASTRUCTURE_AVAILABLE:
+            # User profiles: 2-hour TTL, max 1000 users
+            self.user_profiles = TTLCache(max_size=1000, ttl_minutes=120)
+            # Conversation contexts: 1-hour TTL, max 500 sessions
+            self.conversation_contexts = TTLCache(max_size=500, ttl_minutes=60)
+            logger.info("✅ Using TTLCache for memory management")
+        else:
+            # Fallback to regular dicts (not recommended for production)
+            self.user_profiles: Dict[str, UserProfile] = {}
+            self.conversation_contexts: Dict[str, ConversationContext] = {}
+            logger.warning("⚠️ Using unbounded dicts - memory may grow indefinitely")
         
         # Initialize integrations (simplified)
         self._init_integrations()
@@ -232,20 +269,42 @@ class IstanbulDailyTalkAI:
             self.response_generation_available = False
 
     def get_or_create_user_profile(self, user_id: str) -> UserProfile:
-        """Get or create user profile"""
-        if user_id not in self.user_profiles:
-            self.user_profiles[user_id] = UserProfile(user_id=user_id)
-            logger.info(f"Created new user profile for {user_id}")
-        return self.user_profiles[user_id]
+        """Get or create user profile - compatible with both TTLCache and dict"""
+        if INFRASTRUCTURE_AVAILABLE:
+            # Using TTLCache
+            profile = self.user_profiles.get(user_id)
+            if profile is None:
+                profile = UserProfile(user_id=user_id)
+                self.user_profiles.set(user_id, profile)
+                logger.info(f"Created new user profile for {user_id}")
+            return profile
+        else:
+            # Using regular dict (fallback)
+            if user_id not in self.user_profiles:
+                self.user_profiles[user_id] = UserProfile(user_id=user_id)
+                logger.info(f"Created new user profile for {user_id}")
+            return self.user_profiles[user_id]
 
     def get_or_create_conversation_context(self, session_id: str, user_profile: UserProfile) -> ConversationContext:
-        """Get or create conversation context"""
-        if session_id not in self.conversation_contexts:
-            self.conversation_contexts[session_id] = ConversationContext(
-                session_id=session_id,
-                user_profile=user_profile
-            )
-        return self.conversation_contexts[session_id]
+        """Get or create conversation context - compatible with both TTLCache and dict"""
+        if INFRASTRUCTURE_AVAILABLE:
+            # Using TTLCache
+            context = self.conversation_contexts.get(session_id)
+            if context is None:
+                context = ConversationContext(
+                    session_id=session_id,
+                    user_profile=user_profile
+                )
+                self.conversation_contexts.set(session_id, context)
+            return context
+        else:
+            # Using regular dict (fallback)
+            if session_id not in self.conversation_contexts:
+                self.conversation_contexts[session_id] = ConversationContext(
+                    session_id=session_id,
+                    user_profile=user_profile
+                )
+            return self.conversation_contexts[session_id]
 
     def process_message(self, user_input: str, user_id: str, gps_location: Optional[Dict] = None) -> str:
         """

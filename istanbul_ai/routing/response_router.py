@@ -88,6 +88,31 @@ class ResponseRouter:
                 entities, user_profile, context, handlers, neural_insights
             )
         
+        elif intent == 'photography':
+            return self._route_photography_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        
+        elif intent == 'art_exhibitions':
+            return self._route_art_exhibitions_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        
+        elif intent == 'sports':
+            return self._route_sports_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        
+        elif intent == 'timing':
+            return self._route_timing_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        
+        elif intent == 'safety':
+            return self._route_safety_query(
+                message, entities, user_profile, context, handlers, neural_insights
+            )
+        
         elif intent == 'events':
             return self._route_events_query(
                 message, entities, user_profile, context, handlers,
@@ -288,75 +313,156 @@ class ResponseRouter:
         
         return "I can guide you through Istanbul's amazing shopping scene! What are you looking for?"
     
+    def _route_photography_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+    ) -> str:
+        """Route photography-related queries"""
+        photography_handler = handlers.get('photography_response_handler')
+        if photography_handler:
+            return photography_handler(message, entities, user_profile, context, neural_insights)
+        
+        # Fallback response
+        response = "Istanbul offers amazing photography opportunities! Galata Tower, Blue Mosque, and Bosphorus provide stunning shots. Golden hour: sunrise at Pierre Loti Hill or sunset at Suleymaniye. What type of photography interests you?"
+        context.add_interaction(message, response, 'photography')
+        return response
+    
+    def _route_art_exhibitions_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+    ) -> str:
+        """Route art exhibitions queries"""
+        art_handler = handlers.get('art_exhibitions_response_handler')
+        if art_handler:
+            return art_handler(message, entities, user_profile, context, neural_insights)
+        
+        # Fallback response
+        response = "Istanbul has a vibrant art scene! Major venues: Istanbul Modern (contemporary), Pera Museum (Orientalist art), SALT Beyoglu (cultural programs), and Arter (cutting-edge contemporary). Check their websites for current exhibitions!"
+        context.add_interaction(message, response, 'art_exhibitions')
+        return response
+    
+    def _route_sports_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+    ) -> str:
+        """Route sports-related queries"""
+        sports_handler = handlers.get('sports_response_handler')
+        if sports_handler:
+            return sports_handler(message, entities, user_profile, context, neural_insights)
+        
+        # Fallback response
+        message_lower = message.lower()
+        if 'football' in message_lower or 'soccer' in message_lower:
+            response = "Istanbul's football scene is passionate! Major teams: Galatasaray, Fenerbahce, and Besiktas. Attending a derby match is an unforgettable experience. Tickets available online. Would you like stadium details?"
+        else:
+            response = "Istanbul offers diverse sports: watch football matches (Galatasaray, Fenerbahce, Besiktas), run along Bosphorus paths, cycle on Princes' Islands, or join the November Istanbul Marathon that crosses two continents!"
+        
+        context.add_interaction(message, response, 'sports')
+        return response
+    
+    def _route_timing_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+    ) -> str:
+        """Route timing-related queries"""
+        timing_handler = handlers.get('timing_response_handler')
+        if timing_handler:
+            return timing_handler(message, entities, user_profile, context, neural_insights)
+        
+        # Fallback response
+        message_lower = message.lower()
+        if 'best time' in message_lower or 'when to visit' in message_lower:
+            response = "Best times to visit Istanbul: Spring (April-May) for perfect weather and tulip festival, or Fall (September-October) for comfortable temperatures and fewer crowds. Summer is hot and crowded, winter offers lowest prices but cold weather."
+        else:
+            response = "Typical hours: Museums 9 AM-5 PM (closed Mondays), Grand Bazaar 9 AM-7 PM (closed Sundays), Mosques open daily except prayer times. What specific timing info do you need?"
+        
+        context.add_interaction(message, response, 'timing')
+        return response
+    
+    def _route_safety_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+    ) -> str:
+        """Route safety-related queries"""
+        safety_handler = handlers.get('safety_response_handler')
+        if safety_handler:
+            return safety_handler(message, entities, user_profile, context, neural_insights)
+        
+        # Fallback response
+        response = "Istanbul is generally safe for tourists! Tips: Keep valuables secure in crowded areas, use official yellow taxis or Uber, avoid unlicensed guides. Emergency: 112. Tourist police: 0212 527 4503. What specific safety concerns do you have?"
+        context.add_interaction(message, response, 'safety')
+        return response
+    
     def _route_events_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
-        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
-        return_structured: bool
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
     ) -> Union[str, Dict[str, Any]]:
-        """Route events queries"""
+        """Route event-related queries"""
         # Try ML handler first
         ml_handler = handlers.get('ml_event_handler')
         if ml_handler:
             try:
-                response = ml_handler.handle_event_query(
-                    message, entities, user_profile, context
+                response = ml_handler.handle_query(
+                    message=message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context
                 )
-                if return_structured:
-                    return {
-                        'response': response,
-                        'intent': 'events',
-                        'source': 'ml_event_handler'
-                    }
-                return response
+                if response and response.get('response'):
+                    logger.info("✅ ML Event Handler processed query")
+                    return response if return_structured else response['response']
             except Exception as e:
                 logger.warning(f"ML Event Handler failed: {e}")
         
-        # Fallback to events response handler
-        events_handler = handlers.get('events_response_handler')
-        if events_handler:
-            from datetime import datetime
-            return events_handler(entities, user_profile, context, datetime.now(), neural_insights)
+        # Fallback to response generator
+        response_generator = handlers.get('response_generator')
+        if response_generator:
+            return response_generator.generate_comprehensive_recommendation(
+                'event', entities, user_profile, context, 
+                return_structured=return_structured
+            )
         
-        return "Istanbul has amazing events happening! What type of event interests you?"
+        return "I can help you find interesting events in Istanbul! What type of events are you interested in?"
     
     def _route_weather_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route weather queries"""
-        # Try ML handler first
-        ml_handler = handlers.get('ml_weather_handler')
-        if ml_handler:
-            try:
-                response = ml_handler.handle_weather_query(
-                    message, entities, user_profile, context
-                )
-                if return_structured:
-                    return {
-                        'response': response,
-                        'intent': 'weather',
-                        'source': 'ml_weather_handler'
-                    }
-                return response
-            except Exception as e:
-                logger.warning(f"ML Weather Handler failed: {e}")
-        
-        # Fallback to response generator
-        response_generator = handlers.get('response_generator')
-        if response_generator:
-            return response_generator.generate_comprehensive_recommendation(
-                'weather', entities, user_profile, context,
-                return_structured=return_structured
+        """Route weather-related queries"""
+        weather_handler = handlers.get('weather_response_handler')
+        if weather_handler:
+            return weather_handler(
+                message, entities, user_profile, context, 
+                neural_insights, return_structured
             )
         
-        return "I can provide weather information for Istanbul! What would you like to know?"
+        # Fallback response
+        return "I can provide weather information for Istanbul! Please specify a date or time period."
     
     def _route_airport_transport_query(
         self, entities: Dict, user_profile: UserProfile, context: ConversationContext,
         handlers: Dict, return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route airport transport queries"""
+        """Route airport transportation queries"""
+        # Try ML handler first
+        ml_handler = handlers.get('ml_airport_transport_handler')
+        if ml_handler:
+            try:
+                response = ml_handler.handle_airport_transport_query(
+                    entities, user_profile, context
+                )
+                if return_structured:
+                    return {
+                        'response': response,
+                        'intent': 'airport_transport',
+                        'source': 'ml_airport_transport_handler'
+                    }
+                return response
+            except Exception as e:
+                logger.warning(f"ML Airport Transport Handler failed: {e}")
+        
+        # Fallback to response generator
         response_generator = handlers.get('response_generator')
         if response_generator:
             return response_generator.generate_comprehensive_recommendation(
@@ -364,7 +470,7 @@ class ResponseRouter:
                 return_structured=return_structured
             )
         
-        return "I can help you get to/from Istanbul airports! Which airport are you using?"
+        return "I can help you with airport transportation in Istanbul! Do you need information on shuttles, taxis, or public transport?"
     
     def _route_hidden_gems_query(
         self, message: str, entities: Dict, user_profile: UserProfile,

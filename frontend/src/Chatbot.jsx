@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { 
-  fetchStreamingResults, 
+  fetchStreamingResults,
+  fetchUnifiedChat,
   fetchRestaurantRecommendations, 
   fetchPlacesRecommendations, 
   extractLocationFromQuery,
   subscribeToNetworkStatus,
   checkApiHealth,
   debouncedFetchRestaurants,
-  debouncedFetchPlaces,
-  planJourneyFromGPS
+  debouncedFetchPlaces
 } from './api/api';
 import { 
   ErrorTypes, 
@@ -16,20 +16,14 @@ import {
   getUserFriendlyMessage,
   networkStatus 
 } from './utils/errorHandler';
-import ErrorNotification, { NetworkStatusIndicator } from './components/ErrorNotification';
+import ErrorNotification, { NetworkStatusIndicator, RetryButton } from './components/ErrorNotification';
 import TypingIndicator from './components/TypingIndicator';
 import MessageActions from './components/MessageActions';
 import ScrollToBottom from './components/ScrollToBottom';
 import ChatHeader from './components/ChatHeader';
-import POICard from './components/POICard';
-import DistrictInfo from './components/DistrictInfo';
-import ItineraryTimeline from './components/ItineraryTimeline';
-import MLInsights from './components/MLInsights';
-import ChatMapView from './components/ChatMapView';
-import TransportationInterface from './components/TransportationInterface';
-import JourneyInstructions from './components/JourneyInstructions';
-import { useLocation } from './contexts/LocationContext';
-import './components/Chatbot.css';
+import ChatSessionsPanel from './components/ChatSessionsPanel';
+import MapVisualization from './components/MapVisualization';
+import SimpleChatInput from './components/SimpleChatInput';
 
 console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
 
@@ -475,85 +469,7 @@ const isExplicitPlacesRequest = (userInput) => {
   return true;
 };
 
-// Helper function to detect transit/route requests
-const isTransitRouteRequest = (userInput) => {
-  console.log('🚇 Checking for transit/route request:', userInput);
-  
-  const processedInput = preprocessInput(userInput);
-  
-  // Security checks
-  if (!processedInput || processedInput.trim().length === 0) {
-    console.log('🛡️ Input rejected: Empty after sanitization');
-    return false;
-  }
-  
-  if (processedInput.length > 500) {
-    console.log('🛡️ Input rejected: Too long after sanitization');
-    return false;
-  }
-
-  const input = processedInput.toLowerCase();
-  
-  // Transit/route keywords
-  const transitKeywords = [
-    'how to get to',
-    'how do i get to',
-    'how can i get to',
-    'directions to',
-    'route to',
-    'navigate to',
-    'travel to',
-    'go to',
-    'take me to',
-    'metro to',
-    'tram to',
-    'bus to',
-    'public transport to',
-    'transit to',
-    'transportation to',
-    'marmaray to',
-    'funicular to'
-  ];
-  
-  return transitKeywords.some(keyword => input.includes(keyword));
-};
-
-// Helper function to extract destination from transit request
-const extractDestination = (userInput) => {
-  const processedInput = preprocessInput(userInput);
-  const input = processedInput.toLowerCase();
-  
-  // Try to extract destination after "to" keywords
-  const patterns = [
-    /(?:how (?:to|do i|can i) get to|directions to|route to|navigate to|travel to|go to|take me to|metro to|tram to|bus to|public transport to|transit to|transportation to|marmaray to|funicular to)\s+(.+?)(?:\?|$)/i,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = userInput.match(pattern);
-    if (match && match[1]) {
-      return match[1].trim();
-    }
-  }
-  
-  return null;
-};
-
 function Chatbot() {
-  // Location Context - GPS Integration
-  const {
-    currentLocation,
-    hasLocation,
-    hasGPSLocation,
-    locationSummary,
-    neighborhood,
-    gpsPermission,
-    requestGPSLocation,
-    startGPSTracking,
-    stopGPSTracking,
-    isTracking,
-    formatLocationForAI
-  } = useLocation();
-
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
     try {
@@ -579,15 +495,22 @@ function Chatbot() {
 
   // Enhanced UI state
   const [isTyping, setIsTyping] = useState(false);
-  const [typingMessage, setTypingMessage] = useState('KAM is thinking...');
+  const [typingMessage, setTypingMessage] = useState('');
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  
-  // GPS UI state
-  const [showGPSStatus, setShowGPSStatus] = useState(false);
-  const [gpsEnabled, setGpsEnabled] = useState(false);
+  const [isSessionsPanelOpen, setIsSessionsPanelOpen] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('chat_session_id');
+      return saved || Date.now().toString();
+    } catch (error) {
+      return Date.now().toString();
+    }
+  });
   
   // Enhanced error handling state
   const [currentError, setCurrentError] = useState(null);
+  const [retryAction, setRetryAction] = useState(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState(null);
   
   // Network and health monitoring
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -625,6 +548,82 @@ function Chatbot() {
     console.log('🗑️ Chat history cleared');
   };
 
+  // Session management functions
+  const handleNewSession = (newSession) => {
+    // Save current session before creating new one
+    saveCurrentSession();
+    
+    // Clear current messages and start fresh
+    setMessages([]);
+    setCurrentSessionId(newSession.id);
+    localStorage.setItem('chat_session_id', newSession.id);
+    localStorage.removeItem('chat-messages');
+    
+    console.log('✨ Created new chat session:', newSession.id);
+  };
+
+  const handleSelectSession = (session) => {
+    // Save current session
+    saveCurrentSession();
+    
+    // Load selected session
+    setCurrentSessionId(session.id);
+    localStorage.setItem('chat_session_id', session.id);
+    
+    // Load session messages
+    try {
+      const sessionMessages = localStorage.getItem(`chat-messages-${session.id}`);
+      if (sessionMessages) {
+        setMessages(JSON.parse(sessionMessages));
+      } else {
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Failed to load session messages:', error);
+      setMessages([]);
+    }
+    
+    console.log('📂 Switched to session:', session.id);
+  };
+
+  const saveCurrentSession = () => {
+    if (!currentSessionId || messages.length === 0) return;
+    
+    try {
+      // Save messages for this session
+      localStorage.setItem(`chat-messages-${currentSessionId}`, JSON.stringify(messages));
+      
+      // Update session metadata
+      const sessions = JSON.parse(localStorage.getItem('chat_sessions') || '[]');
+      const sessionIndex = sessions.findIndex(s => s.id === currentSessionId);
+      
+      if (sessionIndex >= 0) {
+        sessions[sessionIndex].messageCount = messages.length;
+        sessions[sessionIndex].timestamp = new Date().toISOString();
+        sessions[sessionIndex].title = messages[0]?.text?.slice(0, 30) + '...' || 'Chat';
+      } else {
+        sessions.unshift({
+          id: currentSessionId,
+          title: messages[0]?.text?.slice(0, 30) + '...' || 'Current Chat',
+          timestamp: new Date().toISOString(),
+          messageCount: messages.length
+        });
+      }
+      
+      localStorage.setItem('chat_sessions', JSON.stringify(sessions));
+    } catch (error) {
+      console.error('Failed to save session:', error);
+    }
+  };
+
+  const toggleSessionsPanel = () => {
+    // Save current session before opening panel
+    if (!isSessionsPanelOpen) {
+      saveCurrentSession();
+    }
+    setIsSessionsPanelOpen(!isSessionsPanelOpen);
+  };
+  
   // Enhanced clipboard and sharing
   const copyMessageToClipboard = async (message) => {
     try {
@@ -636,12 +635,12 @@ function Chatbot() {
   };
 
   const shareMessage = async (message) => {
-    const shareText = `KAM AI Assistant: ${message.text}`;
+    const shareText = `KAM Assistant: ${message.text}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'KAM AI Assistant Response',
+          title: 'KAM Assistant Response',
           text: shareText,
         });
       } catch (error) {
@@ -665,57 +664,6 @@ function Chatbot() {
     }
   };
 
-  // GPS Location Handling
-  const handleGPSToggle = async () => {
-    try {
-      if (!gpsEnabled) {
-        setTypingMessage('Getting your precise location...');
-        setIsTyping(true);
-        
-        const location = await requestGPSLocation();
-        setGpsEnabled(true);
-        setShowGPSStatus(true);
-        
-        console.log('📍 GPS enabled with high accuracy:', location);
-        console.log(`   Accuracy: ±${location.accuracy?.toFixed(1)}m`);
-        
-        // Start continuous tracking for Google Maps-like experience
-        startGPSTracking();
-        console.log('🎯 Continuous GPS tracking active');
-        
-        setIsTyping(false);
-      } else {
-        setGpsEnabled(false);
-        stopGPSTracking();
-        setShowGPSStatus(false);
-        console.log('📍 GPS tracking stopped');
-      }
-    } catch (error) {
-      console.error('GPS toggle error:', error);
-      setIsTyping(false);
-      setCurrentError({
-        type: ErrorTypes.PERMISSION_DENIED,
-        message: 'Unable to access your location. Please enable location permissions in your browser settings.',
-        timestamp: Date.now()
-      });
-    }
-  };
-
-  // Format location context for AI
-  const getLocationContext = () => {
-    if (!hasLocation) return null;
-    
-    const locationData = formatLocationForAI();
-    return {
-      has_location: true,
-      latitude: locationData.lat,
-      longitude: locationData.lng,
-      accuracy: locationData.accuracy,
-      neighborhood: locationData.neighborhood || locationSummary,
-      source: locationData.source
-    };
-  };
-
   // Enhanced effect hooks
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -732,6 +680,17 @@ function Chatbot() {
   }, [darkMode]);
 
   useEffect(() => {
+    // Auto-save session when messages change
+    if (messages.length > 0 && currentSessionId) {
+      const timeoutId = setTimeout(() => {
+        saveCurrentSession();
+      }, 1000); // Debounce saves
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, currentSessionId]);
+
+  useEffect(() => {
     // Monitor scroll position for scroll-to-bottom button
     const chatContainer = document.getElementById('chat-messages');
     if (!chatContainer) return;
@@ -744,627 +703,511 @@ function Chatbot() {
 
     chatContainer.addEventListener('scroll', handleScroll);
     return () => chatContainer.removeEventListener('scroll', handleScroll);
-  }, [messages]);
+  }, [messages.length]);
 
-  // Auto-focus input on mount
   useEffect(() => {
-    const inputElement = document.getElementById('chat-input');
-    if (inputElement) {
-      inputElement.focus();
-    }
-  }, []);
-
-  // Enhanced message sending function
-  const handleSendMessage = async (messageText = null, isRegenerate = false) => {
-    const textToSend = messageText || input.trim();
-    
-    if (!textToSend || loading) return;
-
-    console.log('📤 Sending message:', textToSend);
-
-    // Clear current error
-    setCurrentError(null);
-    
-    // Add user message (unless regenerating)
-    if (!isRegenerate) {
-      const userMessage = {
-        type: 'user',
-        content: textToSend,
-        timestamp: Date.now()
-      };
-      
-      setMessages(prev => {
-        const updated = [...prev, userMessage];
-        try {
-          localStorage.setItem('chat-messages', JSON.stringify(updated));
-        } catch (error) {
-          console.error('Failed to save messages:', error);
-        }
-        return updated;
-      });
-    }
-
-    // Clear input and set loading states
-    if (!messageText) setInput('');
-    setLoading(true);
-    setIsTyping(true);
-    setTypingMessage('KAM is thinking...');
-
-    try {
-      // Security preprocessing
-      const processedInput = preprocessInput(textToSend);
-      
-      if (!processedInput) {
-        throw new Error('Invalid input after security processing');
-      }
-
-      // Check for explicit restaurant requests
-      if (isExplicitRestaurantRequest(processedInput)) {
-        console.log('🍽️ Processing restaurant request');
-        setTypingMessage('Finding great restaurants for you...');
-        
-        const restaurants = await debouncedFetchRestaurants(processedInput);
-        const formattedResponse = formatRestaurantRecommendations(restaurants);
-        
-        const aiMessage = {
-          type: 'ai',
-          content: formattedResponse,
-          restaurants: restaurants,
-          timestamp: Date.now()
-        };
-        
-        setMessages(prev => {
-          const updated = [...prev, aiMessage];
-          try {
-            localStorage.setItem('chat-messages', JSON.stringify(updated));
-          } catch (error) {
-            console.error('Failed to save messages:', error);
-          }
-          return updated;
-        });
-        
-        return;
-      }
-
-      // Check for explicit places/attractions requests
-      if (isExplicitPlacesRequest(processedInput)) {
-        console.log('🏛️ Processing places request');
-        setTypingMessage('Discovering amazing places for you...');
-        
-        const places = await debouncedFetchPlaces(processedInput);
-        const formattedResponse = formatPlacesRecommendations(places);
-        
-        const aiMessage = {
-          type: 'ai',
-          content: formattedResponse,
-          places: places,
-          timestamp: Date.now()
-        };
-        
-        setMessages(prev => {
-          const updated = [...prev, aiMessage];
-          try {
-            localStorage.setItem('chat-messages', JSON.stringify(updated));
-          } catch (error) {
-            console.error('Failed to save messages:', error);
-          }
-          return updated;
-        });
-        
-        return;
-      }
-
-      // Check for transit/route requests with GPS
-      if (isTransitRouteRequest(processedInput) && hasGPSLocation) {
-        console.log('🚇 Processing GPS transit request');
-        setTypingMessage('Planning your journey with Metro, Tram, and Marmaray...');
-        
-        const destination = extractDestination(textToSend);
-        if (!destination) {
-          throw new Error('Could not extract destination from your request');
-        }
-        
-        console.log('📍 GPS Location:', currentLocation);
-        console.log('🎯 Destination:', destination);
-        
-        try {
-          const journey = await planJourneyFromGPS(
-            currentLocation.latitude,
-            currentLocation.longitude,
-            destination,
-            {
-              maxWalkingM: 1000,
-              minimizeTransfers: true
-            }
-          );
-          
-          console.log('✅ Journey plan received:', journey);
-          
-          // Format journey response message
-          const journeyResponse = `I've planned your journey from your current location to ${destination}!\n\n` +
-            `🚶 Total Duration: ${journey.summary.total_duration_min} minutes\n` +
-            `📍 Distance: ${journey.summary.total_distance_km} km\n` +
-            `🔄 Transfers: ${journey.summary.total_transfers}\n` +
-            `💰 Cost: ₺${journey.summary.estimated_cost_tl}`;
-          
-          const aiMessage = {
-            type: 'ai',
-            content: journeyResponse,
-            journey: journey,
-            timestamp: Date.now()
-          };
-          
-          setMessages(prev => {
-            const updated = [...prev, aiMessage];
-            try {
-              localStorage.setItem('chat-messages', JSON.stringify(updated));
-            } catch (error) {
-              console.error('Failed to save messages:', error);
-            }
-            return updated;
-          });
-          
-          return;
-        } catch (journeyError) {
-          console.error('Journey planning error:', journeyError);
-          // Fall through to regular AI chat if journey planning fails
-          setTypingMessage('KAM is generating response...');
-        }
-      }
-
-      // Default: Use streaming AI response
-      console.log('🤖 Processing general AI request');
-      setTypingMessage('KAM is generating response...');
-      
-      let aiResponse = '';
-      
-      const onChunk = (chunk) => {
-        aiResponse += chunk;
-        
-        // Update the last AI message with streaming content
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          
-          if (lastMessage && lastMessage.type === 'ai' && !lastMessage.isComplete) {
-            lastMessage.content = aiResponse;
-          } else {
-            updated.push({
-              type: 'ai',
-              content: aiResponse,
-              timestamp: Date.now(),
-              isComplete: false
-            });
-          }
-          
-          return updated;
-        });
-      };
-
-      const onComplete = (finalResponse, metadata) => {
-        console.log('✅ AI response complete');
-        if (metadata) {
-          console.log('📊 Metadata received:', metadata);
-        }
-        
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          
-          if (lastMessage && lastMessage.type === 'ai') {
-            lastMessage.content = finalResponse || aiResponse;
-            lastMessage.isComplete = true;
-            
-            // Add metadata if present (map_data, intent, entities, etc.)
-            if (metadata) {
-              if (metadata.map_data) {
-                lastMessage.map_data = metadata.map_data;
-                console.log('🗺️ Map data attached to message:', metadata.map_data);
-              }
-              if (metadata.intent) {
-                lastMessage.intent = metadata.intent;
-              }
-              if (metadata.entities) {
-                lastMessage.entities = metadata.entities;
-              }
-            }
-            
-            delete lastMessage.isComplete; // Clean up flag
-          }
-          
-          try {
-            localStorage.setItem('chat-messages', JSON.stringify(updated));
-          } catch (error) {
-            console.error('Failed to save messages:', error);
-          }
-          
-          return updated;
-        });
-      };
-
-      const onError = (error) => {
-        console.error('❌ AI response error:', error);
-        
-        const errorMessage = {
-          type: 'ai',
-          content: 'I apologize, but I encountered an error while processing your request. Please try again.',
-          timestamp: Date.now(),
-          isError: true
-        };
-        
-        setMessages(prev => {
-          const updated = [...prev, errorMessage];
-          try {
-            localStorage.setItem('chat-messages', JSON.stringify(updated));
-          } catch (error) {
-            console.error('Failed to save messages:', error);
-          }
-          return updated;
-        });
-      };
-
-      // Get location context if GPS is enabled
-      const locationContext = gpsEnabled && hasLocation ? getLocationContext() : null;
-      
-      if (locationContext) {
-        console.log('📍 Including location context:', locationContext);
-      }
-
-      // Call streaming AI API with metadata support
-      await fetchStreamingResults(
-        processedInput,
-        onChunk,
-        onComplete,
-        onError,
-        locationContext  // Include location data
-      );
-
-    } catch (error) {
-      console.error('❌ Error in handleSendMessage:', error);
-      
-      // Classify and handle error
-      const errorType = classifyError(error);
-      const friendlyMessage = getUserFriendlyMessage(errorType, error);
-      
-      setCurrentError({
-        type: errorType,
-        message: friendlyMessage,
-        originalError: error
-      });
-      
-      // Add error message
-      const errorMessage = {
-        type: 'ai',
-        content: friendlyMessage,
-        timestamp: Date.now(),
-        isError: true
-      };
-      
-      setMessages(prev => {
-        const updated = [...prev, errorMessage];
-        try {
-          localStorage.setItem('chat-messages', JSON.stringify(updated));
-        } catch (error) {
-          console.error('Failed to save messages:', error);
-        }
-        return updated;
-      });
-      
-    } finally {
-      setLoading(false);
-      setIsTyping(false);
-      setTypingMessage('KAM is thinking...');
-    }
-  };
-
-  // Network status monitoring
-  useEffect(() => {
-    const handleOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-      if (navigator.onLine) {
-        console.log('🌐 Back online');
-      } else {
-        console.log('📴 Gone offline');
-      }
-    };
-
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-    
-    // Subscribe to network status from error handler
+    // Network status monitoring
     const unsubscribe = subscribeToNetworkStatus((status) => {
       setIsOnline(status.isOnline);
+      console.log('🌐 Network status changed:', status);
     });
 
-    // Check API health periodically
-    const healthCheckInterval = setInterval(async () => {
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    // Periodic API health checks
+    const checkHealth = async () => {
       try {
-        const health = await checkApiHealth();
-        setApiHealth(health.status);
+        const isHealthy = await checkApiHealth();
+        setApiHealth(isHealthy ? 'healthy' : 'unhealthy');
       } catch (error) {
         setApiHealth('error');
       }
-    }, 30000); // Check every 30 seconds
-
-    return () => {
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
-      unsubscribe();
-      clearInterval(healthCheckInterval);
     };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  // Main render function
-  return (
-    <div className={`chatbot-container ${darkMode ? 'dark-mode' : ''}`}>
-      <NetworkStatusIndicator />
+  // Enhanced error handling
+  const handleError = (error, context = 'unknown', failedMessage = null) => {
+    console.error(`Error in ${context}:`, error);
+    
+    const errorInfo = {
+      type: classifyError(error),
+      message: getUserFriendlyMessage(error),
+      context,
+      timestamp: Date.now(),
+      failedMessage
+    };
+    
+    setCurrentError(errorInfo);
+    
+    // Set retry action if we have a failed message
+    if (failedMessage && failedMessage.input) {
+      setRetryAction(() => () => {
+        console.log('🔄 Retrying failed message:', failedMessage.input);
+        handleSend(failedMessage.input);
+      });
+    }
+    
+    setLoading(false);
+  };
 
-      {/* Chat Messages Container */}
-      <div 
-        id="chat-messages" 
-        className="chat-messages"
-        role="log"
-        aria-live="polite"
-        aria-label="Chat conversation"
-      >
+  const handleRetry = () => {
+    if (retryAction) {
+      console.log('🔄 Retrying last action');
+      setCurrentError(null);
+      retryAction();
+    }
+  };
+
+  const dismissError = () => {
+    setCurrentError(null);
+    setRetryAction(null);
+    setLastFailedMessage(null);
+  };
+
+  const handleSend = async (customInput = null) => {
+    const originalUserInput = customInput || input.trim();
+    if (!originalUserInput) return;
+
+    // Create retry action for this message
+    const retryCurrentMessage = () => {
+      console.log('🔄 Retrying message:', originalUserInput);
+      handleSend(originalUserInput);
+    };
+    setRetryAction(() => retryCurrentMessage);
+
+    // CRITICAL SECURITY: Sanitize input immediately
+    const sanitizedInput = preprocessInput(originalUserInput);
+    
+    // SECURITY CHECK: Reject if sanitization removed everything
+    if (!sanitizedInput || sanitizedInput.trim().length === 0) {
+      console.log('🛡️ Input rejected: Empty after sanitization');
+      addMessage('Sorry, your input contains invalid characters. Please try again with a different message.', 'assistant', {
+        type: 'error'
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // SECURITY CHECK: Verify sanitized input is safe
+    const isSuspicious = [
+      /<[^>]*>/,
+      /javascript:/i,
+      /on\w+\s*=/i,
+      /[;'"`].*(--)|(\/\*)/,
+      /\$\([^)]*\)/
+    ].some(pattern => pattern.test(sanitizedInput));
+    
+    if (isSuspicious) {
+      console.log('🛡️ Input still suspicious after sanitization, rejecting');
+      addMessage('Sorry, your input appears to contain invalid content. Please try again with a different message.', 'assistant', {
+        type: 'error'
+      });
+      setLoading(false);
+      return;
+    }
+
+    console.log('✅ Using sanitized input:', sanitizedInput);
+    
+    // Add user message with enhanced metadata
+    addMessage(originalUserInput, 'user', {
+      sanitizedInput,
+      originalLength: originalUserInput.length,
+      sanitizedLength: sanitizedInput.length
+    });
+    
+    setInput('');
+    setLoading(true);
+    setIsTyping(true);
+
+    // Store failed message for retry purposes
+    setLastFailedMessage({
+      input: originalUserInput,
+      sanitizedInput,
+      timestamp: Date.now()
+    });
+
+    try {
+      // Check if user is asking for restaurant recommendations - using SANITIZED input
+      if (isExplicitRestaurantRequest(originalUserInput)) {
+        setTypingMessage('Finding restaurants for you...');
+        console.log('Detected restaurant advice request, fetching recommendations...');
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        
+        // CRITICAL: Use sanitized input for API call
+        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput);
+        console.log('Restaurant API response:', restaurantData);
+        const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
+        console.log('Formatted response:', formattedResponse);
+        
+        addMessage(formattedResponse, 'assistant', {
+          type: 'restaurant-recommendation',
+          dataSource: 'google-places',
+          resultCount: restaurantData.restaurants?.length || 0
+        });
+        
+        // Clear failed message on success
+        setLastFailedMessage(null);
+        return;
+      }
+
+      // Check if user is asking for places/attractions recommendations - using SANITIZED input
+      if (isExplicitPlacesRequest(originalUserInput)) {
+        setTypingMessage('Searching for places and attractions...');
+        console.log('Detected places/attractions request, fetching recommendations...');
+        console.log('Original input:', originalUserInput);
+        console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        
+        // CRITICAL: Use sanitized input for API call
+        const placesData = await fetchPlacesRecommendations(sanitizedInput);
+        console.log('Places API response:', placesData);
+        const formattedResponse = formatPlacesRecommendations(placesData.places);
+        console.log('Formatted response:', formattedResponse);
+        
+        addMessage(formattedResponse, 'assistant', {
+          type: 'places-recommendation',
+          dataSource: 'database',
+          resultCount: placesData?.places?.length || 0
+        });
+        
+        // Clear failed message on success
+        setLastFailedMessage(null);
+        return;
+      }
+
+      // Regular streaming response for non-restaurant/places queries - use SANITIZED input
+      setTypingMessage('KAM is thinking...');
+      let streamedContent = '';
+      
+      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
+      await fetchStreamingResults(sanitizedInput, (chunk) => {
+        streamedContent += chunk;
+        // If assistant message already exists, update it; else, add it
+        setMessages((prev) => {
+          // If last message is assistant and was streaming, update it
+          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+            return [
+              ...prev.slice(0, -1),
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          } else {
+            return [
+              ...prev,
+              { role: 'assistant', content: streamedContent, streaming: true }
+            ];
+          }
+        });
+      });
+      
+      // Clear failed message on success
+      setLastFailedMessage(null);
+      
+    } catch (error) {
+      handleError(error, 'message sending', lastFailedMessage);
+      
+      // Add error message with enhanced metadata
+      const errorMessage = error.message.includes('fetch')
+        ? 'Sorry, I encountered an error connecting to the server. Please check your connection and try again.'
+        : `Sorry, there was an error: ${error.message}. Please try again.`;
+      
+      addMessage(errorMessage, 'assistant', {
+        type: 'error',
+        errorType: classifyError(error),
+        canRetry: true,
+        originalInput: originalUserInput
+      });
+    } finally {
+      setLoading(false);
+      setIsTyping(false);
+      setTypingMessage('');
+      
+      // Remove streaming flag on last assistant message
+      setMessages((prev) => {
+        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
+          return [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: prev[prev.length - 1].content }
+          ];
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleSampleClick = (question) => {
+    // Automatically send the message
+    handleSend(question);
+  };
+
+  return (
+    <div className={`flex flex-col h-screen w-full pt-16 transition-colors duration-200 ${
+      darkMode ? 'bg-gray-900' : 'bg-gray-100'
+    }`}>
+      
+      {/* Chat Sessions Panel */}
+      <ChatSessionsPanel
+        darkMode={darkMode}
+        isOpen={isSessionsPanelOpen}
+        onClose={() => setIsSessionsPanelOpen(false)}
+        currentSessionId={currentSessionId}
+        onNewSession={handleNewSession}
+        onSelectSession={handleSelectSession}
+      />
+      
+      {/* Enhanced Header with chat management */}
+      <ChatHeader
+        darkMode={darkMode}
+        onDarkModeToggle={() => setDarkMode(!darkMode)}
+        onClearHistory={clearChatHistory}
+        onToggleSessionsPanel={toggleSessionsPanel}
+        messageCount={messages.length}
+        isOnline={isOnline}
+        apiHealth={apiHealth}
+        sessionId={currentSessionId}
+      />
+
+      {/* Chat Messages Container - Full screen like ChatGPT */}
+      <div className="flex-1 overflow-y-auto chat-messages" id="chat-messages">
         {messages.length === 0 && (
-          <div className="welcome-message">
-            <div className="welcome-card">
-              <h3>👋 Welcome to KAM - Your AI Istanbul Guide!</h3>
-              <p>I'm KAM, your personal Istanbul guide. Ask me about:</p>
-              <div className="suggestion-grid">
-                <button 
-                  onClick={() => setInput('Best restaurants in Sultanahmet')}
-                  className="suggestion-chip"
-                >
-                  🍽️ Restaurants
-                </button>
-                <button 
-                  onClick={() => setInput('Tourist attractions in Beyoğlu')}
-                  className="suggestion-chip"
-                >
-                  🏛️ Attractions
-                </button>
-                <button 
-                  onClick={() => setInput('Things to do in Taksim')}
-                  className="suggestion-chip"
-                >
-                  🎯 Activities
-                </button>
-                <button 
-                  onClick={() => setInput('How to get around Istanbul')}
-                  className="suggestion-chip"
-                >
-                  🚇 Transportation
-                </button>
+          <div className="h-full flex flex-col items-center justify-center px-4">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-200 ${
+              darkMode ? 'bg-white' : 'bg-gradient-to-br from-blue-600 to-purple-600'
+            }`}>
+              <svg className={`w-8 h-8 transition-colors duration-200 ${
+                darkMode ? 'text-black' : 'text-white'
+              }`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+              </svg>
+            </div>
+            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-200 ${
+              darkMode ? 'text-white' : 'text-gray-900'
+            }`}>How can I help you today?</h2>
+            <p className={`text-center max-w-2xl text-lg leading-relaxed mb-8 transition-colors duration-200 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              I'm your KAM assistant for exploring Istanbul. Ask me about restaurants, attractions, 
+              neighborhoods, culture, history, or anything else about this amazing city!
+            </p>
+            
+            {/* Enhanced Sample Cards with Better Light Mode Styling */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl w-full px-4">
+              <div 
+                onClick={() => handleSampleClick('Show me the best attractions and landmarks in Istanbul')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-blue-200 hover:bg-blue-50 hover:border-blue-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🏛️ Top Attractions</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Show me the best attractions and landmarks in Istanbul</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('Give me restaurant advice - recommend 4 good restaurants')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-red-200 hover:bg-red-50 hover:border-red-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🍽️ Restaurants</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Give me restaurant advice - recommend 4 good restaurants</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('Tell me about Istanbul neighborhoods and districts to visit')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-green-200 hover:bg-green-50 hover:border-green-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🏘️ Neighborhoods</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>Tell me about Istanbul neighborhoods and districts to visit</div>
+              </div>
+              
+              <div 
+                onClick={() => handleSampleClick('What are the best cultural experiences and activities in Istanbul?')}
+                className={`p-5 rounded-xl border-2 transition-all duration-200 cursor-pointer hover:shadow-xl hover:scale-105 transform ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600' 
+                    : 'bg-white border-purple-200 hover:bg-purple-50 hover:border-purple-400 shadow-md hover:shadow-lg'
+                }`}
+              >
+                <div className={`font-bold text-lg mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>🎭 Culture & Activities</div>
+                <div className={`text-sm transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-700'
+                }`}>What are the best cultural experiences and activities in Istanbul?</div>
               </div>
             </div>
           </div>
         )}
-
-        {messages.map((message, index) => (
-          <div key={index} className={`message-container ${message.type}`}>
-            <div className={`message-bubble ${message.type}`}>
-              <div className="message-content">
-                {message.type === 'ai' && message.restaurants ? (
-                  <div className="ai-response-section">
-                    <div className="response-text">{message.content}</div>
-                    <div className="recommendations-grid">
-                      {message.restaurants.map((restaurant, idx) => (
-                        <POICard
-                          key={`restaurant-${idx}`}
-                          poi={restaurant}
-                          type="restaurant"
-                          darkMode={darkMode}
-                        />
-                      ))}
+            
+        {/* Message Display Area */}
+        <div className="max-w-full mx-auto px-4">
+          {messages.map((msg, index) => (
+            <div key={msg.id || index} className="group py-4">
+              <div className="flex items-start space-x-3">
+                {msg.sender === 'user' ? (
+                  <>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode 
+                        ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500' 
+                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                    }`}>
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
                     </div>
-                  </div>
-                ) : message.type === 'ai' && message.places ? (
-                  <div className="ai-response-section">
-                    <div className="response-text">{message.content}</div>
-                    <div className="recommendations-grid">
-                      {message.places.map((place, idx) => (
-                        <POICard
-                          key={`place-${idx}`}
-                          poi={place}
-                          type="attraction"
-                          darkMode={darkMode}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : message.type === 'ai' && message.itinerary ? (
-                  <div className="ai-response-section">
-                    <div className="response-text">{message.content}</div>
-                    <ItineraryTimeline 
-                      itinerary={message.itinerary} 
-                      darkMode={darkMode}
-                    />
-                  </div>
-                ) : message.type === 'ai' && message.district ? (
-                  <div className="ai-response-section">
-                    <div className="response-text">{message.content}</div>
-                    <DistrictInfo 
-                      district={message.district} 
-                      darkMode={darkMode}
-                    />
-                  </div>
-                ) : message.type === 'ai' && message.insights ? (
-                  <div className="ai-response-section">
-                    <div className="response-text">{message.content}</div>
-                    <MLInsights 
-                      insights={message.insights} 
-                      darkMode={darkMode}
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <div className="simple-message">{message.content}</div>
-                    {/* Show map if map_data is present */}
-                    {message.type === 'ai' && message.map_data && (
-                      <div className="map-container">
-                        <ChatMapView 
-                          mapData={message.map_data}
-                          darkMode={darkMode}
-                        />
+                    <div className="flex-1">
+                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>You</div>
+                      <div className={`text-sm whitespace-pre-wrap transition-colors duration-200 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {msg.text}
                       </div>
-                    )}
-                    {/* Show transportation interface if transportation data is present */}
-                    {message.type === 'ai' && message.map_data && message.map_data.locations && message.map_data.locations.length > 1 && (
-                      <div className="transportation-container mt-4">
-                        <TransportationInterface
-                          mapData={message.map_data}
-                          initialOrigin={message.map_data.locations[0]}
-                          initialDestination={message.map_data.locations[message.map_data.locations.length - 1]}
-                          initialMode="transit"
-                          darkMode={darkMode}
-                        />
-                      </div>
-                    )}
-                    {/* Show route timeline if route_data exists */}
-                    {message.type === 'ai' && message.route_data && message.route_data.segments && (
-                      <div className="route-timeline-container mt-4">
-                        <div className="route-summary">
-                          <h4>🗺️ Optimized Route</h4>
-                          <div className="route-stats">
-                            <span className="stat">
-                              <strong>Distance:</strong> {message.route_data.total_distance_km} km
-                            </span>
-                            <span className="stat">
-                              <strong>Duration:</strong> {message.route_data.total_duration_hours} hours
-                            </span>
-                          </div>
+                      {msg.timestamp && (
+                        <div className={`text-xs mt-1 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
-                        <ItineraryTimeline 
-                          itinerary={{
-                            stops: message.route_data.segments.map((seg, idx) => ({
-                              name: seg.from,
-                              description: `Walk ${seg.distance_km} km to ${seg.to}`,
-                              duration: `${seg.walking_time_min} minutes`,
-                              order: idx + 1
-                            }))
-                          }}
-                          darkMode={darkMode}
-                        />
+                      )}
+                    </div>
+                    <MessageActions 
+                      message={msg}
+                      onCopy={copyMessageToClipboard}
+                      onShare={shareMessage}
+                      darkMode={darkMode}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200 ${
+                      darkMode 
+                        ? 'bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600' 
+                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600'
+                    }`}>
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91A6.046 6.046 0 0 0 17.094 2H6.906a6.046 6.046 0 0 0-4.672 2.91 5.985 5.985 0 0 0-.516 4.911L3.75 18.094A2.003 2.003 0 0 0 5.734 20h12.532a2.003 2.003 0 0 0 1.984-1.906l2.032-8.273Z"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-xs font-semibold mb-1 transition-colors duration-200 ${
+                        darkMode ? 'text-gray-300' : 'text-gray-600'
+                      }`}>KAM Assistant</div>
+                      <div className={`text-sm whitespace-pre-wrap leading-relaxed transition-colors duration-200 ${
+                        darkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        {renderMessageContent(msg.text || msg.content, darkMode)}
                       </div>
-                    )}
-                    {/* Show ML insights if route has predictions */}
-                    {message.type === 'ai' && message.route_data && message.route_data.ml_predictions && (
-                      <div className="ml-insights-container mt-4">
-                        <MLInsights 
-                          insights={{
-                            predictions: message.route_data.ml_predictions,
-                            crowding_levels: message.route_data.ml_predictions.crowding_levels,
-                            weather_impact: message.route_data.ml_predictions.weather_impact,
-                            confidence: message.route_data.ml_predictions.confidence_score
-                          }}
-                          darkMode={darkMode}
-                        />
-                      </div>
-                    )}
-                    {/* Show journey instructions for GPS-based transit journey */}
-                    {message.type === 'ai' && message.journey && message.journey.summary && (
-                      <div className="journey-container mt-4">
-                        <JourneyInstructions 
-                          journey={message.journey}
-                          darkMode={darkMode}
-                        />
-                      </div>
-                    )}
-                  </div>
+                      {msg.timestamp && (
+                        <div className={`text-xs mt-1 flex items-center space-x-2 transition-colors duration-200 ${
+                          darkMode ? 'text-gray-500' : 'text-gray-500'
+                        }`}>
+                          <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          {msg.type && (
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {msg.type}
+                            </span>
+                          )}
+                          {msg.resultCount && (
+                            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {msg.resultCount} results
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <MessageActions 
+                      message={msg}
+                      onCopy={copyMessageToClipboard}
+                      onShare={shareMessage}
+                      onRetry={msg.canRetry ? () => handleSend(msg.originalInput) : null}
+                      darkMode={darkMode}
+                    />
+                  </>
                 )}
               </div>
             </div>
-          </div>
-        ))}
-
-        {/* Typing Indicator */}
-        {isTyping && (
-          <div className="message-container ai">
-            <div className="message-bubble ai typing">
-              <div className="message-content">
-                <TypingIndicator message={typingMessage} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error Notifications */}
-        <ErrorNotification />
+          ))}
+          
+          <TypingIndicator 
+            isTyping={isTyping} 
+            message={typingMessage}
+            darkMode={darkMode}
+          />
+        </div>
       </div>
 
-      {/* Scroll to Bottom Button */}
-      {showScrollToBottom && (
-        <ScrollToBottom 
-          onClick={scrollToBottom}
+      {/* Scroll to bottom button */}
+      <ScrollToBottom 
+        show={showScrollToBottom}
+        onClick={scrollToBottom}
+        darkMode={darkMode}
+      />
+
+      {/* Enhanced Input Area - ChatGPT Style */}
+      <div className={`border-t p-4 transition-colors duration-200 ${
+        darkMode 
+          ? 'bg-gray-900 border-gray-700' 
+          : 'bg-white border-gray-200'
+      }`}>
+        <div className="max-w-4xl mx-auto">
+          <SimpleChatInput
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            loading={loading}
+            placeholder="Message KAM..."
+            darkMode={darkMode}
+          />
+          <div className={`text-xs text-center mt-2 opacity-60 transition-colors duration-200 ${
+            darkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
+            Your KAM-powered Istanbul travel guide
+          </div>
+        </div>
+      </div>
+
+      {/* Error Notification */}
+      {currentError && (
+        <ErrorNotification
+          error={currentError}
+          onRetry={handleRetry}
+          onDismiss={dismissError}
+          autoHide={false}
           darkMode={darkMode}
         />
       )}
-
-      {/* Chat Input */}
-      <div className="chat-input-container">
-        {/* GPS Location Status */}
-        {showGPSStatus && hasLocation && (
-          <div className={`gps-status ${darkMode ? 'dark' : ''}`}>
-            <span className="location-icon">📍</span>
-            <span className="location-text">
-              {neighborhood || locationSummary}
-            </span>
-            <span className="location-accuracy">
-              {hasGPSLocation ? '(Live GPS)' : '(Cached)'}
-            </span>
-          </div>
-        )}
-        
-        <div className="input-wrapper">
-          {/* GPS Toggle Button */}
-          <button
-            onClick={handleGPSToggle}
-            className={`gps-toggle-button ${gpsEnabled ? 'active' : ''} ${darkMode ? 'dark' : ''}`}
-            aria-label="Toggle GPS location"
-            title={gpsEnabled ? 'GPS enabled - Click to disable' : 'Click to enable GPS location'}
-            disabled={loading}
-          >
-            {gpsEnabled ? '📍' : '📍'}
-          </button>
-          
-          <input
-            id="chat-input"
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !loading && handleSendMessage()}
-            placeholder="Ask me about Istanbul restaurants, attractions, or travel tips..."
-            disabled={loading}
-            className="chat-input"
-            maxLength={500}
-            aria-label="Chat input"
-          />
-          
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={loading || !input.trim()}
-            className="send-button"
-            aria-label="Send message"
-          >
-            {loading ? (
-              <div className="loading-spinner" />
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
-            )}
-          </button>
-        </div>
-        
-        {/* Input Character Counter */}
-        <div className="character-counter">
-          <span className={input.length > 450 ? 'warning' : ''}>
-            {input.length}/500
-          </span>
-        </div>
-      </div>
+      
+      {/* Network Status Indicator */}
+      <NetworkStatusIndicator darkMode={darkMode} />
     </div>
   );
 }

@@ -1,37 +1,83 @@
 """
 User Management
 User profile and session management for the Istanbul AI system.
+Enhanced with TTLCache for production-grade memory management.
 """
 
 import hashlib
+import sys
+import os
 from datetime import datetime
 from typing import Dict, Optional
 from ..core.models import UserProfile, ConversationContext, UserType, ConversationTone
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Import TTLCache for production memory management
+try:
+    backend_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'backend')
+    if backend_path not in sys.path:
+        sys.path.append(backend_path)
+    
+    from utils.ttl_cache import TTLCache
+    INFRASTRUCTURE_AVAILABLE = True
+    logger.info("✅ TTLCache available for UserManager")
+except ImportError as e:
+    INFRASTRUCTURE_AVAILABLE = False
+    logger.warning(f"⚠️ TTLCache not available, using regular dicts: {e}")
 
 
 class UserManager:
-    """Manages user profiles and conversation sessions"""
+    """Manages user profiles and conversation sessions with production-grade memory management"""
     
     def __init__(self):
-        self.user_profiles: Dict[str, UserProfile] = {}
-        self.active_sessions: Dict[str, str] = {}  # user_id -> session_id
-        self.conversation_contexts: Dict[str, ConversationContext] = {}  # session_id -> context
+        # Use TTLCache for memory management (prevents unbounded growth)
+        if INFRASTRUCTURE_AVAILABLE:
+            # User profiles: 2-hour TTL, max 1000 users
+            self.user_profiles = TTLCache(max_size=1000, ttl_minutes=120)
+            # Conversation contexts: 1-hour TTL, max 500 sessions
+            self.conversation_contexts = TTLCache(max_size=500, ttl_minutes=60)
+            # Active sessions: 1-hour TTL, max 1000 sessions
+            self.active_sessions = TTLCache(max_size=1000, ttl_minutes=60)
+            logger.info("✅ UserManager using TTLCache for memory management")
+        else:
+            # Fallback to regular dicts (not recommended for production)
+            self.user_profiles: Dict[str, UserProfile] = {}
+            self.conversation_contexts: Dict[str, ConversationContext] = {}
+            self.active_sessions: Dict[str, str] = {}
+            logger.warning("⚠️ UserManager using unbounded dicts - memory may grow indefinitely")
     
     def get_or_create_user_profile(self, user_id: str) -> UserProfile:
         """Get existing user profile or create new one"""
-        if user_id not in self.user_profiles:
-            self.user_profiles[user_id] = UserProfile(
-                user_id=user_id,
-                user_type=UserType.FIRST_TIME_VISITOR,
-                preferred_tone=ConversationTone.FRIENDLY
-            )
+        if INFRASTRUCTURE_AVAILABLE:
+            # Use TTLCache API
+            profile = self.user_profiles.get(user_id)
+            if profile is None:
+                profile = UserProfile(
+                    user_id=user_id,
+                    user_type=UserType.FIRST_TIME_VISITOR,
+                    preferred_tone=ConversationTone.FRIENDLY
+                )
+                self.user_profiles.set(user_id, profile)
+                self._recalculate_profile_completeness(profile)
+            # Update last interaction
+            profile.last_interaction = datetime.now()
+            return profile
+        else:
+            # Fallback to dict API
+            if user_id not in self.user_profiles:
+                self.user_profiles[user_id] = UserProfile(
+                    user_id=user_id,
+                    user_type=UserType.FIRST_TIME_VISITOR,
+                    preferred_tone=ConversationTone.FRIENDLY
+                )
+                # Update profile completeness
+                self._recalculate_profile_completeness(self.user_profiles[user_id])
             
-            # Update profile completeness
-            self._recalculate_profile_completeness(self.user_profiles[user_id])
-        
-        # Update last interaction
-        self.user_profiles[user_id].last_interaction = datetime.now()
-        return self.user_profiles[user_id]
+            # Update last interaction
+            self.user_profiles[user_id].last_interaction = datetime.now()
+            return self.user_profiles[user_id]
     
     def _generate_session_id(self, user_id: str) -> str:
         """Generate unique session ID"""
@@ -41,19 +87,32 @@ class UserManager:
     
     def _get_active_session_id(self, user_id: str) -> Optional[str]:
         """Get active session ID for user"""
-        if user_id in self.active_sessions:
-            session_id = self.active_sessions[user_id]
-            if session_id in self.conversation_contexts:
-                # Check if session is still active (within last 2 hours)
-                context = self.conversation_contexts[session_id]
-                time_diff = datetime.now() - context.last_interaction
-                if time_diff.total_seconds() < 7200:  # 2 hours
-                    return session_id
-                else:
-                    # Clean up expired session
-                    del self.conversation_contexts[session_id]
-                    del self.active_sessions[user_id]
-        return None
+        if INFRASTRUCTURE_AVAILABLE:
+            # Use TTLCache API
+            session_id = self.active_sessions.get(user_id)
+            if session_id:
+                context = self.conversation_contexts.get(session_id)
+                if context:
+                    # Check if session is still active (within last 2 hours)
+                    time_diff = datetime.now() - context.last_interaction
+                    if time_diff.total_seconds() < 7200:  # 2 hours
+                        return session_id
+            return None
+        else:
+            # Fallback to dict API
+            if user_id in self.active_sessions:
+                session_id = self.active_sessions[user_id]
+                if session_id in self.conversation_contexts:
+                    # Check if session is still active (within last 2 hours)
+                    context = self.conversation_contexts[session_id]
+                    time_diff = datetime.now() - context.last_interaction
+                    if time_diff.total_seconds() < 7200:  # 2 hours
+                        return session_id
+                    else:
+                        # Clean up expired session
+                        del self.conversation_contexts[session_id]
+                        del self.active_sessions[user_id]
+            return None
     
     def start_conversation(self, user_id: str) -> str:
         """Start new conversation session"""
@@ -71,14 +130,23 @@ class UserManager:
             user_profile=user_profile
         )
         
-        self.conversation_contexts[session_id] = context
-        self.active_sessions[user_id] = session_id
+        if INFRASTRUCTURE_AVAILABLE:
+            # Use TTLCache API
+            self.conversation_contexts.set(session_id, context)
+            self.active_sessions.set(user_id, session_id)
+        else:
+            # Fallback to dict API
+            self.conversation_contexts[session_id] = context
+            self.active_sessions[user_id] = session_id
         
         return session_id
     
     def get_conversation_context(self, session_id: str) -> Optional[ConversationContext]:
         """Get conversation context for session"""
-        return self.conversation_contexts.get(session_id)
+        if INFRASTRUCTURE_AVAILABLE:
+            return self.conversation_contexts.get(session_id)
+        else:
+            return self.conversation_contexts.get(session_id)
     
     def update_user_interests(self, user_id: str, interests: list, travel_style: str = None, 
                             accessibility_needs: str = None) -> bool:

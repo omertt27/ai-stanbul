@@ -9,7 +9,8 @@ import os
 import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from istanbul_ai.core.main_system import IstanbulDailyTalkAI
+# Updated to use unified root-level main_system.py
+from istanbul_ai.main_system import IstanbulDailyTalkAI
 
 def analyze_response(response: str, query: str) -> dict:
     """Analyze response for key features"""

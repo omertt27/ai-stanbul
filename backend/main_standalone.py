@@ -215,6 +215,21 @@ app.add_middleware(
 )
 
 # ===============================
+# ROUTE INTEGRATION - ML-POWERED CHAT
+# ===============================
+
+# Import unified chat router with ML systems integration
+try:
+    from routes.unified_chat import router as unified_chat_router
+    app.include_router(unified_chat_router)
+    logger.info("✅ Unified ML-powered chat endpoint loaded (/api/chat)")
+    UNIFIED_CHAT_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Unified chat router not available: {e}")
+    logger.warning("⚠️ Falling back to legacy OpenAI-only chat endpoint")
+    UNIFIED_CHAT_AVAILABLE = False
+
+# ===============================
 # OPENAI INTEGRATION
 # ===============================
 
@@ -540,9 +555,23 @@ async def root():
         }
     }
 
-@app.post("/chat")
-async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
-    """Main chat endpoint with AI integration"""
+# ===============================
+# LEGACY CHAT ENDPOINT (DEPRECATED)
+# ===============================
+# This endpoint is kept as a fallback if unified_chat router fails to load
+# The new ML-powered endpoint is at /api/chat (via unified_chat router)
+# This legacy endpoint uses OpenAI directly without ML intent classification
+
+@app.post("/chat_legacy")
+async def chat_endpoint_legacy(request: ChatRequest, db: Session = Depends(get_db)):
+    """
+    DEPRECATED: Legacy chat endpoint with OpenAI-only integration
+    
+    This endpoint is kept as a fallback for compatibility.
+    New code should use /api/chat which includes ML intent classification.
+    """
+    logger.warning("⚠️ Using legacy chat endpoint - consider migrating to /api/chat")
+    
     try:
         user_message = request.message.strip()
         if not user_message:
@@ -593,8 +622,16 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         )
         
     except Exception as e:
-        logger.error(f"Chat endpoint error: {e}")
+        logger.error(f"Legacy chat endpoint error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# Fallback /chat endpoint if unified_chat router is not available
+if not UNIFIED_CHAT_AVAILABLE:
+    @app.post("/chat")
+    async def chat_endpoint_fallback(request: ChatRequest, db: Session = Depends(get_db)):
+        """Fallback chat endpoint when unified ML system is not available"""
+        logger.warning("⚠️ Unified chat not available, using fallback OpenAI endpoint")
+        return await chat_endpoint_legacy(request, db)
 
 @app.get("/api/blog/posts")
 async def get_blog_posts(db: Session = Depends(get_db)):
