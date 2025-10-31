@@ -24,7 +24,8 @@ from .routing import (
     IntentClassifier,
     EntityExtractor,
     QueryPreprocessor,
-    ResponseRouter
+    ResponseRouter,
+    HybridIntentClassifier
 )
 
 # Configure logging first
@@ -129,6 +130,15 @@ except ImportError as e:
     logger.warning(f"⚠️ Enhanced Bilingual Daily Talks System not available: {e}")
     ENHANCED_DAILY_TALKS_AVAILABLE = False
 
+# Import Neural Query Classifier (GPU-accelerated DistilBERT model)
+try:
+    from neural_query_classifier import NeuralQueryClassifier
+    NEURAL_CLASSIFIER_AVAILABLE = True
+    logger.info("✅ Neural Query Classifier (DistilBERT) loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Neural Query Classifier not available: {e}")
+    NEURAL_CLASSIFIER_AVAILABLE = False
+
 # Import Lightweight Neural Query Enhancement System (Budget-Friendly!)
 try:
     from backend.services.lightweight_neural_query_enhancement import (
@@ -209,6 +219,10 @@ class IstanbulDailyTalkAI:
         for service_name, service_instance in services.items():
             setattr(self, service_name, service_instance)
         
+        # Set default None for services that might not be available
+        if not hasattr(self, 'personalization_system'):
+            self.personalization_system = None
+        
         logger.info(f"✅ Initialized {len(services)} services via ServiceInitializer")
         
         # Week 1 Modularization: Initialize ML handlers using HandlerInitializer
@@ -238,8 +252,83 @@ class IstanbulDailyTalkAI:
         # Week 2 Modularization: Initialize routing layer components
         logger.info("🎯 Initializing routing layer components...")
         
-        # Initialize Intent Classifier (simple keyword-based)
-        self.intent_classifier = IntentClassifier()
+        # Initialize Neural Query Classifier (GPU-accelerated) if available
+        if NEURAL_CLASSIFIER_AVAILABLE:
+            try:
+                import torch
+                # Determine device: cuda (T4 GPU) if available, else CPU
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                
+                self.neural_classifier = NeuralQueryClassifier(
+                    model_path="models/distilbert_intent_classifier",
+                    device=device,
+                    confidence_threshold=0.70,
+                    enable_logging=True
+                )
+                
+                if device == "cuda":
+                    logger.info("✅ Neural classifier loaded (GPU-accelerated with T4)")
+                    logger.info(f"   GPU: {torch.cuda.get_device_name(0)}")
+                else:
+                    logger.info("✅ Neural classifier loaded (CPU mode)")
+            except Exception as e:
+                logger.warning(f"⚠️  Neural classifier initialization failed: {e}")
+                self.neural_classifier = None
+        else:
+            self.neural_classifier = None
+            logger.info("⚠️  Neural classifier not available - using keyword-only mode")
+        
+        # Initialize Neural Response Ranker (GPU-accelerated) - Phase 2
+        try:
+            from .routing.neural_response_ranker import NeuralResponseRanker
+            import torch
+            
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            
+            self.neural_ranker = NeuralResponseRanker(
+                device=device,
+                cache_embeddings=True,
+                batch_size=16
+            )
+            
+            if device == "cuda":
+                logger.info("✅ Neural ranker loaded (GPU-accelerated with T4)")
+            else:
+                logger.info("✅ Neural ranker loaded (CPU mode)")
+            
+            # Pre-warm cache with common queries - Phase 3
+            try:
+                from .routing.cache_prewarmer import CachePrewarmer
+                prewarmer = CachePrewarmer(self.neural_ranker)
+                prewarm_result = prewarmer.prewarm()
+                
+                if prewarm_result.get('success'):
+                    logger.info(
+                        f"🔥 Cache pre-warmed: {prewarm_result['success_count']}/{prewarm_result['total_queries']} queries, "
+                        f"{prewarm_result['elapsed_time']:.1f}s"
+                    )
+                else:
+                    logger.info("⚠️  Cache pre-warming skipped")
+            except Exception as e:
+                logger.warning(f"⚠️  Cache pre-warming failed: {e}")
+                
+        except Exception as e:
+            logger.warning(f"⚠️  Neural ranker initialization failed: {e}")
+            self.neural_ranker = None
+        
+        # Initialize Keyword-based Intent Classifier (fallback/ensemble)
+        self.keyword_classifier = IntentClassifier()
+        
+        # Initialize Hybrid Intent Classifier (combines neural + keyword)
+        self.intent_classifier = HybridIntentClassifier(
+            neural_classifier=self.neural_classifier,
+            keyword_classifier=self.keyword_classifier
+        )
+        
+        if self.neural_classifier:
+            logger.info("✅ Hybrid intent classifier initialized (Neural + Keyword ensemble)")
+        else:
+            logger.info("⚠️  Hybrid intent classifier initialized (Keyword-only fallback)")
         
         # Initialize Entity Extractor (wraps and enhances entity_recognizer)
         self.entity_extractor = EntityExtractor(
@@ -249,11 +338,12 @@ class IstanbulDailyTalkAI:
         # Initialize Query Preprocessor (no constructor params - uses neural_processor at runtime)
         self.query_preprocessor = QueryPreprocessor()
         
-        # Initialize Response Router (no constructor params - uses handlers at runtime)
-        self.response_router = ResponseRouter()
+        # Initialize Response Router with neural ranker (Phase 2)
+        self.response_router = ResponseRouter(neural_ranker=self.neural_ranker)
         
-        # Store ML handlers for routing
+        # Store ML handlers for routing (include response_generator for fallback)
         self.ml_handlers = handlers
+        self.ml_handlers['response_generator'] = self.response_generator
         
         logger.info("✅ Routing layer components initialized successfully!")
         
@@ -465,13 +555,13 @@ class IstanbulDailyTalkAI:
             # Week 2: Use QueryPreprocessor for comprehensive query analysis
             preprocessed_query = self.query_preprocessor.preprocess_query(
                 message=message,
+                user_id=user_id,
                 user_profile=user_profile,
-                context=context,
-                session_id=session_id
+                neural_processor=self.neural_query_enhancer if hasattr(self, 'neural_query_enhancer') else None
             )
             
-            # Extract neural insights from preprocessed query
-            neural_insights = preprocessed_query.neural_insights
+            # Extract neural insights from preprocessed query (handle dict or object)
+            neural_insights = preprocessed_query.get('neural_insights') if isinstance(preprocessed_query, dict) else getattr(preprocessed_query, 'neural_insights', {})
             
             # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
             if self._is_daily_talk_query(message):
@@ -480,8 +570,7 @@ class IstanbulDailyTalkAI:
             # Week 2: Use EntityExtractor for comprehensive entity extraction
             entities = self.entity_extractor.extract_entities(
                 message=message,
-                neural_insights=neural_insights,
-                user_context=preprocessed_query.user_context
+                context=context
             )
             
             # Week 2: Use IntentClassifier for intelligent intent classification
@@ -512,6 +601,7 @@ class IstanbulDailyTalkAI:
                 entities=entities,
                 user_profile=user_profile,
                 context=context,
+                handlers=self.ml_handlers,
                 neural_insights=neural_insights,
                 return_structured=return_structured
             )
@@ -2528,8 +2618,8 @@ What would you like to explore first? I'm here to make your Istanbul experience 
             import os
             process = psutil.Process(os.getpid())
             health_status['system_metrics'] = {
-                'memory_usage_mb': round(process.memory_info().rss / 1024 / 1024, 2),
                 'cpu_percent': process.cpu_percent(interval=0.1),
+                'memory_usage_mb': round(process.memory_info().rss / 1024 / 1024, 2),
             }
         except Exception as e:
             logger.debug(f"Could not get system metrics: {e}")

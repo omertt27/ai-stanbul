@@ -1105,3 +1105,13 @@
 {"timestamp": "2025-10-25T21:40:51.164842", "query": "Luxury hotels with Bosphorus view", "intent": "hotel_search", "confidence": 0.8695, "latency_ms": 9.94, "high_confidence": true}
 {"timestamp": "2025-10-25T21:40:51.173088", "query": "Safe neighborhoods to stay", "intent": "neighborhood_search", "confidence": 0.3198, "latency_ms": 8.07, "high_confidence": false}
 {"timestamp": "2025-10-25T21:40:51.181205", "query": "Hotel recommendations", "intent": "recommendation_request", "confidence": 0.5675, "latency_ms": 7.99, "high_confidence": false}
+{"timestamp": "2025-10-31T16:49:31.384023", "query": "What's the weather like today?", "intent": "weather", "confidence": 0.9978, "latency_ms": 379.51, "high_confidence": true}
+{"timestamp": "2025-10-31T16:49:31.409421", "query": "Best restaurants in Sultanahmet", "intent": "hidden_gems", "confidence": 0.9375, "latency_ms": 24.15, "high_confidence": true}
+{"timestamp": "2025-10-31T16:49:31.432637", "query": "How do I get to Taksim Square?", "intent": "transportation", "confidence": 0.9902, "latency_ms": 22.91, "high_confidence": true}
+{"timestamp": "2025-10-31T16:49:31.453319", "query": "Tell me about hidden gems in Istanbul", "intent": "hidden_gems", "confidence": 0.9975, "latency_ms": 20.38, "high_confidence": true}
+{"timestamp": "2025-10-31T16:49:31.477351", "query": "Events happening this weekend", "intent": "events", "confidence": 0.9989, "latency_ms": 23.76, "high_confidence": true}
+{"timestamp": "2025-10-31T16:50:06.060866", "query": "What's the weather like today?", "intent": "weather", "confidence": 0.9978, "latency_ms": 318.62, "high_confidence": true}
+{"timestamp": "2025-10-31T16:50:06.088826", "query": "Best restaurants in Sultanahmet", "intent": "hidden_gems", "confidence": 0.9375, "latency_ms": 24.85, "high_confidence": true}
+{"timestamp": "2025-10-31T16:50:06.111862", "query": "How do I get to Taksim Square?", "intent": "transportation", "confidence": 0.9902, "latency_ms": 22.76, "high_confidence": true}
+{"timestamp": "2025-10-31T16:50:06.136237", "query": "Tell me about hidden gems in Istanbul", "intent": "hidden_gems", "confidence": 0.9975, "latency_ms": 24.1, "high_confidence": true}
+{"timestamp": "2025-10-31T16:50:06.159847", "query": "Events happening this weekend", "intent": "events", "confidence": 0.9989, "latency_ms": 23.3, "high_confidence": true}

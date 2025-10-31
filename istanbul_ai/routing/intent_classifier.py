@@ -8,10 +8,22 @@ Week 2 Refactoring: Extracted from main_system.py
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, field
 from ..core.models import ConversationContext
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class IntentResult:
+    """Intent classification result"""
+    primary_intent: str
+    confidence: float = 0.0
+    intents: List[str] = field(default_factory=list)
+    is_multi_intent: bool = False
+    multi_intent_response: Optional[str] = None
+    entities: Dict[str, Any] = field(default_factory=dict)
 
 
 class IntentClassifier:
@@ -65,20 +77,49 @@ class IntentClassifier:
                 'store', 'mall', 'purchase', 'gifts'
             ],
             'events': [
+                # Core event keywords
                 'event', 'events', 'activity', 'activities', 'entertainment', 
-                'nightlife', 'what to do', 'things to do', 'happening', 'going on', 
+                'nightlife', 'what to do', 'things to do', 'happening', 'going on',
+                # Performance types
                 'concert', 'concerts', 'show', 'shows', 'performance', 'performances', 
-                'theater', 'theatre', 'cultural', 'festival', 'festivals', 
-                'exhibition', 'exhibitions', 'iksv', 'İKSV', 'salon', 'babylon', 
-                'music event', 'art event', 'tonight', 'this weekend', 'this week', 
-                'this month'
+                'theater', 'theatre', 'opera', 'ballet', 'dance', 'comedy',
+                'live music', 'dj', 'club', 'party', 'parties', 'celebration',
+                # Event types
+                'cultural', 'festival', 'festivals', 'exhibition', 'exhibitions',
+                'gallery opening', 'art show', 'music event', 'art event',
+                'sporting event', 'sports', 'match', 'game', 'tournament',
+                # Venues
+                'iksv', 'İKSV', 'salon', 'babylon', 'zorlu', 'zorlu psm',
+                'cemal reşit rey', 'atatürk kültür merkezi', 'akm',
+                # Temporal patterns
+                'tonight', 'today', 'tomorrow', 'this weekend', 'this week', 
+                'this month', 'next week', 'upcoming', 'soon', 'now', 'currently',
+                'this evening', 'this afternoon', 'later today', 'upcoming events',
+                # Questions
+                'what\'s on', 'whats on', 'what\'s happening', 'any events',
+                'any concerts', 'any shows', 'where to go', 'what\'s playing'
             ],
             'weather': [
+                # Core weather keywords
                 'weather', 'temperature', 'forecast', 'rain', 'sunny', 'cloudy', 
-                'hot', 'cold', 'what\'s the weather', 'how\'s the weather', 
-                'weather today', 'weather tomorrow', 'will it rain', 'is it sunny', 
+                'hot', 'cold', 'warm', 'cool', 'humid', 'dry',
+                # Weather conditions
+                'storm', 'stormy', 'snow', 'snowy', 'drizzle', 'shower', 'showers',
+                'heatwave', 'windy', 'foggy', 'misty', 'haze',
+                # Measurements
                 'degrees', 'celsius', 'fahrenheit', 'humidity', 'wind', 
-                'precipitation', 'weather conditions', 'climate'
+                'precipitation', 'atmospheric', 'barometric',
+                # Question patterns
+                'what\'s the weather', 'how\'s the weather', 'weather like',
+                'weather today', 'weather tomorrow', 'weather this week',
+                'will it rain', 'is it raining', 'is it sunny', 'is it hot', 'is it cold',
+                'should i bring umbrella', 'should i bring jacket', 'need umbrella',
+                'what to wear', 'dress for weather', 'what should i wear',
+                # Weather + activity
+                'weather appropriate', 'good weather for', 'weather for walking',
+                'weather for sightseeing', 'outdoor weather',
+                # General
+                'climate', 'meteorological', 'weather conditions', 'forecast today'
             ],
             'airport_transport': [
                 'airport', 'ist', 'saw', 'atatürk', 'ataturk', 'istanbul airport', 
@@ -97,8 +138,22 @@ class IntentClassifier:
                 'lesser known', 'hidden places'
             ],
             'route_planning': [
-                'route', 'itinerary', 'plan', 'schedule', 'day trip', 
-                'trip planning', 'travel plan'
+                # Planning keywords
+                'route', 'itinerary', 'plan', 'planning', 'schedule', 'organize',
+                'day trip', 'trip planning', 'travel plan',
+                # Tour types
+                'tour', 'one day tour', 'two day tour', 'three day tour', 'multi-day',
+                'walking tour', 'food tour', 'cultural tour', 'historical tour',
+                # Duration patterns
+                'one day', 'two days', '3 days', '4 days', '5 days', 'week itinerary',
+                'weekend trip', 'full day', 'half day', 'morning tour', 'afternoon tour',
+                # Questions
+                'what should i visit', 'best route to visit', 'how to visit all',
+                'efficient way to see', 'best way to see', 'plan my visit',
+                'help me plan', 'organize my trip', 'create itinerary',
+                # Multi-destination
+                'visit all', 'see everything', 'cover all', 'comprehensive tour',
+                'best order to visit', 'optimal route'
             ],
             'gps_route_planning': [
                 'directions', 'navigation', 'how to get', 'from', 'to', 'nearest', 
@@ -155,8 +210,10 @@ class IntentClassifier:
         self, 
         message: str, 
         entities: Dict, 
-        context: Optional[ConversationContext] = None
-    ) -> str:
+        context: Optional[ConversationContext] = None,
+        neural_insights: Optional[Dict] = None,
+        preprocessed_query: Optional[Any] = None
+    ) -> IntentResult:
         """
         Classify user intent from message with contextual awareness
         
@@ -164,78 +221,90 @@ class IntentClassifier:
             message: User's input message
             entities: Extracted entities from message
             context: Conversation context (optional)
+            neural_insights: Neural processing insights (optional)
+            preprocessed_query: Preprocessed query data (optional)
         
         Returns:
-            Classified intent string
+            IntentResult object with classification details
         """
         message_lower = message.lower()
+        primary_intent = 'general'
         
-        # Check for restaurant/food intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['restaurant']) or entities.get('cuisines'):
-            return 'restaurant'
-        
-        # Check for attraction/sightseeing intent (enhanced with museum keywords)
-        museum_specific = any(word in message_lower for word in ['museum', 'museums', 'gallery', 'galleries', 'exhibition'])
-        attraction_specific = any(word in message_lower for word in ['attraction', 'attractions', 'landmark', 'palace', 'mosque'])
-        
-        if (museum_specific or attraction_specific or 
-            any(keyword in message_lower for keyword in self.intent_keywords['attraction']) or 
-            entities.get('landmarks')):
-            return 'attraction'
-        
-        # Check for transportation intent
-        if (any(keyword in message_lower for keyword in self.intent_keywords['transportation']) or 
-            entities.get('transportation')):
-            return 'transportation'
-        
-        # Check for neighborhood/area intent
-        if (any(keyword in message_lower for keyword in self.intent_keywords['neighborhood']) or 
-            entities.get('neighborhoods')):
-            return 'neighborhood'
-        
-        # Check for shopping intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['shopping']):
-            return 'shopping'
-        
-        # Check for events/activities intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['events']):
-            return 'events'
-        
-        # Check for weather intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['weather']):
-            return 'weather'
-        
-        # Check for airport transport intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['airport_transport']):
-            return 'airport_transport'
-        
-        # Check for hidden gems intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['hidden_gems']):
-            return 'hidden_gems'
-        
-        # Check for route planning intent
-        if any(keyword in message_lower for keyword in self.intent_keywords['route_planning']):
-            return 'route_planning'
-        
-        # Check for GPS-based route planning intent (more specific)
-        gps_route_keywords = self.intent_keywords['gps_route_planning']
-        location_indicators = ['from', 'to', 'near', 'closest', 'nearby', 'distance']
-        if (any(keyword in message_lower for keyword in gps_route_keywords) or 
-            (any(indicator in message_lower for indicator in location_indicators) and 
-             any(rk in message_lower for rk in ['route', 'get', 'go', 'directions']))):
-            return 'gps_route_planning'
-        
-        # Check for museum route planning intent (more specific)
-        museum_route_keywords = self.intent_keywords['museum_route_planning']
-        if (any(keyword in message_lower for keyword in museum_route_keywords) or 
-            ('museum' in message_lower and any(rk in message_lower for rk in ['route', 'plan', 'tour', 'visit']))):
-            return 'museum_route_planning'
-        
-        # Check for greeting/general intent
+        # PRIORITY 1: Check for greeting/general intent (most specific patterns)
         if any(keyword in message_lower for keyword in self.intent_keywords['greeting']):
-            return 'greeting'
+            primary_intent = 'greeting'
         
-        return 'general'
+        # PRIORITY 2: Check for GPS-based route planning intent (very specific)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['gps_route_planning']) or \
+            (any(indicator in message_lower for indicator in ['from', 'to', 'near', 'closest', 'nearby', 'distance']) and 
+             any(rk in message_lower for rk in ['route', 'get', 'go', 'directions'])):
+            primary_intent = 'gps_route_planning'
+        
+        # PRIORITY 3: Check for museum route planning intent (specific)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['museum_route_planning']) or \
+            ('museum' in message_lower and any(rk in message_lower for rk in ['route', 'plan', 'tour', 'visit'])):
+            primary_intent = 'museum_route_planning'
+        
+        # PRIORITY 4: Check for weather intent (specific patterns before food/general)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['weather']):
+            primary_intent = 'weather'
+        
+        # PRIORITY 5: Check for route planning intent (before attractions)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['route_planning']):
+            primary_intent = 'route_planning'
+        
+        # PRIORITY 6: Check for airport transport intent (specific)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['airport_transport']):
+            primary_intent = 'airport_transport'
+        
+        # PRIORITY 7: Check for events/activities intent (before attractions)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['events']):
+            primary_intent = 'events'
+        
+        # PRIORITY 8: Check for hidden gems intent
+        elif any(keyword in message_lower for keyword in self.intent_keywords['hidden_gems']):
+            primary_intent = 'hidden_gems'
+        
+        # PRIORITY 9: Check for transportation intent
+        elif (any(keyword in message_lower for keyword in self.intent_keywords['transportation']) or 
+            entities.get('transportation')):
+            primary_intent = 'transportation'
+        
+        # PRIORITY 10: Check for neighborhood/area intent
+        elif (any(keyword in message_lower for keyword in self.intent_keywords['neighborhood']) or 
+            entities.get('neighborhoods')):
+            primary_intent = 'neighborhood'
+        
+        # PRIORITY 11: Check for shopping intent
+        elif any(keyword in message_lower for keyword in self.intent_keywords['shopping']):
+            primary_intent = 'shopping'
+        
+        # PRIORITY 12: Check for restaurant/food intent (broader, comes later)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['restaurant']) or entities.get('cuisines'):
+            primary_intent = 'restaurant'
+        
+        # PRIORITY 13: Check for attraction/sightseeing intent (broadest, comes last)
+        elif any(word in message_lower for word in ['museum', 'museums', 'gallery', 'galleries', 'exhibition', 
+                                                     'attraction', 'attractions', 'landmark', 'palace', 'mosque']) or \
+            any(keyword in message_lower for keyword in self.intent_keywords['attraction']) or \
+            entities.get('landmarks'):
+            primary_intent = 'attraction'
+        
+        # Calculate confidence
+        confidence = self.get_intent_confidence(message, primary_intent)
+        
+        # Detect multiple intents
+        all_intents = self.detect_multiple_intents(message, entities)
+        is_multi_intent = len(all_intents) > 1
+        
+        return IntentResult(
+            primary_intent=primary_intent,
+            confidence=confidence,
+            intents=all_intents,
+            is_multi_intent=is_multi_intent,
+            multi_intent_response=None,  # Can be enhanced later
+            entities=entities
+        )
     
     def detect_multiple_intents(self, message: str, entities: Dict) -> List[str]:
         """
@@ -285,7 +354,12 @@ class IntentClassifier:
     
     def get_intent_confidence(self, message: str, intent: str) -> float:
         """
-        Calculate confidence score for a classified intent
+        Calculate confidence score for a classified intent with improved algorithm
+        
+        Confidence factors:
+        1. Keyword match count (primary)
+        2. Strong indicators (keywords that clearly signal intent)
+        3. Message specificity (shorter, focused messages = higher confidence)
         
         Args:
             message: User's input message
@@ -298,12 +372,61 @@ class IntentClassifier:
             return 0.0
         
         message_lower = message.lower()
+        message_words = set(message_lower.split())
         keywords = self.intent_keywords[intent]
         
-        # Count matching keywords
+        # Factor 1: Count matching keywords
         matches = sum(1 for keyword in keywords if keyword in message_lower)
         
-        # Calculate confidence (simple approach: matches / total keywords)
-        confidence = min(matches / max(len(keywords) * 0.1, 1.0), 1.0)
+        if matches == 0:
+            return 0.0
         
-        return confidence
+        # Factor 2: Strong indicators (high-value keywords that clearly signal intent)
+        strong_indicators = {
+            'restaurant': ['restaurant', 'restaurants', 'eat', 'dining', 'lunch', 'dinner', 'breakfast', 'cuisine'],
+            'attraction': ['museum', 'museums', 'palace', 'palaces', 'mosque', 'mosques', 'attraction', 'attractions', 'landmark', 'landmarks', 'visit', 'see'],
+            'transportation': ['metro', 'bus', 'ferry', 'transport', 'transportation', 'how to get', 'directions', 'tram'],
+            'weather': ['weather', 'forecast', 'temperature', 'rain', 'sunny', 'cloudy', 'what\'s the weather', 'how\'s the weather', 'will it rain'],
+            'events': ['event', 'events', 'concert', 'concerts', 'show', 'shows', 'festival', 'festivals', 'happening', 'tonight', 'what\'s on', 'exhibition'],
+            'neighborhood': ['neighborhood', 'area', 'district', 'where to stay'],
+            'shopping': ['shopping', 'bazaar', 'market', 'souvenir', 'buy'],
+            'hidden_gems': ['hidden', 'secret', 'local', 'gems', 'authentic'],
+            'airport_transport': ['airport', 'terminal', 'flight', 'ist', 'saw'],
+            'route_planning': ['route', 'itinerary', 'plan', 'schedule', 'tour', 'day trip', 'trip planning'],
+            'gps_route_planning': ['directions', 'how to get', 'from', 'to', 'navigation'],
+            'greeting': ['hello', 'hi', 'merhaba', 'help']
+        }
+        
+        # Check for strong indicators
+        has_strong_indicator = False
+        if intent in strong_indicators:
+            has_strong_indicator = any(
+                indicator in message_lower 
+                for indicator in strong_indicators[intent]
+            )
+        
+        # Factor 3: Calculate base confidence using logarithmic scale
+        # This avoids penalizing intents with many keywords
+        if matches >= 3:
+            base_confidence = 0.95
+        elif matches == 2:
+            base_confidence = 0.85
+        elif matches == 1:
+            base_confidence = 0.75 if has_strong_indicator else 0.65
+        else:
+            base_confidence = 0.50
+        
+        # Factor 4: Boost for strong indicators
+        if has_strong_indicator:
+            base_confidence = min(base_confidence + 0.15, 1.0)
+        
+        # Factor 5: Consider message specificity
+        # Shorter, focused messages should have higher confidence
+        if len(message_words) <= 5 and matches >= 1:
+            base_confidence = min(base_confidence + 0.10, 1.0)
+        
+        # Factor 6: Penalize if message is very long and vague
+        if len(message_words) > 15 and matches == 1 and not has_strong_indicator:
+            base_confidence = max(base_confidence - 0.15, 0.40)
+        
+        return round(base_confidence, 2)

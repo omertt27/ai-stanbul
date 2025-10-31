@@ -5,6 +5,7 @@ This module handles intelligent routing of user queries to the most appropriate
 handler (ML-enhanced or standard) based on intent, context, and availability.
 
 Week 2 Refactoring: Extracted from main_system.py
+Phase 2 Enhancement: Added neural response ranking for semantic result ordering
 """
 
 import logging
@@ -17,8 +18,13 @@ logger = logging.getLogger(__name__)
 class ResponseRouter:
     """Route queries to appropriate handlers with intelligent fallback"""
     
-    def __init__(self):
-        """Initialize the response router"""
+    def __init__(self, neural_ranker=None):
+        """
+        Initialize the response router
+        
+        Args:
+            neural_ranker: Optional NeuralResponseRanker for semantic ranking
+        """
         self.ml_handler_priority = [
             'ml_restaurant_handler',
             'ml_attraction_handler',
@@ -28,6 +34,15 @@ class ResponseRouter:
             'ml_route_planning_handler',
             'ml_neighborhood_handler'
         ]
+        
+        # Neural ranker for semantic result ordering
+        self.neural_ranker = neural_ranker
+        self.use_neural_ranking = neural_ranker is not None and neural_ranker.available
+        
+        if self.use_neural_ranking:
+            logger.info("✅ Response Router initialized with neural ranking")
+        else:
+            logger.info("📝 Response Router initialized (keyword-only ranking)")
     
     def route_query(
         self,
@@ -622,3 +637,192 @@ class ResponseRouter:
         
         handler_name = ml_handler_map.get(intent)
         return handler_name and handlers.get(handler_name) is not None
+    
+    def rank_results(
+        self,
+        query: str,
+        results: List[Dict],
+        user_context: Optional[Dict] = None,
+        field: str = 'description'
+    ) -> List[Dict]:
+        """
+        Rank results using neural semantic similarity or fallback
+        
+        Args:
+            query: User's search query
+            results: List of result dictionaries to rank
+            user_context: Optional user context (preferences, history, etc.)
+            field: Field to use for semantic matching
+            
+        Returns:
+            Ranked list of results
+        """
+        if not results:
+            return results
+        
+        # Use neural ranker if available
+        if self.use_neural_ranking:
+            try:
+                ranking_result = self.neural_ranker.rank_results(
+                    query=query,
+                    results=results,
+                    user_context=user_context,
+                    field=field
+                )
+                
+                if ranking_result.method == 'neural':
+                    logger.info(
+                        f"🧠 Neural ranking: {len(results)} results, "
+                        f"avg similarity: {ranking_result.avg_semantic_score:.3f}"
+                    )
+                    return ranking_result.ranked_results
+                    
+            except Exception as e:
+                logger.warning(f"Neural ranking failed, using fallback: {e}")
+        
+        # Fallback: rank by rating or default order
+        return self._fallback_ranking(results)
+    
+    def _fallback_ranking(self, results: List[Dict]) -> List[Dict]:
+        """
+        Fallback ranking based on rating/popularity
+        
+        Args:
+            results: List of results to rank
+            
+        Returns:
+            Ranked results
+        """
+        # Sort by rating if available, otherwise maintain order
+        try:
+            return sorted(
+                results,
+                key=lambda x: x.get('rating', x.get('popularity', 0)),
+                reverse=True
+            )
+        except:
+            return results
+    
+    def rank_restaurants(
+        self,
+        query: str,
+        restaurants: List[Dict],
+        user_profile: Optional[UserProfile] = None
+    ) -> List[Dict]:
+        """
+        Rank restaurant results with neural semantic similarity
+        
+        Args:
+            query: User's restaurant query
+            restaurants: List of restaurant dictionaries
+            user_profile: Optional user profile for context
+            
+        Returns:
+            Ranked restaurants
+        """
+        # Build user context from profile
+        user_context = None
+        if user_profile:
+            user_context = {
+                'preferences': {
+                    'preferred_cuisines': user_profile.preferences.get('cuisines', []),
+                    'price_range': user_profile.preferences.get('price_range', '$$'),
+                    'dietary_restrictions': user_profile.preferences.get('dietary_restrictions', [])
+                },
+                'history': {
+                    'liked_places': user_profile.history.get('liked_restaurants', [])
+                }
+            }
+        
+        return self.rank_results(
+            query=query,
+            results=restaurants,
+            user_context=user_context,
+            field='description'
+        )
+    
+    def rank_attractions(
+        self,
+        query: str,
+        attractions: List[Dict],
+        user_profile: Optional[UserProfile] = None
+    ) -> List[Dict]:
+        """
+        Rank attraction results with neural semantic similarity
+        
+        Args:
+            query: User's attraction query
+            attractions: List of attraction dictionaries
+            user_profile: Optional user profile for context
+            
+        Returns:
+            Ranked attractions
+        """
+        user_context = None
+        if user_profile:
+            user_context = {
+                'preferences': {
+                    'interests': user_profile.preferences.get('interests', []),
+                    'activity_level': user_profile.preferences.get('activity_level', 'moderate')
+                },
+                'history': {
+                    'liked_places': user_profile.history.get('liked_attractions', [])
+                }
+            }
+        
+        return self.rank_results(
+            query=query,
+            results=attractions,
+            user_context=user_context,
+            field='description'
+        )
+    
+    def rank_events(
+        self,
+        query: str,
+        events: List[Dict],
+        user_profile: Optional[UserProfile] = None
+    ) -> List[Dict]:
+        """
+        Rank event results with neural semantic similarity
+        
+        Args:
+            query: User's event query
+            events: List of event dictionaries
+            user_profile: Optional user profile for context
+            
+        Returns:
+            Ranked events
+        """
+        user_context = None
+        if user_profile:
+            user_context = {
+                'preferences': {
+                    'event_types': user_profile.preferences.get('event_types', []),
+                    'interests': user_profile.preferences.get('interests', [])
+                },
+                'history': {
+                    'liked_events': user_profile.history.get('liked_events', [])
+                }
+            }
+        
+        return self.rank_results(
+            query=query,
+            results=events,
+            user_context=user_context,
+            field='description'
+        )
+    
+    def get_ranking_stats(self) -> Dict:
+        """
+        Get neural ranking statistics
+        
+        Returns:
+            Statistics dictionary
+        """
+        if self.neural_ranker:
+            return self.neural_ranker.get_stats()
+        return {
+            'available': False,
+            'method': 'fallback'
+        }

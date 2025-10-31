@@ -75,6 +75,12 @@ self.addEventListener('activate', (event) => {
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  
+  // Only handle http and https requests
+  if (!request.url.startsWith('http://') && !request.url.startsWith('https://')) {
+    return;
+  }
+  
   const url = new URL(request.url);
 
   // Handle map tiles separately
@@ -111,7 +117,11 @@ async function handleMapTileRequest(request) {
     
     // Cache successful responses
     if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+      try {
+        await cache.put(request, networkResponse.clone());
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to cache map tile:', cacheError);
+      }
     }
     
     return networkResponse;
@@ -134,8 +144,12 @@ async function handleAPIRequest(request) {
     
     // Cache successful GET requests
     if (request.method === 'GET' && networkResponse.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE);
+        await cache.put(request, networkResponse.clone());
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to cache API response:', cacheError);
+      }
     }
     
     return networkResponse;
@@ -184,8 +198,12 @@ async function handleStaticRequest(request) {
     
     // Cache successful responses
     if (networkResponse.ok) {
-      const dynamicCache = await caches.open(DYNAMIC_CACHE);
-      dynamicCache.put(request, networkResponse.clone());
+      try {
+        const dynamicCache = await caches.open(DYNAMIC_CACHE);
+        await dynamicCache.put(request, networkResponse.clone());
+      } catch (cacheError) {
+        console.warn('⚠️ Failed to cache static asset:', cacheError);
+      }
     }
     
     return networkResponse;
