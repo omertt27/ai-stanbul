@@ -1,0 +1,69 @@
+{
+  "base_model": {
+    "model_type": "base",
+    "accuracy": 0.0,
+    "correct": 0,
+    "total": 200,
+    "avg_confidence": 0.9243264561891555,
+    "high_confidence_count": 175,
+    "low_confidence_count": 25,
+    "avg_latency_ms": 22.238798141479492,
+    "intent_accuracies": {
+      "transport_info": 0.0,
+      "attraction_search": 0.0,
+      "weather_query": 0.0,
+      "restaurant_search": 0.0,
+      "neighborhood_info": 0.0,
+      "practical_info": 0.0,
+      "transport_route": 0.0,
+      "daily_greeting": 0.0,
+      "neighborhood_search": 0.0,
+      "comparison_request": 0.0,
+      "daily_farewell": 0.0,
+      "price_inquiry": 0.0,
+      "event_search": 0.0,
+      "daily_help": 0.0,
+      "daily_gratitude": 0.0,
+      "recommendation_request": 0.0,
+      "hotel_search": 0.0,
+      "attraction_info": 0.0,
+      "restaurant_info": 0.0
+    }
+  },
+  "finetuned_model": {
+    "model_type": "finetuned",
+    "accuracy": 100.0,
+    "correct": 200,
+    "total": 200,
+    "avg_confidence": 0.9857843708992005,
+    "high_confidence_count": 199,
+    "low_confidence_count": 1,
+    "avg_latency_ms": 22.659698724746704,
+    "intent_accuracies": {
+      "transport_info": 100.0,
+      "attraction_search": 100.0,
+      "weather_query": 100.0,
+      "restaurant_search": 100.0,
+      "neighborhood_info": 100.0,
+      "practical_info": 100.0,
+      "transport_route": 100.0,
+      "daily_greeting": 100.0,
+      "neighborhood_search": 100.0,
+      "comparison_request": 100.0,
+      "daily_farewell": 100.0,
+      "price_inquiry": 100.0,
+      "event_search": 100.0,
+      "daily_help": 100.0,
+      "daily_gratitude": 100.0,
+      "recommendation_request": 100.0,
+      "hotel_search": 100.0,
+      "attraction_info": 100.0,
+      "restaurant_info": 100.0
+    }
+  },
+  "comparison": {
+    "accuracy_improvement": 100.0,
+    "confidence_improvement": 0.061457914710044914,
+    "latency_difference": 0.4209005832672119
+  }
+}

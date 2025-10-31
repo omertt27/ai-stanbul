@@ -67,6 +67,7 @@ class NeuralQueryClassifier:
     def __init__(
         self,
         model_path: str = "models/distilbert_intent_classifier",  # Updated to use newly trained DistilBERT model
+        use_finetuned: bool = False,  # ✨ NEW: Enable fine-tuned Istanbul model
         confidence_threshold: float = 0.70,
         device: str = "auto",
         enable_logging: bool = True,
@@ -76,13 +77,15 @@ class NeuralQueryClassifier:
         Initialize neural query classifier
         
         Args:
-            model_path: Path to trained model weights
+            model_path: Path to trained model weights (base model path)
+            use_finetuned: If True, try to load fine-tuned Istanbul model first
             confidence_threshold: Minimum confidence for predictions
             device: Device to use ('auto', 'mps', 'cuda', 'cpu')
             enable_logging: Enable prediction logging
             log_file: Path to log file (JSON Lines format)
         """
         self.model_path = model_path
+        self.use_finetuned_preference = use_finetuned  # User preference
         self.confidence_threshold = confidence_threshold
         self.enable_logging = enable_logging
         self.log_file = log_file
@@ -130,13 +133,25 @@ class NeuralQueryClassifier:
             return torch.device(device)
     
     def _load_model(self):
-        """Load model and tokenizer"""
+        """Load model and tokenizer with fine-tuned model support"""
         try:
-            model_path = Path(self.model_path)
+            # Determine which model to load
+            finetuned_path = Path("models/istanbul_intent_classifier_finetuned")
+            base_path = Path(self.model_path)
+            
+            # Try fine-tuned model first if preference is set
+            if self.use_finetuned_preference and finetuned_path.exists():
+                logger.info(f"🎓 Loading fine-tuned Istanbul model from {finetuned_path}...")
+                model_path = finetuned_path
+            else:
+                if self.use_finetuned_preference:
+                    logger.warning(f"⚠️ Fine-tuned model not found at {finetuned_path}, using base model")
+                logger.info(f"Loading base model from {base_path}...")
+                model_path = base_path
             
             # Check if this is a fine-tuned Hugging Face model (has config.json)
             if (model_path / "config.json").exists():
-                logger.info(f"Loading fine-tuned Hugging Face model from {self.model_path}...")
+                logger.info(f"Loading Hugging Face transformer model from {model_path}...")
                 
                 # Load intent mapping FIRST to get the correct number of labels
                 intent_mapping_path = model_path / "intent_mapping.json"
@@ -156,9 +171,9 @@ class NeuralQueryClassifier:
                 # Load tokenizer and model with correct num_labels
                 from transformers import AutoModelForSequenceClassification
                 
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+                self.tokenizer = AutoTokenizer.from_pretrained(str(model_path))
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    self.model_path,
+                    str(model_path),
                     num_labels=num_labels
                 )
                 
@@ -167,7 +182,7 @@ class NeuralQueryClassifier:
                 if metadata_path.exists():
                     with open(metadata_path, 'r') as f:
                         metadata = json.load(f)
-                        logger.info(f"✅ Fine-tuned model loaded:")
+                        logger.info(f"✅ Fine-tuned model metadata:")
                         logger.info(f"   Training accuracy: {metadata.get('final_train_accuracy', 0):.2%}")
                         logger.info(f"   Validation accuracy: {metadata.get('final_val_accuracy', 0):.2%}")
                         logger.info(f"   Dataset size: {metadata.get('dataset_size', 'unknown')} samples")
@@ -177,7 +192,7 @@ class NeuralQueryClassifier:
                 self.model.eval()
                 self.use_finetuned = True
                 
-                logger.info("✅ Fine-tuned model loaded and ready")
+                logger.info("✅ Transformer model loaded and ready")
                 
             else:
                 # Fallback to old .pth format

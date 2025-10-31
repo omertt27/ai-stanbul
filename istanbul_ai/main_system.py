@@ -191,6 +191,18 @@ except ImportError as e:
     logger.warning(f"⚠️ ML-Enhanced Handlers not available: {e}")
     ML_ENHANCED_HANDLERS_AVAILABLE = False
 
+# Import A/B Testing Framework
+try:
+    from istanbul_ai.testing.ab_test_framework import ABTestFramework, Experiment
+    from istanbul_ai.testing.ranking_experiments import create_ranking_experiments
+    from istanbul_ai.testing.ab_analytics import ABAnalytics
+    from istanbul_ai.testing.ab_monitoring import ABMonitor
+    AB_TESTING_AVAILABLE = True
+    logger.info("✅ A/B Testing Framework loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ A/B Testing Framework not available: {e}")
+    AB_TESTING_AVAILABLE = False
+
 
 class IstanbulDailyTalkAI:
     """🚀 ENHANCED Istanbul Daily Talk AI System with Deep Learning
@@ -261,16 +273,19 @@ class IstanbulDailyTalkAI:
                 
                 self.neural_classifier = NeuralQueryClassifier(
                     model_path="models/distilbert_intent_classifier",
+                    use_finetuned=True,  # ✨ PHASE 5: Enable fine-tuned Istanbul model
                     device=device,
-                    confidence_threshold=0.70,
+                    confidence_threshold=0.75,  # ✨ Increased from 0.70 for fine-tuned model
                     enable_logging=True
                 )
                 
                 if device == "cuda":
                     logger.info("✅ Neural classifier loaded (GPU-accelerated with T4)")
                     logger.info(f"   GPU: {torch.cuda.get_device_name(0)}")
+                    logger.info("   🎓 Fine-tuned Istanbul model enabled")
                 else:
                     logger.info("✅ Neural classifier loaded (CPU mode)")
+                    logger.info("   🎓 Fine-tuned Istanbul model enabled")
             except Exception as e:
                 logger.warning(f"⚠️  Neural classifier initialization failed: {e}")
                 self.neural_classifier = None
@@ -345,7 +360,39 @@ class IstanbulDailyTalkAI:
         self.ml_handlers = handlers
         self.ml_handlers['response_generator'] = self.response_generator
         
-        logger.info("✅ Routing layer components initialized successfully!")
+        logger.info("✅ Routing layer components initialized successfully")
+        
+        # Initialize A/B Testing Framework (Phase 4)
+        if AB_TESTING_AVAILABLE:
+            try:
+                logger.info("🧪 Initializing A/B Testing Framework...")
+                
+                # Initialize core A/B testing framework
+                self.ab_framework = ABTestFramework()
+                
+                # Initialize analytics and monitoring
+                self.ab_analytics = ABAnalytics()
+                self.ab_monitor = ABMonitor(self.ab_framework)
+                
+                # Setup pre-configured ranking experiments
+                self._setup_ranking_experiments()
+                
+                # Start real-time monitoring
+                self.ab_monitor.start_monitoring()
+                
+                logger.info("✅ A/B Testing Framework initialized successfully!")
+                logger.info(f"   Active experiments: {len(self.ab_framework.list_active_experiments())}")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ A/B Testing Framework initialization failed: {e}")
+                self.ab_framework = None
+                self.ab_analytics = None
+                self.ab_monitor = None
+        else:
+            self.ab_framework = None
+            self.ab_analytics = None
+            self.ab_monitor = None
+            logger.info("⚠️ A/B Testing Framework not available")
         
         # System status
         self.system_ready = True
@@ -353,6 +400,33 @@ class IstanbulDailyTalkAI:
         
         # Log cache integration status
         self._log_cache_status()
+    
+    # ==================================================================
+    # A/B Testing Methods
+    # ==================================================================
+    
+    def _setup_ranking_experiments(self):
+        """Setup pre-configured ranking experiments for A/B testing"""
+        if not self.ab_framework:
+            return
+        
+        try:
+            # Create ranking experiments with different strategies
+            experiments = create_ranking_experiments(
+                enable_semantic_ranking=True,
+                enable_personalization_ranking=True,
+                enable_hybrid_ranking=True
+            )
+            
+            # Register each experiment with the framework
+            for experiment in experiments:
+                self.ab_framework.create_experiment(experiment)
+                logger.info(f"   Registered experiment: {experiment.name}")
+            
+            logger.info(f"✅ Setup {len(experiments)} ranking experiments")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to setup ranking experiments: {e}")
     
     # ==================================================================
     # User Management Methods (delegate to UserManager)
@@ -552,15 +626,65 @@ class IstanbulDailyTalkAI:
             
             context = self.user_manager.get_conversation_context(session_id)
             
-            # Week 2: Use QueryPreprocessor for comprehensive query analysis
-            preprocessed_query = self.query_preprocessor.preprocess_query(
+            # ==================== A/B TESTING INTEGRATION ====================
+            # Assign user to experiment variant and track query
+            ab_variant = None
+            ab_experiment_id = None
+            ab_variant_config = None
+            ab_metrics = {}
+            
+            if hasattr(self, 'ab_framework') and self.ab_framework:
+                try:
+                    # Get active experiments
+                    active_experiments = self.ab_framework.list_active_experiments()
+                    
+                    if active_experiments:
+                        # For now, use the first active experiment (can be enhanced for multi-experiment support)
+                        experiment = active_experiments[0]
+                        ab_experiment_id = experiment.id
+                        
+                        # Assign user to variant (consistent hashing ensures same user gets same variant)
+                        assignment = self.ab_framework.assign_variant(ab_experiment_id, user_id)
+                        ab_variant = assignment.variant_id
+                        
+                        # Fetch variant configuration from the experiment
+                        for variant in experiment.variants:
+                            if variant.id == ab_variant:
+                                ab_variant_config = variant.config
+                                break
+                        
+                        logger.info(f"🧪 A/B Test: User {user_id} assigned to variant '{ab_variant}' in experiment '{experiment.name}'")
+                        if ab_variant_config:
+                            logger.debug(f"🧪 Variant config: {ab_variant_config}")
+                        
+                        # Track query event
+                        self.ab_framework.track_event(
+                            experiment_id=ab_experiment_id,
+                            user_id=user_id,
+                            variant_id=ab_variant,
+                            event_type='query',
+                            event_data={
+                                'message': message,
+                                'session_id': session_id,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                        )
+                        
+                        # Store start time for response latency tracking
+                        ab_metrics['query_start_time'] = datetime.now()
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ A/B testing error: {e}")
+                    # Continue without A/B testing if error occurs
+            
+            # Week 2 Modularization: Preprocess query for neural insights
+            preprocessed_query = self.query_preprocessor.preprocess(
                 message=message,
-                user_id=user_id,
-                user_profile=user_profile,
-                neural_processor=self.neural_query_enhancer if hasattr(self, 'neural_query_enhancer') else None
+                context=context,
+                neural_processor=self.neural_processor if hasattr(self, 'neural_processor') else None
             )
             
-            # Extract neural insights from preprocessed query (handle dict or object)
+            # Extract neural insights
             neural_insights = preprocessed_query.get('neural_insights') if isinstance(preprocessed_query, dict) else getattr(preprocessed_query, 'neural_insights', {})
             
             # Check if this is a daily talk query (casual conversation, greetings, weather, etc.)
@@ -594,6 +718,47 @@ class IstanbulDailyTalkAI:
                     }
                 return intent_result.multi_intent_response
             
+            # 🧪 A/B Testing: Apply variant-specific configuration before routing
+            if ab_variant and ab_variant_config:
+                try:
+                    logger.info(f"🧪 Applying A/B test variant '{ab_variant}' configuration")
+                    
+                    # Apply neural ranking configuration if present
+                    if self.neural_ranker and ('use_neural_ranking' in ab_variant_config or 
+                                                'semantic_weight' in ab_variant_config):
+                        from istanbul_ai.routing.neural_response_ranker import RankingConfig
+                        
+                        # Create custom ranking config from variant
+                        variant_ranking_config = RankingConfig(
+                            semantic_weight=ab_variant_config.get('semantic_weight', 0.60),
+                            context_weight=ab_variant_config.get('context_weight', 0.20),
+                            popularity_weight=ab_variant_config.get('popularity_weight', 0.10),
+                            recency_weight=ab_variant_config.get('recency_weight', 0.10)
+                        )
+                        
+                        # Temporarily apply variant configuration
+                        original_ranker_config = self.neural_ranker.config
+                        self.neural_ranker.config = variant_ranking_config
+                        
+                        logger.debug(f"Applied ranking weights: semantic={variant_ranking_config.semantic_weight}, "
+                                   f"context={variant_ranking_config.context_weight}, "
+                                   f"popularity={variant_ranking_config.popularity_weight}, "
+                                   f"recency={variant_ranking_config.recency_weight}")
+                    
+                    # Apply other variant-specific settings
+                    # (e.g., confidence thresholds, feature flags, etc.)
+                    if 'neural_confidence_threshold' in ab_variant_config:
+                        # Store threshold for handlers to use
+                        context.set_metadata('ab_neural_threshold', 
+                                           ab_variant_config['neural_confidence_threshold'])
+                    
+                    if 'use_neural_ranking' in ab_variant_config:
+                        context.set_metadata('ab_use_neural_ranking', 
+                                           ab_variant_config['use_neural_ranking'])
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to apply A/B variant config: {e}")
+            
             # Week 2: Use ResponseRouter for intelligent response generation
             response_result = self.response_router.route_query(
                 message=message,
@@ -605,6 +770,17 @@ class IstanbulDailyTalkAI:
                 neural_insights=neural_insights,
                 return_structured=return_structured
             )
+            
+            # 🧪 A/B Testing: Restore original configuration after routing
+            if ab_variant and ab_variant_config:
+                try:
+                    # Restore neural ranker configuration
+                    if self.neural_ranker and ('use_neural_ranking' in ab_variant_config or 
+                                                'semantic_weight' in ab_variant_config):
+                        self.neural_ranker.config = original_ranker_config
+                        logger.debug("Restored original neural ranker configuration")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to restore original config: {e}")
             
             # Extract response text and map_data
             if return_structured and isinstance(response_result, dict):
@@ -636,9 +812,55 @@ class IstanbulDailyTalkAI:
             # Generate unique interaction ID for feedback
             interaction_id = f"{user_id}_{datetime.now().timestamp()}"
             
+            # ==================== A/B TESTING METRICS TRACKING ====================
+            # Track response metrics for A/B testing
+            if ab_experiment_id and ab_variant and hasattr(self, 'ab_framework') and self.ab_framework:
+                try:
+                    # Calculate response latency
+                    if 'query_start_time' in ab_metrics:
+                        response_latency = (datetime.now() - ab_metrics['query_start_time']).total_seconds()
+                        
+                        # Track response event with metrics
+                        self.ab_framework.track_event(
+                            experiment_id=ab_experiment_id,
+                            user_id=user_id,
+                            variant_id=ab_variant,
+                            event_type='response',
+                            event_data={
+                                'intent': intent_result.primary_intent,
+                                'confidence': intent_result.confidence,
+                                'response_length': len(response_text),
+                                'has_map_data': bool(map_data),
+                                'interaction_id': interaction_id
+                            }
+                        )
+                        
+                        # Track latency metric
+                        self.ab_framework.track_metric(
+                            experiment_id=ab_experiment_id,
+                            user_id=user_id,
+                            variant_id=ab_variant,
+                            metric_name='response_latency',
+                            value=response_latency
+                        )
+                        
+                        # Track confidence metric
+                        self.ab_framework.track_metric(
+                            experiment_id=ab_experiment_id,
+                            user_id=user_id,
+                            variant_id=ab_variant,
+                            metric_name='confidence_score',
+                            value=intent_result.confidence
+                        )
+                        
+                        logger.debug(f"🧪 A/B Test Metrics: latency={response_latency:.3f}s, confidence={intent_result.confidence:.2f}")
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ A/B testing metrics error: {e}")
+            
             # Return structured or string response based on parameter
             if return_structured:
-                return {
+                result = {
                     'response': response_text,
                     'map_data': map_data,
                     'intent': intent_result.primary_intent,
@@ -646,6 +868,13 @@ class IstanbulDailyTalkAI:
                     'interaction_id': interaction_id,  # For feedback submission
                     'confidence': intent_result.confidence
                 }
+                # Add A/B testing info if available
+                if ab_experiment_id and ab_variant:
+                    result['ab_test'] = {
+                        'experiment_id': ab_experiment_id,
+                        'variant': ab_variant
+                    }
+                return result
             else:
                 return response_text
             
@@ -1389,19 +1618,14 @@ What type of shopping interests you most? I can provide specific store recommend
                             for i, event in enumerate(iksv_events[:3]):  # Show top 3
                                 title = event.get('title', 'Event')
                                 venue = event.get('venue', 'Istanbul')
-                                date = event.get('date', 'Check schedule')
-                                live_events_section += f"• **{title}** - {venue}\n"
-                                if date != 'Check schedule':
-                                    live_events_section += f"  📅 {date}\n"
-                            live_events_section += "  💡 Visit iksv.org for tickets and details\n"
-                except Exception:
-                    # Fallback to static content if async fails
-                    pass
-                    
+                                date = event.get('date', 'TBA')
+                                time = event.get('time', 'TBA')
+                                
+                                live_events_section += f"• **{title}** at {venue} ({date}, {time})\n"
             except Exception as e:
-                logger.debug(f"Could not fetch live IKSV events: {e}")
+                logger.error(f"Error fetching live IKSV events: {e}")
         
-        # Add seasonal events if events service is available
+        # Seasonal events (e.g., Ramadan, Christmas)
         seasonal_section = ""
         if self.events_service:
             try:
@@ -1410,8 +1634,6 @@ What type of shopping interests you most? I can provide specific store recommend
                     seasonal_section = "\n**🎪 Current Season Highlights:**\n"
                     for event in seasonal_events[:3]:
                         seasonal_section += f"• **{event['name']}** ({event.get('month', 'TBA')})\n"
-                        if event.get('description'):
-                            seasonal_section += f"  {event['description']}\n"
             except Exception as e:
                 logger.debug(f"Could not get seasonal events: {e}")
         
@@ -1629,56 +1851,6 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         # Step 1: Simple location detection from message text
         detected_location = self._detect_location_from_message(message)
         
-        if detected_location:
-            logger.info(f"🌍 Location detected: {detected_location}")
-        
-        # Generate base museum response
-        museum_response = self.museum_generator.generate_museum_recommendation(message)
-        
-        # Enhance with location-specific information
-        if detected_location:
-            location_enhancement = self._generate_location_specific_museum_info(detected_location, message)
-            if location_enhancement:
-                museum_response = f"{museum_response}\n\n{location_enhancement}"
-        
-        # Add current hours information using Google Maps checker
-        hours_info = self._add_current_museum_hours(message)
-        if hours_info:
-            museum_response = f"{museum_response}\n\n{hours_info}"
-        
-        return museum_response
-
-    def _generate_location_specific_museum_info(self, location: str, message: str) -> Optional[str]:
-        """Generate location-specific museum information"""
-        location_museums = {
-            'sultanahmet': {
-                'museums': ['Hagia Sophia', 'Topkapi Palace', 'Istanbul Archaeology Museums', 'Turkish and Islamic Arts Museum'],
-                'info': '📍 Sultanahmet is the heart of historic Istanbul with world-class museums within walking distance.'
-            },
-            'beyoglu': {
-                'museums': ['Istanbul Modern', 'Pera Museum', 'SALT Beyoğlu'],
-                'info': '🎨 Beyoğlu features contemporary art museums and cultural centers near Istiklal Street.'
-            },
-            'beşiktaş': {
-                'museums': ['Dolmabahçe Palace', 'Naval Museum', 'Painting and Sculpture Museum'],
-                'info': '🏰 Beşiktaş offers Ottoman palaces and specialized museums along the Bosphorus.'
-            }
-        }
-        
-        if location in location_museums:
-            data = location_museums[location]
-            info = f"\n{data['info']}\n"
-            info += f"📍 **Museums in {location.title()}:**\n"
-        
-        return None
-
-    def _generate_advanced_museum_response(self, message: str, entities: Dict, 
-                                         user_profile: UserProfile, context: ConversationContext) -> str:
-        """Generate advanced ML-powered museum recommendations with detailed information"""
-        
-        if not self.advanced_museum_system:
-            logger.warning("Advanced museum system not available, falling back")
-            return self._generate_location_aware_museum_response(message, entities, user_profile, context)
         
         try:
             logger.info(f"🎨 Processing museum query with Advanced Museum System: {message}")
