@@ -19,6 +19,9 @@ from .core.user_management import UserManager
 # Week 1 Modularization: Import initialization modules
 from .initialization import ServiceInitializer, HandlerInitializer, SystemConfig
 
+# Import GPS Route Service for location-based route planning
+from .services.gps_route_service import GPSRouteService
+
 # Week 2 Modularization: Import routing layer modules
 from .routing import (
     IntentClassifier,
@@ -342,9 +345,6 @@ class IstanbulDailyTalkAI:
         
         if self.neural_classifier:
             logger.info("✅ Hybrid intent classifier initialized (Neural + Keyword ensemble)")
-        else:
-            logger.info("⚠️  Hybrid intent classifier initialized (Keyword-only fallback)")
-        
         # Initialize Entity Extractor (wraps and enhances entity_recognizer)
         self.entity_extractor = EntityExtractor(
             entity_recognizer=self.entity_recognizer
@@ -361,6 +361,16 @@ class IstanbulDailyTalkAI:
         self.ml_handlers['response_generator'] = self.response_generator
         
         logger.info("✅ Routing layer components initialized successfully")
+        
+        # Initialize GPS Route Service for location-based route planning
+        try:
+            self.gps_route_service = GPSRouteService(
+                transport_processor=getattr(self, 'transport_processor', None)
+            )
+            logger.info("✅ GPS Route Service initialized successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ GPS Route Service initialization failed: {e}")
+            self.gps_route_service = None
         
         # Initialize A/B Testing Framework (Phase 4)
         if AB_TESTING_AVAILABLE:
@@ -1501,6 +1511,42 @@ class IstanbulDailyTalkAI:
 
 Need specific route directions? Tell me your starting point and destination!"""
     
+    def _generate_gps_route_response(
+        self,
+        message: str,
+        entities: Dict[str, Any],
+        user_profile: UserProfile,
+        context: ConversationContext
+    ) -> str:
+        """
+        Generate GPS-aware route response (delegates to GPSRouteService).
+        
+        This method was previously missing and causing errors when GPS route
+        planning was requested. Now it cleanly delegates to the dedicated
+        GPS Route Service for better modularity.
+        
+        Args:
+            message: User's query message
+            entities: Extracted entities from the query
+            user_profile: User's profile with potential GPS data
+            context: Current conversation context
+            
+        Returns:
+            GPS-aware route response with personalized directions
+        """
+        try:
+            if self.gps_route_service:
+                logger.info("🗺️ Delegating to GPS Route Service")
+                return self.gps_route_service.generate_route_response(
+                    message, entities, user_profile, context
+                )
+            else:
+                logger.warning("⚠️ GPS Route Service not available, using fallback")
+                return self._get_fallback_transportation_response(entities, user_profile, context)
+        except Exception as e:
+            logger.error(f"Error in GPS route response: {e}", exc_info=True)
+            return self._get_fallback_transportation_response(entities, user_profile, context)
+    
     def _generate_shopping_response(self, entities: Dict, user_profile: UserProfile, 
                                    context: ConversationContext, neural_insights: Dict = None) -> str:
         """Generate comprehensive shopping response (ML-enhanced)"""
@@ -1622,8 +1668,10 @@ What type of shopping interests you most? I can provide specific store recommend
                                 time = event.get('time', 'TBA')
                                 
                                 live_events_section += f"• **{title}** at {venue} ({date}, {time})\n"
+                except Exception as inner_e:
+                    logger.error(f"Error fetching live IKSV events: {inner_e}")
             except Exception as e:
-                logger.error(f"Error fetching live IKSV events: {e}")
+                logger.error(f"Error using ML Daily Talks Bridge: {e}")
         
         # Seasonal events (e.g., Ramadan, Christmas)
         seasonal_section = ""

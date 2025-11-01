@@ -151,7 +151,13 @@ class ResponseRouter:
                 neural_insights, return_structured
             )
         
-        elif intent in ['route_planning', 'gps_route_planning', 'museum_route_planning']:
+        elif intent == 'nearby_locations':
+            return self._route_nearby_locations_query(
+                message, entities, user_profile, context, handlers,
+                neural_insights, return_structured
+            )
+        
+        elif intent == 'gps_route_planning':
             return self._route_planning_query(
                 message, intent, entities, user_profile, context, handlers,
                 neural_insights
@@ -546,6 +552,22 @@ class ResponseRouter:
             )
         
         return "I know some amazing hidden gems in Istanbul! What type of place are you looking for?"
+    
+    def _route_nearby_locations_query(
+        self, message: str, entities: Dict, user_profile: UserProfile,
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
+        return_structured: bool
+    ) -> Union[str, Dict[str, Any]]:
+        """Route nearby locations queries"""
+        nearby_handler = handlers.get('nearby_locations_response_handler')
+        if nearby_handler:
+            return nearby_handler(
+                message, entities, user_profile, context, 
+                neural_insights, return_structured
+            )
+        
+        # Fallback response
+        return "I can help you find nearby locations in Istanbul! Please provide your current location or preferences."
     
     def _route_planning_query(
         self, message: str, intent: str, entities: Dict, user_profile: UserProfile,

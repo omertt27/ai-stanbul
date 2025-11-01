@@ -68,6 +68,27 @@ class IntentClassifier:
                 'transport', 'metro', 'bus', 'taxi', 'ferry', 'how to get', 
                 'travel', 'tram', 'istanbulkart', 'public transport', 'dolmuş'
             ],
+            'nearby_locations': [
+                # Core nearby keywords
+                'near me', 'nearby', 'close to me', 'around me', 'near here',
+                'close by', 'in the area', 'in this area', 'around here',
+                'within walking distance', 'walking distance', 'around my location',
+                # What's nearby questions
+                'what\'s near', 'what\'s nearby', 'what is near', 'what is nearby',
+                'what\'s around', 'what\'s close', 'whats near', 'whats nearby',
+                'whats around', 'whats close', 'anything near', 'anything nearby',
+                # Find nearby
+                'find near', 'find nearby', 'find close', 'search near', 
+                'search nearby', 'look for nearby', 'show me nearby',
+                'show nearby', 'show what\'s near',
+                # Specific nearby queries
+                'museums near me', 'attractions near me', 'restaurants near me',
+                'places near me', 'things near me', 'locations near me',
+                'museums nearby', 'attractions nearby', 'restaurants nearby',
+                # Within radius
+                'within', 'km from here', 'km from me', 'minutes away',
+                'minutes walk', 'min walk', 'walking from here'
+            ],
             'neighborhood': [
                 'neighborhood', 'area', 'district', 'where to stay', 'which area',
                 'quarter', 'region', 'location', 'suburb'
@@ -265,25 +286,29 @@ class IntentClassifier:
         elif any(keyword in message_lower for keyword in self.intent_keywords['hidden_gems']):
             primary_intent = 'hidden_gems'
         
-        # PRIORITY 9: Check for transportation intent
+        # PRIORITY 9: Check for nearby locations intent (GPS-based proximity search)
+        elif any(keyword in message_lower for keyword in self.intent_keywords['nearby_locations']):
+            primary_intent = 'nearby_locations'
+        
+        # PRIORITY 10: Check for transportation intent
         elif (any(keyword in message_lower for keyword in self.intent_keywords['transportation']) or 
             entities.get('transportation')):
             primary_intent = 'transportation'
         
-        # PRIORITY 10: Check for neighborhood/area intent
+        # PRIORITY 11: Check for neighborhood/area intent
         elif (any(keyword in message_lower for keyword in self.intent_keywords['neighborhood']) or 
             entities.get('neighborhoods')):
             primary_intent = 'neighborhood'
         
-        # PRIORITY 11: Check for shopping intent
+        # PRIORITY 12: Check for shopping intent
         elif any(keyword in message_lower for keyword in self.intent_keywords['shopping']):
             primary_intent = 'shopping'
         
-        # PRIORITY 12: Check for restaurant/food intent (broader, comes later)
+        # PRIORITY 13: Check for restaurant/food intent (broader, comes later)
         elif any(keyword in message_lower for keyword in self.intent_keywords['restaurant']) or entities.get('cuisines'):
             primary_intent = 'restaurant'
         
-        # PRIORITY 13: Check for attraction/sightseeing intent (broadest, comes last)
+        # PRIORITY 14: Check for attraction/sightseeing intent (broadest, comes last)
         elif any(word in message_lower for word in ['museum', 'museums', 'gallery', 'galleries', 'exhibition', 
                                                      'attraction', 'attractions', 'landmark', 'palace', 'mosque']) or \
             any(keyword in message_lower for keyword in self.intent_keywords['attraction']) or \

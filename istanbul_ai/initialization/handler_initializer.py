@@ -16,12 +16,13 @@ class HandlerInitializer:
     """
     Initializes ML-Enhanced handlers for the Istanbul AI system.
     
-    Handles the initialization of 5 ML handlers:
+    Handles the initialization of 7 ML handlers:
     1. ML-Enhanced Event Handler
     2. ML-Enhanced Hidden Gems Handler
     3. ML-Enhanced Weather Handler
     4. ML-Enhanced Route Planning Handler
     5. ML-Enhanced Neighborhood Handler
+    6. Nearby Locations Handler (GPS-based)
     
     Each handler requires:
     - ML Context Builder
@@ -35,7 +36,7 @@ class HandlerInitializer:
         self.handlers = {}
         self.initialization_log = []
         self.initialized_count = 0
-        self.total_handlers = 5
+        self.total_handlers = 7  # Updated to include nearby_locations_handler
         
     def initialize_all_handlers(self, services: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -78,6 +79,7 @@ class HandlerInitializer:
         self._initialize_weather_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_route_planning_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_neighborhood_handler(services, ml_context_builder, neural_processor, response_generator)
+        self._initialize_nearby_locations_handler(services, ml_context_builder, neural_processor, response_generator)
         
         # Log summary
         success_rate = (self.initialized_count / self.total_handlers * 100) if self.total_handlers > 0 else 0
@@ -327,6 +329,59 @@ class HandlerInitializer:
                 'error': str(e)
             })
     
+    def _initialize_nearby_locations_handler(self, services: Dict, ml_context_builder: Any,
+                                            neural_processor: Any, response_generator: Any):
+        """Initialize Nearby Locations Handler (GPS-based)"""
+        try:
+            # Import the handler creation function
+            from istanbul_ai.handlers.nearby_locations_handler import create_nearby_locations_handler
+            
+            # Get required services
+            gps_route_service = services.get('gps_route_service')
+            location_database_service = services.get('location_database_service')
+            transport_service = services.get('transport_processor')
+            user_manager = services.get('user_manager')
+            
+            # At least one of these services is required
+            if gps_route_service or location_database_service:
+                self.handlers['nearby_locations_response_handler'] = create_nearby_locations_handler(
+                    gps_route_service=gps_route_service,
+                    location_database_service=location_database_service,
+                    neural_processor=neural_processor,
+                    user_manager=user_manager,
+                    transport_service=transport_service
+                )
+                logger.info("📍 Nearby Locations Handler initialized successfully!")
+                self.initialized_count += 1
+                self.initialization_log.append({
+                    'handler': 'nearby_locations_response_handler',
+                    'status': 'success'
+                })
+            else:
+                logger.warning("Required GPS/location services not available for Nearby Locations Handler")
+                self.handlers['nearby_locations_response_handler'] = None
+                self.initialization_log.append({
+                    'handler': 'nearby_locations_response_handler',
+                    'status': 'skipped',
+                    'reason': 'missing_gps_services'
+                })
+        except ImportError as e:
+            logger.warning(f"Nearby Locations Handler not available: {e}")
+            self.handlers['nearby_locations_response_handler'] = None
+            self.initialization_log.append({
+                'handler': 'nearby_locations_response_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize Nearby Locations Handler: {e}")
+            self.handlers['nearby_locations_response_handler'] = None
+            self.initialization_log.append({
+                'handler': 'nearby_locations_response_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
     def _initialize_all_to_none(self):
         """Set all handlers to None when base dependencies are missing"""
         handler_names = [
@@ -334,7 +389,8 @@ class HandlerInitializer:
             'ml_hidden_gems_handler',
             'ml_weather_handler',
             'ml_route_planning_handler',
-            'ml_neighborhood_handler'
+            'ml_neighborhood_handler',
+            'nearby_locations_response_handler'
         ]
         
         for handler_name in handler_names:
