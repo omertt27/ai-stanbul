@@ -11,15 +11,25 @@ Features:
 - Time-aware recommendations (opening hours, crowd levels)
 - Sentiment-based response styling
 - Multi-modal suggestions (combine attractions with transport/dining)
+- 🌐 Full English/Turkish bilingual support
 
 Author: Istanbul AI Team
 Date: October 27, 2025
+Updated: November 2, 2025 - Added bilingual support
 """
 
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, time
 import re
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +40,8 @@ class AttractionHandler:
     """
     
     def __init__(self, neural_processor, user_manager, attraction_service,
-                 weather_service=None, advanced_attraction_service=None, transport_service=None):
+                 weather_service=None, advanced_attraction_service=None, transport_service=None,
+                 bilingual_manager=None):
         """
         Initialize the Attraction Handler.
         
@@ -41,6 +52,7 @@ class AttractionHandler:
             weather_service: Optional weather integration
             advanced_attraction_service: Optional advanced attraction features
             transport_service: Optional transport integration
+            bilingual_manager: BilingualManager for language support
         """
         self.neural_processor = neural_processor
         self.user_manager = user_manager
@@ -48,13 +60,38 @@ class AttractionHandler:
         self.weather_service = weather_service
         self.advanced_attraction_service = advanced_attraction_service
         self.transport_service = transport_service
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info("✅ ML-Enhanced AttractionHandler initialized")
+        logger.info(f"✅ ML-Enhanced AttractionHandler initialized (Bilingual: {self.has_bilingual})")
+    
+    def _get_language(self, context) -> str:
+        """
+        Extract language from context.
+        
+        Args:
+            context: Conversation context
+            
+        Returns:
+            Language code ('en' or 'tr')
+        """
+        if not context:
+            return 'en'
+        
+        # Check if language is in context
+        if hasattr(context, 'language'):
+            lang = context.language
+            if hasattr(lang, 'value'):
+                return lang.value  # Language enum
+            return lang if lang in ['en', 'tr'] else 'en'
+        
+        # Default to English
+        return 'en'
     
     # ==================== PUBLIC API ====================
     
     def generate_response(self, message: str, neural_insights: Dict[str, Any],
-                         user_profile: Dict[str, Any]) -> str:
+                         user_profile: Dict[str, Any], context=None) -> str:
         """
         Main entry point for attraction query handling.
         
@@ -62,12 +99,15 @@ class AttractionHandler:
             message: User's query text
             neural_insights: ML-generated insights from neural processor
             user_profile: User's profile and preferences
+            context: Conversation context (includes language)
             
         Returns:
             Formatted response with attraction recommendations
         """
         try:
-            logger.info(f"🏛️ Processing attraction query: {message[:50]}...")
+            # 🌐 BILINGUAL: Extract language from context
+            language = self._get_language(context)
+            logger.info(f"🏛️ Processing attraction query (lang: {language}): {message[:50]}...")
             
             # Step 1: Extract ML context from query
             ml_context = self._extract_ml_context(message, neural_insights, user_profile)
@@ -76,7 +116,7 @@ class AttractionHandler:
             candidates = self._get_candidate_attractions(ml_context)
             
             if not candidates:
-                return self._generate_no_results_response(ml_context)
+                return self._generate_no_results_response(ml_context, language)
             
             # Step 3: Apply neural ranking
             ranked_attractions = self._apply_neural_ranking(candidates, ml_context, neural_insights)
@@ -84,11 +124,12 @@ class AttractionHandler:
             # Step 4: Filter by context (weather, time, accessibility)
             filtered_attractions = self._apply_contextual_filters(ranked_attractions, ml_context)
             
-            # Step 5: Generate response
+            # Step 5: Generate response (bilingual)
             response = self._generate_ml_enhanced_response(
                 filtered_attractions[:5],  # Top 5 recommendations
                 ml_context,
-                neural_insights
+                neural_insights,
+                language  # 🌐 Pass language
             )
             
             # Step 6: Update user history
@@ -99,7 +140,7 @@ class AttractionHandler:
             
         except Exception as e:
             logger.error(f"❌ Error in attraction handler: {str(e)}", exc_info=True)
-            return self._generate_fallback_response()
+            return self._generate_fallback_response(language if 'language' in locals() else 'en')
     
     # ==================== ML CONTEXT EXTRACTION ====================
     
@@ -681,69 +722,116 @@ class AttractionHandler:
     
     def _generate_ml_enhanced_response(self, attractions: List[Dict[str, Any]],
                                       ml_context: Dict[str, Any],
-                                      neural_insights: Dict[str, Any]) -> str:
+                                      neural_insights: Dict[str, Any],
+                                      language: str = 'en') -> str:
         """
         Generate context-aware, sentiment-appropriate response.
+        
+        Args:
+            attractions: List of attractions
+            ml_context: ML context
+            neural_insights: Neural insights
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted response (bilingual)
         """
         # Build response sections
         sections = []
         
-        # 1. Personalized greeting
-        greeting = self._generate_contextual_greeting(ml_context, neural_insights)
+        # 1. Personalized greeting (bilingual)
+        greeting = self._generate_contextual_greeting(ml_context, neural_insights, language)
         sections.append(greeting)
         
-        # 2. Attraction recommendations
+        # 2. Attraction recommendations (bilingual)
         for i, attraction in enumerate(attractions, 1):
-            rec = self._format_attraction_recommendation(attraction, i, ml_context)
+            rec = self._format_attraction_recommendation(attraction, i, ml_context, language)
             sections.append(rec)
         
-        # 3. Practical tips (weather, timing, transport)
-        tips = self._generate_contextual_tips(ml_context, attractions)
+        # 3. Practical tips (weather, timing, transport) (bilingual)
+        tips = self._generate_contextual_tips(ml_context, attractions, language)
         if tips:
-            sections.append(f"\n💡 **Practical Tips:**\n{tips}")
+            tip_header = "💡 **Pratik İpuçları:**" if language == 'tr' else "💡 **Practical Tips:**"
+            sections.append(f"\n{tip_header}\n{tips}")
         
-        # 4. Itinerary suggestion (if multiple attractions)
+        # 4. Itinerary suggestion (if multiple attractions) (bilingual)
         if len(attractions) > 1:
-            itinerary = self._generate_itinerary_suggestion(attractions, ml_context)
+            itinerary = self._generate_itinerary_suggestion(attractions, ml_context, language)
             if itinerary:
-                sections.append(f"\n📍 **Suggested Route:**\n{itinerary}")
+                route_header = "📍 **Önerilen Rota:**" if language == 'tr' else "📍 **Suggested Route:**"
+                sections.append(f"\n{route_header}\n{itinerary}")
         
-        # 5. Call to action
-        cta = self._generate_call_to_action(ml_context)
+        # 5. Call to action (bilingual)
+        cta = self._generate_call_to_action(ml_context, language)
         sections.append(f"\n{cta}")
         
         return "\n\n".join(sections)
     
     def _generate_contextual_greeting(self, ml_context: Dict[str, Any],
-                                     neural_insights: Dict[str, Any]) -> str:
-        """Generate personalized greeting based on context."""
+                                     neural_insights: Dict[str, Any],
+                                     language: str = 'en') -> str:
+        """
+        Generate personalized greeting based on context.
+        
+        Args:
+            ml_context: ML context
+            neural_insights: Neural insights
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Bilingual greeting
+        """
         categories = ml_context.get('categories', [])
         time_available = ml_context.get('time_available', 'half_day')
         weather = ml_context.get('weather', {})
         
-        # Category-based greetings
-        if 'historical' in categories:
-            greeting = "🏛️ **Amazing Historical Sites Await!**"
-        elif 'museum' in categories:
-            greeting = "🎨 **Wonderful Museums for You!**"
-        elif 'nature' in categories:
-            greeting = "🌳 **Beautiful Natural Spots!**"
-        elif 'religious' in categories:
-            greeting = "🕌 **Sacred Places to Visit!**"
+        # Category-based greetings (bilingual)
+        if language == 'tr':
+            if 'historical' in categories:
+                greeting = "🏛️ **İnanılmaz Tarihi Yerler Sizi Bekliyor!**"
+            elif 'museum' in categories:
+                greeting = "🎨 **Sizin İçin Harika Müzeler!**"
+            elif 'nature' in categories:
+                greeting = "🌳 **Güzel Doğal Mekanlar!**"
+            elif 'religious' in categories:
+                greeting = "🕌 **Ziyaret Edilecek Kutsal Yerler!**"
+            else:
+                greeting = "✨ **Sizin İçin Harika Yerler!**"
         else:
-            greeting = "✨ **Great Attractions for You!**"
+            if 'historical' in categories:
+                greeting = "🏛️ **Amazing Historical Sites Await!**"
+            elif 'museum' in categories:
+                greeting = "🎨 **Wonderful Museums for You!**"
+            elif 'nature' in categories:
+                greeting = "🌳 **Beautiful Natural Spots!**"
+            elif 'religious' in categories:
+                greeting = "🕌 **Sacred Places to Visit!**"
+            else:
+                greeting = "✨ **Great Attractions for You!**"
         
         # Add context
         context_note = []
         if weather.get('is_rainy'):
-            context_note.append("☔ Perfect indoor options for today's weather")
+            context_note.append(
+                "☔ Bugünün havası için mükemmel iç mekan seçenekleri" if language == 'tr'
+                else "☔ Perfect indoor options for today's weather"
+            )
         elif weather.get('is_good_weather'):
-            context_note.append("☀️ Lovely weather for exploring")
+            context_note.append(
+                "☀️ Gezmek için harika bir hava" if language == 'tr'
+                else "☀️ Lovely weather for exploring"
+            )
         
         if time_available == 'few_hours':
-            context_note.append("⏰ Quick visits optimized for your time")
+            context_note.append(
+                "⏰ Zamanınız için hızlı ziyaretler" if language == 'tr'
+                else "⏰ Quick visits optimized for your time"
+            )
         elif time_available == 'full_day':
-            context_note.append("📅 Full-day experiences curated for you")
+            context_note.append(
+                "📅 Sizin için özenle seçilmiş tam günlük deneyimler" if language == 'tr'
+                else "📅 Full-day experiences curated for you"
+            )
         
         if context_note:
             greeting += f"\n*{' | '.join(context_note)}*"
@@ -752,10 +840,22 @@ class AttractionHandler:
     
     def _format_attraction_recommendation(self, attraction: Dict[str, Any],
                                          index: int,
-                                         ml_context: Dict[str, Any]) -> str:
-        """Format individual attraction recommendation."""
-        name = attraction.get('name', 'Unknown Attraction')
-        category = attraction.get('category', 'Attraction')
+                                         ml_context: Dict[str, Any],
+                                         language: str = 'en') -> str:
+        """
+        Format individual attraction recommendation.
+        
+        Args:
+            attraction: Attraction data
+            index: Index number
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted attraction card (bilingual)
+        """
+        name = attraction.get('name', 'Unknown Attraction' if language == 'en' else 'Bilinmeyen Yer')
+        category = attraction.get('category', 'Attraction' if language == 'en' else 'Yer')
         rating = attraction.get('rating', 0)
         neighborhood = attraction.get('neighborhood', '')
         entrance_fee = attraction.get('entrance_fee', 0)
@@ -766,14 +866,15 @@ class AttractionHandler:
         # Location and category
         location_info = f"📍 {neighborhood}" if neighborhood else ""
         category_info = f"🏛️ {category.title()}"
-        fee_info = "🎫 Free" if entrance_fee == 0 else f"🎫 {entrance_fee} TL"
+        fee_info = "🎫 Ücretsiz" if language == 'tr' and entrance_fee == 0 else ("🎫 Free" if entrance_fee == 0 else f"🎫 {entrance_fee} TL")
         
         lines.append(f"   {location_info} | {category_info} | {fee_info}")
         
         # ML insights and highlights
         ml_score = attraction.get('ml_score', 0)
         if ml_score > 0.8:
-            lines.append("   🎯 **Perfect match for your interests!**")
+            match_text = "🎯 **İlgi alanlarınızla mükemmel eşleşme!**" if language == 'tr' else "🎯 **Perfect match for your interests!**"
+            lines.append(f"   {match_text}")
         
         # Context-specific highlights
         highlights = []
@@ -781,27 +882,27 @@ class AttractionHandler:
         # Weather-appropriate
         weather = ml_context.get('weather', {})
         if weather.get('is_rainy') and attraction.get('indoor'):
-            highlights.append("☔ Indoor (great for rain)")
+            highlights.append("☔ İç mekan (yağmur için harika)" if language == 'tr' else "☔ Indoor (great for rain)")
         elif weather.get('is_good_weather') and not attraction.get('indoor'):
-            highlights.append("☀️ Outdoor (perfect weather)")
+            highlights.append("☀️ Açık hava (mükemmel hava)" if language == 'tr' else "☀️ Outdoor (perfect weather)")
         
         # Time estimate
         duration = attraction.get('typical_duration_minutes', 0)
         if duration:
             hours = duration // 60
             mins = duration % 60
-            time_str = f"{hours}h" if hours else f"{mins}min"
+            time_str = f"{hours}sa" if hours and language == 'tr' else (f"{hours}h" if hours else f"{mins}dk" if language == 'tr' else f"{mins}min")
             highlights.append(f"⏱️ ~{time_str}")
         
         # Special features
         if ml_context.get('with_children') and attraction.get('child_friendly'):
-            highlights.append("👨‍👩‍👧‍👦 Kid-friendly")
+            highlights.append("👨‍👩‍👧‍👦 Çocuklar için uygun" if language == 'tr' else "👨‍👩‍👧‍👦 Kid-friendly")
         
         if attraction.get('unesco_site'):
-            highlights.append("🌟 UNESCO Site")
+            highlights.append("🌟 UNESCO Sitesi" if language == 'tr' else "🌟 UNESCO Site")
         
         if attraction.get('photo_spot'):
-            highlights.append("📸 Great photos")
+            highlights.append("📸 Harika fotoğraflar" if language == 'tr' else "📸 Great photos")
         
         if highlights:
             lines.append(f"   {' | '.join(highlights)}")
@@ -814,15 +915,26 @@ class AttractionHandler:
         # Opening hours (if relevant)
         time_context = ml_context.get('time_context', {})
         if not attraction.get('always_open'):
-            opening_info = self._format_opening_hours(attraction, time_context)
+            opening_info = self._format_opening_hours(attraction, time_context, language)
             if opening_info:
                 lines.append(f"   🕐 {opening_info}")
         
         return "\n".join(lines)
     
     def _format_opening_hours(self, attraction: Dict[str, Any],
-                             time_context: Dict[str, Any]) -> str:
-        """Format opening hours information."""
+                             time_context: Dict[str, Any],
+                             language: str = 'en') -> str:
+        """
+        Format opening hours information.
+        
+        Args:
+            attraction: Attraction data
+            time_context: Time context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Opening hours text (bilingual)
+        """
         opening_hours = attraction.get('opening_hours', {})
         if not opening_hours:
             return ""
@@ -831,51 +943,100 @@ class AttractionHandler:
         today_hours = opening_hours.get(day, {})
         
         if not today_hours:
-            return "Closed today"
+            return "Bugün kapalı" if language == 'tr' else "Closed today"
         
         open_time = today_hours.get('open', 9)
         close_time = today_hours.get('close', 18)
         
-        return f"Open {open_time:02d}:00 - {close_time:02d}:00"
+        if language == 'tr':
+            return f"Açık {open_time:02d}:00 - {close_time:02d}:00"
+        else:
+            return f"Open {open_time:02d}:00 - {close_time:02d}:00"
     
     def _generate_contextual_tips(self, ml_context: Dict[str, Any],
-                                 attractions: List[Dict[str, Any]]) -> str:
-        """Generate context-aware tips."""
+                                 attractions: List[Dict[str, Any]],
+                                 language: str = 'en') -> str:
+        """
+        Generate context-aware tips.
+        
+        Args:
+            ml_context: ML context
+            attractions: List of attractions
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Tips text (bilingual)
+        """
         tips = []
         
         # Weather tips
         weather = ml_context.get('weather', {})
         if weather.get('is_rainy'):
-            tips.append("☔ Bring an umbrella and wear comfortable shoes")
+            tips.append(
+                "☔ Şemsiye getirin ve rahat ayakkabı giyin" if language == 'tr'
+                else "☔ Bring an umbrella and wear comfortable shoes"
+            )
         elif weather.get('is_hot'):
-            tips.append("☀️ Stay hydrated and use sunscreen")
+            tips.append(
+                "☀️ Bol su için ve güneş kremi kullanın" if language == 'tr'
+                else "☀️ Stay hydrated and use sunscreen"
+            )
         elif weather.get('is_cold'):
-            tips.append("🧥 Dress warmly in layers")
+            tips.append(
+                "🧥 Katmanlı giyinin" if language == 'tr'
+                else "🧥 Dress warmly in layers"
+            )
         
         # Timing tips
         time_context = ml_context.get('time_context', {})
         if time_context.get('is_morning'):
-            tips.append("🌅 Morning is perfect to avoid crowds")
+            tips.append(
+                "🌅 Kalabalıktan kaçınmak için sabah mükemmel" if language == 'tr'
+                else "🌅 Morning is perfect to avoid crowds"
+            )
         elif time_context.get('is_weekend'):
-            tips.append("👥 Expect larger crowds on weekends")
+            tips.append(
+                "👥 Hafta sonları daha kalabalık olabilir" if language == 'tr'
+                else "👥 Expect larger crowds on weekends"
+            )
         
         # Crowd tips
         if ml_context.get('crowd_tolerance') == 'avoid_crowds':
-            tips.append("🚶 Visit early morning or late afternoon for fewer crowds")
+            tips.append(
+                "🚶 Daha az kalabalık için sabah erken veya öğleden sonra geç saatleri tercih edin" if language == 'tr'
+                else "🚶 Visit early morning or late afternoon for fewer crowds"
+            )
         
         # Transport tips
         if len(attractions) > 2:
-            tips.append("🚇 Consider getting an Istanbul transport card for easier travel")
+            tips.append(
+                "🚇 Daha kolay seyahat için İstanbulkart edinmeyi düşünün" if language == 'tr'
+                else "🚇 Consider getting an Istanbul transport card for easier travel"
+            )
         
         # Photography tips
         if any(a.get('photo_spot') for a in attractions):
-            tips.append("📸 Best photos in golden hour (sunrise/sunset)")
+            tips.append(
+                "📸 En iyi fotoğraflar altın saatte (gün doğumu/gün batımı)" if language == 'tr'
+                else "📸 Best photos in golden hour (sunrise/sunset)"
+            )
         
         return "\n".join(f"• {tip}" for tip in tips)
     
     def _generate_itinerary_suggestion(self, attractions: List[Dict[str, Any]],
-                                      ml_context: Dict[str, Any]) -> str:
-        """Generate suggested itinerary for multiple attractions."""
+                                      ml_context: Dict[str, Any],
+                                      language: str = 'en') -> str:
+        """
+        Generate suggested itinerary for multiple attractions.
+        
+        Args:
+            attractions: List of attractions
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Itinerary text (bilingual)
+        """
         if len(attractions) < 2:
             return ""
         
@@ -883,7 +1044,7 @@ class AttractionHandler:
         # Group by neighborhood
         by_neighborhood = {}
         for attraction in attractions:
-            neighborhood = attraction.get('neighborhood', 'Other')
+            neighborhood = attraction.get('neighborhood', 'Diğer' if language == 'tr' else 'Other')
             if neighborhood not in by_neighborhood:
                 by_neighborhood[neighborhood] = []
             by_neighborhood[neighborhood].append(attraction)
@@ -901,44 +1062,93 @@ class AttractionHandler:
         # Fallback: simple list
         return " → ".join(a.get('name', '') for a in attractions[:3])
     
-    def _generate_call_to_action(self, ml_context: Dict[str, Any]) -> str:
-        """Generate appropriate call to action."""
-        ctas = [
-            "🗺️ Want directions to any of these attractions?",
-            "🚌 Need help with transportation?",
-            "📍 Would you like to see these on a map?",
-            "ℹ️ Want more details about any location?"
-        ]
+    def _generate_call_to_action(self, ml_context: Dict[str, Any], language: str = 'en') -> str:
+        """
+        Generate appropriate call to action.
         
+        Args:
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            CTA text (bilingual)
+        """
         # Context-specific CTA
         if ml_context.get('time_available') == 'multi_day':
-            return "📅 Want me to help plan a multi-day itinerary? I can suggest the best order and timing!"
+            return (
+                "📅 Çok günlük bir gezi programı hazırlamamı ister misiniz? En iyi sıra ve zamanlama önerebilirim!" if language == 'tr'
+                else "📅 Want me to help plan a multi-day itinerary? I can suggest the best order and timing!"
+            )
         elif self.transport_service:
-            return "🚇 Would you like directions or transport options to reach these places?"
+            return (
+                "🚇 Bu yerlere ulaşmak için yol tarifi veya ulaşım seçenekleri ister misiniz?" if language == 'tr'
+                else "🚇 Would you like directions or transport options to reach these places?"
+            )
         
-        return ctas[0]
+        # Default CTAs (bilingual)
+        if language == 'tr':
+            return "🗺️ Bu yerlerden birine yol tarifi ister misiniz?"
+        else:
+            return "🗺️ Want directions to any of these attractions?"
     
-    def _generate_no_results_response(self, ml_context: Dict[str, Any]) -> str:
-        """Generate helpful response when no attractions found."""
-        return (
-            "😊 I couldn't find attractions matching all your specific requirements, "
-            "but I'm here to help! Could you tell me:\n\n"
-            "• What type of attraction interests you most? (historical, museum, nature, etc.)\n"
-            "• Which part of Istanbul would you like to explore?\n"
-            "• How much time do you have available?\n\n"
-            "I'll find the perfect spots for you! ✨"
-        )
+    def _generate_no_results_response(self, ml_context: Dict[str, Any], language: str = 'en') -> str:
+        """
+        Generate helpful response when no attractions found.
+        
+        Args:
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            No results message (bilingual)
+        """
+        if language == 'tr':
+            return (
+                "😊 Belirli gereksinimlerinize uyan yerler bulamadım, "
+                "ama size yardımcı olmak için buradayım! Bana şunları söyleyebilir misiniz:\n\n"
+                "• En çok hangi tür yer ilginizi çekiyor? (tarihi, müze, doğa, vb.)\n"
+                "• İstanbul'un hangi bölgesini keşfetmek istersiniz?\n"
+                "• Ne kadar zamanınız var?\n\n"
+                "Sizin için mükemmel yerleri bulacağım! ✨"
+            )
+        else:
+            return (
+                "😊 I couldn't find attractions matching all your specific requirements, "
+                "but I'm here to help! Could you tell me:\n\n"
+                "• What type of attraction interests you most? (historical, museum, nature, etc.)\n"
+                "• Which part of Istanbul would you like to explore?\n"
+                "• How much time do you have available?\n\n"
+                "I'll find the perfect spots for you! ✨"
+            )
     
-    def _generate_fallback_response(self) -> str:
-        """Generate fallback response on error."""
-        return (
-            "I apologize, but I'm having trouble accessing attraction information right now. 😔\n\n"
-            "Could you try:\n"
-            "• Asking about a specific area (e.g., 'attractions in Sultanahmet')\n"
-            "• Being more specific about what you'd like to see\n"
-            "• Asking again in a moment\n\n"
-            "I'm here to help you discover amazing places! ✨"
-        )
+    def _generate_fallback_response(self, language: str = 'en') -> str:
+        """
+        Generate fallback response on error.
+        
+        Args:
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Fallback message (bilingual)
+        """
+        if language == 'tr':
+            return (
+                "Özür dilerim, şu anda gezilecek yer bilgilerine erişirken sorun yaşıyorum. 😔\n\n"
+                "Şunları deneyebilirsiniz:\n"
+                "• Belirli bir bölge hakkında sormak (örn. 'Sultanahmet'teki yerler')\n"
+                "• Görmek istedikleriniz hakkında daha spesifik olmak\n"
+                "• Bir süre sonra tekrar sormak\n\n"
+                "Harika yerleri keşfetmenize yardımcı olmak için buradayım! ✨"
+            )
+        else:
+            return (
+                "I apologize, but I'm having trouble accessing attraction information right now. 😔\n\n"
+                "Could you try:\n"
+                "• Asking about a specific area (e.g., 'attractions in Sultanahmet')\n"
+                "• Being more specific about what you'd like to see\n"
+                "• Asking again in a moment\n\n"
+                "I'm here to help you discover amazing places! ✨"
+            )
     
     # ==================== USER HISTORY ====================
     

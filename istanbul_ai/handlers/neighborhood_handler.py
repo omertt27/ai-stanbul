@@ -1,11 +1,22 @@
 """
 ML-Enhanced Neighborhood Handler
 Provides context-aware neighborhood recommendations with neural ranking
+🌐 Full English/Turkish bilingual support
+
+Updated: December 19, 2024 - Added bilingual support
 """
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import logging
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +48,8 @@ class MLEnhancedNeighborhoodHandler:
     - Personalized response generation
     """
     
-    def __init__(self, neighborhood_service, ml_context_builder, ml_processor, response_generator):
+    def __init__(self, neighborhood_service, ml_context_builder, ml_processor, response_generator,
+                 bilingual_manager=None):
         """
         Initialize handler with required services
         
@@ -46,13 +58,32 @@ class MLEnhancedNeighborhoodHandler:
             ml_context_builder: Centralized ML context builder
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
+            bilingual_manager: BilingualManager for language support
         """
         self.neighborhood_service = neighborhood_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info("✅ ML-Enhanced Neighborhood Handler initialized")
+        logger.info(f"✅ ML-Enhanced Neighborhood Handler initialized (Bilingual: {self.has_bilingual})")
+    
+    def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
+        """Extract language from context or detect from query"""
+        if not self.has_bilingual:
+            return None
+        
+        # Check context for language
+        if context and "language" in context:
+            lang_str = context["language"]
+            if lang_str == "tr":
+                return Language.TURKISH
+            elif lang_str == "en":
+                return Language.ENGLISH
+        
+        # Default to English
+        return Language.ENGLISH
     
     async def handle_neighborhood_query(
         self,
@@ -66,18 +97,24 @@ class MLEnhancedNeighborhoodHandler:
         Args:
             user_query: User's natural language query
             user_profile: Optional user profile for personalization
-            context: Optional additional context (weather, location, etc.)
+            context: Optional additional context (must include 'language' key)
         
         Returns:
             Dict with neighborhoods, scores, and natural language response
         """
+        # Extract language for bilingual support
+        language = self._extract_language(context)
+        
         try:
             # Step 1: Extract ML context
             ml_context = await self.ml_context_builder.build_context(
                 query=user_query,
                 intent="neighborhood_recommendation",
                 user_profile=user_profile,
-                additional_context=context
+                additional_context={
+                    **(context or {}),
+                    "language": language.value if language else "en"
+                }
             )
             
             # Step 2: Build neighborhood context from ML context
@@ -103,13 +140,15 @@ class MLEnhancedNeighborhoodHandler:
             response = await self._generate_response(
                 neighborhoods=filtered_neighborhoods[:5],  # Top 5
                 context=neighborhood_context,
-                ml_context=ml_context
+                ml_context=ml_context,
+                language=language
             )
             
             return {
                 "success": True,
                 "neighborhoods": filtered_neighborhoods[:5],
                 "response": response,
+                "language": language.value if language else "en",
                 "context_used": {
                     "vibe_preferences": neighborhood_context.vibe_preferences,
                     "interests": neighborhood_context.interests,
@@ -120,11 +159,22 @@ class MLEnhancedNeighborhoodHandler:
             
         except Exception as e:
             logger.error(f"Error in neighborhood handler: {e}")
+            error_msg = self._get_error_message(language)
             return {
                 "success": False,
                 "error": str(e),
-                "response": "I apologize, but I had trouble processing your neighborhood request. Could you try rephrasing?"
+                "response": error_msg,
+                "language": language.value if language else "en"
             }
+    
+    def _get_error_message(self, language: Optional[Language]) -> str:
+        """Get error message in appropriate language"""
+        if self.has_bilingual and language:
+            if language == Language.TURKISH:
+                return "Özür dilerim, semt önerinizi işlerken sorun yaşadım. Yeniden ifade edebilir misiniz?"
+            else:
+                return "I apologize, but I had trouble processing your neighborhood request. Could you try rephrasing?"
+        return "I apologize, but I had trouble processing your neighborhood request. Could you try rephrasing?"
     
     def _build_neighborhood_context(self, ml_context: Dict[str, Any]) -> NeighborhoodContext:
         """Build neighborhood-specific context from ML context"""
@@ -321,50 +371,111 @@ class MLEnhancedNeighborhoodHandler:
         self,
         neighborhoods: List[Dict[str, Any]],
         context: NeighborhoodContext,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: Optional[Language] = None
     ) -> str:
-        """Generate natural language response"""
+        """Generate natural language response with bilingual support"""
         
         if not neighborhoods:
+            if self.has_bilingual and language:
+                if language == Language.TURKISH:
+                    return "Tercihlerinize uygun semtler bulamadım. Ne aradığınız hakkında daha fazla bilgi verebilir misiniz?"
+                else:
+                    return "I couldn't find neighborhoods matching your preferences. Could you tell me more about what you're looking for?"
             return "I couldn't find neighborhoods matching your preferences. Could you tell me more about what you're looking for?"
         
         # Build response components
         response_parts = []
         
         # Opening based on sentiment and context
-        if context.user_sentiment > 0.5:
-            response_parts.append("Great! I have some exciting neighborhood recommendations for you! 🎉")
-        else:
-            response_parts.append("Based on what you're looking for, here are some neighborhoods I'd recommend:")
+        opening = self._get_opening_message(context.user_sentiment, language)
+        response_parts.append(opening)
         
         # Top neighborhood detailed description
         top = neighborhoods[0]
-        response_parts.append(f"\n\n🌟 **{top['name']}** (Match: {int(top['ml_score']*100)}%)")
+        
+        # Match label
+        if self.has_bilingual and language == Language.TURKISH:
+            match_label = "Eşleşme"
+        else:
+            match_label = "Match"
+        
+        response_parts.append(f"\n\n🌟 **{top['name']}** ({match_label}: {int(top['ml_score']*100)}%)")
         response_parts.append(f"   {top['character']['vibe']}")
-        response_parts.append(f"   Best time: {', '.join(top['character']['best_time'])}")
+        
+        # Best time label
+        if self.has_bilingual and language == Language.TURKISH:
+            best_time_label = "En iyi zaman"
+        else:
+            best_time_label = "Best time"
+        response_parts.append(f"   {best_time_label}: {', '.join(top['character']['best_time'])}")
         
         # Add top recommendations from this neighborhood
         if "restaurants" in top.get("recommendations", {}):
-            response_parts.append(f"   Must-try: {top['recommendations']['restaurants'][0]['name']}")
+            if self.has_bilingual and language == Language.TURKISH:
+                must_try_label = "Mutlaka deneyin"
+            else:
+                must_try_label = "Must-try"
+            response_parts.append(f"   {must_try_label}: {top['recommendations']['restaurants'][0]['name']}")
         
         # Additional neighborhoods (brief)
         if len(neighborhoods) > 1:
-            response_parts.append("\n\n📍 **Other great options:**")
+            if self.has_bilingual and language == Language.TURKISH:
+                other_header = "\n\n📍 **Diğer harika seçenekler:**"
+            else:
+                other_header = "\n\n📍 **Other great options:**"
+            response_parts.append(other_header)
+            
             for neighborhood in neighborhoods[1:4]:
                 response_parts.append(
                     f"   • {neighborhood['name']} - {neighborhood['character']['vibe'][:60]}..."
                 )
         
         # Context-aware tips
+        tips = self._get_context_tips(context, language)
+        if tips:
+            response_parts.append("\n\n" + "\n".join(tips))
+        
+        return "\n".join(response_parts)
+    
+    def _get_opening_message(self, sentiment: float, language: Optional[Language]) -> str:
+        """Get opening message based on sentiment"""
+        if sentiment > 0.5:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "Harika! Sizin için heyecan verici semt önerilerim var! 🎉"
+            else:
+                return "Great! I have some exciting neighborhood recommendations for you! 🎉"
+        else:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "Aradığınız şeye göre, işte önerebileceğim semtler:"
+            else:
+                return "Based on what you're looking for, here are some neighborhoods I'd recommend:"
+    
+    def _get_context_tips(
+        self,
+        context: NeighborhoodContext,
+        language: Optional[Language]
+    ) -> List[str]:
+        """Get context-aware tips"""
+        tips = []
+        
+        # Weather tip
         if context.weather_context:
             weather = context.weather_context.get("condition", "")
             if "rain" in weather.lower():
-                response_parts.append("\n\n☔ Tip: I've prioritized neighborhoods with great indoor options!")
+                if self.has_bilingual and language == Language.TURKISH:
+                    tips.append("☔ İpucu: Harika iç mekan seçenekleri olan semtlere öncelik verdim!")
+                else:
+                    tips.append("☔ Tip: I've prioritized neighborhoods with great indoor options!")
         
+        # Budget tip
         if context.budget_level:
-            response_parts.append(f"\n\n💰 Budget-conscious: All recommendations fit your {context.budget_level} budget preference.")
+            if self.has_bilingual and language == Language.TURKISH:
+                tips.append(f"💰 Bütçe bilinci: Tüm öneriler {context.budget_level} bütçe tercihinize uyuyor.")
+            else:
+                tips.append(f"💰 Budget-conscious: All recommendations fit your {context.budget_level} budget preference.")
         
-        return "\n".join(response_parts)
+        return tips
 
 
 def create_ml_enhanced_neighborhood_handler(

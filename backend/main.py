@@ -1359,6 +1359,18 @@ app = FastAPI(
     version="2.1.0"  # Bumped version for infrastructure updates
 )
 
+# Initialize Authentication Manager
+auth_manager = None
+if ENHANCED_AUTH_AVAILABLE:
+    try:
+        auth_manager = EnhancedAuthManager()
+        logger.info("✅ Enhanced Authentication Manager initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to initialize Enhanced Authentication Manager: {e}")
+        ENHANCED_AUTH_AVAILABLE = False
+else:
+    logger.info("⚠️ Enhanced Authentication Manager not available")
+
 # ═══════════════════════════════════════════════════════════════════
 # PRODUCTION ENDPOINTS: Health Checks & Monitoring
 # ═══════════════════════════════════════════════════════════════════

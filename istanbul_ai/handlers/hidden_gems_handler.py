@@ -1,11 +1,22 @@
 """
 ML-Enhanced Hidden Gems Handler
 Provides context-aware hidden gem recommendations with neural ranking
+🌐 Full English/Turkish bilingual support
+
+Updated: December 19, 2024 - Added bilingual support
 """
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import logging
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +52,8 @@ class MLEnhancedHiddenGemsHandler:
     - Personalized descriptions emphasizing unique qualities
     """
     
-    def __init__(self, hidden_gems_service, ml_context_builder, ml_processor, response_generator):
+    def __init__(self, hidden_gems_service, ml_context_builder, ml_processor, response_generator,
+                 bilingual_manager=None):
         """
         Initialize handler with required services
         
@@ -50,13 +62,32 @@ class MLEnhancedHiddenGemsHandler:
             ml_context_builder: Centralized ML context builder
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
+            bilingual_manager: BilingualManager for language support
         """
         self.hidden_gems_service = hidden_gems_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info("✅ ML-Enhanced Hidden Gems Handler initialized")
+        logger.info(f"✅ ML-Enhanced Hidden Gems Handler initialized (Bilingual: {self.has_bilingual})")
+    
+    def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
+        """Extract language from context or detect from query"""
+        if not self.has_bilingual:
+            return None
+        
+        # Check context for language
+        if context and "language" in context:
+            lang_str = context["language"]
+            if lang_str == "tr":
+                return Language.TURKISH
+            elif lang_str == "en":
+                return Language.ENGLISH
+        
+        # Default to English
+        return Language.ENGLISH
     
     async def handle_hidden_gems_query(
         self,
@@ -70,18 +101,24 @@ class MLEnhancedHiddenGemsHandler:
         Args:
             user_query: User's natural language query
             user_profile: Optional user profile for personalization
-            context: Optional additional context
+            context: Optional additional context (must include 'language' key)
         
         Returns:
             Dict with hidden gems, scores, and natural language response
         """
+        # Extract language for bilingual support
+        language = self._extract_language(context)
+        
         try:
             # Step 1: Extract ML context
             ml_context = await self.ml_context_builder.build_context(
                 query=user_query,
                 intent="hidden_gems",
                 user_profile=user_profile,
-                additional_context=context
+                additional_context={
+                    **(context or {}),
+                    "language": language.value if language else "en"
+                }
             )
             
             # Step 2: Build hidden gem context
@@ -107,13 +144,15 @@ class MLEnhancedHiddenGemsHandler:
             response = await self._generate_response(
                 gems=filtered_gems[:5],
                 context=gem_context,
-                ml_context=ml_context
+                ml_context=ml_context,
+                language=language
             )
             
             return {
                 "success": True,
                 "hidden_gems": filtered_gems[:5],
                 "response": response,
+                "language": language.value if language else "en",
                 "context_used": {
                     "gem_types": gem_context.gem_types,
                     "authenticity_score": gem_context.authenticity_score,
@@ -124,11 +163,22 @@ class MLEnhancedHiddenGemsHandler:
             
         except Exception as e:
             logger.error(f"Error in hidden gems handler: {e}")
+            error_msg = self._get_error_message(language)
             return {
                 "success": False,
                 "error": str(e),
-                "response": "I'd love to share some hidden gems with you! Could you tell me what kind of places interest you?"
+                "response": error_msg,
+                "language": language.value if language else "en"
             }
+    
+    def _get_error_message(self, language: Optional[Language]) -> str:
+        """Get error message in appropriate language"""
+        if self.has_bilingual and language:
+            if language == Language.TURKISH:
+                return "Size gizli mekanlar paylaşmak isterim! Ne tür yerler ilginizi çekiyor?"
+            else:
+                return "I'd love to share some hidden gems with you! Could you tell me what kind of places interest you?"
+        return "I'd love to share some hidden gems with you! Could you tell me what kind of places interest you?"
     
     def _build_gem_context(
         self,
@@ -464,46 +514,72 @@ class MLEnhancedHiddenGemsHandler:
         self,
         gems: List[Dict[str, Any]],
         context: HiddenGemContext,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: Optional[Language] = None
     ) -> str:
-        """Generate natural language response emphasizing hidden quality"""
+        """Generate natural language response emphasizing hidden quality with bilingual support"""
         
         if not gems:
+            if self.has_bilingual and language:
+                if language == Language.TURKISH:
+                    return "Bu kriterlere uyan gizli mekanlar bulamadım. Farklı bir semtte aramak ister misiniz?"
+                else:
+                    return "I couldn't find hidden gems matching those criteria. Would you like me to search in a different neighborhood?"
             return "I couldn't find hidden gems matching those criteria. Would you like me to search in a different neighborhood?"
         
         response_parts = []
         
         # Opening emphasizing "hidden" nature
-        if context.authenticity_score > 0.8:
-            response_parts.append("🤫 Here are some truly hidden spots that even many locals don't know about:")
-        else:
-            response_parts.append("✨ I found some wonderful hidden gems for you:")
+        opening = self._get_opening_message(context.authenticity_score, language)
+        response_parts.append(opening)
         
         # Top gem with detailed description
         top = gems[0]
-        response_parts.append(f"\n\n🌟 **{top['name']}** (Match: {int(top['ml_score']*100)}%, Authenticity: {int(top.get('authenticity', 0)*100)}%)")
+        
+        # Match and Authenticity labels
+        if self.has_bilingual and language:
+            if language == Language.TURKISH:
+                match_label = "Eşleşme"
+                auth_label = "Özgünlük"
+            else:
+                match_label = "Match"
+                auth_label = "Authenticity"
+        else:
+            match_label = "Match"
+            auth_label = "Authenticity"
+        
+        response_parts.append(f"\n\n🌟 **{top['name']}** ({match_label}: {int(top['ml_score']*100)}%, {auth_label}: {int(top.get('authenticity', 0)*100)}%)")
         response_parts.append(f"   📍 {top.get('neighborhood', 'Hidden location')}")
         response_parts.append(f"   {top.get('description', '')}")
         
         # Highlights
         if "highlights" in top and top["highlights"]:
             highlights = ", ".join(top["highlights"][:3])
-            response_parts.append(f"   ✨ What makes it special: {highlights}")
+            if self.has_bilingual and language == Language.TURKISH:
+                response_parts.append(f"   ✨ Özel kılan: {highlights}")
+            else:
+                response_parts.append(f"   ✨ What makes it special: {highlights}")
         
-        # Tourist info
-        tourist_ratio = top.get("tourist_ratio", 0)
-        if tourist_ratio < 0.2:
-            response_parts.append(f"   🎯 Crowd: Almost exclusively locals")
-        elif tourist_ratio < 0.4:
-            response_parts.append(f"   🎯 Crowd: Mostly locals, few tourists")
+        # Crowd info
+        crowd_text = self._get_crowd_text(top.get("tourist_ratio", 0), language)
+        if crowd_text:
+            response_parts.append(crowd_text)
         
         # Directions hint
         if "directions" in top:
-            response_parts.append(f"   🗺️ How to find: {top['directions']}")
+            if self.has_bilingual and language == Language.TURKISH:
+                response_parts.append(f"   🗺️ Nasıl bulunur: {top['directions']}")
+            else:
+                response_parts.append(f"   🗺️ How to find: {top['directions']}")
         
         # Additional gems
         if len(gems) > 1:
-            response_parts.append("\n\n🗺️ **More hidden spots:**")
+            if self.has_bilingual and language == Language.TURKISH:
+                more_header = "\n\n🗺️ **Daha fazla gizli mekan:**"
+            else:
+                more_header = "\n\n🗺️ **More hidden spots:**"
+            response_parts.append(more_header)
+            
             for gem in gems[1:4]:
                 auth_emoji = "🔒" if gem.get("authenticity", 0) > 0.9 else "🎯"
                 response_parts.append(
@@ -511,24 +587,81 @@ class MLEnhancedHiddenGemsHandler:
                 )
         
         # Context-aware tips
-        tips = []
-        
-        if context.authenticity_score > 0.8:
-            tips.append("💡 Pro tip: These places might not have English signs - that's what makes them special!")
-        
-        if any(g.get("price_range") == "free" for g in gems[:3]):
-            tips.append("💰 Bonus: Most of these spots are free!")
-        
-        if context.tourist_comfort < 0.5:
-            tips.append("🗣️ Language tip: Learning a few Turkish phrases will really help at these local spots")
-        
+        tips = self._get_context_tips(gems, context, language)
         if tips:
             response_parts.append("\n\n" + "\n".join(tips))
         
         # Final reminder
-        response_parts.append("\n\n🤫 Remember: These are hidden gems - they might be hard to find, but that's part of the adventure!")
+        final_reminder = self._get_final_reminder(language)
+        response_parts.append(final_reminder)
         
         return "\n".join(response_parts)
+    
+    def _get_opening_message(self, authenticity_score: float, language: Optional[Language]) -> str:
+        """Get opening message based on authenticity preference"""
+        if authenticity_score > 0.8:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "🤫 İşte birçok yerli bile bilmeyen gerçekten gizli mekanlar:"
+            else:
+                return "🤫 Here are some truly hidden spots that even many locals don't know about:"
+        else:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "✨ Sizin için harika gizli mekanlar buldum:"
+            else:
+                return "✨ I found some wonderful hidden gems for you:"
+    
+    def _get_crowd_text(self, tourist_ratio: float, language: Optional[Language]) -> Optional[str]:
+        """Get crowd description text"""
+        if tourist_ratio < 0.2:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "   🎯 Kalabalık: Neredeyse tamamen yerliler"
+            else:
+                return "   🎯 Crowd: Almost exclusively locals"
+        elif tourist_ratio < 0.4:
+            if self.has_bilingual and language == Language.TURKISH:
+                return "   🎯 Kalabalık: Çoğunlukla yerliler, az turist"
+            else:
+                return "   🎯 Crowd: Mostly locals, few tourists"
+        return None
+    
+    def _get_context_tips(
+        self,
+        gems: List[Dict[str, Any]],
+        context: HiddenGemContext,
+        language: Optional[Language]
+    ) -> List[str]:
+        """Get context-aware tips"""
+        tips = []
+        
+        # Authenticity tip
+        if context.authenticity_score > 0.8:
+            if self.has_bilingual and language == Language.TURKISH:
+                tips.append("💡 İpucu: Bu yerlerde İngilizce tabelalar olmayabilir - işte bu onları özel kılan!")
+            else:
+                tips.append("💡 Pro tip: These places might not have English signs - that's what makes them special!")
+        
+        # Free places tip
+        if any(g.get("price_range") == "free" for g in gems[:3]):
+            if self.has_bilingual and language == Language.TURKISH:
+                tips.append("💰 Bonus: Bu mekanların çoğu ücretsiz!")
+            else:
+                tips.append("💰 Bonus: Most of these spots are free!")
+        
+        # Language tip
+        if context.tourist_comfort < 0.5:
+            if self.has_bilingual and language == Language.TURKISH:
+                tips.append("🗣️ Dil ipucu: Birkaç İngilizce kelime öğrenmek bu yerli mekanlarda gerçekten yardımcı olacaktır")
+            else:
+                tips.append("🗣️ Language tip: Learning a few Turkish phrases will really help at these local spots")
+        
+        return tips
+    
+    def _get_final_reminder(self, language: Optional[Language]) -> str:
+        """Get final reminder about hidden gems"""
+        if self.has_bilingual and language == Language.TURKISH:
+            return "\n\n🤫 Unutmayın: Bunlar gizli mekanlar - bulmak zor olabilir, ama işte macera da bu!"
+        else:
+            return "\n\n🤫 Remember: These are hidden gems - they might be hard to find, but that's part of the adventure!"
 
 
 def create_ml_enhanced_hidden_gems_handler(

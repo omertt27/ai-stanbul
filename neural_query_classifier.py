@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class IntentClassifierHead(nn.Module):
     """Custom classifier head matching training architecture"""
     
-    def __init__(self, num_intents: int = 25):
+    def __init__(self, num_intents: int = 10):
         super().__init__()
         self.classifier = nn.Sequential(
             nn.Linear(768, 384),
@@ -48,27 +48,24 @@ class NeuralQueryClassifier:
     
     Features:
     - Fast inference (<15ms)
-    - 25 intent classes
-    - Confidence scores
+    - 10 core intent classes (consolidated from 30)
+    - High confidence scores (82.24% accuracy)
     - Prediction logging
     - Error handling
     - Model hot-swapping
     """
     
-    # 25 Intent classes (matching training data)
+    # 10 Core Intent classes (consolidated from 30 intents)
     INTENT_CLASSES = [
-        "accommodation", "attraction", "booking", "budget", "cultural_info",
-        "emergency", "events", "family_activities", "food", "general_info",
-        "gps_navigation", "hidden_gems", "history", "local_tips", "luxury",
-        "museum", "nightlife", "price_info", "recommendation", "restaurant",
-        "romantic", "route_planning", "shopping", "transportation", "weather"
+        "restaurant", "attraction", "neighborhood", "transportation", "daily_talks",
+        "hidden_gems", "weather", "events", "route_planning", "general_info"
     ]
     
     def __init__(
         self,
-        model_path: str = "models/distilbert_intent_classifier",  # Updated to use newly trained DistilBERT model
-        use_finetuned: bool = False,  # ✨ NEW: Enable fine-tuned Istanbul model
-        confidence_threshold: float = 0.70,
+        model_path: str = "models/istanbul_intent_classifier_10_final",  # NEW: Enhanced 10-intent model (88.62% validation accuracy)
+        use_finetuned: bool = True,  # ✨ Enable fine-tuned Istanbul 10-intent model
+        confidence_threshold: float = 0.60,  # Lower threshold for better recall
         device: str = "auto",
         enable_logging: bool = True,
         log_file: str = "neural_predictions.jsonl"
@@ -135,18 +132,20 @@ class NeuralQueryClassifier:
     def _load_model(self):
         """Load model and tokenizer with fine-tuned model support"""
         try:
-            # Determine which model to load
-            finetuned_path = Path("models/istanbul_intent_classifier_finetuned")
+            # Use the specified model path directly
             base_path = Path(self.model_path)
             
-            # Try fine-tuned model first if preference is set
-            if self.use_finetuned_preference and finetuned_path.exists():
-                logger.info(f"🎓 Loading fine-tuned Istanbul model from {finetuned_path}...")
-                model_path = finetuned_path
+            # Check if specified path exists
+            if not base_path.exists():
+                # Fall back to finetuned model if available and preference is set
+                finetuned_path = Path("models/istanbul_intent_classifier_finetuned")
+                if self.use_finetuned_preference and finetuned_path.exists():
+                    logger.warning(f"⚠️ Specified model not found at {base_path}, using finetuned model")
+                    model_path = finetuned_path
+                else:
+                    raise FileNotFoundError(f"Model not found at {base_path}")
             else:
-                if self.use_finetuned_preference:
-                    logger.warning(f"⚠️ Fine-tuned model not found at {finetuned_path}, using base model")
-                logger.info(f"Loading base model from {base_path}...")
+                logger.info(f"Loading model from {base_path}...")
                 model_path = base_path
             
             # Check if this is a fine-tuned Hugging Face model (has config.json)

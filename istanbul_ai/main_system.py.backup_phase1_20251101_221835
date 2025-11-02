@@ -19,9 +19,6 @@ from .core.user_management import UserManager
 # Week 1 Modularization: Import initialization modules
 from .initialization import ServiceInitializer, HandlerInitializer, SystemConfig
 
-# Week 2 Modularization: Import bilingual support
-from .services.bilingual_manager import BilingualManager, Language
-
 # Import GPS Route Service for location-based route planning
 from .services.gps_route_service import GPSRouteService
 
@@ -229,11 +226,6 @@ class IstanbulDailyTalkAI:
         self.response_generator = ResponseGenerator()
         self.user_manager = UserManager()
         
-        # Week 2 Modularization: Initialize bilingual manager
-        logger.info("🌐 Initializing bilingual support...")
-        self.bilingual_manager = BilingualManager()
-        logger.info("✅ BilingualManager initialized - Full English/Turkish parity enabled")
-        
         # Week 1 Modularization: Initialize all services using ServiceInitializer
         service_initializer = ServiceInitializer()
         services = service_initializer.initialize_all_services()
@@ -260,8 +252,7 @@ class IstanbulDailyTalkAI:
             'transport_processor': getattr(self, 'transport_processor', None),
             'response_generator': self.response_generator,
             'neural_processor': getattr(self, 'neural_processor', None),
-            'ml_context_builder': getattr(self, 'ml_context_builder', None),
-            'bilingual_manager': self.bilingual_manager  # 🌐 Pass bilingual manager to handlers
+            'ml_context_builder': getattr(self, 'ml_context_builder', None)
         }
         
         handler_initializer = HandlerInitializer()
@@ -629,18 +620,6 @@ class IstanbulDailyTalkAI:
             # Get or create user context
             user_profile = self.user_manager.get_or_create_user_profile(user_id)
             
-            # 🌐 BILINGUAL: Detect language and update user preference
-            user_language_pref = self.bilingual_manager.get_user_language(user_profile)
-            detected_language = self.bilingual_manager.detect_language(
-                message, 
-                user_preference=user_language_pref
-            )
-            
-            # Update user's language preference if detected language is different
-            if detected_language != user_language_pref:
-                self.bilingual_manager.set_user_language(user_profile, detected_language)
-                logger.info(f"🌐 Language preference updated: {user_language_pref.value} → {detected_language.value}")
-            
             # Update user location if GPS provided
             if gps_location and isinstance(gps_location, dict):
                 if 'latitude' in gps_location and 'longitude' in gps_location:
@@ -656,10 +635,6 @@ class IstanbulDailyTalkAI:
                 session_id = self.user_manager.start_conversation(user_id)
             
             context = self.user_manager.get_conversation_context(session_id)
-            
-            # 🌐 Store detected language in context for handlers
-            context.language = detected_language
-            logger.info(f"🌐 Context language set to: {detected_language.value}")
             
             # ==================== A/B TESTING INTEGRATION ====================
             # Assign user to experiment variant and track query
@@ -713,7 +688,7 @@ class IstanbulDailyTalkAI:
                     # Continue without A/B testing if error occurs
             
             # Week 2 Modularization: Preprocess query for neural insights
-            preprocessed_query = self.query_preprocessor.preprocess_query(
+            preprocessed_query = self.query_preprocessor.preprocess(
                 message=message,
                 context=context,
                 neural_processor=self.neural_processor if hasattr(self, 'neural_processor') else None
@@ -1301,18 +1276,223 @@ class IstanbulDailyTalkAI:
         
         return base_greeting
     
-    # ============================================================================
-    # LEGACY TRANSPORTATION METHODS REMOVED (Phase 3 Cleanup - November 1, 2025)
-    # ============================================================================
-    # The following methods have been migrated to TransportationHandler:
-    # - _generate_transportation_response() → TransportationHandler.handle()
-    # - _get_fallback_transportation_response() → TransportationHandler._get_fallback_response()
-    # - _generate_gps_route_response() → TransportationHandler._handle_gps_navigation()
-    #
-    # All functionality preserved in: istanbul_ai/handlers/transportation_handler.py
-    # Handler registered in: istanbul_ai/initialization/handler_initializer.py
-    # Routing handled by: istanbul_ai/routing/response_router.py
-    # ============================================================================
+    
+    def _generate_transportation_response(self, message: str, entities: Dict, user_profile: UserProfile, 
+ 
+                                        context: ConversationContext, neural_insights: Optional[Dict] = None,
+                                        return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+        """Generate transportation response with neural insights
+        
+        Args:
+            message: User's query
+            entities: Extracted entities
+            user_profile: User profile
+            context: Conversation context
+            neural_insights: ML-powered insights (sentiment, temporal context, keywords, etc.)
+            return_structured: Whether to return structured response
+            
+        Returns:
+            Transportation response (string or dict based on return_structured)
+        """
+        try:
+            # Extract temporal and sentiment context from neural insights
+            temporal_context = neural_insights.get('temporal_context') if neural_insights else None
+            sentiment = neural_insights.get('sentiment') if neural_insights else None
+            
+            logger.info(f"🧠 Transportation query with ML insights: temporal={temporal_context}, sentiment={sentiment}")
+            
+            # Check if this is a specific route request
+            route_indicators = [
+                'from', 'to', 'how to get', 'how do i get', 'how can i get', 
+                'how to go', 'how do i go', 'how can i go',
+                'directions', 'route from', 'route to', 'way to get', 'way to go',
+                'get to', 'go to', 'travel to', 'reach'
+            ]
+            is_route_query = any(indicator in message.lower() for indicator in route_indicators)
+            
+            # Use new transfer instructions & map visualization integration if available
+            if is_route_query and TRANSFER_MAP_INTEGRATION_AVAILABLE and self.transportation_chat:
+                logger.info("🗺️ Using Transfer Instructions & Map Visualization system")
+                
+                # Extract locations from entities if available
+                user_location = None
+                destination = None
+                
+                if 'location' in entities and entities['location']:
+                    locations = entities['location']
+                    if len(locations) >= 2:
+                        user_location = locations[0]
+                        destination = locations[1]
+                    elif len(locations) == 1:
+                        destination = locations[0]
+                
+                # Process the transportation query (async)
+                import asyncio
+                loop = asyncio.get_event_loop()
+                
+                # Build intelligent user context using ML insights
+                user_context = self._build_intelligent_user_context(message, neural_insights, user_profile)
+                
+                result = loop.run_until_complete(
+                    self.transportation_chat.handle_transportation_query(
+                        query=message,
+                        user_location=user_location,
+                        destination=destination,
+                        user_context=user_context
+                    )
+                )
+                
+                if result.get('success'):
+                    response_text = result.get('response_text', '')
+                    map_data = result.get('map_data', {})
+                    
+                    if return_structured:
+                        return {
+                            'response': response_text,
+                            'map_data': map_data,
+                            'detailed_route': result.get('detailed_route'),
+                            'alternatives': result.get('alternatives', []),
+                            'fare_info': result.get('fare_info'),
+                            'transfer_count': result.get('transfer_count', 0),
+                            'total_time': result.get('total_time', 0)
+                        }
+                    else:
+                        return response_text
+                else:
+                    # If clarification needed or error, fall through to other systems
+                    if result.get('needs_clarification'):
+                        return result.get('response_text', '')
+            
+            # Check if this is a GPS route request (use GPS route planner)
+            if is_route_query:
+                logger.info("🗺️ Using GPS route planner for route-specific query")
+                return self._generate_gps_route_response(message, entities, user_profile, context)
+            
+            # Use advanced transportation system if available for general transport info
+            if ADVANCED_TRANSPORT_AVAILABLE and self.transport_processor:
+                logger.info("🚇 Using advanced transportation system with IBB API")
+                
+                # Process query through advanced system using the actual message
+                enhanced_response = self.transport_processor.process_transportation_query_sync(
+                    message, entities, user_profile
+                )
+                
+                if enhanced_response and enhanced_response.strip():
+                    if return_structured:
+                        return {
+                            'response': enhanced_response,
+                            'map_data': {}
+                        }
+                    else:
+                        return enhanced_response
+                    
+            # Fallback to improved static response
+            logger.info("🚇 Using fallback transportation system")
+            response = self._get_fallback_transportation_response(entities, user_profile, context)
+            
+            if return_structured:
+                return {
+                    'response': response,
+                    'map_data': {}
+                }
+            else:
+                return response
+            
+        except Exception as e:
+            logger.error(f"Transportation query error: {e}")
+            response = self._get_fallback_transportation_response(entities, user_profile, context)
+            if return_structured:
+                return {
+                    'response': response,
+                    'map_data': {}
+                }
+            else:
+                return response
+
+    def _get_fallback_transportation_response(self, entities: Dict, user_profile: UserProfile, 
+                                            context: ConversationContext) -> str:
+        """Fallback transportation response with correct information"""
+        current_time = datetime.now().strftime("%H:%M")
+        
+        return f"""🚇 **Istanbul Transportation Guide**
+📍 **Live Status** (Updated: {current_time})
+
+**🎫 Essential Transport Card:**
+• **Istanbulkart**: Must-have for official public transport (13 TL + credit)
+• Available at metro stations, kiosks, and ferry terminals
+• Works on metro, tram, bus, ferry, and metrobüs (NOT on dolmuş - cash only)
+
+**🚇 Metro Lines:**
+• **M1A**: Yenikapı ↔ Atatürk Airport (closed) - serves Grand Bazaar area
+• **M2**: Vezneciler ↔ Hacıosman (serves Taksim, Şişli, Levent)
+• **M4**: Kadıköy ↔ Sabiha Gökçen Airport (Asian side)
+• **M11**: IST Airport ↔ Gayrettepe (new airport connection)
+• **M6**: Levent ↔ Boğaziçi Üniversitesi
+
+**🚋 Historic Trams:**
+• **T1**: Kabataş ↔ Bağcılar (connects Sultanahmet, Eminönü, Karaköy)
+• **Nostalgic Tram**: Taksim ↔ Tünel (historic Istiklal Street)
+
+**⛴️ Ferries (Most Scenic!):**
+• **Eminönü ↔ Kadıköy**: 20 minutes, beautiful city views
+• **Karaköy ↔ Üsküdar**: Quick cross-Bosphorus connection
+• **Bosphorus Tours**: 1.5-hour scenic cruises (90-150 TL)
+
+**🚌 Buses & Dolmuş:**
+• Extensive network but can be crowded
+• Dolmuş (shared taxis) follow set routes - cash payment only, no Istanbulkart
+• Look for destination signs in Turkish and English
+
+**💡 Pro Tips:**
+• Download Citymapper or Moovit apps for real-time directions
+• Rush hours: 7:30-9:30 AM, 5:30-7:30 PM
+• Ferries often faster than road transport across Bosphorus
+• Keep Istanbulkart handy - inspectors check frequently
+• Metro runs until midnight, limited night bus service
+
+**🎯 Popular Routes:**
+• **IST Airport → Sultanahmet**: M11 + M2 + T1 (60 min, ~20 TL)
+• **Taksim → Sultanahmet**: M2 + T1 (25 min, ~7 TL)  
+• **Sultanahmet → Galata Tower**: T1 + M2 (25 min)
+• **European → Asian side**: Ferry from Eminönü/Karaköy
+
+Need specific route directions? Tell me your starting point and destination!"""
+    
+    def _generate_gps_route_response(
+        self,
+        message: str,
+        entities: Dict[str, Any],
+        user_profile: UserProfile,
+        context: ConversationContext
+    ) -> str:
+        """
+        Generate GPS-aware route response (delegates to GPSRouteService).
+        
+        This method was previously missing and causing errors when GPS route
+        planning was requested. Now it cleanly delegates to the dedicated
+        GPS Route Service for better modularity.
+        
+        Args:
+            message: User's query message
+            entities: Extracted entities from the query
+            user_profile: User's profile with potential GPS data
+            context: Current conversation context
+            
+        Returns:
+            GPS-aware route response with personalized directions
+        """
+        try:
+            if self.gps_route_service:
+                logger.info("🗺️ Delegating to GPS Route Service")
+                return self.gps_route_service.generate_route_response(
+                    message, entities, user_profile, context
+                )
+            else:
+                logger.warning("⚠️ GPS Route Service not available, using fallback")
+                return self._get_fallback_transportation_response(entities, user_profile, context)
+        except Exception as e:
+            logger.error(f"Error in GPS route response: {e}", exc_info=True)
+            return self._get_fallback_transportation_response(entities, user_profile, context)
     
     def _generate_events_response(self, entities: Dict, user_profile: UserProfile, 
                                  context: ConversationContext, current_time: datetime,
@@ -1743,6 +1923,11 @@ What would you like to explore first? I'm here to make your Istanbul experience 
                     return float('inf')  # Default to infinite distance if no coordinates
                 
                 attractions.sort(key=calculate_distance)
+                logger.info(f"📍 Sorted {len(attractions)} attractions by GPS distance")
+            
+            # Format response
+            if attractions:
+                return self._format_attractions_list(attractions, category=category, district=district)
             else:
                 logger.warning("Advanced Attractions System returned no results, falling back")
                 return self.response_generator.generate_comprehensive_recommendation(
@@ -2001,25 +2186,20 @@ What would you like to explore first? I'm here to make your Istanbul experience 
         response += "• Plan indoor backup for weather\n"
         response += "• Book dinner reservations in advance\n"
         
-        # Analyze query complexity for logging
-        query_lower = query.lower()
-        multiple_questions = query.count('?') > 1
-        multiple_clauses = query.count(',') >= 2
+        # Also check for multiple question marks or commas (indicating multiple sub-queries)
+        multiple_questions = message.count('?') > 1
+        multiple_clauses = message.count(',') >= 2
         
         # Query is complex if it has:
         # - 2+ complexity indicators, OR
         # - Multiple questions, OR  
         # - 3+ filter words AND 2+ clauses
         complexity_indicators = ['museum', 'exhibition', 'art', 'history', 'cultural', 'istanbul', 'visit', 'see', 'recommend']
-        complexity_count = sum(1 for indicator in complexity_indicators if indicator in query_lower)
-        
-        # Extract category and district for complexity analysis
-        category = self._extract_attraction_category(query)
-        district = self._extract_district(query)
+        complexity_count = sum(1 for indicator in complexity_indicators if indicator in message_lower)
         
         is_complex = (complexity_count >= 2 or
                       multiple_questions or
-                      (category and district and len(museums) > 2) or  # Category + district filter with multiple results
+                      (category and district and len(attractions) > 2) or  # Category + district filter with multiple results
                       (complexity_count >= 1 and multiple_clauses)
                      )
         if is_complex:

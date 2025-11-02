@@ -63,7 +63,7 @@ class ResponseRouter:
             intent: Classified intent
             entities: Extracted entities
             user_profile: User profile
-            context: Conversation context
+            context: Conversation context (should include language)
             handlers: Dictionary of available handlers
             neural_insights: Optional neural insights
             return_structured: Whether to return structured response
@@ -72,6 +72,11 @@ class ResponseRouter:
             Response string or structured response dict
         """
         logger.info(f"🎯 Routing query with intent: {intent}")
+        
+        # 🌐 BILINGUAL: Ensure language is in context for all handlers
+        language = self._ensure_language_context(context, user_profile)
+        if language:
+            logger.debug(f"🌐 Routing with language: {language}")
         
         # Route based on intent
         if intent == 'restaurant':
@@ -178,7 +183,10 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route restaurant queries"""
+        """Route restaurant queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         # Try ML handler first
         ml_handler = handlers.get('ml_restaurant_handler')
         if ml_handler:
@@ -187,10 +195,10 @@ class ResponseRouter:
                     message=message,
                     entities=entities,
                     user_profile=user_profile,
-                    context=context
+                    context=context  # Context now includes language
                 )
                 if response and response.get('response'):
-                    logger.info("✅ ML Restaurant Handler processed query")
+                    logger.info(f"✅ ML Restaurant Handler processed query (lang: {language})")
                     return response if return_structured else response['response']
             except Exception as e:
                 logger.warning(f"ML Restaurant Handler failed: {e}")
@@ -210,7 +218,10 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route attraction queries (museums, landmarks, etc.)"""
+        """Route attraction queries (museums, landmarks, etc.) with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         message_lower = message.lower()
         
         # Check if this is specifically a museum query
@@ -257,7 +268,7 @@ class ResponseRouter:
                     context=context
                 )
                 if response and response.get('response'):
-                    logger.info("✅ ML Attraction Handler processed query")
+                    logger.info(f"✅ ML Attraction Handler processed query (lang: {language})")
                     return response if return_structured else response['response']
             except Exception as e:
                 logger.warning(f"ML Attraction Handler failed: {e}")
@@ -281,10 +292,27 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route transportation queries"""
-        transportation_handler = handlers.get('transportation_response_handler')
-        if transportation_handler:
-            return transportation_handler(
+        """Route transportation queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        logger.info(f"🚇 Routing transportation query (lang: {language})")
+        
+        # Try new transportation handler first
+        transportation_handler = handlers.get('transportation_handler')
+        if transportation_handler and hasattr(transportation_handler, 'handle'):
+            return transportation_handler.handle(
+                message=message,
+                entities=entities,
+                user_profile=user_profile,
+                context=context,  # Context now includes language
+                neural_insights=neural_insights,
+                return_structured=return_structured
+            )
+        
+        # Fallback to legacy handler (if exists)
+        legacy_handler = handlers.get('transportation_response_handler')
+        if legacy_handler:
+            return legacy_handler(
                 message, entities, user_profile, context, 
                 neural_insights, return_structured
             )
@@ -295,19 +323,23 @@ class ResponseRouter:
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict, return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route neighborhood queries"""
+        """Route neighborhood queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         # Try ML handler first
         ml_handler = handlers.get('ml_neighborhood_handler')
         if ml_handler:
             try:
                 response = ml_handler.handle_neighborhood_query(
-                    message, entities, user_profile, context
+                    message, entities, user_profile, context  # Context now includes language
                 )
                 if return_structured:
                     return {
                         'response': response,
                         'intent': 'neighborhood',
-                        'source': 'ml_neighborhood_handler'
+                        'source': 'ml_neighborhood_handler',
+                        'language': language
                     }
                 return response
             except Exception as e:
@@ -416,9 +448,13 @@ class ResponseRouter:
     
     def _route_events_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
-        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict]
+        context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
+        return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route event-related queries"""
+        """Route event-related queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         # Try ML handler first
         ml_handler = handlers.get('ml_event_handler')
         if ml_handler:
@@ -427,10 +463,10 @@ class ResponseRouter:
                     message=message,
                     entities=entities,
                     user_profile=user_profile,
-                    context=context
+                    context=context  # Context now includes language
                 )
                 if response and response.get('response'):
-                    logger.info("✅ ML Event Handler processed query")
+                    logger.info(f"✅ ML Event Handler processed query (lang: {language})")
                     return response if return_structured else response['response']
             except Exception as e:
                 logger.warning(f"ML Event Handler failed: {e}")
@@ -450,11 +486,14 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route weather-related queries"""
+        """Route weather-related queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         weather_handler = handlers.get('weather_response_handler')
         if weather_handler:
             return weather_handler(
-                message, entities, user_profile, context, 
+                message, entities, user_profile, context,  # Context now includes language
                 neural_insights, return_structured
             )
         
@@ -498,13 +537,16 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route hidden gems queries"""
+        """Route hidden gems queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         # Try ML handler first
         ml_handler = handlers.get('ml_hidden_gems_handler')
         if ml_handler:
             try:
                 response = ml_handler.handle_hidden_gems_query(
-                    message, entities, user_profile, context
+                    message, entities, user_profile, context  # Context now includes language
                 )
                 if return_structured:
                     query_params = (ml_handler.extract_query_parameters(message) 
@@ -513,7 +555,8 @@ class ResponseRouter:
                         'response': response,
                         'intent': 'hidden_gems',
                         'source': 'ml_hidden_gems_handler',
-                        'query_params': query_params
+                        'query_params': query_params,
+                        'language': language
                     }
                 return response
             except Exception as e:
@@ -607,7 +650,10 @@ class ResponseRouter:
         self, message: str, user_profile: UserProfile, context: ConversationContext,
         handlers: Dict
     ) -> str:
-        """Route greeting queries"""
+        """Route greeting queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         # Try conversation handler first
         conversation_handler = handlers.get('conversation_handler')
         if conversation_handler:
@@ -623,18 +669,29 @@ class ResponseRouter:
         if greeting_handler:
             return greeting_handler(user_profile, context)
         
-        return "🌟 Merhaba! Welcome to Istanbul! I'm here to help you discover this amazing city. What would you like to explore?"
+        # Fallback with bilingual greeting
+        if language == 'tr':
+            return "🌟 Merhaba! İstanbul'a hoş geldiniz! Size bu muhteşem şehri keşfetmenizde yardımcı olmak için buradayım. Neyi keşfetmek istersiniz?"
+        else:
+            return "🌟 Merhaba! Welcome to Istanbul! I'm here to help you discover this amazing city. What would you like to explore?"
     
     def _route_general_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict
     ) -> str:
-        """Route general/fallback queries"""
+        """Route general/fallback queries with language context"""
+        # 🌐 BILINGUAL: Ensure language is in context
+        language = self._ensure_language_context(context, user_profile)
+        
         response_generator = handlers.get('response_generator')
         if response_generator:
             return response_generator._generate_fallback_response(context, user_profile)
         
-        return "I'd be happy to help you explore Istanbul! Could you tell me more about what you're looking for?"
+        # Fallback with bilingual response
+        if language == 'tr':
+            return "İstanbul'u keşfetmenizde size yardımcı olmaktan mutluluk duyarım! Ne aradığınız hakkında daha fazla bilgi verebilir misiniz?"
+        else:
+            return "I'd be happy to help you explore Istanbul! Could you tell me more about what you're looking for?"
     
     def should_use_ml_handler(self, intent: str, handlers: Dict) -> bool:
         """
@@ -844,7 +901,37 @@ class ResponseRouter:
         """
         if self.neural_ranker:
             return self.neural_ranker.get_stats()
-        return {
-            'available': False,
-            'method': 'fallback'
-        }
+        return {'error': 'Neural ranker not available'}
+    
+    def _ensure_language_context(
+        self, 
+        context: ConversationContext, 
+        user_profile: UserProfile
+    ) -> Optional[str]:
+        """
+        Ensure language is present in context for handlers
+        
+        Args:
+            context: Conversation context
+            user_profile: User profile
+            
+        Returns:
+            Language code ('en' or 'tr') or None
+        """
+        # Check if language is already in context
+        if hasattr(context, 'language'):
+            # Handle both string and Language enum
+            if hasattr(context.language, 'value'):
+                return context.language.value  # Language enum
+            return context.language  # String
+        
+        # Try to get from user profile
+        if user_profile and hasattr(user_profile, 'language_preference'):
+            lang = user_profile.language_preference
+            # Store back in context for consistency
+            context.language = lang
+            return lang if isinstance(lang, str) else lang.value if hasattr(lang, 'value') else 'en'
+        
+        # Default to English
+        context.language = 'en'
+        return 'en'

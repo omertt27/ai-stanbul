@@ -1,12 +1,23 @@
 """
 ML-Enhanced Event Handler
 Provides context-aware event recommendations with neural ranking
+🌐 Full English/Turkish bilingual support
+
+Updated: November 2, 2025 - Added bilingual support
 """
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +52,8 @@ class MLEnhancedEventHandler:
     - Personalized response generation with event details
     """
     
-    def __init__(self, events_service, ml_context_builder, ml_processor, response_generator):
+    def __init__(self, events_service, ml_context_builder, ml_processor, response_generator,
+                 bilingual_manager=None):
         """
         Initialize handler with required services
         
@@ -50,13 +62,32 @@ class MLEnhancedEventHandler:
             ml_context_builder: Centralized ML context builder
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
+            bilingual_manager: BilingualManager for language support
         """
         self.events_service = events_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info("✅ ML-Enhanced Event Handler initialized")
+        logger.info(f"✅ ML-Enhanced Event Handler initialized (Bilingual: {self.has_bilingual})")
+    
+    def _get_language(self, context) -> str:
+        """Extract language from context ('en' or 'tr')"""
+        if not context:
+            return 'en'
+        if hasattr(context, 'language'):
+            lang = context.language
+            if hasattr(lang, 'value'):
+                return lang.value
+            return lang if lang in ['en', 'tr'] else 'en'
+        if isinstance(context, dict) and 'language' in context:
+            lang = context['language']
+            if hasattr(lang, 'value'):
+                return lang.value
+            return lang if lang in ['en', 'tr'] else 'en'
+        return 'en'
     
     async def handle_event_query(
         self,
@@ -76,6 +107,10 @@ class MLEnhancedEventHandler:
             Dict with events, scores, and natural language response
         """
         try:
+            # 🌐 BILINGUAL: Extract language from context
+            language = self._get_language(context)
+            logger.info(f"🎭 Processing event query (lang: {language}): {user_query[:50]}...")
+            
             # Step 1: Extract ML context
             ml_context = await self.ml_context_builder.build_context(
                 query=user_query,
@@ -103,11 +138,12 @@ class MLEnhancedEventHandler:
                 event_context
             )
             
-            # Step 6: Generate personalized response
+            # Step 6: Generate personalized response (bilingual)
             response = await self._generate_response(
                 events=filtered_events[:5],  # Top 5
                 context=event_context,
-                ml_context=ml_context
+                ml_context=ml_context,
+                language=language  # 🌐 Pass language
             )
             
             return {
@@ -120,15 +156,23 @@ class MLEnhancedEventHandler:
                     "date_range": event_context.date_range,
                     "sentiment": event_context.user_sentiment,
                     "weather_aware": event_context.weather_context is not None
-                }
+                },
+                "language": language
             }
             
         except Exception as e:
             logger.error(f"Error in event handler: {e}")
+            language = self._get_language(context) if context else 'en'
+            error_msg = (
+                "Özür dilerim, etkinlik bulmada sorun yaşadım. İlgilendiğiniz konular hakkında daha fazla bilgi verebilir misiniz?" 
+                if language == 'tr' else 
+                "I apologize, but I had trouble finding events for you. Could you tell me more about what you're interested in?"
+            )
             return {
                 "success": False,
                 "error": str(e),
-                "response": "I apologize, but I had trouble finding events for you. Could you tell me more about what you're interested in?"
+                "response": error_msg,
+                "language": language
             }
     
     def _build_event_context(
@@ -479,28 +523,55 @@ class MLEnhancedEventHandler:
         self,
         events: List[Dict[str, Any]],
         context: EventContext,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: str = 'en'
     ) -> str:
-        """Generate natural language response"""
+        """
+        Generate natural language response (bilingual)
+        
+        Args:
+            events: List of events
+            context: Event context
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted response (bilingual)
+        """
         
         if not events:
-            return "I couldn't find any events matching your preferences. Would you like me to check different dates or categories?"
+            return (
+                "Tercihlerinize uygun etkinlik bulamadım. Farklı tarihler veya kategoriler kontrol etmemi ister misiniz?" 
+                if language == 'tr' else
+                "I couldn't find any events matching your preferences. Would you like me to check different dates or categories?"
+            )
         
         # Build response components
         response_parts = []
         
         # Opening based on sentiment and context
         if context.user_sentiment > 0.5:
-            response_parts.append("Exciting! I found some amazing events for you! 🎉")
+            response_parts.append(
+                "Harika! Sizin için muhteşem etkinlikler buldum! 🎉" if language == 'tr'
+                else "Exciting! I found some amazing events for you! 🎉"
+            )
         else:
-            response_parts.append("Here are some events I think you'll enjoy:")
+            response_parts.append(
+                "İşte sizin için seçtiğim etkinlikler:" if language == 'tr'
+                else "Here are some events I think you'll enjoy:"
+            )
         
         # Top event detailed description
         top = events[0]
-        response_parts.append(f"\n\n🌟 **{top['name']}** (Match: {int(top['ml_score']*100)}%)")
-        response_parts.append(f"   📅 {self._format_date(top.get('date'))}")
-        response_parts.append(f"   📍 {top.get('location', 'Location TBA')}")
-        response_parts.append(f"   💰 {top.get('price_range', 'Check website').title()}")
+        match_label = "Eşleşme" if language == 'tr' else "Match"
+        response_parts.append(f"\n\n🌟 **{top['name']}** ({match_label}: {int(top['ml_score']*100)}%)")
+        response_parts.append(f"   📅 {self._format_date(top.get('date'), language)}")
+        
+        location_label = "Konum TBA" if language == 'tr' else "Location TBA"
+        response_parts.append(f"   📍 {top.get('location', location_label)}")
+        
+        price_label = "Web sitesini kontrol edin" if language == 'tr' else "Check website"
+        response_parts.append(f"   💰 {top.get('price_range', price_label).title()}")
         
         if "description" in top:
             response_parts.append(f"   {top['description']}")
@@ -508,46 +579,99 @@ class MLEnhancedEventHandler:
         # Highlights
         if "highlights" in top and top["highlights"]:
             highlights = ", ".join(top["highlights"][:3])
-            response_parts.append(f"   ✨ Highlights: {highlights}")
+            highlights_label = "Öne Çıkanlar" if language == 'tr' else "Highlights"
+            response_parts.append(f"   ✨ {highlights_label}: {highlights}")
         
         # Additional events (brief)
         if len(events) > 1:
-            response_parts.append("\n\n📅 **More events for you:**")
+            more_events_label = "📅 **Sizin için daha fazla etkinlik:**" if language == 'tr' else "📅 **More events for you:**"
+            response_parts.append(f"\n\n{more_events_label}")
             for event in events[1:4]:
-                date_str = self._format_date(event.get("date"))
+                date_str = self._format_date(event.get("date"), language)
+                at_label = "" if language == 'tr' else "at"
+                location = event.get('location', 'TBA')
                 response_parts.append(
-                    f"   • **{event['name']}** - {date_str} at {event.get('location', 'TBA')}"
+                    f"   • **{event['name']}** - {date_str} {at_label} {location}".strip()
                 )
         
         # Context-aware tips
         if context.weather_context:
             weather = context.weather_context.get("condition", "")
             if "rain" in weather.lower():
-                response_parts.append("\n\n☔ Weather Note: I've prioritized indoor events due to rain in the forecast.")
+                response_parts.append(
+                    "\n\n☔ Hava Notu: Yağmur tahmini nedeniyle iç mekan etkinliklerine öncelik verdim." if language == 'tr'
+                    else "\n\n☔ Weather Note: I've prioritized indoor events due to rain in the forecast."
+                )
         
         if context.budget_level == "budget":
             free_count = sum(1 for e in events if e.get("price_range") == "free")
             if free_count > 0:
-                response_parts.append(f"\n\n💰 Budget Tip: {free_count} of these events are free!")
+                tip_label = f"\n\n💰 Bütçe İpucu: Bu etkinliklerin {free_count} tanesi ücretsiz!" if language == 'tr' else f"\n\n💰 Budget Tip: {free_count} of these events are free!"
+                response_parts.append(tip_label)
         
         # Booking reminder
         if any(e.get("crowd_size") == "large" for e in events[:2]):
-            response_parts.append("\n\n🎟️ Tip: Popular events may require advance booking!")
+            response_parts.append(
+                "\n\n🎟️ İpucu: Popüler etkinlikler önceden rezervasyon gerektirebilir!" if language == 'tr'
+                else "\n\n🎟️ Tip: Popular events may require advance booking!"
+            )
         
         return "\n".join(response_parts)
     
-    def _format_date(self, date_obj) -> str:
-        """Format date for display"""
+    def _format_date(self, date_obj, language: str = 'en') -> str:
+        """
+        Format date for display (bilingual)
+        
+        Args:
+            date_obj: Date object
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted date string
+        """
         if isinstance(date_obj, datetime):
             days_until = (date_obj - datetime.now()).days
-            if days_until == 0:
-                return "Today"
-            elif days_until == 1:
-                return "Tomorrow"
-            elif days_until < 7:
-                return f"This {date_obj.strftime('%A')}"
+            
+            if language == 'tr':
+                if days_until == 0:
+                    return "Bugün"
+                elif days_until == 1:
+                    return "Yarın"
+                elif days_until < 7:
+                    # Turkish day names
+                    day_names_tr = {
+                        'Monday': 'Pazartesi',
+                        'Tuesday': 'Salı',
+                        'Wednesday': 'Çarşamba',
+                        'Thursday': 'Perşembe',
+                        'Friday': 'Cuma',
+                        'Saturday': 'Cumartesi',
+                        'Sunday': 'Pazar'
+                    }
+                    day_en = date_obj.strftime('%A')
+                    return f"Bu {day_names_tr.get(day_en, day_en)}"
+                else:
+                    # Turkish month names
+                    month_names_tr = {
+                        'January': 'Ocak', 'February': 'Şubat', 'March': 'Mart',
+                        'April': 'Nisan', 'May': 'Mayıs', 'June': 'Haziran',
+                        'July': 'Temmuz', 'August': 'Ağustos', 'September': 'Eylül',
+                        'October': 'Ekim', 'November': 'Kasım', 'December': 'Aralık'
+                    }
+                    month_en = date_obj.strftime('%B')
+                    day = date_obj.day
+                    year = date_obj.year
+                    return f"{day} {month_names_tr.get(month_en, month_en)} {year}"
             else:
-                return date_obj.strftime("%B %d, %Y")
+                if days_until == 0:
+                    return "Today"
+                elif days_until == 1:
+                    return "Tomorrow"
+                elif days_until < 7:
+                    return f"This {date_obj.strftime('%A')}"
+                else:
+                    return date_obj.strftime("%B %d, %Y")
+        
         return str(date_obj)
 
 

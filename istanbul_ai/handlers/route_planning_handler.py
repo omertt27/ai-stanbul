@@ -1,6 +1,7 @@
 """
 ML-Enhanced Route Planning Handler
 Provides intelligent route planning with ML-powered optimization
+Fully bilingual (English/Turkish) support
 """
 
 from typing import Dict, List, Optional, Any, Tuple
@@ -47,7 +48,8 @@ class MLEnhancedRoutePlanningHandler:
     """
     
     def __init__(self, route_planner_service, transport_service,
-                 ml_context_builder, ml_processor, response_generator):
+                 ml_context_builder, ml_processor, response_generator,
+                 bilingual_manager=None):
         """
         Initialize handler with required services
         
@@ -57,14 +59,77 @@ class MLEnhancedRoutePlanningHandler:
             ml_context_builder: Centralized ML context builder
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
+            bilingual_manager: Bilingual manager for language support
         """
         self.route_planner_service = route_planner_service
         self.transport_service = transport_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None
         
-        logger.info("✅ ML-Enhanced Route Planning Handler initialized")
+        logger.info("✅ ML-Enhanced Route Planning Handler initialized with bilingual support")
+    
+    def _get_language(self, context) -> str:
+        """Extract language from context"""
+        if not context:
+            return 'en'
+        if hasattr(context, 'language'):
+            lang = context.language
+            if hasattr(lang, 'value'):
+                return lang.value
+            return lang if lang in ['en', 'tr'] else 'en'
+        return 'en'
+    
+    def _get_error_message(self, error_type: str, language: str = 'en') -> str:
+        """Get bilingual error message"""
+        if not self.has_bilingual:
+            # Fallback messages
+            messages = {
+                'no_locations': "I need to know your start and end locations to plan a route. Where are you going?",
+                'no_suitable_route': "I couldn't find a suitable route with your requirements. Would you like to adjust your preferences?",
+                'planning_error': "I'm having trouble planning that route. Could you provide more details?"
+            }
+            return messages.get(error_type, "An error occurred.")
+        
+        from ..services.bilingual_manager import Language
+        lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+        return self.bilingual_manager.get_bilingual_response(f'route.error.{error_type}', lang)
+    
+    def _get_optimization_goal_label(self, goal: str, language: str = 'en') -> str:
+        """Get bilingual optimization goal label"""
+        if not self.has_bilingual:
+            return goal
+        
+        from ..services.bilingual_manager import Language
+        lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+        return self.bilingual_manager.get_bilingual_response(f'route.goal.{goal}', lang)
+    
+    def _get_quality_label(self, quality: str, language: str = 'en') -> str:
+        """Get bilingual quality label"""
+        if not self.has_bilingual:
+            labels = {
+                'scenic': 'Scenic views',
+                'comfortable': 'Comfortable',
+                'less_crowded': 'Less crowded',
+                'weather_protected': 'Weather protected'
+            }
+            return labels.get(quality, quality)
+        
+        from ..services.bilingual_manager import Language
+        lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+        return self.bilingual_manager.get_bilingual_response(f'route.quality.{quality}', lang)
+    
+    def _get_mode_emoji(self, mode: str) -> str:
+        """Get emoji for transport mode"""
+        return {
+            "Metro": "🚇",
+            "Bus": "🚌",
+            "Tram": "🚊",
+            "Ferry": "⛴️",
+            "Walking": "🚶"
+        }.get(mode, "➡️")
     
     async def handle_route_query(
         self,
@@ -78,12 +143,15 @@ class MLEnhancedRoutePlanningHandler:
         Args:
             user_query: User's natural language query
             user_profile: Optional user profile for personalization
-            context: Optional additional context (locations, time, etc.)
+            context: Optional additional context (locations, time, language, etc.)
         
         Returns:
             Dict with routes, alternatives, and natural language response
         """
         try:
+            # Extract language
+            language = self._get_language(context)
+            
             # Step 1: Extract ML context
             ml_context = await self.ml_context_builder.build_context(
                 query=user_query,
@@ -97,9 +165,10 @@ class MLEnhancedRoutePlanningHandler:
             
             # Step 3: Validate locations
             if not route_context.start_location or not route_context.end_location:
+                error_msg = self._get_error_message('no_locations', language)
                 return {
                     "success": False,
-                    "response": "I need to know your start and end locations to plan a route. Where are you going?"
+                    "response": error_msg
                 }
             
             # Step 4: Get candidate routes from service
@@ -122,7 +191,8 @@ class MLEnhancedRoutePlanningHandler:
             response = await self._generate_response(
                 routes=filtered_routes[:3],  # Top 3 alternatives
                 context=route_context,
-                ml_context=ml_context
+                ml_context=ml_context,
+                language=language
             )
             
             return {
@@ -139,10 +209,11 @@ class MLEnhancedRoutePlanningHandler:
             
         except Exception as e:
             logger.error(f"Error in route planning handler: {e}")
+            error_msg = self._get_error_message('planning_error', language if 'language' in locals() else 'en')
             return {
                 "success": False,
                 "error": str(e),
-                "response": "I'm having trouble planning that route. Could you provide more details about your start and end locations?"
+                "response": error_msg
             }
     
     def _build_route_context(
@@ -574,88 +645,180 @@ class MLEnhancedRoutePlanningHandler:
         self,
         routes: List[Dict[str, Any]],
         context: RouteContext,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: str = 'en'
     ) -> str:
-        """Generate route planning response"""
+        """Generate bilingual route planning response"""
         
         if not routes:
-            return f"I couldn't find a suitable route from {context.start_location} to {context.end_location} with your requirements. Would you like to adjust your preferences?"
+            if not self.has_bilingual:
+                return f"I couldn't find a suitable route from {context.start_location} to {context.end_location} with your requirements. Would you like to adjust your preferences?"
+            
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            return self.bilingual_manager.get_bilingual_response(
+                'route.error.no_suitable_route',
+                lang,
+                start=context.start_location,
+                end=context.end_location
+            )
         
         response_parts = []
         
         # Header
-        response_parts.append(f"🗺️ **Route from {context.start_location} to {context.end_location}**\n")
+        if self.has_bilingual:
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            header = self.bilingual_manager.get_bilingual_response(
+                'route.header',
+                lang,
+                start=context.start_location,
+                end=context.end_location
+            )
+            response_parts.append(header + "\n")
+        else:
+            response_parts.append(f"🗺️ **Route from {context.start_location} to {context.end_location}**\n")
         
         # Primary route
         primary = routes[0]
-        response_parts.append(f"🌟 **Recommended Route: {primary.get('name', 'Best Route')}**")
-        response_parts.append(f"   (Match: {int(primary['ml_score']*100)}%, Optimized for: {context.optimization_goal})")
-        response_parts.append(f"\n   ⏱️ Duration: {primary.get('total_duration_minutes', 'N/A')} minutes")
-        response_parts.append(f"   💰 Cost: {primary.get('total_cost', 'N/A')} TL")
-        response_parts.append(f"   🔄 Transfers: {primary.get('transfers', 0)}")
+        
+        # Recommended route title
+        if self.has_bilingual:
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            route_title = self.bilingual_manager.get_bilingual_response(
+                'route.recommended',
+                lang,
+                name=primary.get('name', 'Best Route' if language == 'en' else 'En İyi Güzergah')
+            )
+            response_parts.append(route_title)
+        else:
+            response_parts.append(f"🌟 **Recommended Route: {primary.get('name', 'Best Route')}**")
+        
+        # Match score and optimization
+        score = int(primary['ml_score']*100)
+        goal_label = self._get_optimization_goal_label(context.optimization_goal, language)
+        
+        if self.has_bilingual:
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            match_line = self.bilingual_manager.get_bilingual_response(
+                'route.match_optimized',
+                lang,
+                score=score,
+                goal=goal_label
+            )
+            response_parts.append(f"   {match_line}")
+        else:
+            response_parts.append(f"   (Match: {score}%, Optimized for: {goal_label})")
+        
+        # Duration, cost, transfers
+        duration = primary.get('total_duration_minutes', 'N/A')
+        cost = primary.get('total_cost', 'N/A')
+        transfers = primary.get('transfers', 0)
+        
+        if self.has_bilingual:
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            
+            duration_line = self.bilingual_manager.get_bilingual_response(
+                'route.duration', lang, minutes=duration
+            )
+            cost_line = self.bilingual_manager.get_bilingual_response(
+                'route.cost', lang, cost=cost
+            )
+            transfers_line = self.bilingual_manager.get_bilingual_response(
+                'route.transfers', lang, count=transfers
+            )
+            
+            response_parts.append(f"\n   {duration_line}")
+            response_parts.append(f"   {cost_line}")
+            response_parts.append(f"   {transfers_line}")
+        else:
+            response_parts.append(f"\n   ⏱️ Duration: {duration} minutes")
+            response_parts.append(f"   💰 Cost: {cost} TL")
+            response_parts.append(f"   🔄 Transfers: {transfers}")
         
         # Route segments
-        response_parts.append(f"\n   **Directions:**")
+        if self.has_bilingual:
+            from ..services.bilingual_manager import Language
+            lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+            directions_header = self.bilingual_manager.get_bilingual_response('route.directions', lang)
+            response_parts.append(f"\n   {directions_header}")
+        else:
+            response_parts.append(f"\n   **Directions:**")
+        
         for i, segment in enumerate(primary.get("segments", []), 1):
             mode = segment.get("mode", "").title()
             from_loc = segment.get("from", "")
             to_loc = segment.get("to", "")
-            duration = segment.get("duration_minutes", "")
+            duration_seg = segment.get("duration_minutes", "")
             
-            mode_emoji = {
-                "Metro": "🚇",
-                "Bus": "🚌",
-                "Tram": "🚊",
-                "Ferry": "⛴️",
-                "Walking": "🚶"
-            }.get(mode, "➡️")
-            
+            mode_emoji = self._get_mode_emoji(mode)
             line = segment.get("line", "")
             line_info = f" ({line})" if line else ""
             
-            response_parts.append(f"   {i}. {mode_emoji} {mode}{line_info}: {from_loc} → {to_loc} ({duration} min)")
+            min_label = "min" if language == 'en' else "dk"
+            response_parts.append(f"   {i}. {mode_emoji} {mode}{line_info}: {from_loc} → {to_loc} ({duration_seg} {min_label})")
         
         # Route qualities
         qualities = []
         if primary.get("scenic_score", 0) > 0.7:
-            qualities.append("Scenic views")
+            qualities.append(self._get_quality_label('scenic', language))
         if primary.get("comfort_score", 0) > 0.75:
-            qualities.append("Comfortable")
+            qualities.append(self._get_quality_label('comfortable', language))
         if primary.get("crowding_level") == "low":
-            qualities.append("Less crowded")
+            qualities.append(self._get_quality_label('less_crowded', language))
         if primary.get("weather_protection", 0) > 0.8:
-            qualities.append("Weather protected")
+            qualities.append(self._get_quality_label('weather_protected', language))
         
         if qualities:
-            response_parts.append(f"\n   ✨ Route qualities: {', '.join(qualities)}")
+            quality_text = ', '.join(qualities)
+            if self.has_bilingual:
+                from ..services.bilingual_manager import Language
+                lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+                qualities_line = self.bilingual_manager.get_bilingual_response(
+                    'route.qualities', lang, qualities=quality_text
+                )
+                response_parts.append(f"\n   {qualities_line}")
+            else:
+                response_parts.append(f"\n   ✨ Route qualities: {quality_text}")
         
         # Alternative routes
         if len(routes) > 1:
-            response_parts.append(f"\n\n🔀 **Alternative Routes:**")
+            if self.has_bilingual:
+                from ..services.bilingual_manager import Language
+                lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+                alt_header = self.bilingual_manager.get_bilingual_response('route.alternatives', lang)
+                response_parts.append(f"\n\n{alt_header}")
+            else:
+                response_parts.append(f"\n\n🔀 **Alternative Routes:**")
+            
             for route in routes[1:]:
-                duration = route.get("total_duration_minutes", "N/A")
-                cost = route.get("total_cost", "N/A")
-                transfers = route.get("transfers", 0)
-                response_parts.append(
-                    f"   • {route.get('name', 'Alternative')}: {duration} min, {cost} TL, {transfers} transfer(s)"
-                )
+                duration_alt = route.get("total_duration_minutes", "N/A")
+                cost_alt = route.get("total_cost", "N/A")
+                transfers_alt = route.get("transfers", 0)
+                name_alt = route.get('name', 'Alternative' if language == 'en' else 'Alternatif')
+                
+                if self.has_bilingual:
+                    from ..services.bilingual_manager import Language
+                    lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+                    alt_line = self.bilingual_manager.get_bilingual_response(
+                        'route.alternative_item',
+                        lang,
+                        name=name_alt,
+                        duration=duration_alt,
+                        cost=cost_alt,
+                        transfers=transfers_alt
+                    )
+                    response_parts.append(f"   • {alt_line}")
+                else:
+                    response_parts.append(
+                        f"   • {name_alt}: {duration_alt} min, {cost_alt} TL, {transfers_alt} transfer(s)"
+                    )
         
         # Tips based on context
-        tips = []
-        
-        if context.optimization_goal == "cheapest":
-            tips.append("💡 Using Istanbul Kart saves ~30% on all public transport")
-        
-        if primary.get("crowding_level") == "high":
-            tips.append("⏰ Tip: This route can be crowded during rush hours (8-9 AM, 5-7 PM)")
-        
-        if context.weather_context and "rain" in context.weather_context.get("condition", "").lower():
-            if primary.get("weather_protection", 0) < 0.6:
-                tips.append("☔ Weather alert: Bring an umbrella, parts of this route are outdoors")
-        
-        if any(seg.get("mode") == "ferry" for seg in primary.get("segments", [])):
-            tips.append("⛴️ Ferry tip: Amazing Bosphorus views! Arrive 10 min early for good seats")
-        
+        tips = self._generate_route_tips(context, primary, language)
         if tips:
             response_parts.append(f"\n\n{chr(10).join(tips)}")
         
@@ -663,9 +826,69 @@ class MLEnhancedRoutePlanningHandler:
         if context.departure_time:
             dep_time = context.departure_time.strftime("%H:%M")
             arr_time = (context.departure_time + timedelta(minutes=primary.get("total_duration_minutes", 0))).strftime("%H:%M")
-            response_parts.append(f"\n\n🕐 Departure: {dep_time} | Arrival: ~{arr_time}")
+            
+            if self.has_bilingual:
+                from ..services.bilingual_manager import Language
+                lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+                departure_line = self.bilingual_manager.get_bilingual_response(
+                    'route.departure',
+                    lang,
+                    dep_time=dep_time,
+                    arr_time=arr_time
+                )
+                response_parts.append(f"\n\n{departure_line}")
+            else:
+                response_parts.append(f"\n\n🕐 Departure: {dep_time} | Arrival: ~{arr_time}")
         
         return "\n".join(response_parts)
+    
+    def _generate_route_tips(
+        self,
+        context: RouteContext,
+        primary_route: Dict[str, Any],
+        language: str = 'en'
+    ) -> List[str]:
+        """Generate contextual bilingual tips for the route"""
+        tips = []
+        
+        if not self.has_bilingual:
+            # Fallback English tips
+            if context.optimization_goal == "cheapest":
+                tips.append("💡 Using Istanbul Kart saves ~30% on all public transport")
+            
+            if primary_route.get("crowding_level") == "high":
+                tips.append("⏰ Tip: This route can be crowded during rush hours (8-9 AM, 5-7 PM)")
+            
+            if context.weather_context and "rain" in context.weather_context.get("condition", "").lower():
+                if primary_route.get("weather_protection", 0) < 0.6:
+                    tips.append("☔ Weather alert: Bring an umbrella, parts of this route are outdoors")
+            
+            if any(seg.get("mode") == "ferry" for seg in primary_route.get("segments", [])):
+                tips.append("⛴️ Ferry tip: Amazing Bosphorus views! Arrive 10 min early for good seats")
+            
+            return tips
+        
+        from ..services.bilingual_manager import Language
+        lang = Language.TURKISH if language == 'tr' else Language.ENGLISH
+        
+        # Istanbul Kart tip for cheapest routes
+        if context.optimization_goal == "cheapest":
+            tips.append(self.bilingual_manager.get_bilingual_response('route.tip.istanbul_kart', lang))
+        
+        # Crowding tip
+        if primary_route.get("crowding_level") == "high":
+            tips.append(self.bilingual_manager.get_bilingual_response('route.tip.crowded', lang))
+        
+        # Weather tip
+        if context.weather_context and "rain" in context.weather_context.get("condition", "").lower():
+            if primary_route.get("weather_protection", 0) < 0.6:
+                tips.append(self.bilingual_manager.get_bilingual_response('route.tip.rain_umbrella', lang))
+        
+        # Ferry tip
+        if any(seg.get("mode") == "ferry" for seg in primary_route.get("segments", [])):
+            tips.append(self.bilingual_manager.get_bilingual_response('route.tip.ferry_views', lang))
+        
+        return tips
 
 
 def create_ml_enhanced_route_planning_handler(
@@ -673,13 +896,15 @@ def create_ml_enhanced_route_planning_handler(
     transport_service,
     ml_context_builder,
     ml_processor,
-    response_generator
+    response_generator,
+    bilingual_manager=None
 ):
-    """Factory function to create ML-enhanced route planning handler"""
+    """Factory function to create ML-enhanced route planning handler with bilingual support"""
     return MLEnhancedRoutePlanningHandler(
         route_planner_service=route_planner_service,
         transport_service=transport_service,
         ml_context_builder=ml_context_builder,
         ml_processor=ml_processor,
-        response_generator=response_generator
+        response_generator=response_generator,
+        bilingual_manager=bilingual_manager
     )

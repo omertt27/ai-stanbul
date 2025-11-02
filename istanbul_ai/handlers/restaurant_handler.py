@@ -12,15 +12,25 @@ Features:
 - Cuisine preference matching
 - ML-based restaurant ranking and scoring
 - Context-aware response generation
+- 🌐 Full English/Turkish bilingual support
 
 Author: Istanbul AI Team
 Date: October 27, 2025
+Updated: November 2, 2025 - Added bilingual support
 """
 
 import re
 import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +45,7 @@ class RestaurantHandler:
     3. Generate intelligent, personalized responses
     """
     
-    def __init__(self, neural_processor, restaurant_service, response_generator):
+    def __init__(self, neural_processor, restaurant_service, response_generator, bilingual_manager=None):
         """
         Initialize the Restaurant Handler.
         
@@ -43,10 +53,13 @@ class RestaurantHandler:
             neural_processor: Neural network processor for ML insights
             restaurant_service: Service for fetching restaurant data
             response_generator: Service for generating responses
+            bilingual_manager: BilingualManager for language support
         """
         self.neural_processor = neural_processor
         self.restaurant_service = restaurant_service
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
         # Budget keywords for ML context
         self.budget_keywords = {
@@ -83,14 +96,38 @@ class RestaurantHandler:
             'late_night': r'\b(late night|midnight|gece yarısı)\b'
         }
         
-        logger.info("✅ RestaurantHandler initialized with ML integration")
+        logger.info(f"✅ RestaurantHandler initialized with ML integration (Bilingual: {self.has_bilingual})")
+    
+    def _get_language(self, context) -> str:
+        """
+        Extract language from context.
+        
+        Args:
+            context: Conversation context
+            
+        Returns:
+            Language code ('en' or 'tr')
+        """
+        if not context:
+            return 'en'
+        
+        # Check if language is in context
+        if hasattr(context, 'language'):
+            lang = context.language
+            if hasattr(lang, 'value'):
+                return lang.value  # Language enum
+            return lang if lang in ['en', 'tr'] else 'en'
+        
+        # Default to English
+        return 'en'
     
     def generate_response(
         self,
         message: str,
         neural_insights: Dict[str, Any],
         user_profile: Optional[Dict[str, Any]] = None,
-        user_location: Optional[Tuple[float, float]] = None
+        user_location: Optional[Tuple[float, float]] = None,
+        context=None
     ) -> Dict[str, Any]:
         """
         Generate ML-enhanced restaurant response.
@@ -100,11 +137,14 @@ class RestaurantHandler:
             neural_insights: Neural processor insights
             user_profile: User profile data
             user_location: User's current location (lat, lon)
+            context: Conversation context (includes language)
             
         Returns:
             Response dictionary with recommendations
         """
-        logger.info("🍽️ Processing restaurant query with ML enhancement")
+        # 🌐 BILINGUAL: Extract language from context
+        language = self._get_language(context)
+        logger.info(f"🍽️ Processing restaurant query with ML enhancement (lang: {language})")
         
         try:
             # Step 1: Extract ML context
@@ -123,7 +163,7 @@ class RestaurantHandler:
             )
             
             if not restaurants:
-                return self._generate_no_results_response(message, ml_context)
+                return self._generate_no_results_response(message, ml_context, language)
             
             # Step 4: Apply ML-powered ranking
             ranked_restaurants = self._apply_neural_ranking(
@@ -133,12 +173,13 @@ class RestaurantHandler:
                 user_profile=user_profile
             )
             
-            # Step 5: Generate intelligent response
+            # Step 5: Generate intelligent response (bilingual)
             response = self._generate_ml_response(
                 restaurants=ranked_restaurants[:5],  # Top 5
                 ml_context=ml_context,
                 neural_insights=neural_insights,
-                message=message
+                message=message,
+                language=language  # 🌐 Pass language
             )
             
             logger.info(f"✅ Generated response with {len(ranked_restaurants)} restaurants")
@@ -146,7 +187,7 @@ class RestaurantHandler:
             
         except Exception as e:
             logger.error(f"❌ Error in restaurant handler: {e}", exc_info=True)
-            return self._generate_fallback_response(message)
+            return self._generate_fallback_response(message, language)
     
     def _extract_ml_context(
         self,
@@ -681,7 +722,8 @@ class RestaurantHandler:
         restaurants: List[Dict[str, Any]],
         ml_context: Dict[str, Any],
         neural_insights: Dict[str, Any],
-        message: str
+        message: str,
+        language: str = 'en'
     ) -> Dict[str, Any]:
         """
         Generate ML-enhanced response with restaurant recommendations.
@@ -691,6 +733,7 @@ class RestaurantHandler:
             ml_context: ML context
             neural_insights: Neural insights
             message: Original message
+            language: Language code ('en' or 'tr')
             
         Returns:
             Response dictionary
@@ -698,63 +741,107 @@ class RestaurantHandler:
         sentiment = neural_insights.get('sentiment', {}).get('overall', 'neutral')
         urgency = ml_context.get('urgency', 'flexible')
         
-        # Generate intro based on context
-        intro = self._generate_contextual_intro(ml_context, sentiment, urgency)
+        # Generate intro based on context (bilingual)
+        intro = self._generate_contextual_intro(ml_context, sentiment, urgency, language)
         
-        # Format restaurants
-        restaurant_list = self._format_restaurant_list(restaurants, ml_context)
+        # Format restaurants (bilingual)
+        restaurant_list = self._format_restaurant_list(restaurants, ml_context, language)
         
-        # Generate tips based on ML context
-        tips = self._generate_ml_tips(ml_context, restaurants)
+        # Generate tips based on ML context (bilingual)
+        tips = self._generate_ml_tips(ml_context, restaurants, language)
         
+        # Build response
+        tip_prefix = "💡" if language == 'en' else "💡"
         response_text = f"{intro}\n\n{restaurant_list}"
         if tips:
-            response_text += f"\n\n💡 {tips}"
+            response_text += f"\n\n{tip_prefix} {tips}"
         
         return {
             'response': response_text,
             'intent': 'restaurant',
             'restaurants': restaurants,
             'ml_context': ml_context,
-            'confidence': 0.9
+            'confidence': 0.9,
+            'language': language
         }
     
     def _generate_contextual_intro(
         self,
         ml_context: Dict[str, Any],
         sentiment: str,
-        urgency: str
+        urgency: str,
+        language: str = 'en'
     ) -> str:
-        """Generate contextual introduction based on ML context."""
+        """
+        Generate contextual introduction based on ML context.
+        
+        Args:
+            ml_context: ML context
+            sentiment: User sentiment
+            urgency: Urgency level
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Bilingual introduction text
+        """
         occasion = ml_context.get('occasion')
         budget = ml_context.get('budget')
         meal_time = ml_context.get('meal_time')
         
-        if urgency == 'immediate':
-            intro = "🍽️ I found some great restaurants available right now"
-        elif urgency == 'soon':
-            intro = "🍽️ Here are some excellent restaurants for you soon"
+        # Base intro based on urgency
+        if language == 'tr':
+            if urgency == 'immediate':
+                intro = "🍽️ Şu anda müsait olan harika restoranlar buldum"
+            elif urgency == 'soon':
+                intro = "🍽️ Yakında için mükemmel restoranlar buldum"
+            else:
+                intro = "🍽️ Sizin için harika restoranlar buldum"
         else:
-            intro = "🍽️ I've found some wonderful restaurants for you"
+            if urgency == 'immediate':
+                intro = "🍽️ I found some great restaurants available right now"
+            elif urgency == 'soon':
+                intro = "🍽️ Here are some excellent restaurants for you soon"
+            else:
+                intro = "🍽️ I've found some wonderful restaurants for you"
         
+        # Add occasion context
         if occasion == 'romantic':
-            intro += " perfect for a romantic evening"
+            intro += " romantik bir akşam için mükemmel" if language == 'tr' else " perfect for a romantic evening"
         elif occasion == 'family':
-            intro += " great for families"
+            intro += " aileler için harika" if language == 'tr' else " great for families"
         elif occasion == 'business':
-            intro += " ideal for business meetings"
+            intro += " iş toplantıları için ideal" if language == 'tr' else " ideal for business meetings"
         elif occasion == 'celebration':
-            intro += " perfect for your celebration"
+            intro += " kutlamanız için mükemmel" if language == 'tr' else " perfect for your celebration"
         
+        # Add meal time
         if meal_time:
-            intro += f" for {meal_time}"
+            meal_translations = {
+                'breakfast': ('kahvaltı', 'breakfast'),
+                'brunch': ('brunch', 'brunch'),
+                'lunch': ('öğle yemeği', 'lunch'),
+                'dinner': ('akşam yemeği', 'dinner'),
+                'late_night': ('gece geç', 'late night')
+            }
+            meal_tr, meal_en = meal_translations.get(meal_time, (meal_time, meal_time))
+            meal_text = meal_tr if language == 'tr' else meal_en
+            intro += f" {meal_text} için" if language == 'tr' else f" for {meal_text}"
         
+        # Add budget descriptor
         if budget and budget != 'moderate':
-            budget_desc = {
-                'cheap': 'budget-friendly',
-                'expensive': 'upscale',
-                'very_expensive': 'fine dining'
-            }.get(budget, '')
+            if language == 'tr':
+                budget_desc = {
+                    'cheap': 'ekonomik',
+                    'expensive': 'üst düzey',
+                    'very_expensive': 'lüks'
+                }.get(budget, '')
+            else:
+                budget_desc = {
+                    'cheap': 'budget-friendly',
+                    'expensive': 'upscale',
+                    'very_expensive': 'fine dining'
+                }.get(budget, '')
+            
             if budget_desc:
                 intro += f" ({budget_desc})"
         
@@ -764,14 +851,25 @@ class RestaurantHandler:
     def _format_restaurant_list(
         self,
         restaurants: List[Dict[str, Any]],
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: str = 'en'
     ) -> str:
-        """Format restaurant list for response."""
+        """
+        Format restaurant list for response.
+        
+        Args:
+            restaurants: List of restaurants
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted restaurant list (bilingual)
+        """
         lines = []
         
         for i, restaurant in enumerate(restaurants, 1):
-            name = restaurant.get('name', 'Unknown')
-            cuisine = restaurant.get('cuisine', 'Restaurant')
+            name = restaurant.get('name', 'Unknown' if language == 'en' else 'Bilinmiyor')
+            cuisine = restaurant.get('cuisine', 'Restaurant' if language == 'en' else 'Restoran')
             rating = restaurant.get('rating', 0)
             price_level = restaurant.get('price_level', 'moderate')
             ml_score = restaurant.get('ml_score', 0)
@@ -788,14 +886,16 @@ class RestaurantHandler:
             line = f"\n{i}. **{name}** ({cuisine})\n"
             line += f"   ⭐ {rating}/5 | {price}"
             
-            # Add ML match indicator
+            # Add ML match indicator (bilingual)
             if ml_score >= 0.8:
-                line += " | 🎯 Perfect Match"
+                match_text = "🎯 Mükemmel Eşleşme" if language == 'tr' else "🎯 Perfect Match"
+                line += f" | {match_text}"
             elif ml_score >= 0.7:
-                line += " | ✨ Great Match"
+                match_text = "✨ Harika Eşleşme" if language == 'tr' else "✨ Great Match"
+                line += f" | {match_text}"
             
-            # Add relevant highlights
-            highlights = self._get_restaurant_highlights(restaurant, ml_context)
+            # Add relevant highlights (bilingual)
+            highlights = self._get_restaurant_highlights(restaurant, ml_context, language)
             if highlights:
                 line += f"\n   {highlights}"
             
@@ -806,100 +906,197 @@ class RestaurantHandler:
     def _get_restaurant_highlights(
         self,
         restaurant: Dict[str, Any],
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: str = 'en'
     ) -> str:
-        """Get relevant highlights for restaurant based on ML context."""
+        """
+        Get relevant highlights for restaurant based on ML context.
+        
+        Args:
+            restaurant: Restaurant data
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Formatted highlights (bilingual)
+        """
         highlights = []
         
         tags = restaurant.get('tags', [])
         dietary = ml_context.get('dietary_restrictions', [])
         occasion = ml_context.get('occasion')
         
-        # Dietary matches
+        # Dietary matches (bilingual)
         for diet in dietary:
             if diet in restaurant.get('dietary_options', []):
-                highlights.append(f"{diet.replace('_', ' ').title()} available")
+                diet_label = diet.replace('_', ' ').title()
+                if language == 'tr':
+                    diet_translations = {
+                        'Vegetarian': 'Vejetaryen',
+                        'Vegan': 'Vegan',
+                        'Halal': 'Helal',
+                        'Gluten Free': 'Glutensiz',
+                        'Kosher': 'Kaşer',
+                        'Lactose Free': 'Laktozsuz'
+                    }
+                    diet_label = diet_translations.get(diet_label, diet_label)
+                    highlights.append(f"{diet_label} mevcut")
+                else:
+                    highlights.append(f"{diet_label} available")
         
-        # Occasion-relevant tags
+        # Occasion-relevant tags (bilingual)
         if occasion == 'romantic' and 'romantic' in tags:
-            highlights.append("🌹 Romantic ambiance")
+            highlights.append("🌹 Romantik ortam" if language == 'tr' else "🌹 Romantic ambiance")
         elif occasion == 'family' and 'family-friendly' in tags:
-            highlights.append("👨‍👩‍👧‍👦 Family-friendly")
+            highlights.append("👨‍👩‍👧‍👦 Aile dostu" if language == 'tr' else "👨‍👩‍👧‍👦 Family-friendly")
         elif occasion == 'business' and 'quiet' in tags:
-            highlights.append("💼 Great for business")
+            highlights.append("💼 İş için harika" if language == 'tr' else "💼 Great for business")
         
-        # Special features
+        # Special features (bilingual)
         if 'bosphorus view' in tags:
-            highlights.append("🌊 Bosphorus view")
+            highlights.append("🌊 Boğaz manzarası" if language == 'tr' else "🌊 Bosphorus view")
         if 'terrace' in tags:
-            highlights.append("🌳 Terrace seating")
+            highlights.append("🌳 Teras" if language == 'tr' else "🌳 Terrace seating")
         
         return ' • '.join(highlights[:3])  # Max 3 highlights
     
     def _generate_ml_tips(
         self,
         ml_context: Dict[str, Any],
-        restaurants: List[Dict[str, Any]]
+        restaurants: List[Dict[str, Any]],
+        language: str = 'en'
     ) -> str:
-        """Generate ML-powered tips based on context."""
+        """
+        Generate ML-powered tips based on context.
+        
+        Args:
+            ml_context: ML context
+            restaurants: List of restaurants
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Tips text (bilingual)
+        """
         tips = []
         
         urgency = ml_context.get('urgency')
         occasion = ml_context.get('occasion')
         meal_time = ml_context.get('meal_time')
         
+        # Urgency tips
         if urgency == 'immediate':
-            tips.append("I recommend calling ahead for availability")
+            tips.append(
+                "Müsaitlik için önceden aramayı öneririm" if language == 'tr' 
+                else "I recommend calling ahead for availability"
+            )
         
+        # Occasion tips
         if occasion == 'romantic':
-            tips.append("Consider requesting a table by the window for the best atmosphere")
+            tips.append(
+                "En iyi atmosfer için pencere kenarı masa isteyin" if language == 'tr'
+                else "Consider requesting a table by the window for the best atmosphere"
+            )
         elif occasion == 'business':
-            tips.append("Private rooms available at most of these locations")
+            tips.append(
+                "Bu lokasyonlarda özel odalar mevcut" if language == 'tr'
+                else "Private rooms available at most of these locations"
+            )
         
+        # Meal time tips
         if meal_time == 'dinner' and any(r.get('ml_score', 0) > 0.8 for r in restaurants):
-            tips.append("Reservations recommended for dinner time")
+            tips.append(
+                "Akşam yemeği için rezervasyon önerilir" if language == 'tr'
+                else "Reservations recommended for dinner time"
+            )
         
         return ' • '.join(tips[:2])  # Max 2 tips
     
     def _generate_no_results_response(
         self,
         message: str,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: str = 'en'
     ) -> Dict[str, Any]:
-        """Generate response when no restaurants found."""
+        """
+        Generate response when no restaurants found.
+        
+        Args:
+            message: User's message
+            ml_context: ML context
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Response dictionary (bilingual)
+        """
         budget = ml_context.get('budget')
         dietary = ml_context.get('dietary_restrictions', [])
         
-        response = "🍽️ I couldn't find restaurants matching all your criteria."
-        
-        suggestions = []
-        if budget in ['very_expensive']:
-            suggestions.append("Try expanding to expensive restaurants")
-        if dietary:
-            suggestions.append("Consider restaurants with flexible dietary options")
-        
-        if suggestions:
-            response += "\n\n💡 Suggestions:\n" + '\n'.join(f"• {s}" for s in suggestions)
-        
-        response += "\n\nWould you like me to show you restaurants with relaxed criteria?"
+        if language == 'tr':
+            response = "🍽️ Tüm kriterlerinize uyan restoran bulamadım."
+            
+            suggestions = []
+            if budget in ['very_expensive']:
+                suggestions.append("Pahalı restoranlara genişletmeyi deneyin")
+            if dietary:
+                suggestions.append("Esnek diyet seçenekleri olan restoranları değerlendirin")
+            
+            if suggestions:
+                response += "\n\n💡 Öneriler:\n" + '\n'.join(f"• {s}" for s in suggestions)
+            
+            response += "\n\nKriterleri gevşeterek size restoranlar göstermemi ister misiniz?"
+        else:
+            response = "🍽️ I couldn't find restaurants matching all your criteria."
+            
+            suggestions = []
+            if budget in ['very_expensive']:
+                suggestions.append("Try expanding to expensive restaurants")
+            if dietary:
+                suggestions.append("Consider restaurants with flexible dietary options")
+            
+            if suggestions:
+                response += "\n\n💡 Suggestions:\n" + '\n'.join(f"• {s}" for s in suggestions)
+            
+            response += "\n\nWould you like me to show you restaurants with relaxed criteria?"
         
         return {
             'response': response,
             'intent': 'restaurant',
             'restaurants': [],
             'ml_context': ml_context,
-            'confidence': 0.7
+            'confidence': 0.7,
+            'language': language
         }
     
-    def _generate_fallback_response(self, message: str) -> Dict[str, Any]:
-        """Generate fallback response on error."""
+    def _generate_fallback_response(self, message: str, language: str = 'en') -> Dict[str, Any]:
+        """
+        Generate fallback response on error.
+        
+        Args:
+            message: User's message
+            language: Language code ('en' or 'tr')
+            
+        Returns:
+            Fallback response dictionary (bilingual)
+        """
+        if language == 'tr':
+            response = (
+                "🍽️ Şu anda restoran önerilerini işlerken sorun yaşıyorum. "
+                "Lütfen isteğinizi yeniden ifade edebilir misiniz? Örneğin: "
+                "'Romantik bir Türk restoranı arıyorum' veya 'Taksim yakınında ucuz vejetaryen yerler'"
+            )
+        else:
+            response = (
+                "🍽️ I'm having trouble processing restaurant recommendations right now. "
+                "Could you please try rephrasing your request? For example: "
+                "'I'm looking for a romantic Turkish restaurant' or 'cheap vegetarian places near Taksim'"
+            )
+        
         return {
-            'response': "🍽️ I'm having trouble processing restaurant recommendations right now. "
-                       "Could you please try rephrasing your request? For example: "
-                       "'I'm looking for a romantic Turkish restaurant' or 'cheap vegetarian places near Taksim'",
+            'response': response,
             'intent': 'restaurant',
             'restaurants': [],
-            'confidence': 0.3
+            'confidence': 0.3,
+            'language': language
         }
 
 

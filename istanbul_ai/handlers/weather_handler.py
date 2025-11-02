@@ -1,12 +1,23 @@
 """
 ML-Enhanced Weather Handler
 Provides weather-aware activity recommendations with neural ranking
+🌐 Full English/Turkish bilingual support
+
+Updated: November 2, 2025 - Added bilingual support
 """
 
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 import logging
+
+# Import bilingual support
+try:
+    from ..services.bilingual_manager import BilingualManager, Language
+    BILINGUAL_AVAILABLE = True
+except ImportError:
+    BILINGUAL_AVAILABLE = False
+    Language = None
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +54,8 @@ class MLEnhancedWeatherHandler:
     """
     
     def __init__(self, weather_service, weather_recommendations_service, 
-                 ml_context_builder, ml_processor, response_generator):
+                 ml_context_builder, ml_processor, response_generator,
+                 bilingual_manager=None):
         """
         Initialize handler with required services
         
@@ -53,14 +65,33 @@ class MLEnhancedWeatherHandler:
             ml_context_builder: Centralized ML context builder
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
+            bilingual_manager: BilingualManager for language support
         """
         self.weather_service = weather_service
         self.weather_recommendations_service = weather_recommendations_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
+        self.bilingual_manager = bilingual_manager
+        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info("✅ ML-Enhanced Weather Handler initialized")
+        logger.info(f"✅ ML-Enhanced Weather Handler initialized (Bilingual: {self.has_bilingual})")
+    
+    def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
+        """Extract language from context or detect from query"""
+        if not self.has_bilingual:
+            return None
+        
+        # Check context for language
+        if context and "language" in context:
+            lang_str = context["language"]
+            if lang_str == "tr":
+                return Language.TURKISH
+            elif lang_str == "en":
+                return Language.ENGLISH
+        
+        # Default to English
+        return Language.ENGLISH
     
     async def handle_weather_query(
         self,
@@ -74,11 +105,14 @@ class MLEnhancedWeatherHandler:
         Args:
             user_query: User's natural language query
             user_profile: Optional user profile for personalization
-            context: Optional additional context
+            context: Optional additional context (must include 'language' key)
         
         Returns:
             Dict with activities, weather info, and natural language response
         """
+        # Extract language for bilingual support
+        language = self._extract_language(context)
+        
         try:
             # Step 1: Get current weather and forecast
             weather_data = await self._get_weather_data(context)
@@ -90,7 +124,8 @@ class MLEnhancedWeatherHandler:
                 user_profile=user_profile,
                 additional_context={
                     **(context or {}),
-                    "weather": weather_data
+                    "weather": weather_data,
+                    "language": language.value if language else "en"
                 }
             )
             
@@ -121,7 +156,8 @@ class MLEnhancedWeatherHandler:
             response = await self._generate_response(
                 activities=filtered_activities[:5],
                 weather_context=weather_context,
-                ml_context=ml_context
+                ml_context=ml_context,
+                language=language
             )
             
             return {
@@ -129,6 +165,7 @@ class MLEnhancedWeatherHandler:
                 "activities": filtered_activities[:5],
                 "weather": weather_data,
                 "response": response,
+                "language": language.value if language else "en",
                 "context_used": {
                     "temperature_range": weather_context.temperature_range,
                     "weather_condition": weather_context.weather_condition,
@@ -139,11 +176,23 @@ class MLEnhancedWeatherHandler:
             
         except Exception as e:
             logger.error(f"Error in weather handler: {e}")
+            error_msg = self._get_error_message(language)
             return {
                 "success": False,
                 "error": str(e),
-                "response": "I'm having trouble getting weather information. Let me know what you'd like to do and I can suggest activities!"
+                "response": error_msg,
+                "language": language.value if language else "en"
             }
+    
+    def _get_error_message(self, language: Optional[Language]) -> str:
+        """Get error message in appropriate language"""
+        if self.has_bilingual and language:
+            return self.bilingual_manager.get_template(
+                "weather.error",
+                language,
+                fallback="I'm having trouble getting weather information. Let me know what you'd like to do and I can suggest activities!"
+            )
+        return "I'm having trouble getting weather information. Let me know what you'd like to do and I can suggest activities!"
     
     async def _get_weather_data(self, context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Get current weather and forecast"""
@@ -543,46 +592,93 @@ class MLEnhancedWeatherHandler:
         self,
         activities: List[Dict[str, Any]],
         weather_context: WeatherContext,
-        ml_context: Dict[str, Any]
+        ml_context: Dict[str, Any],
+        language: Optional[Language] = None
     ) -> str:
-        """Generate weather-aware response"""
+        """Generate weather-aware response with bilingual support"""
         
         if not activities:
+            if self.has_bilingual and language:
+                return self.bilingual_manager.get_template(
+                    "weather.no_activities",
+                    language,
+                    fallback="Given the current weather, I'm having trouble finding suitable activities. Would you like indoor or outdoor suggestions?"
+                )
             return "Given the current weather, I'm having trouble finding suitable activities. Would you like indoor or outdoor suggestions?"
         
         response_parts = []
         
-        # Weather summary
+        # Weather summary header
+        if self.has_bilingual and language:
+            header = self.bilingual_manager.get_template(
+                "weather.current_header",
+                language,
+                fallback="🌤️ **Current Weather in Istanbul:**"
+            )
+        else:
+            header = "🌤️ **Current Weather in Istanbul:**"
+        response_parts.append(header)
+        
+        # Temperature and condition
         current = weather_context.current_weather
         temp = current.get("temperature", "N/A")
         condition = current.get("description", "Current weather")
         
-        response_parts.append(f"🌤️ **Current Weather in Istanbul:**")
-        response_parts.append(f"   Temperature: {temp}°C, {condition}")
+        if self.has_bilingual and language:
+            temp_label = self.bilingual_manager.get_template(
+                "weather.temperature",
+                language,
+                fallback="Temperature"
+            )
+            response_parts.append(f"   {temp_label}: {temp}°C, {condition}")
+        else:
+            response_parts.append(f"   Temperature: {temp}°C, {condition}")
         
         # Weather-appropriate intro
-        if weather_context.weather_condition == "rainy":
-            response_parts.append("\n☔ Perfect indoor activities for rainy weather:")
-        elif weather_context.temperature_range == "hot":
-            response_parts.append("\n☀️ Beat the heat with these activities:")
-        elif weather_context.weather_condition == "clear":
-            response_parts.append("\n✨ Great weather! Here are the best outdoor options:")
-        else:
-            response_parts.append("\n🎯 Here are the best activities for current conditions:")
+        intro = self._get_weather_intro(weather_context, language)
+        response_parts.append(intro)
         
         # Top activity
         top = activities[0]
-        response_parts.append(f"\n\n🌟 **{top['name']}** (Match: {int(top['ml_score']*100)}%)")
-        response_parts.append(f"   {top.get('description', '')}")
-        response_parts.append(f"   ⏱️ Duration: {top.get('duration', 'Flexible')}")
-        response_parts.append(f"   💰 Cost: {top.get('budget', 'Varies').title()}")
+        if self.has_bilingual and language:
+            match_label = self.bilingual_manager.get_template(
+                "common.match",
+                language,
+                fallback="Match"
+            )
+        else:
+            match_label = "Match"
         
-        # Weather appropriateness
+        response_parts.append(f"\n\n🌟 **{top['name']}** ({match_label}: {int(top['ml_score']*100)}%)")
+        response_parts.append(f"   {top.get('description', '')}")
+        
+        # Duration
+        if self.has_bilingual and language:
+            duration_label = self.bilingual_manager.get_template(
+                "common.duration",
+                language,
+                fallback="Duration"
+            )
+        else:
+            duration_label = "Duration"
+        response_parts.append(f"   ⏱️ {duration_label}: {top.get('duration', 'Flexible')}")
+        
+        # Cost
+        if self.has_bilingual and language:
+            cost_label = self.bilingual_manager.get_template(
+                "common.cost",
+                language,
+                fallback="Cost"
+            )
+        else:
+            cost_label = "Cost"
+        response_parts.append(f"   💰 {cost_label}: {top.get('budget', 'Varies').title()}")
+        
+        # Weather comfort
         comfort = top.get('comfort_level', 0.5)
-        if comfort > 0.8:
-            response_parts.append(f"   ☀️ Weather comfort: Excellent")
-        elif comfort > 0.6:
-            response_parts.append(f"   ☀️ Weather comfort: Good")
+        comfort_text = self._get_comfort_text(comfort, language)
+        if comfort_text:
+            response_parts.append(comfort_text)
         
         # Highlights
         if "highlights" in top and top["highlights"]:
@@ -591,32 +687,172 @@ class MLEnhancedWeatherHandler:
         
         # More activities
         if len(activities) > 1:
-            response_parts.append("\n\n📋 **More weather-appropriate activities:**")
+            if self.has_bilingual and language:
+                more_header = self.bilingual_manager.get_template(
+                    "weather.more_activities",
+                    language,
+                    fallback="📋 **More weather-appropriate activities:**"
+                )
+            else:
+                more_header = "📋 **More weather-appropriate activities:**"
+            response_parts.append(f"\n\n{more_header}")
+            
             for activity in activities[1:4]:
                 response_parts.append(
                     f"   • **{activity['name']}** ({activity.get('type', '').title()}) - {activity.get('duration', 'Flexible')}"
                 )
         
         # Forecast tip
-        if weather_context.forecast:
-            tomorrow = weather_context.forecast[0] if weather_context.forecast else None
-            if tomorrow:
-                tom_cond = tomorrow.get("condition", "")
-                tom_temp = tomorrow.get("temp_high", "")
-                if tom_cond != weather_context.weather_condition:
-                    response_parts.append(f"\n\n🔮 Tomorrow's forecast: {tom_temp}°C, {tom_cond}")
-                    if tom_cond == "clear" and weather_context.weather_condition == "rainy":
-                        response_parts.append("   Consider outdoor activities tomorrow!")
+        forecast_tip = self._get_forecast_tip(weather_context, language)
+        if forecast_tip:
+            response_parts.append(forecast_tip)
         
-        # Safety tip for extreme weather
-        if weather_context.weather_condition in ["rainy", "stormy"]:
-            response_parts.append("\n\n☔ Weather tip: Bring an umbrella and wear waterproof shoes!")
-        elif weather_context.temperature_range == "hot":
-            response_parts.append("\n\n☀️ Weather tip: Stay hydrated and use sunscreen!")
-        elif weather_context.temperature_range == "cold":
-            response_parts.append("\n\n🧥 Weather tip: Dress warmly in layers!")
+        # Safety/weather tip
+        weather_tip = self._get_weather_tip(weather_context, language)
+        if weather_tip:
+            response_parts.append(weather_tip)
         
         return "\n".join(response_parts)
+    
+    def _get_weather_intro(self, weather_context: WeatherContext, language: Optional[Language]) -> str:
+        """Get weather-appropriate introduction"""
+        condition = weather_context.weather_condition
+        temp_range = weather_context.temperature_range
+        
+        if self.has_bilingual and language:
+            if condition == "rainy":
+                return "\n" + self.bilingual_manager.get_template(
+                    "weather.intro.rainy",
+                    language,
+                    fallback="☔ Perfect indoor activities for rainy weather:"
+                )
+            elif temp_range == "hot":
+                return "\n" + self.bilingual_manager.get_template(
+                    "weather.intro.hot",
+                    language,
+                    fallback="☀️ Beat the heat with these activities:"
+                )
+            elif condition == "clear":
+                return "\n" + self.bilingual_manager.get_template(
+                    "weather.intro.clear",
+                    language,
+                    fallback="✨ Great weather! Here are the best outdoor options:"
+                )
+            else:
+                return "\n" + self.bilingual_manager.get_template(
+                    "weather.intro.general",
+                    language,
+                    fallback="🎯 Here are the best activities for current conditions:"
+                )
+        else:
+            # English defaults
+            if condition == "rainy":
+                return "\n☔ Perfect indoor activities for rainy weather:"
+            elif temp_range == "hot":
+                return "\n☀️ Beat the heat with these activities:"
+            elif condition == "clear":
+                return "\n✨ Great weather! Here are the best outdoor options:"
+            else:
+                return "\n🎯 Here are the best activities for current conditions:"
+    
+    def _get_comfort_text(self, comfort: float, language: Optional[Language]) -> Optional[str]:
+        """Get comfort level text"""
+        if comfort > 0.8:
+            if self.has_bilingual and language:
+                label = self.bilingual_manager.get_template(
+                    "weather.comfort.excellent",
+                    language,
+                    fallback="Weather comfort: Excellent"
+                )
+            else:
+                label = "Weather comfort: Excellent"
+            return f"   ☀️ {label}"
+        elif comfort > 0.6:
+            if self.has_bilingual and language:
+                label = self.bilingual_manager.get_template(
+                    "weather.comfort.good",
+                    language,
+                    fallback="Weather comfort: Good"
+                )
+            else:
+                label = "Weather comfort: Good"
+            return f"   ☀️ {label}"
+        return None
+    
+    def _get_forecast_tip(self, weather_context: WeatherContext, language: Optional[Language]) -> Optional[str]:
+        """Get forecast tip if conditions are changing"""
+        if not weather_context.forecast:
+            return None
+        
+        tomorrow = weather_context.forecast[0] if weather_context.forecast else None
+        if not tomorrow:
+            return None
+        
+        tom_cond = tomorrow.get("condition", "")
+        tom_temp = tomorrow.get("temp_high", "")
+        
+        if tom_cond != weather_context.weather_condition:
+            if self.has_bilingual and language:
+                forecast_label = self.bilingual_manager.get_template(
+                    "weather.forecast.tomorrow",
+                    language,
+                    fallback="Tomorrow's forecast"
+                )
+                tip_parts = [f"\n\n🔮 {forecast_label}: {tom_temp}°C, {tom_cond}"]
+                
+                if tom_cond == "clear" and weather_context.weather_condition == "rainy":
+                    outdoor_tip = self.bilingual_manager.get_template(
+                        "weather.forecast.outdoor_tip",
+                        language,
+                        fallback="Consider outdoor activities tomorrow!"
+                    )
+                    tip_parts.append(f"   {outdoor_tip}")
+            else:
+                tip_parts = [f"\n\n🔮 Tomorrow's forecast: {tom_temp}°C, {tom_cond}"]
+                if tom_cond == "clear" and weather_context.weather_condition == "rainy":
+                    tip_parts.append("   Consider outdoor activities tomorrow!")
+            
+            return "\n".join(tip_parts)
+        
+        return None
+    
+    def _get_weather_tip(self, weather_context: WeatherContext, language: Optional[Language]) -> Optional[str]:
+        """Get safety/comfort tip based on weather"""
+        condition = weather_context.weather_condition
+        temp_range = weather_context.temperature_range
+        
+        if self.has_bilingual and language:
+            if condition in ["rainy", "stormy"]:
+                tip = self.bilingual_manager.get_template(
+                    "weather.tip.rainy",
+                    language,
+                    fallback="Weather tip: Bring an umbrella and wear waterproof shoes!"
+                )
+                return f"\n\n☔ {tip}"
+            elif temp_range == "hot":
+                tip = self.bilingual_manager.get_template(
+                    "weather.tip.hot",
+                    language,
+                    fallback="Weather tip: Stay hydrated and use sunscreen!"
+                )
+                return f"\n\n☀️ {tip}"
+            elif temp_range == "cold":
+                tip = self.bilingual_manager.get_template(
+                    "weather.tip.cold",
+                    language,
+                    fallback="Weather tip: Dress warmly in layers!"
+                )
+                return f"\n\n🧥 {tip}"
+        else:
+            # English defaults
+            if condition in ["rainy", "stormy"]:
+                return "\n\n☔ Weather tip: Bring an umbrella and wear waterproof shoes!"
+            elif temp_range == "hot":
+                return "\n\n☀️ Weather tip: Stay hydrated and use sunscreen!"
+            elif temp_range == "cold":
+                return "\n\n🧥 Weather tip: Dress warmly in layers!"
+        
+        return None
 
 
 def create_ml_enhanced_weather_handler(

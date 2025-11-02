@@ -16,13 +16,14 @@ class HandlerInitializer:
     """
     Initializes ML-Enhanced handlers for the Istanbul AI system.
     
-    Handles the initialization of 7 ML handlers:
+    Handles the initialization of 8 ML handlers:
     1. ML-Enhanced Event Handler
     2. ML-Enhanced Hidden Gems Handler
     3. ML-Enhanced Weather Handler
     4. ML-Enhanced Route Planning Handler
     5. ML-Enhanced Neighborhood Handler
     6. Nearby Locations Handler (GPS-based)
+    7. Transportation Handler (IBB API + GPS + Transfer Maps)
     
     Each handler requires:
     - ML Context Builder
@@ -36,7 +37,7 @@ class HandlerInitializer:
         self.handlers = {}
         self.initialization_log = []
         self.initialized_count = 0
-        self.total_handlers = 7  # Updated to include nearby_locations_handler
+        self.total_handlers = 8  # Updated to include nearby_locations_handler + transportation_handler
         
     def initialize_all_handlers(self, services: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -80,6 +81,7 @@ class HandlerInitializer:
         self._initialize_route_planning_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_neighborhood_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_nearby_locations_handler(services, ml_context_builder, neural_processor, response_generator)
+        self._initialize_transportation_handler(services, ml_context_builder, neural_processor, response_generator)
         
         # Log summary
         success_rate = (self.initialized_count / self.total_handlers * 100) if self.total_handlers > 0 else 0
@@ -382,6 +384,64 @@ class HandlerInitializer:
                 'error': str(e)
             })
     
+    def _initialize_transportation_handler(self, services: Dict, ml_context_builder: Any,
+                                          neural_processor: Any, response_generator: Any):
+        """Initialize Transportation Handler with IBB API, GPS, Transfer Maps, and Bilingual support"""
+        try:
+            from istanbul_ai.handlers.transportation_handler import TransportationHandler
+            
+            # Get transportation-related services
+            transportation_chat = services.get('transportation_chat')
+            transport_processor = services.get('transport_processor')
+            gps_route_service = services.get('gps_route_service')
+            bilingual_manager = services.get('bilingual_manager')  # 🌐 NEW: Bilingual support
+            
+            # Get feature flags
+            transfer_map_integration_available = services.get('transfer_map_integration_available', False)
+            advanced_transport_available = services.get('advanced_transport_available', False)
+            
+            # Create the handler (even if some services are None, it will use fallbacks)
+            self.handlers['transportation_handler'] = TransportationHandler(
+                transportation_chat=transportation_chat,
+                transport_processor=transport_processor,
+                gps_route_service=gps_route_service,
+                bilingual_manager=bilingual_manager,  # 🌐 Pass bilingual manager
+                transfer_map_integration_available=transfer_map_integration_available,
+                advanced_transport_available=advanced_transport_available
+            )
+            
+            logger.info(f"🚇 Transportation Handler initialized successfully! (Bilingual: {bilingual_manager is not None})")
+            self.initialized_count += 1
+            self.initialization_log.append({
+                'handler': 'transportation_handler',
+                'status': 'success',
+                'features': {
+                    'transportation_chat': transportation_chat is not None,
+                    'transport_processor': transport_processor is not None,
+                    'gps_route_service': gps_route_service is not None,
+                    'bilingual_manager': bilingual_manager is not None,  # 🌐 Log bilingual status
+                    'transfer_maps': transfer_map_integration_available,
+                    'advanced_transport': advanced_transport_available
+                }
+            })
+            
+        except ImportError as e:
+            logger.warning(f"Transportation Handler not available: {e}")
+            self.handlers['transportation_handler'] = None
+            self.initialization_log.append({
+                'handler': 'transportation_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize Transportation Handler: {e}")
+            self.handlers['transportation_handler'] = None
+            self.initialization_log.append({
+                'handler': 'transportation_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
     def _initialize_all_to_none(self):
         """Set all handlers to None when base dependencies are missing"""
         handler_names = [
@@ -390,7 +450,8 @@ class HandlerInitializer:
             'ml_weather_handler',
             'ml_route_planning_handler',
             'ml_neighborhood_handler',
-            'nearby_locations_response_handler'
+            'nearby_locations_response_handler',
+            'transportation_handler'
         ]
         
         for handler_name in handler_names:
