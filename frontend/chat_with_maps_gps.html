@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul AI - Interactive Map Chat with GPS</title>
+    
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Chat Panel */
+        #chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+        }
+        
+        #chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        #chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.ai {
+            align-self: flex-start;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message.system {
+            align-self: center;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .message-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        #input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        #input-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #message-input:focus {
+            border-color: #667eea;
+        }
+        
+        #send-button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        #send-button:active {
+            transform: translateY(0);
+        }
+        
+        #send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Map Panel */
+        #map-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            position: relative;
+        }
+        
+        #map-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        #map-header h2 {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        #map-info {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        #map {
+            flex: 1;
+            position: relative;
+        }
+        
+        /* GPS Button */
+        #gps-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            font-size: 22px;
+        }
+        
+        #gps-button:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        #gps-button.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+            50% { box-shadow: 0 2px 20px rgba(16, 185, 129, 0.6); }
+        }
+        
+        #gps-button.loading {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+            animation: rotate 1s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        #gps-button.error {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        #gps-status {
+            position: absolute;
+            top: 65px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-size: 11px;
+            max-width: 220px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        #gps-status.show {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom marker styles */
+        .custom-marker {
+            background: none;
+            border: none;
+        }
+        
+        .gps-marker-pulse {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(66, 133, 244, 0.15);
+            border: 2px solid rgba(66, 133, 244, 0.4);
+            animation: pulsate 2s ease-out infinite;
+        }
+        
+        @keyframes pulsate {
+            0% {
+                transform: scale(0.1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0;
+            }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #app-container {
+                flex-direction: column;
+            }
+            
+            #chat-panel, #map-panel {
+                flex: none;
+                height: 50vh;
+            }
+        }
+        
+        /* Quick suggestions */
+        #suggestions {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .suggestion-chip {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-chip:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        /* Walking route animation */
+        .leaflet-interactive.walking-route {
+            stroke-dasharray: 10, 5;
+            animation: dash 20s linear infinite;
+        }
+        
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -100;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Chat Panel -->
+        <div id="chat-panel">
+            <div id="chat-header">
+                <h1>🗺️ Istanbul AI with GPS</h1>
+                <p>Ask me anything - Get answers with interactive maps and live location!</p>
+            </div>
+            
+            <div id="messages">
+                <div class="message system">
+                    Welcome! Click the 📍 button on the map to enable GPS tracking.
+                    Ask about attractions, restaurants, routes, or transportation! 🎯
+                </div>
+            </div>
+            
+            <div id="suggestions">
+                <div class="suggestion-chip" onclick="sendSuggestion('Show me historical places near Sultanahmet')">
+                    🏛️ Historical Places
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Best restaurants near me')">
+                    🍽️ Restaurants Near Me
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('How to get from my location to Topkapi Palace')">
+                    🚶 Walking Directions
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Plan a walking tour')">
+                    🗺️ Walking Tour
+                </div>
+            </div>
+            
+            <div id="input-container">
+                <form id="input-form" onsubmit="sendMessage(event)">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Ask about Istanbul..." 
+                        autocomplete="off"
+                    >
+                    <button type="submit" id="send-button">Send</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Map Panel -->
+        <div id="map-panel">
+            <div id="map-header">
+                <h2>📍 Interactive Map</h2>
+                <div id="map-info">0 locations • 0 routes</div>
+            </div>
+            <div id="map">
+                <button id="gps-button" title="Show my location">📍</button>
+                <div id="gps-status"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([41.0082, 28.9784], 11);
+        
+        // Add OpenStreetMap tiles (FREE & OPEN SOURCE)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Track current map elements
+        let currentMarkers = [];
+        let currentPolylines = [];
+        let userLocationMarker = null;
+        let userLocation = null;
+        let watchId = null;
+        
+        // User ID (in production, get from auth)
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        const sessionId = 'session_' + Date.now();
+        
+        // GPS functionality
+        const gpsButton = document.getElementById('gps-button');
+        const gpsStatus = document.getElementById('gps-status');
+        
+        function showGPSStatus(message, type = 'info') {
+            gpsStatus.textContent = message;
+            gpsStatus.className = 'show';
+            gpsStatus.style.color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#666';
+            setTimeout(() => {
+                gpsStatus.className = '';
+            }, 3000);
+        }
+        
+        function updateUserLocation(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            userLocation = { lat, lon };
+            
+            // Remove old marker if exists
+            if (userLocationMarker) {
+                map.removeLayer(userLocationMarker);
+            }
+            
+            // Create custom GPS marker with pulsing effect
+            const gpsIcon = L.divIcon({
+                html: `
+                    <div style="position: relative; width: 20px; height: 20px;">
+                        <div class="gps-marker-pulse"></div>
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: 18px;
+                            height: 18px;
+                            background: #4285f4;
+                            border: 4px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                            z-index: 10;
+                        "></div>
+                    </div>
+                `,
+                className: 'custom-marker gps-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            
+            // Add new marker
+            userLocationMarker = L.marker([lat, lon], { icon: gpsIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <strong>📍 Your Location</strong><br>
+                    Lat: ${lat.toFixed(6)}<br>
+                    Lon: ${lon.toFixed(6)}<br>
+                    Accuracy: ±${accuracy.toFixed(0)}m<br>
+                    <small>Updated: ${new Date().toLocaleTimeString()}</small>
+                `, { offset: [0, -10] });
+            
+            // Update button state
+            gpsButton.className = 'active';
+            gpsButton.textContent = '🎯';
+            
+            showGPSStatus(`📍 Location active (±${accuracy.toFixed(0)}m)`, 'success');
+            
+            console.log(`📍 User location: ${lat.toFixed(6)}, ${lon.toFixed(6)} (±${accuracy}m)`);
+        }
+        
+        function handleGPSError(error) {
+            gpsButton.className = 'error';
+            gpsButton.textContent = '❌';
+            
+            let message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = '❌ Location permission denied. Please enable in browser settings.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = '❌ Location unavailable. Check your device settings.';
+                    break;
+                case error.TIMEOUT:
+                    message = '❌ Location request timeout. Try again.';
+                    break;
+                default:
+                    message = '❌ Unknown GPS error';
+            }
+            
+            showGPSStatus(message, 'error');
+            console.error('GPS error:', error);
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                gpsButton.className = '';
+                gpsButton.textContent = '📍';
+            }, 3000);
+        }
+        
+        function toggleGPS() {
+            if (!navigator.geolocation) {
+                showGPSStatus('❌ Geolocation not supported by your browser', 'error');
+                return;
+            }
+            
+            if (watchId) {
+                // Stop tracking
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                
+                if (userLocationMarker) {
+                    map.removeLayer(userLocationMarker);
+                    userLocationMarker = null;
+                }
+                
+                gpsButton.className = '';
+                gpsButton.textContent = '📍';
+                userLocation = null;
+                
+                showGPSStatus('GPS tracking stopped', 'info');
+                displayMessage('📍 GPS tracking disabled', 'system');
+            } else {
+                // Start tracking
+                gpsButton.className = 'loading';
+                gpsButton.textContent = '⏳';
+                showGPSStatus('🔍 Getting your location...', 'info');
+                displayMessage('📍 Requesting GPS location...', 'system');
+                
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        updateUserLocation(position);
+                        // Center map on first location
+                        if (!currentMarkers.length) {
+                            map.setView([position.coords.latitude, position.coords.longitude], 14);
+                        }
+                    },
+                    handleGPSError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 5000
+                    }
+                );
+            }
+        }
+        
+        gpsButton.addEventListener('click', toggleGPS);
+        
+        // Send message function
+        async function sendMessage(event) {
+            if (event) event.preventDefault();
+            
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Display user message
+            displayMessage(message, 'user');
+            
+            // Clear input
+            input.value = '';
+            
+            // Disable send button
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                // Prepare request body
+                const requestBody = {
+                    message: message,
+                    user_id: userId,
+                    session_id: sessionId
+                };
+                
+                // Include user location if GPS is active
+                if (userLocation) {
+                    requestBody.user_location = {
+                        lat: userLocation.lat,
+                        lon: userLocation.lon
+                    };
+                    console.log('📍 Including user location in request:', userLocation);
+                }
+                
+                // Call API
+                const response = await fetch('/api/v1/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display AI response
+                displayMessage(data.response, 'ai', data.processing_time);
+                
+                // Render map if available
+                if (data.map_data && (data.map_data.markers || data.map_data.routes)) {
+                    renderMap(data.map_data);
+                    const markerCount = data.map_data.markers ? data.map_data.markers.length : 0;
+                    const routeCount = data.map_data.routes ? data.map_data.routes.length : 0;
+                    displayMessage(`🗺️ Map updated: ${markerCount} locations, ${routeCount} routes. Click for details!`, 'system');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('❌ Sorry, there was an error. Please try again.', 'system');
+            } finally {
+                // Re-enable send button
+                sendButton.disabled = false;
+                sendButton.innerHTML = 'Send';
+            }
+        }
+        
+        // Send suggestion
+        function sendSuggestion(text) {
+            document.getElementById('message-input').value = text;
+            sendMessage();
+        }
+        
+        // Display message in chat
+        function displayMessage(text, type, processingTime) {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = text;
+            
+            if (processingTime && type === 'ai') {
+                const metaEl = document.createElement('div');
+                metaEl.className = 'message-meta';
+                metaEl.textContent = `⚡ ${(processingTime * 1000).toFixed(0)}ms`;
+                messageEl.appendChild(metaEl);
+            }
+            
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Render map visualization
+        function renderMap(mapData) {
+            // Clear existing markers and routes (but keep GPS marker)
+            currentMarkers.forEach(m => map.removeLayer(m));
+            currentPolylines.forEach(p => map.removeLayer(p));
+            currentMarkers = [];
+            currentPolylines = [];
+            
+            // Set view if center and zoom provided
+            if (mapData.center && mapData.zoom) {
+                map.setView(mapData.center, mapData.zoom);
+            }
+            
+            // Add markers
+            if (mapData.markers && mapData.markers.length > 0) {
+                mapData.markers.forEach((markerData, index) => {
+                    // Create custom icon for numbered markers
+                    let icon;
+                    if (markerData.type === 'start') {
+                        icon = L.divIcon({
+                            html: '<div style="background: #10b981; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">🚶</div>',
+                            className: 'custom-marker',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    } else if (markerData.type === 'end') {
+                        icon = L.divIcon({
+                            html: '<div style="background: #ef4444; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">🏁</div>',
+                            className: 'custom-marker',
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 15]
+                        });
+                    } else if (markerData.icon && markerData.icon.match(/^\d+$/)) {
+                        // Numbered marker for route planning
+                        icon = L.divIcon({
+                            html: `<div style="background: #667eea; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 3px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4);">${markerData.icon}</div>`,
+                            className: 'custom-marker',
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 16]
+                        });
+                    } else {
+                        icon = L.icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        });
+                    }
+                    
+                    const marker = L.marker(markerData.position, { icon })
+                        .bindPopup(markerData.popup || markerData.title || 'Location')
+                        .addTo(map);
+                    
+                    currentMarkers.push(marker);
+                });
+                
+                console.log(`✅ Added ${mapData.markers.length} markers to map`);
+            }
+            
+            // Add routes
+            if (mapData.routes && mapData.routes.length > 0) {
+                mapData.routes.forEach(routeData => {
+                    if (routeData.coordinates && routeData.coordinates.length > 0) {
+                        // Check if walking route
+                        const isWalking = routeData.metadata && 
+                                        (routeData.metadata.mode === 'walking' || routeData.metadata.mode === 'foot');
+                        
+                        const polyline = L.polyline(routeData.coordinates, {
+                            color: routeData.color || '#667eea',
+                            weight: routeData.weight || 5,
+                            opacity: routeData.opacity || 0.8,
+                            className: isWalking ? 'walking-route' : '',
+                            dashArray: isWalking ? '10, 10' : null
+                        }).addTo(map);
+                        
+                        // Add popup with route info
+                        let popupContent = '';
+                        if (routeData.metadata) {
+                            const meta = routeData.metadata;
+                            popupContent = `
+                                <strong>${meta.mode === 'walking' ? '🚶 Walking Route' : 
+                                         meta.mode === 'metro' ? '🚇 Metro' :
+                                         meta.mode === 'bus' ? '🚌 Bus' :
+                                         meta.mode === 'ferry' ? '⛴️ Ferry' : 'Route'}</strong><br>
+                                ${meta.distance_km ? `Distance: ${meta.distance_km.toFixed(2)} km<br>` : ''}
+                                ${meta.duration_min ? `Duration: ${meta.duration_min} min<br>` : ''}
+                                ${meta.line_name ? `Line: ${meta.line_name}` : ''}
+                            `;
+                        } else if (routeData.popup) {
+                            popupContent = routeData.popup;
+                        }
+                        
+                        if (popupContent) {
+                            polyline.bindPopup(popupContent);
+                        }
+                        
+                        currentPolylines.push(polyline);
+                    }
+                });
+                
+                console.log(`✅ Added ${mapData.routes.length} routes to map`);
+            }
+            
+            // Fit bounds to show all markers (including GPS if active)
+            const allMarkers = [...currentMarkers];
+            if (userLocationMarker) {
+                allMarkers.push(userLocationMarker);
+            }
+            
+            if (allMarkers.length > 0) {
+                const group = L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
+            }
+            
+            // Update map info
+            const mapInfo = document.getElementById('map-info');
+            const locationText = userLocation ? `Your location + ${currentMarkers.length} others` : 
+                                              `${currentMarkers.length} locations`;
+            mapInfo.textContent = `${locationText} • ${currentPolylines.length} routes`;
+        }
+        
+        // Handle Enter key
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        console.log('🗺️ Istanbul AI with GPS initialized!');
+        console.log('✅ Using Leaflet.js + OpenStreetMap (100% FREE)');
+        console.log('📍 Click GPS button to enable location tracking');
+    </script>
+</body>
+</html>

@@ -135,6 +135,29 @@ class ResponseGenerator:
             }
         }
     
+    def _get_language(self, context) -> str:
+        """
+        Extract language from context for bilingual responses
+        
+        Args:
+            context: Conversation context
+            
+        Returns:
+            Language code ('en' or 'tr')
+        """
+        if not context:
+            return 'en'
+        
+        # Check if language is in context
+        if hasattr(context, 'language'):
+            lang = context.language
+            if hasattr(lang, 'value'):
+                return lang.value  # Language enum
+            return lang if lang in ['en', 'tr'] else 'en'
+        
+        # Default to English
+        return 'en'
+    
     def generate_comprehensive_recommendation(self, recommendation_type: str, entities: Dict, 
                                            user_profile: UserProfile, context: ConversationContext,
                                            return_structured: bool = False) -> Union[str, Dict[str, Any]]:
@@ -1142,8 +1165,22 @@ class ResponseGenerator:
         return icon_map.get(category, '💎')
 
     def _generate_fallback_response(self, context, user_profile) -> str:
-        """Generate a fallback response when no specific intent is detected"""
-        return """👋 I'm here to help you explore Istanbul! I can assist with:
+        """Generate a fallback response when no specific intent is detected - bilingual support"""
+        # 🌐 BILINGUAL: Extract language from context
+        language = self._get_language(context)
+        
+        if language == 'tr':
+            return """👋 İstanbul'u keşfetmenize yardımcı olmak için buradayım! Şunlarda size yardımcı olabilirim:
+
+🍽️ **Restoranlar**: Mutfak, semt veya diyet ihtiyaçlarına göre yemek bulun
+🏛️ **Gezilecek Yerler**: Müzeleri, simge yapıları ve gizli yerleri keşfedin  
+🏘️ **Semtler**: Farklı ilçeler için detaylı rehberler edinin
+🚇 **Ulaşım**: Yol tarifleri, metro güzergahları ve seyahat ipuçları
+🎭 **Etkinlikler**: Güncel kültürel etkinlikler ve aktiviteler
+
+İstanbul'da neyi keşfetmek istersiniz?"""
+        else:
+            return """👋 I'm here to help you explore Istanbul! I can assist with:
 
 🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
 🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  

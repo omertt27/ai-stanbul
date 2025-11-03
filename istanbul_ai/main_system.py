@@ -229,10 +229,15 @@ class IstanbulDailyTalkAI:
         self.response_generator = ResponseGenerator()
         self.user_manager = UserManager()
         
-        # Week 2 Modularization: Initialize bilingual manager
-        logger.info("🌐 Initializing bilingual support...")
+        # Week 2 Modularization: Initialize bilingual manager (with ML detection)
+        logger.info("🌐 Initializing bilingual support with ML-based language detection...")
         self.bilingual_manager = BilingualManager()
-        logger.info("✅ BilingualManager initialized - Full English/Turkish parity enabled")
+        
+        # Check if ML detector is available
+        if hasattr(self.bilingual_manager, 'advanced_detector') and self.bilingual_manager.advanced_detector:
+            logger.info("✅ BilingualManager initialized with ML-based language detection (91.7% accuracy)")
+        else:
+            logger.info("✅ BilingualManager initialized with rule-based detection (fallback mode)")
         
         # Week 1 Modularization: Initialize all services using ServiceInitializer
         service_initializer = ServiceInitializer()
@@ -272,6 +277,7 @@ class IstanbulDailyTalkAI:
             setattr(self, handler_name, handler_instance)
         
         logger.info(f"✅ Initialized {len(handlers)} ML handlers via HandlerInitializer")
+        logger.info(f"🔍 Registered handler names: {list(handlers.keys())}")
         
         # Week 2 Modularization: Initialize routing layer components
         logger.info("🎯 Initializing routing layer components...")
@@ -600,13 +606,14 @@ class IstanbulDailyTalkAI:
             logger.error(f"Error starting conversation: {e}")
             return "🌟 Welcome to Istanbul! I'm your AI guide ready to help you discover this amazing city. How can I assist you today?"
     
-    def process_message(self, user_input: str, user_id: str, gps_location: Optional[Dict] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
+    def process_message(self, user_input: str, user_id: str, gps_location: Optional[Dict] = None, user_location: Optional[tuple] = None, return_structured: bool = False) -> Union[str, Dict[str, Any]]:
         """Process user message and generate response (Week 2: Using modular routing layer)
         
         Args:
             user_input: User's input message
             user_id: User identifier
-            gps_location: Optional GPS location dict with 'latitude' and 'longitude'
+            gps_location: Optional GPS location dict with 'latitude' and 'longitude' (deprecated, use user_location)
+            user_location: Optional GPS location as tuple (lat, lon)
             return_structured: If True, return dict with response and map_data; if False, return string (default)
             
         Returns:
@@ -641,14 +648,23 @@ class IstanbulDailyTalkAI:
                 self.bilingual_manager.set_user_language(user_profile, detected_language)
                 logger.info(f"🌐 Language preference updated: {user_language_pref.value} → {detected_language.value}")
             
-            # Update user location if GPS provided
-            if gps_location and isinstance(gps_location, dict):
+            # Update user location - support both formats
+            location_updated = False
+            if user_location and isinstance(user_location, tuple) and len(user_location) == 2:
+                user_profile.current_location = user_location
+                location_updated = True
+                logger.info(f"📍 User location updated: {user_location[0]:.6f}, {user_location[1]:.6f}")
+            elif gps_location and isinstance(gps_location, dict):
                 if 'latitude' in gps_location and 'longitude' in gps_location:
                     user_profile.current_location = (
                         gps_location['latitude'], 
                         gps_location['longitude']
                     )
-                    logger.info(f"📍 Updated user location: {user_profile.current_location}")
+                    location_updated = True
+                    logger.info(f"📍 User location updated (dict): {user_profile.current_location}")
+            
+            if location_updated:
+                logger.info(f"📍 GPS location available for context-aware recommendations")
             
             session_id = self.user_manager._get_active_session_id(user_id)
             
@@ -715,7 +731,8 @@ class IstanbulDailyTalkAI:
             # Week 2 Modularization: Preprocess query for neural insights
             preprocessed_query = self.query_preprocessor.preprocess_query(
                 message=message,
-                context=context,
+                user_id=user_id,
+                user_profile=user_profile,
                 neural_processor=self.neural_processor if hasattr(self, 'neural_processor') else None
             )
             

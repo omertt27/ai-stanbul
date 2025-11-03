@@ -15,9 +15,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
 // Correct API endpoints - backend uses /ai/chat not /ai/ai/chat
-const API_URL = `${cleanBaseUrl}/ai/chat`;  // Fixed: direct path to chat endpoint
-const UNIFIED_CHAT_URL = `${cleanBaseUrl}/api/chat`;  // NEW: Unified ML-powered endpoint
-const STREAM_API_URL = `${cleanBaseUrl}/ai/stream`;
+const API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Main chat endpoint with GPS support
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
 const PLACES_API_URL = `${cleanBaseUrl}/places/`;
 // Chat history endpoints  
@@ -45,8 +43,6 @@ export const clearSession = () => {
 console.log('API Configuration:', {
   BASE_URL: cleanBaseUrl,
   API_URL,
-  UNIFIED_CHAT_URL,
-  STREAM_API_URL,
   RESTAURANTS_API_URL,
   PLACES_API_URL,
   CHAT_HISTORY_API_URL,
@@ -130,13 +126,11 @@ export const fetchResults = async (query, sessionId = null) => {
 };
 
 /**
- * NEW: Unified chat endpoint with ML integration and map visualization
+ * Chat endpoint with GPS support and map visualization
  * This endpoint provides:
- * - Intent classification
- * - Query preprocessing
+ * - GPS location support for "my location" queries
  * - Map visualization data for transportation queries
- * - GPS location support
- * - Caching and rate limiting
+ * - Session management
  */
 export const fetchUnifiedChat = async (query, options = {}) => {
   return chatCircuitBreaker.call(async () => {
@@ -145,8 +139,8 @@ export const fetchUnifiedChat = async (query, options = {}) => {
       const userId = options.userId || 'anonymous';
       const gpsLocation = options.gpsLocation || null;
       
-      console.log('🎯 Making unified chat API request:', {
-        url: UNIFIED_CHAT_URL,
+      console.log('🎯 Making chat API request:', {
+        url: API_URL,
         query: query.substring(0, 50) + '...',
         sessionId,
         hasGPS: !!gpsLocation
@@ -158,12 +152,12 @@ export const fetchUnifiedChat = async (query, options = {}) => {
         user_id: userId
       };
       
-      // Add GPS location if available
+      // Add GPS location if available (backend expects user_location)
       if (gpsLocation) {
-        requestBody.gps_location = gpsLocation;
+        requestBody.user_location = gpsLocation;
       }
       
-      const response = await fetchWithRetry(UNIFIED_CHAT_URL, {
+      const response = await fetchWithRetry(API_URL, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -178,20 +172,16 @@ export const fetchUnifiedChat = async (query, options = {}) => {
       
       const data = await response.json();
       
-      console.log('✅ Unified chat response:', {
-        intent: data.intent,
-        confidence: data.confidence,
+      console.log('✅ Chat response:', {
+        hasResponse: !!data.response || !!data.message,
         hasMapData: !!data.map_data,
-        cacheHit: data.cache_hit,
-        mlEnabled: data.ml_enabled,
-        method: data.method,
-        processingTime: data.processing_time_ms
+        sessionId: data.session_id
       });
       
       return data;
       
     } catch (error) {
-      throw handleApiError(error, null, 'Unified Chat API');
+      throw handleApiError(error, null, 'Chat API');
     }
   });
 };

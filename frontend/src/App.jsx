@@ -17,9 +17,10 @@ import POICard from './components/POICard';
 import DistrictInfo from './components/DistrictInfo';
 import ItineraryTimeline from './components/ItineraryTimeline';
 import MLInsights from './components/MLInsights';
+import MapVisualization from './components/MapVisualization';
 
 import { useMobileUtils, InstallPWAButton, MobileSwipe } from './hooks/useMobileUtils.jsx';
-import { fetchResults, fetchStreamingResults, getSessionId } from './api/api';
+import { fetchResults, getSessionId } from './api/api';
 import GoogleAnalytics, { trackChatEvent, trackEvent } from './utils/analytics';
 import './App.css';
 import './components/InteractiveMainPage.css';
@@ -49,6 +50,15 @@ const App = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [userId] = useState(() => {
+    // Get or create user ID
+    let id = localStorage.getItem('user_id');
+    if (!id) {
+      id = 'user_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('user_id', id);
+    }
+    return id;
+  });
   const [messages, setMessages] = useState(() => {
     // Load saved messages from localStorage
     try {
@@ -154,19 +164,59 @@ const App = () => {
       const updatedMessages = [...messages, newMessage];
       setMessages(updatedMessages);
       
-      const response = await fetchResults(query);
+      // Prepare request with user location if available
+      const requestData = { 
+        message: query,
+        user_id: userId || 'anonymous_' + sessionId,
+        session_id: sessionId
+      };
+      
+      // Include GPS location if available
+      if (currentLocation) {
+        requestData.user_location = {
+          lat: currentLocation.lat,
+          lon: currentLocation.lon
+        };
+        console.log('📍 Including GPS location in request:', currentLocation);
+      }
+      
+      // Use new /api/v1/chat endpoint with map support
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Chat API response:', data);
       
       const assistantMessage = {
         id: Date.now() + 1,
         sender: "assistant",
-        content: response.response,
-        metadata: response.metadata,
+        content: data.response,
+        metadata: data.metadata,
+        map_data: data.map_data, // Include map data
         timestamp: new Date().toISOString()
       };
       
       setMessages([...updatedMessages, assistantMessage]);
     } catch (error) {
       console.error("Chat error:", error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        sender: "assistant",
+        content: "Sorry, there was an error processing your request. Please try again.",
+        timestamp: new Date().toISOString()
+      };
+      setMessages([...messages, newMessage, errorMessage]);
     }
 
     // Reset loading state after navigation
@@ -300,6 +350,64 @@ const App = () => {
             padding: isMobile || window.innerWidth <= 768 ? '0 0.5rem' : '1rem',
             zIndex: 10,
           }}>
+            {/* GPS Location Status */}
+            {hasLocation && (
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+                padding: '0.5rem',
+                background: 'rgba(16, 185, 129, 0.1)',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                color: '#059669'
+              }}>
+                📍 GPS Active - Location-aware responses enabled
+                <button 
+                  onClick={clearLocation}
+                  style={{
+                    marginLeft: '1rem',
+                    padding: '0.25rem 0.75rem',
+                    background: 'transparent',
+                    border: '1px solid #059669',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    color: '#059669'
+                  }}
+                >
+                  Disable
+                </button>
+              </div>
+            )}
+            {!hasLocation && (
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '0.5rem',
+                padding: '0.5rem',
+                background: 'rgba(99, 102, 241, 0.1)',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                color: '#4f46e5'
+              }}>
+                💡 Enable GPS for personalized, location-aware recommendations
+                <button 
+                  onClick={requestGPSLocation}
+                  style={{
+                    marginLeft: '1rem',
+                    padding: '0.25rem 0.75rem',
+                    background: '#6366f1',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    color: 'white'
+                  }}
+                >
+                  📍 Enable GPS
+                </button>
+              </div>
+            )}
+            
             <SearchBar
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -321,6 +429,20 @@ const App = () => {
                       : "bg-gray-100 text-gray-900"
                   }`}>
                     <div>{msg.content}</div>
+                    
+                    {/* Map Visualization */}
+                    {msg.sender === "assistant" && msg.map_data && (msg.map_data.markers || msg.map_data.routes) && (
+                      <div className="mt-3">
+                        <MapVisualization 
+                          mapData={msg.map_data} 
+                          height="400px" 
+                          className="rounded-lg shadow-md"
+                        />
+                        <div className="text-xs text-gray-600 mt-2 text-center">
+                          🗺️ {msg.map_data.markers?.length || 0} locations • {msg.map_data.routes?.length || 0} routes
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Metadata Components */}
                     {msg.sender === "assistant" && msg.metadata && (

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Istanbul AI - Interactive Map Chat</title>
+    
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 10            try {
+                // Prepare request body with user location if available
+                const requestBody = {
+                    message: message,
+                    user_id: userId,
+                    session_id: sessionId
+                };
+                
+                // Include user location if GPS is active
+                if (userLocation) {
+                    requestBody.user_location = {
+                        lat: userLocation.lat,
+                        lon: userLocation.lon
+                    };
+                    console.log('📍 Including user location in request:', userLocation);
+                }
+                
+                // Call API
+                const response = await fetch('/api/v1/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });    overflow: hidden;
+            background: #f5f5f5;
+        }
+        
+        #app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Chat Panel */
+        #chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+        }
+        
+        #chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        #chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.ai {
+            align-self: flex-start;
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message.system {
+            align-self: center;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .message-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        #input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        #input-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #message-input:focus {
+            border-color: #667eea;
+        }
+        
+        #send-button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        #send-button:active {
+            transform: translateY(0);
+        }
+        
+        #send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* Map Panel */
+        #map-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
+        #map-header {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        #map-header h2 {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        #map-info {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        #map {
+            flex: 1;
+            position: relative;
+        }
+        
+        #gps-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            font-size: 20px;
+        }
+        
+        #gps-button:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        #gps-button.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        
+        #gps-button.loading {
+            background: #f59e0b;
+            border-color: #f59e0b;
+            color: white;
+        }
+        
+        #gps-button.error {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+        
+        #gps-status {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            font-size: 11px;
+            max-width: 200px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        
+        #gps-status.show {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #app-container {
+                flex-direction: column;
+            }
+            
+            #chat-panel, #map-panel {
+                flex: none;
+                height: 50vh;
+            }
+        }
+        
+        /* Quick suggestions */
+        #suggestions {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .suggestion-chip {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-chip:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Chat Panel -->
+        <div id="chat-panel">
+            <div id="chat-header">
+                <h1>🗺️ Istanbul AI</h1>
+                <p>Ask me anything about Istanbul - Get answers with interactive maps!</p>
+            </div>
+            
+            <div id="messages">
+                <div class="message system">
+                    Welcome! Ask me about attractions, restaurants, routes, or transportation in Istanbul.
+                    I'll show you interactive maps with every answer! 🎯
+                </div>
+            </div>
+            
+            <div id="suggestions">
+                <div class="suggestion-chip" onclick="sendSuggestion('Show me historical places near Sultanahmet')">
+                    🏛️ Historical Places
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Best restaurants in Karaköy')">
+                    🍽️ Restaurants
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('How to get from Taksim to Sultanahmet')">
+                    🚇 Transportation
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('What to visit in Beyoğlu')">
+                    📍 Neighborhoods
+                </div>
+            </div>
+            
+            <div id="input-container">
+                <form id="input-form" onsubmit="sendMessage(event)">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Ask about Istanbul..." 
+                        autocomplete="off"
+                    >
+                    <button type="submit" id="send-button">Send</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Map Panel -->
+        <div id="map-panel">
+            <div id="map-header">
+                <h2>📍 Interactive Map</h2>
+                <div id="map-info">Free & Open Source (Leaflet.js + OpenStreetMap)</div>
+            </div>
+            <div id="map">
+                <button id="gps-button" title="Show my location">📍</button>
+                <div id="gps-status"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([41.0082, 28.9784], 11);
+        
+        // Add OpenStreetMap tiles (FREE & OPEN SOURCE)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Track current map elements
+        let currentMarkers = [];
+        let currentPolylines = [];
+        let userLocationMarker = null;
+        let userLocation = null;
+        let watchId = null;
+        
+        // GPS functionality
+        const gpsButton = document.getElementById('gps-button');
+        const gpsStatus = document.getElementById('gps-status');
+        
+        function showGPSStatus(message, type = 'info') {
+            gpsStatus.textContent = message;
+            gpsStatus.className = 'show';
+            gpsStatus.style.color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#666';
+            setTimeout(() => {
+                gpsStatus.className = '';
+            }, 3000);
+        }
+        
+        function updateUserLocation(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            userLocation = { lat, lon };
+            
+            // Remove old marker if exists
+            if (userLocationMarker) {
+                map.removeLayer(userLocationMarker);
+            }
+            
+            // Create custom GPS marker
+            const gpsIcon = L.divIcon({
+                html: `
+                    <div style="position: relative;">
+                        <div style="
+                            width: 20px;
+                            height: 20px;
+                            background: #4285f4;
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        "></div>
+                        <div style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            width: ${accuracy}px;
+                            height: ${accuracy}px;
+                            background: rgba(66, 133, 244, 0.1);
+                            border: 2px solid rgba(66, 133, 244, 0.3);
+                            border-radius: 50%;
+                            z-index: -1;
+                        "></div>
+                    </div>
+                `,
+                className: 'gps-marker',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            
+            // Add new marker
+            userLocationMarker = L.marker([lat, lon], { icon: gpsIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <strong>📍 Your Location</strong><br>
+                    Lat: ${lat.toFixed(6)}<br>
+                    Lon: ${lon.toFixed(6)}<br>
+                    Accuracy: ±${accuracy.toFixed(0)}m
+                `);
+            
+            // Center map on user location
+            map.setView([lat, lon], 15);
+            
+            // Update button state
+            gpsButton.className = 'active';
+            gpsButton.textContent = '🎯';
+            
+            showGPSStatus(`📍 Location found (±${accuracy.toFixed(0)}m)`, 'success');
+            
+            console.log(`📍 User location: ${lat}, ${lon} (accuracy: ±${accuracy}m)`);
+        }
+        
+        function handleGPSError(error) {
+            gpsButton.className = 'error';
+            gpsButton.textContent = '❌';
+            
+            let message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = '❌ Location permission denied';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = '❌ Location unavailable';
+                    break;
+                case error.TIMEOUT:
+                    message = '❌ Location request timeout';
+                    break;
+                default:
+                    message = '❌ Unknown GPS error';
+            }
+            
+            showGPSStatus(message, 'error');
+            console.error('GPS error:', error);
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                gpsButton.className = '';
+                gpsButton.textContent = '📍';
+            }, 3000);
+        }
+        
+        function toggleGPS() {
+            if (!navigator.geolocation) {
+                showGPSStatus('❌ Geolocation not supported', 'error');
+                return;
+            }
+            
+            if (watchId) {
+                // Stop tracking
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                
+                if (userLocationMarker) {
+                    map.removeLayer(userLocationMarker);
+                    userLocationMarker = null;
+                }
+                
+                gpsButton.className = '';
+                gpsButton.textContent = '📍';
+                userLocation = null;
+                
+                showGPSStatus('GPS tracking stopped', 'info');
+            } else {
+                // Start tracking
+                gpsButton.className = 'loading';
+                gpsButton.textContent = '⏳';
+                showGPSStatus('🔍 Getting your location...', 'info');
+                
+                watchId = navigator.geolocation.watchPosition(
+                    updateUserLocation,
+                    handleGPSError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 5000
+                    }
+                );
+            }
+        }
+        
+        // Send message function
+        async function sendMessage(event) {
+            if (event) event.preventDefault();
+            
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Display user message
+            displayMessage(message, 'user');
+            
+            // Clear input
+            input.value = '';
+            
+            // Disable send button
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<span class="loading"></span>';
+            
+            try {
+                // Call API
+                const response = await fetch('/api/v1/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        user_id: userId,
+                        session_id: sessionId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display AI response
+                displayMessage(data.response, 'ai', data.processing_time);
+                
+                // Render map if available
+                if (data.map_data && (data.map_data.markers || data.map_data.polylines)) {
+                    renderMap(data.map_data);
+                    displayMessage('🗺️ Interactive map updated! Click markers for details.', 'system');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('❌ Sorry, there was an error processing your request. Please try again.', 'system');
+            } finally {
+                // Re-enable send button
+                sendButton.disabled = false;
+                sendButton.innerHTML = 'Send';
+            }
+        }
+        
+        // Send suggestion
+        function sendSuggestion(text) {
+            document.getElementById('message-input').value = text;
+            sendMessage();
+        }
+        
+        // Display message in chat
+        function displayMessage(text, type, processingTime) {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = text;
+            
+            if (processingTime && type === 'ai') {
+                const metaEl = document.createElement('div');
+                metaEl.className = 'message-meta';
+                metaEl.textContent = `⚡ ${(processingTime * 1000).toFixed(0)}ms`;
+                messageEl.appendChild(metaEl);
+            }
+            
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Render map visualization
+        function renderMap(mapData) {
+            // Clear existing markers and routes
+            currentMarkers.forEach(m => map.removeLayer(m));
+            currentPolylines.forEach(p => map.removeLayer(p));
+            currentMarkers = [];
+            currentPolylines = [];
+            
+            // Set view if center and zoom provided
+            if (mapData.center && mapData.zoom) {
+                map.setView(mapData.center, mapData.zoom);
+            }
+            
+            // Add markers
+            if (mapData.markers && mapData.markers.length > 0) {
+                mapData.markers.forEach(markerData => {
+                    const marker = L.marker(markerData.position)
+                        .bindPopup(markerData.popup || markerData.title)
+                        .addTo(map);
+                    
+                    currentMarkers.push(marker);
+                });
+                
+                console.log(`✅ Added ${mapData.markers.length} markers to map`);
+            }
+            
+            // Add routes/polylines
+            if (mapData.polylines && mapData.polylines.length > 0) {
+                mapData.polylines.forEach(polylineData => {
+                    const polyline = L.polyline(polylineData.positions, {
+                        color: polylineData.color || '#4CAF50',
+                        weight: polylineData.weight || 4,
+                        opacity: polylineData.opacity || 0.7
+                    }).addTo(map);
+                    
+                    // Add popup with route info
+                    if (polylineData.distance && polylineData.duration) {
+                        polyline.bindPopup(
+                            `<strong>${polylineData.mode || 'Route'}</strong><br>` +
+                            `Distance: ${polylineData.distance.toFixed(2)} km<br>` +
+                            `Duration: ${polylineData.duration} min`
+                        );
+                    }
+                    
+                    currentPolylines.push(polyline);
+                });
+                
+                console.log(`✅ Added ${mapData.polylines.length} routes to map`);
+            }
+            
+            // Fit bounds if available
+            if (mapData.bounds) {
+                const bounds = L.latLngBounds(
+                    [mapData.bounds.south, mapData.bounds.west],
+                    [mapData.bounds.north, mapData.bounds.east]
+                );
+                map.fitBounds(bounds, { padding: [50, 50] });
+            } else if (currentMarkers.length > 0) {
+                // Auto-fit to markers if no bounds specified
+                const group = L.featureGroup(currentMarkers);
+                map.fitBounds(group.getBounds(), { padding: [50, 50] });
+            }
+            
+            // Update map info
+            const mapInfo = document.getElementById('map-info');
+            mapInfo.textContent = `${currentMarkers.length} locations • ${currentPolylines.length} routes`;
+        }
+        
+        // Handle Enter key
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        console.log('🗺️ Istanbul AI with Interactive Maps initialized!');
+        console.log('✅ Using Leaflet.js + OpenStreetMap (100% FREE & OPEN SOURCE)');
+    </script>
+</body>
+</html>

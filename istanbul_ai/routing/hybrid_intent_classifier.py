@@ -104,8 +104,33 @@ class HybridIntentClassifier:
                 neural_intent, neural_confidence = self.neural.predict(message)
                 neural_result = True  # Mark that we got a result
                 
-                # If neural is highly confident, use it directly!
+                # CRITICAL: Check for transportation keywords BEFORE accepting neural result
+                # This prevents neural misclassification of obvious transportation queries
+                message_lower = message.lower()
+                strong_transportation_keywords = [
+                    'how can i go', 'how do i get', 'how to get to', 'how to go to',
+                    'directions to', 'navigate to', 'route to', 'way to get',
+                    'take me to', 'show me the way', 'from my location', 'from here to',
+                    'metro to', 'bus to', 'tram to', 'transportation to',
+                    'how far is', 'distance to', 'travel to'
+                ]
+                
+                has_strong_transportation = any(keyword in message_lower for keyword in strong_transportation_keywords)
+                
+                # If neural is highly confident BUT it's clearly a transportation query, override it
                 if neural_confidence >= 0.80:
+                    if has_strong_transportation and neural_intent != 'transportation':
+                        logger.warning(f"⚠️ Neural misclassified transportation query as '{neural_intent}' - forcing transportation")
+                        self.stats['keyword_used'] += 1
+                        return IntentResult(
+                            primary_intent='transportation',
+                            confidence=0.95,  # High confidence for keyword override
+                            intents=['transportation'],
+                            is_multi_intent=False,
+                            entities=entities,
+                            method='keyword_override'
+                        )
+                    
                     logger.info(f"🧠 Neural (high confidence): {neural_intent} ({neural_confidence:.2f})")
                     self.stats['neural_used'] += 1
                     
@@ -191,7 +216,7 @@ class HybridIntentClassifier:
             )
         
         # Case 2: Disagreement - use higher confidence
-        if neural_confidence >= keyword_confidence + 0.15:
+        if neural_confidence >= keyword_confidence + 0.10:
             # Neural is significantly more confident
             logger.info(f"🧠 Neural (higher confidence): {neural_intent} ({neural_confidence:.2f}) vs keyword: {keyword_intent} ({keyword_confidence:.2f})")
             self.stats['neural_used'] += 1
@@ -205,8 +230,8 @@ class HybridIntentClassifier:
                 method='neural'
             )
         
-        elif keyword_confidence >= neural_confidence + 0.10:
-            # Keyword is more confident
+        elif keyword_confidence >= neural_confidence + 0.20:
+            # Keyword is significantly more confident (increased threshold from 0.10 to 0.20)
             logger.info(f"🔤 Keyword (higher confidence): {keyword_intent} ({keyword_confidence:.2f}) vs neural: {neural_intent} ({neural_confidence:.2f})")
             self.stats['keyword_used'] += 1
             

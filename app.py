@@ -68,6 +68,15 @@ except ImportError as e:
 from istanbul_daily_talk_system import IstanbulDailyTalkAI, ConversationTone, UserProfile
 from deep_learning_enhanced_ai import DeepLearningEnhancedAI, EmotionalState, UserType
 
+# Import main system with map visualization support
+try:
+    from istanbul_ai.main_system import IstanbulDailyTalkAI as MainSystemClass
+    MAIN_SYSTEM_AVAILABLE = True
+    logger.info("✅ Main AI System with map visualization available")
+except ImportError as e:
+    MAIN_SYSTEM_AVAILABLE = False
+    logger.warning(f"⚠️ Main AI System not available: {e}")
+
 # Import push notification system
 try:
     from services.push_notification_service import (
@@ -134,8 +143,9 @@ RESPONSE_GENERATION_TIME = Histogram('istanbul_ai_response_time_seconds', 'AI re
 # Rate limiting
 limiter = Limiter(key_func=get_remote_address)
 
-# Global AI instance with deep learning capabilities
-ai_system: Optional[IstanbulDailyTalkAI] = None
+# Global AI instances
+ai_system: Optional[IstanbulDailyTalkAI] = None  # Daily talk system
+main_system: Optional['MainSystemClass'] = None  # Main system with maps
 redis_client: Optional[redis.Redis] = None
 
 # WebSocket connection manager
@@ -193,7 +203,7 @@ async def weather_update_task():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown"""
-    global ai_system, redis_client
+    global ai_system, main_system, redis_client
     
     # Startup
     logger.info("🚀 Starting Advanced Istanbul AI Web Service...")
@@ -204,6 +214,16 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Enhanced AI System with Deep Learning initialized")
         logger.info("🧠 UNLIMITED Deep Learning features enabled for 10,000+ users!")
         logger.info("🇺🇸 English-optimized for maximum performance!")
+        
+        # Initialize main system with map visualization
+        if MAIN_SYSTEM_AVAILABLE:
+            try:
+                main_system = MainSystemClass()
+                logger.info("✅ Main AI System with Map Visualization initialized")
+                logger.info("🗺️ Interactive maps enabled (Leaflet.js + OSM + OSRM)")
+            except Exception as e:
+                logger.warning(f"⚠️ Main system initialization failed: {e}")
+                main_system = None
         
         # Initialize Redis
         redis_client = redis.from_url("redis://localhost:6379/0", decode_responses=True)
@@ -263,11 +283,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 security = HTTPBearer(auto_error=False)
 
 # Pydantic models
+class UserLocation(BaseModel):
+    lat: float = Field(..., ge=-90, le=90, description="Latitude")
+    lon: float = Field(..., ge=-180, le=180, description="Longitude")
+    accuracy: Optional[float] = Field(None, description="GPS accuracy in meters")
+
 class ChatMessage(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000, description="User message")
     user_id: str = Field(..., min_length=1, max_length=100, description="Unique user identifier")
     session_id: Optional[str] = Field(None, description="Session identifier for multi-turn conversations")
     context: Optional[Dict[str, Any]] = Field(None, description="Additional context information")
+    user_location: Optional[UserLocation] = Field(None, description="User's GPS location")
     
     @validator('message')
     def validate_message(cls, v):
@@ -283,6 +309,7 @@ class ChatResponse(BaseModel):
     intents: Optional[List[Dict[str, Any]]] = Field(None, description="Detected user intents")
     entities: Optional[List[Dict[str, Any]]] = Field(None, description="Extracted entities")
     suggestions: Optional[List[str]] = Field(None, description="Follow-up suggestions")
+    map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data (Leaflet.js format)")
 
 class UserProfileResponse(BaseModel):
     user_id: str
@@ -457,7 +484,7 @@ async def chat(
     redis_conn: redis.Redis = Depends(get_redis),
     current_user: str = Depends(get_current_user)
 ):
-    """Main chat endpoint"""
+    """Main chat endpoint with map visualization support"""
     start_time = time.time()
     
     try:
@@ -477,11 +504,45 @@ async def chat(
         if not ai_system:
             raise HTTPException(status_code=503, detail="AI system not available")
         
-        # Process with enhanced deep learning system
-        ai_response = ai_system.process_message(
-            message.message,
-            message.user_id
-        )
+        # Try main system with map support first
+        ai_response = None
+        map_data = None
+        confidence = 0.85
+        
+        if main_system and MAIN_SYSTEM_AVAILABLE:
+            try:
+                # Prepare user location if provided
+                user_location = None
+                if message.user_location:
+                    user_location = (message.user_location.lat, message.user_location.lon)
+                    logger.info(f"📍 User location: {user_location[0]:.6f}, {user_location[1]:.6f}")
+                
+                # Use main system for structured response with maps
+                result = main_system.process_message(
+                    message.message,
+                    user_id=message.user_id,
+                    user_location=user_location,
+                    return_structured=True
+                )
+                
+                if isinstance(result, dict):
+                    ai_response = result.get('response', '')
+                    map_data = result.get('map_data')
+                    confidence = result.get('confidence', 0.85)
+                    logger.info(f"🗺️ Main system response (map: {map_data is not None}, location: {user_location is not None})")
+                else:
+                    ai_response = str(result)
+                    
+            except Exception as e:
+                logger.warning(f"Main system failed, falling back to daily talk system: {e}")
+        
+        # Fallback to daily talk system if main system unavailable or failed
+        if not ai_response:
+            ai_response = ai_system.process_message(
+                message.message,
+                message.user_id
+            )
+            logger.info("Daily talk system response generated")
         
         processing_time = time.time() - start_time
         RESPONSE_GENERATION_TIME.observe(processing_time)
@@ -491,7 +552,8 @@ async def chat(
             "response": ai_response,
             "session_id": message.session_id or f"{message.user_id}_{int(time.time())}",
             "processing_time": processing_time,
-            "confidence": 0.85,  # Mock confidence score
+            "confidence": confidence,
+            "map_data": map_data,  # Include map data
             "suggestions": [
                 "Tell me more about Turkish cuisine",
                 "How do I get around Istanbul?",

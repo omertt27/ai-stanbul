@@ -31,7 +31,7 @@ export const NotificationProvider = ({ children }) => {
   
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   // Initialize notifications system
   useEffect(() => {

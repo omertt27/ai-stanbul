@@ -383,11 +383,11 @@ class IntentClassifier:
                 'iklim', 'meteorolojik', 'hava şartları', 'bugün tahmini'
             ],
             'airport_transport': [
-                'airport', 'ist', 'saw', 'atatürk', 'ataturk', 'istanbul airport', 
+                'airport', ' ist ', ' saw ', 'atatürk', 'ataturk', 'istanbul airport', 
                 'sabiha gökçen', 'sabiha gokcen', 'new airport', 'airport transfer', 
-                'airport transport', 'from airport', 'to airport', 'airport shuttle', 
-                'airport bus', 'airport metro', 'flight', 'departure', 'arrival', 
-                'terminal', 'baggage', 'customs', 'immigration'
+                'airport transport', 'from airport', 'to airport', 'to the airport', 'from the airport',
+                'airport shuttle', 'airport bus', 'airport metro', 'flight', 'departure', 'arrival', 
+                'terminal', 'havalimanı', 'havaş', 'havas'
             ],
             'hidden_gems': [
                 # English

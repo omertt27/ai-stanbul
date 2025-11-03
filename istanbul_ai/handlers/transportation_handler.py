@@ -43,6 +43,7 @@ class TransportationHandler:
         transport_processor=None,
         gps_route_service=None,
         bilingual_manager=None,
+        map_integration_service=None,
         transfer_map_integration_available: bool = False,
         advanced_transport_available: bool = False
     ):
@@ -54,6 +55,7 @@ class TransportationHandler:
             transport_processor: AdvancedTransportationProcessor for IBB API integration
             gps_route_service: GPSRouteService for GPS-based navigation
             bilingual_manager: BilingualManager for language support
+            map_integration_service: MapIntegrationService for map visualization
             transfer_map_integration_available: Flag for transfer map feature
             advanced_transport_available: Flag for advanced transport feature
         """
@@ -61,6 +63,7 @@ class TransportationHandler:
         self.transport_processor = transport_processor
         self.gps_route_service = gps_route_service
         self.bilingual_manager = bilingual_manager
+        self.map_integration_service = map_integration_service
         
         # Feature availability flags
         self.transfer_map_integration_available = transfer_map_integration_available
@@ -71,6 +74,7 @@ class TransportationHandler:
         self.has_transport_processor = transport_processor is not None
         self.has_gps_service = gps_route_service is not None
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
+        self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         
         logger.info(
             f"Transportation Handler initialized - "
@@ -78,6 +82,7 @@ class TransportationHandler:
             f"AdvancedTransport: {self.has_transport_processor}, "
             f"GPS: {self.has_gps_service}, "
             f"Bilingual: {self.has_bilingual}, "
+            f"Maps: {self.has_maps}, "
             f"TransferMap: {transfer_map_integration_available}"
         )
     
@@ -276,6 +281,26 @@ class TransportationHandler:
                 elif len(locations) == 1:
                     destination = locations[0]
             
+            # 📍 CRITICAL: Check for GPS location from user_profile if not in entities
+            # This handles queries like "How can I go to Taksim from my location?"
+            if not user_location and user_profile and hasattr(user_profile, 'current_location'):
+                gps_location = user_profile.current_location
+                if gps_location and isinstance(gps_location, tuple) and len(gps_location) == 2:
+                    user_location = f"{gps_location[0]:.6f},{gps_location[1]:.6f}"
+                    logger.info(f"📍 Using GPS location from user profile: {user_location}")
+            
+            # Also check if query mentions "my location", "from here", "current position"
+            message_lower = message.lower()
+            if any(phrase in message_lower for phrase in [
+                'my location', 'my position', 'from here', 'where i am', 'current location',
+                'current position', 'from my location', 'from my position'
+            ]):
+                if not user_location and user_profile and hasattr(user_profile, 'current_location'):
+                    gps_location = user_profile.current_location
+                    if gps_location and isinstance(gps_location, tuple) and len(gps_location) == 2:
+                        user_location = f"{gps_location[0]:.6f},{gps_location[1]:.6f}"
+                        logger.info(f"📍 Detected 'my location' phrase, using GPS: {user_location}")
+            
             # Build intelligent user context using ML insights
             user_context = self._build_intelligent_user_context(
                 message, neural_insights, user_profile
@@ -350,9 +375,10 @@ class TransportationHandler:
         Args:
             message: User's query
             entities: Extracted entities
-            user_profile: User profile
+            user_profile: User profile (contains current_location if GPS enabled)
             context: Conversation context
             return_structured: Whether to return structured response
+            language: Target language
             
         Returns:
             GPS navigation response
@@ -363,8 +389,46 @@ class TransportationHandler:
                 entities, user_profile, context, return_structured
             )
         
+        # 📍 CRITICAL: Extract GPS location from user_profile
+        user_gps_location = None
+        if user_profile and hasattr(user_profile, 'current_location'):
+            gps_location = user_profile.current_location
+            if gps_location and isinstance(gps_location, tuple) and len(gps_location) == 2:
+                user_gps_location = gps_location
+                logger.info(f"📍 GPS Navigation using user location: {user_gps_location[0]:.6f}, {user_gps_location[1]:.6f}")
+        
+        # Check if query explicitly mentions "my location"
+        message_lower = message.lower()
+        if any(phrase in message_lower for phrase in [
+            'my location', 'from here', 'where i am', 'current location', 'my position'
+        ]):
+            if user_gps_location:
+                logger.info("� User explicitly requested navigation from their location")
+            else:
+                # GPS not enabled - provide helpful message
+                gps_prompt = (
+                    "To navigate from your current location, please enable GPS. "
+                    "Click the 📍 GPS button to allow location access. "
+                    "Alternatively, tell me your starting location (e.g., 'from Taksim')."
+                ) if language == 'en' else (
+                    "Mevcut konumunuzdan yol tarifi almak için lütfen GPS'i etkinleştirin. "
+                    "Konum erişimine izin vermek için 📍 GPS düğmesine tıklayın. "
+                    "Alternatif olarak başlangıç konumunuzu söyleyin (örn. 'Taksim'den')."
+                )
+                
+                if return_structured:
+                    return {
+                        'response': gps_prompt,
+                        'handler': 'transportation_handler',
+                        'method': 'gps_navigation',
+                        'success': False,
+                        'needs_gps': True
+                    }
+                else:
+                    return gps_prompt
+        
         try:
-            logger.info("🗺️ Delegating to GPS Route Service")
+            logger.info("�🗺️ Delegating to GPS Route Service")
             response = self.gps_route_service.generate_route_response(
                 message, entities, user_profile, context
             )
@@ -374,7 +438,8 @@ class TransportationHandler:
                     'response': response,
                     'handler': 'transportation_handler',
                     'method': 'gps_navigation',
-                    'success': True
+                    'success': True,
+                    'gps_location': user_gps_location
                 }
             else:
                 return response

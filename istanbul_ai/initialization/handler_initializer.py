@@ -16,7 +16,7 @@ class HandlerInitializer:
     """
     Initializes ML-Enhanced handlers for the Istanbul AI system.
     
-    Handles the initialization of 8 ML handlers:
+    Handles the initialization of 10 ML handlers:
     1. ML-Enhanced Event Handler
     2. ML-Enhanced Hidden Gems Handler
     3. ML-Enhanced Weather Handler
@@ -24,6 +24,8 @@ class HandlerInitializer:
     5. ML-Enhanced Neighborhood Handler
     6. Nearby Locations Handler (GPS-based)
     7. Transportation Handler (IBB API + GPS + Transfer Maps)
+    8. Restaurant Handler
+    9. Attraction Handler
     
     Each handler requires:
     - ML Context Builder
@@ -37,7 +39,7 @@ class HandlerInitializer:
         self.handlers = {}
         self.initialization_log = []
         self.initialized_count = 0
-        self.total_handlers = 8  # Updated to include nearby_locations_handler + transportation_handler
+        self.total_handlers = 10  # Updated: added restaurant_handler + attraction_handler
         
     def initialize_all_handlers(self, services: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -75,6 +77,8 @@ class HandlerInitializer:
             return self.handlers
         
         # Initialize each handler
+        self._initialize_restaurant_handler(services, ml_context_builder, neural_processor, response_generator)
+        self._initialize_attraction_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_event_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_hidden_gems_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_weather_handler(services, ml_context_builder, neural_processor, response_generator)
@@ -442,6 +446,111 @@ class HandlerInitializer:
                 'error': str(e)
             })
     
+    def _initialize_restaurant_handler(self, services: Dict, ml_context_builder: Any,
+                                       neural_processor: Any, response_generator: Any):
+        """Initialize ML-Enhanced Restaurant Handler with Bilingual support"""
+        try:
+            from istanbul_ai.handlers.restaurant_handler import RestaurantHandler
+            
+            # Get required services
+            restaurant_service = services.get('restaurant_service') or response_generator  # Use response_generator as fallback
+            bilingual_manager = services.get('bilingual_manager')
+            
+            if neural_processor and response_generator:
+                self.handlers['ml_restaurant_handler'] = RestaurantHandler(
+                    neural_processor=neural_processor,
+                    restaurant_service=restaurant_service,
+                    response_generator=response_generator,
+                    bilingual_manager=bilingual_manager
+                )
+                logger.info(f"🍽️ ML-Enhanced Restaurant Handler initialized successfully! (Bilingual: {bilingual_manager is not None})")
+                self.initialized_count += 1
+                self.initialization_log.append({
+                    'handler': 'ml_restaurant_handler',
+                    'status': 'success',
+                    'bilingual': bilingual_manager is not None
+                })
+            else:
+                logger.warning("Required dependencies not available for ML Restaurant Handler")
+                self.handlers['ml_restaurant_handler'] = None
+                self.initialization_log.append({
+                    'handler': 'ml_restaurant_handler',
+                    'status': 'skipped',
+                    'reason': 'missing_dependencies'
+                })
+        except ImportError as e:
+            logger.warning(f"ML Restaurant Handler not available: {e}")
+            self.handlers['ml_restaurant_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_restaurant_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Restaurant Handler: {e}")
+            self.handlers['ml_restaurant_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_restaurant_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
+    def _initialize_attraction_handler(self, services: Dict, ml_context_builder: Any,
+                                      neural_processor: Any, response_generator: Any):
+        """Initialize ML-Enhanced Attraction Handler with Bilingual support"""
+        try:
+            from istanbul_ai.handlers.attraction_handler import AttractionHandler
+            
+            # Get required services
+            attraction_service = services.get('attraction_service') or response_generator  # Use response_generator as fallback
+            user_manager = services.get('user_manager')
+            weather_service = services.get('weather_client')
+            advanced_attraction_service = services.get('advanced_attractions_system')
+            transport_service = services.get('transport_processor')
+            bilingual_manager = services.get('bilingual_manager')
+            
+            if neural_processor and response_generator:
+                self.handlers['ml_attraction_handler'] = AttractionHandler(
+                    neural_processor=neural_processor,
+                    user_manager=user_manager or response_generator,  # Fallback to response_generator
+                    attraction_service=attraction_service,
+                    weather_service=weather_service,
+                    advanced_attraction_service=advanced_attraction_service,
+                    transport_service=transport_service,
+                    bilingual_manager=bilingual_manager
+                )
+                logger.info(f"🏛️ ML-Enhanced Attraction Handler initialized successfully! (Bilingual: {bilingual_manager is not None})")
+                self.initialized_count += 1
+                self.initialization_log.append({
+                    'handler': 'ml_attraction_handler',
+                    'status': 'success',
+                    'bilingual': bilingual_manager is not None
+                })
+            else:
+                logger.warning("Required dependencies not available for ML Attraction Handler")
+                self.handlers['ml_attraction_handler'] = None
+                self.initialization_log.append({
+                    'handler': 'ml_attraction_handler',
+                    'status': 'skipped',
+                    'reason': 'missing_dependencies'
+                })
+        except ImportError as e:
+            logger.warning(f"ML Attraction Handler not available: {e}")
+            self.handlers['ml_attraction_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_attraction_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Attraction Handler: {e}")
+            self.handlers['ml_attraction_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_attraction_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
     def _initialize_all_to_none(self):
         """Set all handlers to None when base dependencies are missing"""
         handler_names = [
@@ -451,7 +560,9 @@ class HandlerInitializer:
             'ml_route_planning_handler',
             'ml_neighborhood_handler',
             'nearby_locations_response_handler',
-            'transportation_handler'
+            'transportation_handler',
+            'ml_restaurant_handler',
+            'ml_attraction_handler'
         ]
         
         for handler_name in handler_names:

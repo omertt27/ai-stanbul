@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { 
-  fetchStreamingResults,
   fetchUnifiedChat,
   fetchRestaurantRecommendations, 
   fetchPlacesRecommendations, 
@@ -8,7 +7,8 @@ import {
   subscribeToNetworkStatus,
   checkApiHealth,
   debouncedFetchRestaurants,
-  debouncedFetchPlaces
+  debouncedFetchPlaces,
+  getSessionId
 } from './api/api';
 import { 
   ErrorTypes, 
@@ -469,7 +469,10 @@ const isExplicitPlacesRequest = (userInput) => {
   return true;
 };
 
-function Chatbot() {
+function Chatbot({ userLocation: propUserLocation }) {
+  // GPS location state (use prop if provided, otherwise null)
+  const [userLocation] = useState(propUserLocation || null);
+  
   // Enhanced state management
   const [messages, setMessages] = useState(() => {
     try {
@@ -881,28 +884,22 @@ function Chatbot() {
         return;
       }
 
-      // Regular streaming response for non-restaurant/places queries - use SANITIZED input
+      // Regular response for non-restaurant/places queries - use SANITIZED input
       setTypingMessage('KAM is thinking...');
-      let streamedContent = '';
       
-      console.log('🛡️ Sending SANITIZED input to GPT:', sanitizedInput);
-      await fetchStreamingResults(sanitizedInput, (chunk) => {
-        streamedContent += chunk;
-        // If assistant message already exists, update it; else, add it
-        setMessages((prev) => {
-          // If last message is assistant and was streaming, update it
-          if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-            return [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
-          } else {
-            return [
-              ...prev,
-              { role: 'assistant', content: streamedContent, streaming: true }
-            ];
-          }
-        });
+      console.log('🛡️ Sending SANITIZED input to chat API:', sanitizedInput);
+      
+      // Use unified chat API which supports GPS location and returns full response
+      const chatResponse = await fetchUnifiedChat(sanitizedInput, {
+        sessionId: getSessionId(),
+        gpsLocation: userLocation // Pass GPS location if available
+      });
+      
+      // Add the response message
+      addMessage(chatResponse.response || chatResponse.message, 'assistant', {
+        type: chatResponse.intent || 'general',
+        confidence: chatResponse.confidence,
+        mapData: chatResponse.map_data // Include map data if present
       });
       
       // Clear failed message on success
@@ -926,17 +923,6 @@ function Chatbot() {
       setLoading(false);
       setIsTyping(false);
       setTypingMessage('');
-      
-      // Remove streaming flag on last assistant message
-      setMessages((prev) => {
-        if (prev.length > 0 && prev[prev.length - 1].role === 'assistant' && prev[prev.length - 1].streaming) {
-          return [
-            ...prev.slice(0, -1),
-            { role: 'assistant', content: prev[prev.length - 1].content }
-          ];
-        }
-        return prev;
-      });
     }
   };
 

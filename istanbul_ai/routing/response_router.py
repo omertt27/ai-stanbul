@@ -162,7 +162,14 @@ class ResponseRouter:
                 neural_insights, return_structured
             )
         
-        elif intent == 'gps_route_planning':
+        elif intent == 'gps_route_planning' or intent == 'gps_navigation':
+            # Both gps_route_planning and gps_navigation should route to transportation
+            if intent == 'gps_navigation':
+                # gps_navigation is essentially a transportation query
+                return self._route_transportation_query(
+                    message, entities, user_profile, context, handlers,
+                    neural_insights, return_structured
+                )
             return self._route_planning_query(
                 message, intent, entities, user_profile, context, handlers,
                 neural_insights
@@ -187,30 +194,51 @@ class ResponseRouter:
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
-        # Try ML handler first
+        # Try ML handler first (if it exists)
         ml_handler = handlers.get('ml_restaurant_handler')
         if ml_handler:
             try:
-                response = ml_handler.handle_query(
-                    message=message,
-                    entities=entities,
-                    user_profile=user_profile,
-                    context=context  # Context now includes language
-                )
-                if response and response.get('response'):
+                # Check if handler has handle_query or generate_response method
+                if hasattr(ml_handler, 'handle_query'):
+                    response = ml_handler.handle_query(
+                        message=message,
+                        entities=entities,
+                        user_profile=user_profile,
+                        context=context  # Context now includes language
+                    )
+                elif hasattr(ml_handler, 'generate_response'):
+                    response = ml_handler.generate_response(
+                        message=message,
+                        neural_insights=neural_insights or {},
+                        user_profile=user_profile,
+                        context=context
+                    )
+                else:
+                    logger.warning("ML Restaurant Handler has no handle_query or generate_response method")
+                    response = None
+                
+                if response and (isinstance(response, dict) and response.get('response') or isinstance(response, str)):
                     logger.info(f"✅ ML Restaurant Handler processed query (lang: {language})")
-                    return response if return_structured else response['response']
+                    if isinstance(response, dict):
+                        return response if return_structured else response['response']
+                    return response
             except Exception as e:
                 logger.warning(f"ML Restaurant Handler failed: {e}")
+        else:
+            logger.warning("⚠️ ml_restaurant_handler not found in handlers, using response_generator fallback")
         
-        # Fallback to response generator
+        # Fallback to response generator (ensures language context is passed)
         response_generator = handlers.get('response_generator')
         if response_generator:
+            logger.info(f"📝 Using response_generator for restaurant query (lang: {language})")
             return response_generator.generate_comprehensive_recommendation(
                 'restaurant', entities, user_profile, context, 
                 return_structured=return_structured
             )
         
+        # Final fallback with bilingual support
+        if language == 'tr':
+            return "İstanbul'daki harika restoranları bulmanıza yardımcı olabilirim! Aradığınız şey hakkında daha fazla bilgi verebilir misiniz?"
         return "I can help you find great restaurants in Istanbul! Please tell me more about what you're looking for."
     
     def _route_attraction_query(
@@ -261,17 +289,34 @@ class ResponseRouter:
         ml_handler = handlers.get('ml_attraction_handler')
         if ml_handler:
             try:
-                response = ml_handler.handle_query(
-                    message=message,
-                    entities=entities,
-                    user_profile=user_profile,
-                    context=context
-                )
-                if response and response.get('response'):
+                # Check if handler has handle_query or generate_response method
+                if hasattr(ml_handler, 'handle_query'):
+                    response = ml_handler.handle_query(
+                        message=message,
+                        entities=entities,
+                        user_profile=user_profile,
+                        context=context
+                    )
+                elif hasattr(ml_handler, 'generate_response'):
+                    response = ml_handler.generate_response(
+                        message=message,
+                        neural_insights=neural_insights or {},
+                        user_profile=user_profile,
+                        context=context
+                    )
+                else:
+                    logger.warning("ML Attraction Handler has no handle_query or generate_response method")
+                    response = None
+                
+                if response and (isinstance(response, dict) and response.get('response') or isinstance(response, str)):
                     logger.info(f"✅ ML Attraction Handler processed query (lang: {language})")
-                    return response if return_structured else response['response']
+                    if isinstance(response, dict):
+                        return response if return_structured else response['response']
+                    return response
             except Exception as e:
                 logger.warning(f"ML Attraction Handler failed: {e}")
+        else:
+            logger.warning("⚠️ ml_attraction_handler not found in handlers, using response_generator fallback")
         
         # Fallback to response generator
         response_generator = handlers.get('response_generator')
@@ -537,10 +582,33 @@ class ResponseRouter:
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route hidden gems queries with language context"""
+        """Route hidden gems queries with language context
+        
+        Smart routing: If query mentions 'attractions', 'places to visit', 'best places',
+        route to attraction handler instead of hidden gems handler.
+        """
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
+        # Check if this is actually a general attractions query
+        message_lower = message.lower()
+        attraction_indicators = [
+            'attraction', 'attractions', 'best place', 'best places', 'top place', 'top places',
+            'places to visit', 'what to see', 'must see', 'must-see', 'sights', 'landmarks',
+            'gezilecek yer', 'en iyi yer', 'görülecek yer', 'turistik yer'
+        ]
+        
+        is_general_attractions = any(indicator in message_lower for indicator in attraction_indicators)
+        
+        # If it's about general attractions, route to attraction handler instead
+        if is_general_attractions:
+            logger.info(f"🏛️ Routing hidden_gems query to attraction handler (general attractions detected)")
+            return self._route_attraction_query(
+                message, entities, user_profile, context, handlers,
+                neural_insights, return_structured
+            )
+        
+        # Otherwise, proceed with hidden gems routing
         # Try ML handler first
         ml_handler = handlers.get('ml_hidden_gems_handler')
         if ml_handler:

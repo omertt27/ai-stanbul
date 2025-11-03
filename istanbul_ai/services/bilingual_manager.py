@@ -10,6 +10,13 @@ from typing import Dict, Optional, List, Any
 import logging
 import re
 
+# Import advanced language detector
+try:
+    from .advanced_language_detector import get_language_detector
+    ADVANCED_DETECTOR_AVAILABLE = True
+except ImportError:
+    ADVANCED_DETECTOR_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +45,17 @@ class BilingualManager:
     def __init__(self):
         """Initialize the bilingual manager with language patterns and templates"""
         
-        # Language detection patterns
+        # Initialize advanced language detector (if available)
+        self.advanced_detector = None
+        if ADVANCED_DETECTOR_AVAILABLE:
+            try:
+                self.advanced_detector = get_language_detector()
+                logger.info("🧠 Advanced ML-based language detector enabled")
+            except Exception as e:
+                logger.warning(f"⚠️ Advanced detector initialization failed: {e}")
+                self.advanced_detector = None
+        
+        # Language detection patterns (fallback)
         self.language_patterns = {
             Language.TURKISH: {
                 'greetings': [
@@ -100,7 +117,15 @@ class BilingualManager:
         """
         Detect language from text with user preference consideration
         
-        Uses a scoring system based on:
+        Uses advanced ML-based detection when available, falls back to rule-based.
+        
+        ML Detection (preferred):
+        - Character n-gram analysis
+        - Word-level classification
+        - Morphological patterns
+        - Context-aware scoring
+        
+        Rule-based Detection (fallback):
         - Language-specific keywords
         - Turkish characters
         - Grammar patterns
@@ -123,6 +148,27 @@ class BilingualManager:
         if not text or not text.strip():
             return user_preference or Language.ENGLISH
         
+        # Try advanced ML-based detection first
+        if self.advanced_detector:
+            try:
+                lang_code, confidence = self.advanced_detector.detect_language(text, return_confidence=True)
+                
+                # Handle mixed content
+                if lang_code == 'mixed':
+                    # Use user preference or default to English
+                    detected = user_preference or Language.ENGLISH
+                    logger.info(f"🌐 Language detected: {detected.value} (mixed content, confidence: {confidence:.2f})")
+                    return detected
+                
+                # Map to Language enum
+                detected = Language.TURKISH if lang_code == 'tr' else Language.ENGLISH
+                logger.info(f"🌐 Language detected (ML): {detected.value} (confidence: {confidence:.2f})")
+                return detected
+                
+            except Exception as e:
+                logger.warning(f"⚠️ ML detection failed, falling back to rules: {e}")
+        
+        # Fallback to rule-based detection
         text_lower = text.lower()
         
         # Initialize scores
@@ -166,7 +212,7 @@ class BilingualManager:
             detected = user_preference or Language.ENGLISH
             logger.debug("Score tie - using preference or default")
         
-        logger.info(f"🌐 Language detected: {detected.value} (TR:{turkish_score} EN:{english_score})")
+        logger.info(f"🌐 Language detected (rule-based): {detected.value} (TR:{turkish_score} EN:{english_score})")
         return detected
     
     def get_user_language(self, user_profile: Any) -> Language:

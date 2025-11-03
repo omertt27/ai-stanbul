@@ -49,7 +49,7 @@ class MLEnhancedRoutePlanningHandler:
     
     def __init__(self, route_planner_service, transport_service,
                  ml_context_builder, ml_processor, response_generator,
-                 bilingual_manager=None):
+                 bilingual_manager=None, map_integration_service=None):
         """
         Initialize handler with required services
         
@@ -60,6 +60,7 @@ class MLEnhancedRoutePlanningHandler:
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
             bilingual_manager: Bilingual manager for language support
+            map_integration_service: MapIntegrationService for map visualization
         """
         self.route_planner_service = route_planner_service
         self.transport_service = transport_service
@@ -67,9 +68,11 @@ class MLEnhancedRoutePlanningHandler:
         self.ml_processor = ml_processor
         self.response_generator = response_generator
         self.bilingual_manager = bilingual_manager
+        self.map_integration_service = map_integration_service
         self.has_bilingual = bilingual_manager is not None
+        self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         
-        logger.info("✅ ML-Enhanced Route Planning Handler initialized with bilingual support")
+        logger.info(f"✅ ML-Enhanced Route Planning Handler initialized (Bilingual: {self.has_bilingual}, Maps: {self.has_maps})")
     
     def _get_language(self, context) -> str:
         """Extract language from context"""
@@ -195,11 +198,22 @@ class MLEnhancedRoutePlanningHandler:
                 language=language
             )
             
+            # Step 8: Generate map visualization for route
+            map_data = None
+            if self.has_maps and filtered_routes:
+                try:
+                    map_data = self._generate_route_map(filtered_routes[0], route_context)
+                    if map_data:
+                        logger.info(f"🗺️ Generated route map with {len(route_context.waypoints) + 2} stops")
+                except Exception as e:
+                    logger.warning(f"Failed to generate route map: {e}")
+            
             return {
                 "success": True,
                 "routes": filtered_routes[:3],
                 "primary_route": filtered_routes[0] if filtered_routes else None,
                 "response": response,
+                "map_data": map_data,
                 "context_used": {
                     "optimization_goal": route_context.optimization_goal,
                     "transport_modes": route_context.transport_preferences,
@@ -889,8 +903,64 @@ class MLEnhancedRoutePlanningHandler:
             tips.append(self.bilingual_manager.get_bilingual_response('route.tip.ferry_views', lang))
         
         return tips
+    
+    def _generate_route_map(self, route: Dict[str, Any], context: RouteContext) -> Optional[Dict]:
+        """Generate interactive map for route plan"""
+        if not self.has_maps or not self.map_integration_service:
+            return None
+        
+        try:
+            # Extract start and end locations
+            start_location = (
+                route.get('start_lat', 41.0082),
+                route.get('start_lon', 28.9784),
+                context.start_location or 'Start'
+            )
+            
+            end_location = (
+                route.get('end_lat', 41.0082),
+                route.get('end_lon', 28.9784),
+                context.end_location or 'End'
+            )
+            
+            # Extract waypoints
+            waypoints = []
+            for waypoint in context.waypoints:
+                if isinstance(waypoint, dict) and 'lat' in waypoint and 'lon' in waypoint:
+                    waypoints.append((
+                        waypoint['lat'],
+                        waypoint['lon'],
+                        waypoint.get('name', 'Waypoint')
+                    ))
+                elif isinstance(waypoint, str):
+                    # Waypoint name only, need to resolve to coordinates
+                    # This would require geocoding, skip for now
+                    pass
+            
+            # Prepare route info
+            route_info = {
+                'total_distance_km': route.get('total_distance_km', 0),
+                'total_duration_min': route.get('total_duration_minutes', 0),
+                'optimization_goal': context.optimization_goal,
+                'transport_modes': context.transport_preferences
+            }
+            
+            # Create route map with waypoints
+            map_data = self.map_integration_service.create_route_map(
+                start_location=start_location,
+                end_location=end_location,
+                waypoints=waypoints if waypoints else None,
+                route_info=route_info
+            )
+            
+            return map_data
+            
+        except Exception as e:
+            logger.error(f"Error generating route map: {e}")
+            return None
 
 
+# Export
 def create_ml_enhanced_route_planning_handler(
     route_planner_service,
     transport_service,

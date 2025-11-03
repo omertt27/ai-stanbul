@@ -45,7 +45,7 @@ class RestaurantHandler:
     3. Generate intelligent, personalized responses
     """
     
-    def __init__(self, neural_processor, restaurant_service, response_generator, bilingual_manager=None):
+    def __init__(self, neural_processor, restaurant_service, response_generator, bilingual_manager=None, map_integration_service=None):
         """
         Initialize the Restaurant Handler.
         
@@ -54,12 +54,15 @@ class RestaurantHandler:
             restaurant_service: Service for fetching restaurant data
             response_generator: Service for generating responses
             bilingual_manager: BilingualManager for language support
+            map_integration_service: MapIntegrationService for map visualization
         """
         self.neural_processor = neural_processor
         self.restaurant_service = restaurant_service
         self.response_generator = response_generator
         self.bilingual_manager = bilingual_manager
+        self.map_integration_service = map_integration_service
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
+        self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         
         # Budget keywords for ML context
         self.budget_keywords = {
@@ -96,7 +99,7 @@ class RestaurantHandler:
             'late_night': r'\b(late night|midnight|gece yarısı)\b'
         }
         
-        logger.info(f"✅ RestaurantHandler initialized with ML integration (Bilingual: {self.has_bilingual})")
+        logger.info(f"✅ RestaurantHandler initialized with ML integration (Bilingual: {self.has_bilingual}, Maps: {self.has_maps})")
     
     def _get_language(self, context) -> str:
         """
@@ -310,8 +313,8 @@ class RestaurantHandler:
                 restrictions.append(diet_type)
         
         # Add from user profile if available
-        if user_profile and 'dietary_restrictions' in user_profile:
-            profile_restrictions = user_profile.get('dietary_restrictions', [])
+        if user_profile and hasattr(user_profile, 'dietary_restrictions'):
+            profile_restrictions = user_profile.dietary_restrictions or []
             restrictions.extend([r for r in profile_restrictions if r not in restrictions])
         
         if restrictions:
@@ -552,14 +555,20 @@ class RestaurantHandler:
             List of restaurant data
         """
         try:
-            restaurants = self.restaurant_service.search_restaurants(
-                cuisine=cuisine,
-                budget=budget,
-                location=location,
-                dietary_restrictions=dietary
-            )
-            logger.info(f"📍 Fetched {len(restaurants)} restaurants")
-            return restaurants
+            # Check if restaurant_service has search_restaurants method
+            if hasattr(self.restaurant_service, 'search_restaurants'):
+                restaurants = self.restaurant_service.search_restaurants(
+                    cuisine=cuisine,
+                    budget=budget,
+                    location=location,
+                    dietary_restrictions=dietary
+                )
+                logger.info(f"📍 Fetched {len(restaurants)} restaurants")
+                return restaurants
+            else:
+                # Fallback: service doesn't have search_restaurants
+                logger.warning("⚠️ Restaurant service doesn't have search_restaurants method - using empty results")
+                return []
         except Exception as e:
             logger.error(f"❌ Error fetching restaurants: {e}")
             return []
@@ -704,15 +713,15 @@ class RestaurantHandler:
         score = 0.0
         
         # Check cuisine preferences
-        preferred_cuisines = user_profile.get('preferred_cuisines', [])
+        preferred_cuisines = getattr(user_profile, 'cuisine_preferences', []) or []
         if preferred_cuisines:
             restaurant_cuisine = restaurant.get('cuisine', '')
             if restaurant_cuisine in preferred_cuisines:
                 score += 0.5
         
         # Check past visits
-        visited = user_profile.get('visited_restaurants', [])
-        if restaurant.get('id') in visited:
+        visit_frequency = getattr(user_profile, 'visit_frequency', {}) or {}
+        if restaurant.get('id') in visit_frequency:
             score += 0.3  # Bonus for familiar places
         
         return min(1.0, score + 0.5)
@@ -736,7 +745,7 @@ class RestaurantHandler:
             language: Language code ('en' or 'tr')
             
         Returns:
-            Response dictionary
+            Response dictionary with map_data
         """
         sentiment = neural_insights.get('sentiment', {}).get('overall', 'neutral')
         urgency = ml_context.get('urgency', 'flexible')
@@ -756,13 +765,24 @@ class RestaurantHandler:
         if tips:
             response_text += f"\n\n{tip_prefix} {tips}"
         
+        # Generate map visualization for restaurants
+        map_data = None
+        if self.has_maps:
+            try:
+                map_data = self.map_integration_service.create_restaurant_map(restaurants)
+                if map_data:
+                    logger.info(f"🗺️ Generated map with {len(restaurants)} restaurants")
+            except Exception as e:
+                logger.warning(f"Failed to generate map: {e}")
+        
         return {
             'response': response_text,
             'intent': 'restaurant',
             'restaurants': restaurants,
             'ml_context': ml_context,
             'confidence': 0.9,
-            'language': language
+            'language': language,
+            'map_data': map_data
         }
     
     def _generate_contextual_intro(

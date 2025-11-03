@@ -49,7 +49,7 @@ class MLEnhancedNeighborhoodHandler:
     """
     
     def __init__(self, neighborhood_service, ml_context_builder, ml_processor, response_generator,
-                 bilingual_manager=None):
+                 bilingual_manager=None, map_integration_service=None):
         """
         Initialize handler with required services
         
@@ -59,15 +59,18 @@ class MLEnhancedNeighborhoodHandler:
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
             bilingual_manager: BilingualManager for language support
+            map_integration_service: MapIntegrationService for map visualization
         """
         self.neighborhood_service = neighborhood_service
         self.ml_context_builder = ml_context_builder
         self.ml_processor = ml_processor
         self.response_generator = response_generator
         self.bilingual_manager = bilingual_manager
+        self.map_integration_service = map_integration_service
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
+        self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         
-        logger.info(f"✅ ML-Enhanced Neighborhood Handler initialized (Bilingual: {self.has_bilingual})")
+        logger.info(f"✅ ML-Enhanced Neighborhood Handler initialized (Bilingual: {self.has_bilingual}, Maps: {self.has_maps})")
     
     def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
         """Extract language from context or detect from query"""
@@ -144,11 +147,30 @@ class MLEnhancedNeighborhoodHandler:
                 language=language
             )
             
+            # Step 7: Generate map visualization for neighborhoods
+            map_data = None
+            if self.has_maps:
+                try:
+                    # Extract neighborhood POIs for mapping
+                    neighborhood_pois = []
+                    for neighborhood in filtered_neighborhoods[:5]:
+                        # Use center of neighborhood or key landmark
+                        if "lat" in neighborhood and "lon" in neighborhood:
+                            neighborhood_pois.append(neighborhood)
+                    
+                    if neighborhood_pois:
+                        map_data = self.map_integration_service.create_neighborhood_map(neighborhood_pois)
+                        if map_data:
+                            logger.info(f"🗺️ Generated map with {len(neighborhood_pois)} neighborhoods")
+                except Exception as e:
+                    logger.warning(f"Failed to generate map: {e}")
+            
             return {
                 "success": True,
                 "neighborhoods": filtered_neighborhoods[:5],
                 "response": response,
                 "language": language.value if language else "en",
+                "map_data": map_data,
                 "context_used": {
                     "vibe_preferences": neighborhood_context.vibe_preferences,
                     "interests": neighborhood_context.interests,
@@ -164,7 +186,8 @@ class MLEnhancedNeighborhoodHandler:
                 "success": False,
                 "error": str(e),
                 "response": error_msg,
-                "language": language.value if language else "en"
+                "language": language.value if language else "en",
+                "map_data": None
             }
     
     def _get_error_message(self, language: Optional[Language]) -> str:
