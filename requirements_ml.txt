@@ -1,0 +1,22 @@
+# ML System Requirements for Istanbul AI Guide
+# Install with: pip install -r requirements_ml.txt
+
+# Core ML Libraries
+torch>=2.0.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4  # Use faiss-gpu for GPU deployment
+
+# FastAPI and API
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
+httpx>=0.24.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Utilities
+python-dotenv>=1.0.0

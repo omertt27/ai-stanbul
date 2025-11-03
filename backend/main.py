@@ -13,6 +13,12 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass
 import traceback
 
+# --- FastAPI and Pydantic Imports ---
+from fastapi import FastAPI, HTTPException, Depends, Request, Header, status, Query, Body
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field, validator
+from dotenv import load_dotenv
+
 # ═══════════════════════════════════════════════════════════════════
 # PRODUCTION INFRASTRUCTURE COMPONENTS
 # ═══════════════════════════════════════════════════════════════════
@@ -260,424 +266,240 @@ if ML_MONITORING_AVAILABLE:
         print(f"⚠️ Failed to initialize ML monitoring: {e}")
         ML_MONITORING_AVAILABLE = False
 
-# Initialize Enhanced Feedback Integration System
-feedback_integration = None
-if FEEDBACK_INTEGRATION_AVAILABLE:
+# ═══════════════════════════════════════════════════════════════════
+# ML ANSWERING SERVICE CLIENT INTEGRATION
+# ═══════════════════════════════════════════════════════════════════
+print("\n🤖 Initializing ML Answering Service Client...")
+
+try:
+    from backend.ml_service_client import (
+        get_ml_answer, 
+        get_ml_status, 
+        check_ml_health
+    )
+    ML_ANSWERING_SERVICE_AVAILABLE = True
+    print("✅ ML Answering Service Client loaded")
+    print(f"   URL: {os.getenv('ML_SERVICE_URL', 'http://localhost:8000')}")
+    print(f"   LLM Default: {os.getenv('ML_USE_LLM_DEFAULT', 'true')}")
+except ImportError as e:
+    ML_ANSWERING_SERVICE_AVAILABLE = False
+    print(f"⚠️ ML Answering Service Client not available: {e}")
+    print("   System will run without ML-powered responses")
+
+# Add location intent detection import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'load-testing'))
+try:
+    from location_intent_detector import LocationIntentDetector, LocationIntentType
+    LOCATION_INTENT_AVAILABLE = True
+    print("✅ Location Intent Detection loaded successfully")
+except ImportError as e:
+    LOCATION_INTENT_AVAILABLE = False
+    print(f"⚠️ Location Intent Detection not available: {e}")
+
+# Add Advanced Understanding System import
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+try:
+    from advanced_understanding_system import AdvancedUnderstandingSystem
+    from semantic_similarity_engine import SemanticSimilarityEngine, QueryContext
+    from enhanced_context_memory import EnhancedContextMemory, ContextType
+    from multi_intent_query_handler import MultiIntentQueryHandler
+    ADVANCED_UNDERSTANDING_AVAILABLE = True
+    print("✅ Advanced Understanding System loaded successfully")
+except ImportError as e:
+    ADVANCED_UNDERSTANDING_AVAILABLE = False
+    print(f"⚠️ Advanced Understanding System not available: {e}")
+
+# Add Production Monitoring and Feedback Collection
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
+    from ml_production_monitor import get_production_monitor
+    from user_feedback_collector import get_feedback_collector
+    ML_MONITORING_AVAILABLE = True
+    print("✅ ML Production Monitoring loaded successfully")
+except ImportError as e:
+    ML_MONITORING_AVAILABLE = False
+    print(f"⚠️ ML Production Monitoring not available: {e}")
+
+# Add Enhanced Feedback and Retraining System
+try:
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from feedback_backend_integration import FeedbackIntegration
+    FEEDBACK_INTEGRATION_AVAILABLE = True
+    print("✅ Enhanced Feedback Collection & Retraining System loaded successfully")
+except ImportError as e:
+    FEEDBACK_INTEGRATION_AVAILABLE = False
+    print(f"⚠️ Enhanced Feedback Integration not available: {e}")
+
+# Add Intent Classifier import
+try:
+    from main_system_neural_integration import NeuralIntentRouter
+    INTENT_CLASSIFIER_AVAILABLE = True
+    print("✅ Neural Intent Classifier (Hybrid) loaded successfully")
+except ImportError as e:
+    INTENT_CLASSIFIER_AVAILABLE = False
+    print(f"⚠️ Neural Intent Classifier not available: {e}")
+
+# Add Comprehensive ML/DL Integration System import
+try:
+    from comprehensive_ml_dl_integration import (
+        ComprehensiveMLDLIntegration, 
+        MLSystemType, 
+        UserContext, 
+        MLEnhancementResult
+    )
+    COMPREHENSIVE_ML_AVAILABLE = True
+    print("✅ Comprehensive ML/DL Integration System loaded successfully")
+except ImportError as e:
+    COMPREHENSIVE_ML_AVAILABLE = False
+    print(f"⚠️ Comprehensive ML/DL Integration System not available: {e}")
+
+# Add Lightweight Deep Learning System import
+try:
+    from lightweight_deep_learning import (
+        DeepLearningMultiIntentIntegration, 
+        LearningContext, 
+        LearningMode,
+        create_lightweight_deep_learning_system
+    )
+    DEEP_LEARNING_AVAILABLE = True
+    print("✅ Lightweight Deep Learning System loaded successfully")
+except ImportError as e:
+    DEEP_LEARNING_AVAILABLE = False
+    print(f"⚠️ Lightweight Deep Learning System not available: {e}")
+
+# Add Caching Systems import
+try:
+    from ml_result_cache import get_ml_cache
+    from edge_cache_system import get_edge_cache
+    ML_CACHE_AVAILABLE = True
+    EDGE_CACHE_AVAILABLE = True
+    print("✅ Caching Systems loaded successfully")
+except ImportError as e:
+    ML_CACHE_AVAILABLE = False
+    EDGE_CACHE_AVAILABLE = False
+    print(f"⚠️ Caching Systems not available: {e}")
+
+# Add Query Preprocessing Pipeline import
+try:
+    from services.query_preprocessing_pipeline import QueryPreprocessor
+    QUERY_PREPROCESSING_AVAILABLE = True
+    print("✅ Query Preprocessing Pipeline loaded successfully")
+except ImportError as e:
+    QUERY_PREPROCESSING_AVAILABLE = False
+    print(f"⚠️ Query Preprocessing Pipeline not available: {e}")
+
+# Add Context-Aware Classification imports
+try:
+    from services.conversation_context_manager import (
+        ConversationContextManager,
+        Turn
+    )
+    from services.context_aware_classifier import ContextAwareClassifier
+    from services.dynamic_threshold_manager import DynamicThresholdManager
+    CONTEXT_AWARE_AVAILABLE = True
+    print("✅ Context-Aware Classification System loaded successfully")
+except ImportError as e:
+    CONTEXT_AWARE_AVAILABLE = False
+    print(f"⚠️ Context-Aware Classification System not available: {e}")
+
+# Add Monthly Events Scheduler import
+try:
+    from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
+    EVENTS_SCHEDULER_AVAILABLE = True
+    print("✅ Monthly Events Scheduler loaded successfully")
+except ImportError as e:
+    EVENTS_SCHEDULER_AVAILABLE = False
+    print(f"⚠️ Monthly Events Scheduler not available: {e}")
+
+# Enhanced Query Understanding Configuration
+ENHANCED_QUERY_UNDERSTANDING_ENABLED = ADVANCED_UNDERSTANDING_AVAILABLE
+
+# Initialize Enhanced Query Understanding if available
+enhanced_understanding_system = None
+if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
     try:
-        feedback_integration = FeedbackIntegration()
-        print("✅ Enhanced Feedback Collection & Retraining System initialized")
-        print(f"📊 Feedback log: {feedback_integration.feedback_system.feedback_log_path}")
-        print(f"📦 Retraining data: {feedback_integration.feedback_system.retraining_data_path}")
+        enhanced_understanding_system = AdvancedUnderstandingSystem()
+        print("✅ Enhanced Understanding System initialized")
     except Exception as e:
-        print(f"⚠️ Failed to initialize Feedback Integration: {e}")
-        FEEDBACK_INTEGRATION_AVAILABLE = False
+        print(f"⚠️ Failed to initialize Enhanced Understanding System: {e}")
+        ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
 
-def generate_enhanced_suggestions(intent: str, secondary_intents: List, detected_location=None) -> List[str]:
-    """Generate enhanced suggestions based on multi-intent analysis"""
-    suggestions = []
-    
-    # Primary intent suggestions
-    if intent == "recommendation":
-        suggestions.extend([
-            "Show me more restaurant recommendations",
-            "What about attractions in this area?",
-            "Any events happening nearby?"
-        ])
-    elif intent == "route_planning":
-        suggestions.extend([
-            "How long does it take to get there?",
-            "What's the best time to travel?",
-            "Are there alternative routes?"
-        ])
-    elif intent == "information_request":
-        suggestions.extend([
-            "Tell me more about this area",
-            "What's the history of this place?",
-            "Any local customs I should know?"
-        ])
-    else:
-        suggestions.extend([
-            "Tell me about Istanbul attractions",
-            "Recommend some restaurants",
-            "What events are happening?"
-        ])
-    
-    # Add location-specific suggestions if available
-    if detected_location:
-        suggestions.append(f"More recommendations for {detected_location}")
-    
-    # Add secondary intent suggestions
-    for secondary_intent in secondary_intents[:2]:  # Limit to 2 secondary intents
-        if secondary_intent == "transportation":
-            suggestions.append("How do I get there?")
-        elif secondary_intent == "price_query":
-            suggestions.append("What about budget options?")
-        elif secondary_intent == "time_query":
-            suggestions.append("What are the opening hours?")
-    
-    return suggestions[:5]  # Limit to 5 suggestions
-
-def generate_traditional_suggestions(intent: str) -> List[str]:
-    """Generate traditional suggestions based on single intent"""
-    intent_suggestions = {
-        "restaurant_query": [
-            "Show me more restaurants",
-            "What about vegetarian options?",
-            "Any fine dining recommendations?"
-        ],
-        "events_query": [
-            "What events are happening today?",
-            "Any cultural performances?",
-            "Where can I find live music?"
-        ],
-        "transportation_query": [
-            "How do I use public transport?",
-            "What about taxi options?",
-            "Are there bike rentals?"
-        ],
-        "attraction_query": [
-            "What other attractions are nearby?",
-            "Any hidden gems?",
-            "What are the must-see places?"
-        ]
-    }
-    
-    return intent_suggestions.get(intent, [
-        "Tell me about Istanbul attractions",
-        "Recommend some restaurants", 
-        "What events are happening?"
-    ])
-
-def process_enhanced_query(user_input: str, session_id: str) -> Dict[str, Any]:
-    """Process query using Enhanced Understanding System with Neural Intent Classifier and Query Preprocessing"""
-    
-    # Step 1: Preprocess the query (typo correction, dialect normalization, entity extraction)
-    preprocessing_result = None
-    preprocessed_query = user_input
-    if QUERY_PREPROCESSING_AVAILABLE and query_preprocessor:
-        try:
-            preprocessing_result = query_preprocessor.preprocess(user_input)
-            preprocessed_query = preprocessing_result['processed_text']
-            logger.info(f"🔧 Query preprocessed: '{user_input}' -> '{preprocessed_query}'")
-            if preprocessing_result.get('corrections'):
-                logger.info(f"✏️ Corrections applied: {len(preprocessing_result['corrections'])}")
-            if preprocessing_result.get('entities'):
-                logger.info(f"🏷️ Entities extracted: {list(preprocessing_result['entities'].keys())}")
-        except Exception as e:
-            logger.warning(f"Preprocessing error: {e}, using original query")
-            preprocessed_query = user_input
-    
-    # Step 2: Try the neural intent classifier with hybrid fallback
-    intent_result = None
-    if INTENT_CLASSIFIER_AVAILABLE and intent_classifier:
-        try:
-            import time
-            start_time = time.time()
-            
-            # Use the neural router's route_query method with preprocessed query
-            routing_result = intent_classifier.route_query(preprocessed_query)
-            latency_ms = (time.time() - start_time) * 1000
-            
-            intent = routing_result['intent']
-            confidence = routing_result['confidence']
-            method = routing_result.get('method', 'unknown')
-            
-            intent_result = {
-                'intent': intent,
-                'confidence': confidence,
-                'latency_ms': latency_ms,
-                'method': method,  # 'neural' or 'fallback'
-                'fallback_used': routing_result.get('fallback_used', False)
-            }
-            
-            logger.info(f"🎯 Intent Classifier ({method}): {intent} (confidence: {confidence:.2f}, latency: {latency_ms:.2f}ms)")
-            
-            # Log prediction to ML monitor
-            if ML_MONITORING_AVAILABLE and ml_monitor:
-                try:
-                    ml_monitor.log_prediction(
-                        query=user_input,
-                        predicted_intent=intent,
-                        confidence=confidence,
-                        latency_ms=latency_ms
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to log prediction to monitor: {e}")
-                    
-        except Exception as e:
-            logger.warning(f"Intent classifier error: {e}")
-    
-    # Step 2.5: Apply context-aware classification (NEW!)
-    context_result = None
-    if CONTEXT_AWARE_AVAILABLE and context_manager and context_aware_classifier and threshold_manager:
-        try:
-            if intent_result:
-                # Get entities from preprocessing
-                entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
-                
-                # Apply context-aware classification
-                context_result = context_aware_classifier.classify_with_context(
-                    query=user_input,
-                    preprocessed_query=preprocessed_query,
-                    base_intent=intent_result['intent'],
-                    base_confidence=intent_result['confidence'],
-                    entities=entities,
-                    session_id=session_id
-                )
-                
-                # Check acceptance threshold (context_features is a dict from to_dict())
-                # Need to pass the original ContextFeatures, not the dict
-                from services.context_aware_classifier import ContextFeatures
-                ctx_features_dict = context_result['context_features']
-                
-                threshold_decision = threshold_manager.should_accept(
-                    intent=context_result['intent'],
-                    confidence=context_result['confidence'],
-                    context_features=ctx_features_dict,  # Dict is fine, threshold_manager handles it
-                    entities=entities
-                )
-                
-                # Update intent result with context-aware values if accepted
-                if threshold_decision['accepted']:
-                    original_confidence = intent_result['confidence']
-                    intent_result['confidence'] = context_result['confidence']
-                    intent_result['context_boost'] = context_result['context_boost']
-                    intent_result['context_applied'] = True
-                    intent_result['threshold_decision'] = threshold_decision
-                    intent_result['resolved_query'] = context_result.get('resolved_query', preprocessed_query)
-                    
-                    logger.info(f"🔥 Context-aware boost: {original_confidence:.2f} → {context_result['confidence']:.2f} "
-                              f"(+{context_result['context_boost']:.2f})")
-                else:
-                    intent_result['context_applied'] = False
-                    intent_result['threshold_decision'] = threshold_decision
-                    logger.info(f"⚠️ Classification rejected by threshold: {threshold_decision['confidence']:.2f} < {threshold_decision['threshold']:.2f}")
-                
-        except Exception as e:
-            logger.warning(f"Context-aware classification error: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    # Step 3: Use the enhanced understanding system for deeper analysis
-    if not ENHANCED_QUERY_UNDERSTANDING_ENABLED or not enhanced_understanding_system:
-        # Fall back to intent classifier only
-        entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
-        corrections = preprocessing_result.get('corrections', []) if preprocessing_result else []
-        
-        if intent_result and intent_result['confidence'] >= 0.6:
-            return {
-                'success': True,
-                'intent': intent_result['intent'],
-                'confidence': intent_result['confidence'],
-                'entities': entities,
-                'corrections': corrections,
-                'normalized_query': preprocessed_query.lower().strip(),
-                'original_query': user_input,
-                'classifier_used': f"neural_{intent_result['method']}",
-                'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
-            }
-        else:
-            return {
-                'success': False,
-                'intent': 'general_info',
-                'confidence': 0.3,
-                'entities': entities,
-                'corrections': corrections,
-                'normalized_query': preprocessed_query.lower().strip(),
-                'original_query': user_input,
-                'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None
-            }
-    
+# Initialize Intent Classifier
+intent_classifier = None
+if INTENT_CLASSIFIER_AVAILABLE:
     try:
-        # Use the enhanced understanding system with preprocessed query
-        result = enhanced_understanding_system.understand_query(preprocessed_query, session_id=session_id)
-        
-        # Extract intent from multi_intent_result
-        multi_intent = result.multi_intent_result
-        primary_intent = multi_intent.primary_intent.type.value if multi_intent.primary_intent else 'general_info'
-        
-        # Use intent classifier result if it has higher confidence
-        if intent_result and intent_result['confidence'] > result.understanding_confidence:
-            primary_intent = intent_result['intent']
-            confidence = intent_result['confidence']
-            logger.info(f"✨ Using neural intent classifier result (higher confidence: {confidence:.2f} vs {result.understanding_confidence:.2f})")
-        else:
-            confidence = result.understanding_confidence
-        
-        # Merge entities from preprocessing and understanding system
-        merged_entities = {}
-        if preprocessing_result and preprocessing_result.get('entities'):
-            merged_entities.update(preprocessing_result['entities'])
-        if multi_intent and multi_intent.extracted_entities:
-            merged_entities.update(multi_intent.extracted_entities)
-        
-        # Update conversation context (NEW!)
-        if CONTEXT_AWARE_AVAILABLE and context_manager:
-            try:
-                turn = Turn(
-                    query=user_input,
-                    preprocessed_query=preprocessed_query,
-                    intent=primary_intent,
-                    entities=merged_entities,
-                    confidence=confidence
-                )
-                context_manager.update_context(session_id, turn)
-                logger.info(f"💾 Context updated for session: {session_id}")
-            except Exception as e:
-                logger.warning(f"Failed to update context: {e}")
-        
-        return {
-            'success': True,
-            'intent': primary_intent,
-            'confidence': confidence,
-            'entities': merged_entities,
-            'corrections': preprocessing_result.get('corrections', []) if preprocessing_result else [],
-            'normalized_query': preprocessed_query.lower().strip(),
-            'original_query': user_input,
-            'detailed_result': result,
-            'intent_classifier_result': intent_result,
-            'preprocessing_stats': preprocessing_result.get('statistics') if preprocessing_result else None,
-            'context_metadata': context_result if context_result else None  # Add context metadata
-        }
+        intent_classifier = NeuralIntentRouter()
+        print("✅ Neural Intent Classifier (Hybrid) initialized")
     except Exception as e:
-        logger.error(f"Error in process_enhanced_query: {e}")
-        # Fall back to intent classifier only
-        entities = preprocessing_result.get('entities', {}) if preprocessing_result else {}
-        corrections = preprocessing_result.get('corrections', []) if preprocessing_result else []
-        preprocessing_stats = preprocessing_result.get('statistics') if preprocessing_result else None
-        
-        if intent_result and intent_result['confidence'] >= 0.6:
-            return {
-                'success': True,
-                'intent': intent_result['intent'],
-                'confidence': intent_result['confidence'],
-                'entities': entities,
-                'corrections': corrections,
-                'normalized_query': preprocessed_query.lower().strip(),
-                'original_query': user_input,
-                'classifier_used': f"neural_{intent_result['method']}_fallback",
-                'preprocessing_stats': preprocessing_stats
-            }
-        else:
-            return {
-                'success': False,
-                'intent': 'general_info',
-                'confidence': 0.3,
-                'entities': entities,
-                'corrections': corrections,
-                'normalized_query': preprocessed_query.lower().strip(),
-                'original_query': user_input,
-                'preprocessing_stats': preprocessing_stats
-            }
+        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
+        INTENT_CLASSIFIER_AVAILABLE = False
 
-def generate_sample_hidden_gems(area: str, language: str = 'en') -> List[Dict[str, Any]]:
-    """Generate sample hidden gems for a given area"""
-    # Sample hidden gems data based on area
-    gems_data = {
-        'sultanahmet': [
-            {
-                'name': 'Historic Cistern Coffee',
-                'description': 'Hidden coffee shop built into ancient cistern walls',
-                'location': 'Near Basilica Cistern',
-                'type': 'cafe',
-                'authenticity_score': 9.2,
-                'local_rating': 4.8,
-                'price_range': '₺₺'
-            },
-            {
-                'name': 'Artisan Carpet Workshop',
-                'description': 'Traditional carpet weaving workshop open to visitors',
-                'location': 'Behind Blue Mosque',
-                'type': 'cultural',
-                'authenticity_score': 9.5,
-                'local_rating': 4.9,
-                'price_range': 'Free to visit'
-            }
-        ],
-        'beyoglu': [
-            {
-                'name': 'Rooftop Garden Cafe',
-                'description': 'Secret garden cafe with Bosphorus views',
-                'location': 'Hidden in Galata backstreets',
-                'type': 'cafe',
-                'authenticity_score': 8.8,
-                'local_rating': 4.7,
-                'price_range': '₺₺₺'
-            },
-            {
-                'name': 'Underground Jazz Club',
-                'description': 'Intimate jazz venue in historic building basement',
-                'location': 'Near Istiklal Avenue',
-                'type': 'entertainment',
-                'authenticity_score': 9.0,
-                'local_rating': 4.8,
-                'price_range': '₺₺'
-            }
-        ]
-    }
-    
-    return gems_data.get(area.lower(), [
-        {
-            'name': 'Local Discovery',
-            'description': f'Authentic local experience in {area}',
-            'location': area,
-            'type': 'cultural',
-            'authenticity_score': 8.5,
-            'local_rating': 4.5,
-            'price_range': '₺₺'
-        }
-    ])
+# Initialize Query Preprocessor
+query_preprocessor = None
+if QUERY_PREPROCESSING_AVAILABLE:
+    try:
+        query_preprocessor = QueryPreprocessor()
+        print("✅ Neural Intent Classifier (Hybrid) initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
+        INTENT_CLASSIFIER_AVAILABLE = False
 
-def generate_sample_localized_tips(location: str, language: str = 'en') -> List[Dict[str, Any]]:
-    """Generate sample localized tips for a location"""
-    tips_data = {
-        'sultanahmet': [
-            {
-                'tip': 'Visit early morning to avoid crowds at major attractions',
-                'category': 'timing',
-                'usefulness_score': 9.1,
-                'local_insight': True
-            },
-            {
-                'tip': 'Small restaurants behind the mosque serve authentic food',
-                'category': 'dining',
-                'usefulness_score': 8.8,
-                'local_insight': True
-            }
-        ],
-        'beyoglu': [
-            {
-                'tip': 'Take the historic tunnel from Karakoy to avoid the steep walk',
-                'category': 'transportation',
-                'usefulness_score': 9.0,
-                'local_insight': True
-            },
-            {
-                'tip': 'Best nightlife starts after 22:00 on weekends',
-                'category': 'entertainment',
-                'usefulness_score': 8.5,
-                'local_insight': True
-            }
-        ]
-    }
-    
-    return tips_data.get(location.lower(), [
-        {
-            'tip': f'Explore local neighborhoods in {location} for authentic experiences',
-            'category': 'general',
-            'usefulness_score': 8.0,
-            'local_insight': True
-        }
-    ])
+# Initialize Query Preprocessor
+query_preprocessor = None
+if QUERY_PREPROCESSING_AVAILABLE:
+    try:
+        query_preprocessor = QueryPreprocessor()
+        print("✅ Query Preprocessor initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Query Preprocessor: {e}")
+        QUERY_PREPROCESSING_AVAILABLE = False
 
-# --- Third-Party Imports ---
-from fastapi import FastAPI, Request, UploadFile, File, Form, Depends, HTTPException, status, Body, Query
-from fastapi.responses import StreamingResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from dotenv import load_dotenv
-from thefuzz import fuzz, process
+# Initialize Context-Aware Classification Components
+context_manager = None
+context_aware_classifier = None
+threshold_manager = None
+if CONTEXT_AWARE_AVAILABLE:
+    try:
+        # Initialize with default settings (Redis or in-memory fallback)
+        context_manager = ConversationContextManager()
+        context_aware_classifier = ContextAwareClassifier(context_manager)
+        threshold_manager = DynamicThresholdManager()
+        print("✅ Context-Aware Classification initialized")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Context-Aware Classification: {e}")
+        CONTEXT_AWARE_AVAILABLE = False
+
+# Initialize ML Production Monitoring and Feedback Collection
+ml_monitor = None
+feedback_collector = None
+if ML_MONITORING_AVAILABLE:
+    try:
+        ml_monitor = get_production_monitor()
+        feedback_collector = get_feedback_collector()
+        print("✅ ML monitoring and feedback systems enabled")
+    except Exception as e:
+        print(f"⚠️ Failed to initialize ML monitoring: {e}")
+        ML_MONITORING_AVAILABLE = False
+
+# ═══════════════════════════════════════════════════════════════════
+# ML ANSWERING SERVICE CLIENT INTEGRATION
+# ═══════════════════════════════════════════════════════════════════
+print("\n🤖 Initializing ML Answering Service Client...")
+
+try:
+    from backend.ml_service_client import (
+        get_ml_answer, 
+        get_ml_status, 
+        check_ml_health
+    )
+    ML_ANSWERING_SERVICE_AVAILABLE = True
+    print("✅ ML Answering Service Client loaded")
+    print(f"   URL: {os.getenv('ML_SERVICE_URL', 'http://localhost:8000')}")
+    print(f"   LLM Default: {os.getenv('ML_USE_LLM_DEFAULT', 'true')}")
+except ImportError as e:
+    ML_ANSWERING_SERVICE_AVAILABLE = False
+    print(f"⚠️ ML Answering Service Client not available: {e}")
+    print("   System will run without ML-powered responses")
 
 # Enhanced Authentication imports
 try:
@@ -686,7 +508,7 @@ try:
         get_current_user,
         UserRegistrationRequest,
         UserLoginRequest,
-        UserRefreshRequest,
+        TokenRefreshRequest,  # Fixed: was UserRefreshRequest
         TokenResponse,
         UserResponse
     )
@@ -721,7 +543,7 @@ except ImportError as e:
         email: str
         password: str
     
-    class UserRefreshRequest(BaseModel):
+    class TokenRefreshRequest(BaseModel):
         """Fallback refresh request"""
         refresh_token: str
     
@@ -1371,46 +1193,71 @@ if ENHANCED_AUTH_AVAILABLE:
 else:
     logger.info("⚠️ Enhanced Authentication Manager not available")
 
-# ═══════════════════════════════════════════════════════════════════
-# PRODUCTION ENDPOINTS: Health Checks & Monitoring
-# ═══════════════════════════════════════════════════════════════════
-@app.get("/health", tags=["Infrastructure"])
+
+# =============================
+# HEALTH CHECK & STARTUP EVENTS
+# =============================
+
+@app.on_event("startup")
+async def startup_event():
+    """Startup tasks - check ML service connection"""
+    logger.info("🚀 Starting AI Istanbul Backend")
+    logger.info("=" * 60)
+    
+    # Check ML Answering Service
+    if ML_ANSWERING_SERVICE_AVAILABLE:
+        try:
+            ml_status = await get_ml_status()
+            if ml_status.get('ml_service', {}).get('healthy'):
+                logger.info("✅ ML Answering Service: Connected and Healthy")
+                logger.info(f"   URL: {ml_status['ml_service']['url']}")
+                logger.info(f"   LLM Default: {os.getenv('ML_USE_LLM_DEFAULT', 'true')} ⭐")
+            else:
+                logger.warning("⚠️ ML Answering Service: Available but Not Healthy")
+                logger.warning("   Fallback mode will be used for queries")
+        except Exception as e:
+            logger.warning(f"⚠️ ML Answering Service: Error checking status - {e}")
+            logger.warning("   Fallback mode will be used for queries")
+    else:
+        logger.warning("⚠️ ML Answering Service: Not Available")
+        logger.warning("   Fallback mode will be used for queries")
+    
+    logger.info("=" * 60)
+    logger.info("✅ Backend startup complete")
+
+
+@app.get("/health", tags=["System Health"])
 async def health_check():
-    """System health check endpoint"""
-    if system_monitor:
-        return system_monitor.get_health_check()
+    """
+    Overall system health check
+    Returns health status of all services including ML service
+    """
+    from datetime import datetime
+    
+    # Check ML service health
+    ml_healthy = False
+    ml_details = {"available": False}
+    
+    if ML_ANSWERING_SERVICE_AVAILABLE:
+        try:
+            ml_health = await check_ml_health()
+            ml_healthy = ml_health.get('healthy', False)
+            ml_details = ml_health
+        except Exception as e:
+            logger.error(f"Health check ML service error: {e}")
+            ml_details = {"available": True, "healthy": False, "error": str(e)}
+    
     return {
         "status": "healthy",
-        "message": "System running (monitoring disabled)",
-        "timestamp": datetime.now().isoformat()
-    }
-
-@app.get("/metrics", tags=["Infrastructure"])
-async def get_metrics():
-    """System metrics endpoint"""
-    if system_monitor:
-        return system_monitor.get_stats()
-    return {"message": "Metrics not available"}
-
-@app.get("/infrastructure/status", tags=["Infrastructure"])
-async def infrastructure_status():
-    """Infrastructure components status"""
-    return {
-        "infrastructure_available": INFRASTRUCTURE_AVAILABLE,
-        "components": {
-            "ttl_cache": INFRASTRUCTURE_AVAILABLE,
-            "rate_limiter": INFRASTRUCTURE_AVAILABLE,
-            "response_cache": INFRASTRUCTURE_AVAILABLE,
-            "system_monitor": INFRASTRUCTURE_AVAILABLE,
-            "graceful_degradation": INFRASTRUCTURE_AVAILABLE,
-            "feature_manager": INFRASTRUCTURE_AVAILABLE
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {
+            "api": "healthy",
+            "authentication": "healthy" if ENHANCED_AUTH_AVAILABLE else "unavailable",
+            "ml_answering_service": "healthy" if ml_healthy else "degraded"
         },
-        "cache_stats": response_cache.get_stats() if response_cache else None,
-        "timestamp": datetime.now().isoformat()
+        "ml_service_details": ml_details
     }
 
-print("✅ Production endpoints registered: /health, /metrics, /infrastructure/status")
-print()
 
 # =============================
 # AUTHENTICATION ENDPOINTS
@@ -1603,6 +1450,216 @@ async def get_user_profile(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch profile. Please try again."
         )
+
+
+# =============================
+# ML CHAT ENDPOINT WITH LLM INTEGRATION
+# =============================
+
+class MLChatRequest(BaseModel):
+    """Request model for ML-powered chat"""
+    message: str = Field(..., min_length=1, max_length=1000, description="User message")
+    user_location: Optional[Dict[str, float]] = Field(None, description="User location {lat, lon}")
+    use_llm: Optional[bool] = Field(None, description="Override: Use LLM (None=use default from config)")
+    language: str = Field(default="en", description="Response language (en/tr)")
+    user_id: Optional[str] = Field(None, description="User ID for personalization")
+
+
+class MLChatResponse(BaseModel):
+    """Response model for ML-powered chat"""
+    response: str = Field(..., description="Bot response text")
+    intent: str = Field(..., description="Detected intent")
+    confidence: float = Field(..., description="Confidence score")
+    method: str = Field(..., description="Response generation method")
+    context: List[Dict] = Field(default=[], description="Context items used")
+    suggestions: List[str] = Field(default=[], description="Follow-up suggestions")
+    response_time: float = Field(..., description="Response time in seconds")
+    ml_service_used: bool = Field(..., description="Whether ML service was used")
+
+
+async def generate_ml_fallback_response(
+    message: str,
+    intent: str = "general",
+    user_location: Optional[Dict] = None
+) -> Dict:
+    """Fallback response when ML service unavailable"""
+    responses = {
+        "restaurant_recommendation": {
+            "answer": "Istanbul has amazing restaurants! Popular areas include Beyoğlu, Kadıköy, and Beşiktaş. What type of cuisine interests you?",
+            "context": []
+        },
+        "attraction_query": {
+            "answer": "Istanbul is full of incredible attractions! Must-sees include Hagia Sophia, Blue Mosque, Topkapı Palace, and the Grand Bazaar. Which area would you like to explore?",
+            "context": []
+        },
+        "transportation_help": {
+            "answer": "Istanbul has excellent public transportation including metro, tram, ferry, and buses. You can use an Istanbulkart for all of them. Where do you need to go?",
+            "context": []
+        },
+        "neighborhood_info": {
+            "answer": "Istanbul has diverse neighborhoods, each with unique character. Beyoğlu is vibrant and modern, Sultanahmet is historical, Kadıköy is alternative and artistic. Which interests you?",
+            "context": []
+        },
+        "general": {
+            "answer": "I'm here to help you explore Istanbul! I can recommend restaurants, attractions, help with transportation, and suggest local experiences. What would you like to know?",
+            "context": []
+        }
+    }
+    return responses.get(intent, responses["general"])
+
+
+def generate_ml_suggestions(intent: str) -> List[str]:
+    """Generate follow-up suggestions based on intent"""
+    suggestions = {
+        "restaurant_recommendation": [
+            "Show me vegetarian options",
+            "What about seafood restaurants?",
+            "Budget-friendly places near me"
+        ],
+        "attraction_query": [
+            "Tell me about museums",
+            "Historical sites in Sultanahmet",
+            "Best views in Istanbul"
+        ],
+        "transportation_help": [
+            "How to use the metro?",
+            "Ferry schedules",
+            "Getting to the airport"
+        ],
+        "general": [
+            "Best restaurants in Istanbul",
+            "Top attractions to visit",
+            "How to get around the city"
+        ]
+    }
+    return suggestions.get(intent, suggestions["general"])
+
+
+@app.post("/api/v1/chat", response_model=MLChatResponse, tags=["ML Chat"])
+async def ml_chat_endpoint(request: MLChatRequest):
+    """
+    ML-powered chat endpoint with LLM by default
+    
+    Provides intelligent, context-aware responses using:
+    - Semantic search
+    - Intent classification
+    - LLM generation (default) or templates
+    - Graceful fallback if ML service unavailable
+    """
+    start_time = time.time()
+    
+    # ML Configuration
+    ML_USE_LLM_DEFAULT = os.getenv("ML_USE_LLM_DEFAULT", "true").lower() == "true"
+    
+    try:
+        # Detect intent (use your existing classifier if available)
+        intent = "general"  # TODO: Integrate with existing intent classifier
+        
+        # Determine if should use LLM
+        use_llm = request.use_llm if request.use_llm is not None else ML_USE_LLM_DEFAULT
+        
+        logger.info(f"💬 ML Chat query: '{request.message}' (intent: {intent}, llm: {use_llm})")
+        
+        # Try ML service if available
+        if ML_ANSWERING_SERVICE_AVAILABLE:
+            ml_response = await get_ml_answer(
+                query=request.message,
+                intent=intent,
+                user_location=request.user_location,
+                use_llm=use_llm,
+                language=request.language
+            )
+            
+            if ml_response and ml_response.get('success'):
+                # ML service succeeded ✅
+                logger.info(f"✅ ML response: {ml_response.get('generation_method')} ({time.time() - start_time:.2f}s)")
+                
+                return MLChatResponse(
+                    response=ml_response['answer'],
+                    intent=ml_response.get('intent', intent),
+                    confidence=ml_response.get('confidence', 0.85),
+                    method=f"ml_{ml_response.get('generation_method', 'llm')}",
+                    context=ml_response.get('context', []),
+                    suggestions=ml_response.get('suggestions', []),
+                    response_time=time.time() - start_time,
+                    ml_service_used=True
+                )
+        
+        # Fallback to rule-based
+        logger.info("⚠️ ML service unavailable - using fallback")
+        
+        fallback = await generate_ml_fallback_response(
+            request.message,
+            intent,
+            request.user_location
+        )
+        
+        return MLChatResponse(
+            response=fallback['answer'],
+            intent=intent,
+            confidence=0.6,
+            method="fallback",
+            context=fallback.get('context', []),
+            suggestions=generate_ml_suggestions(intent),
+            response_time=time.time() - start_time,
+            ml_service_used=False
+        )
+    
+    except Exception as e:
+        logger.error(f"❌ ML Chat error: {e}")
+        
+        # Emergency fallback
+        return MLChatResponse(
+            response="I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+            intent="error",
+            confidence=0.0,
+            method="error_fallback",
+            context=[],
+            suggestions=["Try again", "Ask a different question"],
+            response_time=time.time() - start_time,
+            ml_service_used=False
+        )
+
+
+@app.get("/api/v1/ml/status", tags=["ML Service"])
+async def ml_service_status():
+    """Get ML service status and health"""
+    if not ML_ANSWERING_SERVICE_AVAILABLE:
+        return {
+            "available": False,
+            "reason": "ML service client not loaded",
+            "ml_service": {"enabled": False}
+        }
+    
+    try:
+        status = await get_ml_status()
+        return status
+    except Exception as e:
+        logger.error(f"ML status check error: {e}")
+        return {
+            "available": True,
+            "ml_service": {"healthy": False, "error": str(e)}
+        }
+
+
+@app.get("/api/v1/ml/health", tags=["ML Service"])
+async def ml_service_health():
+    """Quick ML service health check"""
+    if not ML_ANSWERING_SERVICE_AVAILABLE:
+        return {
+            "healthy": False,
+            "reason": "ML service client not loaded"
+        }
+    
+    try:
+        health = await check_ml_health()
+        return health
+    except Exception as e:
+        logger.error(f"ML health check error: {e}")
+        return {
+            "healthy": False,
+            "error": str(e)
+        }
 
 
 # =============================
@@ -1901,72 +1958,6 @@ async def get_admin_stats(db: Session = Depends(get_db)):
             BlogComment.is_approved == False
         ).scalar() or 0
         
-        # Get real feedback count from database (last 30 days)
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        stats["feedback"] = db.query(func.count(UserFeedback.id)).filter(
-            UserFeedback.timestamp >= thirty_days_ago
-        ).scalar() or 0
-        
-        # Get active users count (users with activity in last 7 days)
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        stats["active_users"] = db.query(func.count(UserSession.id.distinct())).filter(
-            UserSession.last_activity >= seven_days_ago
-        ).scalar() or 0
-        
-        # Calculate model accuracy from feedback
-        if stats["feedback"] > 0:
-            # Count negative feedback (dislikes) as model errors
-            negative_feedback = db.query(func.count(UserFeedback.id)).filter(
-                and_(
-                    UserFeedback.timestamp >= thirty_days_ago,
-                    UserFeedback.feedback_type == "dislike"
-                )
-            ).scalar() or 0
-            
-            accuracy = ((stats["feedback"] - negative_feedback) / stats["feedback"]) * 100
-            stats["model_accuracy"] = round(accuracy, 1)
-        
-        return stats
-        
-    except Exception as e:
-        logger.error(f"Error getting admin stats: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/blog/posts", tags=["Admin Dashboard - Blog"])
-async def get_blog_posts(status: Optional[str] = None, limit: int = 100, db: Session = Depends(get_db)):
-    """
-    Get all blog posts for admin management (from database)
-    """
-    try:
-        from models import BlogPost
-        
-        # Query database for blog posts
-        query = db.query(BlogPost)
-        
-        # Note: status filter is not applied as BlogPost model doesn't have a status field
-        # All posts are considered published
-        
-
-        
-        # Get all posts ordered by created_at descending
-        posts = query.order_by(BlogPost.created_at.desc()).limit(limit).all()
-        
-        # Convert to dict format for API response
-        posts_list = []
-        for post in posts:
-            posts_list.append({
-                "id": post.id,
-                "title": post.title,
-                "content": post.content,
-                "author": post.author or "Admin",
-                "district": post.district,
-                "created_at": post.created_at.isoformat() if post.created_at else None,
-                "likes_count": post.likes_count or 0,
-                "status": "published",  # All posts are published by default
-                "slug": post.title.lower().replace(" ", "-") if post.title else "",
-                "category": post.district or "General"
-            })
         
         return {"posts": posts_list, "total": len(posts_list)}
         
@@ -2136,7 +2127,7 @@ async def get_comments(status: Optional[str] = None, post_id: Optional[int] = No
                 "is_spam": comment.is_spam,
                 "created_at": comment.created_at.isoformat() if comment.created_at else None,
                 "approved_at": comment.approved_at.isoformat() if comment.approved_at else None,
-                "approved_by": comment.approved_by
+                               "approved_by": comment.approved_by
             })
         
         return {"comments": comments_list, "total": len(comments_list)}

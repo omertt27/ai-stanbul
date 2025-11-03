@@ -2452,3 +2452,13 @@
 {"timestamp": "2025-11-03T16:58:09.444877", "query": "how cani go taksim from my location", "intent": "local_tips", "confidence": 0.9757, "latency_ms": 283.19, "high_confidence": true}
 {"timestamp": "2025-11-03T16:59:25.765021", "query": "how can i go to taksim from my location", "intent": "local_tips", "confidence": 0.9946, "latency_ms": 41.15, "high_confidence": true}
 {"timestamp": "2025-11-03T17:02:35.604962", "query": "how can i go to taksim from my location", "intent": "local_tips", "confidence": 0.9946, "latency_ms": 44.32, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.183712", "query": "What are the best restaurants in Beyoğlu?", "intent": "restaurant", "confidence": 0.9637, "latency_ms": 240.26, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.269306", "query": "Tell me about Hagia Sophia", "intent": "general_info", "confidence": 0.9398, "latency_ms": 35.26, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.302219", "query": "How do I get to Sultanahmet from Taksim?", "intent": "transportation", "confidence": 0.9457, "latency_ms": 31.21, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.310250", "query": "What's the weather like in Istanbul?", "intent": "weather", "confidence": 0.9406, "latency_ms": 6.54, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.341096", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood", "confidence": 0.9418, "latency_ms": 29.79, "high_confidence": true}
+{"timestamp": "2025-11-03T21:51:17.376947", "query": "Find restaurants near me", "intent": "hidden_gems", "confidence": 0.9526, "latency_ms": 28.24, "high_confidence": true}
+{"timestamp": "2025-11-03T21:52:27.217894", "query": "What are the best restaurants in Beyoğlu?", "intent": "restaurant", "confidence": 0.9637, "latency_ms": 144.04, "high_confidence": true}
+{"timestamp": "2025-11-03T21:52:27.324591", "query": "What's the weather like in Istanbul?", "intent": "weather", "confidence": 0.9406, "latency_ms": 12.61, "high_confidence": true}
+{"timestamp": "2025-11-03T21:52:27.355409", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood", "confidence": 0.9418, "latency_ms": 29.72, "high_confidence": true}
+{"timestamp": "2025-11-03T21:52:27.385634", "query": "Find restaurants near me", "intent": "hidden_gems", "confidence": 0.9526, "latency_ms": 23.3, "high_confidence": true}

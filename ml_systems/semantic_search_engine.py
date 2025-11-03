@@ -1,5 +1,6 @@
 """
 Semantic search engine that works on both CPU and GPU
+Supports multiple collections (restaurants, attractions, tips)
 """
 from sentence_transformers import SentenceTransformer
 import faiss
@@ -7,10 +8,13 @@ import numpy as np
 import pickle
 import torch
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SemanticSearchEngine:
     def __init__(self, model_path="./models/semantic-search", use_gpu=None):
-        print("🔄 Loading semantic search model...")
+        logger.info("🔄 Loading semantic search model...")
         
         # Auto-detect device
         if use_gpu is None:
@@ -18,15 +22,46 @@ class SemanticSearchEngine:
         else:
             device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
         
-        print(f"📍 Using device: {device}")
+        logger.info(f"📍 Using device: {device}")
         
         self.encoder = SentenceTransformer(model_path, device=device)
         self.dimension = 768
-        self.index = None
-        self.items = []
+        self.collections = {}  # Store multiple collections
         self.use_gpu = (device == "cuda")
         
-        print(f"✅ Semantic search model loaded on {device}")
+        logger.info(f"✅ Semantic search model loaded on {device}")
+    
+    async def initialize(self):
+        """Async initialization - loads all available collections"""
+        logger.info("🔄 Initializing semantic search collections...")
+        
+        # Try to load restaurants
+        try:
+            self.load_collection("restaurants", "./data/semantic_index.bin")
+            logger.info("  ✅ Restaurants collection loaded")
+        except Exception as e:
+            logger.warning(f"  ⚠️ Could not load restaurants: {e}")
+        
+        # Try to load attractions
+        try:
+            self.load_collection("attractions", "./data/attractions_index.bin")
+            logger.info("  ✅ Attractions collection loaded")
+        except Exception as e:
+            logger.warning(f"  ⚠️ Could not load attractions: {e}")
+        
+        # Try to load tips
+        try:
+            self.load_collection("tips", "./data/tips_index.bin")
+            logger.info("  ✅ Tips collection loaded")
+        except Exception as e:
+            logger.warning(f"  ⚠️ Could not load tips: {e}")
+        
+        logger.info(f"✨ Initialized {len(self.collections)} collections")
+        
+        # For backwards compatibility, set default index/items
+        if "restaurants" in self.collections:
+            self.index = self.collections["restaurants"]["index"]
+            self.items = self.collections["restaurants"]["items"]
     
     def index_items(self, items, save_path="./data/semantic_index.bin"):
         """Index items for semantic search"""
@@ -63,26 +98,45 @@ class SemanticSearchEngine:
         
         print(f"✅ Indexed {len(items)} items")
     
-    def search(self, query, top_k=5, filters=None):
-        """Search for relevant items"""
+    
+    def search(self, query, top_k=5, filters=None, collection="restaurants"):
+        """
+        Search for relevant items in specified collection
         
-        if self.index is None:
-            raise ValueError("Index not loaded. Call load_index() first.")
+        Args:
+            query: Search query string
+            top_k: Number of results to return
+            filters: Optional filters to apply
+            collection: Collection name (restaurants, attractions, tips)
+        """
+        # Get collection
+        if collection not in self.collections:
+            logger.warning(f"Collection '{collection}' not found, using default")
+            if not self.collections:
+                raise ValueError("No collections loaded")
+            collection = list(self.collections.keys())[0]
+        
+        col = self.collections[collection]
+        index = col["index"]
+        items = col["items"]
+        
+        if index is None:
+            raise ValueError(f"Index for collection '{collection}' not loaded")
         
         # Encode query
         query_embedding = self.encoder.encode([query], convert_to_numpy=True)
         
         # Search
-        distances, indices = self.index.search(
+        distances, indices = index.search(
             query_embedding.astype('float32'),
-            min(top_k * 2, len(self.items))  # Get more to allow for filtering
+            min(top_k * 2, len(items))  # Get more to allow for filtering
         )
         
         # Get results
         results = []
         for idx, distance in zip(indices[0], distances[0]):
-            if idx < len(self.items):
-                item = self.items[idx].copy()
+            if idx < len(items):
+                item = items[idx].copy()
                 item['similarity_score'] = float(1 / (1 + distance))
                 
                 if self._matches_filters(item, filters):
@@ -129,23 +183,37 @@ class SemanticSearchEngine:
             pickle.dump(self.items, f)
         print(f"💾 Index saved to {path}")
     
+    
     def load_index(self, path):
-        """Load index from disk"""
+        """Load index from disk (backwards compatibility)"""
+        self.load_collection("default", path)
+        if "default" in self.collections:
+            self.index = self.collections["default"]["index"]
+            self.items = self.collections["default"]["items"]
+    
+    def load_collection(self, name, path):
+        """Load a named collection from disk"""
         if not os.path.exists(path):
             raise FileNotFoundError(f"Index file not found: {path}")
         
-        print(f"📥 Loading index from {path}...")
+        logger.info(f"📥 Loading collection '{name}' from {path}...")
         
         # Load FAISS index
-        self.index = faiss.read_index(path)
+        index = faiss.read_index(path)
         
         # Move to GPU if available
         if self.use_gpu and faiss.get_num_gpus() > 0:
             res = faiss.StandardGpuResources()
-            self.index = faiss.index_cpu_to_gpu(res, 0, self.index)
+            index = faiss.index_cpu_to_gpu(res, 0, index)
         
         # Load items
         with open(path + ".items", 'rb') as f:
-            self.items = pickle.load(f)
+            items = pickle.load(f)
         
-        print(f"✅ Loaded index with {len(self.items)} items")
+        # Store collection
+        self.collections[name] = {
+            "index": index,
+            "items": items
+        }
+        
+        logger.info(f"✅ Loaded collection '{name}' with {len(items)} items")
