@@ -12,8 +12,6 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import (
     AutoTokenizer, 
     AutoModelForSequenceClassification,
-    Trainer,
-    TrainingArguments,
     get_linear_schedule_with_warmup
 )
 from torch.optim import AdamW
@@ -80,11 +78,27 @@ def load_training_data(data_file):
     with open(data_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    # Handle both formats (dict with "training_data" key or direct list)
-    if isinstance(data, dict) and 'training_data' in data:
-        training_data = data['training_data']
-    else:
+    # Handle multiple formats
+    if isinstance(data, dict):
+        if 'train_data' in data:
+            # New format with train_data and test_data
+            training_data = data['train_data']
+            logger.info(f"📊 Found train_data with {len(training_data)} examples")
+        elif 'training_data' in data:
+            # Legacy format with training_data key
+            training_data = data['training_data']
+            logger.info(f"📊 Found training_data with {len(training_data)} examples")
+        else:
+            # Dict is the data itself - shouldn't reach here now
+            logger.warning("⚠️  Data is a dict but has no train_data or training_data key")
+            training_data = []
+    elif isinstance(data, list):
+        # Direct list format
         training_data = data
+        logger.info(f"📊 Found direct list with {len(training_data)} examples")
+    else:
+        logger.error(f"❌ Unknown data format: {type(data)}")
+        training_data = []
     
     logger.info(f"✅ Loaded {len(training_data)} examples")
     
