@@ -1340,7 +1340,7 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/api/auth/refresh", response_model=TokenResponse, tags=["Authentication"])
-async def refresh_token(request: UserRefreshRequest, db: Session = Depends(get_db)):
+async def refresh_token(request: TokenRefreshRequest, db: Session = Depends(get_db)):
     """
     Refresh access token using refresh token
     

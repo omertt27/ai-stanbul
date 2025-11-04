@@ -102,6 +102,9 @@ class MLAnsweringService:
             # Step 3: Generate response with LLM
             response = await self._generate_response(context)
             
+            # Step 4: Generate map data for transportation queries
+            map_data = await self._generate_map_data(context, intent)
+            
             elapsed_time = time.time() - start_time
             
             return {
@@ -110,6 +113,8 @@ class MLAnsweringService:
                 "confidence": confidence,
                 "processing_time": elapsed_time,
                 "sources": context.search_results if context.search_results else [],
+                "map_data": map_data,
+                "has_map_visualization": map_data is not None,
                 "metadata": {
                     "user_location": user_location,
                     "context_used": bool(context.search_results or context.structured_data)
@@ -405,6 +410,19 @@ class MLAnsweringService:
     
     async def _build_transportation_context(self, context: QueryContext):
         """Build context for transportation queries"""
+        # Use semantic search to get relevant transportation info
+        if self.semantic_search:
+            try:
+                results = self.semantic_search.search(
+                    query=context.query,
+                    top_k=3,
+                    collection="transportation"
+                )
+                context.search_results = results
+                logger.info(f"  🚇 Found {len(results)} transportation results")
+            except Exception as e:
+                logger.warning(f"  ⚠️ Transportation search failed: {e}")
+        
         context.structured_data = {
             "type": "transportation",
             "user_location": context.user_location,
@@ -423,7 +441,19 @@ class MLAnsweringService:
     
     async def _build_events_context(self, context: QueryContext):
         """Build context for events queries"""
-        # In production, this would query İKSV or other event databases
+        # Use semantic search to get relevant events
+        if self.semantic_search:
+            try:
+                results = self.semantic_search.search(
+                    query=context.query,
+                    top_k=5,
+                    collection="events"
+                )
+                context.search_results = results
+                logger.info(f"  🎭 Found {len(results)} event results")
+            except Exception as e:
+                logger.warning(f"  ⚠️ Events search failed: {e}")
+        
         context.structured_data = {
             "type": "events",
             "city": "Istanbul"
@@ -459,14 +489,12 @@ class MLAnsweringService:
             return self._template_response(context)
         
         try:
-            # Build prompt for LLM
-            prompt = self._build_llm_prompt(context)
-            
-            # Generate response
+            # Generate response using LLM
+            # LocalLLMGenerator.generate() expects query and context_data
             response = self.llm_generator.generate(
-                prompt=prompt,
-                max_length=512,
-                temperature=0.7
+                query=context.query,
+                context_data=context.search_results or context.structured_data,
+                max_tokens=512
             )
             
             return response

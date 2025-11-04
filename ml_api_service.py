@@ -79,9 +79,9 @@ async def startup_event():
     
     logger.info("🚀 Starting Istanbul AI ML Service...")
     
-    # Initialize ML service (without LLM for faster startup)
-    # LLM can be enabled later by setting enable_llm=True
-    ml_service = await create_ml_service(enable_llm=False)
+    # Initialize ML service with LLM enabled for high-quality responses
+    # Set to False for faster startup if LLM is not needed
+    ml_service = await create_ml_service(enable_llm=True)
     
     logger.info("✅ ML Service ready to serve requests")
 

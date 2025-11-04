@@ -2462,3 +2462,18 @@
 {"timestamp": "2025-11-03T21:52:27.324591", "query": "What's the weather like in Istanbul?", "intent": "weather", "confidence": 0.9406, "latency_ms": 12.61, "high_confidence": true}
 {"timestamp": "2025-11-03T21:52:27.355409", "query": "Tell me about Kadıköy neighborhood", "intent": "neighborhood", "confidence": 0.9418, "latency_ms": 29.72, "high_confidence": true}
 {"timestamp": "2025-11-03T21:52:27.385634", "query": "Find restaurants near me", "intent": "hidden_gems", "confidence": 0.9526, "latency_ms": 23.3, "high_confidence": true}
+{"timestamp": "2025-11-04T10:32:50.101297", "query": "Best restaurants in Sultanahmet", "intent": "restaurant", "confidence": 0.9715, "latency_ms": 283.61, "high_confidence": true}
+{"timestamp": "2025-11-04T10:36:46.402900", "query": "What are the best restaurants in Beyoglu for trying authentic Turkish cuisine?", "intent": "restaurant", "confidence": 0.8623, "latency_ms": 176.39, "high_confidence": true}
+{"timestamp": "2025-11-04T10:39:07.173890", "query": "What are the best restaurants in Beyoglu for trying authentic Turkish cuisine?", "intent": "restaurant", "confidence": 0.8623, "latency_ms": 141.39, "high_confidence": true}
+{"timestamp": "2025-11-04T10:48:20.623135", "query": "Best seafood restaurants in Kadıköy with vegetarian options", "intent": "restaurant", "confidence": 0.8568, "latency_ms": 179.5, "high_confidence": true}
+{"timestamp": "2025-11-04T10:49:57.319593", "query": "What's Beşiktaş like? Best time to visit?", "intent": "attraction", "confidence": 0.7948, "latency_ms": 375.96, "high_confidence": true}
+{"timestamp": "2025-11-04T10:50:50.083345", "query": "Hi! What's special about Istanbul?", "intent": "general_info", "confidence": 0.9829, "latency_ms": 331.69, "high_confidence": true}
+{"timestamp": "2025-11-04T10:51:09.680152", "query": "Hidden gems in Balat that locals love", "intent": "hidden_gems", "confidence": 0.9542, "latency_ms": 362.31, "high_confidence": true}
+{"timestamp": "2025-11-04T10:51:40.919005", "query": "What's the weather like in Istanbul in December?", "intent": "weather", "confidence": 0.9364, "latency_ms": 101.33, "high_confidence": true}
+{"timestamp": "2025-11-04T10:52:08.258917", "query": "Any concerts or festivals this weekend?", "intent": "events", "confidence": 0.9779, "latency_ms": 250.37, "high_confidence": true}
+{"timestamp": "2025-11-04T10:59:25.259563", "query": "Any concerts or festivals this weekend in Istanbul?", "intent": "events", "confidence": 0.9772, "latency_ms": 496.38, "high_confidence": true}
+{"timestamp": "2025-11-04T11:00:47.110413", "query": "Create an itinerary for Sultanahmet area", "intent": "route_planning", "confidence": 0.9659, "latency_ms": 385.11, "high_confidence": true}
+{"timestamp": "2025-11-04T11:06:10.810201", "query": "Any concerts or festivals this weekend in Istanbul?", "intent": "events", "confidence": 0.9772, "latency_ms": 456.96, "high_confidence": true}
+{"timestamp": "2025-11-04T11:07:38.663625", "query": "Create an itinerary for Sultanahmet area", "intent": "route_planning", "confidence": 0.9659, "latency_ms": 311.63, "high_confidence": true}
+{"timestamp": "2025-11-04T11:11:15.989711", "query": "Hi! What are you?", "intent": "general_info", "confidence": 0.9387, "latency_ms": 156.35, "high_confidence": true}
+{"timestamp": "2025-11-04T11:21:16.039421", "query": "Any concerts or festivals this weekend in Istanbul?", "intent": "events", "confidence": 0.9772, "latency_ms": 478.07, "high_confidence": true}

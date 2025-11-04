@@ -1,6 +1,7 @@
 """
-Semantic search engine that works on both CPU and GPU
-Supports multiple collections (restaurants, attractions, tips)
+Semantic search engine that works on CPU, Metal (M2 Pro), and CUDA (T4 GPU)
+Supports multiple collections (restaurants, attractions, tips, transportation, events)
+Automatically uses best available device
 """
 from sentence_transformers import SentenceTransformer
 import faiss
@@ -16,20 +17,39 @@ class SemanticSearchEngine:
     def __init__(self, model_path="./models/semantic-search", use_gpu=None):
         logger.info("🔄 Loading semantic search model...")
         
-        # Auto-detect device
+        # Auto-detect best available device
         if use_gpu is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            # Priority: CUDA > MPS > CPU
+            if torch.cuda.is_available():
+                device = "cuda"
+                device_type = "CUDA (NVIDIA GPU)"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+                device_type = "Metal (Apple Silicon)"
+            else:
+                device = "cpu"
+                device_type = "CPU"
         else:
-            device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+            if use_gpu and torch.cuda.is_available():
+                device = "cuda"
+                device_type = "CUDA (NVIDIA GPU)"
+            elif use_gpu and torch.backends.mps.is_available():
+                device = "mps"
+                device_type = "Metal (Apple Silicon)"
+            else:
+                device = "cpu"
+                device_type = "CPU"
         
-        logger.info(f"📍 Using device: {device}")
+        logger.info(f"📍 Using device: {device} ({device_type})")
         
         self.encoder = SentenceTransformer(model_path, device=device)
         self.dimension = 768
         self.collections = {}  # Store multiple collections
         self.use_gpu = (device == "cuda")
+        self.device = device
+        self.device_type = device_type
         
-        logger.info(f"✅ Semantic search model loaded on {device}")
+        logger.info(f"✅ Semantic search model loaded on {device} ({device_type})")
     
     async def initialize(self):
         """Async initialization - loads all available collections"""
@@ -55,6 +75,20 @@ class SemanticSearchEngine:
             logger.info("  ✅ Tips collection loaded")
         except Exception as e:
             logger.warning(f"  ⚠️ Could not load tips: {e}")
+        
+        # Try to load transportation
+        try:
+            self.load_collection("transportation", "./data/transportation_index.bin")
+            logger.info("  ✅ Transportation collection loaded")
+        except Exception as e:
+            logger.warning(f"  ⚠️ Could not load transportation: {e}")
+        
+        # Try to load events
+        try:
+            self.load_collection("events", "./data/events_index.bin")
+            logger.info("  ✅ Events collection loaded")
+        except Exception as e:
+            logger.warning(f"  ⚠️ Could not load events: {e}")
         
         logger.info(f"✨ Initialized {len(self.collections)} collections")
         
