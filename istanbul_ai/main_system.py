@@ -419,6 +419,51 @@ class IstanbulDailyTalkAI:
             self.ab_monitor = None
             logger.info("⚠️ A/B Testing Framework not available")
         
+        # ==================== LLM + GPS INTEGRATION ====================
+        logger.info("🤖 Initializing LLM + GPS integration...")
+        
+        # Initialize LLM service (model-agnostic)
+        try:
+            from ml_systems.llm_service_wrapper import LLMServiceWrapper
+            
+            # Auto-detects best model and device (TinyLlama on MPS or LLaMA 3.2 3B on CUDA)
+            self.llm_service = LLMServiceWrapper()
+            logger.info(f"✅ LLM Service initialized: {self.llm_service.model_name} on {self.llm_service.device}")
+            
+            # Log model info for debugging
+            llm_info = self.llm_service.get_info()
+            if llm_info.get('device') == 'cuda' and 'gpu_name' in llm_info:
+                logger.info(f"   GPU: {llm_info['gpu_name']}")
+                logger.info(f"   GPU Memory: {llm_info.get('gpu_memory_allocated_gb', 0):.2f}GB / {llm_info.get('gpu_memory_total_gb', 0):.2f}GB")
+            elif llm_info.get('device') == 'mps':
+                logger.info(f"   Running on Apple Metal (MPS)")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ LLM Service not available: {e}")
+            logger.warning("   System will work without LLM-enhanced responses")
+            self.llm_service = None
+        
+        # Verify GPS Location Service is available for LLM integration
+        if hasattr(self, 'gps_location_service') and self.gps_location_service:
+            logger.info("✅ GPS Location Service available for LLM integration")
+            
+            # Pass LLM service to handlers that can use it
+            if hasattr(self, 'transportation_handler'):
+                self.transportation_handler.llm_service = self.llm_service
+                self.transportation_handler.gps_location_service = self.gps_location_service
+                logger.info("   → TransportationHandler: LLM + GPS enabled")
+            
+            if hasattr(self, 'nearby_locations_handler'):
+                self.nearby_locations_handler.llm_service = self.llm_service
+                self.nearby_locations_handler.gps_location_service = self.gps_location_service
+                logger.info("   → NearbyLocationsHandler: LLM + GPS enabled")
+        else:
+            logger.warning("⚠️ GPS Location Service not available")
+            logger.warning("   LLM responses will not include location context")
+        
+        logger.info("✅ LLM + GPS integration complete")
+        # ==================== END LLM + GPS INTEGRATION ====================
+        
         # System status
         self.system_ready = True
         logger.info("✅ Istanbul Daily Talk AI System initialized successfully!")

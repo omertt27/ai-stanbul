@@ -109,12 +109,29 @@ async def health_check():
     if not ml_service:
         raise HTTPException(status_code=503, detail="ML service not initialized")
     
+    # Get LLM info if available
+    llm_info = {}
+    if ml_service.llm_generator:
+        if hasattr(ml_service.llm_generator, 'model_name'):
+            llm_info = {
+                "model": ml_service.llm_generator.model_name,
+                "device": ml_service.llm_generator.device,
+                "gps_aware": hasattr(ml_service.llm_generator, 'generate_gps_aware_response')
+            }
+        else:
+            llm_info = {
+                "model": "legacy",
+                "device": "unknown",
+                "gps_aware": False
+            }
+    
     return {
         "status": "healthy",
         "components": {
             "intent_classifier": ml_service.intent_classifier is not None,
             "semantic_search": ml_service.semantic_search is not None,
-            "llm_generator": ml_service.llm_generator is not None
+            "llm_generator": ml_service.llm_generator is not None,
+            "llm_info": llm_info if llm_info else None
         }
     }
 

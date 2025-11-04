@@ -417,7 +417,7 @@ class GPSLocationService:
                 base_confidence *= 0.8
         
         # Reduce confidence if there's another district very close
-        if second_closest:
+        if second_closest and closest['distance'] > 0:
             distance_ratio = second_closest['distance'] / closest['distance']
             if distance_ratio < 1.5:  # Very close to another district
                 base_confidence *= 0.7

@@ -1,30 +1,9 @@
 """
-LLM Generator with Q4 Quantization Support
-Supports LLaMA 3.1 8B Q4 for Metal M2 Pro and T    def _detect_best_model(self):
-        """Auto-detect best available LLAMA model"""
-        import os
-        
-        # Priority order: 8B Q4 > 3B > 1B > 8B full > tinyllama (fallback)
-        models = [
-            ("./models/llama-3.1-8b-q4", "LLaMA 3.1 8B Q4 (RECOMMENDED - Quantized)"),
-            ("./models/llama-3.2-3b", "LLaMA 3.2 3B"),
-            ("./models/llama-3.2-1b", "LLaMA 3.2 1B (Fast)"),
-            ("./models/llama-3.1-8b", "LLaMA 3.1 8B (Full Precision)"),
-            ("./models/tinyllama", "TinyLlama (Fallback)")
-        ]
-        
-        for path, name in models:
-            if os.path.exists(path) and os.path.exists(os.path.join(path, "config.json")):
-                print(f"✅ Found: {name}")
-                return path
-        
-        print("⚠️  No LLAMA model found!")
-        print("   Please run: python3 scripts/download_llama_models.py")
-        print("   Recommended: Download LLaMA 3.1 8B Q4 for best quality")
-        raise FileNotFoundError("No LLAMA model available. Run download_llama_models.py first.") detects and uses best available device
+LLM Generator that works on CPU, Metal (M2 Pro), and CUDA (T4 GPU)
+Automatically detects and uses best available device
 Supports: CPU, Metal (MPS), CUDA (T4/A100)
 """
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import os
 
@@ -92,51 +71,13 @@ class LocalLLMGenerator:
         
         print(f"📊 Loading model with dtype: {dtype}")
         
-        # Check if Q4 quantization should be used (CUDA only, for 8B models)
-        use_quantization = (
-            self.device == "cuda" and 
-            "8b" in model_path.lower() and 
-            ("q4" in model_path.lower() or self._should_quantize_8b())
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=dtype,
+            low_cpu_mem_usage=True
         )
         
-        if use_quantization:
-            try:
-                from transformers import BitsAndBytesConfig
-                print("📊 Using 4-bit quantization (reduces memory by 75%)")
-                
-                quantization_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True,
-                    bnb_4bit_quant_type="nf4"
-                )
-                
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    quantization_config=quantization_config,
-                    device_map="auto",
-                    low_cpu_mem_usage=True
-                )
-                print("✅ Model loaded with 4-bit quantization")
-                
-            except ImportError:
-                print("⚠️  bitsandbytes not available, loading without quantization")
-                print("   Install: pip install bitsandbytes")
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    model_path,
-                    torch_dtype=dtype,
-                    low_cpu_mem_usage=True
-                )
-                self.model.to(self.device)
-        else:
-            # Standard loading (Metal, CPU, or smaller models)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                torch_dtype=dtype,
-                low_cpu_mem_usage=True
-            )
-            self.model.to(self.device)
-        
+        self.model.to(self.device)
         self.model.eval()
         
         print(f"✅ LLM loaded on {self.device} ({self.device_type})")
@@ -150,15 +91,8 @@ class LocalLLMGenerator:
         else:
             print(f"📊 Using CPU (consider GPU for faster inference)")
     
-    def _should_quantize_8b(self):
-        """Check if 8B model should be quantized"""
-        # Auto-enable quantization for 8B models on CUDA to save memory
-        return self.device == "cuda"
-    
     def _detect_best_model(self):
         """Auto-detect best available LLAMA model"""
-        import os
-        
         # Priority order: 3B > 1B > 8B (8B is slower) > tinyllama (fallback)
         models = [
             ("./models/llama-3.2-3b", "Llama-3.2-3B (Recommended)"),
@@ -306,3 +240,76 @@ Available Information:
 
 Please provide a helpful, friendly, and ACCURATE response as KAM. Only use facts from the Available Information above. Be conversational, warm, and naturally engaging.
 <|end|>
+<|assistant|>
+"""
+        return prompt
+    
+    def _format_context(self, context_data):
+        """Format context data"""
+        if not context_data:
+            return "No specific data available."
+        
+        if isinstance(context_data, list):
+            items = []
+            for i, item in enumerate(context_data[:5], 1):
+                if isinstance(item, dict):
+                    name = item.get('name', 'Unknown')
+                    desc = item.get('description', '')
+                    location = item.get('location', '')
+                    
+                    # Special formatting for different types
+                    item_type = item.get('type', '')
+                    
+                    if item_type == 'transportation' or item_type == 'metro' or item_type == 'tram' or item_type == 'ferry' or item_type == 'route':
+                        # Transportation: include route and tips
+                        route = item.get('route', '')
+                        tips = item.get('tips', '')
+                        duration = item.get('duration', '')
+                        cost = item.get('cost', item.get('fare', ''))
+                        
+                        parts = [f"{i}. {name}"]
+                        if route:
+                            parts.append(f"Route: {route}")
+                        if desc:
+                            parts.append(f"Details: {desc}")
+                        if tips:
+                            parts.append(f"Tips: {tips}")
+                        if duration:
+                            parts.append(f"Duration: {duration}")
+                        if cost:
+                            parts.append(f"Cost: {cost}")
+                        items.append(" | ".join(parts))
+                    
+                    elif item_type == 'event':
+                        # Events: include date, time, venue
+                        date = item.get('date', '')
+                        time_str = item.get('time', '')
+                        price = item.get('price', '')
+                        
+                        parts = [f"{i}. {name}"]
+                        if location:
+                            parts.append(f"Venue: {location}")
+                        if date:
+                            parts.append(f"Date: {date}")
+                        if time_str:
+                            parts.append(f"Time: {time_str}")
+                        if desc:
+                            parts.append(f"Details: {desc}")
+                        if price:
+                            parts.append(f"Price: {price}")
+                        items.append(" | ".join(parts))
+                    
+                    else:
+                        # Default format (restaurants, attractions, etc.)
+                        if location and desc:
+                            items.append(f"{i}. {name} ({location}): {desc}")
+                        elif desc:
+                            items.append(f"{i}. {name}: {desc}")
+                        elif location:
+                            items.append(f"{i}. {name} ({location})")
+                        else:
+                            items.append(f"{i}. {name}")
+                else:
+                    items.append(f"{i}. {item}")
+            return "\n".join(items)
+        return str(context_data)

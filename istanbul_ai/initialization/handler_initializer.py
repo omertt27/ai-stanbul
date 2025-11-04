@@ -350,18 +350,31 @@ class HandlerInitializer:
             
             # At least one of these services is required
             if gps_route_service or location_database_service:
+                # LLM + GPS integration services
+                llm_service = services.get('llm_service')
+                gps_location_service = services.get('gps_location_service')
+                
                 self.handlers['nearby_locations_response_handler'] = create_nearby_locations_handler(
                     gps_route_service=gps_route_service,
                     location_database_service=location_database_service,
                     neural_processor=neural_processor,
                     user_manager=user_manager,
-                    transport_service=transport_service
+                    transport_service=transport_service,
+                    llm_service=llm_service,  # 🤖 LLM integration
+                    gps_location_service=gps_location_service  # 📍 GPS location integration
                 )
-                logger.info("📍 Nearby Locations Handler initialized successfully!")
+                logger.info(
+                    f"📍 Nearby Locations Handler initialized successfully! "
+                    f"(LLM: {llm_service is not None}, GPSLocation: {gps_location_service is not None})"
+                )
                 self.initialized_count += 1
                 self.initialization_log.append({
                     'handler': 'nearby_locations_response_handler',
-                    'status': 'success'
+                    'status': 'success',
+                    'features': {
+                        'llm_service': llm_service is not None,
+                        'gps_location_service': gps_location_service is not None
+                    }
                 })
             else:
                 logger.warning("Required GPS/location services not available for Nearby Locations Handler")
@@ -390,7 +403,7 @@ class HandlerInitializer:
     
     def _initialize_transportation_handler(self, services: Dict, ml_context_builder: Any,
                                           neural_processor: Any, response_generator: Any):
-        """Initialize Transportation Handler with IBB API, GPS, Transfer Maps, and Bilingual support"""
+        """Initialize Transportation Handler with IBB API, GPS, Transfer Maps, LLM, and Bilingual support"""
         try:
             from istanbul_ai.handlers.transportation_handler import TransportationHandler
             
@@ -398,7 +411,11 @@ class HandlerInitializer:
             transportation_chat = services.get('transportation_chat')
             transport_processor = services.get('transport_processor')
             gps_route_service = services.get('gps_route_service')
-            bilingual_manager = services.get('bilingual_manager')  # 🌐 NEW: Bilingual support
+            bilingual_manager = services.get('bilingual_manager')  # 🌐 Bilingual support
+            
+            # LLM + GPS integration services
+            llm_service = services.get('llm_service')
+            gps_location_service = services.get('gps_location_service')
             
             # Get feature flags
             transfer_map_integration_available = services.get('transfer_map_integration_available', False)
@@ -411,10 +428,17 @@ class HandlerInitializer:
                 gps_route_service=gps_route_service,
                 bilingual_manager=bilingual_manager,  # 🌐 Pass bilingual manager
                 transfer_map_integration_available=transfer_map_integration_available,
-                advanced_transport_available=advanced_transport_available
+                advanced_transport_available=advanced_transport_available,
+                llm_service=llm_service,  # 🤖 LLM integration
+                gps_location_service=gps_location_service  # 📍 GPS location integration
             )
             
-            logger.info(f"🚇 Transportation Handler initialized successfully! (Bilingual: {bilingual_manager is not None})")
+            logger.info(
+                f"🚇 Transportation Handler initialized successfully! "
+                f"(Bilingual: {bilingual_manager is not None}, "
+                f"LLM: {llm_service is not None}, "
+                f"GPSLocation: {gps_location_service is not None})"
+            )
             self.initialized_count += 1
             self.initialization_log.append({
                 'handler': 'transportation_handler',
@@ -425,7 +449,9 @@ class HandlerInitializer:
                     'gps_route_service': gps_route_service is not None,
                     'bilingual_manager': bilingual_manager is not None,  # 🌐 Log bilingual status
                     'transfer_maps': transfer_map_integration_available,
-                    'advanced_transport': advanced_transport_available
+                    'advanced_transport': advanced_transport_available,
+                    'llm_service': llm_service is not None,  # 🤖 Log LLM status
+                    'gps_location_service': gps_location_service is not None  # 📍 Log GPS status
                 }
             })
             

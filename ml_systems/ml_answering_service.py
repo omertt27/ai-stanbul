@@ -483,19 +483,32 @@ class MLAnsweringService:
                 pass
     
     async def _generate_response(self, context: QueryContext) -> str:
-        """Generate natural language response using LLM"""
+        """Generate natural language response using LLM (GPS-aware when available)"""
         if not self.llm_generator:
             # Fallback to template-based response
             return self._template_response(context)
         
         try:
-            # Generate response using LLM
-            # LocalLLMGenerator.generate() expects query and context_data
-            response = self.llm_generator.generate(
-                query=context.query,
-                context_data=context.search_results or context.structured_data,
-                max_tokens=512
-            )
+            # Check if LLM service has GPS-aware methods (new LLMServiceWrapper)
+            has_gps_methods = hasattr(self.llm_generator, 'generate_gps_aware_response')
+            
+            # Use GPS-aware generation if location is provided and service supports it
+            if has_gps_methods and context.user_location:
+                response = self.llm_generator.generate_gps_aware_response(
+                    query=context.query,
+                    user_location=context.user_location,
+                    context_data=context.search_results or context.structured_data,
+                    max_tokens=512
+                )
+                logger.info("  🌍 Generated GPS-aware response")
+            else:
+                # Use standard generation (backward compatible with legacy LLM)
+                response = self.llm_generator.generate(
+                    query=context.query,
+                    context_data=context.search_results or context.structured_data,
+                    max_tokens=512
+                )
+                logger.info("  💬 Generated standard response")
             
             return response
             
@@ -525,6 +538,34 @@ class MLAnsweringService:
         
         return "\n".join(prompt_parts)
     
+    async def _generate_map_data(self, context: QueryContext, intent: Intent) -> Optional[Dict[str, Any]]:
+        """
+        Generate map visualization data for transportation/routing queries
+        
+        Args:
+            context: Query context with search results
+            intent: Detected intent
+            
+        Returns:
+            Map data dict or None if not applicable
+        """
+        # Only generate map data for relevant intents
+        if intent not in [Intent.TRANSPORTATION_HELP, Intent.ROUTE_PLANNING]:
+            return None
+        
+        # Check if we have location data
+        if not context.user_location:
+            return None
+        
+        # Return basic map data structure
+        # This can be extended to include actual route data from OSRM
+        return {
+            "center": context.user_location,
+            "markers": [],
+            "routes": [],
+            "intent": intent.value
+        }
+    
     def _template_response(self, context: QueryContext) -> str:
         """Fallback template-based response"""
         if context.intent == Intent.RESTAURANT_RECOMMENDATION:
@@ -549,7 +590,7 @@ async def create_ml_service(enable_llm: bool = False, enable_neural: bool = True
     Factory function to create and initialize ML service
     
     Args:
-        enable_llm: Whether to load the LLM (slower, ~18s on CPU)
+        enable_llm: Whether to load the LLM (model-agnostic: TinyLlama/LLaMA 3.2 3B)
         enable_neural: Whether to load neural intent classifier (recommended)
         
     Returns:
@@ -582,15 +623,24 @@ async def create_ml_service(enable_llm: bool = False, enable_neural: bool = True
             logger.warning(f"  ⚠️ Neural classifier not loaded: {e}")
             logger.info("  → Will use enhanced keyword-based classification")
     
-    # Load LLM generator (optional)
+    # Load LLM generator with model-agnostic service (TinyLlama/LLaMA 3.2 3B)
     llm_generator = None
     if enable_llm:
         try:
-            from ml_systems.local_llm_generator import LocalLLMGenerator
-            llm_generator = LocalLLMGenerator()
-            logger.info("  ✅ LLM generator loaded")
-        except Exception as e:
-            logger.error(f"  ⚠️ LLM not loaded: {e}")
+            # Try new model-agnostic LLM service first (TinyLlama/LLaMA 3.2 3B)
+            from ml_systems.llm_service_wrapper import LLMServiceWrapper
+            llm_generator = LLMServiceWrapper()
+            logger.info("  ✅ Model-agnostic LLM service loaded")
+            logger.info(f"  📱 Using model: {llm_generator.model_name} on {llm_generator.device}")
+        except Exception as llm_error:
+            logger.warning(f"  ⚠️ Model-agnostic LLM not loaded: {llm_error}")
+            # Fallback to legacy LLM generator
+            try:
+                from ml_systems.local_llm_generator import LocalLLMGenerator
+                llm_generator = LocalLLMGenerator()
+                logger.info("  ✅ Legacy LLM generator loaded (fallback)")
+            except Exception as legacy_error:
+                logger.error(f"  ❌ LLM not loaded: {legacy_error}")
     
     service = MLAnsweringService(
         intent_classifier=intent_classifier,

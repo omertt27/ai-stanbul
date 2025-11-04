@@ -45,7 +45,9 @@ class TransportationHandler:
         bilingual_manager=None,
         map_integration_service=None,
         transfer_map_integration_available: bool = False,
-        advanced_transport_available: bool = False
+        advanced_transport_available: bool = False,
+        llm_service=None,
+        gps_location_service=None
     ):
         """
         Initialize transportation handler with required services.
@@ -58,12 +60,18 @@ class TransportationHandler:
             map_integration_service: MapIntegrationService for map visualization
             transfer_map_integration_available: Flag for transfer map feature
             advanced_transport_available: Flag for advanced transport feature
+            llm_service: Optional LLM service for GPS-aware transportation advice
+            gps_location_service: GPS location service for district detection
         """
         self.transportation_chat = transportation_chat
         self.transport_processor = transport_processor
         self.gps_route_service = gps_route_service
         self.bilingual_manager = bilingual_manager
         self.map_integration_service = map_integration_service
+        
+        # LLM + GPS integration
+        self.llm_service = llm_service
+        self.gps_location_service = gps_location_service
         
         # Feature availability flags
         self.transfer_map_integration_available = transfer_map_integration_available
@@ -75,6 +83,8 @@ class TransportationHandler:
         self.has_gps_service = gps_route_service is not None
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
+        self.has_llm = llm_service is not None
+        self.has_gps_location = gps_location_service is not None
         
         logger.info(
             f"Transportation Handler initialized - "
@@ -83,7 +93,9 @@ class TransportationHandler:
             f"GPS: {self.has_gps_service}, "
             f"Bilingual: {self.has_bilingual}, "
             f"Maps: {self.has_maps}, "
-            f"TransferMap: {transfer_map_integration_available}"
+            f"TransferMap: {transfer_map_integration_available}, "
+            f"LLM: {self.has_llm}, "
+            f"GPSLocation: {self.has_gps_location}"
         )
     
     def _get_language(self, context) -> str:
@@ -324,6 +336,37 @@ class TransportationHandler:
                     response_text = result.get('response_text', '')
                     map_data = result.get('map_data', {})
                     
+                    # ==================== LLM ENHANCEMENT ====================
+                    # Build GPS context and enhance with LLM if available
+                    gps_context = self._build_gps_context(user_profile)
+                    
+                    if self.has_llm and gps_context.get('has_gps'):
+                        try:
+                            # Prepare route data for LLM
+                            route_data = {
+                                'duration': result.get('total_time', 0),
+                                'distance': result.get('distance', 0),
+                                'transfer_count': result.get('transfer_count', 0),
+                                'steps': result.get('detailed_route', []),
+                                'alternatives': result.get('alternatives', [])
+                            }
+                            
+                            # Get LLM-enhanced advice
+                            llm_advice = self._enhance_with_llm(
+                                route_data=route_data,
+                                gps_context=gps_context,
+                                destination=destination or "your destination",
+                                user_preferences={}
+                            )
+                            
+                            if llm_advice:
+                                # Prepend LLM advice to existing response
+                                response_text = f"{llm_advice}\n\n{response_text}"
+                                logger.info("✨ Response enhanced with LLM advice")
+                        except Exception as e:
+                            logger.warning(f"LLM enhancement failed, using original response: {e}")
+                    # ==================== END LLM ENHANCEMENT ====================
+                    
                     if return_structured:
                         return {
                             'response': response_text,
@@ -333,6 +376,7 @@ class TransportationHandler:
                             'fare_info': result.get('fare_info'),
                             'transfer_count': result.get('transfer_count', 0),
                             'total_time': result.get('total_time', 0),
+                            'gps_context': gps_context,  # Include GPS context
                             'handler': 'transportation_handler',
                             'success': True
                         }
@@ -428,10 +472,45 @@ class TransportationHandler:
                     return gps_prompt
         
         try:
-            logger.info("�🗺️ Delegating to GPS Route Service")
+            logger.info("🗺️ Delegating to GPS Route Service")
             response = self.gps_route_service.generate_route_response(
                 message, entities, user_profile, context
             )
+            
+            # ==================== LLM ENHANCEMENT ====================
+            # Build GPS context and enhance response with LLM if available
+            gps_context = self._build_gps_context(user_profile)
+            
+            if self.has_llm and gps_context.get('has_gps'):
+                try:
+                    # Extract destination from entities or message
+                    destination = None
+                    if 'location' in entities and entities['location']:
+                        locations = entities['location']
+                        destination = locations[-1] if locations else None
+                    
+                    if destination:
+                        # Create simplified route data (GPS service response is text)
+                        route_data = {
+                            'text_response': response,
+                            'has_route': True
+                        }
+                        
+                        # Get LLM-enhanced advice
+                        llm_advice = self._enhance_with_llm(
+                            route_data=route_data,
+                            gps_context=gps_context,
+                            destination=destination,
+                            user_preferences={}
+                        )
+                        
+                        if llm_advice:
+                            # Prepend LLM advice to GPS route response
+                            response = f"{llm_advice}\n\n{response}"
+                            logger.info("✨ GPS navigation enhanced with LLM advice")
+                except Exception as e:
+                    logger.warning(f"LLM enhancement failed, using original response: {e}")
+            # ==================== END LLM ENHANCEMENT ====================
             
             if return_structured:
                 return {
@@ -439,7 +518,8 @@ class TransportationHandler:
                     'handler': 'transportation_handler',
                     'method': 'gps_navigation',
                     'success': True,
-                    'gps_location': user_gps_location
+                    'gps_location': user_gps_location,
+                    'gps_context': gps_context  # Include GPS context
                 }
             else:
                 return response
@@ -583,6 +663,100 @@ class TransportationHandler:
                 context['budget_range'] = user_profile.budget_range
         
         return context
+    
+    def _build_gps_context(self, user_profile) -> Dict[str, Any]:
+        """
+        Build GPS context from user profile for LLM enhancement.
+        
+        Args:
+            user_profile: User profile with optional GPS location
+            
+        Returns:
+            Dictionary with GPS context:
+            {
+                'gps_location': (lat, lon) or None,
+                'district': str or None,
+                'confidence': float,
+                'has_gps': bool
+            }
+        """
+        gps_context = {
+            'gps_location': None,
+            'district': None,
+            'confidence': 0.0,
+            'has_gps': False
+        }
+        
+        # Extract GPS from user profile
+        if user_profile and hasattr(user_profile, 'current_location'):
+            gps_location = user_profile.current_location
+            if gps_location and isinstance(gps_location, tuple) and len(gps_location) == 2:
+                gps_context['gps_location'] = gps_location
+                gps_context['has_gps'] = True
+                
+                # Detect district using GPS location service
+                if self.has_gps_location:
+                    try:
+                        district_info = self.gps_location_service.get_district_from_coordinates(
+                            gps_location[0], gps_location[1]
+                        )
+                        if district_info:
+                            gps_context['district'] = district_info.get('district')
+                            gps_context['confidence'] = district_info.get('confidence', 0.0)
+                            logger.info(
+                                f"📍 Detected district: {gps_context['district']} "
+                                f"(confidence: {gps_context['confidence']:.2f})"
+                            )
+                    except Exception as e:
+                        logger.warning(f"District detection failed: {e}")
+        
+        return gps_context
+    
+    def _enhance_with_llm(
+        self,
+        route_data: Dict[str, Any],
+        gps_context: Dict[str, Any],
+        destination: str,
+        user_preferences: Optional[Dict] = None
+    ) -> str:
+        """
+        Enhance transportation response with LLM-generated advice.
+        
+        Args:
+            route_data: Route information (duration, distance, steps)
+            gps_context: GPS context from _build_gps_context
+            destination: Destination name
+            user_preferences: Optional user preferences
+            
+        Returns:
+            LLM-generated transportation advice (concise, Google Maps-style)
+        """
+        if not self.has_llm:
+            return ""
+        
+        try:
+            # Prepare context for LLM
+            origin_district = gps_context.get('district', 'your location')
+            origin_coords = gps_context.get('gps_location')
+            
+            # Build user preferences (time of day, budget, accessibility, etc.)
+            prefs = user_preferences or {}
+            
+            # Get LLM advice
+            llm_advice = self.llm_service.get_transportation_advice(
+                origin=origin_coords or origin_district,
+                destination=destination,
+                route_data=route_data,
+                user_preferences=prefs,
+                gps_context=gps_context
+            )
+            
+            logger.info(f"✨ LLM transportation advice generated ({len(llm_advice)} chars)")
+            return llm_advice
+            
+        except Exception as e:
+            logger.warning(f"LLM enhancement failed: {e}")
+            return ""
     
     def _get_fallback_response(
         self,

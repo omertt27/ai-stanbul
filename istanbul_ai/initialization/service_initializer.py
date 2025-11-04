@@ -78,6 +78,10 @@ class ServiceInitializer:
         self.services['personalization'] = self._init_personalization_system()
         self.services['feedback_loop'] = self._init_feedback_loop()
         
+        # GPS and LLM integration
+        self.services['gps_location_service'] = self._init_gps_location_service()
+        self.services['llm_service'] = self._init_llm_service()
+        
         logger.info(f"✅ Service initialization complete: {self._get_success_count()}/{len(self.services)} services initialized")
         
         return self.services
@@ -399,6 +403,32 @@ class ServiceInitializer:
             return service
         except Exception as e:
             self._record_error('feedback_loop', e)
+            return None
+    
+    # ============================================================================
+    # GPS AND LLM INTEGRATION SERVICES
+    # ============================================================================
+    
+    def _init_gps_location_service(self) -> Optional[Any]:
+        """Initialize GPS location service for district detection"""
+        try:
+            from istanbul_ai.services.gps_location_service import GPSLocationService
+            service = GPSLocationService()
+            self._record_success('gps_location_service', "📍 GPS Location Service")
+            return service
+        except Exception as e:
+            self._record_error('gps_location_service', e, warning=True)
+            return None
+    
+    def _init_llm_service(self) -> Optional[Any]:
+        """Initialize LLM service (TinyLlama or LLaMA 3.2 3B)"""
+        try:
+            from ml_systems.llm_service_wrapper import LLMServiceWrapper
+            service = LLMServiceWrapper()
+            self._record_success('llm_service', f"🤖 LLM Service ({service.model_name} on {service.device})")
+            return service
+        except Exception as e:
+            self._record_error('llm_service', e, warning=True)
             return None
     
     # ============================================================================

@@ -48,7 +48,8 @@ class NearbyLocationsHandler:
     """
     
     def __init__(self, gps_route_service=None, location_database_service=None,
-                 neural_processor=None, user_manager=None, transport_service=None):
+                 neural_processor=None, user_manager=None, transport_service=None,
+                 llm_service=None, gps_location_service=None):
         """
         Initialize the Nearby Locations Handler.
         
@@ -58,12 +59,18 @@ class NearbyLocationsHandler:
             neural_processor: Optional ML model for semantic understanding
             user_manager: Optional user profile manager
             transport_service: Optional transport integration
+            llm_service: Optional LLM service for GPS-aware POI recommendations
+            gps_location_service: GPS location service for district detection
         """
         self.gps_route_service = gps_route_service
         self.location_database_service = location_database_service
         self.neural_processor = neural_processor
         self.user_manager = user_manager
         self.transport_service = transport_service
+        
+        # LLM + GPS integration
+        self.llm_service = llm_service
+        self.gps_location_service = gps_location_service
         
         # Initialize accurate museum database
         if MUSEUM_DB_AVAILABLE:
@@ -87,7 +94,14 @@ class NearbyLocationsHandler:
         else:
             self.map_engine = None
         
-        logger.info("✅ NearbyLocationsHandler initialized")
+        # Feature flags
+        self.has_llm = llm_service is not None
+        self.has_gps_location = gps_location_service is not None
+        
+        logger.info(
+            f"✅ NearbyLocationsHandler initialized "
+            f"(LLM: {self.has_llm}, GPSLocation: {self.has_gps_location})"
+        )
     
     def can_handle(self, intent: str, entities: Dict, context: Any) -> bool:
         """
@@ -473,10 +487,58 @@ class NearbyLocationsHandler:
     ) -> Any:
         """Generate formatted response with nearby locations and map visualization."""
         
+        # ==================== LLM ENHANCEMENT ====================
+        # Build GPS context and get LLM recommendation if available
+        gps_context = {
+            'gps_location': user_gps,
+            'has_gps': True
+        }
+        
+        # Try to detect district
+        if self.has_gps_location:
+            try:
+                district_info = self.gps_location_service.get_district_from_coordinates(
+                    user_gps[0], user_gps[1]
+                )
+                if district_info:
+                    gps_context['district'] = district_info.get('district')
+                    gps_context['confidence'] = district_info.get('confidence', 0.0)
+            except Exception as e:
+                logger.warning(f"District detection failed: {e}")
+        
+        # Get LLM recommendation
+        llm_recommendation = None
+        if self.has_llm and locations:
+            try:
+                search_criteria = {
+                    'radius_km': radius_km,
+                    'types': location_types,
+                    'count': len(locations)
+                }
+                
+                llm_recommendation = self._enhance_with_llm(
+                    locations=locations,
+                    gps_context=gps_context,
+                    search_criteria=search_criteria,
+                    user_preferences={}
+                )
+                
+                if llm_recommendation:
+                    logger.info(f"✨ LLM recommendation generated ({len(llm_recommendation)} chars)")
+            except Exception as e:
+                logger.warning(f"LLM enhancement failed: {e}")
+        # ==================== END LLM ENHANCEMENT ====================
+        
         # Build text response
-        response_parts = [
+        response_parts = []
+        
+        # Add LLM recommendation at the top if available
+        if llm_recommendation:
+            response_parts.append(f"✨ {llm_recommendation}\n")
+        
+        response_parts.append(
             f"📍 Here are {len(locations)} locations near you (within {radius_km}km):\n"
-        ]
+        )
         
         for i, location in enumerate(locations, 1):
             name = location.get('name', 'Unknown')
@@ -535,6 +597,8 @@ class NearbyLocationsHandler:
                 'radius_km': radius_km,
                 'count': len(locations),
                 'map_data': map_data,
+                'gps_context': gps_context,  # Include GPS context
+                'llm_enhanced': llm_recommendation is not None,  # Flag for LLM enhancement
                 'visualization_available': map_data.get('html') is not None
             }
         
@@ -674,6 +738,86 @@ class NearbyLocationsHandler:
         else:
             return 12  # City area
     
+    def _build_gps_context(self, user_profile) -> Dict[str, Any]:
+        """
+        Build GPS context from user profile for LLM enhancement.
+        
+        Args:
+            user_profile: User profile with optional GPS location
+            
+        Returns:
+            Dictionary with GPS context
+        """
+        gps_context = {
+            'gps_location': None,
+            'district': None,
+            'confidence': 0.0,
+            'has_gps': False
+        }
+        
+        # Extract GPS from user profile
+        if user_profile and hasattr(user_profile, 'current_location'):
+            gps_location = user_profile.current_location
+            if gps_location and isinstance(gps_location, tuple) and len(gps_location) == 2:
+                gps_context['gps_location'] = gps_location
+                gps_context['has_gps'] = True
+                
+                # Detect district using GPS location service
+                if self.has_gps_location:
+                    try:
+                        district_info = self.gps_location_service.get_district_from_coordinates(
+                            gps_location[0], gps_location[1]
+                        )
+                        if district_info:
+                            gps_context['district'] = district_info.get('district')
+                            gps_context['confidence'] = district_info.get('confidence', 0.0)
+                            logger.info(
+                                f"📍 Detected district: {gps_context['district']} "
+                                f"(confidence: {gps_context['confidence']:.2f})"
+                            )
+                    except Exception as e:
+                        logger.warning(f"District detection failed: {e}")
+        
+        return gps_context
+    
+    def _enhance_with_llm(
+        self,
+        locations: List[Dict[str, Any]],
+        gps_context: Dict[str, Any],
+        search_criteria: Dict[str, Any],
+        user_preferences: Optional[Dict] = None
+    ) -> str:
+        """
+        Enhance nearby locations response with LLM-generated recommendations.
+        
+        Args:
+            locations: List of nearby POIs
+            gps_context: GPS context from _build_gps_context
+            search_criteria: Search parameters (radius, types, etc.)
+            user_preferences: Optional user preferences
+            
+        Returns:
+            LLM-generated POI recommendation (concise, contextual)
+        """
+        if not self.has_llm:
+            return ""
+        
+        try:
+            # Get LLM recommendation
+            llm_advice = self.llm_service.get_poi_recommendation(
+                locations=locations,
+                gps_context=gps_context,
+                search_criteria=search_criteria,
+                user_preferences=user_preferences or {}
+            )
+            
+            logger.info(f"✨ LLM POI recommendation generated ({len(llm_advice)} chars)")
+            return llm_advice
+            
+        except Exception as e:
+            logger.warning(f"LLM enhancement failed: {e}")
+            return ""
+    
     def _generate_no_gps_response(self, return_structured: bool) -> Any:
         """Generate response when GPS coordinates are not available."""
         response_text = (
@@ -753,7 +897,9 @@ def create_nearby_locations_handler(
     location_database_service=None,
     neural_processor=None,
     user_manager=None,
-    transport_service=None
+    transport_service=None,
+    llm_service=None,
+    gps_location_service=None
 ):
     """
     Factory function to create a nearby locations response handler.
@@ -766,6 +912,8 @@ def create_nearby_locations_handler(
         neural_processor: Optional ML processor
         user_manager: Optional user manager
         transport_service: Optional transport service
+        llm_service: Optional LLM service for GPS-aware POI recommendations
+        gps_location_service: GPS location service for district detection
         
     Returns:
         Callable handler function
@@ -775,7 +923,9 @@ def create_nearby_locations_handler(
         location_database_service=location_database_service,
         neural_processor=neural_processor,
         user_manager=user_manager,
-        transport_service=transport_service
+        transport_service=transport_service,
+        llm_service=llm_service,
+        gps_location_service=gps_location_service
     )
     
     # Return a closure that matches the expected handler signature

@@ -32,13 +32,15 @@ python3 scripts/download_llama_models.py && python3 scripts/test_llm_metal.py
 **Note:** Token only needed ONCE to download model. After that, 100% local!
 
 ### Installation:
+
+#### For Metal M2 Pro (Mac):
 ```bash
-# 1. Install dependencies
-pip install bitsandbytes accelerate
+# 1. Verify PyTorch with Metal support
+python3 -c "import torch; print('Metal MPS:', torch.backends.mps.is_available())"
 
 # 2. Download model
 python3 scripts/download_llama_models.py
-# → Select option 1 (LLaMA 3.1 8B Q4)
+# → Select option 1 (LLaMA 3.1 8B) or option 2 (LLaMA 3.2 3B)
 # → Enter HuggingFace token
 
 # 3. Test
@@ -48,6 +50,32 @@ python3 scripts/test_llm_metal.py
 python3 ml_api_service.py         # Terminal 1
 cd backend && python3 main.py     # Terminal 2
 ```
+
+#### For T4 GPU (CUDA):
+```bash
+# 1. Install quantization dependencies
+pip install bitsandbytes accelerate transformers torch
+
+# 2. Verify CUDA
+python3 -c "import torch; print('CUDA:', torch.cuda.is_available())"
+
+# 3. Download model
+python3 scripts/download_llama_models.py
+# → Select option 1 (LLaMA 3.1 8B Q4)
+# → Enter HuggingFace token
+
+# 4. Test
+python3 scripts/test_llm_metal.py
+
+# 5. Start services
+python3 ml_api_service.py         # Terminal 1
+cd backend && python3 main.py     # Terminal 2
+```
+
+**Note on Quantization:**
+- **T4 GPU (CUDA):** Q4 quantization via `bitsandbytes` reduces 16GB → 4-5GB
+- **Metal M2 Pro:** Uses FP32/FP16 (no Q4 in PyTorch/MPS, use full models)
+- **Alternative:** Use `llama.cpp` with GGUF/GGML for native quantized inference on both
 
 ---
 
@@ -114,17 +142,18 @@ curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '
 ### Metal M2 Pro (Development):
 ```
 Device: mps (Metal (Apple Silicon))
-Memory: 6-8GB unified RAM
-Speed: 5-8s per response
-Quantization: FP32 (Metal doesn't support Q4)
+Memory: 6-16GB unified RAM (depending on model)
+Speed: 5-8s per response (LLaMA 3.1 8B FP16)
+Quantization: FP16/FP32 (PyTorch/MPS doesn't support Q4)
+Note: Use llama.cpp/GGML for quantized inference on Metal
 ```
 
 ### T4 GPU (Production):
 ```
 Device: cuda (NVIDIA GPU)
-Memory: 5GB VRAM (with Q4)
-Speed: 3-5s per response
-Quantization: ✅ Q4 (4-bit)
+Memory: 4-5GB VRAM (with Q4), 16GB VRAM (full FP16)
+Speed: 3-5s per response (Q4), 2-4s (FP16)
+Quantization: ✅ Q4 (4-bit via bitsandbytes)
 ```
 
 ### CPU (Fallback):
