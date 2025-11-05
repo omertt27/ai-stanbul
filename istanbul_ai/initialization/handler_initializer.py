@@ -16,7 +16,7 @@ class HandlerInitializer:
     """
     Initializes ML-Enhanced handlers for the Istanbul AI system.
     
-    Handles the initialization of 10 ML handlers:
+    Handles the initialization of 12 ML handlers:
     1. ML-Enhanced Event Handler
     2. ML-Enhanced Hidden Gems Handler
     3. ML-Enhanced Weather Handler
@@ -26,6 +26,8 @@ class HandlerInitializer:
     7. Transportation Handler (IBB API + GPS + Transfer Maps)
     8. Restaurant Handler
     9. Attraction Handler
+    10. ML-Enhanced Local Food Handler
+    11. ML-Enhanced Emergency & Safety Handler
     
     Each handler requires:
     - ML Context Builder
@@ -39,7 +41,7 @@ class HandlerInitializer:
         self.handlers = {}
         self.initialization_log = []
         self.initialized_count = 0
-        self.total_handlers = 10  # Updated: added restaurant_handler + attraction_handler
+        self.total_handlers = 12  # Updated: added local_food_handler + emergency_safety_handler
         
     def initialize_all_handlers(self, services: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -77,6 +79,11 @@ class HandlerInitializer:
             return self.handlers
         
         # Initialize each handler
+        # PRIORITY 1: Emergency & Safety (ALWAYS first)
+        self._initialize_emergency_safety_handler(services, ml_context_builder, neural_processor, response_generator)
+        # PRIORITY 2: Local Food (Second priority)
+        self._initialize_local_food_handler(services, ml_context_builder, neural_processor, response_generator)
+        # PRIORITY 3+: Existing handlers
         self._initialize_restaurant_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_attraction_handler(services, ml_context_builder, neural_processor, response_generator)
         self._initialize_event_handler(services, ml_context_builder, neural_processor, response_generator)
@@ -403,7 +410,7 @@ class HandlerInitializer:
     
     def _initialize_transportation_handler(self, services: Dict, ml_context_builder: Any,
                                           neural_processor: Any, response_generator: Any):
-        """Initialize Transportation Handler with IBB API, GPS, Transfer Maps, LLM, and Bilingual support"""
+        """Initialize Transportation Handler with IBB API, GPS, Transfer Maps, LLM, RAG, Bilingual, and Multilingual support"""
         try:
             from istanbul_ai.handlers.transportation_handler import TransportationHandler
             
@@ -411,9 +418,18 @@ class HandlerInitializer:
             transportation_chat = services.get('transportation_chat')
             transport_processor = services.get('transport_processor')
             gps_route_service = services.get('gps_route_service')
-            bilingual_manager = services.get('bilingual_manager')  # 🌐 Bilingual support
+            bilingual_manager = services.get('bilingual_manager')  # 🌐 Bilingual support (EN/TR)
             
-            # LLM + GPS + Weather + Hidden Gems integration services
+            # Initialize MultilingualManager for 9-language support
+            multilingual_manager = None
+            try:
+                from ml_systems.multilingual_manager import MultilingualManager
+                multilingual_manager = MultilingualManager()
+                logger.info("🌐 MultilingualManager initialized (9 languages: EN/TR/AR/RU/DE/FR/ES/ZH/JA)")
+            except Exception as e:
+                logger.warning(f"🌐 MultilingualManager not available: {e}")
+            
+            # LLM + GPS + Weather + Hidden Gems + RAG integration services
             llm_service = services.get('llm_service')
             gps_location_service = services.get('gps_location_service')
             weather_service = services.get('weather_service')
@@ -427,6 +443,20 @@ class HandlerInitializer:
             except Exception as e:
                 logger.warning(f"💎 Hidden Gems Context Service not available: {e}")
             
+            # Initialize RAG Vector Service
+            rag_service = None
+            try:
+                from ml_systems.rag_vector_service import get_rag_service
+                rag_service = get_rag_service(rebuild=False)
+                if rag_service and rag_service.available:
+                    logger.info("🤖 RAG Vector Service initialized for transportation")
+                else:
+                    logger.warning("🤖 RAG Vector Service not available")
+                    rag_service = None
+            except Exception as e:
+                logger.warning(f"🤖 RAG Vector Service initialization failed: {e}")
+                rag_service = None
+            
             # Get feature flags
             transfer_map_integration_available = services.get('transfer_map_integration_available', False)
             advanced_transport_available = services.get('advanced_transport_available', False)
@@ -436,22 +466,26 @@ class HandlerInitializer:
                 transportation_chat=transportation_chat,
                 transport_processor=transport_processor,
                 gps_route_service=gps_route_service,
-                bilingual_manager=bilingual_manager,  # 🌐 Pass bilingual manager
+                bilingual_manager=bilingual_manager,  # 🌐 Pass bilingual manager (EN/TR)
+                multilingual_manager=multilingual_manager,  # 🌐 Pass multilingual manager (9 languages)
                 transfer_map_integration_available=transfer_map_integration_available,
                 advanced_transport_available=advanced_transport_available,
                 llm_service=llm_service,  # 🤖 LLM integration
                 gps_location_service=gps_location_service,  # 📍 GPS location integration
                 weather_service=weather_service,  # 🌤️ Weather integration
-                hidden_gems_context_service=hidden_gems_context_service  # 💎 Hidden gems integration
+                hidden_gems_context_service=hidden_gems_context_service,  # 💎 Hidden gems integration
+                rag_service=rag_service  # 🤖 RAG integration
             )
             
             logger.info(
                 f"🚇 Transportation Handler initialized successfully! "
                 f"(Bilingual: {bilingual_manager is not None}, "
+                f"Multilingual: {multilingual_manager is not None}, "
                 f"LLM: {llm_service is not None}, "
                 f"GPSLocation: {gps_location_service is not None}, "
                 f"Weather: {weather_service is not None}, "
-                f"HiddenGems: {hidden_gems_context_service is not None})"
+                f"HiddenGems: {hidden_gems_context_service is not None}, "
+                f"RAG: {rag_service is not None})"
             )
             self.initialized_count += 1
             self.initialization_log.append({
@@ -461,13 +495,15 @@ class HandlerInitializer:
                     'transportation_chat': transportation_chat is not None,
                     'transport_processor': transport_processor is not None,
                     'gps_route_service': gps_route_service is not None,
-                    'bilingual_manager': bilingual_manager is not None,  # 🌐 Log bilingual status
+                    'bilingual_manager': bilingual_manager is not None,  # 🌐 Log bilingual status (EN/TR)
+                    'multilingual_manager': multilingual_manager is not None,  # 🌐 Log multilingual status (9 languages)
                     'transfer_maps': transfer_map_integration_available,
                     'advanced_transport': advanced_transport_available,
                     'llm_service': llm_service is not None,  # 🤖 Log LLM status
                     'gps_location_service': gps_location_service is not None,  # 📍 Log GPS status
                     'weather_service': weather_service is not None,  # 🌤️ Log weather status
-                    'hidden_gems_context_service': hidden_gems_context_service is not None  # 💎 Log hidden gems status
+                    'hidden_gems_context_service': hidden_gems_context_service is not None,  # 💎 Log hidden gems status
+                    'rag_service': rag_service is not None  # 🤖 Log RAG status
                 }
             })
             
@@ -593,9 +629,108 @@ class HandlerInitializer:
                 'error': str(e)
             })
     
+    def _initialize_local_food_handler(self, services: Dict, ml_context_builder: Any,
+                                       neural_processor: Any, response_generator: Any):
+        """Initialize ML-Enhanced Local Food Handler with Bilingual support"""
+        try:
+            from istanbul_ai.handlers.local_food_handler import LocalFoodHandler
+            
+            # Get required services
+            local_food_service = services.get('local_food_service') or response_generator  # Use response_generator as fallback
+            bilingual_manager = services.get('bilingual_manager')
+            
+            if neural_processor and response_generator:
+                self.handlers['ml_local_food_handler'] = LocalFoodHandler(
+                    neural_processor=neural_processor,
+                    local_food_service=local_food_service,
+                    response_generator=response_generator,
+                    bilingual_manager=bilingual_manager
+                )
+                logger.info(f"🍽️ ML-Enhanced Local Food Handler initialized successfully! (Bilingual: {bilingual_manager is not None})")
+                self.initialized_count += 1
+                self.initialization_log.append({
+                    'handler': 'ml_local_food_handler',
+                    'status': 'success',
+                    'bilingual': bilingual_manager is not None
+                })
+            else:
+                logger.warning("Required dependencies not available for ML Local Food Handler")
+                self.handlers['ml_local_food_handler'] = None
+                self.initialization_log.append({
+                    'handler': 'ml_local_food_handler',
+                    'status': 'skipped',
+                    'reason': 'missing_dependencies'
+                })
+        except ImportError as e:
+            logger.warning(f"ML Local Food Handler not available: {e}")
+            self.handlers['ml_local_food_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_local_food_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Local Food Handler: {e}")
+            self.handlers['ml_local_food_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_local_food_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
+    def _initialize_emergency_safety_handler(self, services: Dict, ml_context_builder: Any,
+                                            neural_processor: Any, response_generator: Any):
+        """Initialize ML-Enhanced Emergency & Safety Handler"""
+        try:
+            from istanbul_ai.handlers.emergency_safety_handler import EmergencySafetyHandler
+            
+            # Get required services
+            emergency_service = services.get('emergency_service') or response_generator  # Use response_generator as fallback
+            safety_service = services.get('safety_service') or response_generator  # Use response_generator as fallback
+            
+            if neural_processor and response_generator:
+                self.handlers['ml_emergency_safety_handler'] = EmergencySafetyHandler(
+                    neural_processor=neural_processor,
+                    emergency_service=emergency_service,
+                    safety_service=safety_service,
+                    response_generator=response_generator
+                )
+                logger.info(f"🚨 ML-Enhanced Emergency & Safety Handler initialized successfully!")
+                self.initialized_count += 1
+                self.initialization_log.append({
+                    'handler': 'ml_emergency_safety_handler',
+                    'status': 'success'
+                })
+            else:
+                logger.warning("Required dependencies not available for ML Emergency & Safety Handler")
+                self.handlers['ml_emergency_safety_handler'] = None
+                self.initialization_log.append({
+                    'handler': 'ml_emergency_safety_handler',
+                    'status': 'skipped',
+                    'reason': 'missing_dependencies'
+                })
+        except ImportError as e:
+            logger.warning(f"ML Emergency & Safety Handler not available: {e}")
+            self.handlers['ml_emergency_safety_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_emergency_safety_handler',
+                'status': 'skipped',
+                'reason': 'import_error'
+            })
+        except Exception as e:
+            logger.error(f"Failed to initialize ML-Enhanced Emergency & Safety Handler: {e}")
+            self.handlers['ml_emergency_safety_handler'] = None
+            self.initialization_log.append({
+                'handler': 'ml_emergency_safety_handler',
+                'status': 'failed',
+                'error': str(e)
+            })
+    
     def _initialize_all_to_none(self):
         """Set all handlers to None when base dependencies are missing"""
         handler_names = [
+            'emergency_safety_handler',
+            'local_food_handler',
             'ml_event_handler',
             'ml_hidden_gems_handler',
             'ml_weather_handler',

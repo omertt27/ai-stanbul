@@ -26,6 +26,8 @@ class ResponseRouter:
             neural_ranker: Optional NeuralResponseRanker for semantic ranking
         """
         self.ml_handler_priority = [
+            'emergency_safety_handler',      # PRIORITY 1: Emergency & Safety
+            'local_food_handler',             # PRIORITY 2: Local Food
             'ml_restaurant_handler',
             'ml_attraction_handler',
             'ml_event_handler',
@@ -77,6 +79,32 @@ class ResponseRouter:
         language = self._ensure_language_context(context, user_profile)
         if language:
             logger.debug(f"🌐 Routing with language: {language}")
+        
+        # PRIORITY CHECK 1: Emergency & Safety queries (ALWAYS check first)
+        emergency_handler = handlers.get('emergency_safety_handler')
+        if emergency_handler and hasattr(emergency_handler, 'can_handle'):
+            try:
+                if emergency_handler.can_handle(message, entities):
+                    logger.info("🚨 Routing to Emergency & Safety Handler (priority override)")
+                    return self._route_emergency_safety_query(
+                        message, entities, user_profile, context, handlers,
+                        neural_insights, return_structured
+                    )
+            except Exception as e:
+                logger.warning(f"Emergency handler can_handle check failed: {e}")
+        
+        # PRIORITY CHECK 2: Local Food queries (check before regular restaurants)
+        local_food_handler = handlers.get('local_food_handler')
+        if local_food_handler and hasattr(local_food_handler, 'can_handle'):
+            try:
+                if local_food_handler.can_handle(message, entities):
+                    logger.info("🥙 Routing to Local Food Handler (priority override)")
+                    return self._route_local_food_query(
+                        message, entities, user_profile, context, handlers,
+                        neural_insights, return_structured
+                    )
+            except Exception as e:
+                logger.warning(f"Local food handler can_handle check failed: {e}")
         
         # Route based on intent
         if intent == 'restaurant':
@@ -491,91 +519,151 @@ class ResponseRouter:
         context.add_interaction(message, response, 'safety')
         return response
     
-    def _route_events_query(
+    def _route_emergency_safety_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route event-related queries with language context"""
+        """
+        Route emergency and safety queries (hospitals, police, embassies, etc.)
+        
+        This is a PRIORITY handler - routes critical safety/emergency information.
+        """
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
-        # Try ML handler first
-        ml_handler = handlers.get('ml_event_handler')
-        if ml_handler:
+        # Get emergency & safety handler
+        emergency_handler = handlers.get('emergency_safety_handler')
+        if emergency_handler:
             try:
-                response = ml_handler.handle_query(
+                logger.info(f"🚨 Routing to Emergency & Safety Handler (lang: {language})")
+                response = emergency_handler.handle(
                     message=message,
                     entities=entities,
                     user_profile=user_profile,
-                    context=context  # Context now includes language
+                    context=context,
+                    return_structured=return_structured
                 )
-                if response and response.get('response'):
-                    logger.info(f"✅ ML Event Handler processed query (lang: {language})")
-                    return response if return_structured else response['response']
+                
+                if response:
+                    if isinstance(response, dict):
+                        return response if return_structured else response.get('response', '')
+                    return response
+                    
             except Exception as e:
-                logger.warning(f"ML Event Handler failed: {e}")
+                logger.error(f"Emergency & Safety Handler failed: {e}", exc_info=True)
         
-        # Fallback to response generator
-        response_generator = handlers.get('response_generator')
-        if response_generator:
-            return response_generator.generate_comprehensive_recommendation(
-                'event', entities, user_profile, context, 
-                return_structured=return_structured
+        # Fallback to standard safety handler if available
+        safety_handler = handlers.get('safety_response_handler')
+        if safety_handler:
+            logger.info("⚠️ Falling back to standard safety handler")
+            try:
+                return safety_handler(message, entities, user_profile, context, neural_insights)
+            except Exception as e:
+                logger.warning(f"Standard safety handler failed: {e}")
+        
+        # Final fallback with bilingual support
+        if language == 'tr':
+            fallback = (
+                "🚨 ACİL DURUM BİLGİLERİ:\n"
+                "• Acil: 112 (ambulans, itfaiye, polis)\n"
+                "• Polis: 155\n"
+                "• İtfaiye: 110\n"
+                "• Turist Polisi: 0212 527 4503\n\n"
+                "Daha fazla yardıma ihtiyacınız var mı?"
+            )
+        else:
+            fallback = (
+                "🚨 EMERGENCY INFORMATION:\n"
+                "• Emergency: 112 (ambulance, fire, police)\n"
+                "• Police: 155\n"
+                "• Fire: 110\n"
+                "• Tourist Police: 0212 527 4503\n\n"
+                "Do you need more specific help?"
             )
         
-        return "I can help you find interesting events in Istanbul! What type of events are you interested in?"
+        context.add_interaction(message, fallback, 'emergency_safety')
+        return fallback
     
-    def _route_weather_query(
+    def _route_local_food_query(
         self, message: str, entities: Dict, user_profile: UserProfile,
         context: ConversationContext, handlers: Dict, neural_insights: Optional[Dict],
         return_structured: bool
     ) -> Union[str, Dict[str, Any]]:
-        """Route weather-related queries with language context"""
+        """
+        Route local food queries (Turkish street food, local specialties)
+        
+        This is a PRIORITY handler - routes queries about local/street food
+        before generic restaurant queries.
+        """
         # 🌐 BILINGUAL: Ensure language is in context
         language = self._ensure_language_context(context, user_profile)
         
-        weather_handler = handlers.get('weather_response_handler')
-        if weather_handler:
-            return weather_handler(
-                message, entities, user_profile, context,  # Context now includes language
-                neural_insights, return_structured
-            )
-        
-        # Fallback response
-        return "I can provide weather information for Istanbul! Please specify a date or time period."
-    
-    def _route_airport_transport_query(
-        self, entities: Dict, user_profile: UserProfile, context: ConversationContext,
-        handlers: Dict, return_structured: bool
-    ) -> Union[str, Dict[str, Any]]:
-        """Route airport transportation queries"""
-        # Try ML handler first
-        ml_handler = handlers.get('ml_airport_transport_handler')
-        if ml_handler:
+        # Get local food handler
+        local_food_handler = handlers.get('local_food_handler')
+        if local_food_handler:
             try:
-                response = ml_handler.handle_airport_transport_query(
-                    entities, user_profile, context
+                logger.info(f"🥙 Routing to Local Food Handler (lang: {language})")
+                response = local_food_handler.handle(
+                    message=message,
+                    entities=entities,
+                    user_profile=user_profile,
+                    context=context,
+                    neural_insights=neural_insights,
+                    return_structured=return_structured
                 )
-                if return_structured:
-                    return {
-                        'response': response,
-                        'intent': 'airport_transport',
-                        'source': 'ml_airport_transport_handler'
-                    }
-                return response
+                
+                if response:
+                    if isinstance(response, dict):
+                        return response if return_structured else response.get('response', '')
+                    return response
+                    
             except Exception as e:
-                logger.warning(f"ML Airport Transport Handler failed: {e}")
+                logger.error(f"Local Food Handler failed: {e}", exc_info=True)
         
-        # Fallback to response generator
+        # Fallback to restaurant handler if available
+        ml_restaurant_handler = handlers.get('ml_restaurant_handler')
+        if ml_restaurant_handler:
+            logger.info("🍽️ Falling back to restaurant handler for local food query")
+            try:
+                if hasattr(ml_restaurant_handler, 'handle_query'):
+                    response = ml_restaurant_handler.handle_query(
+                        message=message,
+                        entities=entities,
+                        user_profile=user_profile,
+                        context=context
+                    )
+                    if response:
+                        return response if return_structured else response.get('response', '')
+            except Exception as e:
+                logger.warning(f"Restaurant handler fallback failed: {e}")
+        
+        # Final fallback to response generator
         response_generator = handlers.get('response_generator')
         if response_generator:
+            logger.info(f"📝 Using response_generator for local food query (lang: {language})")
             return response_generator.generate_comprehensive_recommendation(
-                'airport_transport', entities, user_profile, context,
+                'restaurant', entities, user_profile, context, 
                 return_structured=return_structured
             )
         
-        return "I can help you with airport transportation in Istanbul! Do you need information on shuttles, taxis, or public transport?"
+        # Ultimate fallback with bilingual support
+        if language == 'tr':
+            fallback = (
+                "🥙 İstanbul'un harika sokak lezzetleri var! "
+                "Balık ekmek, kumpir, midye dolma, simit gibi yerel lezzetler hakkında "
+                "size yardımcı olabilirim. Ne tür bir yiyecek arıyorsunuz?"
+            )
+        else:
+            fallback = (
+                "🥙 Istanbul has amazing street food! "
+                "I can help you find local specialties like balık ekmek (fish sandwich), "
+                "kumpir (stuffed potato), midye dolma (stuffed mussels), simit, and more. "
+                "What are you looking for?"
+            )
+        
+        context.add_interaction(message, fallback, 'local_food')
+        return fallback
     
     def _route_hidden_gems_query(
         self, message: str, entities: Dict, user_profile: UserProfile,

@@ -1,0 +1,17 @@
+"""
+RAG System Requirements
+Install these packages for RAG functionality
+
+Installation:
+    pip install -r rag_requirements.txt
+
+Total size: ~500MB (mostly for sentence-transformers model)
+"""
+
+# Core RAG dependencies
+sentence-transformers>=2.2.2  # Multilingual embeddings (paraphrase-multilingual-MiniLM-L12-v2)
+faiss-cpu>=1.7.4              # Vector similarity search (use faiss-gpu for production at scale)
+
+# Already installed dependencies (for reference)
+# numpy>=1.21.0
+# torch>=1.9.0

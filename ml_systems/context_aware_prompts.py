@@ -27,16 +27,21 @@ class ContextAwarePromptEngine:
     - Real-time transit data
     - Concise map-focused output (2-3 sentences)
     - Multi-modal route comparison
+    - 🌐 MULTILINGUAL: LLM automatically detects and responds in user's language
+    
+    Design Philosophy:
+    - Keep prompts in English (LLM understands them perfectly)
+    - Add "respond in same language as query" instruction
+    - Trust LLM's natural multilingual capability
+    - No explicit language detection needed
     """
     
-    def __init__(self, language: str = 'en'):
-        """
-        Initialize context-aware prompt engine
-        
-        Args:
-            language: 'en' or 'tr'
-        """
-        self.language = language
+    # Simple system prompt (LLM will respond in user's language automatically)
+    SYSTEM_PROMPT = "You are KAM, a friendly Istanbul tour guide. Always respond in the same language as the user's query."
+    
+    def __init__(self):
+        """Initialize context-aware prompt engine"""
+        logger.debug("🌐 ContextAwarePromptEngine initialized (LLM auto-multilingual mode)")
     
     # ===== WEATHER-AWARE PROMPTS =====
     
@@ -49,8 +54,10 @@ class ContextAwarePromptEngine:
         """
         Create weather-aware prompt for general queries
         
+        🌐 MULTILINGUAL: LLM automatically detects language from query and responds accordingly
+        
         Args:
-            query: User's question
+            query: User's question (in any language)
             weather_data: Current weather information
             user_location: Optional GPS location
             
@@ -65,7 +72,7 @@ class ContextAwarePromptEngine:
         # Analyze weather impact
         weather_impact = self._analyze_weather_impact(weather_data)
         
-        prompt = f"""You are Istanbul AI, a helpful guide for Istanbul, Turkey.
+        prompt = f"""{self.SYSTEM_PROMPT}
 
 Current Weather in Istanbul:
 - Temperature: {temp}°C
@@ -76,12 +83,8 @@ Current Weather in Istanbul:
 
 User Question: {query}
 
-Provide helpful advice considering the current weather conditions. Be specific about:
-1. How weather affects the recommended activity
-2. Practical tips (clothing, timing, alternatives)
-3. Istanbul-specific local knowledge
-
-Keep your response concise (2-3 sentences) and practical.
+Provide helpful, concise advice in the same language as the user's question.
+Keep your response brief (2-3 sentences) and practical.
 
 Response:"""
         
@@ -564,17 +567,14 @@ Response:"""
 
 # ===== HELPER FUNCTIONS =====
 
-def get_prompt_engine(language: str = 'en') -> ContextAwarePromptEngine:
+def get_prompt_engine() -> ContextAwarePromptEngine:
     """
     Get context-aware prompt engine instance
     
-    Args:
-        language: 'en' or 'tr'
-        
     Returns:
-        ContextAwarePromptEngine instance
+        ContextAwarePromptEngine instance (no language parameter needed - LLM auto-detects)
     """
-    return ContextAwarePromptEngine(language=language)
+    return ContextAwarePromptEngine()
 
 
 # ===== EXAMPLE USAGE =====

@@ -5,11 +5,12 @@ Handles: Public transport, metro, bus, ferry, route planning, GPS navigation
 This handler consolidates all transportation-related functionality that was
 previously scattered in main_system.py into a dedicated, ML-enhanced handler.
 
-🌐 BILINGUAL SUPPORT: Full English/Turkish parity for all transportation responses
+🌐 MULTILINGUAL: LLM automatically detects and responds in user's language (9+ languages)
 🌤️ WEATHER-AWARE: Integrates weather data for route recommendations (Step 3.2)
 💎 HIDDEN GEMS: Contextual local recommendations in route responses (Step 2)
 
-Updated: November 5, 2025 - Added hidden gems integration to LLM responses
+Updated: November 5, 2025 - Simplified to use LLM's automatic multilingual capability
+Previous: November 5, 2025 - Added hidden gems integration to LLM responses
 Previous: November 5, 2025 - Added weather-aware transportation advice
 Previous: November 4, 2025 - Added LLM and GPS integration
 """
@@ -17,14 +18,6 @@ Previous: November 4, 2025 - Added LLM and GPS integration
 from typing import Dict, Optional, List, Any, Union
 import logging
 from datetime import datetime
-
-# Import bilingual support
-try:
-    from ..services.bilingual_manager import BilingualManager, Language
-    BILINGUAL_AVAILABLE = True
-except ImportError:
-    BILINGUAL_AVAILABLE = False
-    Language = None
 
 # Import Marmaray data (Step 4.2)
 try:
@@ -37,9 +30,13 @@ try:
     MARMARAY_AVAILABLE = True
 except ImportError:
     MARMARAY_AVAILABLE = False
-    logger.warning("Marmaray station data not available")
+    # Logger warning will be logged after logger is defined
 
 logger = logging.getLogger(__name__)
+
+# Log Marmaray availability if it wasn't available
+if not MARMARAY_AVAILABLE:
+    logger.warning("Marmaray station data not available")
 
 
 class TransportationHandler:
@@ -55,6 +52,7 @@ class TransportationHandler:
     - Fare information
     - IBB API integration for live data
     - Weather-aware route recommendations (Step 3.2)
+    - 🌐 Automatic multilingual support (LLM detects language from query)
     """
     
     def __init__(
@@ -62,14 +60,14 @@ class TransportationHandler:
         transportation_chat=None,
         transport_processor=None,
         gps_route_service=None,
-        bilingual_manager=None,
         map_integration_service=None,
         transfer_map_integration_available: bool = False,
         advanced_transport_available: bool = False,
         llm_service=None,
         gps_location_service=None,
         weather_service=None,
-        hidden_gems_context_service=None
+        hidden_gems_context_service=None,
+        rag_service=None
     ):
         """
         Initialize transportation handler with required services.
@@ -78,7 +76,6 @@ class TransportationHandler:
             transportation_chat: TransportationMapChat service for map visualization
             transport_processor: AdvancedTransportationProcessor for IBB API integration
             gps_route_service: GPSRouteService for GPS-based navigation
-            bilingual_manager: BilingualManager for language support
             map_integration_service: MapIntegrationService for map visualization
             transfer_map_integration_available: Flag for transfer map feature
             advanced_transport_available: Flag for advanced transport feature
@@ -86,70 +83,50 @@ class TransportationHandler:
             gps_location_service: GPS location service for district detection
             weather_service: Optional weather service for weather-aware route advice (Step 3.2)
             hidden_gems_context_service: Optional hidden gems service for contextual recommendations
+            rag_service: Optional RAG vector service for knowledge retrieval
         """
         self.transportation_chat = transportation_chat
         self.transport_processor = transport_processor
         self.gps_route_service = gps_route_service
         self.bilingual_manager = bilingual_manager
+        self.multilingual_manager = multilingual_manager
         self.map_integration_service = map_integration_service
         
-        # LLM + GPS + Weather + Hidden Gems integration
+        # LLM + GPS + Weather + Hidden Gems + RAG integration
         self.llm_service = llm_service
         self.gps_location_service = gps_location_service
         self.weather_service = weather_service
         self.hidden_gems_context_service = hidden_gems_context_service
+        self.rag_service = rag_service
         
         # Feature availability flags
         self.transfer_map_integration_available = transfer_map_integration_available
         self.advanced_transport_available = advanced_transport_available
-        
         # Initialize service availability flags
         self.has_transportation_chat = transportation_chat is not None
         self.has_transport_processor = transport_processor is not None
         self.has_gps_service = gps_route_service is not None
-        self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
         self.has_llm = llm_service is not None
         self.has_gps_location = gps_location_service is not None
         self.has_weather = weather_service is not None
         self.has_hidden_gems = hidden_gems_context_service is not None
+        self.has_rag = rag_service is not None and getattr(rag_service, 'available', False)
         
         logger.info(
-            f"Transportation Handler initialized - "
+            f"🚇 Transportation Handler initialized - "
             f"TransportChat: {self.has_transportation_chat}, "
             f"AdvancedTransport: {self.has_transport_processor}, "
             f"GPS: {self.has_gps_service}, "
-            f"Bilingual: {self.has_bilingual}, "
             f"Maps: {self.has_maps}, "
             f"TransferMap: {transfer_map_integration_available}, "
-            f"LLM: {self.has_llm}, "
+            f"LLM: {self.has_llm} (auto-multilingual), "
             f"GPSLocation: {self.has_gps_location}, "
             f"Weather: {self.has_weather}, "
-            f"HiddenGems: {self.has_hidden_gems}"
+            f"HiddenGems: {self.has_hidden_gems}, "
+            f"RAG: {self.has_rag}"
         )
     
-    def _get_language(self, context) -> str:
-        """
-        Extract language from context.
-        
-        Args:
-            context: Conversation context
-            
-        Returns:
-            Language code ('en' or 'tr')
-        """
-        if not context:
-            return 'en'
-        
-        # Check if language is in context
-        if hasattr(context, 'language'):
-            lang = context.language
-            if hasattr(lang, 'value'):
-                return lang.value  # Language enum
-            return lang if lang in ['en', 'tr'] else 'en'
-        
-        # Default to English
-        return 'en'
     
     def can_handle(self, message: str, entities: Dict[str, Any]) -> bool:
         """
@@ -164,14 +141,16 @@ class TransportationHandler:
         """
         message_lower = message.lower()
         
-        # Transportation keywords
+        # Transportation keywords (English and Turkish)
         transport_keywords = [
             'metro', 'bus', 'tram', 'ferry', 'transport', 'transportation',
             'train', 'subway', 'istanbulkart', 'public transport',
             'funicular', 'metrobus', 'metrobüs', 'dolmuş', 'dolmus',
+            'otobüs', 'otobüs', 'vapur', 'tramvay',  # Turkish keywords
             'how to get', 'how do i get', 'how can i get',
             'how to go', 'directions', 'route', 'travel to', 'reach',
-            'from', 'way to', 'navigate', 'navigation'
+            'from', 'way to', 'navigate', 'navigation',
+            'nasıl giderim', 'nasıl gidilir', 'yol tarifi'  # Turkish phrases
         ]
         
         return any(keyword in message_lower for keyword in transport_keywords)
@@ -189,10 +168,10 @@ class TransportationHandler:
         Main entry point for transportation queries.
         
         Args:
-            message: User's query
+            message: User's query (in any language - LLM will auto-detect)
             entities: Extracted entities (locations, transport types, etc.)
             user_profile: User preferences and history
-            context: Conversation context (includes language)
+            context: Conversation context
             neural_insights: ML-powered insights (sentiment, temporal context, keywords)
             return_structured: Whether to return structured data
             
@@ -200,9 +179,7 @@ class TransportationHandler:
             Response string or dict based on return_structured
         """
         try:
-            # 🌐 BILINGUAL: Extract language from context
-            language = self._get_language(context)
-            logger.info(f"🚇 Transportation query (lang: {language})")
+            logger.info(f"🚇 Transportation query received (LLM will auto-detect language)")
             
             # Extract ML insights
             temporal_context = neural_insights.get('temporal_context') if neural_insights else None
@@ -216,32 +193,31 @@ class TransportationHandler:
             # Classify query type
             query_type = self._classify_transport_query(message, entities)
             
-            # Route to appropriate handler (all handlers now receive language)
+            # Route to appropriate handler (no language parameter - LLM auto-detects)
             if query_type == 'route_planning':
                 return self._handle_route_planning(
                     message, entities, user_profile, context, 
-                    neural_insights, return_structured, language
+                    neural_insights, return_structured
                 )
             elif query_type == 'gps_navigation':
                 return self._handle_gps_navigation(
                     message, entities, user_profile, context, 
-                    return_structured, language
+                    return_structured
                 )
             elif query_type == 'station_info':
                 return self._handle_station_info(
                     message, entities, user_profile, context, 
-                    return_structured, language
+                    return_structured
                 )
             else:
                 return self._handle_general_transport(
                     message, entities, user_profile, context, 
-                    return_structured, language
+                    return_structured
                 )
                 
         except Exception as e:
             logger.error(f"Transportation handler error: {e}", exc_info=True)
-            language = self._get_language(context)
-            return self._get_fallback_response(entities, user_profile, context, return_structured, language)
+            return self._get_fallback_response(entities, user_profile, context, return_structured)
     
     def _classify_transport_query(self, message: str, entities: Dict) -> str:
         """
@@ -1126,6 +1102,7 @@ class TransportationHandler:
         structured JSON.
         
         🆕 NOW INCLUDES HIDDEN GEMS CONTEXT - Step 2 Integration Complete
+        🤖 RAG-ENHANCED: Uses vector search for accurate, up-to-date knowledge retrieval
         
         Args:
             route_data: Route information (duration, distance, steps, alternatives)
@@ -1158,9 +1135,46 @@ class TransportationHandler:
                 if gps_context.get('has_gps'):
                     origin = 'your current location'
             
-            # 💎 GET HIDDEN GEMS CONTEXT
+            # 🤖 GET RAG CONTEXT (PRIORITY #1)
+            rag_context = ""
+            if self.has_rag:
+                try:
+                    # Build query for RAG retrieval
+                    query_parts = [
+                        f"transportation from {origin} to {destination}",
+                        f"travel style: {user_preferences.get('travel_style', 'balanced')}"
+                    ]
+                    
+                    # Add weather context if available
+                    if gps_context.get('weather'):
+                        weather = gps_context['weather']
+                        if weather.get('condition'):
+                            query_parts.append(f"weather: {weather['condition']}")
+                    
+                    rag_query = " ".join(query_parts)
+                    
+                    logger.info(f"🤖 RAG query: {rag_query}")
+                    
+                    # Retrieve relevant context
+                    rag_context = self.rag_service.get_context_for_llm(
+                        query=rag_query,
+                        top_k=4,  # Get 4 most relevant documents
+                        max_length=800  # Keep context concise
+                    )
+                    
+                    if rag_context:
+                        logger.info(f"✅ RAG context retrieved ({len(rag_context)} chars)")
+                    else:
+                        logger.info("⚠️ No RAG context found")
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ RAG retrieval failed: {e}")
+                    rag_context = ""
+            
+            # 💎 GET HIDDEN GEMS CONTEXT (FALLBACK)
+            # Only use if RAG didn't return hidden gems
             hidden_gems_text = ""
-            if self.has_hidden_gems:
+            if self.has_hidden_gems and ('hidden gem' not in rag_context.lower()):
                 try:
                     origin_district = gps_context.get('district')
                     destination_district = self._extract_district_from_destination(destination)
@@ -1187,31 +1201,40 @@ class TransportationHandler:
                     logger.warning(f"⚠️ Could not fetch hidden gems: {e}")
                     hidden_gems_text = ""
             
-            # Create transportation advice prompt with hidden gems
-            prompt = f"""You are KAM, a friendly Istanbul tour guide. Generate a natural, helpful response about this transportation route.
-
-Route Information:
-- From: {origin}
-- To: {destination}
-- Duration: {duration} minutes
-- Distance: {distance} meters
-- Transfers: {transfer_count}
-
-Travel Style: {user_preferences.get('travel_style', 'balanced')}
-
-{hidden_gems_text}
-
-Respond with:
-1. A friendly greeting acknowledging the route
-2. Brief summary of the journey (1-2 sentences)
-3. ONE hidden gem recommendation (if available from the list above) - be specific with the name
-
-Keep it conversational, concise (max 4 sentences), and include relevant emojis (🚇🚋🚶‍♂️⛴️💎).
-
-Response:"""
+            # Build LLM prompt with RAG context
+            prompt_parts = [
+                "You are KAM, a friendly Istanbul tour guide. Generate a natural, helpful response about this transportation route.\n",
+                f"\nRoute Information:",
+                f"- From: {origin}",
+                f"- To: {destination}",
+                f"- Duration: {duration} minutes",
+                f"- Distance: {distance} meters",
+                f"- Transfers: {transfer_count}\n",
+                f"Travel Style: {user_preferences.get('travel_style', 'balanced')}\n"
+            ]
+            
+            # Add RAG context if available
+            if rag_context:
+                prompt_parts.append(f"\n{rag_context}\n")
+            
+            # Add hidden gems if available
+            if hidden_gems_text:
+                prompt_parts.append(f"\n{hidden_gems_text}\n")
+            
+            # Add instructions
+            prompt_parts.extend([
+                "\nRespond with:",
+                "1. A friendly greeting acknowledging the route",
+                "2. Brief summary of the journey (1-2 sentences)",
+                "3. ONE specific recommendation from the information above",
+                "\nKeep it conversational, concise (max 4 sentences), and include relevant emojis (🚇🚋🚶‍♂️⛴️💎).",
+                "\nResponse:"
+            ])
+            
+            prompt = "\n".join(prompt_parts)
             
             # Generate LLM response
-            logger.info("🤖 Generating LLM-enhanced route advice with hidden gems...")
+            logger.info("🤖 Generating RAG-enhanced LLM route advice...")
             llm_advice = self.llm_service.generate(
                 prompt=prompt,
                 max_tokens=150,
@@ -1219,9 +1242,9 @@ Response:"""
             )
             
             if llm_advice:
-                # Truncate to ensure conciseness (4 sentences max with gems)
+                # Truncate to ensure conciseness
                 llm_advice = engine.truncate_to_sentences(llm_advice, max_sentences=4)
-                logger.info("✅ LLM route advice generated successfully with hidden gems")
+                logger.info("✅ RAG-enhanced LLM route advice generated successfully")
                 return llm_advice
             else:
                 logger.warning("LLM generated empty response")
