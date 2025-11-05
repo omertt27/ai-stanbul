@@ -2,6 +2,7 @@
 Hidden Gems Handler
 Specialized handler for hidden gems and secret spots queries
 Enhanced with comprehensive database and intelligent filtering
+NOW WITH REAL-TIME PERSONALIZATION via Online Learning
 """
 
 from typing import List, Dict, Optional, Tuple
@@ -30,11 +31,19 @@ except ImportError:
     DATABASE_LOADED = False
     HIDDEN_GEMS_DATABASE = {}
 
+# Import real-time feedback loop for personalization
+try:
+    from backend.services.realtime_feedback_loop import get_realtime_feedback_loop
+    REALTIME_LEARNING_ENABLED = True
+except ImportError:
+    REALTIME_LEARNING_ENABLED = False
+    print("⚠️ Real-time learning not available - using static recommendations")
+
 
 class HiddenGemsHandler:
-    """Enhanced handler for hidden gems and secret spots with intelligent filtering"""
+    """Enhanced handler for hidden gems and secret spots with intelligent filtering and real-time personalization"""
     
-    def __init__(self):
+    def __init__(self, enable_realtime_learning: bool = True):
         self.database_available = DATABASE_LOADED
         if not self.database_available:
             # Fallback to inline database
@@ -42,6 +51,18 @@ class HiddenGemsHandler:
         else:
             self.hidden_gems_db = HIDDEN_GEMS_DATABASE
         
+        # Initialize real-time learning
+        self.realtime_learning_enabled = enable_realtime_learning and REALTIME_LEARNING_ENABLED
+        if self.realtime_learning_enabled:
+            try:
+                self.feedback_loop = get_realtime_feedback_loop()
+                print("✅ Real-time personalization enabled for Hidden Gems")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize real-time learning: {e}")
+                self.realtime_learning_enabled = False
+        else:
+            self.feedback_loop = None
+    
     def _load_fallback_database(self) -> Dict:
         """Fallback database if main database not available"""
         return {
@@ -379,6 +400,75 @@ class HiddenGemsHandler:
         # Sort by relevance and hidden_factor
         results.sort(key=lambda x: (x.get('_relevance_score', 0), x.get('hidden_factor', 0)), reverse=True)
         return results[:limit]
+    
+    def get_personalized_recommendations(
+        self,
+        user_id: str,
+        location: Optional[str] = None,
+        gem_type: Optional[str] = None,
+        limit: int = 10,
+        session_id: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        Get personalized hidden gem recommendations using real-time learning
+        Falls back to static recommendations if real-time learning is not available
+        
+        Args:
+            user_id: User identifier for personalization
+            location: Optional location filter
+            gem_type: Optional type filter
+            limit: Number of recommendations to return
+            session_id: Session ID for tracking
+        
+        Returns:
+            List of personalized gem recommendations with scores
+        """
+        # Get candidate gems
+        candidates = self.get_hidden_gems(
+            location=location,
+            gem_type=gem_type,
+            limit=limit * 3  # Get more candidates for ranking
+        )
+        
+        if not candidates:
+            return []
+        
+        # If real-time learning is enabled, use it for personalization
+        if self.realtime_learning_enabled and self.feedback_loop:
+            try:
+                # Extract item IDs
+                candidate_ids = [self._gem_to_item_id(gem) for gem in candidates]
+                
+                # Get personalized scores from online learning
+                personalized = self.feedback_loop.get_recommendations(
+                    user_id=user_id,
+                    candidate_items=candidate_ids,
+                    top_k=limit
+                )
+                
+                # Map back to gems with scores
+                id_to_gem = {self._gem_to_item_id(gem): gem for gem in candidates}
+                results = []
+                for rec in personalized:
+                    gem = id_to_gem.get(rec['item_id'])
+                    if gem:
+                        gem_copy = gem.copy()
+                        gem_copy['_personalization_score'] = rec['score']
+                        gem_copy['_personalized'] = True
+                        results.append(gem_copy)
+                
+                return results
+            
+            except Exception as e:
+                print(f"⚠️ Personalization failed, falling back to static: {e}")
+        
+        # Fallback to static recommendations
+        return candidates[:limit]
+    
+    def _gem_to_item_id(self, gem: Dict) -> str:
+        """Convert a gem to a unique item ID for the learning system"""
+        # Use name as ID (in production, use a proper unique ID)
+        return f"hidden_gem:{gem.get('name', '').replace(' ', '_').lower()}"
     
     def get_recommendations_by_time(self, time_of_day: str, limit: int = 5) -> List[Dict]:
         """Get gems recommended for specific time of day"""

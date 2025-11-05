@@ -1,0 +1,113 @@
+# Alert Rules for AI Istanbul Monitoring
+# Defines conditions for system alerts
+
+groups:
+  - name: ai_istanbul_alerts
+    interval: 30s
+    rules:
+      # High latency alert
+      - alert: HighRecommendationLatency
+        expr: histogram_quantile(0.95, recommendation_latency_seconds) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: backend
+        annotations:
+          summary: "High recommendation latency detected"
+          description: "P95 latency is {{ $value }}s (threshold: 0.5s)"
+      
+      # Low CTR alert
+      - alert: LowClickThroughRate
+        expr: recommendation_ctr < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          component: ml
+        annotations:
+          summary: "Click-through rate below threshold"
+          description: "CTR is {{ $value }} (threshold: 0.15)"
+      
+      # Model performance degradation
+      - alert: ModelPerformanceDegradation
+        expr: model_ndcg_10 < 0.65
+        for: 15m
+        labels:
+          severity: critical
+          component: ml
+        annotations:
+          summary: "Model NDCG@10 dropped significantly"
+          description: "NDCG@10 is {{ $value }} (threshold: 0.65)"
+      
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(recommendation_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec"
+      
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+      
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+      
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 15m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}%"
+      
+      # Database alerts
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "{{ $value }} connections (threshold: 80)"
+      
+      # Recommendation system alerts
+      - alert: NoRecommendationsGenerated
+        expr: rate(recommendation_requests_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+          component: backend
+        annotations:
+          summary: "No recommendations being generated"
+          description: "Zero recommendation requests in last 5 minutes"
+      
+      - alert: FeedbackProcessingStalled
+        expr: rate(feedback_events_processed_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: ml
+        annotations:
+          summary: "Feedback processing appears stalled"
+          description: "No feedback events processed in last 5 minutes"

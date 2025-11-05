@@ -2489,3 +2489,39 @@ async def serve_admin_static(filename: str):
     raise HTTPException(status_code=404, detail="File not found")
 
 print(f"✅ Admin dashboard routes configured (path: {admin_path})")
+
+# =============================
+# WEEK 3-4: MONITORING, A/B TESTING & RECOMMENDATIONS API
+# =============================
+print("\n🔧 Loading Week 3-4 Production APIs...")
+
+# Import and register API routers
+try:
+    from backend.api.monitoring_routes import router as monitoring_router
+    app.include_router(monitoring_router)
+    print("✅ Monitoring API routes registered")
+except ImportError as e:
+    print(f"⚠️ Monitoring routes not available: {e}")
+
+try:
+    from backend.api.ab_testing_routes import router as ab_testing_router
+    app.include_router(ab_testing_router)
+    print("✅ A/B Testing API routes registered")
+except ImportError as e:
+    print(f"⚠️ A/B Testing routes not available: {e}")
+
+try:
+    from backend.api.recommendation_routes import router as recommendation_router
+    app.include_router(recommendation_router)
+    print("✅ Recommendation API routes registered")
+except ImportError as e:
+    print(f"⚠️ Recommendation routes not available: {e}")
+
+try:
+    from backend.api.feedback_routes import router as feedback_router
+    app.include_router(feedback_router)
+    print("✅ Feedback API routes registered")
+except ImportError as e:
+    print(f"⚠️ Feedback routes not available: {e}")
+
+print("✅ Week 3-4 APIs loaded\n")
