@@ -301,9 +301,10 @@ class MLEnhancedHiddenGemsHandler:
             return self._get_mock_gems(context)
     
     def _get_mock_gems(self, context: HiddenGemContext) -> List[Dict[str, Any]]:
-        """Return mock hidden gems for development"""
+        """Return mock hidden gems for development with enhanced time-aware data"""
         
         return [
+            # Morning gems
             {
                 "id": "gem_001",
                 "name": "Asmalı Cavit",
@@ -314,55 +315,31 @@ class MLEnhancedHiddenGemsHandler:
                 "crowd_level": "very_quiet",
                 "tourist_ratio": 0.1,
                 "best_time": "morning",
+                "suitable_times": ["morning", "afternoon"],
                 "price_range": "budget",
                 "indoor_outdoor": "indoor",
                 "highlights": ["Local crowd", "Traditional Turkish coffee", "Books everywhere"],
-                "directions": "Hidden alley off Sıraselviler Caddesi"
+                "directions": "Hidden alley off Sıraselviler Caddesi",
+                "lat": 41.0341,
+                "lon": 28.9866
             },
             {
-                "id": "gem_002",
-                "name": "Feneraltı Secret Viewpoint",
-                "type": "viewpoint",
-                "description": "Unmarked spot in Balat with stunning Golden Horn panorama",
+                "id": "gem_006",
+                "name": "Balat Morning Market Corner",
+                "type": "market",
+                "description": "Secret corner of morning market where locals buy fresh simit and tea",
                 "neighborhood": "Balat, Fatih",
-                "authenticity": 0.98,
-                "crowd_level": "very_quiet",
+                "authenticity": 0.97,
+                "crowd_level": "moderate",
                 "tourist_ratio": 0.05,
-                "best_time": "evening",
-                "price_range": "free",
-                "indoor_outdoor": "outdoor",
-                "highlights": ["Free", "No tourists", "Golden Horn sunset"],
-                "directions": "Walk down stairs near Fener Greek Patriarchate"
-            },
-            {
-                "id": "gem_003",
-                "name": "Pandeli Rooftop Garden",
-                "type": "rooftop",
-                "description": "Hidden rooftop garden above Spice Bazaar with tea service",
-                "neighborhood": "Eminönü, Fatih",
-                "authenticity": 0.85,
-                "crowd_level": "quiet",
-                "tourist_ratio": 0.2,
-                "best_time": "afternoon",
+                "best_time": "morning",
+                "suitable_times": ["morning"],
                 "price_range": "budget",
                 "indoor_outdoor": "outdoor",
-                "highlights": ["Bazaar views", "Turkish tea", "Secret entrance"],
-                "directions": "Ask shopkeepers in Pandeli Restaurant building"
-            },
-            {
-                "id": "gem_004",
-                "name": "Kitapevi Çay Bahçesi",
-                "type": "bookshop",
-                "description": "Bookshop with secret tea garden, Turkish literature focus",
-                "neighborhood": "Kadıköy, Asian Side",
-                "authenticity": 0.92,
-                "crowd_level": "quiet",
-                "tourist_ratio": 0.15,
-                "best_time": "afternoon",
-                "price_range": "budget",
-                "indoor_outdoor": "both",
-                "highlights": ["Turkish books", "Garden seating", "Local intellectuals"],
-                "directions": "Near Kadıköy fish market, ask locals"
+                "highlights": ["Fresh simit", "Morning tea", "Local gossip"],
+                "directions": "Behind Balat main square, follow the tea smell",
+                "lat": 41.0294,
+                "lon": 28.9477
             },
             {
                 "id": "gem_005",
@@ -374,10 +351,178 @@ class MLEnhancedHiddenGemsHandler:
                 "crowd_level": "moderate",
                 "tourist_ratio": 0.1,
                 "best_time": "morning",
+                "suitable_times": ["morning", "afternoon"],
                 "price_range": "free",
                 "indoor_outdoor": "outdoor",
                 "highlights": ["Byzantine walls", "Local gardeners", "Fresh produce"],
-                "directions": "Enter through Yedikule fortress, walk to gardens section"
+                "directions": "Enter through Yedikule fortress, walk to gardens section",
+                "lat": 40.9931,
+                "lon": 28.9216
+            },
+            # Afternoon gems
+            {
+                "id": "gem_003",
+                "name": "Pandeli Rooftop Garden",
+                "type": "rooftop",
+                "description": "Hidden rooftop garden above Spice Bazaar with tea service",
+                "neighborhood": "Eminönü, Fatih",
+                "authenticity": 0.85,
+                "crowd_level": "quiet",
+                "tourist_ratio": 0.2,
+                "best_time": "afternoon",
+                "suitable_times": ["afternoon", "evening"],
+                "price_range": "budget",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Bazaar views", "Turkish tea", "Secret entrance"],
+                "directions": "Ask shopkeepers in Pandeli Restaurant building",
+                "lat": 41.0166,
+                "lon": 28.9708
+            },
+            {
+                "id": "gem_004",
+                "name": "Kitapevi Çay Bahçesi",
+                "type": "bookshop",
+                "description": "Bookshop with secret tea garden, Turkish literature focus",
+                "neighborhood": "Kadıköy, Asian Side",
+                "authenticity": 0.92,
+                "crowd_level": "quiet",
+                "tourist_ratio": 0.15,
+                "best_time": "afternoon",
+                "suitable_times": ["afternoon", "evening"],
+                "price_range": "budget",
+                "indoor_outdoor": "both",
+                "highlights": ["Turkish books", "Garden seating", "Local intellectuals"],
+                "directions": "Near Kadıköy fish market, ask locals",
+                "lat": 40.9903,
+                "lon": 29.0257
+            },
+            {
+                "id": "gem_007",
+                "name": "Gülhane Secret Rose Garden",
+                "type": "garden",
+                "description": "Hidden section of Gülhane Park with Ottoman roses, locals only",
+                "neighborhood": "Sultanahmet, Fatih",
+                "authenticity": 0.88,
+                "crowd_level": "quiet",
+                "tourist_ratio": 0.1,
+                "best_time": "afternoon",
+                "suitable_times": ["afternoon"],
+                "price_range": "free",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Ottoman roses", "Peaceful benches", "No tour groups"],
+                "directions": "Enter Gülhane, go left past main path to back corner",
+                "lat": 41.0138,
+                "lon": 28.9819
+            },
+            # Evening gems
+            {
+                "id": "gem_002",
+                "name": "Feneraltı Secret Viewpoint",
+                "type": "viewpoint",
+                "description": "Unmarked spot in Balat with stunning Golden Horn panorama",
+                "neighborhood": "Balat, Fatih",
+                "authenticity": 0.98,
+                "crowd_level": "very_quiet",
+                "tourist_ratio": 0.05,
+                "best_time": "evening",
+                "suitable_times": ["evening", "afternoon"],
+                "price_range": "free",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Free", "No tourists", "Golden Horn sunset"],
+                "directions": "Walk down stairs near Fener Greek Patriarchate",
+                "lat": 41.0283,
+                "lon": 28.9492
+            },
+            {
+                "id": "gem_008",
+                "name": "Şehzadebaşı Sunset Terrace",
+                "type": "rooftop",
+                "description": "Local family's rooftop terrace serving homemade lemonade at sunset",
+                "neighborhood": "Şehzadebaşı, Fatih",
+                "authenticity": 0.93,
+                "crowd_level": "very_quiet",
+                "tourist_ratio": 0.08,
+                "best_time": "evening",
+                "suitable_times": ["evening"],
+                "price_range": "budget",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Homemade lemonade", "Family atmosphere", "Mosque silhouettes"],
+                "directions": "Ring doorbell at building marked with blue tile, ask for terrace",
+                "lat": 41.0158,
+                "lon": 28.9578
+            },
+            {
+                "id": "gem_009",
+                "name": "Kumkapı Fisherman's Dock",
+                "type": "street",
+                "description": "Evening gathering spot where fishermen share rakı and stories",
+                "neighborhood": "Kumkapı, Fatih",
+                "authenticity": 0.94,
+                "crowd_level": "moderate",
+                "tourist_ratio": 0.12,
+                "best_time": "evening",
+                "suitable_times": ["evening", "night"],
+                "price_range": "budget",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Fresh fish", "Local fishermen", "Authentic atmosphere"],
+                "directions": "Walk past touristy restaurants to actual fishing dock",
+                "lat": 41.0041,
+                "lon": 28.9586
+            },
+            # Night gems
+            {
+                "id": "gem_010",
+                "name": "Galata Tower Secret Viewpoint",
+                "type": "viewpoint",
+                "description": "Hidden stairs behind Galata Tower with city lights panorama",
+                "neighborhood": "Galata, Beyoğlu",
+                "authenticity": 0.91,
+                "crowd_level": "very_quiet",
+                "tourist_ratio": 0.15,
+                "best_time": "night",
+                "suitable_times": ["night", "evening"],
+                "price_range": "free",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["City lights", "Free", "Romantic spot"],
+                "directions": "Behind tower, look for narrow stairs between buildings",
+                "lat": 41.0257,
+                "lon": 28.9742
+            },
+            {
+                "id": "gem_011",
+                "name": "Arnavutköy Midnight Bakery",
+                "type": "cafe",
+                "description": "24-hour neighborhood bakery with late-night börek and tea",
+                "neighborhood": "Arnavutköy, Beşiktaş",
+                "authenticity": 0.96,
+                "crowd_level": "quiet",
+                "tourist_ratio": 0.05,
+                "best_time": "night",
+                "suitable_times": ["night"],
+                "price_range": "budget",
+                "indoor_outdoor": "indoor",
+                "highlights": ["24-hour", "Fresh börek", "Night owls gathering"],
+                "directions": "Bosphorus-side street, look for warm glow and flour smell",
+                "lat": 41.0707,
+                "lon": 29.0439
+            },
+            {
+                "id": "gem_012",
+                "name": "Çengelköy Moonlight Pier",
+                "type": "viewpoint",
+                "description": "Quiet pier on Asian side, perfect for night reflection with Bosphorus view",
+                "neighborhood": "Çengelköy, Asian Side",
+                "authenticity": 0.89,
+                "crowd_level": "very_quiet",
+                "tourist_ratio": 0.1,
+                "best_time": "night",
+                "suitable_times": ["night", "evening"],
+                "price_range": "free",
+                "indoor_outdoor": "outdoor",
+                "highlights": ["Bosphorus at night", "Very quiet", "Local couples"],
+                "directions": "Follow waterfront past main cafes to small fishing pier",
+                "lat": 41.0536,
+                "lon": 29.0796
             }
         ]
     
@@ -513,7 +658,7 @@ class MLEnhancedHiddenGemsHandler:
         gems: List[Dict[str, Any]],
         context: HiddenGemContext
     ) -> List[Dict[str, Any]]:
-        """Apply hard filters"""
+        """Apply hard filters including time-aware and weather-aware filtering"""
         
         filtered = gems
         
@@ -525,12 +670,320 @@ class MLEnhancedHiddenGemsHandler:
         if context.tourist_comfort < 0.3:
             filtered = [g for g in filtered if g.get("tourist_ratio", 1.0) < 0.3]
         
+        # WEATHER-AWARE FILTERING (Weather-Aware Gems Feature)
+        # Apply weather filtering before time filtering
+        if context.weather_context and len(filtered) > 0:
+            weather_filtered = self._apply_weather_aware_filter(filtered, context.weather_context)
+            # Only use weather-filtered results if we still have gems, otherwise keep all
+            if len(weather_filtered) > 0:
+                filtered = weather_filtered
+        
+        # TIME-AWARE FILTERING (Time-Aware Gems Feature)
+        # Apply time filtering last and only if we have gems after other filters
+        if context.time_of_day and len(filtered) > 0:
+            time_filtered = self._apply_time_aware_filter(filtered, context.time_of_day)
+            # Only use time-filtered results if we still have gems, otherwise keep all
+            if len(time_filtered) > 0:
+                filtered = time_filtered
+        
         # Accessibility filters
         if context.accessibility_needs:
             # Filter out places that don't meet accessibility needs
             pass  # Implement if accessibility data available
         
         return filtered
+    
+    def _apply_weather_aware_filter(
+        self,
+        gems: List[Dict[str, Any]],
+        weather_context: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Apply weather-aware filtering for Weather-Aware Gems feature
+        Prioritizes gems that are appropriate for current weather conditions
+        
+        Args:
+            gems: List of gem dictionaries
+            weather_context: Weather information dict with 'condition' and 'temperature'
+        
+        Returns:
+            Filtered and re-scored gems based on weather appropriateness
+        """
+        weather_scored_gems = []
+        
+        # Extract weather conditions
+        condition = weather_context.get("condition", "").lower()
+        temperature = weather_context.get("temperature", 20)  # Default 20°C
+        
+        # Determine weather category
+        weather_category = self._categorize_weather(condition, temperature)
+        
+        for gem in gems:
+            venue_type = gem.get("indoor_outdoor", "both")
+            gem_type = gem.get("type", "")
+            
+            # Calculate weather appropriateness score
+            weather_score = self._get_weather_appropriateness_score(
+                venue_type, gem_type, weather_category, temperature
+            )
+            
+            # Only include gems with reasonable weather score (> 0.4)
+            if weather_score > 0.4:
+                gem_copy = gem.copy()
+                gem_copy["weather_appropriateness_score"] = weather_score
+                # Boost ML score based on weather appropriateness
+                gem_copy["ml_score"] = gem_copy.get("ml_score", 0.5) * (1 + weather_score * 0.25)
+                weather_scored_gems.append(gem_copy)
+        
+        # Sort by adjusted ML score
+        weather_scored_gems.sort(key=lambda x: x["ml_score"], reverse=True)
+        
+        return weather_scored_gems
+    
+    def _categorize_weather(self, condition: str, temperature: float) -> str:
+        """
+        Categorize weather into one of: rainy, sunny, cold, hot
+        
+        Args:
+            condition: Weather condition string (e.g., "rain", "clear", "cloudy")
+            temperature: Temperature in Celsius
+        
+        Returns:
+            Weather category string
+        """
+        # Check for rain/snow
+        if any(keyword in condition for keyword in ["rain", "drizzle", "shower", "storm", "snow"]):
+            return "rainy"
+        
+        # Check temperature-based categories
+        if temperature < 10:
+            return "cold"
+        elif temperature > 28:
+            return "hot"
+        # Check for sunny conditions
+        elif any(keyword in condition for keyword in ["clear", "sunny", "fair"]):
+            return "sunny"
+        else:
+            # Default for cloudy/mild conditions
+            return "sunny" if temperature > 15 else "cold"
+    
+    def _get_weather_appropriateness_score(
+        self,
+        venue_type: str,
+        gem_type: str,
+        weather_category: str,
+        temperature: float
+    ) -> float:
+        """
+        Calculate weather appropriateness score for a gem
+        
+        Args:
+            venue_type: 'indoor', 'outdoor', or 'both'
+            gem_type: Type of gem (cafe, park, rooftop, etc.)
+            weather_category: One of 'rainy', 'sunny', 'cold', 'hot'
+            temperature: Current temperature in Celsius
+        
+        Returns:
+            Score between 0.0 and 1.0
+        """
+        # Weather-venue compatibility matrix
+        weather_venue_scores = {
+            "rainy": {
+                "indoor": 1.0,
+                "both": 0.8,
+                "outdoor": 0.3
+            },
+            "sunny": {
+                "outdoor": 1.0,
+                "both": 0.9,
+                "indoor": 0.6
+            },
+            "cold": {
+                "indoor": 1.0,
+                "both": 0.7,
+                "outdoor": 0.4
+            },
+            "hot": {
+                "outdoor": 0.9,  # If shaded/waterfront
+                "both": 0.8,
+                "indoor": 0.9  # Air conditioned indoor spaces
+            }
+        }
+        
+        # Weather-type compatibility matrix
+        weather_type_scores = {
+            "rainy": {
+                "cafe": 0.9,
+                "restaurant": 0.9,
+                "bookshop": 0.95,
+                "market": 0.7,  # Covered markets
+                "historical": 0.6,  # Museums
+                "art": 0.9,
+                "rooftop": 0.2,
+                "park": 0.2,
+                "viewpoint": 0.3,
+                "garden": 0.2,
+                "street": 0.3
+            },
+            "sunny": {
+                "park": 1.0,
+                "garden": 1.0,
+                "viewpoint": 0.95,
+                "rooftop": 0.95,
+                "street": 0.9,
+                "cafe": 0.8,
+                "market": 0.85,
+                "historical": 0.8,
+                "restaurant": 0.75
+            },
+            "cold": {
+                "cafe": 1.0,
+                "restaurant": 0.95,
+                "bookshop": 0.9,
+                "historical": 0.8,  # Indoor museums
+                "art": 0.85,
+                "market": 0.6,  # If covered
+                "rooftop": 0.3,
+                "park": 0.4,
+                "viewpoint": 0.4,
+                "street": 0.5
+            },
+            "hot": {
+                "park": 0.8,  # If shaded
+                "garden": 0.85,  # Shaded gardens
+                "viewpoint": 0.7,  # Waterfront/breezy
+                "rooftop": 0.6,  # Evening only
+                "cafe": 0.9,  # Air conditioned
+                "restaurant": 0.85,
+                "bookshop": 0.9,
+                "street": 0.5,  # Hot streets
+                "market": 0.6,  # If covered
+                "historical": 0.85  # Air conditioned museums
+            }
+        }
+        
+        # Get base score from venue type
+        venue_score = weather_venue_scores.get(weather_category, {}).get(venue_type, 0.7)
+        
+        # Get type score
+        type_score = weather_type_scores.get(weather_category, {}).get(gem_type, 0.7)
+        
+        # Combine scores (weighted average: 60% type, 40% venue)
+        combined_score = (type_score * 0.6) + (venue_score * 0.4)
+        
+        return combined_score
+    
+    def _apply_time_aware_filter(
+        self,
+        gems: List[Dict[str, Any]],
+        time_of_day: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Apply time-aware filtering for Time-Aware Gems feature
+        Prioritizes gems that are ideal for the specified time of day
+        
+        Args:
+            gems: List of gem dictionaries
+            time_of_day: One of 'morning', 'afternoon', 'evening', 'night'
+        
+        Returns:
+            Filtered and re-scored gems based on time appropriateness
+        """
+        time_scored_gems = []
+        
+        for gem in gems:
+            gem_best_time = gem.get("best_time", "")
+            gem_suitable_times = gem.get("suitable_times", [gem_best_time] if gem_best_time else [])
+            gem_type = gem.get("type", "")
+            
+            # Calculate time appropriateness score
+            time_score = 0.0
+            
+            # Perfect match: gem's best time matches query time
+            if gem_best_time == time_of_day:
+                time_score = 1.0
+            # Good match: time is in suitable times
+            elif time_of_day in gem_suitable_times:
+                time_score = 0.7
+            # Type-based matching for generic gems without time data
+            else:
+                time_score = self._get_type_time_score(gem_type, time_of_day)
+            
+            # Only include gems with reasonable time score (> 0.2) - more lenient for better results
+            if time_score > 0.2:
+                gem_copy = gem.copy()
+                gem_copy["time_appropriateness_score"] = time_score
+                # Boost ML score based on time appropriateness
+                gem_copy["ml_score"] = gem_copy.get("ml_score", 0.5) * (1 + time_score * 0.4)
+                time_scored_gems.append(gem_copy)
+        
+        # Sort by adjusted ML score
+        time_scored_gems.sort(key=lambda x: x["ml_score"], reverse=True)
+        
+        return time_scored_gems
+    
+    def _get_type_time_score(self, gem_type: str, time_of_day: str) -> float:
+        """
+        Get time appropriateness score based on gem type and time of day
+        Used when gem doesn't have specific time data
+        
+        Returns:
+            Float between 0.0 and 1.0
+        """
+        # Define type-time compatibility matrix
+        type_time_matrix = {
+            "morning": {
+                "cafe": 0.9,
+                "park": 0.8,
+                "market": 0.9,
+                "viewpoint": 0.7,
+                "bookshop": 0.6,
+                "street": 0.7,
+                "garden": 0.8,
+                "historical": 0.7,
+                "restaurant": 0.5,
+                "rooftop": 0.4,
+                "bar": 0.1
+            },
+            "afternoon": {
+                "cafe": 0.8,
+                "restaurant": 0.9,
+                "shop": 0.9,
+                "boutique": 0.9,
+                "market": 0.8,
+                "historical": 0.9,
+                "viewpoint": 0.8,
+                "park": 0.7,
+                "bookshop": 0.8,
+                "art": 0.9,
+                "rooftop": 0.6,
+                "street": 0.8
+            },
+            "evening": {
+                "restaurant": 0.9,
+                "rooftop": 1.0,
+                "viewpoint": 0.9,
+                "cafe": 0.7,
+                "bar": 0.8,
+                "street": 0.8,
+                "art": 0.7,
+                "historical": 0.5,
+                "park": 0.6
+            },
+            "night": {
+                "rooftop": 1.0,
+                "bar": 1.0,
+                "restaurant": 0.8,
+                "viewpoint": 0.7,
+                "street": 0.6,
+                "cafe": 0.5,
+                "historical": 0.2,
+                "park": 0.2,
+                "shop": 0.1
+            }
+        }
+        
+        return type_time_matrix.get(time_of_day, {}).get(gem_type, 0.5)
     
     async def _generate_response(
         self,
@@ -581,6 +1034,18 @@ class MLEnhancedHiddenGemsHandler:
                 response_parts.append(f"   ✨ Özel kılan: {highlights}")
             else:
                 response_parts.append(f"   ✨ What makes it special: {highlights}")
+        
+        # TIME-AWARE INFORMATION (Time-Aware Gems Feature)
+        if context.time_of_day:
+            time_info = self._get_time_aware_info(top, context.time_of_day, language)
+            if time_info:
+                response_parts.append(time_info)
+        
+        # WEATHER-AWARE INFORMATION (Weather-Aware Gems Feature)
+        if context.weather_context:
+            weather_info = self._get_weather_aware_info(top, context.weather_context, language)
+            if weather_info:
+                response_parts.append(weather_info)
         
         # Crowd info
         crowd_text = self._get_crowd_text(top.get("tourist_ratio", 0), language)
@@ -646,14 +1111,170 @@ class MLEnhancedHiddenGemsHandler:
                 return "   🎯 Crowd: Mostly locals, few tourists"
         return None
     
+    def _get_time_aware_info(
+        self,
+        gem: Dict[str, Any],
+        time_of_day: str,
+        language: Optional[Language]
+    ) -> Optional[str]:
+        """
+        Get time-aware information for Time-Aware Gems feature
+        
+        Args:
+            gem: The gem dictionary
+            time_of_day: Current/requested time of day
+            language: Language for the response
+        
+        Returns:
+            Formatted time-aware information string or None
+        """
+        time_score = gem.get("time_appropriateness_score", 0)
+        gem_best_time = gem.get("best_time", "")
+        
+        # Time emojis
+        time_emojis = {
+            "morning": "🌅",
+            "afternoon": "☀️",
+            "evening": "🌆",
+            "night": "🌙"
+        }
+        
+        time_emoji = time_emojis.get(time_of_day, "⏰")
+        
+        # Perfect match
+        if gem_best_time == time_of_day and time_score >= 0.9:
+            if self.has_bilingual and language == Language.TURKISH:
+                time_names = {
+                    "morning": "sabah",
+                    "afternoon": "öğleden sonra",
+                    "evening": "akşam",
+                    "night": "gece"
+                }
+                return f"   {time_emoji} Zaman: {time_names.get(time_of_day, time_of_day)} için mükemmel!"
+            else:
+                return f"   {time_emoji} Timing: Perfect for {time_of_day}!"
+        
+        # Good match
+        elif time_score >= 0.7:
+            if self.has_bilingual and language == Language.TURKISH:
+                time_names = {
+                    "morning": "sabah",
+                    "afternoon": "öğleden sonra",
+                    "evening": "akşam",
+                    "night": "gece"
+                }
+                return f"   {time_emoji} Zaman: {time_names.get(time_of_day, time_of_day)} için harika"
+            else:
+                return f"   {time_emoji} Timing: Great for {time_of_day}"
+        
+        # Mention best time if different
+        elif gem_best_time and gem_best_time != time_of_day:
+            if self.has_bilingual and language == Language.TURKISH:
+                time_names = {
+                    "morning": "sabahları",
+                    "afternoon": "öğleden sonra",
+                    "evening": "akşamları",
+                    "night": "geceleri"
+                }
+                return f"   {time_emojis.get(gem_best_time, '⏰')} En iyi: {time_names.get(gem_best_time, gem_best_time)}"
+            else:
+                return f"   {time_emojis.get(gem_best_time, '⏰')} Best time: {gem_best_time}"
+        
+        return None
+    
+    def _get_weather_aware_info(
+        self,
+        gem: Dict[str, Any],
+        weather_context: Dict[str, Any],
+        language: Optional[Language]
+    ) -> Optional[str]:
+        """
+        Get weather-aware information for Weather-Aware Gems feature
+        
+        Args:
+            gem: The gem dictionary
+            weather_context: Weather context with condition and temperature
+            language: Language for the response
+        
+        Returns:
+            Formatted weather-aware information string or None
+        """
+        weather_score = gem.get("weather_appropriateness_score", 0)
+        condition = weather_context.get("condition", "").lower()
+        temperature = weather_context.get("temperature", 20)
+        venue_type = gem.get("indoor_outdoor", "")
+        
+        # Weather emojis
+        weather_emojis = {
+            "rainy": "🌧️",
+            "sunny": "☀️",
+            "cold": "❄️",
+            "hot": "🔥"
+        }
+        
+        weather_category = self._categorize_weather(condition, temperature)
+        weather_emoji = weather_emojis.get(weather_category, "🌤️")
+        
+        # Perfect weather match
+        if weather_score >= 0.9:
+            if self.has_bilingual and language == Language.TURKISH:
+                weather_names = {
+                    "rainy": "yağmurlu hava",
+                    "sunny": "güneşli hava",
+                    "cold": "soğuk hava",
+                    "hot": "sıcak hava"
+                }
+                return f"   {weather_emoji} Hava: {weather_names.get(weather_category, 'bu hava')} için mükemmel!"
+            else:
+                weather_names = {
+                    "rainy": "rainy weather",
+                    "sunny": "sunny weather",
+                    "cold": "cold weather",
+                    "hot": "hot weather"
+                }
+                return f"   {weather_emoji} Weather: Perfect for {weather_names.get(weather_category, 'current conditions')}!"
+        
+        # Good weather match
+        elif weather_score >= 0.75:
+            if self.has_bilingual and language == Language.TURKISH:
+                venue_names = {
+                    "indoor": "kapalı",
+                    "outdoor": "açık hava",
+                    "both": "her iki"
+                }
+                return f"   {weather_emoji} {venue_names.get(venue_type, 'mekan')} - bu havada harika"
+            else:
+                return f"   {weather_emoji} {venue_type.capitalize()} - great for today's weather"
+        
+        # Mention weather suitability
+        elif weather_score >= 0.6:
+            if self.has_bilingual and language == Language.TURKISH:
+                return f"   {weather_emoji} Bu havada uygun"
+            else:
+                return f"   {weather_emoji} Suitable for current weather"
+        
+        return None
+    
     def _get_context_tips(
         self,
         gems: List[Dict[str, Any]],
         context: HiddenGemContext,
         language: Optional[Language]
     ) -> List[str]:
-        """Get context-aware tips"""
+        """Get context-aware tips including time-aware and weather-aware suggestions"""
         tips = []
+        
+        # WEATHER-AWARE TIP (Weather-Aware Gems Feature)
+        if context.weather_context:
+            weather_tip = self._get_weather_aware_tip(context.weather_context, gems, language)
+            if weather_tip:
+                tips.append(weather_tip)
+        
+        # TIME-AWARE TIP (Time-Aware Gems Feature)
+        if context.time_of_day:
+            time_tip = self._get_time_aware_tip(context.time_of_day, gems, language)
+            if time_tip:
+                tips.append(time_tip)
         
         # Authenticity tip
         if context.authenticity_score > 0.8:
@@ -672,11 +1293,103 @@ class MLEnhancedHiddenGemsHandler:
         # Language tip
         if context.tourist_comfort < 0.5:
             if self.has_bilingual and language == Language.TURKISH:
-                tips.append("🗣️ Dil ipucu: Birkaç İngilizce kelime öğrenmek bu yerli mekanlarda gerçekten yardımcı olacaktır")
+                tips.append("🗣️ Dil ipucu: Birkaç Türkçe kelime öğrenmek bu yerli mekanlarda gerçekten yardımcı olacaktır")
             else:
                 tips.append("🗣️ Language tip: Learning a few Turkish phrases will really help at these local spots")
         
         return tips
+    
+    def _get_weather_aware_tip(
+        self,
+        weather_context: Dict[str, Any],
+        gems: List[Dict[str, Any]],
+        language: Optional[Language]
+    ) -> Optional[str]:
+        """
+        Generate weather-aware tips for Weather-Aware Gems feature
+        
+        Args:
+            weather_context: Weather information
+            gems: List of recommended gems
+            language: Language for the tip
+        
+        Returns:
+            Weather-aware tip string or None
+        """
+        condition = weather_context.get("condition", "").lower()
+        temperature = weather_context.get("temperature", 20)
+        weather_category = self._categorize_weather(condition, temperature)
+        
+        # Weather-specific tips
+        weather_tips = {
+            "rainy": {
+                "en": "🌧️ Weather tip: Perfect day for cozy indoor spots - these gems offer shelter and atmosphere",
+                "tr": "🌧️ Hava ipucu: Rahat kapalı mekanlar için mükemmel gün - bu yerler sığınak ve atmosfer sunuyor"
+            },
+            "sunny": {
+                "en": "☀️ Weather tip: Beautiful day to explore outdoor gems - don't forget sunscreen!",
+                "tr": "☀️ Hava ipucu: Açık hava mekanlarını keşfetmek için güzel bir gün - güneş kremini unutmayın!"
+            },
+            "cold": {
+                "en": "❄️ Weather tip: Stay warm in cozy indoor spots - perfect for hot tea and local atmosphere",
+                "tr": "❄️ Hava ipucu: Rahat kapalı mekanlarda sıcak kalın - sıcak çay ve yerel atmosfer için mükemmel"
+            },
+            "hot": {
+                "en": "🔥 Weather tip: Beat the heat in shaded gardens or air-conditioned cafes - these spots stay cool",
+                "tr": "🔥 Hava ipucu: Gölgeli bahçelerde veya klimali kafelerde serinleyin - bu yerler serin kalıyor"
+            }
+        }
+        
+        lang_code = "tr" if (self.has_bilingual and language == Language.TURKISH) else "en"
+        
+        if weather_category in weather_tips:
+            return weather_tips[weather_category][lang_code]
+        
+        return None
+    
+    def _get_time_aware_tip(
+        self,
+        time_of_day: str,
+        gems: List[Dict[str, Any]],
+        language: Optional[Language]
+    ) -> Optional[str]:
+        """
+        Generate time-aware tips for Time-Aware Gems feature
+        
+        Args:
+            time_of_day: Current/requested time of day
+            gems: List of recommended gems
+            language: Language for the tip
+        
+        Returns:
+            Time-aware tip string or None
+        """
+        # Time-specific tips
+        time_tips = {
+            "morning": {
+                "en": "☕ Morning tip: These spots are perfect for early risers - arrive before 9 AM for the most authentic local experience",
+                "tr": "☕ Sabah ipucu: Bu mekanlar erken kalkanlar için mükemmel - en otantik yerel deneyim için sabah 9'dan önce gelin"
+            },
+            "afternoon": {
+                "en": "🌤️ Afternoon tip: These places are ideal for a leisurely lunch or tea break - locals visit between 2-5 PM",
+                "tr": "🌤️ Öğleden sonra ipucu: Bu yerler rahat bir öğle yemeği veya çay molası için ideal - yerliler 14:00-17:00 arası gelir"
+            },
+            "evening": {
+                "en": "🌆 Evening tip: Arrive around sunset (1 hour before dark) for the best views and atmosphere",
+                "tr": "🌆 Akşam ipucu: En iyi manzara ve atmosfer için gün batımı civarında (karanlıktan 1 saat önce) gelin"
+            },
+            "night": {
+                "en": "🌙 Night tip: These spots come alive after 9 PM - perfect for experiencing Istanbul's nocturnal side",
+                "tr": "🌙 Gece ipucu: Bu mekanlar 21:00'den sonra canlanır - İstanbul'un gece yüzünü deneyimlemek için mükemmel"
+            }
+        }
+        
+        lang_code = "tr" if (self.has_bilingual and language == Language.TURKISH) else "en"
+        
+        if time_of_day in time_tips:
+            return time_tips[time_of_day][lang_code]
+        
+        return None
     
     def _get_final_reminder(self, language: Optional[Language]) -> str:
         """Get final reminder about hidden gems"""
@@ -684,6 +1397,7 @@ class MLEnhancedHiddenGemsHandler:
             return "\n\n🤫 Unutmayın: Bunlar gizli mekanlar - bulmak zor olabilir, ama işte macera da bu!"
         else:
             return "\n\n🤫 Remember: These are hidden gems - they might be hard to find, but that's part of the adventure!"
+    
 
 
 def create_ml_enhanced_hidden_gems_handler(
