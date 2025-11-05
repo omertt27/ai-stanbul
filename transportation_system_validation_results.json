@@ -1,0 +1,181 @@
+{
+  "total_tests": 10,
+  "passed": 8,
+  "failed": 2,
+  "success_rate": 80.0,
+  "all_passed": false,
+  "results": {
+    "osrm_integration": true,
+    "transportation_directions_service": false,
+    "transportation_handler": true,
+    "map_visualization": true,
+    "weather_aware_transport": true,
+    "marmaray_integration": false,
+    "llm_enhancement": true,
+    "gps_aware_routing": true,
+    "helper_methods": true,
+    "missing_methods_fixed": true
+  },
+  "details": [
+    {
+      "test": "OSRM Service Class",
+      "passed": true,
+      "details": "Class instantiated successfully"
+    },
+    {
+      "test": "OSRM Method: get_route",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "OSRM Method: get_walking_route",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Transportation Directions Service",
+      "passed": true,
+      "details": "Class instantiated"
+    },
+    {
+      "test": "Transport Method: get_directions",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Transport Method: get_route_details",
+      "passed": false,
+      "details": "Method not found"
+    },
+    {
+      "test": "Transportation Handler",
+      "passed": true,
+      "details": "Handler instantiated with all services"
+    },
+    {
+      "test": "Handler Method: can_handle",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: handle",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: _classify_transport_query",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: _handle_route_planning",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: _handle_gps_navigation",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: _handle_station_info",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Handler Method: _handle_general_transport",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Weather Method: _enhance_route_with_weather_advice",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Weather Method: _check_weather_impact_on_transit",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Weather Impact Detection",
+      "passed": true,
+      "details": "Detected: \u26a0\ufe0f Ferry service may be delayed or uncomfortable in rain \u2614 Bus stops may be wet - bring umbrella"
+    },
+    {
+      "test": "Marmaray Data Module",
+      "passed": true,
+      "details": "All functions imported successfully"
+    },
+    {
+      "test": "Marmaray Integration",
+      "passed": false,
+      "details": "crosses_bosphorus() takes 2 positional arguments but 4 were given"
+    },
+    {
+      "test": "LLM Enhancement Method",
+      "passed": true,
+      "details": "_enhance_with_llm exists"
+    },
+    {
+      "test": "LLM Response Generation",
+      "passed": true,
+      "details": "Generated: Hey! Getting from Sultanahmet to Taksim is super easy! Take the T1 tram to Kabata\u015f, then hop on the ..."
+    },
+    {
+      "test": "GPS Context Builder",
+      "passed": true,
+      "details": "_build_gps_context exists"
+    },
+    {
+      "test": "GPS Context Generation",
+      "passed": true,
+      "details": "Coords: {'lat': 41.0082, 'lng': 28.9784}"
+    },
+    {
+      "test": "User Context Builder",
+      "passed": true,
+      "details": "_build_intelligent_user_context exists"
+    },
+    {
+      "test": "Accessibility Detection",
+      "passed": true,
+      "details": "Detected wheelchair need"
+    },
+    {
+      "test": "Map Integration Service",
+      "passed": true,
+      "details": "Map service configured"
+    },
+    {
+      "test": "Transfer Map Integration",
+      "passed": true,
+      "details": "Feature enabled"
+    },
+    {
+      "test": "GPS Navigation Handler",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "GPS Context Building",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "test": "Fixed Method: _enhance_with_llm",
+      "passed": true,
+      "details": "\u2705 Now implemented"
+    },
+    {
+      "test": "Fixed Method: _build_gps_context",
+      "passed": true,
+      "details": "\u2705 Now implemented"
+    },
+    {
+      "test": "Fixed Method: _build_intelligent_user_context",
+      "passed": true,
+      "details": "\u2705 Now implemented"
+    }
+  ]
+}

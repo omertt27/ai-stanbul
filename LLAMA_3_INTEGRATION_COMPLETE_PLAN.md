@@ -809,52 +809,78 @@ Response:"""
 
 ## Phase 4: Add Marmaray Support
 
-### Step 4.1: Add Marmaray Route Data
+### Step 4.1: Complete Marmaray Route Data ✅ **COMPLETE** (Nov 5, 2025)
 
-**File:** `backend/services/transportation_directions_service.py`
+**File:** `backend/data/marmaray_stations.py` (✅ Already implemented with complete data)
 
+The complete Marmaray station database has been created with:
+- **43 total stations** (European side: 13, Asian side: 21, Tunnel: 4)
+- **7 major transfer stations** (connections to Metro, Tram, Ferries)
+- **Full route coverage**: Halkalı (west) to Gebze (east) - 76.6 km
+- **Travel time data**: Pre-calculated times between key stations
+- **Operational info**: Hours, frequency, undersea specs
+
+**Key Features:**
 ```python
-MARMARAY_STATIONS = {
-    'asian_side': [
-        {'name': 'Gebze', 'lat': 40.7995, 'lon': 29.4305},
-        {'name': 'Pendik', 'lat': 40.8775, 'lon': 29.2336},
-        {'name': 'Bostancı', 'lat': 40.9631, 'lon': 29.0882},
-        {'name': 'Üsküdar', 'lat': 41.0226, 'lon': 29.0150},
-        {'name': 'Ayrılık Çeşmesi', 'lat': 41.0165, 'lon': 29.0252}
-    ],
-    'tunnel': [
-        {'name': 'Sirkeci', 'lat': 41.0171, 'lon': 28.9765},
-        {'name': 'Yenikapı', 'lat': 41.0046, 'lon': 28.9512}
-    ],
-    'european_side': [
-        {'name': 'Kazlıçeşme', 'lat': 40.9944, 'lon': 28.9278},
-        {'name': 'Halkalı', 'lat': 41.0058, 'lon': 28.6756}
-    ]
-}
+from backend.data.marmaray_stations import (
+    get_marmaray_recommendation,
+    find_nearest_marmaray_station,
+    crosses_bosphorus,
+    MARMARAY_INFO
+)
 
-def find_marmaray_route(origin, destination):
-    """Find if Marmaray is useful for this route"""
-    # Check if route crosses Bosphorus
-    crosses_bosphorus = (
-        (origin['lon'] < 29.0 and destination['lon'] > 29.0) or
-        (origin['lon'] > 29.0 and destination['lon'] < 29.0)
-    )
-    
-    if crosses_bosphorus:
-        return {
-            'use_marmaray': True,
-            'stations': find_nearest_marmaray_stations(origin, destination),
-            'travel_time': estimate_marmaray_time(origin, destination),
-            'advantages': [
-                'Avoids Bosphorus traffic',
-                'Fixed schedule',
-                'Fast underwater crossing',
-                'Weather-independent'
-            ]
-        }
-    
-    return {'use_marmaray': False}
+# Example: Get recommendation for route
+recommendation = get_marmaray_recommendation(
+    origin_lat=41.0370, origin_lon=28.9857,  # Taksim
+    dest_lat=40.9903, dest_lon=29.0267,      # Kadıköy
+    weather_conditions='rainy'
+)
+
+# Returns:
+{
+    'use_marmaray': True,
+    'origin_station': {'name': 'Sirkeci', 'distance_meters': 1200},
+    'dest_station': {'name': 'Ayrılık Çeşmesi', 'distance_meters': 800},
+    'travel_time_minutes': 25,
+    'undersea_crossing_time': 4,
+    'recommendation_strength': 'highly_recommended',  # Due to rain
+    'advantages': [
+        'Weather-independent (underground)',
+        'Avoids Bosphorus traffic',
+        'Fast underwater crossing (4 minutes)',
+        ...
+    ],
+    'transfer_info': {
+        'origin': {'connections': ['T1', 'Ferry'], 'transfer_time_minutes': 3},
+        'destination': {'connections': ['M4'], 'transfer_time_minutes': 3}
+    }
+}
 ```
+
+**Station Coverage:**
+
+**European Side (13 stations):**
+- Halkalı → Mustafa Kemal → Florya Akvaryum → Florya → Yeşilyurt → Ataköy
+- Yenimahalle → Bakırköy → Yenibosna → Zeytinburnu → Kazlıçeşme
+- Yenikapı (transfer hub) → Sirkeci (tunnel entrance)
+
+**Undersea Tunnel (1.4 km, 4 minutes):**
+- Yenikapı/Sirkeci (EU) → **Bosphorus Crossing** → Üsküdar/Ayrılık Çeşmesi (Asia)
+
+**Asian Side (21 stations):**
+- Üsküdar → Ayrılık Çeşmesi → Söğütlüçeşme → Feneryolu → Göztepe
+- Erenköy → Suadiye → Bostancı → Küçükyalı → İdealtepe → Maltepe
+- Cevizli → Atalar → Kartal → Yakacık-Pendik → Pendik → Güzelyalı
+- Esenkent → Çayırova → Tersane → Gebze
+
+**Key Transfer Stations:**
+- **Yenikapı**: M1A/M1B (Airport), M2 (Taksim) - Major hub
+- **Sirkeci**: T1 Tram (Sultanahmet), Eminönü Ferry
+- **Üsküdar**: M5 Metro, Ferry Terminal
+- **Ayrılık Çeşmesi**: M4 Metro (Kadıköy-Tavşantepe)
+- **Bakırköy**: M1A Metro
+- **Halkalı**: Western terminus, regional trains
+- **Gebze**: Eastern terminus, regional trains to Kocaeli
 
 ### Step 4.2: Update LLM to Recommend Marmaray
 

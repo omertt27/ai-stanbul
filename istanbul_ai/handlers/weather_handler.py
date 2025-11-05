@@ -1,9 +1,11 @@
 """
-ML-Enhanced Weather Handler
-Provides weather-aware activity recommendations with neural ranking
+ML-Enhanced Weather Handler with LLM Integration
+Provides weather-aware activity recommendations with neural ranking and LLM-powered natural responses
 🌐 Full English/Turkish bilingual support
+🤖 LLM-powered context-aware responses
 
-Updated: November 2, 2025 - Added bilingual support
+Updated: [Current Date] - Added LLM integration with context-aware prompts (Step 3.1)
+Previous: November 2, 2025 - Added bilingual support
 """
 
 from typing import Dict, List, Optional, Any
@@ -18,6 +20,15 @@ try:
 except ImportError:
     BILINGUAL_AVAILABLE = False
     Language = None
+
+# Import LLM service and context-aware prompts
+try:
+    from ml_systems.llm_service_wrapper import LLMServiceWrapper
+    from ml_systems.context_aware_prompts import ContextAwarePromptEngine
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+    logger.warning("⚠️ LLM service or context-aware prompts not available")
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +52,7 @@ class WeatherContext:
 
 class MLEnhancedWeatherHandler:
     """
-    ML-Enhanced Weather Handler
+    ML-Enhanced Weather Handler with LLM Integration
     
     Features:
     - Real-time weather integration
@@ -51,11 +62,13 @@ class MLEnhancedWeatherHandler:
     - Indoor/outdoor smart routing
     - Comfort-level personalization
     - Multi-day forecast planning
+    - LLM-powered context-aware responses (Step 3.1)
+    - Weather-aware prompt engineering
     """
     
     def __init__(self, weather_service, weather_recommendations_service, 
                  ml_context_builder, ml_processor, response_generator,
-                 bilingual_manager=None):
+                 bilingual_manager=None, llm_service=None):
         """
         Initialize handler with required services
         
@@ -66,6 +79,7 @@ class MLEnhancedWeatherHandler:
             ml_processor: Neural processor for embeddings and ranking
             response_generator: Response generator for natural language output
             bilingual_manager: BilingualManager for language support
+            llm_service: Optional LLM service for enhanced responses
         """
         self.weather_service = weather_service
         self.weather_recommendations_service = weather_recommendations_service
@@ -75,7 +89,17 @@ class MLEnhancedWeatherHandler:
         self.bilingual_manager = bilingual_manager
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
-        logger.info(f"✅ ML-Enhanced Weather Handler initialized (Bilingual: {self.has_bilingual})")
+        # Initialize LLM service (optional, with fallback)
+        self.llm_service = llm_service
+        self.has_llm = llm_service is not None and LLM_AVAILABLE
+        
+        # Initialize context-aware prompt engine if LLM is available
+        if self.has_llm:
+            self.prompt_engine = ContextAwarePromptEngine()
+        else:
+            self.prompt_engine = None
+        
+        logger.info(f"✅ ML-Enhanced Weather Handler initialized (Bilingual: {self.has_bilingual}, LLM: {self.has_llm})")
     
     def _extract_language(self, context: Optional[Dict[str, Any]]) -> Language:
         """Extract language from context or detect from query"""
@@ -595,8 +619,13 @@ class MLEnhancedWeatherHandler:
         ml_context: Dict[str, Any],
         language: Optional[Language] = None
     ) -> str:
-        """Generate weather-aware response with bilingual support"""
+        """
+        Generate weather-aware response with bilingual support and LLM integration
         
+        This method now uses:
+        1. LLM service with context-aware prompts (if available)
+        2. Template-based responses (fallback)
+        """
         if not activities:
             if self.has_bilingual and language:
                 return self.bilingual_manager.get_template(
@@ -605,6 +634,157 @@ class MLEnhancedWeatherHandler:
                     fallback="Given the current weather, I'm having trouble finding suitable activities. Would you like indoor or outdoor suggestions?"
                 )
             return "Given the current weather, I'm having trouble finding suitable activities. Would you like indoor or outdoor suggestions?"
+        
+        # Try LLM-powered response first (Step 3.1)
+        if self.has_llm and self.prompt_engine:
+            try:
+                llm_response = await self._generate_llm_response(
+                    activities=activities,
+                    weather_context=weather_context,
+                    ml_context=ml_context,
+                    language=language
+                )
+                if llm_response:
+                    return llm_response
+            except Exception as e:
+                logger.warning(f"⚠️ LLM generation failed, falling back to template: {e}")
+        
+        # Fallback to template-based response
+        return self._generate_template_response(
+            activities=activities,
+            weather_context=weather_context,
+            ml_context=ml_context,
+            language=language
+        )
+    
+    async def _generate_llm_response(
+        self,
+        activities: List[Dict[str, Any]],
+        weather_context: WeatherContext,
+        ml_context: Dict[str, Any],
+        language: Optional[Language] = None
+    ) -> Optional[str]:
+        """
+        Generate LLM-powered weather-aware response using context-aware prompts
+        
+        Returns:
+            LLM-generated response string, or None if generation fails
+        """
+        try:
+            # Prepare weather data for prompt
+            weather_data = {
+                'temperature': weather_context.current_weather.get('temperature'),
+                'conditions': weather_context.weather_condition,
+                'humidity': weather_context.current_weather.get('humidity'),
+                'description': weather_context.current_weather.get('description')
+            }
+            
+            # Prepare user preferences
+            user_preferences = {
+                'indoor_outdoor_pref': weather_context.indoor_outdoor_pref,
+                'budget_level': weather_context.budget_level,
+                'comfort_sensitivity': weather_context.comfort_sensitivity
+            }
+            
+            # Prepare GPS context if available
+            gps_context = ml_context.get('gps_context')
+            
+            # Create context-aware prompt
+            prompt = self.prompt_engine.create_activity_recommendation_prompt(
+                query=weather_context.user_query,
+                weather_data=weather_data,
+                activities=activities,
+                user_preferences=user_preferences,
+                gps_context=gps_context
+            )
+            
+            # Generate response using LLM
+            logger.info("🤖 Generating LLM-powered weather recommendation...")
+            llm_output = self.llm_service.generate(
+                prompt=prompt,
+                max_tokens=200,
+                temperature=0.7
+            )
+            
+            # Validate and truncate if needed
+            if self.prompt_engine.validate_response_length(llm_output, max_words=100):
+                logger.info("✅ LLM response generated successfully")
+                return self._format_llm_response(llm_output, weather_context, activities)
+            else:
+                # Truncate to 3 sentences
+                truncated = self.prompt_engine.truncate_to_sentences(llm_output, max_sentences=3)
+                logger.info("✅ LLM response generated and truncated")
+                return self._format_llm_response(truncated, weather_context, activities)
+                
+        except Exception as e:
+            logger.error(f"❌ LLM generation error: {e}")
+            return None
+    
+    def _format_llm_response(
+        self,
+        llm_text: str,
+        weather_context: WeatherContext,
+        activities: List[Dict[str, Any]]
+    ) -> str:
+        """
+        Format LLM response with weather and activity metadata
+        
+        Adds:
+        - Weather summary header
+        - LLM recommendation
+        - Quick activity list
+        - Forecast tip
+        """
+        response_parts = []
+        
+        # Weather summary header
+        current = weather_context.current_weather
+        temp = current.get("temperature", "N/A")
+        condition = current.get("description", "Current weather")
+        
+        response_parts.append("🌤️ **Current Weather in Istanbul:**")
+        response_parts.append(f"   Temperature: {temp}°C, {condition}")
+        response_parts.append("")
+        
+        # LLM recommendation
+        response_parts.append("🤖 **AI Recommendation:**")
+        response_parts.append(llm_text)
+        response_parts.append("")
+        
+        # Top activity details
+        if activities:
+            top = activities[0]
+            response_parts.append(f"🌟 **Top Pick: {top['name']}** (Match: {int(top['ml_score']*100)}%)")
+            response_parts.append(f"   ⏱️ Duration: {top.get('duration', 'Flexible')}")
+            response_parts.append(f"   💰 Cost: {top.get('budget', 'Varies').title()}")
+            if "highlights" in top and top["highlights"]:
+                highlights = ", ".join(top["highlights"][:3])
+                response_parts.append(f"   ✨ {highlights}")
+        
+        # More activities (brief list)
+        if len(activities) > 1:
+            response_parts.append("")
+            response_parts.append("📋 **More Options:**")
+            for activity in activities[1:4]:
+                response_parts.append(
+                    f"   • {activity['name']} ({activity.get('type', '').title()}) - {activity.get('duration', 'Flexible')}"
+                )
+        
+        # Forecast tip
+        forecast_tip = self._get_forecast_tip(weather_context, None)
+        if forecast_tip:
+            response_parts.append(forecast_tip)
+        
+        return "\n".join(response_parts)
+    
+    def _generate_template_response(
+        self,
+        activities: List[Dict[str, Any]],
+        weather_context: WeatherContext,
+        ml_context: Dict[str, Any],
+        language: Optional[Language] = None
+    ) -> str:
+        """Generate weather-aware response using templates (fallback when LLM unavailable)"""
         
         response_parts = []
         
@@ -860,13 +1040,28 @@ def create_ml_enhanced_weather_handler(
     weather_recommendations_service,
     ml_context_builder,
     ml_processor,
-    response_generator
+    response_generator,
+    bilingual_manager=None,
+    llm_service=None
 ):
-    """Factory function to create ML-enhanced weather handler"""
+    """
+    Factory function to create ML-enhanced weather handler
+    
+    Args:
+        weather_service: Weather data service
+        weather_recommendations_service: Activity recommendations service
+        ml_context_builder: ML context builder
+        ml_processor: Neural processor for embeddings
+        response_generator: Response generator
+        bilingual_manager: Optional bilingual support
+        llm_service: Optional LLM service for enhanced responses (Step 3.1)
+    """
     return MLEnhancedWeatherHandler(
         weather_service=weather_service,
         weather_recommendations_service=weather_recommendations_service,
         ml_context_builder=ml_context_builder,
         ml_processor=ml_processor,
-        response_generator=response_generator
+        response_generator=response_generator,
+        bilingual_manager=bilingual_manager,
+        llm_service=llm_service
     )

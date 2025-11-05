@@ -413,9 +413,19 @@ class HandlerInitializer:
             gps_route_service = services.get('gps_route_service')
             bilingual_manager = services.get('bilingual_manager')  # 🌐 Bilingual support
             
-            # LLM + GPS integration services
+            # LLM + GPS + Weather + Hidden Gems integration services
             llm_service = services.get('llm_service')
             gps_location_service = services.get('gps_location_service')
+            weather_service = services.get('weather_service')
+            
+            # Initialize Hidden Gems Context Service for transportation
+            hidden_gems_context_service = None
+            try:
+                from ml_systems.hidden_gems_context_service import HiddenGemsContextService
+                hidden_gems_context_service = HiddenGemsContextService()
+                logger.info("💎 Hidden Gems Context Service initialized for transportation")
+            except Exception as e:
+                logger.warning(f"💎 Hidden Gems Context Service not available: {e}")
             
             # Get feature flags
             transfer_map_integration_available = services.get('transfer_map_integration_available', False)
@@ -430,14 +440,18 @@ class HandlerInitializer:
                 transfer_map_integration_available=transfer_map_integration_available,
                 advanced_transport_available=advanced_transport_available,
                 llm_service=llm_service,  # 🤖 LLM integration
-                gps_location_service=gps_location_service  # 📍 GPS location integration
+                gps_location_service=gps_location_service,  # 📍 GPS location integration
+                weather_service=weather_service,  # 🌤️ Weather integration
+                hidden_gems_context_service=hidden_gems_context_service  # 💎 Hidden gems integration
             )
             
             logger.info(
                 f"🚇 Transportation Handler initialized successfully! "
                 f"(Bilingual: {bilingual_manager is not None}, "
                 f"LLM: {llm_service is not None}, "
-                f"GPSLocation: {gps_location_service is not None})"
+                f"GPSLocation: {gps_location_service is not None}, "
+                f"Weather: {weather_service is not None}, "
+                f"HiddenGems: {hidden_gems_context_service is not None})"
             )
             self.initialized_count += 1
             self.initialization_log.append({
@@ -451,7 +465,9 @@ class HandlerInitializer:
                     'transfer_maps': transfer_map_integration_available,
                     'advanced_transport': advanced_transport_available,
                     'llm_service': llm_service is not None,  # 🤖 Log LLM status
-                    'gps_location_service': gps_location_service is not None  # 📍 Log GPS status
+                    'gps_location_service': gps_location_service is not None,  # 📍 Log GPS status
+                    'weather_service': weather_service is not None,  # 🌤️ Log weather status
+                    'hidden_gems_context_service': hidden_gems_context_service is not None  # 💎 Log hidden gems status
                 }
             })
             
