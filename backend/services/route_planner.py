@@ -1248,3 +1248,723 @@ class RouteOptimizer:
             })
         
         return updates
+
+# ============================================================================
+# INTELLIGENT ITINERARY PLANNER
+# Integrates with museums, hidden gems, and dining for optimized day trips
+# ============================================================================
+
+@dataclass
+class ItineraryLocation:
+    """Location for itinerary planning with extended metadata"""
+    id: str
+    name: str
+    type: str  # 'museum', 'hidden_gem', 'restaurant', 'cafe'
+    lat: float
+    lng: float
+    duration: int  # minutes to spend here
+    opening_time: str  # "09:00"
+    closing_time: str  # "18:00"
+    rating: float
+    description: str
+    cost: str  # "₺₺"
+    address: str
+    category: str = ""  # Additional category info
+
+
+@dataclass
+class Itinerary:
+    """Complete itinerary plan"""
+    locations: List[ItineraryLocation]
+    segments: List[RouteSegment]
+    total_distance_km: float
+    total_duration_minutes: int
+    start_time: datetime
+    end_time: datetime
+    route_polyline: str  # Combined polyline for map
+    description: str  # LLM-generated description
+    optimization_score: float
+    warnings: List[str]
+    advantages: List[str]
+
+
+class IntelligentItineraryPlanner:
+    """
+    Intelligent route planner that creates optimized itineraries
+    combining museums, hidden gems, and dining spots
+    """
+    
+    def __init__(self):
+        self.route_optimizer = RouteOptimizer()
+        self.osrm_base_url = "http://router.project-osrm.org"
+    
+    async def create_itinerary(
+        self,
+        user_query: str,
+        user_location: Optional[Tuple[float, float]] = None,
+        max_duration_minutes: int = 240,
+        include_meals: bool = True
+    ) -> Itinerary:
+        """
+        Create optimized itinerary from user query
+        
+        Args:
+            user_query: "Show me art museums and cafes in Beyoğlu for 4 hours"
+            user_location: (lat, lng) starting point
+            max_duration_minutes: Maximum duration in minutes
+            include_meals: Whether to include meal breaks
+        
+        Returns:
+            Complete itinerary with optimized route
+        """
+        # Step 1: Parse query to extract intent
+        parsed = await self._parse_query(user_query)
+        
+        # Step 2: Find matching locations
+        locations = await self._find_locations(
+            parsed,
+            user_location,
+            max_duration_minutes
+        )
+        
+        # Step 3: Optimize route order (TSP)
+        optimized_locations = await self._optimize_route_order(
+            locations,
+            user_location,
+            max_duration_minutes
+        )
+        
+        # Step 4: Add meal breaks if needed
+        if include_meals:
+            optimized_locations = await self._add_meal_breaks(
+                optimized_locations,
+                parsed
+            )
+        
+        # Step 5: Get detailed routing between locations
+        segments = await self._get_route_segments(optimized_locations)
+        
+        # Step 6: Calculate totals
+        total_distance = sum(s.distance_km for s in segments)
+        visit_time = sum(loc.duration for loc in optimized_locations)
+        travel_time = sum(s.duration_minutes for s in segments)
+        total_duration = visit_time + travel_time
+        
+        # Step 7: Generate description
+        description = await self._generate_description(
+            user_query,
+            optimized_locations,
+            total_distance,
+            total_duration
+        )
+        
+        # Step 8: Build itinerary
+        start_time = datetime.now() if parsed.get('time_of_day') == 'now' else \
+                     self._get_start_time(parsed.get('time_of_day'))
+        
+        itinerary = Itinerary(
+            locations=optimized_locations,
+            segments=segments,
+            total_distance_km=total_distance,
+            total_duration_minutes=total_duration,
+            start_time=start_time,
+            end_time=start_time + timedelta(minutes=total_duration),
+            route_polyline=self._combine_polylines(segments),
+            description=description,
+            optimization_score=self._calculate_optimization_score(
+                optimized_locations,
+                segments,
+                parsed
+            ),
+            warnings=self._generate_warnings(optimized_locations, segments),
+            advantages=self._generate_advantages(optimized_locations, parsed)
+        )
+        
+        return itinerary
+    
+    async def _parse_query(self, query: str) -> Dict[str, Any]:
+        """Parse user query to extract intent"""
+        # Simple keyword-based parsing (can be enhanced with LLM)
+        parsed = {
+            'duration_minutes': 240,  # Default 4 hours
+            'interests': [],
+            'location': None,
+            'include_meals': True,
+            'time_of_day': 'now'
+        }
+        
+        query_lower = query.lower()
+        
+        # Extract duration
+        if 'hour' in query_lower:
+            import re
+            hours_match = re.search(r'(\d+)\s*hour', query_lower)
+            if hours_match:
+                parsed['duration_minutes'] = int(hours_match.group(1)) * 60
+        
+        # Extract interests
+        interest_keywords = {
+            'art': ['art', 'painting', 'gallery'],
+            'history': ['history', 'historical', 'ancient', 'ottoman'],
+            'nature': ['nature', 'park', 'garden', 'outdoor'],
+            'food': ['food', 'restaurant', 'cafe', 'dining', 'eat'],
+            'culture': ['culture', 'cultural', 'traditional'],
+            'architecture': ['architecture', 'building', 'mosque']
+        }
+        
+        for interest, keywords in interest_keywords.items():
+            if any(kw in query_lower for kw in keywords):
+                parsed['interests'].append(interest)
+        
+        # Default to culture if no interests found
+        if not parsed['interests']:
+            parsed['interests'] = ['culture']
+        
+        # Extract location (districts)
+        districts = [
+            'beyoğlu', 'sultanahmet', 'kadıköy', 'beşiktaş', 
+            'taksim', 'galata', 'karaköy', 'üsküdar', 'sarıyer'
+        ]
+        for district in districts:
+            if district in query_lower:
+                parsed['location'] = district
+                break
+        
+        return parsed
+    
+    async def _find_locations(
+        self,
+        parsed: Dict,
+        user_location: Optional[Tuple[float, float]],
+        max_duration: int
+    ) -> List[ItineraryLocation]:
+        """Find matching locations from databases"""
+        locations = []
+        
+        # Query museums
+        museums = await self._query_museums(parsed)
+        locations.extend(museums)
+        
+        # Query hidden gems
+        gems = await self._query_hidden_gems(parsed)
+        locations.extend(gems)
+        
+        # Limit to reasonable number based on duration
+        max_locations = max(3, max_duration // 60)  # 1 location per hour minimum
+        
+        # Filter by user location if provided
+        if user_location:
+            locations = self._filter_by_proximity(locations, user_location, max_km=5.0)
+        
+        # Sort by rating and return top locations
+        locations.sort(key=lambda x: x.rating, reverse=True)
+        return locations[:max_locations]
+    
+    async def _query_museums(self, parsed: Dict) -> List[ItineraryLocation]:
+        """Query museums database"""
+        # Placeholder - integrate with actual museum database
+        museums_data = [
+            {
+                'id': 'hagia_sophia',
+                'name': 'Hagia Sophia',
+                'lat': 41.0086,
+                'lng': 28.9802,
+                'duration': 90,
+                'opening': '09:00',
+                'closing': '19:00',
+                'rating': 4.8,
+                'description': 'Iconic Byzantine masterpiece',
+                'cost': '₺₺₺',
+                'address': 'Sultanahmet',
+                'category': 'history'
+            },
+            {
+                'id': 'topkapi_palace',
+                'name': 'Topkapi Palace',
+                'lat': 41.0115,
+                'lng': 28.9833,
+                'duration': 120,
+                'opening': '09:00',
+                'closing': '18:00',
+                'rating': 4.7,
+                'description': 'Ottoman palace with stunning views',
+                'cost': '₺₺₺',
+                'address': 'Sultanahmet',
+                'category': 'history'
+            }
+        ]
+        
+        locations = []
+        for museum in museums_data:
+            # Filter by location if specified
+            if parsed.get('location') and parsed['location'] not in museum['address'].lower():
+                continue
+            
+            # Filter by interests
+            if parsed.get('interests') and museum['category'] not in parsed['interests']:
+                continue
+            
+            loc = ItineraryLocation(
+                id=museum['id'],
+                name=museum['name'],
+                type='museum',
+                lat=museum['lat'],
+                lng=museum['lng'],
+                duration=museum['duration'],
+                opening_time=museum['opening'],
+                closing_time=museum['closing'],
+                rating=museum['rating'],
+                description=museum['description'],
+                cost=museum['cost'],
+                address=museum['address'],
+                category=museum['category']
+            )
+            locations.append(loc)
+        
+        return locations
+    
+    async def _query_hidden_gems(self, parsed: Dict) -> List[ItineraryLocation]:
+        """Query hidden gems database"""
+        try:
+            # Import hidden gems handler
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+            
+            from services.hidden_gems_handler import HiddenGemsHandler
+            
+            handler = HiddenGemsHandler()
+            gems_data = handler.get_hidden_gems()
+            
+            locations = []
+            for gem in gems_data[:10]:  # Limit to top 10
+                # Filter by location if specified
+                if parsed.get('location'):
+                    gem_location = gem.get('neighborhood', '').lower()
+                    if parsed['location'] not in gem_location:
+                        continue
+                
+                loc = ItineraryLocation(
+                    id=gem.get('id', gem['name'].lower().replace(' ', '_')),
+                    name=gem['name'],
+                    type='hidden_gem',
+                    lat=gem.get('latitude', 41.0082),
+                    lng=gem.get('longitude', 28.9784),
+                    duration=30,  # 30 minutes default
+                    opening_time="09:00",
+                    closing_time="22:00",
+                    rating=gem.get('rating', 4.0),
+                    description=gem.get('description', ''),
+                    cost=gem.get('cost', '₺₺'),
+                    address=gem.get('neighborhood', ''),
+                    category=gem.get('type', 'general')
+                )
+                locations.append(loc)
+            
+            return locations
+            
+        except Exception as e:
+            print(f"Error querying hidden gems: {e}")
+            return []
+    
+    def _filter_by_proximity(
+        self,
+        locations: List[ItineraryLocation],
+        user_location: Tuple[float, float],
+        max_km: float
+    ) -> List[ItineraryLocation]:
+        """Filter locations by proximity to user"""
+        filtered = []
+        
+        for loc in locations:
+            distance = self.route_optimizer.calculate_distance(
+                user_location,
+                (loc.lat, loc.lng)
+            )
+            if distance <= max_km:
+                filtered.append(loc)
+        
+        return filtered if filtered else locations[:5]  # Fallback to top 5
+    
+    async def _optimize_route_order(
+        self,
+        locations: List[ItineraryLocation],
+        start_location: Optional[Tuple[float, float]],
+        max_duration: int
+    ) -> List[ItineraryLocation]:
+        """Optimize the order of visiting locations using TSP"""
+        if len(locations) <= 1:
+            return locations
+        
+        # Build distance matrix
+        n = len(locations)
+        matrix = np.zeros((n, n))
+        
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    dist = self.route_optimizer.calculate_distance(
+                        (locations[i].lat, locations[i].lng),
+                        (locations[j].lat, locations[j].lng)
+                    )
+                    matrix[i][j] = dist * 12  # Convert to minutes (walking)
+        
+        # Solve TSP using nearest neighbor + 2-opt
+        start_idx = 0
+        if start_location:
+            # Find nearest location to start
+            min_dist = float('inf')
+            for i, loc in enumerate(locations):
+                dist = self.route_optimizer.calculate_distance(
+                    start_location,
+                    (loc.lat, loc.lng)
+                )
+                if dist < min_dist:
+                    min_dist = dist
+                    start_idx = i
+        
+        # Nearest neighbor heuristic
+        route = [start_idx]
+        unvisited = set(range(n)) - {start_idx}
+        current = start_idx
+        
+        while unvisited:
+            nearest = min(unvisited, key=lambda x: matrix[current][x])
+            route.append(nearest)
+            unvisited.remove(nearest)
+            current = nearest
+        
+        # 2-opt improvement
+        improved = True
+        iterations = 0
+        max_iterations = 50
+        
+        while improved and iterations < max_iterations:
+            improved = False
+            iterations += 1
+            
+            for i in range(1, n - 1):
+                for j in range(i + 1, n):
+                    new_route = route[:i] + route[i:j][::-1] + route[j:]
+                    
+                    old_dist = (matrix[route[i-1]][route[i]] + 
+                               matrix[route[j-1]][route[j if j < n else 0]])
+                    new_dist = (matrix[new_route[i-1]][new_route[i]] + 
+                               matrix[new_route[j-1]][new_route[j if j < n else 0]])
+                    
+                    if new_dist < old_dist:
+                        route = new_route
+                        improved = True
+                        break
+                
+                if improved:
+                    break
+        
+        # Filter by time constraint
+        optimized = []
+        total_time = 0
+        
+        for idx in route:
+            loc = locations[idx]
+            visit_time = loc.duration
+            
+            # Add travel time to next location
+            if optimized:
+                prev_loc = optimized[-1]
+                travel_time = matrix[route[len(optimized)-1]][idx]
+            else:
+                travel_time = 0
+            
+            total_time += visit_time + travel_time
+            
+            if total_time <= max_duration:
+                optimized.append(loc)
+            else:
+                break
+        
+        return optimized
+    
+    async def _add_meal_breaks(
+        self,
+        locations: List[ItineraryLocation],
+        parsed: Dict
+    ) -> List[ItineraryLocation]:
+        """Add cafe or restaurant breaks at logical points"""
+        if len(locations) < 2:
+            return locations
+        
+        # Calculate cumulative time
+        total_time = 0
+        lunch_added = False
+        coffee_added = False
+        result = []
+        
+        for i, loc in enumerate(locations):
+            result.append(loc)
+            total_time += loc.duration
+            
+            # Add lunch break after ~2 hours
+            if not lunch_added and total_time > 120 and i < len(locations) - 1:
+                # Find nearby restaurant
+                lunch_spot = self._find_nearby_dining(loc, 'restaurant')
+                if lunch_spot:
+                    result.append(lunch_spot)
+                    total_time += lunch_spot.duration
+                    lunch_added = True
+            
+            # Add coffee break after ~1.5 hours (if no lunch break)
+            elif not coffee_added and not lunch_added and total_time > 90 and i < len(locations) - 1:
+                coffee_spot = self._find_nearby_dining(loc, 'cafe')
+                if coffee_spot:
+                    result.append(coffee_spot)
+                    total_time += coffee_spot.duration
+                    coffee_added = True
+        
+        return result
+    
+    def _find_nearby_dining(
+        self,
+        location: ItineraryLocation,
+        dining_type: str
+    ) -> Optional[ItineraryLocation]:
+        """Find nearby restaurant or cafe"""
+        # Placeholder - in production, query real restaurant database
+        dining_options = {
+            'restaurant': {
+                'name': 'Local Turkish Restaurant',
+                'duration': 60,
+                'cost': '₺₺'
+            },
+            'cafe': {
+                'name': 'Turkish Coffee House',
+                'duration': 30,
+                'cost': '₺'
+            }
+        }
+        
+        option = dining_options.get(dining_type)
+        if not option:
+            return None
+        
+        # Place near the current location with small offset
+        return ItineraryLocation(
+            id=f"{dining_type}_{location.id}",
+            name=option['name'],
+            type=dining_type,
+            lat=location.lat + 0.002,  # Small offset
+            lng=location.lng + 0.002,
+            duration=option['duration'],
+            opening_time="08:00",
+            closing_time="23:00",
+            rating=4.0,
+            description=f"Perfect spot for a {dining_type} break",
+            cost=option['cost'],
+            address=location.address,
+            category='dining'
+        )
+    
+    async def _get_route_segments(
+        self,
+        locations: List[ItineraryLocation]
+    ) -> List[RouteSegment]:
+        """Get detailed routing between locations"""
+        segments = []
+        
+        for i in range(len(locations) - 1):
+            from_loc = locations[i]
+            to_loc = locations[i + 1]
+            
+            # Calculate distance
+            distance = self.route_optimizer.calculate_distance(
+                (from_loc.lat, from_loc.lng),
+                (to_loc.lat, to_loc.lng)
+            )
+            
+            # Estimate travel time (walking)
+            duration = int(distance * 12)  # 5 km/h walking speed
+            
+            # Create segment
+            from_location_obj = Location(
+                id=from_loc.id,
+                name=from_loc.name,
+                coordinates=(from_loc.lat, from_loc.lng),
+                district=from_loc.address,
+                transport_connections=[],
+                accessibility_score=0.8,
+                popularity_score=from_loc.rating / 5.0,
+                category=from_loc.type
+            )
+            
+            to_location_obj = Location(
+                id=to_loc.id,
+                name=to_loc.name,
+                coordinates=(to_loc.lat, to_loc.lng),
+                district=to_loc.address,
+                transport_connections=[],
+                accessibility_score=0.8,
+                popularity_score=to_loc.rating / 5.0,
+                category=to_loc.type
+            )
+            
+            segment = RouteSegment(
+                from_location=from_location_obj,
+                to_location=to_location_obj,
+                transport_mode=TransportMode.WALKING,
+                distance_km=distance,
+                duration_minutes=duration,
+                cost_tl=0,
+                instructions=[
+                    f"Walk from {from_loc.name} to {to_loc.name}",
+                    f"Distance: {distance:.1f} km",
+                    f"Estimated time: {duration} minutes"
+                ],
+                waypoints=[(from_loc.lat, from_loc.lng), (to_loc.lat, to_loc.lng)],
+                real_time_data={"created_at": datetime.now().isoformat()},
+                accessibility_friendly=True,
+                scenic_score=0.6
+            )
+            
+            segments.append(segment)
+        
+        return segments
+    
+    def _combine_polylines(self, segments: List[RouteSegment]) -> str:
+        """Combine segment polylines"""
+        # Simplified - in production, use polyline encoding library
+        all_points = []
+        for segment in segments:
+            all_points.extend(segment.waypoints)
+        
+        return json.dumps(all_points)
+    
+    async def _generate_description(
+        self,
+        query: str,
+        locations: List[ItineraryLocation],
+        distance: float,
+        duration: int
+    ) -> str:
+        """Generate natural language description"""
+        location_names = [loc.name for loc in locations if loc.type != 'cafe' and loc.type != 'restaurant']
+        
+        description = f"Explore {len(location_names)} amazing spots in Istanbul! "
+        description += f"This {duration // 60}-hour journey covers {distance:.1f}km and includes "
+        description += ", ".join(location_names[:3])
+        
+        if len(location_names) > 3:
+            description += f" and {len(location_names) - 3} more hidden gems"
+        
+        description += ". Perfect for discovering the authentic Istanbul!"
+        
+        return description
+    
+    def _calculate_optimization_score(
+        self,
+        locations: List[ItineraryLocation],
+        segments: List[RouteSegment],
+        parsed: Dict
+    ) -> float:
+        """Calculate how well optimized the route is"""
+        if not locations:
+            return 0.0
+        
+        score = 0.0
+        
+        # Factor 1: Average location rating (30%)
+        avg_rating = sum(loc.rating for loc in locations) / len(locations)
+        score += (avg_rating / 5.0) * 0.3
+        
+        # Factor 2: Travel efficiency (40%)
+        total_travel = sum(s.duration_minutes for s in segments)
+        total_visit = sum(loc.duration for loc in locations)
+        efficiency = total_visit / (total_visit + total_travel) if (total_visit + total_travel) > 0 else 0
+        score += efficiency * 0.4
+        
+        # Factor 3: Interest match (30%)
+        if parsed.get('interests'):
+            matching_count = sum(
+                1 for loc in locations 
+                if loc.category in parsed['interests']
+            )
+            match_ratio = matching_count / len(locations)
+            score += match_ratio * 0.3
+        else:
+            score += 0.3  # No preferences, give full score
+        
+        return min(1.0, score)
+    
+    def _generate_warnings(
+        self,
+        locations: List[ItineraryLocation],
+        segments: List[RouteSegment]
+    ) -> List[str]:
+        """Generate warnings for the itinerary"""
+        warnings = []
+        
+        # Check total walking distance
+        total_walking = sum(s.distance_km for s in segments if s.transport_mode == TransportMode.WALKING)
+        if total_walking > 3.0:
+            warnings.append(f"Route includes {total_walking:.1f}km of walking - wear comfortable shoes!")
+        
+        # Check time of day
+        current_hour = datetime.now().hour
+        if current_hour >= 17:
+            warnings.append("Some locations may be closing soon - check opening hours")
+        
+        # Check if museums are included
+        museums = [loc for loc in locations if loc.type == 'museum']
+        if museums:
+                       warnings.append("Museums may have specific visiting hours - arrive early")
+        
+        return warnings
+    
+    def _generate_advantages(
+        self,
+        locations: List[ItineraryLocation],
+        parsed: Dict
+    ) -> List[str]:
+        """Generate advantages of this itinerary"""
+        advantages = []
+        
+        # Variety
+        types = set(loc.type for loc in locations)
+        if len(types) > 2:
+            advantages.append("Great variety of experiences")
+        
+        # High ratings
+        avg_rating = sum(loc.rating for loc in locations) / len(locations) if locations else 0
+        if avg_rating >= 4.5:
+            advantages.append("All highly-rated locations")
+        
+        # Interest match
+        if parsed.get('interests'):
+            advantages.append(f"Perfectly matches your interest in {', '.join(parsed['interests'])}")
+        
+        # Efficiency
+        advantages.append("Optimized route saves time and energy")
+        
+        return advantages
+    
+    def _get_start_time(self, time_of_day: str) -> datetime:
+        """Get appropriate start time based on time of day"""
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        time_map = {
+            'morning': today.replace(hour=9),
+            'afternoon': today.replace(hour=14),
+            'evening': today.replace(hour=17),
+            'now': datetime.now()
+        }
+        
+        return time_map.get(time_of_day, datetime.now())
+
+
+# Global instance
+_itinerary_planner = None
+
+def get_itinerary_planner() -> IntelligentItineraryPlanner:
+    """Get global itinerary planner instance"""
+    global _itinerary_planner
+    if _itinerary_planner is None:
+        _itinerary_planner = IntelligentItineraryPlanner()
+    return _itinerary_planner

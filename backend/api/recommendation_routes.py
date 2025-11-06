@@ -1,6 +1,7 @@
 """
 Recommendation API Routes with A/B Testing Integration
 Week 3-4: Production-ready recommendation serving with experiments
+Week 11-12: Contextual Bandit Integration
 """
 
 from fastapi import APIRouter, HTTPException, Header, Query
@@ -57,6 +58,16 @@ class InteractionRequest(BaseModel):
     item_id: str
     interaction_type: str = Field(..., description="view, click, like, share, save")
     ab_test_variant: Optional[str] = None
+    timestamp: Optional[float] = None
+
+class ContextualBanditFeedbackRequest(BaseModel):
+    """User feedback for contextual bandit learning (Week 11-12)"""
+    user_id: str
+    session_id: str
+    item_id: str
+    interaction_type: str = Field(..., description="view, click, like, booking, skip")
+    recommendation: Dict = Field(..., description="The full recommendation object returned from /personalized-bandit")
+    user_profile: Optional[Dict] = Field(None, description="User profile data")
     timestamp: Optional[float] = None
 
 class InteractionResponse(BaseModel):
@@ -174,6 +185,105 @@ async def get_personalized_recommendations(
         )
 
 
+@router.post("/personalized-bandit", response_model=RecommendationResponse)
+async def get_personalized_bandit_recommendations(
+    request: RecommendationRequest,
+    user_agent: Optional[str] = Header(None)
+):
+    """
+    Get personalized recommendations using Contextual Bandits (Week 11-12) ✨
+    
+    This is the NEW default recommendation endpoint that uses:
+    - LLM candidate generation (existing)
+    - Contextual Thompson Sampling (Week 11-12)
+    - Real-time feedback learning
+    - Exploration-exploitation optimization
+    
+    Falls back to basic Thompson Sampling (Week 3-4) if contextual bandits unavailable
+    """
+    start_time = time.time()
+    
+    try:
+        # Import the getter function from main
+        from backend.main import get_integrated_recommendation_engine
+        
+        engine = get_integrated_recommendation_engine()
+        
+        if not engine:
+            # Fallback to original method if contextual bandits not initialized
+            logger.warning("Contextual bandits not available, falling back to basic recommendations")
+            return await get_personalized_recommendations(request, user_agent)
+        
+        # Generate session ID if not provided
+        session_id = request.session_id or f"session_{int(time.time())}_{request.user_id}"
+        
+        # Build user profile from request
+        user_profile = {
+            'user_id': request.user_id,
+            'session_id': session_id,
+            'location': request.location,
+            'preferred_types': [request.gem_type] if request.gem_type else [],
+            'interaction_count': 0,  # TODO: Get from user history
+            'interaction_history': []  # TODO: Get from user history
+        }
+        
+        # Get recommendations using contextual bandits
+        recommendations = await engine.get_recommendations(
+            user_query=f"{request.gem_type or 'hidden gems'} in {request.location or 'Istanbul'}",
+            user_profile=user_profile,
+            location=None,  # Location is in user_profile
+            top_k=request.limit,
+            use_contextual=True  # Use contextual bandits
+        )
+        
+        # Format response
+        items = [
+            RecommendationItem(
+                id=rec.get('id', ''),
+                name=rec.get('name', 'Unknown'),
+                type=rec.get('type', 'general'),
+                description=rec.get('description', ''),
+                score=rec.get('final_score', 0.0),
+                metadata={
+                    'location': rec.get('neighborhood', 'Unknown'),
+                    'llm_score': rec.get('llm_score', 0.0),
+                    'contextual_score': rec.get('contextual_score', 0.0),
+                    'arm_idx': rec.get('arm_idx', 0),
+                    'distance': rec.get('distance', 0.0),
+                    'rating': rec.get('rating', 0.0)
+                }
+            )
+            for rec in recommendations
+        ]
+        
+        response_time = time.time() - start_time
+        
+        logger.info(
+            f"✅ [CONTEXTUAL BANDIT] Served {len(items)} recommendations to user {request.user_id} "
+            f"(time: {response_time:.3f}s)"
+        )
+        
+        return RecommendationResponse(
+            user_id=request.user_id,
+            session_id=session_id,
+            items=items,
+            ab_test_variant="contextual_bandit",
+            ab_test_experiment="week_11_12_contextual_bandits",
+            response_time=response_time,
+            personalized=True,
+            method="contextual_thompson_sampling"
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Contextual bandit recommendation error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate contextual bandit recommendations: {str(e)}"
+        )
+
+
 @router.post("/interaction", response_model=InteractionResponse)
 async def track_interaction(request: InteractionRequest):
     """
@@ -229,6 +339,84 @@ async def track_interaction(request: InteractionRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to track interaction: {str(e)}"
+        )
+
+
+@router.post("/bandit-feedback", response_model=InteractionResponse)
+async def track_contextual_bandit_feedback(request: ContextualBanditFeedbackRequest):
+    """
+    Track user feedback for contextual bandit learning (Week 11-12) ✨
+    
+    This endpoint updates the contextual bandit model with user feedback.
+    IMPORTANT: Must pass the full recommendation object from /personalized-bandit
+    so the bandit can update with the correct context features.
+    
+    Args:
+        request: Contains user_id, item_id, interaction_type, and the full recommendation
+    
+    Returns:
+        Success confirmation with bandit update status
+    """
+    try:
+        from backend.main import get_integrated_recommendation_engine
+        
+        engine = get_integrated_recommendation_engine()
+        
+        if not engine:
+            # Fallback to basic interaction tracking
+            logger.warning("Contextual bandits not available, using basic interaction tracking")
+            return await track_interaction(InteractionRequest(
+                user_id=request.user_id,
+                session_id=request.session_id,
+                item_id=request.item_id,
+                interaction_type=request.interaction_type,
+                timestamp=request.timestamp
+            ))
+        
+        # Build user profile if not provided
+        user_profile = request.user_profile or {
+            'user_id': request.user_id,
+            'session_id': request.session_id
+        }
+        
+        # Process feedback through contextual bandit
+        await engine.process_feedback(
+            user_id=request.user_id,
+            item_id=request.item_id,
+            feedback_type=request.interaction_type,
+            recommendation=request.recommendation,
+            user_profile=user_profile
+        )
+        
+        # Convert interaction type to reward for logging
+        reward_map = {
+            'view': 0.2,
+            'click': 0.5,
+            'like': 0.8,
+            'booking': 1.0,
+            'skip': 0.0
+        }
+        reward = reward_map.get(request.interaction_type, 0.0)
+        
+        logger.info(
+            f"✅ [CONTEXTUAL BANDIT] Recorded {request.interaction_type} feedback: "
+            f"user={request.user_id}, item={request.item_id}, reward={reward}, "
+            f"arm={request.recommendation.get('metadata', {}).get('arm_idx', 'unknown')}"
+        )
+        
+        return InteractionResponse(
+            success=True,
+            message=f"Contextual bandit feedback recorded: {request.interaction_type}",
+            learning_updated=True
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Contextual bandit feedback error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to record contextual bandit feedback: {str(e)}"
         )
 
 
@@ -292,6 +480,46 @@ async def get_popular_recommendations(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get popular recommendations: {str(e)}"
+        )
+
+
+@router.get("/bandit-stats")
+async def get_contextual_bandit_stats():
+    """
+    Get statistics from the contextual bandit system (Week 11-12) ✨
+    
+    Returns:
+        Statistics including:
+        - Total pulls
+        - Average rewards
+        - Exploration rate
+        - Comparison with basic Thompson Sampling
+    """
+    try:
+        from backend.main import get_integrated_recommendation_engine
+        
+        engine = get_integrated_recommendation_engine()
+        
+        if not engine:
+            return {
+                "success": False,
+                "message": "Contextual bandit system not initialized",
+                "stats": {}
+            }
+        
+        stats = engine.get_stats()
+        
+        return {
+            "success": True,
+            "message": "Contextual bandit statistics retrieved",
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get bandit stats: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve bandit statistics: {str(e)}"
         )
 
 

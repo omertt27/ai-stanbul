@@ -267,6 +267,22 @@ if ML_MONITORING_AVAILABLE:
         ML_MONITORING_AVAILABLE = False
 
 # ═══════════════════════════════════════════════════════════════════
+# CONTEXTUAL BANDIT RECOMMENDATION ENGINE (Week 11-12)
+# ═══════════════════════════════════════════════════════════════════
+# Global instance - will be initialized in startup event
+integrated_recommendation_engine = None
+
+def get_integrated_recommendation_engine():
+    """
+    Get the integrated recommendation engine instance
+    
+    Returns:
+        IntegratedRecommendationEngine: Global engine instance or None if not initialized
+    """
+    global integrated_recommendation_engine
+    return integrated_recommendation_engine
+
+# ═══════════════════════════════════════════════════════════════════
 # ML ANSWERING SERVICE CLIENT INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
 print("\n🤖 Initializing ML Answering Service Client...")
@@ -480,6 +496,22 @@ if ML_MONITORING_AVAILABLE:
     except Exception as e:
         print(f"⚠️ Failed to initialize ML monitoring: {e}")
         ML_MONITORING_AVAILABLE = False
+
+# ═══════════════════════════════════════════════════════════════════
+# CONTEXTUAL BANDIT RECOMMENDATION ENGINE (Week 11-12)
+# ═══════════════════════════════════════════════════════════════════
+# Global instance - will be initialized in startup event
+integrated_recommendation_engine = None
+
+def get_integrated_recommendation_engine():
+    """
+    Get the integrated recommendation engine instance
+    
+    Returns:
+        IntegratedRecommendationEngine: Global engine instance or None if not initialized
+    """
+    global integrated_recommendation_engine
+    return integrated_recommendation_engine
 
 # ═══════════════════════════════════════════════════════════════════
 # ML ANSWERING SERVICE CLIENT INTEGRATION
@@ -1200,9 +1232,37 @@ else:
 
 @app.on_event("startup")
 async def startup_event():
-    """Startup tasks - check ML service connection"""
+    """Startup tasks - check ML service connection and initialize recommendation engine"""
+    global integrated_recommendation_engine
+    
     logger.info("🚀 Starting AI Istanbul Backend")
     logger.info("=" * 60)
+    
+    # Initialize Contextual Bandit Recommendation Engine
+    try:
+        from backend.services.integrated_recommendation_engine import IntegratedRecommendationEngine
+        
+        redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+        integrated_recommendation_engine = IntegratedRecommendationEngine(
+            redis_url=redis_url,
+            enable_contextual_bandits=True,
+            enable_basic_bandits=True,
+            n_candidates=100
+        )
+        
+        logger.info("✅ Contextual Bandit Recommendation Engine initialized")
+        logger.info(f"   Contextual Bandits: Enabled")
+        logger.info(f"   Basic Bandits: Enabled")
+        logger.info(f"   Candidates: 100 (LLM + Hidden Gems)")
+        
+        # Start periodic state saving (every 5 minutes)
+        asyncio.create_task(periodic_state_save())
+        logger.info("✅ Periodic state saving started (5 min interval)")
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to initialize Recommendation Engine: {e}")
+        logger.warning("   Contextual bandit features will be unavailable")
+        integrated_recommendation_engine = None
     
     # Check ML Answering Service
     if ML_ANSWERING_SERVICE_AVAILABLE:
@@ -1224,6 +1284,18 @@ async def startup_event():
     
     logger.info("=" * 60)
     logger.info("✅ Backend startup complete")
+
+
+async def periodic_state_save():
+    """Periodically save contextual bandit state to Redis"""
+    while True:
+        try:
+            await asyncio.sleep(300)  # 5 minutes
+            if integrated_recommendation_engine:
+                await integrated_recommendation_engine.save_state()
+                logger.info("💾 Contextual bandit state saved to Redis")
+        except Exception as e:
+            logger.error(f"Error saving contextual bandit state: {e}")
 
 
 @app.get("/health", tags=["System Health"])
@@ -1914,6 +1986,7 @@ async def get_feedback_analysis(days: int = Query(7, ge=1, le=90, description="N
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Feedback collection service is not available"
         )
+
     
     try:
         analysis = feedback_collector.analyze_feedback(days=days)
