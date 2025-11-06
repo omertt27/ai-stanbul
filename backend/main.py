@@ -1624,8 +1624,34 @@ async def ml_chat_endpoint(request: MLChatRequest):
     ML_USE_LLM_DEFAULT = os.getenv("ML_USE_LLM_DEFAULT", "true").lower() == "true"
     
     try:
-        # Detect intent (use your existing classifier if available)
-        intent = "general"  # TODO: Integrate with existing intent classifier
+        # ✨ NEW: Use LLM Intent Classifier from Istanbul Daily Talk AI
+        intent = "general"
+        confidence = 0.5
+        
+        if ISTANBUL_DAILY_TALK_AVAILABLE and hasattr(istanbul_daily_talk_ai, 'intent_classifier'):
+            try:
+                # Extract entities first (if entity extractor available)
+                entities = {}
+                if hasattr(istanbul_daily_talk_ai, 'entity_extractor'):
+                    entities = istanbul_daily_talk_ai.entity_extractor.extract(request.message)
+                
+                # Classify intent using LLM intent classifier
+                intent_result = istanbul_daily_talk_ai.intent_classifier.classify_intent(
+                    message=request.message,
+                    entities=entities,
+                    context=None  # Could be enhanced with conversation context
+                )
+                
+                intent = intent_result.primary_intent
+                confidence = intent_result.confidence
+                
+                logger.info(f"🎯 Intent classified: {intent} (confidence: {confidence:.2f}, method: {intent_result.method})")
+            except Exception as e:
+                logger.warning(f"⚠️ Intent classification failed: {e}, using default")
+                intent = "general"
+                confidence = 0.5
+        else:
+            logger.debug("Using default intent (LLM intent classifier not available)")
         
         # Determine if should use LLM
         use_llm = request.use_llm if request.use_llm is not None else ML_USE_LLM_DEFAULT
@@ -1649,7 +1675,7 @@ async def ml_chat_endpoint(request: MLChatRequest):
                 return MLChatResponse(
                     response=ml_response['answer'],
                     intent=ml_response.get('intent', intent),
-                    confidence=ml_response.get('confidence', 0.85),
+                    confidence=ml_response.get('confidence', confidence),  # Use LLM classifier confidence
                     method=f"ml_{ml_response.get('generation_method', 'llm')}",
                     context=ml_response.get('context', []),
                     suggestions=ml_response.get('suggestions', []),
@@ -2596,5 +2622,12 @@ try:
     print("✅ Feedback API routes registered")
 except ImportError as e:
     print(f"⚠️ Feedback routes not available: {e}")
+
+try:
+    from backend.api.route_planner_routes import router as route_planner_router
+    app.include_router(route_planner_router)
+    print("✅ Route Planner API routes registered")
+except ImportError as e:
+    print(f"⚠️ Route Planner routes not available: {e}")
 
 print("✅ Week 3-4 APIs loaded\n")

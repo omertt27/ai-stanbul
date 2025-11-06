@@ -900,7 +900,7 @@ class MLEnhancedHiddenGemsHandler:
             time_score = 0.0
             
             # Perfect match: gem's best time matches query time
-            if gem_best_time == time_of_day:
+            if gem_best_time == time_of_day and time_score >= 0.9:
                 time_score = 1.0
             # Good match: time is in suitable times
             elif time_of_day in gem_suitable_times:
@@ -1357,29 +1357,6 @@ class MLEnhancedHiddenGemsHandler:
         Generate time-aware tips for Time-Aware Gems feature
         
         Args:
-            "hot": {
-                "en": "🔥 Weather tip: Beat the heat in shaded gardens or air-conditioned cafes - these spots stay cool",
-                "tr": "🔥 Hava ipucu: Gölgeli bahçelerde veya klimali kafelerde serinleyin - bu yerler serin kalıyor"
-            }
-        }
-        
-        lang_code = "tr" if (self.has_bilingual and language == Language.TURKISH) else "en"
-        
-        if weather_category in weather_tips:
-            return weather_tips[weather_category][lang_code]
-        
-        return None
-    
-    def _get_time_aware_tip(
-        self,
-        time_of_day: str,
-        gems: List[Dict[str, Any]],
-        language: Optional[Language]
-    ) -> Optional[str]:
-        """
-        Generate time-aware tips for Time-Aware Gems feature
-        
-        Args:
             time_of_day: Current/requested time of day
             gems: List of recommended gems
             language: Language for the tip
@@ -1420,4 +1397,36 @@ class MLEnhancedHiddenGemsHandler:
             return "\n\n🤫 Unutmayın: Bunlar gizli mekanlar - bulmak zor olabilir, ama işte macera da bu!"
         else:
             return "\n\n🤫 Remember: These are hidden gems - they might be hard to find, but that's part of the adventure!"
+
+
+def create_ml_enhanced_hidden_gems_handler(
+    hidden_gems_service,
+    ml_context_builder,
+    ml_processor,
+    response_generator,
+    bilingual_manager=None,
+    map_integration_service=None
+):
+    """
+    Factory function to create ML-enhanced hidden gems handler with bilingual support
     
+    Args:
+        hidden_gems_service: Hidden gems service with gem data
+        ml_context_builder: Centralized ML context builder
+        ml_processor: Neural processor for embeddings and ranking
+        response_generator: Response generator for natural language output
+        bilingual_manager: BilingualManager for language support
+        map_integration_service: MapIntegrationService for map visualization
+    
+    Returns:
+        MLEnhancedHiddenGemsHandler instance
+    """
+    return MLEnhancedHiddenGemsHandler(
+        hidden_gems_service=hidden_gems_service,
+        ml_context_builder=ml_context_builder,
+        ml_processor=ml_processor,
+        response_generator=response_generator,
+        bilingual_manager=bilingual_manager,
+        map_integration_service=map_integration_service
+    )
+

@@ -12,6 +12,7 @@ import OfflineSettings from "./pages/OfflineSettings";
 import BlogList from "./pages/BlogList";
 import BlogPost from "./pages/BlogPost";
 import NewBlogPost from "./pages/NewBlogPost";
+import IntelligentRoutePlanner from "./pages/IntelligentRoutePlanner";
 import './App.css';
 
 function AppRouter() {
@@ -24,6 +25,7 @@ function AppRouter() {
             <Route path="/" element={<App />} />
             <Route path="/chat" element={<Chatbot />} />
             <Route path="/chatbot" element={<Chatbot />} />
+            <Route path="/route-planner" element={<IntelligentRoutePlanner />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />

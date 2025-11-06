@@ -76,6 +76,15 @@
             opacity: 0.9;
         }
         
+        #chat-header .multilang-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
         #messages {
             flex: 1;
             overflow-y: auto;
@@ -342,12 +351,13 @@
             <div id="chat-header">
                 <h1>🗺️ Istanbul AI</h1>
                 <p>Ask me anything about Istanbul - Get answers with interactive maps!</p>
+                <div class="multilang-badge">🌍 English • Türkçe • Français • Deutsch • العربية • More</div>
             </div>
             
             <div id="messages">
                 <div class="message system">
-                    Welcome! Ask me about attractions, restaurants, routes, or transportation in Istanbul.
-                    I'll show you interactive maps with every answer! 🎯
+                    Welcome! Ask me about attractions, restaurants, routes, or transportation in Istanbul in any language.
+                    I'll show you interactive maps with every answer! 🎯🌍
                 </div>
             </div>
             
@@ -364,6 +374,19 @@
                 <div class="suggestion-chip" onclick="sendSuggestion('What to visit in Beyoğlu')">
                     📍 Neighborhoods
                 </div>
+                <!-- Multilingual Examples -->
+                <div class="suggestion-chip" onclick="sendSuggestion('Sultanahmet yakınında tarihi yerler')">
+                    🇹🇷 Türkçe
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Montrez-moi la Tour de Galata')">
+                    🇫🇷 Français
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Wo ist die Hagia Sophia?')">
+                    🇩🇪 Deutsch
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('أين المسجد الأزرق؟')">
+                    🇸🇦 العربية
+                </div>
             </div>
             
             <div id="input-container">
@@ -371,7 +394,7 @@
                     <input 
                         type="text" 
                         id="message-input" 
-                        placeholder="Ask about Istanbul..." 
+                        placeholder="Ask about Istanbul in any language..." 
                         autocomplete="off"
                     >
                     <button type="submit" id="send-button">Send</button>
@@ -600,6 +623,14 @@
                 
                 // Display AI response
                 displayMessage(data.response, 'ai', data.processing_time);
+                
+                // Show intent information if available (for debugging/transparency)
+                if (data.intent && data.confidence) {
+                    console.log(`🎯 Intent: ${data.intent} (${(data.confidence * 100).toFixed(1)}% confidence)`);
+                    if (data.entities && Object.keys(data.entities).length > 0) {
+                        console.log('📋 Entities:', data.entities);
+                    }
+                }
                 
                 // Render map if available
                 if (data.map_data && (data.map_data.markers || data.map_data.polylines)) {

@@ -430,6 +430,24 @@ const App = () => {
                   }`}>
                     <div>{msg.content}</div>
                     
+                    {/* Route Planning Action Button */}
+                    {msg.sender === "assistant" && msg.metadata?.route_intent && (
+                      <button
+                        onClick={() => {
+                          // Navigate to route planner with extracted intent
+                          navigate('/route-planner', {
+                            state: {
+                              query: msg.metadata.original_query,
+                              intent: msg.metadata.route_intent
+                            }
+                          });
+                        }}
+                        className="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                      >
+                        🗺️ Open Route Planner
+                      </button>
+                    )}
+                    
                     {/* Map Visualization */}
                     {msg.sender === "assistant" && msg.map_data && (msg.map_data.markers || msg.map_data.routes) && (
                       <div className="mt-3">

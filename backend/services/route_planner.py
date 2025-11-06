@@ -15,12 +15,15 @@ import json
 import math
 import heapq
 import random
+import logging
 from typing import Dict, List, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
 import networkx as nx
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 class SecurityError(Exception):
     """Raised when query fails security validation"""
@@ -1292,11 +1295,24 @@ class IntelligentItineraryPlanner:
     """
     Intelligent route planner that creates optimized itineraries
     combining museums, hidden gems, and dining spots
+    
+    WEEK 2 ENHANCEMENTS:
+    - Full OSRM integration with caching
+    - Turn-by-turn directions
+    - Multi-modal transport support
+    - Distance matrix optimization
     """
     
     def __init__(self):
         self.route_optimizer = RouteOptimizer()
-        self.osrm_base_url = "http://router.project-osrm.org"
+        # Initialize enhanced OSRM service with caching
+        from backend.services.osrm_routing_service import OSRMRoutingService
+        self.osrm_service = OSRMRoutingService(
+            profile='foot',  # Default to walking
+            use_cache=True,
+            cache_ttl=3600  # 1 hour cache
+        )
+        logger.info("✅ IntelligentItineraryPlanner initialized with OSRM caching")
     
     async def create_itinerary(
         self,
@@ -1592,22 +1608,37 @@ class IntelligentItineraryPlanner:
         start_location: Optional[Tuple[float, float]],
         max_duration: int
     ) -> List[ItineraryLocation]:
-        """Optimize the order of visiting locations using TSP"""
+        """
+        Optimize the order of visiting locations using TSP with OSRM distance matrix
+        WEEK 2: Now uses real OSRM routing instead of Haversine approximation
+        """
         if len(locations) <= 1:
             return locations
         
-        # Build distance matrix
         n = len(locations)
-        matrix = np.zeros((n, n))
         
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    dist = self.route_optimizer.calculate_distance(
-                        (locations[i].lat, locations[i].lng),
-                        (locations[j].lat, locations[j].lng)
-                    )
-                    matrix[i][j] = dist * 12  # Convert to minutes (walking)
+        # Build coordinates list for OSRM
+        coords = [(loc.lat, loc.lng) for loc in locations]
+        
+        # Try to get distance matrix from OSRM
+        matrix_data = self.osrm_service.get_distance_matrix(coords, profile='foot')
+        
+        if matrix_data and 'durations' in matrix_data:
+            # Use OSRM duration matrix (in seconds, convert to minutes)
+            matrix = np.array(matrix_data['durations']) / 60.0
+            logger.info(f"✅ Using OSRM distance matrix for {n} locations")
+        else:
+            # Fallback to Haversine if OSRM fails
+            logger.warning("⚠️ OSRM matrix failed, using Haversine fallback")
+            matrix = np.zeros((n, n))
+            for i in range(n):
+                for j in range(n):
+                    if i != j:
+                        dist = self.route_optimizer.calculate_distance(
+                            (locations[i].lat, locations[i].lng),
+                            (locations[j].lat, locations[j].lng)
+                        )
+                        matrix[i][j] = dist * 12  # Convert to minutes (5 km/h walking)
         
         # Solve TSP using nearest neighbor + 2-opt
         start_idx = 0
@@ -1767,21 +1798,53 @@ class IntelligentItineraryPlanner:
         self,
         locations: List[ItineraryLocation]
     ) -> List[RouteSegment]:
-        """Get detailed routing between locations"""
+        """
+        Get detailed routing between locations with turn-by-turn directions
+        WEEK 2: Now uses OSRM for real routing with step-by-step navigation
+        """
         segments = []
         
         for i in range(len(locations) - 1):
             from_loc = locations[i]
             to_loc = locations[i + 1]
             
-            # Calculate distance
-            distance = self.route_optimizer.calculate_distance(
-                (from_loc.lat, from_loc.lng),
-                (to_loc.lat, to_loc.lng)
+            # Get route from OSRM with turn-by-turn directions
+            osrm_route = self.osrm_service.get_walking_route(
+                start=(from_loc.lat, from_loc.lng),
+                end=(to_loc.lat, to_loc.lng)
             )
             
-            # Estimate travel time (walking)
-            duration = int(distance * 12)  # 5 km/h walking speed
+            if osrm_route:
+                # Use OSRM route data
+                distance = osrm_route.total_distance / 1000.0  # Convert to km
+                duration = int(osrm_route.total_duration / 60.0)  # Convert to minutes
+                waypoints = osrm_route.waypoints
+                
+                # Simplified instructions since map will show visual directions
+                instructions = [
+                    f"Walk to {to_loc.name}",
+                    f"{distance:.1f} km • {duration} min"
+                ]
+                
+                # Add first 3 key directions for preview
+                key_steps = [s for s in osrm_route.steps if s.maneuver_type in ['turn', 'depart', 'arrive']][:3]
+                for step in key_steps:
+                    instructions.append(f"• {step.instruction}")
+                
+                logger.debug(f"✅ OSRM route: {from_loc.name} → {to_loc.name} ({distance:.2f}km, {duration}min)")
+            else:
+                # Fallback to Haversine if OSRM fails
+                logger.warning(f"⚠️ OSRM failed, using Haversine fallback for {from_loc.name} → {to_loc.name}")
+                distance = self.route_optimizer.calculate_distance(
+                    (from_loc.lat, from_loc.lng),
+                    (to_loc.lat, to_loc.lng)
+                )
+                duration = int(distance * 12)  # 5 km/h walking speed
+                waypoints = [(from_loc.lat, from_loc.lng), (to_loc.lat, to_loc.lng)]
+                instructions = [
+                    f"Walk to {to_loc.name}",
+                    f"{distance:.1f} km • ~{duration} min"
+                ]
             
             # Create segment
             from_location_obj = Location(
@@ -1813,12 +1876,8 @@ class IntelligentItineraryPlanner:
                 distance_km=distance,
                 duration_minutes=duration,
                 cost_tl=0,
-                instructions=[
-                    f"Walk from {from_loc.name} to {to_loc.name}",
-                    f"Distance: {distance:.1f} km",
-                    f"Estimated time: {duration} minutes"
-                ],
-                waypoints=[(from_loc.lat, from_loc.lng), (to_loc.lat, to_loc.lng)],
+                instructions=instructions,
+                waypoints=waypoints,
                 real_time_data={"created_at": datetime.now().isoformat()},
                 accessibility_friendly=True,
                 scenic_score=0.6

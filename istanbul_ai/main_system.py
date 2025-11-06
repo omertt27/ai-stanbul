@@ -31,7 +31,9 @@ from .routing import (
     EntityExtractor,
     QueryPreprocessor,
     ResponseRouter,
-    HybridIntentClassifier
+    HybridIntentClassifier,
+    LLMIntentClassifier,
+    create_llm_intent_classifier
 )
 
 # Configure logging first
@@ -463,6 +465,30 @@ class IstanbulDailyTalkAI:
         
         logger.info("✅ LLM + GPS integration complete")
         # ==================== END LLM + GPS INTEGRATION ====================
+        
+        # ==================== LLM INTENT CLASSIFIER ====================
+        # Initialize LLM-based intent classifier (replaces neural classifier as primary)
+        if self.llm_service:
+            try:
+                logger.info("🤖 Initializing LLM-based intent classifier...")
+                self.llm_intent_classifier = create_llm_intent_classifier(
+                    llm_service=self.llm_service,
+                    keyword_classifier=self.keyword_classifier,
+                    neural_classifier=self.neural_classifier  # ✨ Use neural as fallback
+                )
+                # Replace the hybrid classifier with LLM classifier as the primary
+                self.intent_classifier = self.llm_intent_classifier
+                logger.info("✅ LLM Intent Classifier initialized and set as primary")
+                if self.neural_classifier:
+                    logger.info("   → Primary fallback: Neural classifier (DistilBERT)")
+                logger.info("   → Secondary fallback: Keyword-based classifier")
+            except Exception as e:
+                logger.warning(f"⚠️ LLM Intent Classifier initialization failed: {e}")
+                logger.warning("   → Using Hybrid (Neural + Keyword) classifier as fallback")
+                # Keep the existing hybrid classifier as fallback
+        else:
+            logger.info("ℹ️  LLM service not available, using Hybrid intent classifier")
+        # ==================== END LLM INTENT CLASSIFIER ====================
         
         # System status
         self.system_ready = True

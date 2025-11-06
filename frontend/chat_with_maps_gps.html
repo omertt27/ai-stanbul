@@ -53,6 +53,15 @@
             opacity: 0.9;
         }
         
+        #chat-header .multilang-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
         #messages {
             flex: 1;
             overflow-y: auto;
@@ -379,11 +388,14 @@
             <div id="chat-header">
                 <h1>🗺️ Istanbul AI with GPS</h1>
                 <p>Ask me anything - Get answers with interactive maps and live location!</p>
+                <div class="multilang-badge">🌍 English • Türkçe • Français • Deutsch • العربية • More</div>
             </div>
             
             <div id="messages">
                 <div class="message system">
                     Welcome! Click the 📍 button on the map to enable GPS tracking.
+                    Ask me about places, routes, or transportation in any language! 🌍
+                </div>
                     Ask about attractions, restaurants, routes, or transportation! 🎯
                 </div>
             </div>
@@ -393,13 +405,26 @@
                     🏛️ Historical Places
                 </div>
                 <div class="suggestion-chip" onclick="sendSuggestion('Best restaurants near me')">
-                    🍽️ Restaurants Near Me
+                    🍽️ Restaurants
                 </div>
                 <div class="suggestion-chip" onclick="sendSuggestion('How to get from my location to Topkapi Palace')">
-                    🚶 Walking Directions
+                    🚇 Get Directions
                 </div>
                 <div class="suggestion-chip" onclick="sendSuggestion('Plan a walking tour')">
-                    🗺️ Walking Tour
+                    🚶 Walking Tour
+                </div>
+                <!-- Multilingual Examples -->
+                <div class="suggestion-chip" onclick="sendSuggestion('Yakınımda restoran öner')">
+                    🇹🇷 Türkçe
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Restaurants près de moi')">
+                    🇫🇷 Français
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Wie komme ich zur Galata-Brücke?')">
+                    🇩🇪 Deutsch
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('مطاعم قريبة مني')">
+                    🇸🇦 العربية
                 </div>
             </div>
             
@@ -408,7 +433,7 @@
                     <input 
                         type="text" 
                         id="message-input" 
-                        placeholder="Ask about Istanbul..." 
+                        placeholder="Ask about Istanbul in any language..." 
                         autocomplete="off"
                     >
                     <button type="submit" id="send-button">Send</button>
@@ -655,6 +680,14 @@
                 
                 // Display AI response
                 displayMessage(data.response, 'ai', data.processing_time);
+                
+                // Show intent information if available (for debugging/transparency)
+                if (data.intent && data.confidence) {
+                    console.log(`🎯 Intent: ${data.intent} (${(data.confidence * 100).toFixed(1)}% confidence)`);
+                    if (data.entities && Object.keys(data.entities).length > 0) {
+                        console.log('📋 Entities:', data.entities);
+                    }
+                }
                 
                 // Render map if available
                 if (data.map_data && (data.map_data.markers || data.map_data.routes)) {

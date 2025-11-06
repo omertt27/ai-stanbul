@@ -232,16 +232,88 @@ async def get_example_route():
         )
 
 
+@router.get("/stats")
+async def get_routing_stats():
+    """
+    Get OSRM routing statistics and cache performance
+    
+    Returns API usage, cache hit rates, and other monitoring metrics
+    """
+    try:
+        planner = get_itinerary_planner()
+        
+        # Get OSRM service stats
+        osrm_stats = planner.osrm_service.get_stats()
+        
+        return {
+            "success": True,
+            "osrm_stats": osrm_stats,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get stats: {str(e)}"
+        )
+
+
+@router.post("/clear-cache")
+async def clear_routing_cache():
+    """
+    Clear the routing cache
+    
+    Useful for testing or when routes become stale
+    """
+    try:
+        planner = get_itinerary_planner()
+        deleted = planner.osrm_service.clear_cache()
+        
+        return {
+            "success": True,
+            "deleted_entries": deleted,
+            "message": f"Cleared {deleted} routing cache entries"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear cache: {str(e)}"
+        )
+
+
 @router.get("/health")
 async def health_check():
     """
-    Health check endpoint for route planner service
+    Health check endpoint
+    
+    Returns:
+    - Service status
+    - OSRM connectivity
+    - Cache status
     """
-    return {
-        "status": "healthy",
-        "service": "route_planner",
-        "timestamp": datetime.now().isoformat()
-    }
+    try:
+        planner = get_itinerary_planner()
+        
+        # Check OSRM connectivity by getting a simple route
+        test_route = planner.osrm_service.get_walking_route(
+            start=(41.0086, 28.9802),  # Hagia Sophia
+            end=(41.0054, 28.9768)     # Blue Mosque
+        )
+        
+        osrm_working = test_route is not None
+        cache_working = planner.osrm_service.cache is not None and planner.osrm_service.cache.ping()
+        
+        return {
+            "status": "healthy" if osrm_working else "degraded",
+            "osrm_routing": "operational" if osrm_working else "offline",
+            "cache": "enabled" if cache_working else "disabled",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 def _get_marker_icon(location_type: str) -> str:
