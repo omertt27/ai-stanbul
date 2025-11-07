@@ -222,11 +222,12 @@ class LLMIntentClassifier:
         # Build classification prompt
         prompt = self._build_classification_prompt(message, entities, language, context)
         
-        # Get LLM response
+        # Get LLM response with very low temperature for consistent classification
+        # TinyLlama needs: low tokens (concise output), very low temp (deterministic), high top_p
         llm_response = self.llm_service.generate(
             prompt=prompt,
-            max_tokens=150,
-            temperature=0.3  # Lower temperature for more consistent classification
+            max_tokens=80,  # Reduced - we only need JSON output
+            temperature=0.1  # Very low for deterministic classification
         )
         
         # Parse LLM response
@@ -266,61 +267,30 @@ class LLMIntentClassifier:
             recent = context.recent_intents[-3:]  # Last 3 intents
             conversation_context = f"Recent conversation topics: {', '.join(recent)}\n\n"
         
-        # Build the prompt - use few-shot examples to guide the model
-        # Small LLMs like TinyLlama work better with concrete examples than abstract instructions
-        # Include multilingual examples (EN, TR, FR, DE, RU, AR) for better multilingual support
-        prompt = f"""Classify user intent for Istanbul travel queries. Supports all languages (English, Turkish, French, German, Russian, Arabic, etc).
+        # Ultra-compact prompt for TinyLlama - use absolute minimal format
+        # Strategy: One-line examples, no explanation, JSON ONLY output
+        # TinyLlama struggles with complex instructions, so we use the simplest possible format
+        prompt = f"""Classify intent. Output only JSON: {{"primary_intent":"X","confidence":0.9,"all_intents":["X"]}}
 
-Examples:
+"Hello!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Merhaba!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"How are you?" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Good morning!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Günaydın!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Thanks!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Goodbye!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Hoşça kal!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Hey!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Selam!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"What's up?" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Bonjour!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Weather?" = {{"primary_intent":"weather","confidence":0.90,"all_intents":["weather"]}}
+"Hava nasıl?" = {{"primary_intent":"weather","confidence":0.90,"all_intents":["weather"]}}
+"Find restaurant" = {{"primary_intent":"restaurant","confidence":0.90,"all_intents":["restaurant"]}}
+"Taksim?" = {{"primary_intent":"transportation","confidence":0.90,"all_intents":["transportation"]}}
+"Hagia Sophia" = {{"primary_intent":"attraction","confidence":0.90,"all_intents":["attraction"]}}
 
-Q: "Hello!"
-A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
-
-Q: "Merhaba!" (Turkish)
-A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
-
-Q: "Good morning! How are you?"
-A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
-
-Q: "Günaydın! Nasılsın?" (Turkish)
-A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
-
-Q: "Thank you, goodbye!"
-A: {{"primary_intent": "greeting", "confidence": 0.90, "all_intents": ["greeting"]}}
-
-Q: "Teşekkür ederim!" (Turkish)
-A: {{"primary_intent": "greeting", "confidence": 0.90, "all_intents": ["greeting"]}}
-
-Q: "Hey! I'm so happy to be in Istanbul!"
-A: {{"primary_intent": "greeting", "confidence": 0.85, "all_intents": ["greeting"]}}
-
-Q: "What's the weather today?"
-A: {{"primary_intent": "weather", "confidence": 0.95, "all_intents": ["weather"]}}
-
-Q: "Bugün hava nasıl?" (Turkish)
-A: {{"primary_intent": "weather", "confidence": 0.95, "all_intents": ["weather"]}}
-
-Q: "Where can I eat kebab?"
-A: {{"primary_intent": "restaurant", "confidence": 0.95, "all_intents": ["restaurant"]}}
-
-Q: "Où puis-je manger des kebabs?" (French)
-A: {{"primary_intent": "restaurant", "confidence": 0.95, "all_intents": ["restaurant"]}}
-
-Q: "How do I get to Taksim?"
-A: {{"primary_intent": "transportation", "confidence": 0.95, "all_intents": ["transportation"]}}
-
-Q: "Wie komme ich nach Taksim?" (German)
-A: {{"primary_intent": "transportation", "confidence": 0.95, "all_intents": ["transportation"]}}
-
-Q: "Show me Hagia Sophia"
-A: {{"primary_intent": "attraction", "confidence": 0.95, "all_intents": ["attraction"]}}
-
-Q: "أرني آيا صوفيا" (Arabic)
-A: {{"primary_intent": "attraction", "confidence": 0.95, "all_intents": ["attraction"]}}
-
-Now classify (any language):
-Q: "{message}"
-A:"""
+"{message}" = """
         
         return prompt
     
