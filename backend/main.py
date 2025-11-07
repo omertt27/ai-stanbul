@@ -1556,6 +1556,10 @@ async def generate_ml_fallback_response(
 ) -> Dict:
     """Fallback response when ML service unavailable"""
     responses = {
+        "greeting": {
+            "answer": "Hello! Welcome to Istanbul! 👋 I'm here to help you explore this amazing city. What would you like to discover today?",
+            "context": []
+        },
         "restaurant_recommendation": {
             "answer": "Istanbul has amazing restaurants! Popular areas include Beyoğlu, Kadıköy, and Beşiktaş. What type of cuisine interests you?",
             "context": []
@@ -1627,15 +1631,22 @@ async def ml_chat_endpoint(request: MLChatRequest):
         # ✨ NEW: Use LLM Intent Classifier from Istanbul Daily Talk AI
         intent = "general"
         confidence = 0.5
+        method = "default"
         
         if ISTANBUL_DAILY_TALK_AVAILABLE and hasattr(istanbul_daily_talk_ai, 'intent_classifier'):
             try:
                 # Extract entities first (if entity extractor available)
                 entities = {}
                 if hasattr(istanbul_daily_talk_ai, 'entity_extractor'):
-                    entities = istanbul_daily_talk_ai.entity_extractor.extract(request.message)
+                    try:
+                        entities = istanbul_daily_talk_ai.entity_extractor.extract_entities(request.message)
+                        logger.debug(f"✅ Entities extracted: {list(entities.keys())}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Entity extraction failed: {e}")
+                        entities = {}
                 
                 # Classify intent using LLM intent classifier
+                logger.debug(f"🎯 Classifying intent for: '{request.message}'")
                 intent_result = istanbul_daily_talk_ai.intent_classifier.classify_intent(
                     message=request.message,
                     entities=entities,
@@ -1644,12 +1655,14 @@ async def ml_chat_endpoint(request: MLChatRequest):
                 
                 intent = intent_result.primary_intent
                 confidence = intent_result.confidence
+                method = intent_result.method
                 
-                logger.info(f"🎯 Intent classified: {intent} (confidence: {confidence:.2f}, method: {intent_result.method})")
+                logger.info(f"🎯 Intent classified: {intent} (confidence: {confidence:.2f}, method: {method})")
             except Exception as e:
-                logger.warning(f"⚠️ Intent classification failed: {e}, using default")
+                logger.error(f"❌ Intent classification failed with error: {e}", exc_info=True)
                 intent = "general"
                 confidence = 0.5
+                method = "error_fallback"
         else:
             logger.debug("Using default intent (LLM intent classifier not available)")
         
@@ -1695,8 +1708,8 @@ async def ml_chat_endpoint(request: MLChatRequest):
         return MLChatResponse(
             response=fallback['answer'],
             intent=intent,
-            confidence=0.6,
-            method="fallback",
+            confidence=confidence,  # Use LLM classifier confidence
+            method=method if method != "default" else "fallback",  # Use actual method or 'fallback'
             context=fallback.get('context', []),
             suggestions=generate_ml_suggestions(intent),
             response_time=time.time() - start_time,

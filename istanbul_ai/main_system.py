@@ -449,13 +449,13 @@ class IstanbulDailyTalkAI:
         if hasattr(self, 'gps_location_service') and self.gps_location_service:
             logger.info("✅ GPS Location Service available for LLM integration")
             
-            # Pass LLM service to handlers that can use it
-            if hasattr(self, 'transportation_handler'):
+            # Pass LLM service to handlers that can use it (only if they exist and are not None)
+            if hasattr(self, 'transportation_handler') and self.transportation_handler is not None:
                 self.transportation_handler.llm_service = self.llm_service
                 self.transportation_handler.gps_location_service = self.gps_location_service
                 logger.info("   → TransportationHandler: LLM + GPS enabled")
             
-            if hasattr(self, 'nearby_locations_handler'):
+            if hasattr(self, 'nearby_locations_handler') and self.nearby_locations_handler is not None:
                 self.nearby_locations_handler.llm_service = self.llm_service
                 self.nearby_locations_handler.gps_location_service = self.gps_location_service
                 logger.info("   → NearbyLocationsHandler: LLM + GPS enabled")

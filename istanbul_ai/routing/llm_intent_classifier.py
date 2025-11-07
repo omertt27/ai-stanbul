@@ -273,6 +273,27 @@ class LLMIntentClassifier:
 
 Examples:
 
+Q: "Hello!"
+A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
+
+Q: "Merhaba!" (Turkish)
+A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
+
+Q: "Good morning! How are you?"
+A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
+
+Q: "Günaydın! Nasılsın?" (Turkish)
+A: {{"primary_intent": "greeting", "confidence": 0.95, "all_intents": ["greeting"]}}
+
+Q: "Thank you, goodbye!"
+A: {{"primary_intent": "greeting", "confidence": 0.90, "all_intents": ["greeting"]}}
+
+Q: "Teşekkür ederim!" (Turkish)
+A: {{"primary_intent": "greeting", "confidence": 0.90, "all_intents": ["greeting"]}}
+
+Q: "Hey! I'm so happy to be in Istanbul!"
+A: {{"primary_intent": "greeting", "confidence": 0.85, "all_intents": ["greeting"]}}
+
 Q: "What's the weather today?"
 A: {{"primary_intent": "weather", "confidence": 0.95, "all_intents": ["weather"]}}
 

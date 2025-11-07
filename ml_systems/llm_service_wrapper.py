@@ -52,10 +52,17 @@ class LLMServiceWrapper:
             device: Device to use (optional, auto-detects best device)
         """
         # Use environment variable or default
-        self.model_path = model_path or os.getenv(
-            'LLM_MODEL_PATH', 
-            './models/tinyllama'  # Default: TinyLlama for dev
-        )
+        if model_path:
+            self.model_path = model_path
+        elif os.getenv('LLM_MODEL_PATH'):
+            self.model_path = os.getenv('LLM_MODEL_PATH')
+        else:
+            # Default: TinyLlama for dev
+            # Find project root (parent of ml_systems directory)
+            current_file = os.path.abspath(__file__)
+            ml_systems_dir = os.path.dirname(current_file)
+            project_root = os.path.dirname(ml_systems_dir)
+            self.model_path = os.path.join(project_root, 'models', 'tinyllama')
         
         self.device = device or self._get_best_device()
         self.model = None
@@ -97,18 +104,31 @@ class LLMServiceWrapper:
     def _load_model(self):
         """Load model (works with any model)"""
         try:
+            # Convert to absolute path if relative
+            model_path = self.model_path
+            if not os.path.isabs(model_path):
+                model_path = os.path.abspath(model_path)
+            
+            logger.info(f"📂 Absolute model path: {model_path}")
+            
             # Load tokenizer
             logger.info("1️⃣ Loading tokenizer...")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                local_files_only=True,
+                trust_remote_code=True
+            )
             
             # Load model with appropriate dtype
             logger.info("2️⃣ Loading model...")
             dtype = torch.float16 if self.device != "cpu" else torch.float32
             
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_path,
+                model_path,
                 torch_dtype=dtype,
-                low_cpu_mem_usage=True
+                low_cpu_mem_usage=True,
+                local_files_only=True,
+                trust_remote_code=True
             )
             
             # Move to device

@@ -418,16 +418,6 @@ class HandlerInitializer:
             transportation_chat = services.get('transportation_chat')
             transport_processor = services.get('transport_processor')
             gps_route_service = services.get('gps_route_service')
-            bilingual_manager = services.get('bilingual_manager')  # 🌐 Bilingual support (EN/TR)
-            
-            # Initialize MultilingualManager for 9-language support
-            multilingual_manager = None
-            try:
-                from ml_systems.multilingual_manager import MultilingualManager
-                multilingual_manager = MultilingualManager()
-                logger.info("🌐 MultilingualManager initialized (9 languages: EN/TR/AR/RU/DE/FR/ES/ZH/JA)")
-            except Exception as e:
-                logger.warning(f"🌐 MultilingualManager not available: {e}")
             
             # LLM + GPS + Weather + Hidden Gems + RAG integration services
             llm_service = services.get('llm_service')
@@ -466,11 +456,9 @@ class HandlerInitializer:
                 transportation_chat=transportation_chat,
                 transport_processor=transport_processor,
                 gps_route_service=gps_route_service,
-                bilingual_manager=bilingual_manager,  # 🌐 Pass bilingual manager (EN/TR)
-                multilingual_manager=multilingual_manager,  # 🌐 Pass multilingual manager (9 languages)
                 transfer_map_integration_available=transfer_map_integration_available,
                 advanced_transport_available=advanced_transport_available,
-                llm_service=llm_service,  # 🤖 LLM integration
+                llm_service=llm_service,  # 🤖 LLM integration (handles multilingual automatically)
                 gps_location_service=gps_location_service,  # 📍 GPS location integration
                 weather_service=weather_service,  # 🌤️ Weather integration
                 hidden_gems_context_service=hidden_gems_context_service,  # 💎 Hidden gems integration
@@ -479,9 +467,7 @@ class HandlerInitializer:
             
             logger.info(
                 f"🚇 Transportation Handler initialized successfully! "
-                f"(Bilingual: {bilingual_manager is not None}, "
-                f"Multilingual: {multilingual_manager is not None}, "
-                f"LLM: {llm_service is not None}, "
+                f"(LLM: {llm_service is not None}, "
                 f"GPSLocation: {gps_location_service is not None}, "
                 f"Weather: {weather_service is not None}, "
                 f"HiddenGems: {hidden_gems_context_service is not None}, "
@@ -495,8 +481,6 @@ class HandlerInitializer:
                     'transportation_chat': transportation_chat is not None,
                     'transport_processor': transport_processor is not None,
                     'gps_route_service': gps_route_service is not None,
-                    'bilingual_manager': bilingual_manager is not None,  # 🌐 Log bilingual status (EN/TR)
-                    'multilingual_manager': multilingual_manager is not None,  # 🌐 Log multilingual status (9 languages)
                     'transfer_maps': transfer_map_integration_available,
                     'advanced_transport': advanced_transport_available,
                     'llm_service': llm_service is not None,  # 🤖 Log LLM status

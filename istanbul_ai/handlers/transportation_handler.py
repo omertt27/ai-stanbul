@@ -88,8 +88,8 @@ class TransportationHandler:
         self.transportation_chat = transportation_chat
         self.transport_processor = transport_processor
         self.gps_route_service = gps_route_service
-        self.bilingual_manager = bilingual_manager
-        self.multilingual_manager = multilingual_manager
+        self.bilingual_manager = None  # No longer used - LLM handles multilingual automatically
+        self.multilingual_manager = None  # No longer used - LLM handles multilingual automatically
         self.map_integration_service = map_integration_service
         
         # LLM + GPS + Weather + Hidden Gems + RAG integration
