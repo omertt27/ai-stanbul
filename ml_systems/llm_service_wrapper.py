@@ -1,14 +1,27 @@
 """
 Model-agnostic LLM service wrapper
-Supports TinyLlama (dev) and LLaMA 3.2 (prod)
+Supports TinyLlama, LLaMA 3.1 8B (production), and LLaMA 3.2
 
 This wrapper allows seamless switching between models:
-- Development: TinyLlama on M2 Pro (Metal/MPS)
-- Production: LLaMA 3.2 3B on T4 GPU (CUDA)
+- Production (Google Cloud CPU): LLaMA 3.1 8B on n2-standard-8 (16 vCPUs, 32.5GB RAM)
+- Development (Local): TinyLlama on MPS/CPU (fast, lower accuracy, 2GB VRAM)
+- Optional: 4-bit quantization for memory-constrained environments
+
+Deployment Strategy:
+- n2-standard-8 (16 vCPUs, 32.5GB RAM): FP32 Llama 3.1 8B with multi-threading (~3-8s latency)
+- Local MPS: TinyLlama (development/testing)
+- Auto-detection based on available hardware
+
+Performance Expectations (CPU):
+- Response time: 3-8 seconds (acceptable for chatbot)
+- Throughput: 1-2 concurrent requests
+- Cost: ~$0.40/hour (~$290/month 24/7) or ~$100/month with scheduled stop/start
+
+Upgrade: November 8, 2025 - Production-ready for Google Cloud n2-standard-8 CPU deployment
 """
 import os
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import logging
 from typing import Dict, List, Optional, Any
 
@@ -51,18 +64,37 @@ class LLMServiceWrapper:
             model_path: Path to model (optional, uses env var or auto-detect)
             device: Device to use (optional, auto-detects best device)
         """
-        # Use environment variable or default
+        # Use environment variable or default based on device
         if model_path:
             self.model_path = model_path
         elif os.getenv('LLM_MODEL_PATH'):
             self.model_path = os.getenv('LLM_MODEL_PATH')
         else:
-            # Default: TinyLlama for dev
-            # Find project root (parent of ml_systems directory)
+            # Smart default selection based on available hardware
+            # Production CPU (n2-standard-16): Use Llama 3.1 8B for best accuracy
+            # Production GPU (T4): Use Llama 3.1 8B with CUDA acceleration
+            # Development (MPS/CPU): Use TinyLlama for speed
             current_file = os.path.abspath(__file__)
             ml_systems_dir = os.path.dirname(current_file)
             project_root = os.path.dirname(ml_systems_dir)
-            self.model_path = os.path.join(project_root, 'models', 'tinyllama')
+            
+            # Detect device first
+            temp_device = device or self._get_best_device_quick()
+            
+            # Check if we're in production mode (env variable set)
+            is_production = os.getenv('ENVIRONMENT', '').lower() == 'production'
+            
+            if is_production or temp_device == "cuda":
+                # Production mode: Use Llama 3.1 8B (CPU or GPU)
+                self.model_path = os.path.join(project_root, 'models', 'llama-3.1-8b')
+                if temp_device == "cuda":
+                    logger.info("🚀 Production mode: Using Llama 3.1 8B on CUDA (T4 GPU)")
+                else:
+                    logger.info("🚀 Production mode: Using Llama 3.1 8B on CPU (n2-standard-8, 16 vCPUs)")
+            else:
+                # Development mode: Use TinyLlama on MPS/CPU
+                self.model_path = os.path.join(project_root, 'models', 'tinyllama')
+                logger.info("🔧 Development mode: Using TinyLlama on MPS/CPU")
         
         self.device = device or self._get_best_device()
         self.model = None
@@ -75,15 +107,25 @@ class LLMServiceWrapper:
         
         self._load_model()
     
+    def _get_best_device_quick(self):
+        """Quick device detection without logging (for model selection)"""
+        if torch.cuda.is_available():
+            return "cuda"
+        elif torch.backends.mps.is_available():
+            return "mps"
+        else:
+            return "cpu"
+    
     def _get_best_device(self):
         """Auto-detect best available device"""
-        if torch.backends.mps.is_available():
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+            logger.info(f"✅ CUDA acceleration available: {gpu_name} ({gpu_memory:.1f}GB VRAM)")
+            return "cuda"  # NVIDIA GPU (T4, A100, etc.)
+        elif torch.backends.mps.is_available():
             logger.info("✅ Metal (MPS) acceleration available")
             return "mps"  # macOS Metal
-        elif torch.cuda.is_available():
-            gpu_name = torch.cuda.get_device_name(0)
-            logger.info(f"✅ CUDA acceleration available: {gpu_name}")
-            return "cuda"  # NVIDIA GPU
         else:
             logger.warning("⚠️ No GPU acceleration available, using CPU")
             return "cpu"
@@ -119,21 +161,79 @@ class LLMServiceWrapper:
                 trust_remote_code=True
             )
             
-            # Load model with appropriate dtype
+            # CPU optimization: Set number of threads for optimal performance
+            if self.device == "cpu":
+                num_threads = int(os.getenv('OMP_NUM_THREADS', '14'))  # Use 14 threads for n2-standard-8 (leave 2 for system)
+                torch.set_num_threads(num_threads)
+                logger.info(f"🧵 CPU threads set to: {num_threads} (optimal for n2-standard-8, 16 vCPUs)")
+            
+            # Determine if we should use quantization
+            # Production CPU: FP32 (n2-standard-8 has 32.5GB RAM - enough for Llama 3.1 8B)
+            # T4 GPU (16GB): No quantization needed for Llama 3.1 8B (~8GB FP16)
+            # MPS/Development CPU: Use quantization for large models
+            use_quantization = False
+            is_large_model = 'llama-3.1-8b' in self.model_name.lower() or 'llama-3.2-7b' in self.model_name.lower()
+            is_production = os.getenv('ENVIRONMENT', '').lower() == 'production'
+            
+            if is_large_model and self.device == 'cpu' and not is_production:
+                # Development CPU: Use quantization to save memory
+                logger.info("🎯 Using 4-bit quantization for development CPU (memory optimization)...")
+                use_quantization = True
+            elif is_large_model and self.device == 'cpu' and is_production:
+                # Production CPU (n2-standard-8): Use FP32 for best accuracy (32.5GB RAM is enough)
+                logger.info("🎯 Using FP32 precision for production CPU (optimal accuracy on n2-standard-8)...")
+            elif is_large_model and self.device == 'cuda':
+                # T4 GPU: Use FP16 for speed
+                logger.info("🎯 Using FP16 precision for CUDA (optimal T4 performance)...")
+            elif is_large_model and self.device == 'mps':
+                # MPS: Try quantization
+                logger.info("🎯 Using 4-bit quantization for MPS (memory optimization)...")
+                use_quantization = True
+            
+            # Load model with appropriate configuration
             logger.info("2️⃣ Loading model...")
-            dtype = torch.float16 if self.device != "cpu" else torch.float32
             
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                torch_dtype=dtype,
-                low_cpu_mem_usage=True,
-                local_files_only=True,
-                trust_remote_code=True
-            )
+            if use_quantization:
+                try:
+                    # Try 4-bit quantization (requires bitsandbytes)
+                    quantization_config = BitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_compute_dtype=torch.float16,
+                        bnb_4bit_use_double_quant=True,
+                        bnb_4bit_quant_type="nf4"
+                    )
+                    
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        model_path,
+                        quantization_config=quantization_config,
+                        low_cpu_mem_usage=True,
+                        local_files_only=True,
+                        trust_remote_code=True,
+                        device_map="auto"  # Auto device placement for quantized models
+                    )
+                    logger.info("✅ Model loaded with 4-bit quantization (memory reduced by ~75%)")
+                    
+                except Exception as quant_error:
+                    logger.warning(f"⚠️ 4-bit quantization failed: {quant_error}")
+                    logger.info("Falling back to standard loading...")
+                    use_quantization = False
             
-            # Move to device
-            logger.info(f"3️⃣ Moving model to {self.device}...")
-            self.model = self.model.to(self.device)
+            if not use_quantization:
+                # Standard loading without quantization
+                dtype = torch.float16 if self.device != "cpu" else torch.float32
+                
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    torch_dtype=dtype,
+                    low_cpu_mem_usage=True,
+                    local_files_only=True,
+                    trust_remote_code=True
+                )
+                
+                # Move to device (only for non-quantized models)
+                logger.info(f"3️⃣ Moving model to {self.device}...")
+                self.model = self.model.to(self.device)
+            
             self.model.eval()
             
             # Print memory usage
@@ -150,7 +250,7 @@ class LLMServiceWrapper:
             logger.error(f"❌ Failed to load model: {e}")
             raise
     
-    def generate(self, prompt=None, query=None, context_data=None, max_tokens=200, temperature=0.7, top_p=0.9):
+    def generate(self, prompt=None, query=None, context_data=None, max_tokens=200, temperature=0.7, top_p=0.9, stop_sequences=None):
         """
         Generate response (model-agnostic, backward compatible)
         
@@ -161,6 +261,7 @@ class LLMServiceWrapper:
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature (0.0-1.0)
             top_p: Top-p sampling parameter
+            stop_sequences: List of strings to stop generation (optional, for Llama 3)
             
         Returns:
             Generated text (without the prompt)
@@ -169,6 +270,10 @@ class LLMServiceWrapper:
             Supports two modes:
             1. Direct prompt: generate(prompt="...")
             2. Legacy mode: generate(query="...", context_data=...)
+            
+        Model-specific optimizations:
+            - Llama 3.x: Uses <|eot_id|> token for clean stops
+            - TinyLlama: Standard EOS handling
         """
         # Build prompt from query + context if using legacy interface
         if query is not None and prompt is None:
@@ -183,16 +288,35 @@ class LLMServiceWrapper:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
+            # Prepare generation config
+            gen_kwargs = {
+                'max_new_tokens': max_tokens,
+                'do_sample': True,
+                'temperature': temperature,
+                'top_p': top_p,
+                'repetition_penalty': 1.1,  # Slightly lower for Llama 3
+                'pad_token_id': self.tokenizer.eos_token_id
+            }
+            
+            # Add stop sequences for Llama 3.x models
+            if 'llama-3' in self.model_name.lower():
+                if stop_sequences is None:
+                    stop_sequences = ['<|eot_id|>', '<|end_of_text|>']
+                
+                # Tokenize stop sequences
+                stop_token_ids = []
+                for seq in stop_sequences:
+                    tokens = self.tokenizer.encode(seq, add_special_tokens=False)
+                    stop_token_ids.extend(tokens)
+                
+                if stop_token_ids:
+                    gen_kwargs['eos_token_id'] = list(set(stop_token_ids + [self.tokenizer.eos_token_id]))
+            
             # Generate
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    max_new_tokens=max_tokens,
-                    do_sample=True,
-                    temperature=temperature,
-                    top_p=top_p,
-                    repetition_penalty=1.2,
-                    pad_token_id=self.tokenizer.eos_token_id
+                    **gen_kwargs
                 )
             
             # Decode response
@@ -200,6 +324,10 @@ class LLMServiceWrapper:
             
             # Remove the prompt from response
             response = full_response[len(prompt):].strip()
+            
+            # Clean up Llama 3 special tokens if they leaked through
+            for seq in (stop_sequences or []):
+                response = response.replace(seq, '').strip()
             
             return response
             

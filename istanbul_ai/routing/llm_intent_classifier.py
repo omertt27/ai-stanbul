@@ -222,13 +222,25 @@ class LLMIntentClassifier:
         # Build classification prompt
         prompt = self._build_classification_prompt(message, entities, language, context)
         
-        # Get LLM response with very low temperature for consistent classification
-        # TinyLlama needs: low tokens (concise output), very low temp (deterministic), high top_p
-        llm_response = self.llm_service.generate(
-            prompt=prompt,
-            max_tokens=80,  # Reduced - we only need JSON output
-            temperature=0.1  # Very low for deterministic classification
-        )
+        # Check if using Llama 3.x for optimized parameters
+        is_llama_3 = self.llm_service and hasattr(self.llm_service, 'model_name') and 'llama-3' in self.llm_service.model_name.lower()
+        
+        # Get LLM response with model-specific parameters
+        if is_llama_3:
+            # Llama 3.x: Better at following instructions, can use slightly higher temperature
+            llm_response = self.llm_service.generate(
+                prompt=prompt,
+                max_tokens=100,  # Llama 3 can handle structured output better
+                temperature=0.2,  # Low but not too restrictive
+                stop_sequences=['<|eot_id|>', '<|end_of_text|>']  # Llama 3 stop tokens
+            )
+        else:
+            # TinyLlama: Needs very low temperature and minimal tokens
+            llm_response = self.llm_service.generate(
+                prompt=prompt,
+                max_tokens=80,
+                temperature=0.1  # Very low for deterministic classification
+            )
         
         # Parse LLM response
         result = self._parse_llm_response(llm_response, message, entities)
@@ -267,10 +279,52 @@ class LLMIntentClassifier:
             recent = context.recent_intents[-3:]  # Last 3 intents
             conversation_context = f"Recent conversation topics: {', '.join(recent)}\n\n"
         
-        # Ultra-compact prompt for TinyLlama - use absolute minimal format
-        # Strategy: One-line examples, no explanation, JSON ONLY output
-        # TinyLlama struggles with complex instructions, so we use the simplest possible format
-        prompt = f"""Classify intent. Output only JSON: {{"primary_intent":"X","confidence":0.9,"all_intents":["X"]}}
+        # Check if using Llama 3.x model (better instruction following)
+        is_llama_3 = self.llm_service and hasattr(self.llm_service, 'model_name') and 'llama-3' in self.llm_service.model_name.lower()
+        
+        if is_llama_3:
+            # Llama 3.x Instruct format - optimized for instruction following and JSON output
+            prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+You are an intent classification system for Istanbul travel queries. Analyze user messages and return ONLY valid JSON.
+
+Output format: {{"primary_intent":"intent_name","confidence":0.95,"all_intents":["intent_name"]}}
+
+Supported intents: greeting, restaurant, attraction, transportation, weather, events, neighborhood, shopping, hidden_gems, airport_transport, route_planning, museum_route_planning, gps_route_planning, nearby_locations, general
+
+Classification rules:
+- greeting: Hello, hi, thanks, goodbye, how are you, good morning/evening, greetings in any language
+- restaurant: Food, dining, eat, cuisine queries
+- attraction: Sightseeing, landmarks, places to visit
+- transportation: How to get, metro, bus, taxi, ferry
+- weather: Weather, temperature, forecast
+- general: Everything else
+
+Examples:
+"Hello!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Merhaba!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"How are you?" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Good morning!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Günaydın!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Thanks!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Goodbye!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Hoşça kal!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Hey there!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Selam!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"What's up?" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Bonjour!" -> {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
+"Find restaurant" -> {{"primary_intent":"restaurant","confidence":0.90,"all_intents":["restaurant"]}}
+"Weather today?" -> {{"primary_intent":"weather","confidence":0.90,"all_intents":["weather"]}}
+"Hagia Sophia" -> {{"primary_intent":"attraction","confidence":0.90,"all_intents":["attraction"]}}
+"How to Taksim?" -> {{"primary_intent":"transportation","confidence":0.90,"all_intents":["transportation"]}}
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Classify: "{message}"<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+        else:
+            # TinyLlama fallback - ultra-compact format
+            prompt = f"""Classify intent. Output only JSON: {{"primary_intent":"X","confidence":0.9,"all_intents":["X"]}}
 
 "Hello!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
 "Merhaba!" = {{"primary_intent":"greeting","confidence":0.95,"all_intents":["greeting"]}}
