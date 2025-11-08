@@ -424,21 +424,22 @@ class IstanbulDailyTalkAI:
         # ==================== LLM + GPS INTEGRATION ====================
         logger.info("🤖 Initializing LLM + GPS integration...")
         
-        # Initialize LLM service (model-agnostic)
+        # Reuse LLM service from ServiceInitializer (avoid loading model twice)
+        # The service was already assigned to self.llm_service via setattr() in __init__
         try:
-            from ml_systems.llm_service_wrapper import LLMServiceWrapper
-            
-            # Auto-detects best model and device (TinyLlama on MPS or LLaMA 3.2 3B on CUDA)
-            self.llm_service = LLMServiceWrapper()
-            logger.info(f"✅ LLM Service initialized: {self.llm_service.model_name} on {self.llm_service.device}")
-            
-            # Log model info for debugging
-            llm_info = self.llm_service.get_info()
-            if llm_info.get('device') == 'cuda' and 'gpu_name' in llm_info:
-                logger.info(f"   GPU: {llm_info['gpu_name']}")
-                logger.info(f"   GPU Memory: {llm_info.get('gpu_memory_allocated_gb', 0):.2f}GB / {llm_info.get('gpu_memory_total_gb', 0):.2f}GB")
-            elif llm_info.get('device') == 'mps':
-                logger.info(f"   Running on Apple Metal (MPS)")
+            if hasattr(self, 'llm_service') and self.llm_service is not None:
+                logger.info(f"✅ LLM Service (reused): {self.llm_service.model_name} on {self.llm_service.device}")
+                
+                # Log model info for debugging
+                llm_info = self.llm_service.get_info()
+                if llm_info.get('device') == 'cuda' and 'gpu_name' in llm_info:
+                    logger.info(f"   GPU: {llm_info['gpu_name']}")
+                    logger.info(f"   GPU Memory: {llm_info.get('gpu_memory_allocated_gb', 0):.2f}GB / {llm_info.get('gpu_memory_total_gb', 0):.2f}GB")
+                elif llm_info.get('device') == 'mps':
+                    logger.info(f"   Running on Apple Metal (MPS)")
+            else:
+                logger.warning("⚠️ LLM Service not available from ServiceInitializer")
+                self.llm_service = None
             
         except Exception as e:
             logger.warning(f"⚠️ LLM Service not available: {e}")

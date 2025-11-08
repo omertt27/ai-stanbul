@@ -118,13 +118,20 @@ class LLMServiceWrapper:
     
     def _get_best_device(self):
         """Auto-detect best available device"""
-        if torch.cuda.is_available():
+        # Check if production mode - force CPU for stability and to match Google Cloud n2-standard-8
+        is_production = os.getenv('ENVIRONMENT', '').lower() == 'production'
+        
+        if is_production:
+            # Production: Force CPU (matches Google Cloud n2-standard-8 deployment)
+            logger.info("🖥️  Production mode: Using CPU (stable, matches n2-standard-8 deployment)")
+            return "cpu"
+        elif torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
             logger.info(f"✅ CUDA acceleration available: {gpu_name} ({gpu_memory:.1f}GB VRAM)")
             return "cuda"  # NVIDIA GPU (T4, A100, etc.)
         elif torch.backends.mps.is_available():
-            logger.info("✅ Metal (MPS) acceleration available")
+            logger.info("✅ Metal (MPS) acceleration available (development mode)")
             return "mps"  # macOS Metal
         else:
             logger.warning("⚠️ No GPU acceleration available, using CPU")
@@ -168,20 +175,26 @@ class LLMServiceWrapper:
                 logger.info(f"🧵 CPU threads set to: {num_threads} (optimal for n2-standard-8, 16 vCPUs)")
             
             # Determine if we should use quantization
-            # Production CPU: FP32 (n2-standard-8 has 32.5GB RAM - enough for Llama 3.1 8B)
-            # T4 GPU (16GB): No quantization needed for Llama 3.1 8B (~8GB FP16)
-            # MPS/Development CPU: Use quantization for large models
+            # UPDATED: Use 4-bit quantization for local testing (limited RAM)
+            # Google Cloud n2-standard-8: FP32 (32.5GB RAM - enough for Llama 3.1 8B)
+            # Local Mac: 4-bit quantization (reduces 16GB → 4-5GB)
             use_quantization = False
             is_large_model = 'llama-3.1-8b' in self.model_name.lower() or 'llama-3.2-7b' in self.model_name.lower()
             is_production = os.getenv('ENVIRONMENT', '').lower() == 'production'
+            is_cloud = os.getenv('CLOUD_DEPLOYMENT', '').lower() == 'true'  # Set this on Google Cloud
             
             if is_large_model and self.device == 'cpu' and not is_production:
                 # Development CPU: Use quantization to save memory
                 logger.info("🎯 Using 4-bit quantization for development CPU (memory optimization)...")
                 use_quantization = True
-            elif is_large_model and self.device == 'cpu' and is_production:
-                # Production CPU (n2-standard-8): Use FP32 for best accuracy (32.5GB RAM is enough)
-                logger.info("🎯 Using FP32 precision for production CPU (optimal accuracy on n2-standard-8)...")
+            elif is_large_model and self.device == 'cpu' and is_production and not is_cloud:
+                # Local production testing: Use 4-bit quantization (Mac has limited RAM)
+                logger.info("🎯 Using 4-bit quantization for local production testing (4-5GB RAM vs 16GB)")
+                logger.info("💡 Quality loss: ~2-3% | Memory savings: ~70% | Set CLOUD_DEPLOYMENT=true on Google Cloud for FP32")
+                use_quantization = True
+            elif is_large_model and self.device == 'cpu' and is_production and is_cloud:
+                # Google Cloud n2-standard-8: Use FP32 for best accuracy (32.5GB RAM is enough)
+                logger.info("🎯 Using FP32 precision for Google Cloud n2-standard-8 (optimal accuracy with 32GB RAM)...")
             elif is_large_model and self.device == 'cuda':
                 # T4 GPU: Use FP16 for speed
                 logger.info("🎯 Using FP16 precision for CUDA (optimal T4 performance)...")

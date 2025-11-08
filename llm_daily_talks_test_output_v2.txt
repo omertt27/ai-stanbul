@@ -1,0 +1,1452 @@
+⚠️ İBB API key not configured - using fallback mode
+INFO:istanbul_ai.main_system:✅ Hidden Gems Handler loaded successfully
+INFO:istanbul_ai.main_system:✅ Price Filter Service loaded successfully
+INFO:istanbul_ai.main_system:✅ Events Service loaded successfully
+INFO:istanbul_ai.main_system:✅ Weather Recommendations Service loaded successfully
+WARNING:lightweight_neural_query_enhancement:⚠️  spaCy model not available. Install with: python -m spacy download en_core_web_sm
+WARNING:lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:ml_enhanced_transportation_system:✅ Lightweight Neural Query Enhancement integrated successfully!
+INFO:ml_enhanced_transportation_system:✅ ML Prediction Cache Service integrated successfully!
+WARNING:ml_enhanced_transportation_system:⚠️ ML Prediction Cache Service not available: cannot import name 'MLPredictionCacheService' from 'ml_prediction_cache_service' (/Users/omer/Desktop/ai-stanbul/services/ml_prediction_cache_service.py)
+WARNING:ml_enhanced_transportation_system:⚠️ XGBoost/LightGBM not available, using basic crowding prediction
+WARNING:root:ML/DL libraries not available. Using fallback methods.
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_transportation_integration:🚇 Enhanced transportation system initialized with NEW modular architecture
+INFO:istanbul_ai.main_system:✅ Advanced transportation system loaded successfully
+INFO:transportation_chat_integration:✅ Transfer Instructions & Map Visualization loaded successfully
+INFO:istanbul_ai.main_system:✅ Transfer Instructions & Map Visualization integration loaded successfully
+WARNING:ml_enhanced_daily_talks_bridge.deep_learning:⚠️ Deep Learning libraries not available: No module named 'sentence_transformers'
+INFO:daily_talks_integration_wrapper:✅ Comprehensive Daily Talks System loaded successfully
+INFO:services.weather_cache_service:✅ Loaded 24 forecast entries from cache
+INFO:services.advanced_daily_talk_ai:🧠 Advanced Daily Talk AI System initialized - GPT-level intelligence ready!
+WARNING:daily_talks_integration_wrapper:⚠️ Legacy daily talk system not available: cannot import name 'get_daily_greeting' from 'services.daily_talk_enhancement' (/Users/omer/Desktop/ai-stanbul/services/daily_talk_enhancement.py)
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:monthly_events_scheduler:✅ Selenium scraper available for JavaScript-rendered content
+INFO:ml_enhanced_daily_talks_bridge:✅ İKSV Events System loaded successfully
+INFO:ml_enhanced_daily_talks_bridge:✅ Location Detection for Events loaded successfully
+INFO:comprehensive_daily_talks_system:🎉 Comprehensive Daily Talks System initialized
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:ml_enhanced_daily_talks_bridge:Deep learning models skipped - libraries not available
+INFO:ml_enhanced_daily_talks_bridge:Loaded pre-trained intent classifier
+INFO:ml_enhanced_daily_talks_bridge:Loaded pre-trained vectorizer
+INFO:ml_enhanced_daily_talks_bridge:ML/DL models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML-Enhanced Daily Talks Bridge initialized
+INFO:istanbul_ai.main_system:✅ ML-Enhanced Daily Talks Bridge loaded successfully
+INFO:istanbul_ai.main_system:✅ Production infrastructure (TTLCache) loaded successfully
+INFO:istanbul_ai.main_system:✅ Enhanced Bilingual Daily Talks System loaded successfully
+INFO:istanbul_ai.main_system:✅ Neural Query Classifier (DistilBERT) loaded successfully
+WARNING:backend.services.lightweight_neural_query_enhancement:⚠️  spaCy model not available. Install with: python -m spacy download en_core_web_sm
+WARNING:backend.services.lightweight_neural_query_enhancement:⚠️  TextBlob not available
+INFO:istanbul_ai.main_system:✅ Neural Query Enhancement System loaded successfully
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System available!
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System integrated successfully!
+INFO:multi_intent_query_handler:🎭 İKSV Events System integrated successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner integrated successfully!
+INFO:comprehensive_ml_dl_integration:🧠 Deep Learning System available for comprehensive integration!
+WARNING:comprehensive_ml_dl_integration:Enhanced Transportation System not available: cannot import name 'TransportMode' from 'enhanced_transportation_system' (/Users/omer/Desktop/ai-stanbul/enhanced_transportation_system.py)
+WARNING:comprehensive_ml_dl_integration:Hidden Gems System not available: cannot import name 'HiddenGemsLocalTipsSystem' from 'hidden_gems_local_tips' (/Users/omer/Desktop/ai-stanbul/hidden_gems_local_tips.py)
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System available!
+INFO:istanbul_ai.main_system:✅ Multi-Intent Query Handler loaded successfully
+INFO:istanbul_ai.main_system:✅ Advanced Personalization System loaded successfully
+INFO:istanbul_ai.main_system:✅ Real-time Feedback Loop System loaded successfully
+INFO:istanbul_ai.main_system:✅ ML-Enhanced Handlers loaded successfully
+WARNING:istanbul_ai.main_system:⚠️ A/B Testing Framework not available: cannot import name 'ABAnalytics' from 'istanbul_ai.testing.ab_analytics' (/Users/omer/Desktop/ai-stanbul/istanbul_ai/testing/ab_analytics.py)
+INFO:istanbul_ai.main_system:🚀 Initializing Istanbul Daily Talk AI System (Modular Architecture)...
+INFO:istanbul_ai.initialization.system_config:🔍 Detecting system features and capabilities...
+INFO:istanbul_ai.initialization.system_config:✅ Hidden Gems Handler loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Price Filter Service loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Events Service loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Weather Recommendations Service loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Advanced transportation system loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Transfer Instructions & Map Visualization integration loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ ML-Enhanced Daily Talks Bridge loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Enhanced Bilingual Daily Talks System loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Neural Query Enhancement System loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Multi-Intent Query Handler loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Advanced Personalization System loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Real-time Feedback Loop System loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ ServiceInitializer and HandlerInitializer loaded successfully
+INFO:istanbul_ai.initialization.system_config:✅ Feature detection complete: 14/14 features available (100.0%)
+Exception ignored in: <function OSRMRoutingService.__del__ at 0x103e16f20>
+Traceback (most recent call last):
+  File "/Users/omer/Desktop/ai-stanbul/services/osrm_routing_service.py", line 330, in __del__
+    if self.session and not self.session.closed:
+       ^^^^^^^^^^^^
+AttributeError: 'OSRMRoutingService' object has no attribute 'session'
+ERROR:services.transportation_directions_service:Failed to initialize OSRM service: OSRMRoutingService.__init__() got an unexpected keyword argument 'server'
+INFO:services.transportation_directions_service:✅ Transportation Directions Service initialized
+INFO:ibb_real_time_api:🌐 İBB Real-Time API initialized (Live APIs: True)
+WARNING:ibb_real_time_api:⚠️ İBB API key not configured - using fallback mode
+INFO:services.live_ibb_transportation_service:🌐 Connected to live IBB API
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.osrm_routing_service:✅ OSRM routing cache enabled (Redis)
+INFO:backend.services.osrm_routing_service:OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+INFO:backend.services.transportation_directions_service:✅ OSRM service initialized successfully
+INFO:backend.services.transportation_directions_service:✅ Transportation Directions Service initialized
+INFO:services.live_ibb_transportation_service:✅ Base transportation service initialized
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:services.live_ibb_transportation_service:✅ Transfer instructions generator initialized
+INFO:services.live_ibb_transportation_service:🚌 Live IBB Transportation Service initialized (Mock: False)
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:📊 İBB Transportation Data Source Status
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:Data Source: LIVE_IBB_API
+INFO:services.live_ibb_transportation_service:Using Mock Data: False
+INFO:services.live_ibb_transportation_service:İBB API Available: True
+INFO:services.live_ibb_transportation_service:İBB API Connected: True
+INFO:services.live_ibb_transportation_service:Description: Connected to live İBB Open Data API. Providing real-time transportation information including schedules, delays, and live vehicle tracking.
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:utils.ttl_cache:✅ TTLCache initialized: max_size=1000, ttl=120min
+INFO:utils.ttl_cache:✅ TTLCache initialized: max_size=500, ttl=60min
+INFO:utils.ttl_cache:✅ TTLCache initialized: max_size=1000, ttl=60min
+INFO:istanbul_ai.core.user_management:✅ UserManager using TTLCache for memory management
+INFO:istanbul_ai.main_system:🌐 Initializing bilingual support with ML-based language detection...
+INFO:istanbul_ai.services.advanced_language_detector:🧠 Advanced Language Detector initialized with ML features
+INFO:istanbul_ai.services.bilingual_manager:🧠 Advanced ML-based language detector enabled
+INFO:istanbul_ai.services.bilingual_manager:✅ BilingualManager initialized with language detection and templates
+INFO:istanbul_ai.main_system:✅ BilingualManager initialized with ML-based language detection (91.7% accuracy)
+INFO:istanbul_ai.initialization.service_initializer:🔧 Starting service initialization...
+INFO:backend.services.feedback_collector:✅ FeedbackCollector initialized (buffer_size=1000, flush_interval=5s)
+INFO:backend.ml.online_learning:✅ IncrementalEmbeddingLearner initialized (dim=64, lr=0.01)
+INFO:backend.ml.online_learning:✅ ThompsonSampling initialized with 100 arms
+INFO:backend.ml.online_learning:✅ ConceptDriftDetector initialized (window_size=100, delta=0.002)
+INFO:backend.ml.online_learning:✅ OnlineLearningEngine initialized
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.feedback_collector:✅ Registered event handler: _process_feedback_batch
+INFO:backend.services.realtime_feedback_loop:✅ RealtimeFeedbackLoop initialized
+INFO:istanbul_ai.initialization.service_initializer:💎 Hidden Gems Handler initialized successfully!
+INFO:backend.services.price_filter_service:✅ Price Filter Service initialized with comprehensive database
+INFO:istanbul_ai.initialization.service_initializer:💰 Price Filter Service initialized successfully!
+INFO:backend.services.conversation_handler:✅ Conversation Handler initialized successfully
+INFO:backend.services.conversation_handler:💬 Conversation Handler instance created
+INFO:istanbul_ai.initialization.service_initializer:💬 Conversation Handler initialized successfully!
+INFO:backend.services.events_service:✅ Loaded 45 İKSV events from database
+INFO:istanbul_ai.initialization.service_initializer:🎭 Events Service initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🌤️ Weather Recommendations Service initialized successfully!
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:istanbul_ai.initialization.service_initializer:📍 Intelligent Location Detector initialized successfully!
+INFO:transportation_integration_wrapper:🚇 Using NEW modular transportation system
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:services.weather_cache_service:✅ Loaded 24 forecast entries from cache
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:istanbul_ai.initialization.service_initializer:🚇 Transportation Query Processor initialized successfully!
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:services.weather_cache_service:✅ Loaded 24 forecast entries from cache
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+INFO:istanbul_ai.initialization.service_initializer:🚇 ML-Enhanced Transportation System initialized successfully!
+INFO:ibb_real_time_api:🌐 İBB Real-Time API initialized (Live APIs: True)
+WARNING:ibb_real_time_api:⚠️ İBB API key not configured - using fallback mode
+INFO:services.live_ibb_transportation_service:🌐 Connected to live IBB API
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.osrm_routing_service:✅ OSRM routing cache enabled (Redis)
+INFO:backend.services.osrm_routing_service:OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+INFO:backend.services.transportation_directions_service:✅ OSRM service initialized successfully
+INFO:backend.services.transportation_directions_service:✅ Transportation Directions Service initialized
+INFO:services.live_ibb_transportation_service:✅ Base transportation service initialized
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:services.live_ibb_transportation_service:✅ Transfer instructions generator initialized
+INFO:services.live_ibb_transportation_service:🚌 Live IBB Transportation Service initialized (Mock: False)
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:📊 İBB Transportation Data Source Status
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:Data Source: LIVE_IBB_API
+INFO:services.live_ibb_transportation_service:Using Mock Data: False
+INFO:services.live_ibb_transportation_service:İBB API Available: True
+INFO:services.live_ibb_transportation_service:İBB API Connected: True
+INFO:services.live_ibb_transportation_service:Description: Connected to live İBB Open Data API. Providing real-time transportation information including schedules, delays, and live vehicle tracking.
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:transportation_chat_integration:🗺️ Transportation Chat Integration initialized
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Transfer Instructions & Map Visualization initialized successfully!
+INFO:comprehensive_daily_talks_system:🎉 Comprehensive Daily Talks System initialized
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:ml_enhanced_daily_talks_bridge:Deep learning models skipped - libraries not available
+INFO:ml_enhanced_daily_talks_bridge:Loaded pre-trained intent classifier
+INFO:ml_enhanced_daily_talks_bridge:Loaded pre-trained vectorizer
+INFO:ml_enhanced_daily_talks_bridge:ML/DL models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML-Enhanced Daily Talks Bridge initialized
+INFO:istanbul_ai.initialization.service_initializer:🤖 ML-Enhanced Daily Talks Bridge (legacy) initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:💬 Enhanced Bilingual Daily Talks System (PRIMARY) initialized successfully!
+INFO:backend.services.lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:backend.services.lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:istanbul_ai.initialization.service_initializer:🧠 Lightweight Neural Query Enhancement System initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🏛️ Museum Response Generator initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🕐 Google Maps Hours Checker initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🏛️ Museum Database initialized successfully!
+INFO:museum_advising_system:🏛️ Loaded 10 museums across Istanbul
+INFO:istanbul_ai.initialization.service_initializer:🎨 Advanced Museum System (ML-powered) initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:istanbul_ai.initialization.service_initializer:🌟 Advanced Attractions System initialized successfully!
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System initialized successfully!
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:monthly_events_scheduler:✅ Selenium scraper available for JavaScript-rendered content
+INFO:multi_intent_query_handler:🎭 İKSV Events System initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Museum Advising System loaded (40 museums from accurate_museum_database.py)
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:comprehensive_ml_dl_integration:🧠 Core ML/DL System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:comprehensive_ml_dl_integration:🏛️ Attractions System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🏛️ Museum Route Planner integrated with ML enhancement
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:monthly_events_scheduler:✅ Selenium scraper available for JavaScript-rendered content
+INFO:comprehensive_ml_dl_integration:🎭 Events System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🚀 Comprehensive ML/DL Integration initialized with 4 enhanced systems!
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🎯 Multi-Intent Query Handler initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Enhanced Museum Route Planner initialized successfully!
+INFO:root:✅ POI Database Service integrated successfully!
+INFO:ml_prediction_service:✅ ML Prediction Cache Service integrated successfully!
+WARNING:ml_prediction_service:⚠️ XGBoost/LightGBM not available, using pattern-based prediction
+INFO:root:✅ ML Prediction Service integrated successfully!
+WARNING:root:Transport Graph Service not available
+INFO:services.ml_prediction_service:✅ ML Prediction Cache Service integrated successfully!
+WARNING:services.ml_prediction_service:⚠️ XGBoost/LightGBM not available, using pattern-based prediction
+INFO:root:✅ POI-Enhanced Route Optimizer integrated successfully!
+INFO:root:✅ Intelligent Location Detector integrated successfully!
+INFO:ml_prediction_cache_service:✅ ML Prediction Cache initialized (max_size=10000)
+INFO:enhanced_gps_route_planner:✅ ML Prediction Cache Service integrated into route planner
+INFO:enhanced_gps_route_planner:🎯 POI Database Service initialized with 50 POIs
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:ml_prediction_service:✅ ML Prediction Service initialized
+INFO:enhanced_gps_route_planner:🤖 ML Prediction Service initialized for crowding and travel time predictions
+WARNING:ml_enhanced_transportation_system:⚠️ Using fallback dict cache
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:POI-integrated route optimizer initialized
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:ml_enhanced_transportation_system:✅ Neural query processor initialized for transportation system
+INFO:ml_enhanced_transportation_system:🚀 ML-Enhanced Transportation System initialized successfully!
+INFO:enhanced_gps_route_planner:🚇 ML-Enhanced Transportation System integrated!
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:services.ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:services.ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:services.ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:services.ml_prediction_service:✅ ML Prediction Service initialized
+INFO:poi_enhanced_route_optimizer:🎯 POI-Enhanced Route Optimizer initialized
+INFO:poi_enhanced_route_optimizer:   - POI Service: True
+INFO:poi_enhanced_route_optimizer:   - Graph Service: False
+INFO:poi_enhanced_route_optimizer:   - ML Service: True
+INFO:enhanced_gps_route_planner:🎯 POI-Enhanced Route Optimizer initialized successfully!
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_gps_route_planner:📍 Intelligent Location Detector initialized for GPS route planning
+INFO:enhanced_gps_route_planner:🔄 Fallback Location Detector initialized
+INFO:enhanced_gps_route_planner:🚀 Enhanced GPS Route Planner initialized
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Enhanced GPS Route Planner initialized successfully!
+WARNING:backend.api_clients.enhanced_weather:Weather API: Using fallback mode with enhanced mock data.
+INFO:enhanced_route_planner_v2:🌤 Weather-Aware Router initialized
+INFO:enhanced_route_planner_v2:🎯 Preference-Based Router initialized
+INFO:enhanced_route_planner_v2:⏰ Time-Aware Planner initialized
+INFO:enhanced_route_planner_v2:🗺 Multi-Stop Optimizer initialized
+INFO:enhanced_route_planner_v2:🤖 AI Recommendation Engine initialized
+INFO:enhanced_gps_route_planner:✅ ML Prediction Cache Service integrated into route planner
+INFO:enhanced_gps_route_planner:🎯 POI Database Service initialized with 50 POIs
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:ml_prediction_service:✅ ML Prediction Service initialized
+INFO:enhanced_gps_route_planner:🤖 ML Prediction Service initialized for crowding and travel time predictions
+WARNING:ml_enhanced_transportation_system:⚠️ Using fallback dict cache
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:POI-integrated route optimizer initialized
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:ml_enhanced_transportation_system:✅ Neural query processor initialized for transportation system
+INFO:ml_enhanced_transportation_system:🚀 ML-Enhanced Transportation System initialized successfully!
+INFO:enhanced_gps_route_planner:🚇 ML-Enhanced Transportation System integrated!
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:services.ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:services.ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:services.ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:services.ml_prediction_service:✅ ML Prediction Service initialized
+INFO:poi_enhanced_route_optimizer:🎯 POI-Enhanced Route Optimizer initialized
+INFO:poi_enhanced_route_optimizer:   - POI Service: True
+INFO:poi_enhanced_route_optimizer:   - Graph Service: False
+INFO:poi_enhanced_route_optimizer:   - ML Service: True
+INFO:enhanced_gps_route_planner:🎯 POI-Enhanced Route Optimizer initialized successfully!
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_gps_route_planner:📍 Intelligent Location Detector initialized for GPS route planning
+INFO:enhanced_gps_route_planner:🔄 Fallback Location Detector initialized
+INFO:enhanced_gps_route_planner:🚀 Enhanced GPS Route Planner initialized
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_route_planner_v2:🚀 Enhanced Route Planner V2 initialized with all features
+INFO:istanbul_ai.initialization.service_initializer:🧭 Enhanced Route Planner V2 initialized successfully!
+WARNING:backend.api_clients.enhanced_weather:Weather API: Using fallback mode with enhanced mock data.
+INFO:istanbul_ai.initialization.service_initializer:🌤️ Enhanced Weather System initialized successfully!
+INFO:backend.services.ml_context_builder:🔧 ML Context Builder initialized (Turkish & English)
+INFO:istanbul_ai.initialization.service_initializer:🧠 ML Context Builder (shared) initialized successfully!
+INFO:backend.services.advanced_personalization:✅ UserPreferenceLearner initialized
+INFO:backend.services.advanced_personalization:✅ CollaborativeFilteringEngine initialized
+INFO:backend.services.advanced_personalization:✅ ABTestingFramework initialized
+INFO:backend.services.advanced_personalization:Created experiment 'response_format' with variants: ['standard', 'detailed', 'concise']
+INFO:backend.services.advanced_personalization:Created experiment 'recommendation_algo' with variants: ['ml_only', 'collaborative', 'hybrid']
+INFO:backend.services.advanced_personalization:🎯 Advanced Personalization System initialized
+INFO:istanbul_ai.initialization.service_initializer:🎯 Advanced Personalization System initialized successfully!
+INFO:backend.services.feedback_loop:✅ FeedbackCollector initialized
+INFO:backend.services.feedback_loop:✅ ModelRetrainingPipeline initialized
+INFO:backend.services.feedback_loop:✅ FeedbackCollector initialized
+INFO:backend.services.feedback_loop:✅ ModelRetrainingPipeline initialized
+INFO:backend.services.feedback_loop:🔄 Continuous Improvement System initialized
+INFO:backend.services.feedback_loop:🔄 FeedbackLoopSystem initialized
+INFO:istanbul_ai.initialization.service_initializer:🔄 Real-time Feedback Loop System initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:📍 GPS Location Service initialized successfully!
+INFO:ml_systems.llm_service_wrapper:🚀 Production mode: Using Llama 3.1 8B on CPU (n2-standard-8, 16 vCPUs)
+INFO:ml_systems.llm_service_wrapper:✅ Metal (MPS) acceleration available
+INFO:ml_systems.llm_service_wrapper:🤖 Initializing LLM Service: LLaMA 3.1 8B
+INFO:ml_systems.llm_service_wrapper:📁 Model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:🖥️  Device: mps
+INFO:ml_systems.llm_service_wrapper:📂 Absolute model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:1️⃣ Loading tokenizer...
+INFO:ml_systems.llm_service_wrapper:2️⃣ Loading model...
+`torch_dtype` is deprecated! Use `dtype` instead!
+====================================================================================================
+🧪 LLM DAILY TALKS COMPREHENSIVE TEST SUITE
+====================================================================================================
+Test Started: 2025-11-08 23:06:57
+
+🌍 Environment: development
+🔧 Using TinyLlama (development mode)
+💡 Set ENVIRONMENT=production to test with Llama 3.1 8B
+
+====================================================================================================
+🏗️ INITIALIZING SYSTEM
+====================================================================================================
+
+1. Loading Main System...
+✅ Hidden Gems Database Loaded: 29 gems across 6 neighborhoods
+🔍 DATABASE_URL from environment: 'postgresql://omer@localhost:5432/istanbul_ai?sslmode=disable'
+🔒 Using PostgreSQL database connection: postgresql://omer@localhost:5432/istanbul_ai?sslmo...
+🔍 DATABASE_URL from environment: 'postgresql://omer@localhost:5432/istanbul_ai?sslmode=disable'
+🔒 Using PostgreSQL database connection: postgresql://omer@localhost:5432/istanbul_ai?sslmo...
+✅ Real-time learning models imported successfully
+⚠️ Route Maker Service not available for GPS validation: No module named 'geopy'
+✅ Loaded 18 hidden gems from database
+✅ Real-time personalization enabled for Hidden Gems
+✅ Loaded 38 manually curated İKSV events
+✅ Loaded 7 auto-scraped İKSV events
+✅ Loaded 50 POIs from database
+✅ Loaded 50 POIs from database
+✅ Advanced AI features loaded successfully
+✅ Loaded 50 POIs from database
+✅ Loaded 50 POIs from database
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 54.43it/s]
+INFO:ml_systems.llm_service_wrapper:3️⃣ Moving model to mps...
+INFO:ml_systems.llm_service_wrapper:📊 Model loaded on Metal (MPS)
+INFO:ml_systems.llm_service_wrapper:✅ LLaMA 3.1 8B loaded successfully on mps
+INFO:istanbul_ai.initialization.service_initializer:🤖 LLM Service (LLaMA 3.1 8B on mps) initialized successfully!
+INFO:istanbul_ai.initialization.service_initializer:✅ Service initialization complete: 27/27 services initialized
+INFO:istanbul_ai.main_system:✅ Initialized 27 services via ServiceInitializer
+INFO:istanbul_ai.initialization.handler_initializer:🤖 Starting ML-Enhanced handlers initialization...
+ERROR:istanbul_ai.initialization.handler_initializer:Failed to initialize ML-Enhanced Emergency & Safety Handler: EmergencySafetyHandler.__init__() got an unexpected keyword argument 'neural_processor'
+ERROR:istanbul_ai.initialization.handler_initializer:Failed to initialize ML-Enhanced Local Food Handler: LocalFoodHandler.__init__() got an unexpected keyword argument 'neural_processor'
+INFO:istanbul_ai.handlers.restaurant_handler:✅ RestaurantHandler initialized with ML integration (Bilingual: True, Maps: False)
+INFO:istanbul_ai.initialization.handler_initializer:🍽️ ML-Enhanced Restaurant Handler initialized successfully! (Bilingual: True)
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.osrm_routing_service:✅ OSRM routing cache enabled (Redis)
+INFO:backend.services.osrm_routing_service:OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+INFO:backend.services.map_visualization_engine:OSRM routing service initialized
+INFO:backend.services.map_visualization_engine:Map Visualization Engine initialized (GPU: False, OSRM: True)
+INFO:istanbul_ai.services.map_integration_service:Map Integration Service initialized successfully
+INFO:istanbul_ai.handlers.attraction_handler:✅ ML-Enhanced AttractionHandler initialized (Bilingual: True, Maps: True)
+INFO:istanbul_ai.initialization.handler_initializer:🏛️ ML-Enhanced Attraction Handler initialized successfully! (Bilingual: True)
+WARNING:istanbul_ai.initialization.handler_initializer:Required dependencies not available for ML Event Handler
+WARNING:istanbul_ai.initialization.handler_initializer:Required dependencies not available for ML Hidden Gems Handler
+INFO:istanbul_ai.handlers.weather_handler:✅ ML-Enhanced Weather Handler initialized (Bilingual: False, LLM: False)
+INFO:istanbul_ai.initialization.handler_initializer:🌤️ ML-Enhanced Weather Handler initialized successfully!
+INFO:istanbul_ai.handlers.route_planning_handler:✅ ML-Enhanced Route Planning Handler initialized (Bilingual: False, Maps: False)
+INFO:istanbul_ai.initialization.handler_initializer:🗺️ ML-Enhanced Route Planning Handler initialized successfully!
+INFO:istanbul_ai.handlers.neighborhood_handler:✅ ML-Enhanced Neighborhood Handler initialized (Bilingual: False, Maps: False)
+INFO:istanbul_ai.initialization.handler_initializer:🏘️ ML-Enhanced Neighborhood Handler initialized successfully!
+WARNING:istanbul_ai.initialization.handler_initializer:Required GPS/location services not available for Nearby Locations Handler
+INFO:ml_systems.hidden_gems_context_service:✅ Hidden Gems Context Service initialized: 6 districts, 29 total gems
+INFO:istanbul_ai.initialization.handler_initializer:💎 Hidden Gems Context Service initialized for transportation
+WARNING:ml_systems.rag_vector_service:sentence-transformers not installed. Install with: pip install sentence-transformers
+WARNING:ml_systems.rag_vector_service:faiss-cpu not installed. Install with: pip install faiss-cpu
+ERROR:ml_systems.rag_vector_service:❌ sentence-transformers not available
+WARNING:istanbul_ai.initialization.handler_initializer:🤖 RAG Vector Service not available
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Transportation Handler initialized - TransportChat: False, AdvancedTransport: True, GPS: False, Maps: False, TransferMap: False, LLM: False (auto-multilingual), GPSLocation: False, Weather: False, HiddenGems: True, RAG: False
+INFO:istanbul_ai.initialization.handler_initializer:🚇 Transportation Handler initialized successfully! (LLM: False, GPSLocation: False, Weather: False, HiddenGems: True, RAG: False)
+INFO:istanbul_ai.initialization.handler_initializer:✅ ML handlers initialization complete: 6/12 (50.0%) handlers initialized
+INFO:istanbul_ai.main_system:✅ Initialized 11 ML handlers via HandlerInitializer
+INFO:istanbul_ai.main_system:🔍 Registered handler names: ['ml_emergency_safety_handler', 'ml_local_food_handler', 'ml_restaurant_handler', 'ml_attraction_handler', 'ml_event_handler', 'ml_hidden_gems_handler', 'ml_weather_handler', 'ml_route_planning_handler', 'ml_neighborhood_handler', 'nearby_locations_response_handler', 'transportation_handler']
+INFO:istanbul_ai.main_system:🎯 Initializing routing layer components...
+INFO:neural_query_classifier:Using device: cpu
+INFO:neural_query_classifier:Loading model from models/distilbert_intent_classifier...
+INFO:neural_query_classifier:Loading Hugging Face transformer model from models/distilbert_intent_classifier...
+INFO:neural_query_classifier:✅ Loaded intent mapping: 30 intents
+INFO:neural_query_classifier:✅ Transformer model loaded and ready
+INFO:neural_query_classifier:Neural classifier initialized successfully
+INFO:neural_query_classifier:Model: models/distilbert_intent_classifier
+INFO:neural_query_classifier:Intents: 30
+INFO:neural_query_classifier:Confidence threshold: 0.75
+INFO:istanbul_ai.main_system:✅ Neural classifier loaded (CPU mode)
+INFO:istanbul_ai.main_system:   🎓 Fine-tuned Istanbul model enabled
+INFO:istanbul_ai.routing.persistent_embedding_cache:✅ Cache loaded: 80 embeddings from 2025-11-03T17:01:53.521248
+INFO:istanbul_ai.routing.persistent_embedding_cache:🔄 Auto-save enabled: every 300s
+INFO:istanbul_ai.routing.persistent_embedding_cache:✅ Persistent cache initialized: 80 embeddings loaded
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Persistent cache initialized: 80 embeddings
+INFO:istanbul_ai.routing.neural_response_ranker:Loading distilbert-base-uncased...
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Model loaded on cpu
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Neural ranker initialized on cpu
+INFO:istanbul_ai.main_system:✅ Neural ranker loaded (CPU mode)
+INFO:istanbul_ai.routing.cache_prewarmer:🔥 Pre-warming cache with 80 queries...
+INFO:istanbul_ai.routing.cache_prewarmer:✅ Cache pre-warmed: 80/80 queries, 0.0s, 0.2 MB
+INFO:istanbul_ai.main_system:🔥 Cache pre-warmed: 80/80 queries, 0.0s
+INFO:istanbul_ai.routing.hybrid_intent_classifier:✅ Hybrid classifier initialized (Neural + Keyword)
+INFO:istanbul_ai.main_system:✅ Hybrid intent classifier initialized (Neural + Keyword ensemble)
+INFO:istanbul_ai.routing.response_router:✅ Response Router initialized with neural ranking
+INFO:istanbul_ai.main_system:✅ Routing layer components initialized successfully
+INFO:istanbul_ai.services.location_database_service:✅ Loaded 15 attractions
+INFO:istanbul_ai.services.location_database_service:✅ Loaded GPS for 49 museums
+INFO:istanbul_ai.services.location_database_service:✅ Loaded detailed info for 49 museums
+INFO:istanbul_ai.services.location_database_service:✅ Transportation routing service loaded
+INFO:istanbul_ai.services.location_database_service:✅ Location Database Service initialized: 15 attractions, 49 museums with GPS, with transportation routing
+INFO:istanbul_ai.services.gps_route_service:✅ Location Database Service loaded in GPS Route Service
+INFO:istanbul_ai.services.gps_route_service:✅ GPS Route Service initialized
+INFO:istanbul_ai.main_system:✅ GPS Route Service initialized successfully
+INFO:istanbul_ai.main_system:⚠️ A/B Testing Framework not available
+INFO:istanbul_ai.main_system:🤖 Initializing LLM + GPS integration...
+INFO:ml_systems.llm_service_wrapper:🚀 Production mode: Using Llama 3.1 8B on CPU (n2-standard-8, 16 vCPUs)
+INFO:ml_systems.llm_service_wrapper:✅ Metal (MPS) acceleration available
+INFO:ml_systems.llm_service_wrapper:🤖 Initializing LLM Service: LLaMA 3.1 8B
+INFO:ml_systems.llm_service_wrapper:📁 Model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:🖥️  Device: mps
+INFO:ml_systems.llm_service_wrapper:📂 Absolute model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:1️⃣ Loading tokenizer...
+INFO:ml_systems.llm_service_wrapper:2️⃣ Loading model...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 50.18it/s]
+INFO:ml_systems.llm_service_wrapper:3️⃣ Moving model to mps...
+ERROR:ml_systems.llm_service_wrapper:❌ Failed to load model: MPS backend out of memory (MPS allocated: 20.08 GiB, other allocations: 384.00 KiB, max allowed: 20.13 GiB). Tried to allocate 112.00 MiB on private pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
+WARNING:istanbul_ai.main_system:⚠️ LLM Service not available: MPS backend out of memory (MPS allocated: 20.08 GiB, other allocations: 384.00 KiB, max allowed: 20.13 GiB). Tried to allocate 112.00 MiB on private pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
+WARNING:istanbul_ai.main_system:   System will work without LLM-enhanced responses
+INFO:istanbul_ai.main_system:✅ GPS Location Service available for LLM integration
+INFO:istanbul_ai.main_system:   → TransportationHandler: LLM + GPS enabled
+INFO:istanbul_ai.main_system:✅ LLM + GPS integration complete
+INFO:istanbul_ai.main_system:ℹ️  LLM service not available, using Hybrid intent classifier
+INFO:istanbul_ai.main_system:✅ Istanbul Daily Talk AI System initialized successfully!
+INFO:istanbul_ai.main_system:✅ ML Prediction Cache integrated into GPS Route Planner
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): tr (confidence: 1.00)
+INFO:istanbul_ai.services.bilingual_manager:✅ User language preference set to: tr
+INFO:istanbul_ai.main_system:🌐 Language preference updated: en → tr
+INFO:istanbul_ai.main_system:🌐 Context language set to: tr
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: tr)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.hybrid_intent_classifier:🧠 Neural (higher confidence): weather (0.78) vs keyword: greeting (0.65)
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: weather
+ERROR:istanbul_ai.main_system:Error processing message: 'ResponseRouter' object has no attribute '_route_weather_query'
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+ERROR:istanbul_ai.main_system:Error in enhanced daily talks: <Language.MIXED: 'mixed'>
+WARNING:ml_enhanced_daily_talks_bridge:ML intent recognition failed: X has 13 features, but RandomForestClassifier is expecting 3722 features as input.
+INFO:comprehensive_daily_talks_system:Refreshed weather and news data for Istanbul
+INFO:comprehensive_daily_talks_system:Processed conversation for user user_20251108_230751, detected intents: ['greeting']
+ERROR:comprehensive_daily_talks_system:Error in process_daily_talk: 'str' object has no attribute 'value'
+INFO:ml_enhanced_daily_talks_bridge:İKSV Events Check - Intent: greeting, Input: 'Hi! I just arrived in Istanbul for the first time!...', Is Event Query: False
+INFO:istanbul_ai.main_system:✅ ML bridge daily talk response generated (legacy fallback)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.hybrid_intent_classifier:🧠 Neural (high confidence): help (0.97)
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: help
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: transportation
+INFO:istanbul_ai.routing.response_router:🚇 Routing transportation query (lang: en)
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Transportation query received (LLM will auto-detect language)
+INFO:istanbul_ai.handlers.transportation_handler:🧠 Transportation query with ML insights: temporal=None, sentiment=None
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Using fallback transportation system
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: transportation
+INFO:istanbul_ai.routing.response_router:🚇 Routing transportation query (lang: en)
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Transportation query received (LLM will auto-detect language)
+INFO:istanbul_ai.handlers.transportation_handler:🧠 Transportation query with ML insights: temporal=None, sentiment=None
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Using fallback transportation system
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: events
+ERROR:istanbul_ai.main_system:Error processing message: 'ResponseRouter' object has no attribute '_route_events_query'
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: gps_route_planning
+WARNING:istanbul_ai.routing.response_router:ML Route Planning Handler failed: MLEnhancedRoutePlanningHandler.handle_route_query() takes from 2 to 4 positional arguments but 5 were given
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: route_planning
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: greeting
+   ✅ System initialized in 53.7s
+
+⚠️ LLM service not available
+
+====================================================================================================
+🧪 RUNNING 20 DAILY TALK TEST QUERIES
+====================================================================================================
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 1/20: Basic Greeting
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Hello! How are you today?"
+🎯 Expected Features: greeting, friendly_tone, conversational
+🔍 Analysis Points: greeting_detection, response_warmth, context_awareness
+
+⏳ Processing...
+✅ Response received in 0.03s
+
+💬 Response:
+   Hello! 🌃 Looking for nightlife or a quiet evening?
+
+📊 Basic Metrics:
+   • Response length: 50 characters
+   • Word count: 9 words
+   • Processing time: 0.03s
+   • Words per second: 352.8
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 2/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✗ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 2/20: Turkish Greeting
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Merhaba! Nasılsın?"
+🎯 Expected Features: turkish_greeting, bilingual_support, cultural_awareness
+🔍 Analysis Points: turkish_recognition, appropriate_response, language_switching
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   Merhaba! 🌃 Gece hayatı mı, yoksa sakin bir akşam mı?
+
+📊 Basic Metrics:
+   • Response length: 52 characters
+   • Word count: 10 words
+   • Processing time: 0.00s
+   • Words per second: 13733.8
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 2/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✗ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 3/20: Time-based Greeting
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Good morning! I'm excited to explore Istanbul today."
+🎯 Expected Features: time_awareness, enthusiasm, context_setting
+🔍 Analysis Points: time_appropriate_response, matching_energy, helpful_suggestions
+
+⏳ Processing...
+✅ Response received in 0.43s
+
+💬 Response:
+   👋 I'm here to help you explore Istanbul! I can assist with:
+
+🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
+🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  
+🏘️ **Neighborhoods**: Get detailed guides for different districts
+🚇 **Transportation**: Directions, metro routes, and travel tips
+🎭 **Events**: Current cultural events and activities
+
+What would you like to explore in Istanbul?
+
+📊 Basic Metrics:
+   • Response length: 426 characters
+   • Word count: 61 words
+   • Processing time: 0.43s
+   • Words per second: 143.2
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 4/20: Casual Check-in
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Hey there! What's up?"
+🎯 Expected Features: casual_tone, friendly, conversational
+🔍 Analysis Points: tone_matching, engagement, natural_flow
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   Hello! 🌃 Looking for nightlife or a quiet evening?
+
+🍽️ **Taste**: Street food is safe and delicious here!
+
+📊 Basic Metrics:
+   • Response length: 105 characters
+   • Word count: 18 words
+   • Processing time: 0.00s
+   • Words per second: 19225.2
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 3/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✗ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 5/20: First-time Visitor
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Hi! I just arrived in Istanbul for the first time!"
+🎯 Expected Features: welcome, excitement, orientation
+🔍 Analysis Points: welcome_quality, information_provision, enthusiasm
+
+⏳ Processing...
+✅ Response received in 0.08s
+
+💬 Response:
+   Hello! I'm here to help you explore Istanbul. What would you like to discover today? 🏙️
+
+🔍 Insider Secrets:
+• 🏺 Arasta Bazaar behind Blue Mosque - authentic Ottoman crafts without crowds
+• 🌿 Gülhane Park's hidden tea garden - peaceful escape from tourist areas
+
+💡 Local Tips:
+• 🎫 Visit Blue Mosque between prayer times - free entry but check schedule
+• 👥 Avoid carpet shop 'invitations' - politely say 'Teşekkürler, hayır'
+
+📊 Basic Metrics:
+   • Response length: 422 characters
+   • Word count: 73 words
+   • Processing time: 0.08s
+   • Words per second: 862.3
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 6/8
+     ✓ Has Greeting
+     ✓ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 6/20: Follow-up Question
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Thanks for that! Can you tell me more?"
+🎯 Expected Features: gratitude_acknowledgment, context_continuation, detailed_response
+🔍 Analysis Points: context_retention, detail_level, helpfulness
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   You're welcome! 😊 Can I help with anything else?
+
+📊 Basic Metrics:
+   • Response length: 48 characters
+   • Word count: 9 words
+   • Processing time: 0.00s
+   • Words per second: 40373.0
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 3/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 7/20: Clarification Request
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I didn't quite understand, can you explain that again?"
+🎯 Expected Features: patience, clarification, rephrasing
+🔍 Analysis Points: clarity_improvement, patience_tone, alternative_explanation
+
+⏳ Processing...
+✅ Response received in 0.03s
+
+💬 Response:
+   👋 I'm here to help you explore Istanbul! I can assist with:
+
+🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
+🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  
+🏘️ **Neighborhoods**: Get detailed guides for different districts
+🚇 **Transportation**: Directions, metro routes, and travel tips
+🎭 **Events**: Current cultural events and activities
+
+What would you like to explore in Istanbul?
+
+📊 Basic Metrics:
+   • Response length: 426 characters
+   • Word count: 61 words
+   • Processing time: 0.03s
+   • Words per second: 2040.4
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 8/20: Appreciation
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "That was really helpful, thank you so much!"
+🎯 Expected Features: acknowledgment, positive_reinforcement, offer_more_help
+🔍 Analysis Points: gratitude_handling, encouragement, continuation_offer
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   You're welcome! 😊 Can I help with anything else?
+
+📊 Basic Metrics:
+   • Response length: 48 characters
+   • Word count: 9 words
+   • Processing time: 0.00s
+   • Words per second: 14608.6
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 3/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 9/20: Change of Topic
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Actually, I'd like to ask about something else now."
+🎯 Expected Features: topic_switch, flexibility, readiness
+🔍 Analysis Points: smooth_transition, topic_awareness, adaptability
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   Even at this hour, Istanbul is alive! 🎭 What are you looking for?
+
+📊 Basic Metrics:
+   • Response length: 65 characters
+   • Word count: 13 words
+   • Processing time: 0.00s
+   • Words per second: 56270.3
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 3/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 10/20: Multi-part Question
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I'm interested in both restaurants and museums. What do you recommend?"
+🎯 Expected Features: multi_intent, comprehensive_answer, organization
+🔍 Analysis Points: intent_recognition, answer_structure, completeness
+
+⏳ Processing...
+✅ Response received in 0.03s
+
+💬 Response:
+   🌙 It's late, some transport options may be limited. Plan your return trip accordingly.
+
+📊 Basic Metrics:
+   • Response length: 86 characters
+   • Word count: 14 words
+   • Processing time: 0.03s
+   • Words per second: 488.6
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 1/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✗ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 11/20: Weather-related Chat
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "It's such a beautiful day! What should I do outside?"
+🎯 Expected Features: weather_awareness, outdoor_suggestions, enthusiasm
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: gps_route_planning
+WARNING:istanbul_ai.routing.response_router:ML Route Planning Handler failed: MLEnhancedRoutePlanningHandler.handle_route_query() takes from 2 to 4 positional arguments but 5 were given
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: events
+ERROR:istanbul_ai.main_system:Error processing message: 'ResponseRouter' object has no attribute '_route_events_query'
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.routing.hybrid_intent_classifier:⚖️  Ensemble (close call): gps_route_planning (0.73) [neural: weather, keyword: gps_route_planning]
+INFO:istanbul_ai.routing.response_router:🎯 Routing query with intent: gps_route_planning
+WARNING:istanbul_ai.routing.response_router:ML Route Planning Handler failed: MLEnhancedRoutePlanningHandler.handle_route_query() takes from 2 to 4 positional arguments but 5 were given
+INFO:istanbul_ai.services.bilingual_manager:🌐 Language detected (ML): en (confidence: 1.00)
+INFO:istanbul_ai.main_system:🌐 Context language set to: en
+INFO:istanbul_ai.main_system:✅ Enhanced bilingual daily talk response generated (lang: en)
+🔍 Analysis Points: weather_integration, activity_relevance, seasonal_awareness
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   I'd love to help you! 🤔 What would you like to know about? Places to visit, transportation, food, events... I can help with anything!
+
+📊 Basic Metrics:
+   • Response length: 133 characters
+   • Word count: 24 words
+   • Processing time: 0.00s
+   • Words per second: 35925.5
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 6/8
+     ✓ Has Greeting
+     ✓ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 12/20: Time-sensitive Query
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I only have a few hours left in Istanbul, what's the must-see?"
+🎯 Expected Features: urgency_recognition, prioritization, efficiency
+🔍 Analysis Points: time_awareness, priority_suggestions, practical_advice
+
+⏳ Processing...
+✅ Response received in 0.03s
+
+💬 Response:
+   🌙 It's late, some transport options may be limited. Plan your return trip accordingly.
+
+📊 Basic Metrics:
+   • Response length: 86 characters
+   • Word count: 14 words
+   • Processing time: 0.03s
+   • Words per second: 541.2
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 1/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✗ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 13/20: Budget-conscious Chat
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I'm on a tight budget, what free activities do you suggest?"
+🎯 Expected Features: budget_awareness, free_options, value_suggestions
+🔍 Analysis Points: budget_sensitivity, free_activity_knowledge, practicality
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   👋 I'm here to help you explore Istanbul! I can assist with:
+
+🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
+🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  
+🏘️ **Neighborhoods**: Get detailed guides for different districts
+🚇 **Transportation**: Directions, metro routes, and travel tips
+🎭 **Events**: Current cultural events and activities
+
+What would you like to explore in Istanbul?
+
+📊 Basic Metrics:
+   • Response length: 426 characters
+   • Word count: 61 words
+   • Processing time: 0.02s
+   • Words per second: 2480.8
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 14/20: Local Experience
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I want to experience Istanbul like a local, not a tourist. Any tips?"
+🎯 Expected Features: local_insights, hidden_gems, authentic_experience
+🔍 Analysis Points: local_knowledge, hidden_gem_suggestions, authenticity
+
+⏳ Processing...
+✅ Response received in 0.03s
+
+💬 Response:
+   I can help you plan your perfect Istanbul itinerary! How many days do you have?
+
+📊 Basic Metrics:
+   • Response length: 79 characters
+   • Word count: 15 words
+   • Processing time: 0.03s
+   • Words per second: 483.7
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 2/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 15/20: Cultural Interest
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Tell me about Turkish culture and traditions I should know."
+🎯 Expected Features: cultural_knowledge, etiquette, respect
+🔍 Analysis Points: cultural_accuracy, practical_tips, respectfulness
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   👋 I'm here to help you explore Istanbul! I can assist with:
+
+🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
+🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  
+🏘️ **Neighborhoods**: Get detailed guides for different districts
+🚇 **Transportation**: Directions, metro routes, and travel tips
+🎭 **Events**: Current cultural events and activities
+
+What would you like to explore in Istanbul?
+
+📊 Basic Metrics:
+   • Response length: 426 characters
+   • Word count: 61 words
+   • Processing time: 0.02s
+   • Words per second: 2519.7
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 16/20: Problem-solving
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I'm lost near Taksim and my phone battery is dying. Help!"
+🎯 Expected Features: urgency_detection, practical_solution, reassurance
+🔍 Analysis Points: problem_recognition, solution_quality, calming_tone
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   🌟 Merhaba! Welcome to Istanbul! I'm here to help you discover this amazing city. What would you like to explore?
+
+📊 Basic Metrics:
+   • Response length: 112 characters
+   • Word count: 20 words
+   • Processing time: 0.02s
+   • Words per second: 865.2
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✓ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 17/20: Preference-based Chat
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I love art and photography. Where should I go in Istanbul?"
+🎯 Expected Features: interest_recognition, personalized_suggestions, detailed_info
+🔍 Analysis Points: personalization, relevance, detail_quality
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   I can help you plan your perfect Istanbul itinerary! How many days do you have?
+
+📊 Basic Metrics:
+   • Response length: 79 characters
+   • Word count: 15 words
+   • Processing time: 0.02s
+   • Words per second: 647.1
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 2/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 18/20: Family Travel
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "I'm traveling with kids aged 5 and 8. What activities are family-friendly?"
+🎯 Expected Features: family_awareness, age_appropriate, safety
+🔍 Analysis Points: family_suitability, age_consideration, safety_awareness
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   👋 I'm here to help you explore Istanbul! I can assist with:
+
+🍽️ **Restaurants**: Find dining by cuisine, district, or dietary needs
+🏛️ **Attractions**: Discover museums, landmarks, and hidden gems  
+🏘️ **Neighborhoods**: Get detailed guides for different districts
+🚇 **Transportation**: Directions, metro routes, and travel tips
+🎭 **Events**: Current cultural events and activities
+
+What would you like to explore in Istanbul?
+
+📊 Basic Metrics:
+   • Response length: 426 characters
+   • Word count: 61 words
+   • Processing time: 0.02s
+   • Words per second: 2448.3
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 5/8
+     ✓ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✓ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✓ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 19/20: Evening Plans
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "What's the best way to spend an evening in Istanbul?"
+🎯 Expected Features: time_awareness, evening_activities, atmosphere
+🔍 Analysis Points: time_appropriate, atmosphere_description, variety
+
+⏳ Processing...
+✅ Response received in 0.02s
+
+💬 Response:
+   I can help you plan your perfect Istanbul itinerary! How many days do you have?
+
+📊 Basic Metrics:
+   • Response length: 79 characters
+   • Word count: 15 words
+   • Processing time: 0.02s
+   • Words per second: 627.4
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 2/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✓ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TEST 20/20: Farewell Conversation
+────────────────────────────────────────────────────────────────────────────────────────────────────
+📝 Query: "Thanks for all your help! I'm leaving tomorrow. Any last-minute advice?"
+🎯 Expected Features: farewell, summary, lasting_tips
+🔍 Analysis Points: farewell_warmth, summary_quality, memorable_tips
+
+⏳ Processing...
+✅ Response received in 0.00s
+
+💬 Response:
+   Anytime! 💙 Don't hesitate if you have more questions!
+
+📊 Basic Metrics:
+   • Response length: 53 characters
+   • Word count: 9 words
+   • Processing time: 0.00s
+   • Words per second: 32853.6
+
+🔍 Content Analysis:
+   • Features detected: 0/3
+   • Quality indicators: 1/8
+     ✗ Has Greeting
+     ✗ Has Recommendations
+     ✗ Has Locations
+     ✗ Has Details
+     ✗ Has Questions
+     ✗ Has Enthusiasm
+     ✗ Is Helpful
+     ✓ Is Personalized
+
+====================================================================================================
+📊 COMPREHENSIVE TEST SUMMARY
+====================================================================================================
+
+📈 Overall Statistics:
+   • Total queries: 20
+   • Successful: 20 (100.0%)
+   • Failed: 0 (0.0%)
+   • Total time: 0.80s
+   • Average time per query: 0.04s
+
+📊 Performance by Category:
+
+   Basic Greeting:
+     • Queries: 1
+     • Avg time: 0.03s
+     • Avg quality: 2.0/8
+     • Avg length: 9 words
+
+   Turkish Greeting:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 2.0/8
+     • Avg length: 10 words
+
+   Time-based Greeting:
+     • Queries: 1
+     • Avg time: 0.43s
+     • Avg quality: 5.0/8
+     • Avg length: 61 words
+
+   Casual Check-in:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 3.0/8
+     • Avg length: 18 words
+
+   First-time Visitor:
+     • Queries: 1
+     • Avg time: 0.08s
+     • Avg quality: 6.0/8
+     • Avg length: 73 words
+
+   Follow-up Question:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 3.0/8
+     • Avg length: 9 words
+
+   Clarification Request:
+     • Queries: 1
+     • Avg time: 0.03s
+     • Avg quality: 5.0/8
+     • Avg length: 61 words
+
+   Appreciation:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 3.0/8
+     • Avg length: 9 words
+
+   Change of Topic:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 3.0/8
+     • Avg length: 13 words
+
+   Multi-part Question:
+     • Queries: 1
+     • Avg time: 0.03s
+     • Avg quality: 1.0/8
+     • Avg length: 14 words
+
+   Weather-related Chat:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 6.0/8
+     • Avg length: 24 words
+
+   Time-sensitive Query:
+     • Queries: 1
+     • Avg time: 0.03s
+     • Avg quality: 1.0/8
+     • Avg length: 14 words
+
+   Budget-conscious Chat:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 5.0/8
+     • Avg length: 61 words
+
+   Local Experience:
+     • Queries: 1
+     • Avg time: 0.03s
+     • Avg quality: 2.0/8
+     • Avg length: 15 words
+
+   Cultural Interest:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 5.0/8
+     • Avg length: 61 words
+
+   Problem-solving:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 5.0/8
+     • Avg length: 20 words
+
+   Preference-based Chat:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 2.0/8
+     • Avg length: 15 words
+
+   Family Travel:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 5.0/8
+     • Avg length: 61 words
+
+   Evening Plans:
+     • Queries: 1
+     • Avg time: 0.02s
+     • Avg quality: 2.0/8
+     • Avg length: 15 words
+
+   Farewell Conversation:
+     • Queries: 1
+     • Avg time: 0.00s
+     • Avg quality: 1.0/8
+     • Avg length: 9 words
+
+🎯 Quality Analysis:
+   • Average quality score: 3.35/8
+   • Average response length: 29 words
+
+   Quality Score Distribution:
+     6/8: ██ (2 queries)
+     5/8: ██████ (6 queries)
+     3/8: ████ (4 queries)
+     2/8: █████ (5 queries)
+     1/8: ███ (3 queries)
+
+🏆 Best Performing Queries:
+
+   1. First-time Visitor (Score: 6/8)
+      Query: "Hi! I just arrived in Istanbul for the first time!..."
+      Time: 0.08s, Length: 73 words
+
+   2. Weather-related Chat (Score: 6/8)
+      Query: "It's such a beautiful day! What should I do outside?..."
+      Time: 0.00s, Length: 24 words
+
+   3. Time-based Greeting (Score: 5/8)
+      Query: "Good morning! I'm excited to explore Istanbul today...."
+      Time: 0.43s, Length: 61 words
+
+⚠️ Areas for Improvement:
+
+   1. Multi-part Question (Score: 1/8)
+      Query: "I'm interested in both restaurants and museums. What do you ..."
+      Missing indicators:
+        ✗ Has Greeting
+        ✗ Has Recommendations
+        ✗ Has Locations
+        ✗ Has Details
+        ✗ Has Questions
+        ✗ Has Enthusiasm
+        ✗ Is Helpful
+
+   2. Time-sensitive Query (Score: 1/8)
+      Query: "I only have a few hours left in Istanbul, what's the must-se..."
+      Missing indicators:
+        ✗ Has Greeting
+        ✗ Has Recommendations
+        ✗ Has Locations
+        ✗ Has Details
+        ✗ Has Questions
+        ✗ Has Enthusiasm
+        ✗ Is Helpful
+
+   3. Farewell Conversation (Score: 1/8)
+      Query: "Thanks for all your help! I'm leaving tomorrow. Any last-min..."
+      Missing indicators:
+        ✗ Has Greeting
+        ✗ Has Recommendations
+        ✗ Has Locations
+        ✗ Has Details
+        ✗ Has Questions
+        ✗ Has Enthusiasm
+        ✗ Is Helpful
+
+💾 Detailed results saved to: llm_daily_talks_test_results_20251108_230751.json
+
+====================================================================================================
+🎯 FINAL VERDICT
+====================================================================================================
+
+⚠️ ACCEPTABLE - System works but needs quality improvements
+   • High success rate (≥90%)
+   • Quality needs improvement (<5/8)
+
+====================================================================================================
+Test Completed: 2025-11-08 23:07:51
+====================================================================================================
