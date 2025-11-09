@@ -1,4 +1,4 @@
---# Istanbul AI - Production Deployment Requirements
+# Istanbul AI - Production Deployment Requirements
 # Install with: pip install -r production_requirements.txt
 
 # Core Web Framework
