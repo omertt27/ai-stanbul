@@ -34,6 +34,7 @@ WEATHER_SYSTEM_FIXED.md
 GOOGLE_WEATHER_SETUP.md
 API_SETUP_INSTRUCTIONS.txt
 REAL_TIME_DATA_INTEGRATION_GUIDE.md
+VM_LLAMA_SETUP_COMMANDS.md
 
 # Database Files (Contains User Data)
 *.db
@@ -508,3 +509,4 @@ ai_stanbul
 # Keep Essential Files for Portfolio:
 # README.md, backend/, frontend/, requirements.txt, .env.example
 # Dockerfile, docker-compose.yml, .gitignore, package.json
+VM_LLAMA_SETUP_COMMANDS.md

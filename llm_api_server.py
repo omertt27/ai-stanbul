@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-LLM API Server - Google Cloud Llama 3.1 8B
-==========================================
+LLM API Server - Google Cloud Open LLM
+=======================================
 
-FastAPI server for serving Llama 3.1 8B model on Google Cloud VM (n4-standard-8, CPU-only).
+FastAPI server for serving open-access LLM on Google Cloud VM (n4-standard-8, CPU-only).
+
+Models (in order of preference):
+1. mistralai/Mistral-7B-Instruct-v0.2 (7B, open-access, instruction-tuned)
+2. microsoft/phi-2 (2.7B, open-access, strong performance)
+3. meta-llama/Meta-Llama-3.1-8B (requires HuggingFace authentication)
 
 Key Features:
 - CPU-optimized inference (no GPU required)
@@ -13,7 +18,7 @@ Key Features:
 - Domain-specific prompt engineering support
 
 Deployment:
-    1. SSH into VM: gcloud compute ssh llm-api-server --zone=europe-west1-b
+    1. SSH into VM: gcloud compute ssh instance-20251109-085407 --zone=europe-west1-b
     2. Activate venv: source venv/bin/activate
     3. Run server: python llm_api_server.py
     4. Access: http://35.210.251.24:8000
@@ -69,7 +74,15 @@ app.add_middleware(
 # Global model holder
 model = None
 tokenizer = None
-model_name = "meta-llama/Meta-Llama-3.1-8B"
+
+# Try models in order of preference (Llama 3.1 8B first)
+MODEL_OPTIONS = [
+    "meta-llama/Meta-Llama-3.1-8B",         # 8B, Meta's latest (requires auth)
+    "mistralai/Mistral-7B-Instruct-v0.2",  # 7B, open-access, instruction-tuned
+    "microsoft/phi-2",                      # 2.7B, open-access, strong performance
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",  # 1.1B, open-access, fast
+]
+model_name = MODEL_OPTIONS[0]  # Default to Llama 3.1 8B
 
 
 class GenerateRequest(BaseModel):
@@ -95,12 +108,12 @@ total_processing_time = 0.0
 
 
 def load_model():
-    """Load Llama 3.1 8B model (CPU-optimized)"""
-    global model, tokenizer
+    """Load open-access LLM model (CPU-optimized)"""
+    global model, tokenizer, model_name
     
     try:
         logger.info("=" * 60)
-        logger.info("🚀 Loading Llama 3.1 8B Model (CPU Mode)")
+        logger.info("🚀 Loading Open-Access LLM Model (CPU Mode)")
         logger.info("=" * 60)
         
         from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -114,33 +127,57 @@ def load_model():
         logger.info(f"   - CPUs: {cpu_count}")
         logger.info(f"   - RAM: {ram_gb:.1f} GB")
         
-        # Load tokenizer
-        logger.info(f"📥 Loading tokenizer: {model_name}")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # Try loading models in order of preference
+        model_loaded = False
+        for attempt_model in MODEL_OPTIONS:
+            try:
+                logger.info(f"📥 Attempting to load: {attempt_model}")
+                
+                # Load tokenizer
+                logger.info(f"   Loading tokenizer...")
+                test_tokenizer = AutoTokenizer.from_pretrained(attempt_model)
+                
+                # Load model (CPU-only, optimized)
+                logger.info(f"   Loading model...")
+                logger.info("   ⚙️  Configuration: CPU-only, float32")
+                
+                test_model = AutoModelForCausalLM.from_pretrained(
+                    attempt_model,
+                    torch_dtype=torch.float32,  # CPU uses float32
+                    device_map="cpu",
+                    low_cpu_mem_usage=True,
+                )
+                
+                # If we got here, model loaded successfully
+                model = test_model
+                tokenizer = test_tokenizer
+                model_name = attempt_model
+                model_loaded = True
+                
+                logger.info(f"✅ Successfully loaded: {model_name}")
+                break  # Exit loop on success
+                
+            except Exception as model_error:
+                logger.warning(f"⚠️  Failed to load {attempt_model}: {str(model_error)}")
+                continue  # Try next model
         
-        # Load model (CPU-only, optimized)
-        logger.info(f"📥 Loading model: {model_name}")
-        logger.info("   ⚙️  Configuration: CPU-only, float32")
-        
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float32,  # CPU uses float32
-            device_map="cpu",
-            low_cpu_mem_usage=True,
-        )
+        if not model_loaded:
+            raise Exception("Failed to load any model from the options list")
         
         # Set to eval mode
         model.eval()
         
         logger.info("=" * 60)
         logger.info("✅ Model loaded successfully!")
-        logger.info(f"📊 Model parameters: {model.num_parameters() / 1e9:.2f}B")
+        logger.info(f"📊 Model: {model_name}")
+        logger.info(f"📊 Parameters: {model.num_parameters() / 1e9:.2f}B")
         logger.info("=" * 60)
         
         return True
         
     except Exception as e:
         logger.error(f"❌ Failed to load model: {str(e)}", exc_info=True)
+        logger.error("⚠️  Model loading failed - server will run but generation will fail")
         return False
 
 
@@ -148,9 +185,8 @@ def load_model():
 async def startup_event():
     """Initialize model on startup"""
     logger.info("🌟 Starting LLM API Server...")
-    success = load_model()
-    if not success:
-        logger.error("⚠️  Model loading failed - server will run but generation will fail")
+    logger.info("=" * 60)
+    load_model()
 
 
 @app.get("/")
