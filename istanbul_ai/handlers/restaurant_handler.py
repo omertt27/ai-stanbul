@@ -13,16 +13,29 @@ Features:
 - ML-based restaurant ranking and scoring
 - Context-aware response generation
 - 🌐 Full English/Turkish bilingual support
+- 🤖 Enhanced LLM integration with Google Cloud Llama 3.1 8B
 
 Author: Istanbul AI Team
 Date: October 27, 2025
 Updated: November 2, 2025 - Added bilingual support
+Updated: [Current Date] - Integrated Google Cloud Llama 3.1 8B LLM
 """
 
 import re
 import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
+
+# Import enhanced LLM client
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
+    ENHANCED_LLM_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_LLM_AVAILABLE = False
+    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
 
 # Import bilingual support
 try:
@@ -63,6 +76,20 @@ class RestaurantHandler:
         self.map_integration_service = map_integration_service
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         self.has_maps = map_integration_service is not None and map_integration_service.is_enabled()
+        
+        # Initialize enhanced LLM client
+        if ENHANCED_LLM_AVAILABLE:
+            try:
+                self.llm_client = get_enhanced_llm_client()
+                self.has_enhanced_llm = True
+                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized for restaurants")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
+                self.llm_client = None
+                self.has_enhanced_llm = False
+        else:
+            self.llm_client = None
+            self.has_enhanced_llm = False
         
         # Budget keywords for ML context
         self.budget_keywords = {
@@ -176,13 +203,16 @@ class RestaurantHandler:
                 user_profile=user_profile
             )
             
-            # Step 5: Generate intelligent response (bilingual)
-            response = self._generate_ml_response(
+            # Step 5: Generate intelligent response (bilingual) with enhanced LLM
+            weather_context = context.get('weather') if context else None
+            response = self._generate_ml_response_with_llm(
                 restaurants=ranked_restaurants[:5],  # Top 5
                 ml_context=ml_context,
                 neural_insights=neural_insights,
                 message=message,
-                language=language  # 🌐 Pass language
+                language=language,  # 🌐 Pass language
+                weather_context=weather_context,
+                user_location=user_location
             )
             
             logger.info(f"✅ Generated response with {len(ranked_restaurants)} restaurants")
@@ -784,6 +814,106 @@ class RestaurantHandler:
             'language': language,
             'map_data': map_data
         }
+    
+    def _generate_ml_response_with_llm(
+        self,
+        restaurants: List[Dict[str, Any]],
+        ml_context: Dict[str, Any],
+        neural_insights: Dict[str, Any],
+        message: str,
+        language: str = 'en',
+        weather_context: Optional[Dict[str, Any]] = None,
+        user_location: Optional[Tuple[float, float]] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate ML-enhanced response using Google Cloud Llama 3.1 8B LLM.
+        Integrates typo correction, multilingual support, and full context awareness.
+        
+        Args:
+            restaurants: Ranked restaurants
+            ml_context: ML context
+            neural_insights: Neural insights
+            message: Original message
+            language: Language code ('en' or 'tr')
+            weather_context: Optional weather data
+            user_location: Optional GPS coordinates
+            
+        Returns:
+            Response dictionary with LLM-generated content and map_data
+        """
+        if not self.has_enhanced_llm:
+            # Fallback to original method
+            return self._generate_ml_response(restaurants, ml_context, neural_insights, message, language)
+        
+        try:
+            # Step 1: Correct typos in user query
+            corrected_query = self.llm_client.correct_typos(message)
+            if corrected_query != message:
+                logger.info(f"✏️ Typo corrected: '{message}' -> '{corrected_query}'")
+            
+            # Step 2: Detect language (override if needed)
+            detected_lang = self.llm_client.detect_language(corrected_query)
+            if detected_lang != language:
+                logger.info(f"🌐 Language detected: {detected_lang} (was {language})")
+                language = detected_lang
+            
+            # Step 3: Build comprehensive context for LLM
+            context = {
+                "restaurants": [
+                    {
+                        "name": r.get("name", ""),
+                        "cuisine": r.get("cuisine", ""),
+                        "price_range": r.get("price_range", ""),
+                        "rating": r.get("rating", 0),
+                        "neighborhood": r.get("neighborhood", ""),
+                        "dietary_options": r.get("dietary_options", []),
+                        "specialties": r.get("specialties", []),
+                        "atmosphere": r.get("atmosphere", "")
+                    }
+                    for r in restaurants[:5]
+                ],
+                "ml_context": ml_context,
+                "neural_insights": neural_insights,
+                "weather": weather_context,
+                "user_location": user_location,
+                "language": language,
+                "query": corrected_query
+            }
+            
+            # Step 4: Generate restaurant recommendation with enhanced LLM
+            llm_response = self.llm_client.generate_restaurant_recommendation(
+                query=corrected_query,
+                context=context,
+                language=language
+            )
+            
+            # Step 5: Generate map visualization
+            map_data = None
+            if self.has_maps:
+                try:
+                    map_data = self.map_integration_service.create_restaurant_map(restaurants)
+                    if map_data:
+                        logger.info(f"🗺️ Generated map with {len(restaurants)} restaurants")
+                except Exception as e:
+                    logger.warning(f"Failed to generate map: {e}")
+            
+            logger.info(f"✅ Generated LLM-enhanced restaurant response (lang: {language})")
+            
+            return {
+                'response': llm_response,
+                'intent': 'restaurant',
+                'restaurants': restaurants,
+                'ml_context': ml_context,
+                'confidence': 0.95,  # Higher confidence with LLM
+                'language': language,
+                'map_data': map_data,
+                'enhanced_llm': True,
+                'typo_corrected': corrected_query != message
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ LLM generation failed: {e}, falling back to standard response")
+            return self._generate_ml_response(restaurants, ml_context, neural_insights, message, language)
     
     def _generate_contextual_intro(
         self,

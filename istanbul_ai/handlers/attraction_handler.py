@@ -12,16 +12,29 @@ Features:
 - Sentiment-based response styling
 - Multi-modal suggestions (combine attractions with transport/dining)
 - 🌐 Full English/Turkish bilingual support
+- 🤖 Enhanced LLM integration with Google Cloud Llama 3.1 8B
 
 Author: Istanbul AI Team
 Date: October 27, 2025
 Updated: November 2, 2025 - Added bilingual support
+Updated: [Current Date] - Integrated Google Cloud Llama 3.1 8B LLM
 """
 
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, time
 import re
+
+# Import enhanced LLM client
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
+    ENHANCED_LLM_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_LLM_AVAILABLE = False
+    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
 
 # Import bilingual support
 try:
@@ -70,6 +83,20 @@ class AttractionHandler:
         self.bilingual_manager = bilingual_manager
         self.has_bilingual = bilingual_manager is not None and BILINGUAL_AVAILABLE
         
+        # Initialize enhanced LLM client
+        if ENHANCED_LLM_AVAILABLE:
+            try:
+                self.llm_client = get_enhanced_llm_client()
+                self.has_enhanced_llm = True
+                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized for attractions")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
+                self.llm_client = None
+                self.has_enhanced_llm = False
+        else:
+            self.llm_client = None
+            self.has_enhanced_llm = False
+        
         # Initialize map service
         self.map_service = None
         self.has_maps = False
@@ -80,7 +107,7 @@ class AttractionHandler:
             except Exception as e:
                 logger.warning(f"Failed to initialize map service: {e}")
         
-        logger.info(f"✅ ML-Enhanced AttractionHandler initialized (Bilingual: {self.has_bilingual}, Maps: {self.has_maps})")
+        logger.info(f"✅ ML-Enhanced AttractionHandler initialized (Bilingual: {self.has_bilingual}, Maps: {self.has_maps}, Enhanced LLM: {self.has_enhanced_llm})")
     
     def _get_language(self, context) -> str:
         """
@@ -543,7 +570,7 @@ class AttractionHandler:
         except Exception:
             return 0.5  # Default similarity
     
-    def _compute_preference_score(self, attraction: Dict[str, Any],
+    def _compute_preference_score(self, attraction: Dict[str, Any>,
                                   ml_context: Dict[str, Any]) -> float:
         """Compute how well attraction matches user preferences."""
         score = 0.0

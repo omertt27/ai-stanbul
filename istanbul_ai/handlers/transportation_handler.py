@@ -32,6 +32,18 @@ except ImportError:
     MARMARAY_AVAILABLE = False
     # Logger warning will be logged after logger is defined
 
+
+# Import enhanced LLM client
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    from enhanced_llm_config import get_enhanced_llm_client, EnhancedLLMClient
+    ENHANCED_LLM_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_LLM_AVAILABLE = False
+    logging.warning(f"⚠️ Enhanced LLM client not available: {e}")
+
 logger = logging.getLogger(__name__)
 
 # Log Marmaray availability if it wasn't available
@@ -128,6 +140,19 @@ class TransportationHandler:
         )
     
     
+# Initialize enhanced LLM client
+        if ENHANCED_LLM_AVAILABLE:
+            try:
+                self.llm_client = get_enhanced_llm_client()
+                self.has_enhanced_llm = True
+                logger.info("✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized")
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize enhanced LLM client: {e}")
+                self.llm_client = None
+                self.has_enhanced_llm = False
+        else:
+            self.llm_client = None
+            self.has_enhanced_llm = False
     def can_handle(self, message: str, entities: Dict[str, Any]) -> bool:
         """
         Determine if this handler can process the given query.
