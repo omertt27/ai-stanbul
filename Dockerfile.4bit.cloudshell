@@ -1,0 +1,36 @@
+# Dockerfile for 4-bit Quantized Llama 3.1 8B
+# Optimized for CloudShell with minimal size
+
+FROM nvidia/cuda:12.1.0-base-ubuntu22.04
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies and Python
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    python3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Install Python dependencies (minimal versions)
+RUN pip3 install --no-cache-dir \
+    transformers \
+    torch \
+    accelerate \
+    bitsandbytes \
+    flask \
+    scipy
+
+# Copy application code
+COPY llm_api_server_4bit.py llm_api_server.py
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["python3", "llm_api_server.py"]

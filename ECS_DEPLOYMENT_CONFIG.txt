@@ -1,0 +1,91 @@
+========================================
+ECS/BATCH DEPLOYMENT CONFIGURATION
+========================================
+
+✅ ALL RESOURCES CREATED SUCCESSFULLY!
+
+⚠️  IMPORTANT: CORRECTED FOR LLAMA 3.1 8B 4-BIT
+------------------------------------------------
+The previous config was TOO LOW. Use these values:
+
+1️⃣ CONTAINER IMAGE
+-------------------
+701893740767.dkr.ecr.eu-central-1.amazonaws.com/ai-istanbul-llm-4bit:latest
+
+2️⃣ EXECUTION ROLE ARN
+----------------------
+arn:aws:iam::701893740767:role/aiIstanbulECSTaskExecutionRole
+
+3️⃣ TASK ROLE ARN
+-----------------
+arn:aws:iam::701893740767:role/aiIstanbulECSTaskRole
+
+4️⃣ SECRET ARN (HF_TOKEN)
+-------------------------
+arn:aws:secretsmanager:eu-central-1:701893740767:secret:ai-istanbul/hf-token-0fEVwA
+
+5️⃣ RESOURCE REQUIREMENTS (CORRECTED!)
+--------------------------------------
+vCPUs: 8
+Memory (MiB): 32768 (32 GB)
+GPU: 1
+
+⚠️  CRITICAL: Use g5.2xlarge Instance
+-------------------------------------
+✅ g5.2xlarge specs:
+   - 1 × A10G GPU with 24 GB VRAM
+   - 8 vCPUs
+   - 32 GB RAM
+   
+❌ DO NOT USE g4dn.xlarge:
+   - Only 16 GB VRAM (too small!)
+   - Will cause OOM crashes
+   - Model won't load
+
+6️⃣ ENVIRONMENT VARIABLES
+-------------------------
+PORT=8000
+MODEL_NAME=meta-llama/Llama-3.1-8B
+QUANTIZATION_BITS=4
+DEVICE=cuda
+MAX_TOKENS=250
+BATCH_SIZE=1
+TORCH_DTYPE=float16
+LOW_CPU_MEM_USAGE=true
+USE_CACHE=true
+
+========================================
+NEXT STEPS
+========================================
+
+1. Go to AWS Batch Console:
+   https://console.aws.amazon.com/batch
+
+2. Create Job Definition:
+   - vCPUs: 8
+   - Memory: 32768
+   - GPU: 1
+   - Copy other values from above
+
+3. Create Compute Environment:
+   - Instance type: g5.2xlarge (REQUIRED!)
+   - Use SPOT for 70% savings
+
+4. Create Job Queue
+
+5. Submit Job & Test!
+
+========================================
+COST ESTIMATE (g5.2xlarge)
+========================================
+
+On-Demand: ~$1.21/hour
+Spot (70% off): ~$0.36/hour
+
+For 10 hours/day:
+- Spot: ~$3.60/day = ~$108/month
+- On-Demand: ~$12.10/day = ~$363/month
+
+Use Spot and stop when not needed!
+
+========================================

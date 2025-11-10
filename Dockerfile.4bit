@@ -1,0 +1,46 @@
+# Dockerfile for 4-bit Quantized Llama 3.1 8B
+# Optimized for ECS deployment with GPU support
+
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Install Python dependencies directly
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    transformers==4.35.0 \
+    torch==2.1.0 \
+    accelerate==0.24.0 \
+    bitsandbytes==0.41.1 \
+    flask==3.0.0 \
+    scipy \
+    safetensors
+
+# Copy application code
+COPY llm_api_server_4bit.py llm_api_server.py
+
+# Create models directory
+RUN mkdir -p /app/models
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["python3", "llm_api_server.py"]
