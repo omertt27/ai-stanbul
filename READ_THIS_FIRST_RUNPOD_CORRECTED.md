@@ -66,6 +66,40 @@ All these files are now **CORRECT** and **CONSISTENT**:
 
 ## 🚀 **5-MINUTE DEPLOYMENT (CORRECT STEPS)**
 
+### **0. SSH Key Setup (One-Time, 2 Minutes)**
+
+```bash
+# 1. Generate SSH key
+ssh-keygen -t ed25519 -C "omertahtoko@gmail.com"
+# Press Enter for default location, set passphrase (optional)
+
+# 2. Copy your public key
+cat ~/.ssh/id_ed25519.pub
+
+# 3. Add to RunPod
+# Go to: https://www.runpod.io/console → Settings → SSH Keys
+# Click "Add SSH Key" and paste your public key
+
+# ✅ Done! Ready to deploy pods
+```
+
+### **0.5 HuggingFace Model Access (One-Time, 2 Minutes)**
+
+```bash
+# 1. Request model access
+# Go to: https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
+# Click "Request Access" → Accept license → Usually instant approval
+
+# 2. Get your HuggingFace token
+# Go to: https://huggingface.co/settings/tokens
+# Create new token (Read access) → Copy token (hf_...)
+
+# ✅ Model name formats (all work):
+# - meta-llama/Llama-3.1-8B-Instruct
+# - https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
+# - Just paste the URL from your browser - RunPod handles it!
+```
+
 ### **1. Create RunPod Pod**
 - Go to https://runpod.io/console/pods
 - Click "Deploy" → "GPU Pods"

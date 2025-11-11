@@ -76,6 +76,23 @@ cat ~/.ssh/id_ed25519.pub
 # ✅ Done! Ready to deploy pods
 ```
 
+### **0.5 Get HuggingFace Access (One-Time, 2 Minutes)**
+
+```bash
+# 1. Request model access
+# Go to: https://huggingface.co/meta-llama/Llama-3.1-8B
+# Click "Request Access" and accept license
+
+# 2. Get your token
+# Go to: https://huggingface.co/settings/tokens
+# Create new token (Read access)
+# Copy token (starts with hf_...)
+
+# ✅ Model name formats (all work):
+# - meta-llama/Llama-3.1-8B
+# - https://huggingface.co/meta-llama/Llama-3.1-8B
+```
+
 ### **1. Create RunPod Pod**
 - Go to RunPod → Create Pod
 - Select RTX 4090 (EUR-IS-1)
