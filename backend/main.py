@@ -302,236 +302,27 @@ except ImportError as e:
     print(f"⚠️ ML Answering Service Client not available: {e}")
     print("   System will run without ML-powered responses")
 
-# Add location intent detection import
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'load-testing'))
-try:
-    from location_intent_detector import LocationIntentDetector, LocationIntentType
-    LOCATION_INTENT_AVAILABLE = True
-    print("✅ Location Intent Detection loaded successfully")
-except ImportError as e:
-    LOCATION_INTENT_AVAILABLE = False
-    print(f"⚠️ Location Intent Detection not available: {e}")
-
-# Add Advanced Understanding System import
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-try:
-    from advanced_understanding_system import AdvancedUnderstandingSystem
-    from semantic_similarity_engine import SemanticSimilarityEngine, QueryContext
-    from enhanced_context_memory import EnhancedContextMemory, ContextType
-    from multi_intent_query_handler import MultiIntentQueryHandler
-    ADVANCED_UNDERSTANDING_AVAILABLE = True
-    print("✅ Advanced Understanding System loaded successfully")
-except ImportError as e:
-    ADVANCED_UNDERSTANDING_AVAILABLE = False
-    print(f"⚠️ Advanced Understanding System not available: {e}")
-
-# Add Production Monitoring and Feedback Collection
-try:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
-    from ml_production_monitor import get_production_monitor
-    from user_feedback_collector import get_feedback_collector
-    ML_MONITORING_AVAILABLE = True
-    print("✅ ML Production Monitoring loaded successfully")
-except ImportError as e:
-    ML_MONITORING_AVAILABLE = False
-    print(f"⚠️ ML Production Monitoring not available: {e}")
-
-# Add Enhanced Feedback and Retraining System
-try:
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    from feedback_backend_integration import FeedbackIntegration
-    FEEDBACK_INTEGRATION_AVAILABLE = True
-    print("✅ Enhanced Feedback Collection & Retraining System loaded successfully")
-except ImportError as e:
-    FEEDBACK_INTEGRATION_AVAILABLE = False
-    print(f"⚠️ Enhanced Feedback Integration not available: {e}")
-
-# Add Intent Classifier import
-try:
-    from main_system_neural_integration import NeuralIntentRouter
-    INTENT_CLASSIFIER_AVAILABLE = True
-    print("✅ Neural Intent Classifier (Hybrid) loaded successfully")
-except ImportError as e:
-    INTENT_CLASSIFIER_AVAILABLE = False
-    print(f"⚠️ Neural Intent Classifier not available: {e}")
-
-# Add Comprehensive ML/DL Integration System import
-try:
-    from comprehensive_ml_dl_integration import (
-        ComprehensiveMLDLIntegration, 
-        MLSystemType, 
-        UserContext, 
-        MLEnhancementResult
-    )
-    COMPREHENSIVE_ML_AVAILABLE = True
-    print("✅ Comprehensive ML/DL Integration System loaded successfully")
-except ImportError as e:
-    COMPREHENSIVE_ML_AVAILABLE = False
-    print(f"⚠️ Comprehensive ML/DL Integration System not available: {e}")
-
-# Add Lightweight Deep Learning System import
-try:
-    from lightweight_deep_learning import (
-        DeepLearningMultiIntentIntegration, 
-        LearningContext, 
-        LearningMode,
-        create_lightweight_deep_learning_system
-    )
-    DEEP_LEARNING_AVAILABLE = True
-    print("✅ Lightweight Deep Learning System loaded successfully")
-except ImportError as e:
-    DEEP_LEARNING_AVAILABLE = False
-    print(f"⚠️ Lightweight Deep Learning System not available: {e}")
-
-# Add Caching Systems import
-try:
-    from ml_result_cache import get_ml_cache
-    from edge_cache_system import get_edge_cache
-    ML_CACHE_AVAILABLE = True
-    EDGE_CACHE_AVAILABLE = True
-    print("✅ Caching Systems loaded successfully")
-except ImportError as e:
-    ML_CACHE_AVAILABLE = False
-    EDGE_CACHE_AVAILABLE = False
-    print(f"⚠️ Caching Systems not available: {e}")
-
-# Add Query Preprocessing Pipeline import
-try:
-    from services.query_preprocessing_pipeline import QueryPreprocessor
-    QUERY_PREPROCESSING_AVAILABLE = True
-    print("✅ Query Preprocessing Pipeline loaded successfully")
-except ImportError as e:
-    QUERY_PREPROCESSING_AVAILABLE = False
-    print(f"⚠️ Query Preprocessing Pipeline not available: {e}")
-
-# Add Context-Aware Classification imports
-try:
-    from services.conversation_context_manager import (
-        ConversationContextManager,
-        Turn
-    )
-    from services.context_aware_classifier import ContextAwareClassifier
-    from services.dynamic_threshold_manager import DynamicThresholdManager
-    CONTEXT_AWARE_AVAILABLE = True
-    print("✅ Context-Aware Classification System loaded successfully")
-except ImportError as e:
-    CONTEXT_AWARE_AVAILABLE = False
-    print(f"⚠️ Context-Aware Classification System not available: {e}")
-
-# Add Monthly Events Scheduler import
-try:
-    from monthly_events_scheduler import MonthlyEventsScheduler, get_cached_events, fetch_monthly_events, check_if_fetch_needed
-    EVENTS_SCHEDULER_AVAILABLE = True
-    print("✅ Monthly Events Scheduler loaded successfully")
-except ImportError as e:
-    EVENTS_SCHEDULER_AVAILABLE = False
-    print(f"⚠️ Monthly Events Scheduler not available: {e}")
-
-# Enhanced Query Understanding Configuration
-ENHANCED_QUERY_UNDERSTANDING_ENABLED = ADVANCED_UNDERSTANDING_AVAILABLE
-
-# Initialize Enhanced Query Understanding if available
-enhanced_understanding_system = None
-if ENHANCED_QUERY_UNDERSTANDING_ENABLED:
-    try:
-        enhanced_understanding_system = AdvancedUnderstandingSystem()
-        print("✅ Enhanced Understanding System initialized")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Enhanced Understanding System: {e}")
-        ENHANCED_QUERY_UNDERSTANDING_ENABLED = False
-
-# Initialize Intent Classifier
-intent_classifier = None
-if INTENT_CLASSIFIER_AVAILABLE:
-    try:
-        intent_classifier = NeuralIntentRouter()
-        print("✅ Neural Intent Classifier (Hybrid) initialized")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
-        INTENT_CLASSIFIER_AVAILABLE = False
-
-# Initialize Query Preprocessor
-query_preprocessor = None
-if QUERY_PREPROCESSING_AVAILABLE:
-    try:
-        query_preprocessor = QueryPreprocessor()
-        print("✅ Neural Intent Classifier (Hybrid) initialized")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Neural Intent Classifier: {e}")
-        INTENT_CLASSIFIER_AVAILABLE = False
-
-# Initialize Query Preprocessor
-query_preprocessor = None
-if QUERY_PREPROCESSING_AVAILABLE:
-    try:
-        query_preprocessor = QueryPreprocessor()
-        print("✅ Query Preprocessor initialized")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Query Preprocessor: {e}")
-        QUERY_PREPROCESSING_AVAILABLE = False
-
-# Initialize Context-Aware Classification Components
-context_manager = None
-context_aware_classifier = None
-threshold_manager = None
-if CONTEXT_AWARE_AVAILABLE:
-    try:
-        # Initialize with default settings (Redis or in-memory fallback)
-        context_manager = ConversationContextManager()
-        context_aware_classifier = ContextAwareClassifier(context_manager)
-        threshold_manager = DynamicThresholdManager()
-        print("✅ Context-Aware Classification initialized")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize Context-Aware Classification: {e}")
-        CONTEXT_AWARE_AVAILABLE = False
-
-# Initialize ML Production Monitoring and Feedback Collection
-ml_monitor = None
-feedback_collector = None
-if ML_MONITORING_AVAILABLE:
-    try:
-        ml_monitor = get_production_monitor()
-        feedback_collector = get_feedback_collector()
-        print("✅ ML monitoring and feedback systems enabled")
-    except Exception as e:
-        print(f"⚠️ Failed to initialize ML monitoring: {e}")
-        ML_MONITORING_AVAILABLE = False
-
 # ═══════════════════════════════════════════════════════════════════
-# CONTEXTUAL BANDIT RECOMMENDATION ENGINE (Week 11-12)
+# RUNPOD LLM CLIENT INTEGRATION
 # ═══════════════════════════════════════════════════════════════════
-# Global instance - will be initialized in startup event
-integrated_recommendation_engine = None
-
-def get_integrated_recommendation_engine():
-    """
-    Get the integrated recommendation engine instance
-    
-    Returns:
-        IntegratedRecommendationEngine: Global engine instance or None if not initialized
-    """
-    global integrated_recommendation_engine
-    return integrated_recommendation_engine
-
-# ═══════════════════════════════════════════════════════════════════
-# ML ANSWERING SERVICE CLIENT INTEGRATION
-# ═══════════════════════════════════════════════════════════════════
-print("\n🤖 Initializing ML Answering Service Client...")
+print("\n🚀 Initializing RunPod LLM Client...")
 
 try:
-    from backend.ml_service_client import (
-        get_ml_answer, 
-        get_ml_status, 
-        check_ml_health
+    from backend.services.runpod_llm_client import (
+        get_llm_client,
+        generate_llm_response,
+        RunPodLLMClient
     )
-    ML_ANSWERING_SERVICE_AVAILABLE = True
-    print("✅ ML Answering Service Client loaded")
-    print(f"   URL: {os.getenv('ML_SERVICE_URL', 'http://localhost:8000')}")
-    print(f"   LLM Default: {os.getenv('ML_USE_LLM_DEFAULT', 'true')}")
+    RUNPOD_LLM_AVAILABLE = True
+    llm_endpoint = os.getenv('LLM_API_URL', 'Not configured')
+    print("✅ RunPod LLM Client loaded")
+    print(f"   Endpoint: {llm_endpoint}")
+    print(f"   Model: Llama 3.1 8B (4-bit)")
+    print(f"   GPU: RTX 5080")
 except ImportError as e:
-    ML_ANSWERING_SERVICE_AVAILABLE = False
-    print(f"⚠️ ML Answering Service Client not available: {e}")
-    print("   System will run without ML-powered responses")
+    RUNPOD_LLM_AVAILABLE = False
+    print(f"⚠️ RunPod LLM Client not available: {e}")
+    print("   System will run without RunPod LLM integration")
 
 # Enhanced Authentication imports
 try:
@@ -1332,6 +1123,114 @@ async def health_check():
 
 
 # =============================
+# RUNPOD LLM TEST ENDPOINTS
+# =============================
+
+class LLMTestRequest(BaseModel):
+    """Request model for LLM testing"""
+    prompt: str = Field(..., description="Prompt for LLM generation")
+    max_tokens: Optional[int] = Field(250, description="Maximum tokens to generate")
+
+class LLMTestResponse(BaseModel):
+    """Response model for LLM testing"""
+    success: bool
+    generated_text: Optional[str] = None
+    error: Optional[str] = None
+    model: Optional[str] = None
+    endpoint: Optional[str] = None
+
+@app.get("/api/llm/health", tags=["RunPod LLM"])
+async def llm_health_check():
+    """Check RunPod LLM service health"""
+    if not RUNPOD_LLM_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "message": "RunPod LLM client not loaded",
+            "endpoint": os.getenv("LLM_API_URL", "Not configured")
+        }
+    
+    try:
+        llm_client = get_llm_client()
+        health = await llm_client.health_check()
+        return health
+    except Exception as e:
+        logger.error(f"LLM health check error: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+@app.post("/api/llm/generate", response_model=LLMTestResponse, tags=["RunPod LLM"])
+async def llm_generate_test(request: LLMTestRequest):
+    """Test RunPod LLM generation"""
+    if not RUNPOD_LLM_AVAILABLE:
+        return LLMTestResponse(
+            success=False,
+            error="RunPod LLM client not available"
+        )
+    
+    try:
+        llm_client = get_llm_client()
+        result = await llm_client.generate(
+            prompt=request.prompt,
+            max_tokens=request.max_tokens
+        )
+        
+        if result and 'generated_text' in result:
+            return LLMTestResponse(
+                success=True,
+                generated_text=result['generated_text'],
+                model="Llama 3.1 8B (4-bit)",
+                endpoint=llm_client.api_url
+            )
+        else:
+            return LLMTestResponse(
+                success=False,
+                error="No response from LLM"
+            )
+    except Exception as e:
+        logger.error(f"LLM generation error: {e}")
+        return LLMTestResponse(
+            success=False,
+            error=str(e)
+        )
+
+@app.post("/api/llm/istanbul-query", response_model=LLMTestResponse, tags=["RunPod LLM"])
+async def llm_istanbul_query(request: LLMTestRequest):
+    """Generate Istanbul-specific response using RunPod LLM"""
+    if not RUNPOD_LLM_AVAILABLE:
+        return LLMTestResponse(
+            success=False,
+            error="RunPod LLM client not available"
+        )
+    
+    try:
+        response_text = await generate_llm_response(
+            query=request.prompt,
+            context=None,
+            intent="general"
+        )
+        
+        if response_text:
+            return LLMTestResponse(
+                success=True,
+                generated_text=response_text,
+                model="Llama 3.1 8B (4-bit) - Istanbul Specialist",
+                endpoint=os.getenv("LLM_API_URL")
+            )
+        else:
+            return LLMTestResponse(
+                success=False,
+                error="No response from LLM"
+            )
+    except Exception as e:
+        logger.error(f"Istanbul LLM query error: {e}")
+        return LLMTestResponse(
+            success=False,
+            error=str(e)
+        )
+
+# =============================
 # AUTHENTICATION ENDPOINTS
 # =============================
 
@@ -1696,8 +1595,33 @@ async def ml_chat_endpoint(request: MLChatRequest):
                     ml_service_used=True
                 )
         
-        # Fallback to rule-based
-        logger.info("⚠️ ML service unavailable - using fallback")
+        # Try RunPod LLM as secondary fallback
+        if RUNPOD_LLM_AVAILABLE:
+            logger.info("🚀 ML service unavailable - trying RunPod LLM...")
+            try:
+                llm_text = await generate_llm_response(
+                    query=request.message,
+                    context=None,  # Could add search results here
+                    intent=intent
+                )
+                
+                if llm_text:
+                    logger.info(f"✅ RunPod LLM response generated ({time.time() - start_time:.2f}s)")
+                    return MLChatResponse(
+                        response=llm_text,
+                        intent=intent,
+                        confidence=confidence,
+                        method="runpod_llm",
+                        context=[],
+                        suggestions=generate_ml_suggestions(intent),
+                        response_time=time.time() - start_time,
+                        ml_service_used=False
+                    )
+            except Exception as e:
+                logger.warning(f"⚠️ RunPod LLM failed: {e}")
+        
+        # Final fallback to rule-based
+        logger.info("⚠️ All AI services unavailable - using rule-based fallback")
         
         fallback = await generate_ml_fallback_response(
             request.message,
@@ -2062,6 +1986,7 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         }
         
         # Get real blog post count from database
+
         stats["blog_posts"] = db.query(func.count(BlogPost.id)).scalar() or 0
         
         # Get real comments count and pending count from database

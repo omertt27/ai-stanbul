@@ -421,15 +421,16 @@ class ServiceInitializer:
             return None
     
     def _init_llm_service(self) -> Optional[Any]:
-        """Initialize LLM service (TinyLlama or LLaMA 3.2 3B)"""
-        try:
-            from ml_systems.llm_service_wrapper import LLMServiceWrapper
-            service = LLMServiceWrapper()
-            self._record_success('llm_service', f"🤖 LLM Service ({service.model_name} on {service.device})")
-            return service
-        except Exception as e:
-            self._record_error('llm_service', e, warning=True)
-            return None
+        """
+        Initialize LLM service (DISABLED - Using RunPod LLM Instead)
+        
+        ⚠️ Local LLM loading has been disabled to use RunPod remote LLM.
+        All LLM requests should go through the RunPod LLM Client in backend/main.py
+        """
+        # Local LLM loading disabled - use RunPod LLM client instead
+        logger.info("ℹ️  Local LLM service disabled - using RunPod LLM")
+        logger.info("   Endpoint: RunPod (RTX 5080 GPU)")
+        return None
     
     # ============================================================================
     # HELPER METHODS

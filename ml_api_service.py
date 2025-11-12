@@ -79,11 +79,13 @@ async def startup_event():
     
     logger.info("🚀 Starting Istanbul AI ML Service...")
     
-    # Initialize ML service with LLM enabled for high-quality responses
-    # Set to False for faster startup if LLM is not needed
-    ml_service = await create_ml_service(enable_llm=True)
+    # ⚠️ LLM DISABLED - Using RunPod Remote LLM Instead
+    # Local LLM loading disabled to prevent memory issues
+    # All LLM requests should go through RunPod LLM Client
+    ml_service = await create_ml_service(enable_llm=False)
     
-    logger.info("✅ ML Service ready to serve requests")
+    logger.info("✅ ML Service ready (LLM disabled - using RunPod LLM)")
+    logger.info("   ℹ️  For LLM responses, use RunPod LLM client")
 
 
 @app.on_event("shutdown")

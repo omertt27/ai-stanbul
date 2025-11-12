@@ -1,0 +1,492 @@
+ML Hidden Gems Handler", "module": "handler_initializer", "function": "_initialize_hidden_gems_handler", "line": 174, "taskName": null}
+WARNING:istanbul_ai.initialization.handler_initializer:Required dependencies not available for ML Hidden Gems Handler
+{"timestamp": "2025-11-12T09:08:52.064241", "level": "INFO", "logger": "istanbul_ai.handlers.weather_handler", "message": "\u2705 ML-Enhanced Weather Handler initialized (Bilingual: False, LLM: False)", "module": "weather_handler", "function": "__init__", "line": 114, "taskName": null}
+INFO:istanbul_ai.handlers.weather_handler:✅ ML-Enhanced Weather Handler initialized (Bilingual: False, LLM: False)
+INFO:llm_config:🚀 Using Google Cloud LLM (Llama 3.1 8B)
+INFO:enhanced_llm_config:✅ Enhanced LLM Client initialized
+{"timestamp": "2025-11-12T09:08:52.064342", "level": "INFO", "logger": "istanbul_ai.handlers.weather_handler", "message": "\u2705 Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized", "module": "weather_handler", "function": "__init__", "line": 120, "taskName": null}
+INFO:istanbul_ai.handlers.weather_handler:✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized
+{"timestamp": "2025-11-12T09:08:52.064371", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83c\udf24\ufe0f ML-Enhanced Weather Handler initialized successfully!", "module": "handler_initializer", "function": "_initialize_weather_handler", "line": 216, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:🌤️ ML-Enhanced Weather Handler initialized successfully!
+{"timestamp": "2025-11-12T09:08:52.065525", "level": "INFO", "logger": "istanbul_ai.handlers.route_planning_handler", "message": "\u2705 ML-Enhanced Route Planning Handler initialized (Bilingual: False, Maps: False)", "module": "route_planning_handler", "function": "__init__", "line": 75, "taskName": null}
+INFO:istanbul_ai.handlers.route_planning_handler:✅ ML-Enhanced Route Planning Handler initialized (Bilingual: False, Maps: False)
+{"timestamp": "2025-11-12T09:08:52.065837", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83d\uddfa\ufe0f ML-Enhanced Route Planning Handler initialized successfully!", "module": "handler_initializer", "function": "_initialize_route_planning_handler", "line": 266, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:🗺️ ML-Enhanced Route Planning Handler initialized successfully!
+{"timestamp": "2025-11-12T09:08:52.066289", "level": "INFO", "logger": "istanbul_ai.handlers.neighborhood_handler", "message": "\u2705 ML-Enhanced Neighborhood Handler initialized (Bilingual: False, Maps: False)", "module": "neighborhood_handler", "function": "__init__", "line": 85, "taskName": null}
+INFO:istanbul_ai.handlers.neighborhood_handler:✅ ML-Enhanced Neighborhood Handler initialized (Bilingual: False, Maps: False)
+INFO:llm_config:🚀 Using Google Cloud LLM (Llama 3.1 8B)
+INFO:enhanced_llm_config:✅ Enhanced LLM Client initialized
+{"timestamp": "2025-11-12T09:08:52.066330", "level": "INFO", "logger": "istanbul_ai.handlers.neighborhood_handler", "message": "\u2705 Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized", "module": "neighborhood_handler", "function": "__init__", "line": 91, "taskName": null}
+INFO:istanbul_ai.handlers.neighborhood_handler:✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized
+{"timestamp": "2025-11-12T09:08:52.066348", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83c\udfd8\ufe0f ML-Enhanced Neighborhood Handler initialized successfully!", "module": "handler_initializer", "function": "_initialize_neighborhood_handler", "line": 314, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:🏘️ ML-Enhanced Neighborhood Handler initialized successfully!
+{"timestamp": "2025-11-12T09:08:52.126488", "level": "WARNING", "logger": "istanbul_ai.initialization.handler_initializer", "message": "Required GPS/location services not available for Nearby Locations Handler", "module": "handler_initializer", "function": "_initialize_nearby_locations_handler", "line": 387, "taskName": null}
+WARNING:istanbul_ai.initialization.handler_initializer:Required GPS/location services not available for Nearby Locations Handler
+INFO:ml_systems.hidden_gems_context_service:✅ Hidden Gems Context Service initialized: 6 districts, 29 total gems
+{"timestamp": "2025-11-12T09:08:52.152589", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83d\udc8e Hidden Gems Context Service initialized for transportation", "module": "handler_initializer", "function": "_initialize_transportation_handler", "line": 432, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:💎 Hidden Gems Context Service initialized for transportation
+WARNING:ml_systems.rag_vector_service:sentence-transformers not installed. Install with: pip install sentence-transformers
+WARNING:ml_systems.rag_vector_service:faiss-cpu not installed. Install with: pip install faiss-cpu
+ERROR:ml_systems.rag_vector_service:❌ sentence-transformers not available
+{"timestamp": "2025-11-12T09:08:52.180985", "level": "WARNING", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83e\udd16 RAG Vector Service not available", "module": "handler_initializer", "function": "_initialize_transportation_handler", "line": 444, "taskName": null}
+WARNING:istanbul_ai.initialization.handler_initializer:🤖 RAG Vector Service not available
+{"timestamp": "2025-11-12T09:08:52.181036", "level": "INFO", "logger": "istanbul_ai.handlers.transportation_handler", "message": "\ud83d\ude87 Transportation Handler initialized - TransportChat: False, AdvancedTransport: True, GPS: False, Maps: False, TransferMap: False, LLM: False (auto-multilingual), GPSLocation: False, Weather: False, HiddenGems: True, RAG: False", "module": "transportation_handler", "function": "__init__", "line": 128, "taskName": null}
+INFO:istanbul_ai.handlers.transportation_handler:🚇 Transportation Handler initialized - TransportChat: False, AdvancedTransport: True, GPS: False, Maps: False, TransferMap: False, LLM: False (auto-multilingual), GPSLocation: False, Weather: False, HiddenGems: True, RAG: False
+INFO:llm_config:🚀 Using Google Cloud LLM (Llama 3.1 8B)
+INFO:enhanced_llm_config:✅ Enhanced LLM Client initialized
+{"timestamp": "2025-11-12T09:08:52.181161", "level": "INFO", "logger": "istanbul_ai.handlers.transportation_handler", "message": "\u2705 Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized", "module": "transportation_handler", "function": "__init__", "line": 148, "taskName": null}
+INFO:istanbul_ai.handlers.transportation_handler:✅ Enhanced LLM client (Google Cloud Llama 3.1 8B) initialized
+{"timestamp": "2025-11-12T09:08:52.181192", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\ud83d\ude87 Transportation Handler initialized successfully! (LLM: False, GPSLocation: False, Weather: False, HiddenGems: True, RAG: False)", "module": "handler_initializer", "function": "_initialize_transportation_handler", "line": 468, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:🚇 Transportation Handler initialized successfully! (LLM: False, GPSLocation: False, Weather: False, HiddenGems: True, RAG: False)
+{"timestamp": "2025-11-12T09:08:52.181222", "level": "INFO", "logger": "istanbul_ai.initialization.handler_initializer", "message": "\u2705 ML handlers initialization complete: 5/12 (41.7%) handlers initialized", "module": "handler_initializer", "function": "initialize_all_handlers", "line": 99, "taskName": null}
+INFO:istanbul_ai.initialization.handler_initializer:✅ ML handlers initialization complete: 5/12 (41.7%) handlers initialized
+{"timestamp": "2025-11-12T09:08:52.181248", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 Initialized 11 ML handlers via HandlerInitializer", "module": "main_system", "function": "__init__", "line": 281, "taskName": null}
+INFO:istanbul_ai.main_system:✅ Initialized 11 ML handlers via HandlerInitializer
+{"timestamp": "2025-11-12T09:08:52.181277", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83d\udd0d Registered handler names: ['ml_emergency_safety_handler', 'ml_local_food_handler', 'ml_restaurant_handler', 'ml_attraction_handler', 'ml_event_handler', 'ml_hidden_gems_handler', 'ml_weather_handler', 'ml_route_planning_handler', 'ml_neighborhood_handler', 'nearby_locations_response_handler', 'transportation_handler']", "module": "main_system", "function": "__init__", "line": 282, "taskName": null}
+INFO:istanbul_ai.main_system:🔍 Registered handler names: ['ml_emergency_safety_handler', 'ml_local_food_handler', 'ml_restaurant_handler', 'ml_attraction_handler', 'ml_event_handler', 'ml_hidden_gems_handler', 'ml_weather_handler', 'ml_route_planning_handler', 'ml_neighborhood_handler', 'nearby_locations_response_handler', 'transportation_handler']
+{"timestamp": "2025-11-12T09:08:52.181305", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83c\udfaf Initializing routing layer components...", "module": "main_system", "function": "__init__", "line": 285, "taskName": null}
+INFO:istanbul_ai.main_system:🎯 Initializing routing layer components...
+INFO:neural_query_classifier:Using device: cpu
+ERROR:neural_query_classifier:Failed to load model: Model not found at models/distilbert_intent_classifier
+Traceback (most recent call last):
+  File "/Users/omer/Desktop/ai-stanbul/backend/../neural_query_classifier.py", line 146, in _load_model
+    raise FileNotFoundError(f"Model not found at {base_path}")
+FileNotFoundError: Model not found at models/distilbert_intent_classifier
+{"timestamp": "2025-11-12T09:08:52.191392", "level": "WARNING", "logger": "istanbul_ai.main_system", "message": "\u26a0\ufe0f  Neural classifier initialization failed: Model not found at models/distilbert_intent_classifier", "module": "main_system", "function": "__init__", "line": 310, "taskName": null}
+WARNING:istanbul_ai.main_system:⚠️  Neural classifier initialization failed: Model not found at models/distilbert_intent_classifier
+{"timestamp": "2025-11-12T09:08:52.202654", "level": "INFO", "logger": "istanbul_ai.routing.persistent_embedding_cache", "message": "\u2705 Cache loaded: 80 embeddings from 2025-11-07T18:56:22.199467", "module": "persistent_embedding_cache", "function": "_load_from_disk", "line": 246, "taskName": null}
+INFO:istanbul_ai.routing.persistent_embedding_cache:✅ Cache loaded: 80 embeddings from 2025-11-07T18:56:22.199467
+{"timestamp": "2025-11-12T09:08:52.202857", "level": "INFO", "logger": "istanbul_ai.routing.persistent_embedding_cache", "message": "\ud83d\udd04 Auto-save enabled: every 300s", "module": "persistent_embedding_cache", "function": "_start_auto_save", "line": 266, "taskName": null}
+INFO:istanbul_ai.routing.persistent_embedding_cache:🔄 Auto-save enabled: every 300s
+{"timestamp": "2025-11-12T09:08:52.203198", "level": "INFO", "logger": "istanbul_ai.routing.persistent_embedding_cache", "message": "\u2705 Persistent cache initialized: 80 embeddings loaded", "module": "persistent_embedding_cache", "function": "__init__", "line": 87, "taskName": null}
+INFO:istanbul_ai.routing.persistent_embedding_cache:✅ Persistent cache initialized: 80 embeddings loaded
+{"timestamp": "2025-11-12T09:08:52.203254", "level": "INFO", "logger": "istanbul_ai.routing.neural_response_ranker", "message": "\u2705 Persistent cache initialized: 80 embeddings", "module": "neural_response_ranker", "function": "__init__", "line": 92, "taskName": null}
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Persistent cache initialized: 80 embeddings
+{"timestamp": "2025-11-12T09:08:52.204811", "level": "INFO", "logger": "istanbul_ai.routing.neural_response_ranker", "message": "Loading distilbert-base-uncased...", "module": "neural_response_ranker", "function": "_initialize_model", "line": 134, "taskName": null}
+INFO:istanbul_ai.routing.neural_response_ranker:Loading distilbert-base-uncased...
+{"timestamp": "2025-11-12T09:08:53.403040", "level": "INFO", "logger": "istanbul_ai.routing.neural_response_ranker", "message": "\u2705 Model loaded on cpu", "module": "neural_response_ranker", "function": "_initialize_model", "line": 142, "taskName": null}
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Model loaded on cpu
+{"timestamp": "2025-11-12T09:08:53.403105", "level": "INFO", "logger": "istanbul_ai.routing.neural_response_ranker", "message": "\u2705 Neural ranker initialized on cpu", "module": "neural_response_ranker", "function": "__init__", "line": 113, "taskName": null}
+INFO:istanbul_ai.routing.neural_response_ranker:✅ Neural ranker initialized on cpu
+{"timestamp": "2025-11-12T09:08:53.403135", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 Neural ranker loaded (CPU mode)", "module": "main_system", "function": "__init__", "line": 332, "taskName": null}
+INFO:istanbul_ai.main_system:✅ Neural ranker loaded (CPU mode)
+{"timestamp": "2025-11-12T09:08:53.404912", "level": "INFO", "logger": "istanbul_ai.routing.cache_prewarmer", "message": "\ud83d\udd25 Pre-warming cache with 80 queries...", "module": "cache_prewarmer", "function": "prewarm", "line": 163, "taskName": null}
+INFO:istanbul_ai.routing.cache_prewarmer:🔥 Pre-warming cache with 80 queries...
+{"timestamp": "2025-11-12T09:08:53.407819", "level": "INFO", "logger": "istanbul_ai.routing.cache_prewarmer", "message": "\u2705 Cache pre-warmed: 80/80 queries, 0.0s, 0.2 MB", "module": "cache_prewarmer", "function": "prewarm", "line": 198, "taskName": null}
+INFO:istanbul_ai.routing.cache_prewarmer:✅ Cache pre-warmed: 80/80 queries, 0.0s, 0.2 MB
+{"timestamp": "2025-11-12T09:08:53.407863", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83d\udd25 Cache pre-warmed: 80/80 queries, 0.0s", "module": "main_system", "function": "__init__", "line": 341, "taskName": null}
+INFO:istanbul_ai.main_system:🔥 Cache pre-warmed: 80/80 queries, 0.0s
+{"timestamp": "2025-11-12T09:08:53.417088", "level": "INFO", "logger": "istanbul_ai.routing.hybrid_intent_classifier", "message": "\u26a0\ufe0f  Hybrid classifier initialized (Keyword only - Neural unavailable)", "module": "hybrid_intent_classifier", "function": "__init__", "line": 71, "taskName": null}
+INFO:istanbul_ai.routing.hybrid_intent_classifier:⚠️  Hybrid classifier initialized (Keyword only - Neural unavailable)
+{"timestamp": "2025-11-12T09:08:53.417667", "level": "INFO", "logger": "istanbul_ai.routing.response_router", "message": "\u2705 Response Router initialized with neural ranking", "module": "response_router", "function": "__init__", "line": 45, "taskName": null}
+INFO:istanbul_ai.routing.response_router:✅ Response Router initialized with neural ranking
+{"timestamp": "2025-11-12T09:08:53.418057", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 Routing layer components initialized successfully", "module": "main_system", "function": "__init__", "line": 380, "taskName": null}
+INFO:istanbul_ai.main_system:✅ Routing layer components initialized successfully
+{"timestamp": "2025-11-12T09:08:53.422138", "level": "INFO", "logger": "istanbul_ai.services.location_database_service", "message": "\u2705 Loaded 15 attractions", "module": "location_database_service", "function": "_load_attractions_database", "line": 53, "taskName": null}
+INFO:istanbul_ai.services.location_database_service:✅ Loaded 15 attractions
+{"timestamp": "2025-11-12T09:08:53.422840", "level": "INFO", "logger": "istanbul_ai.services.location_database_service", "message": "\u2705 Loaded GPS for 49 museums", "module": "location_database_service", "function": "_load_museum_gps_coordinates", "line": 72, "taskName": null}
+INFO:istanbul_ai.services.location_database_service:✅ Loaded GPS for 49 museums
+{"timestamp": "2025-11-12T09:08:53.422960", "level": "INFO", "logger": "istanbul_ai.services.location_database_service", "message": "\u2705 Loaded detailed info for 49 museums", "module": "location_database_service", "function": "_load_museum_database", "line": 86, "taskName": null}
+INFO:istanbul_ai.services.location_database_service:✅ Loaded detailed info for 49 museums
+{"timestamp": "2025-11-12T09:08:53.444181", "level": "INFO", "logger": "istanbul_ai.services.location_database_service", "message": "\u2705 Transportation routing service loaded", "module": "location_database_service", "function": "_load_transportation_service", "line": 97, "taskName": null}
+INFO:istanbul_ai.services.location_database_service:✅ Transportation routing service loaded
+{"timestamp": "2025-11-12T09:08:53.444258", "level": "INFO", "logger": "istanbul_ai.services.location_database_service", "message": "\u2705 Location Database Service initialized: 15 attractions, 49 museums with GPS, with transportation routing", "module": "location_database_service", "function": "__init__", "line": 36, "taskName": null}
+INFO:istanbul_ai.services.location_database_service:✅ Location Database Service initialized: 15 attractions, 49 museums with GPS, with transportation routing
+{"timestamp": "2025-11-12T09:08:53.444297", "level": "INFO", "logger": "istanbul_ai.services.gps_route_service", "message": "\u2705 Location Database Service loaded in GPS Route Service", "module": "gps_route_service", "function": "_load_location_service", "line": 46, "taskName": null}
+INFO:istanbul_ai.services.gps_route_service:✅ Location Database Service loaded in GPS Route Service
+{"timestamp": "2025-11-12T09:08:53.444321", "level": "INFO", "logger": "istanbul_ai.services.gps_route_service", "message": "\u2705 GPS Route Service initialized", "module": "gps_route_service", "function": "__init__", "line": 39, "taskName": null}
+INFO:istanbul_ai.services.gps_route_service:✅ GPS Route Service initialized
+{"timestamp": "2025-11-12T09:08:53.444345", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 GPS Route Service initialized successfully", "module": "main_system", "function": "__init__", "line": 387, "taskName": null}
+INFO:istanbul_ai.main_system:✅ GPS Route Service initialized successfully
+{"timestamp": "2025-11-12T09:08:53.444370", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u26a0\ufe0f A/B Testing Framework not available", "module": "main_system", "function": "__init__", "line": 422, "taskName": null}
+INFO:istanbul_ai.main_system:⚠️ A/B Testing Framework not available
+{"timestamp": "2025-11-12T09:08:53.444389", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83e\udd16 Initializing LLM + GPS integration...", "module": "main_system", "function": "__init__", "line": 425, "taskName": null}
+INFO:istanbul_ai.main_system:🤖 Initializing LLM + GPS integration...
+{"timestamp": "2025-11-12T09:08:53.444410", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 LLM Service (reused): LLaMA 3.1 8B on cpu", "module": "main_system", "function": "__init__", "line": 431, "taskName": null}
+INFO:istanbul_ai.main_system:✅ LLM Service (reused): LLaMA 3.1 8B on cpu
+{"timestamp": "2025-11-12T09:08:53.444431", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 GPS Location Service available for LLM integration", "module": "main_system", "function": "__init__", "line": 451, "taskName": null}
+INFO:istanbul_ai.main_system:✅ GPS Location Service available for LLM integration
+{"timestamp": "2025-11-12T09:08:53.444449", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "   \u2192 TransportationHandler: LLM + GPS enabled", "module": "main_system", "function": "__init__", "line": 457, "taskName": null}
+INFO:istanbul_ai.main_system:   → TransportationHandler: LLM + GPS enabled
+{"timestamp": "2025-11-12T09:08:53.444466", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 LLM + GPS integration complete", "module": "main_system", "function": "__init__", "line": 467, "taskName": null}
+INFO:istanbul_ai.main_system:✅ LLM + GPS integration complete
+{"timestamp": "2025-11-12T09:08:53.444492", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83e\udd16 Initializing LLM-based intent classifier...", "module": "main_system", "function": "__init__", "line": 474, "taskName": null}
+INFO:istanbul_ai.main_system:🤖 Initializing LLM-based intent classifier...
+{"timestamp": "2025-11-12T09:08:53.444559", "level": "INFO", "logger": "istanbul_ai.routing.llm_intent_classifier", "message": "\u2705 LLM Intent Classifier initialized (Model: LLaMA 3.1 8B)", "module": "llm_intent_classifier", "function": "__init__", "line": 112, "taskName": null}
+INFO:istanbul_ai.routing.llm_intent_classifier:✅ LLM Intent Classifier initialized (Model: LLaMA 3.1 8B)
+{"timestamp": "2025-11-12T09:08:53.444619", "level": "INFO", "logger": "istanbul_ai.routing.llm_intent_classifier", "message": "   \u2192 Secondary fallback: Keyword classifier", "module": "llm_intent_classifier", "function": "__init__", "line": 116, "taskName": null}
+INFO:istanbul_ai.routing.llm_intent_classifier:   → Secondary fallback: Keyword classifier
+{"timestamp": "2025-11-12T09:08:53.444650", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 LLM Intent Classifier initialized and set as primary", "module": "main_system", "function": "__init__", "line": 482, "taskName": null}
+INFO:istanbul_ai.main_system:✅ LLM Intent Classifier initialized and set as primary
+{"timestamp": "2025-11-12T09:08:53.444677", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "   \u2192 Secondary fallback: Keyword-based classifier", "module": "main_system", "function": "__init__", "line": 485, "taskName": null}
+INFO:istanbul_ai.main_system:   → Secondary fallback: Keyword-based classifier
+{"timestamp": "2025-11-12T09:08:53.444698", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 Istanbul Daily Talk AI System initialized successfully!", "module": "main_system", "function": "__init__", "line": 496, "taskName": null}
+INFO:istanbul_ai.main_system:✅ Istanbul Daily Talk AI System initialized successfully!
+{"timestamp": "2025-11-12T09:08:53.444731", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 ML Prediction Cache integrated into GPS Route Planner", "module": "main_system", "function": "_log_cache_status", "line": 575, "taskName": null}
+INFO:istanbul_ai.main_system:✅ ML Prediction Cache integrated into GPS Route Planner
+✅ Istanbul Daily Talk AI MAIN SYSTEM loaded successfully!
+   📍 Intelligent Location Detection: ACTIVE
+   🗺️ Enhanced GPS Route Planner: ACTIVE
+   🚇 Advanced Transportation System: ACTIVE
+   🏛️ Museum System with Route Planning: ACTIVE
+   🤖 ML-Enhanced Daily Talks Bridge: ACTIVE
+🎯 AI System Status:
+   🏛️ Istanbul Daily Talk AI (PRIMARY): ✅ ACTIVE (50+ attractions, restaurants, transport)
+   🔧 Ultra-Specialized AI (FALLBACK): ✅ ACTIVE
+   🚀 Overall System: ✅ FULLY INTEGRATED AI SYSTEMS
+INFO:main:⚠️ Enhanced Authentication Manager not available
+✅ Admin dashboard routes configured (path: /Users/omer/Desktop/ai-stanbul/backend/../admin)
+
+🔧 Loading Week 3-4 Production APIs...
+✅ Monitoring API routes registered
+✅ A/B Testing API routes registered
+⚠️ Recommendation routes not available: cannot import name 'get_ab_test_manager' from 'backend.services.recommendation_ab_testing' (/Users/omer/Desktop/ai-stanbul/backend/../backend/services/recommendation_ab_testing.py)
+✅ Feedback API routes registered
+✅ Route Planner API routes registered
+✅ Week 3-4 APIs loaded
+
+WARNING:app:⚠️ Advanced NLP libraries not available: No module named 'nltk'
+WARNING:app:⚠️ Advanced geo utilities not available: No module named 'geopy'
+✅ Using new modular Istanbul AI system (much faster and cleaner!)
+📝 Old monolithic file has been replaced with modular architecture
+🚀 All functionality preserved with better performance
+INFO:app:✅ Main AI System with map visualization available
+INFO:services.push_notification_service:📱 FCM service not available (mock mode)
+INFO:services.push_notification_service:🔔 Notification Service initialized
+INFO:app:🔔 Push Notification Service available
+INFO:app:🌤️ Weather Services available
+INFO:app:🗣️ Legacy Daily Talk Enhancement System available
+INFO:app:🧠 Advanced Daily Talk AI available - GPT-level intelligence!
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:app:🚀 Comprehensive Daily Talks System available - Full featured!
+INFO:     Started server process [10245]
+INFO:     Waiting for application startup.
+INFO:app:🚀 Starting Advanced Istanbul AI Web Service...
+{"timestamp": "2025-11-12T09:08:55.197850", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83d\ude80 Initializing Istanbul Daily Talk AI System (Modular Architecture)...", "module": "main_system", "function": "__init__", "line": 224, "taskName": "Task-2"}
+INFO:istanbul_ai.main_system:🚀 Initializing Istanbul Daily Talk AI System (Modular Architecture)...
+{"timestamp": "2025-11-12T09:08:55.197910", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\ud83d\udd0d Detecting system features and capabilities...", "module": "system_config", "function": "_detect_all_features", "line": 108, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:🔍 Detecting system features and capabilities...
+{"timestamp": "2025-11-12T09:08:55.197940", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Hidden Gems Handler loaded successfully", "module": "system_config", "function": "_detect_hidden_gems", "line": 141, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Hidden Gems Handler loaded successfully
+{"timestamp": "2025-11-12T09:08:55.197961", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Price Filter Service loaded successfully", "module": "system_config", "function": "_detect_price_filter", "line": 152, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Price Filter Service loaded successfully
+{"timestamp": "2025-11-12T09:08:55.197984", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Events Service loaded successfully", "module": "system_config", "function": "_detect_events_service", "line": 163, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Events Service loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198009", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Weather Recommendations Service loaded successfully", "module": "system_config", "function": "_detect_weather_recommendations", "line": 174, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Weather Recommendations Service loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198035", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Advanced transportation system loaded successfully", "module": "system_config", "function": "_detect_advanced_transport", "line": 191, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Advanced transportation system loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198061", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Transfer Instructions & Map Visualization integration loaded successfully", "module": "system_config", "function": "_detect_transfer_map_integration", "line": 202, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Transfer Instructions & Map Visualization integration loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198096", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 ML-Enhanced Daily Talks Bridge loaded successfully", "module": "system_config", "function": "_detect_ml_daily_talks", "line": 214, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ ML-Enhanced Daily Talks Bridge loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198117", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Enhanced Bilingual Daily Talks System loaded successfully", "module": "system_config", "function": "_detect_enhanced_daily_talks", "line": 231, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Enhanced Bilingual Daily Talks System loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198136", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Neural Query Enhancement System loaded successfully", "module": "system_config", "function": "_detect_neural_query_enhancement", "line": 246, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Neural Query Enhancement System loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198488", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Multi-Intent Query Handler loaded successfully", "module": "system_config", "function": "_detect_multi_intent_handler", "line": 258, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Multi-Intent Query Handler loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198507", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Advanced Personalization System loaded successfully", "module": "system_config", "function": "_detect_advanced_personalization", "line": 269, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Advanced Personalization System loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198523", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Real-time Feedback Loop System loaded successfully", "module": "system_config", "function": "_detect_feedback_loop", "line": 280, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Real-time Feedback Loop System loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198781", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 ServiceInitializer and HandlerInitializer loaded successfully", "module": "system_config", "function": "_detect_initializers", "line": 293, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ ServiceInitializer and HandlerInitializer loaded successfully
+{"timestamp": "2025-11-12T09:08:55.198809", "level": "INFO", "logger": "istanbul_ai.initialization.system_config", "message": "\u2705 Feature detection complete: 14/14 features available (100.0%)", "module": "system_config", "function": "_detect_all_features", "line": 133, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.system_config:✅ Feature detection complete: 14/14 features available (100.0%)
+✅ Loaded 18 hidden gems from database
+INFO:ibb_real_time_api:🌐 İBB Real-Time API initialized (Live APIs: True)
+INFO:services.live_ibb_transportation_service:🌐 Connected to live IBB API
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.osrm_routing_service:✅ OSRM routing cache enabled (Redis)
+INFO:backend.services.osrm_routing_service:OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+INFO:backend.services.transportation_directions_service:✅ OSRM service initialized successfully
+INFO:backend.services.transportation_directions_service:✅ Transportation Directions Service initialized
+INFO:services.live_ibb_transportation_service:✅ Base transportation service initialized
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:services.live_ibb_transportation_service:✅ Transfer instructions generator initialized
+INFO:services.live_ibb_transportation_service:🚌 Live IBB Transportation Service initialized (Mock: False)
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:📊 İBB Transportation Data Source Status
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:Data Source: LIVE_IBB_API
+INFO:services.live_ibb_transportation_service:Using Mock Data: False
+INFO:services.live_ibb_transportation_service:İBB API Available: True
+INFO:services.live_ibb_transportation_service:İBB API Connected: True
+INFO:services.live_ibb_transportation_service:Description: Connected to live İBB Open Data API. Providing real-time transportation information including schedules, delays, and live vehicle tracking.
+INFO:services.live_ibb_transportation_service:======================================================================
+{"timestamp": "2025-11-12T09:08:55.230252", "level": "WARNING", "logger": "istanbul_ai.core.user_management", "message": "\u26a0\ufe0f UserManager using unbounded dicts - memory may grow indefinitely", "module": "user_management", "function": "__init__", "line": 49, "taskName": "Task-2"}
+WARNING:istanbul_ai.core.user_management:⚠️ UserManager using unbounded dicts - memory may grow indefinitely
+{"timestamp": "2025-11-12T09:08:55.230294", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\ud83c\udf10 Initializing bilingual support with ML-based language detection...", "module": "main_system", "function": "__init__", "line": 235, "taskName": "Task-2"}
+INFO:istanbul_ai.main_system:🌐 Initializing bilingual support with ML-based language detection...
+{"timestamp": "2025-11-12T09:08:55.230326", "level": "INFO", "logger": "istanbul_ai.services.bilingual_manager", "message": "\ud83e\udde0 Advanced ML-based language detector enabled", "module": "bilingual_manager", "function": "__init__", "line": 53, "taskName": "Task-2"}
+INFO:istanbul_ai.services.bilingual_manager:🧠 Advanced ML-based language detector enabled
+{"timestamp": "2025-11-12T09:08:55.230915", "level": "INFO", "logger": "istanbul_ai.services.bilingual_manager", "message": "\u2705 BilingualManager initialized with language detection and templates", "module": "bilingual_manager", "function": "__init__", "line": 109, "taskName": "Task-2"}
+INFO:istanbul_ai.services.bilingual_manager:✅ BilingualManager initialized with language detection and templates
+{"timestamp": "2025-11-12T09:08:55.230945", "level": "INFO", "logger": "istanbul_ai.main_system", "message": "\u2705 BilingualManager initialized with ML-based language detection (91.7% accuracy)", "module": "main_system", "function": "__init__", "line": 240, "taskName": "Task-2"}
+INFO:istanbul_ai.main_system:✅ BilingualManager initialized with ML-based language detection (91.7% accuracy)
+{"timestamp": "2025-11-12T09:08:55.230969", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udd27 Starting service initialization...", "module": "service_initializer", "function": "initialize_all_services", "line": 36, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🔧 Starting service initialization...
+✅ Real-time personalization enabled for Hidden Gems
+{"timestamp": "2025-11-12T09:08:55.231003", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udc8e Hidden Gems Handler initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:💎 Hidden Gems Handler initialized successfully!
+INFO:backend.services.price_filter_service:✅ Price Filter Service initialized with comprehensive database
+{"timestamp": "2025-11-12T09:08:55.231107", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udcb0 Price Filter Service initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:💰 Price Filter Service initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.231139", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udcac Conversation Handler initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:💬 Conversation Handler initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.231162", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfad Events Service initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🎭 Events Service initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.231185", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udf24\ufe0f Weather Recommendations Service initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🌤️ Weather Recommendations Service initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.233254", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udd27 Starting ML/DL component initialization...", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 481, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+{"timestamp": "2025-11-12T09:08:55.234833", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udcda ML/DL libraries not available, using enhanced rule-based detection", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 593, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+{"timestamp": "2025-11-12T09:08:55.234932", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83c\udf89 ML/DL components initialization complete (Fallback mode: True)", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 603, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+{"timestamp": "2025-11-12T09:08:55.234990", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\u2139\ufe0f Backend detector not available, using standalone mode", "module": "intelligent_location_detector", "function": "_integrate_with_backend_detector", "line": 963, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+{"timestamp": "2025-11-12T09:08:55.235013", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udccd Intelligent Location Detector initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:📍 Intelligent Location Detector initialized successfully!
+INFO:transportation_integration_wrapper:🚇 Using NEW modular transportation system
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+{"timestamp": "2025-11-12T09:08:55.838263", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\ude87 Transportation Query Processor initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🚇 Transportation Query Processor initialized successfully!
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:transportation.processors.comprehensive_processor:🧠 LightweightNeuralProcessor initialized successfully
+INFO:transportation.processors.comprehensive_processor:🔐 RobustIBBAPIWrapper initialized successfully
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:✅ Connected to existing weather service
+INFO:transportation.processors.comprehensive_processor:🌤️ WeatherAwareTransportationAdvisor initialized successfully with neural support
+{"timestamp": "2025-11-12T09:08:55.929816", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\ude87 ML-Enhanced Transportation System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🚇 ML-Enhanced Transportation System initialized successfully!
+INFO:ibb_real_time_api:🌐 İBB Real-Time API initialized (Live APIs: True)
+INFO:services.live_ibb_transportation_service:🌐 Connected to live IBB API
+INFO:backend.services.redis_cache:✅ Redis cache connected via REDIS_URL
+INFO:backend.services.osrm_routing_service:✅ OSRM routing cache enabled (Redis)
+INFO:backend.services.osrm_routing_service:OSRM Routing Service initialized (server: primary, profile: foot, cache: True)
+INFO:backend.services.transportation_directions_service:✅ OSRM service initialized successfully
+INFO:backend.services.transportation_directions_service:✅ Transportation Directions Service initialized
+INFO:services.live_ibb_transportation_service:✅ Base transportation service initialized
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:services.live_ibb_transportation_service:✅ Transfer instructions generator initialized
+INFO:services.live_ibb_transportation_service:🚌 Live IBB Transportation Service initialized (Mock: False)
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:📊 İBB Transportation Data Source Status
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.live_ibb_transportation_service:Data Source: LIVE_IBB_API
+INFO:services.live_ibb_transportation_service:Using Mock Data: False
+INFO:services.live_ibb_transportation_service:İBB API Available: True
+INFO:services.live_ibb_transportation_service:İBB API Connected: True
+INFO:services.live_ibb_transportation_service:Description: Connected to live İBB Open Data API. Providing real-time transportation information including schedules, delays, and live vehicle tracking.
+INFO:services.live_ibb_transportation_service:======================================================================
+INFO:services.transfer_instructions_generator:🗺️ Transfer Instructions Generator initialized
+INFO:transportation_chat_integration:🗺️ Transportation Chat Integration initialized
+{"timestamp": "2025-11-12T09:08:55.931682", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\uddfa\ufe0f Transfer Instructions & Map Visualization initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Transfer Instructions & Map Visualization initialized successfully!
+INFO:comprehensive_daily_talks_system:🎉 Comprehensive Daily Talks System initialized
+INFO:daily_talks_integration_wrapper:🎉 Initializing with Comprehensive Daily Talks System
+INFO:ml_enhanced_daily_talks_bridge:Deep learning models skipped - libraries not available
+INFO:ml_enhanced_daily_talks_bridge:ML/DL models initialized successfully
+INFO:ml_enhanced_daily_talks_bridge:ML-Enhanced Daily Talks Bridge initialized
+{"timestamp": "2025-11-12T09:08:55.931877", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83e\udd16 ML-Enhanced Daily Talks Bridge (legacy) initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🤖 ML-Enhanced Daily Talks Bridge (legacy) initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.931947", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udcac Enhanced Bilingual Daily Talks System (PRIMARY) initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:💬 Enhanced Bilingual Daily Talks System (PRIMARY) initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.931971", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83e\udde0 Lightweight Neural Query Enhancement System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🧠 Lightweight Neural Query Enhancement System initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.932036", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfdb\ufe0f Museum Response Generator initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🏛️ Museum Response Generator initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.932062", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udd50 Google Maps Hours Checker initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🕐 Google Maps Hours Checker initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.932089", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfdb\ufe0f Museum Database initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🏛️ Museum Database initialized successfully!
+INFO:museum_advising_system:🏛️ Loaded 10 museums across Istanbul
+{"timestamp": "2025-11-12T09:08:55.932238", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfa8 Advanced Museum System (ML-powered) initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🎨 Advanced Museum System (ML-powered) initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+{"timestamp": "2025-11-12T09:08:55.932503", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udf1f Advanced Attractions System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🌟 Advanced Attractions System initialized successfully!
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:multi_intent_query_handler:🧠 Lightweight Deep Learning System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:multi_intent_query_handler:🏛️ Istanbul Attractions System initialized successfully!
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:monthly_events_scheduler:✅ Selenium scraper available for JavaScript-rendered content
+INFO:multi_intent_query_handler:🎭 İKSV Events System initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Enhanced Museum Route Planner initialized successfully!
+INFO:multi_intent_query_handler:🏛️ Museum Advising System loaded (40 museums from accurate_museum_database.py)
+INFO:lightweight_deep_learning:🧠 PyTorch neural network initialized
+INFO:lightweight_deep_learning:🎯 Intent classifier initialized
+INFO:lightweight_deep_learning:🎨 Personalization engine initialized
+INFO:lightweight_deep_learning:🤖 Deep Learning Multi-Intent Integration initialized
+INFO:comprehensive_ml_dl_integration:🧠 Core ML/DL System initialized successfully!
+INFO:istanbul_attractions_system:Loaded 60 comprehensive attractions
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 16 districts
+INFO:istanbul_attractions_system:🏛️ Loaded 60 attractions across 5 districts
+INFO:comprehensive_ml_dl_integration:🏛️ Attractions System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🏛️ Museum Route Planner integrated with ML enhancement
+INFO:monthly_events_scheduler:📅 Monthly Events Scheduler initialized
+INFO:monthly_events_scheduler:✅ Selenium scraper available for JavaScript-rendered content
+INFO:comprehensive_ml_dl_integration:🎭 Events System integrated with ML enhancement
+INFO:comprehensive_ml_dl_integration:🚀 Comprehensive ML/DL Integration initialized with 4 enhanced systems!
+INFO:multi_intent_query_handler:🚀 Comprehensive ML/DL Integration System initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.936316", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfaf Multi-Intent Query Handler initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🎯 Multi-Intent Query Handler initialized successfully!
+{"timestamp": "2025-11-12T09:08:55.936357", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\uddfa\ufe0f Enhanced Museum Route Planner initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Enhanced Museum Route Planner initialized successfully!
+INFO:enhanced_gps_route_planner:✅ ML Prediction Cache Service integrated into route planner
+✅ Loaded 50 POIs from database
+INFO:enhanced_gps_route_planner:🎯 POI Database Service initialized with 50 POIs
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:ml_prediction_service:✅ ML Prediction Service initialized
+INFO:enhanced_gps_route_planner:🤖 ML Prediction Service initialized for crowding and travel time predictions
+WARNING:ml_enhanced_transportation_system:⚠️ Using fallback dict cache
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:POI-integrated route optimizer initialized
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:ml_enhanced_transportation_system:✅ Neural query processor initialized for transportation system
+INFO:ml_enhanced_transportation_system:🚀 ML-Enhanced Transportation System initialized successfully!
+INFO:enhanced_gps_route_planner:🚇 ML-Enhanced Transportation System integrated!
+✅ Loaded 50 POIs from database
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:services.ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:services.ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:services.ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:services.ml_prediction_service:✅ ML Prediction Service initialized
+INFO:poi_enhanced_route_optimizer:🎯 POI-Enhanced Route Optimizer initialized
+INFO:poi_enhanced_route_optimizer:   - POI Service: True
+INFO:poi_enhanced_route_optimizer:   - Graph Service: False
+INFO:poi_enhanced_route_optimizer:   - ML Service: True
+INFO:enhanced_gps_route_planner:🎯 POI-Enhanced Route Optimizer initialized successfully!
+{"timestamp": "2025-11-12T09:08:56.072172", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udd27 Starting ML/DL component initialization...", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 481, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+{"timestamp": "2025-11-12T09:08:56.072212", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udcda ML/DL libraries not available, using enhanced rule-based detection", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 593, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+{"timestamp": "2025-11-12T09:08:56.072243", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83c\udf89 ML/DL components initialization complete (Fallback mode: True)", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 603, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+{"timestamp": "2025-11-12T09:08:56.072284", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\u2139\ufe0f Backend detector not available, using standalone mode", "module": "intelligent_location_detector", "function": "_integrate_with_backend_detector", "line": 963, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_gps_route_planner:📍 Intelligent Location Detector initialized for GPS route planning
+INFO:enhanced_gps_route_planner:🔄 Fallback Location Detector initialized
+INFO:enhanced_gps_route_planner:🚀 Enhanced GPS Route Planner initialized
+{"timestamp": "2025-11-12T09:08:56.072453", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\uddfa\ufe0f Enhanced GPS Route Planner initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🗺️ Enhanced GPS Route Planner initialized successfully!
+WARNING:backend.api_clients.enhanced_weather:Weather API: Using fallback mode with enhanced mock data.
+INFO:enhanced_route_planner_v2:🌤 Weather-Aware Router initialized
+INFO:enhanced_route_planner_v2:🎯 Preference-Based Router initialized
+INFO:enhanced_route_planner_v2:⏰ Time-Aware Planner initialized
+INFO:enhanced_route_planner_v2:🗺 Multi-Stop Optimizer initialized
+INFO:enhanced_route_planner_v2:🤖 AI Recommendation Engine initialized
+INFO:enhanced_gps_route_planner:✅ ML Prediction Cache Service integrated into route planner
+✅ Loaded 50 POIs from database
+INFO:enhanced_gps_route_planner:🎯 POI Database Service initialized with 50 POIs
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:ml_prediction_service:✅ ML Prediction Service initialized
+INFO:enhanced_gps_route_planner:🤖 ML Prediction Service initialized for crowding and travel time predictions
+WARNING:ml_enhanced_transportation_system:⚠️ Using fallback dict cache
+INFO:ml_enhanced_transportation_system:✅ Feature scaler initialized
+INFO:ml_enhanced_transportation_system:POI-integrated route optimizer initialized
+INFO:lightweight_neural_query_enhancement:✅ Semantic vectors initialized (lightweight TF-IDF)
+INFO:lightweight_neural_query_enhancement:✅ Lightweight neural processor initialized (Budget-friendly mode)
+INFO:ml_enhanced_transportation_system:✅ Neural query processor initialized for transportation system
+INFO:ml_enhanced_transportation_system:🚀 ML-Enhanced Transportation System initialized successfully!
+INFO:enhanced_gps_route_planner:🚇 ML-Enhanced Transportation System integrated!
+✅ Loaded 50 POIs from database
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for unified service
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for POI crowding predictions
+INFO:services.ml_prediction_service:✅ Feature scaler initialized for POI predictions
+WARNING:services.ml_prediction_service:No ML model available, using pattern-based prediction
+INFO:services.ml_prediction_service:✅ ML Prediction Cache initialized for travel time predictions
+INFO:services.ml_prediction_service:✅ Travel Time Predictor initialized
+INFO:services.ml_prediction_service:✅ ML Prediction Service initialized
+INFO:poi_enhanced_route_optimizer:🎯 POI-Enhanced Route Optimizer initialized
+INFO:poi_enhanced_route_optimizer:   - POI Service: True
+INFO:poi_enhanced_route_optimizer:   - Graph Service: False
+INFO:poi_enhanced_route_optimizer:   - ML Service: True
+INFO:enhanced_gps_route_planner:🎯 POI-Enhanced Route Optimizer initialized successfully!
+{"timestamp": "2025-11-12T09:08:56.163274", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udd27 Starting ML/DL component initialization...", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 481, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+{"timestamp": "2025-11-12T09:08:56.163311", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udcda ML/DL libraries not available, using enhanced rule-based detection", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 593, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+{"timestamp": "2025-11-12T09:08:56.163339", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83c\udf89 ML/DL components initialization complete (Fallback mode: True)", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 603, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+{"timestamp": "2025-11-12T09:08:56.163373", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\u2139\ufe0f Backend detector not available, using standalone mode", "module": "intelligent_location_detector", "function": "_integrate_with_backend_detector", "line": 963, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_gps_route_planner:📍 Intelligent Location Detector initialized for GPS route planning
+INFO:enhanced_gps_route_planner:🔄 Fallback Location Detector initialized
+INFO:enhanced_gps_route_planner:🚀 Enhanced GPS Route Planner initialized
+{"timestamp": "2025-11-12T09:08:56.163501", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udd27 Starting ML/DL component initialization...", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 481, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🔧 Starting ML/DL component initialization...
+{"timestamp": "2025-11-12T09:08:56.163519", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83d\udcda ML/DL libraries not available, using enhanced rule-based detection", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 593, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:📚 ML/DL libraries not available, using enhanced rule-based detection
+{"timestamp": "2025-11-12T09:08:56.163539", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\ud83c\udf89 ML/DL components initialization complete (Fallback mode: True)", "module": "intelligent_location_detector", "function": "_initialize_ml_components", "line": 603, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:🎉 ML/DL components initialization complete (Fallback mode: True)
+{"timestamp": "2025-11-12T09:08:56.163563", "level": "INFO", "logger": "istanbul_ai.services.intelligent_location_detector", "message": "\u2139\ufe0f Backend detector not available, using standalone mode", "module": "intelligent_location_detector", "function": "_integrate_with_backend_detector", "line": 963, "taskName": "Task-2"}
+INFO:istanbul_ai.services.intelligent_location_detector:ℹ️ Backend detector not available, using standalone mode
+INFO:enhanced_route_planner_v2:🚀 Enhanced Route Planner V2 initialized with all features
+{"timestamp": "2025-11-12T09:08:56.163621", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83e\udded Enhanced Route Planner V2 initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🧭 Enhanced Route Planner V2 initialized successfully!
+WARNING:backend.api_clients.enhanced_weather:Weather API: Using fallback mode with enhanced mock data.
+{"timestamp": "2025-11-12T09:08:56.163656", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udf24\ufe0f Enhanced Weather System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🌤️ Enhanced Weather System initialized successfully!
+INFO:backend.services.ml_context_builder:🔧 ML Context Builder initialized (Turkish & English)
+{"timestamp": "2025-11-12T09:08:56.163692", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83e\udde0 ML Context Builder (shared) initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🧠 ML Context Builder (shared) initialized successfully!
+INFO:backend.services.advanced_personalization:✅ UserPreferenceLearner initialized
+INFO:backend.services.advanced_personalization:✅ CollaborativeFilteringEngine initialized
+INFO:backend.services.advanced_personalization:✅ ABTestingFramework initialized
+INFO:backend.services.advanced_personalization:Created experiment 'response_format' with variants: ['standard', 'detailed', 'concise']
+INFO:backend.services.advanced_personalization:Created experiment 'recommendation_algo' with variants: ['ml_only', 'collaborative', 'hybrid']
+INFO:backend.services.advanced_personalization:🎯 Advanced Personalization System initialized
+{"timestamp": "2025-11-12T09:08:56.163815", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83c\udfaf Advanced Personalization System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🎯 Advanced Personalization System initialized successfully!
+INFO:backend.services.feedback_loop:✅ FeedbackCollector initialized
+INFO:backend.services.feedback_loop:✅ ModelRetrainingPipeline initialized
+INFO:backend.services.feedback_loop:✅ FeedbackCollector initialized
+INFO:backend.services.feedback_loop:✅ ModelRetrainingPipeline initialized
+INFO:backend.services.feedback_loop:🔄 Continuous Improvement System initialized
+INFO:backend.services.feedback_loop:🔄 FeedbackLoopSystem initialized
+{"timestamp": "2025-11-12T09:08:56.163879", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udd04 Real-time Feedback Loop System initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:🔄 Real-time Feedback Loop System initialized successfully!
+{"timestamp": "2025-11-12T09:08:56.163914", "level": "INFO", "logger": "istanbul_ai.initialization.service_initializer", "message": "\ud83d\udccd GPS Location Service initialized successfully!", "module": "service_initializer", "function": "_record_success", "line": 441, "taskName": "Task-2"}
+INFO:istanbul_ai.initialization.service_initializer:📍 GPS Location Service initialized successfully!
+INFO:ml_systems.llm_service_wrapper:🚀 Production mode: Using Llama 3.1 8B on CPU (n2-standard-8, 16 vCPUs)
+INFO:ml_systems.llm_service_wrapper:🖥️  Production mode: Using CPU (stable, matches n2-standard-8 deployment)
+INFO:ml_systems.llm_service_wrapper:🤖 Initializing LLM Service: LLaMA 3.1 8B
+INFO:ml_systems.llm_service_wrapper:📁 Model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:🖥️  Device: cpu
+INFO:ml_systems.llm_service_wrapper:📂 Absolute model path: /Users/omer/Desktop/ai-stanbul/models/llama-3.1-8b
+INFO:ml_systems.llm_service_wrapper:1️⃣ Loading tokenizer...
+INFO:ml_systems.llm_service_wrapper:🧵 CPU threads set to: 14 (optimal for n2-standard-8, 16 vCPUs)
+INFO:ml_systems.llm_service_wrapper:2️⃣ Loading model...
+Loading checkpoint shards:  25%|██████▌                   | 1/4 [00:26<01:18, 26.22s/it]/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 2 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
