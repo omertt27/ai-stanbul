@@ -9,13 +9,13 @@ import {
 } from '../utils/errorHandler.js';
 
 // API utility that works for both local and deployed environments
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
 
 // Clean up BASE_URL and construct proper endpoints
 const cleanBaseUrl = BASE_URL.replace(/\/$/, ''); // Remove trailing slash
 
-// Correct API endpoints - backend uses /ai/chat not /ai/ai/chat
-const API_URL = `${cleanBaseUrl}/api/v1/chat`;  // Main chat endpoint with GPS support
+// Pure LLM API endpoints
+const API_URL = `${cleanBaseUrl}/api/chat`;  // Pure LLM chat endpoint
 const RESTAURANTS_API_URL = `${cleanBaseUrl}/api/v2/restaurants`; // ✅ Fixed: correct endpoint
 const PLACES_API_URL = `${cleanBaseUrl}/places/`;
 // Chat history endpoints  

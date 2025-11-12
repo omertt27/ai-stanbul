@@ -88,20 +88,29 @@ class RunPodLLMClient:
         
         try:
             payload = {
+                "model": "meta-llama/Llama-3.1-8B",
                 "prompt": prompt,
-                "max_tokens": max_tokens or self.max_tokens
+                "max_tokens": max_tokens or self.max_tokens,
+                "temperature": temperature,
+                "top_p": top_p
             }
             
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.api_url}/generate",
+                    f"{self.api_url}/v1/completions",
                     json=payload
                 )
                 response.raise_for_status()
                 result = response.json()
                 
-                logger.info(f"✅ RunPod LLM generated {len(result.get('generated_text', ''))} chars")
-                return result
+                # Extract text from OpenAI format
+                if 'choices' in result and len(result['choices']) > 0:
+                    generated_text = result['choices'][0]['text']
+                    logger.info(f"✅ RunPod LLM generated {len(generated_text)} chars")
+                    return {"generated_text": generated_text, "raw": result}
+                else:
+                    logger.error("❌ Invalid response format from LLM")
+                    return None
                 
         except httpx.TimeoutException:
             logger.error(f"⏱️ RunPod LLM timeout after {self.timeout}s")

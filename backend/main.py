@@ -324,6 +324,27 @@ except ImportError as e:
     print(f"⚠️ RunPod LLM Client not available: {e}")
     print("   System will run without RunPod LLM integration")
 
+# ═══════════════════════════════════════════════════════════════════
+# PURE LLM HANDLER INTEGRATION
+# ═══════════════════════════════════════════════════════════════════
+print("\n🎯 Initializing Pure LLM Handler...")
+
+try:
+    from backend.services.pure_llm_handler import PureLLMHandler
+    PURE_LLM_HANDLER_AVAILABLE = True
+    pure_llm_enabled = os.getenv('PURE_LLM_MODE', 'false').lower() == 'true'
+    print("✅ Pure LLM Handler loaded")
+    print(f"   Mode: {'ENABLED ⚡' if pure_llm_enabled else 'Available (disabled)'}")
+    print(f"   Architecture: Pure LLM (no rule-based fallback)")
+except ImportError as e:
+    PURE_LLM_HANDLER_AVAILABLE = False
+    pure_llm_enabled = False
+    print(f"⚠️ Pure LLM Handler not available: {e}")
+    print("   System will use legacy architecture")
+
+# Global Pure LLM Handler instance
+pure_llm_handler = None
+
 # Enhanced Authentication imports
 try:
     from enhanced_auth import (
@@ -475,6 +496,31 @@ class MuseumRouteResponse(BaseModel):
     transportation_guide: str = Field(..., description="Transportation instructions")
     local_tips: List[str] = Field(..., description="Local insider tips")
     success: bool = Field(True, description="Whether route planning succeeded")
+
+# Feedback Models for ML Monitoring
+class FeedbackResponse(BaseModel):
+    """Response model for feedback submission"""
+    status: str = Field(..., description="Submission status (success/error)")
+    feedback_id: Optional[str] = Field(None, description="Unique feedback identifier")
+    message: str = Field(..., description="Response message")
+
+class FeedbackIntentCorrectionRequest(BaseModel):
+    """Request model for intent correction feedback"""
+    query: str = Field(..., description="Original user query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: str = Field(..., description="Intent predicted by system")
+    correct_intent: str = Field(..., description="Correct intent provided by user")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+
+class FeedbackCommentRequest(BaseModel):
+    """Request model for free-text feedback"""
+    query: str = Field(..., description="Original user query")
+    response: str = Field(..., description="AI response")
+    predicted_intent: Optional[str] = Field(None, description="Predicted intent")
+    comment: str = Field(..., description="User feedback comment")
+    session_id: Optional[str] = Field(None, description="Session identifier")
+    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
 # Import system monitoring tools
 try:
@@ -1024,10 +1070,66 @@ else:
 @app.on_event("startup")
 async def startup_event():
     """Startup tasks - check ML service connection and initialize recommendation engine"""
-    global integrated_recommendation_engine
+    global integrated_recommendation_engine, pure_llm_handler
     
     logger.info("🚀 Starting AI Istanbul Backend")
     logger.info("=" * 60)
+    
+    # Initialize Pure LLM Handler
+    if PURE_LLM_HANDLER_AVAILABLE and pure_llm_enabled:
+        try:
+            logger.info("⚡ Initializing Pure LLM Handler...")
+            
+            # Get dependencies
+            db = next(get_db())
+            llm_client = get_llm_client() if RUNPOD_LLM_AVAILABLE else None
+            
+            # Optional: Get Redis client
+            try:
+                import redis
+                redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+                redis_client = redis.from_url(redis_url, decode_responses=True)
+                redis_client.ping()
+                logger.info("   ✅ Redis cache connected")
+            except Exception as e:
+                logger.warning(f"   ⚠️ Redis not available: {e}")
+                redis_client = None
+            
+            # Optional: Get context builder and RAG service
+            context_builder = None
+            rag_service = None
+            
+            try:
+                from istanbul_ai.ml.context_builder import ContextBuilder
+                context_builder = ContextBuilder()
+                logger.info("   ✅ Context Builder loaded")
+            except Exception as e:
+                logger.warning(f"   ⚠️ Context Builder not available: {e}")
+            
+            try:
+                from ml_systems.rag_vector_service import RAGVectorService
+                rag_service = RAGVectorService()
+                logger.info("   ✅ RAG Vector Service loaded")
+            except Exception as e:
+                logger.warning(f"   ⚠️ RAG not available: {e}")
+            
+            # Create Pure LLM Handler
+            pure_llm_handler = PureLLMHandler(
+                runpod_client=llm_client,
+                db_session=db,
+                redis_client=redis_client,
+                context_builder=context_builder,
+                rag_service=rag_service
+            )
+            
+            logger.info("✅ Pure LLM Handler initialized successfully")
+            logger.info("   🎯 All queries will route through RunPod LLM")
+            logger.info("   🚫 Rule-based fallbacks disabled")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize Pure LLM Handler: {e}")
+            logger.error("   Falling back to legacy architecture")
+            pure_llm_handler = None
     
     # Initialize Contextual Bandit Recommendation Engine
     try:
@@ -1698,129 +1800,156 @@ async def ml_service_health():
 
 
 # =============================
-# ML FEEDBACK & MONITORING ENDPOINTS
+# PURE LLM CHAT ENDPOINT
 # =============================
 
-class FeedbackRatingRequest(BaseModel):
-    """Request model for star rating feedback"""
-    query: str = Field(..., description="User query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: str = Field(..., description="Predicted intent")
-    rating: int = Field(..., ge=1, le=5, description="Rating (1-5 stars)")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-class FeedbackThumbsRequest(BaseModel):
-    """Request model for thumbs up/down feedback"""
-    query: str = Field(..., description="User query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: str = Field(..., description="Predicted intent")
-    thumbs_up: bool = Field(..., description="Thumbs up (True) or down (False)")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-class FeedbackIntentCorrectionRequest(BaseModel):
-    """Request model for intent correction feedback"""
-    query: str = Field(..., description="User query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: str = Field(..., description="Predicted intent")
-    correct_intent: str = Field(..., description="Correct intent")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-class FeedbackCommentRequest(BaseModel):
-    """Request model for free-text comment feedback"""
-    query: str = Field(..., description="User query")
-    response: str = Field(..., description="AI response")
-    predicted_intent: str = Field(..., description="Predicted intent")
-    comment: str = Field(..., description="User comment")
-    session_id: Optional[str] = Field(None, description="Session identifier")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-
-class FeedbackResponse(BaseModel):
-    """Response model for feedback submission"""
-    status: str = Field(..., description="Submission status")
-    feedback_id: str = Field(..., description="Feedback identifier")
-    message: str = Field(..., description="Success message")
+class PureLLMChatRequest(BaseModel):
+    """Request model for Pure LLM chat"""
+    message: str = Field(..., min_length=1, max_length=1000, description="User message/query")
+    user_id: Optional[str] = Field(None, description="User identifier for personalization")
+    session_id: Optional[str] = Field(None, description="Session ID for context tracking")
+    user_location: Optional[Dict[str, float]] = Field(None, description="User GPS location {lat, lon}")
+    language: str = Field(default="en", description="Response language (en/tr)")
+    intent: Optional[str] = Field(None, description="Pre-detected intent (optional)")
 
 
-@app.post("/api/feedback/rating", response_model=FeedbackResponse, tags=["ML Feedback"])
-async def submit_rating_feedback(request: FeedbackRatingRequest):
+class PureLLMChatResponse(BaseModel):
+    """Response model for Pure LLM chat"""
+    response: str = Field(..., description="LLM-generated response")
+    intent: Optional[str] = Field(None, description="Detected or provided intent")
+    confidence: float = Field(..., description="Response confidence (0-1)")
+    method: str = Field(..., description="Generation method (pure_llm, cached, fallback)")
+    context_used: List[str] = Field(default=[], description="Context sources used")
+    response_time: float = Field(..., description="Response generation time in seconds")
+    cached: bool = Field(default=False, description="Whether response was cached")
+    suggestions: List[str] = Field(default=[], description="Follow-up suggestions")
+    metadata: Dict[str, Any] = Field(default={}, description="Additional metadata")
+
+
+@app.post("/api/chat", response_model=PureLLMChatResponse, tags=["Pure LLM Chat"])
+async def pure_llm_chat(
+    request: PureLLMChatRequest,
+    db: Session = Depends(get_db)
+):
     """
-    Submit star rating feedback (1-5 stars)
+    🎯 Pure LLM Chat Endpoint - Production Ready
     
-    This endpoint collects user satisfaction ratings on AI responses.
+    Routes ALL queries through RunPod LLM with intelligent context injection.
+    No rule-based fallback - pure LLM architecture.
+    
+    Features:
+    - Context injection from database (restaurants, museums, places, events)
+    - RAG for semantic similarity
+    - Redis caching for performance
+    - Intent-aware system prompts
+    - Support for English and Turkish
+    
+    Architecture:
+    - RunPod: Llama 3.1 8B (4-bit quantized)
+    - Database: PostgreSQL (RDS)
+    - Cache: Redis
+    - Vector Search: RAG
     """
-    if not ML_MONITORING_AVAILABLE or not feedback_collector:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Feedback collection service is not available"
+    start_time = time.time()
+    
+    # Check if Pure LLM Handler is available
+    if not pure_llm_handler:
+        logger.error("❌ Pure LLM Handler not initialized")
+        return PureLLMChatResponse(
+            response="Pure LLM mode is not currently enabled. Please use /api/v1/chat endpoint instead.",
+            intent=request.intent or "error",
+            confidence=0.0,
+            method="error",
+            context_used=[],
+            response_time=time.time() - start_time,
+            cached=False,
+            suggestions=["Try /api/v1/chat", "Contact support"],
+            metadata={"error": "Pure LLM Handler not initialized"}
         )
     
     try:
-        feedback_id = feedback_collector.collect_rating(
-            query=request.query,
-            response=request.response,
-            predicted_intent=request.predicted_intent,
-            rating=request.rating,
+        logger.info(f"🎯 Pure LLM Query: '{request.message[:100]}...'")
+        
+        # Process query through Pure LLM Handler
+        result = await pure_llm_handler.process_query(
+            query=request.message,
+            user_id=request.user_id,
             session_id=request.session_id,
-            metadata=request.metadata
+            user_location=request.user_location,
+            language=request.language,
+            intent=request.intent
         )
         
-        logger.info(f"✅ Rating feedback collected: {feedback_id} (rating: {request.rating}/5)")
+        # Build response
+        response_time = time.time() - start_time
         
-        return FeedbackResponse(
-            status="success",
-            feedback_id=feedback_id,
-            message=f"Thank you for your {request.rating}-star rating!"
+        return PureLLMChatResponse(
+            response=result['response'],
+            intent=result.get('intent', request.intent),
+            confidence=result.get('confidence', 0.8),
+            method=result.get('method', 'pure_llm'),
+            context_used=result.get('context_used', []),
+            response_time=response_time,
+            cached=result.get('cached', False),
+            suggestions=result.get('suggestions', []),
+            metadata={
+                'llm_model': 'Llama 3.1 8B (4-bit)',
+                'context_count': len(result.get('context_used', [])),
+                'rag_used': result.get('rag_used', False),
+                'cache_key': result.get('cache_key', None)
+            }
         )
     
     except Exception as e:
-        logger.error(f"Failed to collect rating feedback: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit feedback"
+        logger.error(f"❌ Pure LLM Chat error: {e}", exc_info=True)
+        response_time = time.time() - start_time
+        
+        # Emergency fallback
+        return PureLLMChatResponse(
+            response="I apologize, but I'm having trouble processing your request right now. Please try again in a moment or rephrase your question.",
+            intent="error",
+            confidence=0.0,
+            method="error_fallback",
+            context_used=[],
+            response_time=response_time,
+            cached=False,
+            suggestions=[
+                "Try rephrasing your question",
+                "Ask about specific attractions or restaurants",
+                "Check system status"
+            ],
+            metadata={"error": str(e)}
         )
 
 
-@app.post("/api/feedback/thumbs", response_model=FeedbackResponse, tags=["ML Feedback"])
-async def submit_thumbs_feedback(request: FeedbackThumbsRequest):
-    """
-    Submit thumbs up/down feedback
-    
-    Quick binary feedback on response quality.
-    """
-    if not ML_MONITORING_AVAILABLE or not feedback_collector:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Feedback collection service is not available"
-        )
+@app.get("/api/chat/status", tags=["Pure LLM Chat"])
+async def pure_llm_status():
+    """Get Pure LLM system status"""
+    if not pure_llm_handler:
+        return {
+            "enabled": False,
+            "available": PURE_LLM_HANDLER_AVAILABLE,
+            "reason": "Pure LLM Handler not initialized or disabled",
+            "use_endpoint": "/api/v1/chat"
+        }
     
     try:
-        feedback_id = feedback_collector.collect_thumbs(
-            query=request.query,
-            response=request.response,
-            predicted_intent=request.predicted_intent,
-            thumbs_up=request.thumbs_up,
-            session_id=request.session_id,
-            metadata=request.metadata
-        )
+        stats = pure_llm_handler.get_stats()
         
-        feedback_type = "👍 thumbs up" if request.thumbs_up else "👎 thumbs down"
-        logger.info(f"✅ Thumbs feedback collected: {feedback_id} ({feedback_type})")
-        
-        return FeedbackResponse(
-            status="success",
-            feedback_id=feedback_id,
-            message=f"Thank you for your feedback!"
-        )
-    
+        return {
+            "enabled": True,
+            "available": True,
+            "llm_model": "Llama 3.1 8B (4-bit)",
+            "statistics": stats,
+            "endpoint": "/api/chat"
+        }
     except Exception as e:
-        logger.error(f"Failed to collect thumbs feedback: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit feedback"
-        )
+        logger.error(f"Error getting Pure LLM status: {e}")
+        return {
+            "enabled": True,
+            "available": False,
+            "error": str(e)
+        }
 
 
 @app.post("/api/feedback/intent-correction", response_model=FeedbackResponse, tags=["ML Feedback"])
@@ -1828,15 +1957,13 @@ async def submit_intent_correction(request: FeedbackIntentCorrectionRequest):
     """
     Submit intent correction feedback
     
-    Allows users to correct misclassified intents.
+    When the AI misunderstands user intent, this allows correction for model improvement.
     """
     if not ML_MONITORING_AVAILABLE or not feedback_collector:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Feedback collection service is not available"
         )
-    
-
     
     try:
         feedback_id = feedback_collector.collect_intent_correction(
@@ -2569,3 +2696,33 @@ except ImportError as e:
     print(f"⚠️ Route Planner routes not available: {e}")
 
 print("✅ Week 3-4 APIs loaded\n")
+
+# ═══════════════════════════════════════════════════════════════════
+# APPLICATION STARTUP
+# ═══════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    port = int(os.getenv("PORT", 8001))
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    print("=" * 70)
+    print("🚀 Starting AI Istanbul Backend Server")
+    print("=" * 70)
+    print(f"📍 Host: {host}")
+    print(f"📍 Port: {port}")
+    print(f"🌐 Health Check: http://localhost:{port}/health")
+    print(f"🎯 Pure LLM Chat: http://localhost:{port}/api/chat")
+    print(f"💬 ML Chat: http://localhost:{port}/api/v1/chat")
+    print(f"📚 API Docs: http://localhost:{port}/docs")
+    print("=" * 70)
+    print()
+    
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=False,
+        log_level="info"
+    )

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure LLM API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .timing {
+            font-weight: bold;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Pure LLM Backend API Test</h1>
+        
+        <div class="test-section">
+            <h2>Backend Configuration</h2>
+            <div id="config-info" class="status info">
+                <strong>API URL:</strong> http://localhost:8001<br>
+                <strong>Status:</strong> Testing...
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 1: Health Check</h2>
+            <button id="btn-health" onclick="testHealth()">Test Health Endpoint</button>
+            <div id="result-health"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: LLM Status</h2>
+            <button id="btn-status" onclick="testStatus()">Test LLM Status</button>
+            <div id="result-status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Chat Query</h2>
+            <button id="btn-chat" onclick="testChat()">Test Chat API</button>
+            <div id="result-chat"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8001';
+
+        function showResult(elementId, status, message, data = null, timing = null) {
+            const el = document.getElementById(elementId);
+            let html = `<div class="status ${status}">`;
+            html += `<strong>${status === 'success' ? '✅' : status === 'error' ? '❌' : 'ℹ️'} ${message}</strong>`;
+            if (timing) {
+                html += `<br><span class="timing">⏱️ Response time: ${timing}ms</span>`;
+            }
+            html += `</div>`;
+            if (data) {
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            el.innerHTML = html;
+        }
+
+        async function testHealth() {
+            const btn = document.getElementById('btn-health');
+            btn.disabled = true;
+            btn.textContent = 'Testing...';
+            
+            const start = Date.now();
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const timing = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('result-health', 'success', 'Health check passed!', data, timing);
+                } else {
+                    showResult('result-health', 'error', `HTTP ${response.status}`, data, timing);
+                }
+            } catch (error) {
+                const timing = Date.now() - start;
+                showResult('result-health', 'error', `Error: ${error.message}`, null, timing);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Test Health Endpoint';
+            }
+        }
+
+        async function testStatus() {
+            const btn = document.getElementById('btn-status');
+            btn.disabled = true;
+            btn.textContent = 'Testing...';
+            
+            const start = Date.now();
+            try {
+                const response = await fetch(`${API_URL}/api/chat/status`);
+                const timing = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('result-status', 'success', 'LLM status retrieved!', data, timing);
+                } else {
+                    showResult('result-status', 'error', `HTTP ${response.status}`, data, timing);
+                }
+            } catch (error) {
+                const timing = Date.now() - start;
+                showResult('result-status', 'error', `Error: ${error.message}`, null, timing);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Test LLM Status';
+            }
+        }
+
+        async function testChat() {
+            const btn = document.getElementById('btn-chat');
+            btn.disabled = true;
+            btn.textContent = 'Testing... (may take 5-10s)';
+            
+            const start = Date.now();
+            try {
+                const response = await fetch(`${API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'What is Hagia Sophia?',
+                        user_id: 'test_user',
+                        language: 'en'
+                    })
+                });
+                
+                const timing = Date.now() - start;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('result-chat', 'success', 'Chat query successful!', data, timing);
+                } else {
+                    showResult('result-chat', 'error', `HTTP ${response.status}`, data, timing);
+                }
+            } catch (error) {
+                const timing = Date.now() - start;
+                showResult('result-chat', 'error', `Error: ${error.message}`, null, timing);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Test Chat API';
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 500);
+        });
+    </script>
+</body>
+</html>

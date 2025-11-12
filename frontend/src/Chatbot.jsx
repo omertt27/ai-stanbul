@@ -514,6 +514,7 @@ function Chatbot({ userLocation: propUserLocation }) {
   const [currentError, setCurrentError] = useState(null);
   const [retryAction, setRetryAction] = useState(null);
   const [lastFailedMessage, setLastFailedMessage] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Network and health monitoring
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -748,11 +749,22 @@ function Chatbot({ userLocation: propUserLocation }) {
     
     setCurrentError(errorInfo);
     
-    // Set retry action if we have a failed message
-    if (failedMessage && failedMessage.input) {
+    // Set retry action if we have a failed message and not already retrying
+    if (failedMessage && failedMessage.input && !isRetrying) {
       setRetryAction(() => () => {
+        setIsRetrying(true);
         console.log('🔄 Retrying failed message:', failedMessage.input);
+        
+        // Clear error state before retry
+        setCurrentError(null);
+        
+        // Retry the send operation
         handleSend(failedMessage.input);
+        
+        // Reset retry flag after a delay to prevent rapid retries
+        setTimeout(() => {
+          setIsRetrying(false);
+        }, 2000);
       });
     }
     
@@ -771,6 +783,7 @@ function Chatbot({ userLocation: propUserLocation }) {
     setCurrentError(null);
     setRetryAction(null);
     setLastFailedMessage(null);
+    setIsRetrying(false);
   };
 
   const handleSend = async (customInput = null) => {
