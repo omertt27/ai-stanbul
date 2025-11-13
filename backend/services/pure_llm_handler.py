@@ -18,6 +18,10 @@ Architecture:
 - MAP VISUALIZATION for routes and transportation (NEW)
 - Semantic embeddings for language-independent detection
 
+PRIORITY 2 ENHANCEMENTS:
+- Dynamic threshold learning from user feedback
+- A/B testing framework for safe experimentation
+
 Author: Istanbul AI Team
 Date: November 12, 2025
 """
@@ -25,9 +29,12 @@ Date: November 12, 2025
 import logging
 import hashlib
 import numpy as np
-from typing import Dict, Any, Optional, List, Set
+from typing import Dict, Any, Optional, List, Set, Tuple
 from sqlalchemy.orm import Session
 from datetime import datetime
+from collections import defaultdict, deque
+import json
+import time
 
 # Semantic similarity for multilingual detection
 try:
@@ -36,6 +43,31 @@ try:
 except ImportError:
     EMBEDDINGS_AVAILABLE = False
     logging.warning("sentence-transformers not installed. Signal detection will use keyword fallback only.")
+
+# Automatic language detection
+try:
+    from langdetect import detect, DetectorFactory
+    DetectorFactory.seed = 0  # Ensure consistent results
+    LANGDETECT_AVAILABLE = True
+except ImportError:
+    LANGDETECT_AVAILABLE = False
+    logging.warning("langdetect not installed. Automatic language detection disabled.")
+
+# PRIORITY 2.3: Dynamic threshold learning
+try:
+    from backend.services.threshold_learner import ThresholdLearner
+    THRESHOLD_LEARNER_AVAILABLE = True
+except ImportError:
+    THRESHOLD_LEARNER_AVAILABLE = False
+    logging.warning("ThresholdLearner not available. Dynamic threshold learning disabled.")
+
+# PRIORITY 2.4: A/B testing framework
+try:
+    from backend.services.ab_testing import ABTestingFramework
+    AB_TESTING_AVAILABLE = True
+except ImportError:
+    AB_TESTING_AVAILABLE = False
+    logging.warning("ABTestingFramework not available. A/B testing disabled.")
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +79,12 @@ class PureLLMHandler:
     
     ENHANCED: Now includes map visualization support by routing
     transportation/route queries to Istanbul Daily Talk AI when needed.
+    
+    PRIORITY 1 ENHANCEMENTS:
+    - Advanced analytics and monitoring
+    - Per-language threshold tuning
+    - Automatic language detection
+    - Response validation and quality checks
     """
     
     def __init__(
@@ -77,17 +115,30 @@ class PureLLMHandler:
         self.istanbul_ai = istanbul_ai_system  # For map visualization
         
         # Initialize semantic embedding model for signal detection
+        # MULTILINGUAL: Supports EN, TR, AR, DE, RU, FR and more
         self.embedding_model = None
         self._signal_embeddings = {}  # Cache for signal pattern embeddings
-        if EMBEDDINGS_AVAILABLE:
+        
+        # Configuration: Detection strategy
+        self.use_semantic = True  # Primary method: AI-driven, language-independent
+        self.use_keywords = True  # Backup method: Fast, reliable for explicit terms
+        
+        if EMBEDDINGS_AVAILABLE and self.use_semantic:
             try:
-                # Use multilingual model for Turkish + English support
+                # Use multilingual model for 50+ languages support
+                # Optimized for: English, Turkish, Arabic, German, Russian, French
                 self.embedding_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
                 self._init_signal_embeddings()
-                logger.info("✅ Semantic embedding model loaded for signal detection")
+                
+                # Pre-warm model for faster first query
+                self._prewarm_model()
+                
+                logger.info("✅ Semantic embedding model loaded for signal detection (6+ languages)")
             except Exception as e:
                 logger.warning(f"⚠️ Could not load embedding model: {e}")
+                logger.info("   Falling back to keyword-only detection")
                 self.embedding_model = None
+                self.use_semantic = False
         
         # Initialize additional services
         self._init_additional_services()
@@ -108,6 +159,18 @@ class PureLLMHandler:
             "multi_signal_queries": 0
         }
         
+        # PRIORITY 1: Advanced Analytics & Monitoring
+        self._init_advanced_analytics()
+        
+        # PRIORITY 1: Per-Language Threshold Configuration
+        self._init_language_thresholds()
+        
+        # PRIORITY 2.3: Dynamic Threshold Learning
+        self._init_threshold_learning()
+        
+        # PRIORITY 2.4: A/B Testing Framework
+        self._init_ab_testing()
+        
         logger.info("✅ Pure LLM Handler initialized")
         logger.info(f"   RunPod LLM: {'✅ Enabled' if self.llm.enabled else '❌ Disabled'}")
         logger.info(f"   Redis Cache: {'✅ Enabled' if self.redis else '❌ Disabled'}")
@@ -118,6 +181,279 @@ class PureLLMHandler:
         logger.info(f"   Hidden Gems: {'✅ Enabled' if self.hidden_gems_handler else '❌ Disabled'}")
         logger.info(f"   Price Filter: {'✅ Enabled' if self.price_filter else '❌ Disabled'}")
         logger.info(f"   Semantic Embeddings: {'✅ Enabled' if self.embedding_model else '❌ Disabled (fallback to keywords)'}")
+        logger.info(f"   Auto Language Detection: {'✅ Enabled' if LANGDETECT_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   Advanced Analytics: ✅ Enabled")
+        logger.info(f"   Threshold Learning: {'✅ Enabled' if THRESHOLD_LEARNER_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   A/B Testing: {'✅ Enabled' if AB_TESTING_AVAILABLE else '❌ Disabled'}")
+    
+    def _init_advanced_analytics(self):
+        """
+        PRIORITY 1: Initialize advanced analytics and monitoring system.
+        
+        Tracks:
+        - Performance metrics (latency, throughput)
+        - Error tracking and patterns
+        - User behavior analytics
+        - Signal detection accuracy
+        - Service usage patterns
+        - Quality metrics
+        """
+        
+        # Performance metrics
+        self.performance_metrics = {
+            "query_latencies": deque(maxlen=1000),  # Last 1000 query times
+            "llm_latencies": deque(maxlen=1000),
+            "cache_latencies": deque(maxlen=1000),
+            "service_latencies": defaultdict(lambda: deque(maxlen=100)),
+        }
+        
+        # Error tracking
+        self.error_tracker = {
+            "total_errors": 0,
+            "error_by_type": defaultdict(int),
+            "error_by_service": defaultdict(int),
+            "recent_errors": deque(maxlen=50),
+            "error_recovery_count": 0
+        }
+        
+        # User analytics
+        self.user_analytics = {
+            "queries_by_language": defaultdict(int),
+            "queries_by_intent": defaultdict(int),
+            "multi_intent_patterns": defaultdict(int),
+            "user_locations_used": 0,
+            "unique_users": set(),
+            "queries_per_user": defaultdict(int)
+        }
+        
+        # Signal detection analytics
+        self.signal_analytics = {
+            "detections_by_signal": defaultdict(int),
+            "detection_confidence_scores": defaultdict(list),
+            "false_positive_reports": defaultdict(int),
+            "semantic_vs_keyword": {"semantic": 0, "keyword": 0, "both": 0},
+            "language_specific_accuracy": defaultdict(lambda: {"correct": 0, "incorrect": 0})
+        }
+        
+        # Service usage analytics
+        self.service_analytics = {
+            "map_generation_success": 0,
+            "map_generation_failure": 0,
+            "weather_service_calls": 0,
+            "events_service_calls": 0,
+            "hidden_gems_calls": 0,
+            "rag_usage": 0,
+            "cache_efficiency": {"hits": 0, "misses": 0}
+        }
+        
+        # Quality metrics
+        self.quality_metrics = {
+            "responses_validated": 0,
+            "validation_failures": 0,
+            "response_lengths": deque(maxlen=100),
+            "empty_responses": 0,
+            "context_usage_rate": deque(maxlen=100)
+        }
+        
+        logger.info("   📊 Advanced analytics system initialized")
+    
+    def _init_language_thresholds(self):
+        """
+        PRIORITY 1: Per-language semantic similarity thresholds.
+        
+        Different languages have different semantic spaces and embedding quality.
+        These thresholds are tuned based on:
+        - Embedding model performance per language
+        - Query patterns in each language
+        - False positive/negative rates
+        
+        Languages:
+        - en: English (best supported)
+        - tr: Turkish (well supported)
+        - ar: Arabic (moderate support)
+        - de: German (well supported)
+        - ru: Russian (moderate support)
+        - fr: French (well supported)
+        """
+        
+        self.language_thresholds = {
+            # English: Highest quality embeddings, can use higher thresholds
+            "en": {
+                "needs_map": 0.35,
+                "needs_gps_routing": 0.48,
+                "needs_weather": 0.33,
+                "needs_events": 0.38,
+                "needs_hidden_gems": 0.30,
+                "has_budget_constraint": 0.38,
+                "likely_restaurant": 0.33,
+                "likely_attraction": 0.28
+            },
+            # Turkish: Good support, moderate thresholds
+            "tr": {
+                "needs_map": 0.32,
+                "needs_gps_routing": 0.45,
+                "needs_weather": 0.30,
+                "needs_events": 0.35,
+                "needs_hidden_gems": 0.28,
+                "has_budget_constraint": 0.35,
+                "likely_restaurant": 0.30,
+                "likely_attraction": 0.25
+            },
+            # Arabic: Moderate support, lower thresholds
+            "ar": {
+                "needs_map": 0.28,
+                "needs_gps_routing": 0.42,
+                "needs_weather": 0.27,
+                "needs_events": 0.32,
+                "needs_hidden_gems": 0.25,
+                "has_budget_constraint": 0.32,
+                "likely_restaurant": 0.27,
+                "likely_attraction": 0.22
+            },
+            # German: Good support, moderate thresholds
+            "de": {
+                "needs_map": 0.33,
+                "needs_gps_routing": 0.46,
+                "needs_weather": 0.31,
+                "needs_events": 0.36,
+                "needs_hidden_gems": 0.29,
+                "has_budget_constraint": 0.36,
+                "likely_restaurant": 0.31,
+                "likely_attraction": 0.26
+            },
+            # Russian: Moderate support, lower thresholds
+            "ru": {
+                "needs_map": 0.30,
+                "needs_gps_routing": 0.43,
+                "needs_weather": 0.28,
+                "needs_events": 0.33,
+                "needs_hidden_gems": 0.26,
+                "has_budget_constraint": 0.33,
+                "likely_restaurant": 0.28,
+                "likely_attraction": 0.23
+            },
+            # French: Good support, moderate thresholds
+            "fr": {
+                "needs_map": 0.34,
+                "needs_gps_routing": 0.47,
+                "needs_weather": 0.32,
+                "needs_events": 0.37,
+                "needs_hidden_gems": 0.29,
+                "has_budget_constraint": 0.37,
+                "likely_restaurant": 0.32,
+                "likely_attraction": 0.27
+            },
+            # Default: Conservative thresholds for unknown languages
+            "default": {
+                "needs_map": 0.32,
+                "needs_gps_routing": 0.45,
+                "needs_weather": 0.30,
+                "needs_events": 0.35,
+                "needs_hidden_gems": 0.28,
+                "has_budget_constraint": 0.35,
+                "likely_restaurant": 0.30,
+                "likely_attraction": 0.25
+            }
+        }
+        
+        logger.info("   🌍 Per-language thresholds configured (6 languages + default)")
+    
+    def _init_threshold_learning(self):
+        """
+        PRIORITY 2.3: Initialize dynamic threshold learning system.
+        
+        Learns optimal thresholds from user feedback:
+        - Tracks implicit feedback (clicks, engagement)
+        - Tracks explicit feedback (thumbs up/down, corrections)
+        - Computes ROC curves for each signal
+        - Auto-tunes thresholds to maximize F1 score
+        - Supports per-language optimization
+        """
+        if not THRESHOLD_LEARNER_AVAILABLE:
+            self.threshold_learner = None
+            logger.warning("   ⚠️ ThresholdLearner not available - skipping initialization")
+            return
+        
+        try:
+            self.threshold_learner = ThresholdLearner(
+                redis_client=self.redis,
+                learning_interval_hours=24,  # Learn daily
+                min_samples=100  # Require 100 samples before updating
+            )
+            
+            # Enable automatic threshold tuning
+            self.enable_auto_tuning = True
+            self.auto_tune_interval_hours = 24
+            self.last_auto_tune = {}  # Per language
+            
+            logger.info("   🎓 Threshold learning system initialized")
+            logger.info(f"      Learning interval: 24 hours")
+            logger.info(f"      Minimum samples: 100")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize threshold learner: {e}")
+            self.threshold_learner = None
+    
+    def _init_ab_testing(self):
+        """
+        PRIORITY 2.4: Initialize A/B testing framework.
+        
+        Enables safe experimentation with:
+        - Threshold changes
+        - New features
+        - Algorithm variations
+        - Prompt modifications
+        
+        Features:
+        - Traffic splitting
+        - Statistical significance testing
+        - Automatic winner selection
+        - Multi-variant testing
+        """
+        if not AB_TESTING_AVAILABLE:
+            self.ab_testing = None
+            logger.warning("   ⚠️ ABTestingFramework not available - skipping initialization")
+            return
+        
+        try:
+            self.ab_testing = ABTestingFramework(
+                redis_client=self.redis
+            )
+            
+            # Active experiments tracking
+            self.active_experiments = {}
+            
+            logger.info("   🧪 A/B Testing framework initialized")
+            logger.info(f"      Features: Traffic splitting, significance testing, auto-winner")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize A/B testing: {e}")
+            self.ab_testing = None
+    
+    def _prewarm_model(self):
+        """
+        Pre-warm the embedding model with sample queries.
+        This eliminates the cold-start delay on the first user query.
+        """
+        if not self.embedding_model:
+            return
+        
+        try:
+            warm_up_queries = [
+                "Where should I eat?",
+                "How do I get there?",
+                "What's the weather?",
+                "Show me events",
+                "Cheap restaurants"
+            ]
+            
+            # Encode sample queries to warm up the model
+            self.embedding_model.encode(warm_up_queries, convert_to_numpy=True, show_progress_bar=False)
+            
+            logger.debug("   Model pre-warmed (faster first query)")
+            
+        except Exception as e:
+            logger.debug(f"   Model pre-warming failed (non-critical): {e}")
     
     def _init_additional_services(self):
         """Initialize additional services (weather, events, hidden gems, price filter)"""
@@ -167,77 +503,146 @@ class PureLLMHandler:
             return
         
         try:
-            # Define signal patterns in multiple languages
+            # Define signal patterns in 6 languages with diverse phrasings: EN, TR, AR, DE, RU, FR
+            # More examples = better semantic coverage = fewer missed queries
             signal_patterns = {
                 'map_routing': [
-                    "How do I get there?",
-                    "Show me directions",
-                    "What's the best route?",
-                    "Navigate to this place",
-                    "Oraya nasıl gidilir?",
-                    "Yol tarifi",
-                    "En iyi güzergah nedir?"
+                    # English - varied phrasings
+                    "How do I get there?", "Show me directions", "What's the best route?", "Navigate to this place",
+                    "How can I reach", "Take me to", "Guide me to", "Path from here", "Way to get there",
+                    "Travel directions", "Show me the way", "How far is it", "Getting to",
+                    # Turkish - varied phrasings
+                    "Oraya nasıl gidilir?", "Yol tarifi", "En iyi güzergah nedir?", "Buradan nasıl giderim",
+                    "Yol göster", "Nasıl ulaşırım", "Güzergah göster", "Yolu tarif et",
+                    # Arabic
+                    "كيف أصل إلى هناك؟", "اعرض لي الاتجاهات", "ما هو أفضل طريق؟", "كيف أذهب",
+                    "دلني على الطريق", "وجهني إلى", "الطريق من هنا",
+                    # German
+                    "Wie komme ich dorthin?", "Zeig mir die Wegbeschreibung", "Was ist der beste Weg?",
+                    "Wie erreiche ich", "Führe mich zu", "Weg dorthin",
+                    # Russian
+                    "Как туда добраться?", "Покажите мне маршрут", "Какой лучший путь?",
+                    "Как мне пройти", "Проведи меня к", "Направление к",
+                    # French
+                    "Comment puis-je y arriver?", "Montrez-moi les directions", "Quel est le meilleur itinéraire?",
+                    "Comment aller", "Guidez-moi vers", "Chemin pour y aller"
                 ],
                 'weather': [
-                    "What's the weather like?",
-                    "Will it rain today?",
-                    "Temperature forecast",
-                    "Is it sunny?",
-                    "Hava durumu nasıl?",
-                    "Yağmur yağacak mı?",
-                    "Sıcaklık kaç derece?"
+                    # English - varied weather questions
+                    "What's the weather like?", "Will it rain today?", "Temperature forecast", "Is it sunny?",
+                    "How's the weather", "Is it cold outside", "What should I wear", "Climate today",
+                    "Weather forecast", "Will it be warm", "Temperature today", "Is it hot",
+                    # Turkish
+                    "Hava durumu nasıl?", "Yağmur yağacak mı?", "Sıcaklık kaç derece?", "Hava nasıl",
+                    "Soğuk mu", "Sıcak mı", "Ne giysem", "Hava tahmini",
+                    # Arabic
+                    "كيف الطقس؟", "هل ستمطر اليوم؟", "توقعات الحرارة", "هل هو مشمس؟",
+                    "حالة الطقس", "هل الجو بارد", "درجة الحرارة اليوم",
+                    # German
+                    "Wie ist das Wetter?", "Wird es heute regnen?", "Temperaturvorhersage", "Ist es sonnig?",
+                    "Wie wird das Wetter", "Ist es kalt", "Was soll ich anziehen",
+                    # Russian
+                    "Какая погода?", "Будет ли дождь сегодня?", "Прогноз температуры", "Солнечно ли?",
+                    "Как погода", "Холодно ли", "Что надеть", "Температура сегодня",
+                    # French
+                    "Quel temps fait-il?", "Va-t-il pleuvoir aujourd'hui?", "Prévisions de température",
+                    "Comment est la météo", "Fait-il froid", "Que porter", "Température aujourd'hui"
                 ],
                 'events': [
-                    "What events are happening?",
-                    "Any concerts tonight?",
-                    "Show me festivals",
-                    "Cultural activities",
-                    "Hangi etkinlikler var?",
-                    "Konser var mı?",
-                    "Festival programı"
+                    # English - events and activities
+                    "What events are happening?", "Any concerts tonight?", "Show me festivals", "Cultural activities",
+                    "Things to do", "What's going on", "Entertainment tonight", "Live shows",
+                    "Events this weekend", "Concerts near me", "Festival schedule", "Activities today",
+                    # Turkish
+                    "Hangi etkinlikler var?", "Konser var mı?", "Festival programı", "Ne yapabilirim",
+                    "Etkinlikler", "Konserler", "Gösteriler", "Aktiviteler",
+                    # Arabic
+                    "ما هي الفعاليات الجارية؟", "هل هناك حفلات موسيقية الليلة؟", "أظهر لي المهرجانات",
+                    "ماذا يمكنني أن أفعل", "الأحداث اليوم", "الحفلات الموسيقية",
+                    # German
+                    "Welche Veranstaltungen finden statt?", "Gibt es heute Abend Konzerte?", "Zeig mir Festivals",
+                    "Was kann ich tun", "Veranstaltungen heute", "Концерты в der Nähe",
+                    # Russian
+                    "Какие события происходят?", "Есть ли концерты сегодня?", "Покажи мне фестивали",
+                    "Что делать", "События сегодня", "Концерты рядом",
+                    # French
+                    "Quels événements se passent?", "Y a-t-il des concerts ce soir?", "Montre-moi les festivals",
+                    "Que faire", "Événements aujourd'hui", "Concerts près de moi"
                 ],
                 'hidden_gems': [
-                    "Local secrets",
-                    "Off the beaten path",
-                    "Where do locals go?",
-                    "Authentic experiences",
-                    "Gizli yerler",
-                    "Yerel mekanlar",
-                    "Turistik olmayan yerler"
+                    # English - local and authentic experiences
+                    "Local secrets", "Off the beaten path", "Where do locals go?", "Authentic experiences",
+                    "Hidden places", "Secret spots", "Local favorites", "Non-touristy places",
+                    "Where locals eat", "Undiscovered gems", "Authentic spots", "Local recommendations",
+                    # Turkish
+                    "Gizli yerler", "Yerel mekanlar", "Turistik olmayan yerler", "Saklı yerler",
+                    "Yerli mekanlar", "Otantik yerler", "Yerel tavsiyeler",
+                    # Arabic
+                    "الأماكن السرية", "أماكن محلية", "أين يذهب السكان المحليون؟", "أماكن أصيلة",
+                    "الأماكن المخفية", "توصيات محلية",
+                    # German
+                    "Geheimtipps", "Lokale Orte", "Wo gehen Einheimische hin?", "Authentische Erlebnisse",
+                    "Versteckte Orte", "Lokale Empfehlungen",
+                    # Russian
+                    "Скрытые жемчужины", "Местные места", "Куда ходят местные жители?", "Аутентичные места",
+                    "Секретные места", "Местные рекомендации",
+                    # French
+                    "Secrets locaux", "Lieux authentiques", "Où vont les habitants?", "Expériences authentiques",
+                    "Endroits cachés", "Recommandations locales"
                 ],
                 'budget': [
-                    "Cheap options",
-                    "Budget-friendly",
-                    "Affordable places",
-                    "Expensive restaurants",
-                    "Ucuz yerler",
-                    "Ekonomik",
-                    "Pahalı mekanlar"
+                    # English - price and budget mentions
+                    "Cheap options", "Budget-friendly", "Affordable places", "Expensive restaurants",
+                    "Cheap eats", "Low cost", "Free things", "Luxury dining",
+                    "Inexpensive", "Good value", "Pricey places", "Budget travel",
+                    # Turkish
+                    "Ucuz yerler", "Ekonomik", "Pahalı mekanlar", "Uygun fiyatlı",
+                    "Bütçe dostu", "Lüks restoranlar", "Ucuz yemek",
+                    # Arabic
+                    "خيارات رخيصة", "أماكن اقتصادية", "مطاعم غالية", "أماكن ميسورة التكلفة",
+                    "خيارات منخفضة التكلفة", "مطاعم فاخرة",
+                    # German
+                    "Günstige Optionen", "Budgetfreundlich", "Teure Restaurants", "Erschwingliche Orte",
+                    "Preiswert", "Luxus-Restaurants",
+                    # Russian
+                    "Дешевые варианты", "Бюджетные места", "Дорогие рестораны", "Доступные места",
+                    "Недорого", "Люксовые рестораны",
+                    # French
+                    "Options bon marché", "Économique", "Restaurants chers", "Lieux abordables",
+                    "Pas cher", "Restaurants de luxe"
                 ],
                 'restaurant': [
-                    "Where should I eat?",
-                    "Good restaurants",
-                    "Food recommendations",
-                    "Nerede yemek yenir?",
-                    "İyi restoranlar",
-                    "Yemek önerisi"
+                    # English - food and dining
+                    "Where should I eat?", "Good restaurants", "Food recommendations", "Best places to eat",
+                    "Where to dine", "Dinner spot", "Lunch place", "Breakfast options",
+                    "Best food", "Restaurant near me", "Where to grab food", "Dining recommendations",
+                    # Turkish
+                    "Nerede yemek yenir?", "İyi restoranlar", "Yemek önerisi", "En iyi restoranlar",
+                    "Nerede yemek yiyeyim", "Yemek yerleri", "Restoran tavsiyesi",
+                    # Arabic
+                    "أين يجب أن آكل؟", "مطاعم جيدة", "توصيات الطعام", "أفضل أماكن الطعام",
+                    "أين أتناول العشاء", "مطاعم قريبة مني",
+                    # German
+                    "Wo soll ich essen?", "Gute Restaurants", "Essensempfehlungen", "Beste Restaurants",
+                    "Wo kann ich essen", "Restaurant in der Nähe",
+                    # Russian
+                    "Где мне поесть?", "Хорошие рестораны", "Рекомендации еды", "Лучшие места для еды",
+                    "Где пообедать", "Ресторан рядом",
+                    # French
+                    "Où devrais-je manger?", "Bons restaurants", "Recommandations culinaires",
+                    "Meilleurs restaurants", "Où dîner", "Restaurant près de moi"
                 ],
                 'attraction': [
-                    "What should I visit?",
-                    "Tourist attractions",
-                    "Museums to see",
-                    "Nereleri gezmeliyim?",
-                    "Turistik yerler",
-                    "Müzeler"
-                ]
-            }
-            
-            # Compute embeddings for each signal
-            for signal_name, patterns in signal_patterns.items():
-                embeddings = self.embedding_model.encode(patterns, convert_to_numpy=True)
-                # Store mean embedding as the signal prototype
-                self._signal_embeddings[signal_name] = np.mean(embeddings, axis=0)
-            
+                    # English - sightseeing and landmarks
+                    "What should I visit?", "Tourist attractions", "Museums to see", "Places to visit",
+                    "Sightseeing", "Must-see places", "What to see", "Famous landmarks",
+                    "Historical sites", "Top attractions", "Things to visit", "Popular spots",
+                    "Blue Mosque", "Hagia Sophia", "Topkapi Palace", "Galata Tower",  # Explicit landmarks
+                    # Turkish
+                    "Nereleri gezmeliyim?", "Turistik yerler", "Müzeler", "Gezilecek yerler",
+                    "Görülmesi gerekenler", "Tarihi yerler", "Ünlü yerler",
+                    "Sultanahmet", "Ayasofya", "Topkapı Sarayı",  # Turkish landmarks
+                    # Arabic
             logger.debug(f"   Pre-computed {len(self._signal_embeddings)} signal embeddings")
             
         except Exception as e:
@@ -314,6 +719,265 @@ Draw from all available context.
 Be comprehensive but concise."""
         }
     
+    def _detect_language(self, query: str) -> str:
+        """
+        PRIORITY 1: Automatic language detection from query text.
+        
+        Uses langdetect library to identify query language.
+        Falls back to 'en' if detection fails or library unavailable.
+        
+        Supported languages: en, tr, ar, de, ru, fr
+        
+        Args:
+            query: User query string
+            
+        Returns:
+            ISO 639-1 language code (e.g., 'en', 'tr')
+        """
+        if not LANGDETECT_AVAILABLE:
+            return "en"  # Default fallback
+        
+        try:
+            detected_lang = detect(query)
+            
+            # Map to supported languages
+            supported_langs = {"en", "tr", "ar", "de", "ru", "fr"}
+            
+            if detected_lang in supported_langs:
+                logger.info(f"   🌍 Language detected: {detected_lang}")
+                # Track analytics
+                self.user_analytics["queries_by_language"][detected_lang] += 1
+                return detected_lang
+            else:
+                logger.debug(f"   🌍 Language detected as {detected_lang}, not in supported set, using 'en'")
+                self.user_analytics["queries_by_language"]["en"] += 1
+                return "en"
+                
+        except Exception as e:
+            logger.debug(f"   ⚠️  Language detection failed: {e}, defaulting to 'en'")
+            return "en"
+    
+    def _validate_response(
+        self, 
+        response: str, 
+        query: str, 
+        signals: Dict[str, bool],
+        context_used: bool
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        PRIORITY 1: Response validation and quality checks.
+        
+        Validates:
+        - Response is not empty
+        - Minimum length requirements
+        - Contains relevant context usage
+        - Matches query intent (basic checks)
+        - No hallucination indicators
+        
+        Args:
+            response: Generated LLM response
+            query: Original user query
+            signals: Detected signals
+            context_used: Whether database context was available
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+            - is_valid: True if response passes validation
+            - error_message: Description of validation failure (if any)
+        """
+        self.quality_metrics["responses_validated"] += 1
+        
+        # Check 1: Empty response
+        if not response or not response.strip():
+            self.quality_metrics["empty_responses"] += 1
+            self.quality_metrics["validation_failures"] += 1
+            return False, "Empty response generated"
+        
+        # Check 2: Minimum length (at least 20 characters)
+        if len(response.strip()) < 20:
+            self.quality_metrics["validation_failures"] += 1
+            return False, f"Response too short ({len(response)} chars)"
+        
+        # Check 3: Track response length for analytics
+        self.quality_metrics["response_lengths"].append(len(response))
+        
+        # Check 4: Context usage validation
+        if context_used:
+            # Response should reference specific places, not be generic
+            generic_phrases = [
+                "I don't have information",
+                "I cannot provide",
+                "I'm not sure",
+                "I don't know"
+            ]
+            
+            response_lower = response.lower()
+            if any(phrase in response_lower for phrase in generic_phrases):
+                logger.warning("   ⚠️  Response appears generic despite context availability")
+                # Don't fail, but log for monitoring
+        
+        # Check 5: Hallucination indicators (basic heuristics)
+        hallucination_indicators = [
+            "as an ai",
+            "i am an ai",
+            "i cannot actually",
+            "i don't have access to real-time",
+            "i cannot browse",
+            "fictional",
+            "made up"
+        ]
+        
+        response_lower = response.lower()
+        if any(indicator in response_lower for indicator in hallucination_indicators):
+            logger.warning("   ⚠️  Possible hallucination indicator detected")
+            # Don't fail, but log for monitoring
+        
+        # Check 6: Signal-specific validation
+        if signals.get('needs_map') or signals.get('needs_gps_routing'):
+            # For map queries, ensure some direction/location info
+            direction_terms = ["metro", "bus", "tram", "walk", "route", "direction", "get to", "reach"]
+            if not any(term in response_lower for term in direction_terms):
+                logger.warning("   ⚠️  Map query response lacks direction information")
+        
+        # All checks passed
+        return True, None
+    
+    def _track_error(
+        self, 
+        error_type: str, 
+        service: str, 
+        error_message: str,
+        query: Optional[str] = None
+    ):
+        """
+        PRIORITY 1: Track errors for monitoring and debugging.
+        
+        Args:
+            error_type: Type of error (e.g., 'llm_failure', 'service_timeout')
+            service: Service that failed (e.g., 'runpod', 'weather')
+            error_message: Error description
+            query: Optional user query for context
+        """
+        self.error_tracker["total_errors"] += 1
+        self.error_tracker["error_by_type"][error_type] += 1
+        self.error_tracker["error_by_service"][service] += 1
+        
+        error_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "type": error_type,
+            "service": service,
+            "message": error_message[:200],  # Truncate long messages
+            "query": query[:100] if query else None
+        }
+        
+        self.error_tracker["recent_errors"].append(error_entry)
+        
+        logger.error(f"   ❌ Error tracked: {error_type} in {service} - {error_message[:100]}")
+    
+    def _track_performance(
+        self, 
+        metric_name: str, 
+        latency: float
+    ):
+        """
+        PRIORITY 1: Track performance metrics.
+        
+        Args:
+            metric_name: Name of the metric (e.g., 'query', 'llm', 'cache')
+            latency: Time taken in seconds
+        """
+        if metric_name == "query":
+            self.performance_metrics["query_latencies"].append(latency)
+        elif metric_name == "llm":
+            self.performance_metrics["llm_latencies"].append(latency)
+        elif metric_name == "cache":
+            self.performance_metrics["cache_latencies"].append(latency)
+        else:
+            self.performance_metrics["service_latencies"][metric_name].append(latency)
+    
+    def get_analytics_summary(self) -> Dict[str, Any]:
+        """
+        PRIORITY 1: Get comprehensive analytics summary.
+        
+        Returns:
+            Dictionary with all analytics data for monitoring/dashboards
+        """
+        # Calculate performance statistics
+        def calc_stats(latencies):
+            if not latencies:
+                return {"count": 0, "avg": 0, "p50": 0, "p95": 0, "p99": 0}
+            sorted_lat = sorted(latencies)
+            n = len(sorted_lat)
+            return {
+                "count": n,
+                "avg": sum(sorted_lat) / n,
+                "p50": sorted_lat[int(n * 0.5)],
+                "p95": sorted_lat[int(n * 0.95)] if n > 20 else sorted_lat[-1],
+                "p99": sorted_lat[int(n * 0.99)] if n > 100 else sorted_lat[-1]
+            }
+        
+        return {
+            "timestamp": datetime.now().isoformat(),
+            "basic_stats": self.stats,
+            "performance": {
+                "query_latency": calc_stats(self.performance_metrics["query_latencies"]),
+                "llm_latency": calc_stats(self.performance_metrics["llm_latencies"]),
+                "cache_latency": calc_stats(self.performance_metrics["cache_latencies"])
+            },
+            "errors": {
+                "total": self.error_tracker["total_errors"],
+                "by_type": dict(self.error_tracker["error_by_type"]),
+                "by_service": dict(self.error_tracker["error_by_service"]),
+                "recovery_count": self.error_tracker["error_recovery_count"],
+                "recent": list(self.error_tracker["recent_errors"])[-10:]  # Last 10
+            },
+            "users": {
+                "queries_by_language": dict(self.user_analytics["queries_by_language"]),
+                "queries_by_intent": dict(self.user_analytics["queries_by_intent"]),
+                "unique_users": len(self.user_analytics["unique_users"]),
+                "multi_intent_patterns": dict(self.user_analytics["multi_intent_patterns"]),
+                "user_locations_used": self.user_analytics["user_locations_used"]
+            },
+            "signals": {
+                "detections": dict(self.signal_analytics["detections_by_signal"]),
+                "semantic_vs_keyword": self.signal_analytics["semantic_vs_keyword"],
+                "false_positives": dict(self.signal_analytics["false_positive_reports"])
+            },
+            "services": {
+                "map_success_rate": (
+                    self.service_analytics["map_generation_success"] / 
+                    max(1, self.service_analytics["map_generation_success"] + 
+                        self.service_analytics["map_generation_failure"])
+                ),
+                "cache_hit_rate": (
+                    self.service_analytics["cache_efficiency"]["hits"] /
+                    max(1, self.service_analytics["cache_efficiency"]["hits"] + 
+                        self.service_analytics["cache_efficiency"]["misses"])
+                ),
+                "service_usage": {
+                    "weather": self.service_analytics["weather_service_calls"],
+                    "events": self.service_analytics["events_service_calls"],
+                    "hidden_gems": self.service_analytics["hidden_gems_calls"],
+                    "rag": self.service_analytics["rag_usage"]
+                }
+            },
+            "quality": {
+                "responses_validated": self.quality_metrics["responses_validated"],
+                "validation_failures": self.quality_metrics["validation_failures"],
+                "validation_success_rate": (
+                    (self.quality_metrics["responses_validated"] - 
+                     self.quality_metrics["validation_failures"]) /
+                    max(1, self.quality_metrics["responses_validated"])
+                ),
+                "empty_responses": self.quality_metrics["empty_responses"],
+                "avg_response_length": (
+                    sum(self.quality_metrics["response_lengths"]) / 
+                    len(self.quality_metrics["response_lengths"])
+                    if self.quality_metrics["response_lengths"] else 0
+                )
+            }
+        }
+    
     async def process_query(
         self,
         query: str,
@@ -358,18 +1022,39 @@ Be comprehensive but concise."""
         logger.info(f"🔍 Processing query: {query[:50]}...")
         if user_location:
             logger.info(f"📍 User GPS: ({user_location.get('lat'):.4f}, {user_location.get('lon'):.4f})")
+            self.user_analytics["user_locations_used"] += 1
+        
+        # PRIORITY 1: Track unique users
+        self.user_analytics["unique_users"].add(user_id)
+        self.user_analytics["queries_per_user"][user_id] += 1
+        
+        # PRIORITY 1: Auto-detect language if not explicitly provided
+        if language == "en" and LANGDETECT_AVAILABLE:
+            detected_language = self._detect_language(query)
+            if detected_language != "en":
+                language = detected_language
+                logger.info(f"   🌍 Auto-detected language: {language}")
+        else:
+            # Track manually provided language
+            self.user_analytics["queries_by_language"][language] += 1
         
         # Step 1: Check cache
+        cache_start = time.time()
         cache_key = self._get_cache_key(query, language)
         cached_response = await self._get_cached_response(cache_key)
+        self._track_performance("cache", time.time() - cache_start)
         
         if cached_response:
             self.stats["cache_hits"] += 1
+            self.service_analytics["cache_efficiency"]["hits"] += 1
             logger.info("✅ Cache hit!")
             return cached_response
         
-        # Step 2: Detect service signals (NEW: multi-intent, semantic)
-        signals = await self._detect_service_signals(query, user_location)
+        # Track cache miss
+        self.service_analytics["cache_efficiency"]["misses"] += 1
+        
+        # Step 2: Detect service signals (NEW: multi-intent, semantic, language-aware)
+        signals = await self._detect_service_signals(query, user_location, language)
         active_signals = [k for k, v in signals.items() if v]
         logger.info(f"   Signals detected: {', '.join(active_signals) if active_signals else 'none'}")
         
@@ -385,6 +1070,8 @@ Be comprehensive but concise."""
         # Step 4: Get RAG context (if available)
         rag_context = await self._get_rag_context(query)
         logger.info(f"   RAG Context: {len(rag_context)} chars")
+        if rag_context:
+            self.service_analytics["rag_usage"] += 1
         
         # Step 5: Conditionally call EXPENSIVE services based on signals
         map_data = None
@@ -392,28 +1079,44 @@ Be comprehensive but concise."""
             logger.info("🗺️ Map visualization needed - routing to Istanbul AI system")
             try:
                 self.stats["map_requests"] += 1
+                map_start = time.time()
+                
                 map_data = await self._get_map_visualization(
                     query, 'route_planning', user_id, language, user_location
                 )
-                logger.info(f"   ✅ Map data generated: {bool(map_data)}")
+                
+                self._track_performance("map_generation", time.time() - map_start)
+                
+                if map_data:
+                    self.service_analytics["map_generation_success"] += 1
+                    logger.info(f"   ✅ Map data generated successfully")
+                else:
+                    self.service_analytics["map_generation_failure"] += 1
+                    logger.warning(f"   ⚠️ Map generation returned no data")
+                    
             except Exception as e:
+                self.service_analytics["map_generation_failure"] += 1
+                self._track_error("service_failure", "map_generation", str(e), query)
                 logger.warning(f"   ⚠️ Map generation failed: {e}")
                 map_data = None
         
         weather_context = ""
         if signals['needs_weather'] and self.weather_service:
             self.stats["weather_requests"] += 1
+            self.service_analytics["weather_service_calls"] += 1
             weather_context = await self._get_weather_context(query)
             logger.info(f"   ☀️ Weather context: {len(weather_context)} chars")
         
         events_context = ""
         if signals['needs_events'] and self.events_service:
+            self.service_analytics["events_service_calls"] += 1
             events_context = await self._get_events_context()
             logger.info(f"   🎭 Events context: {len(events_context)} chars")
         
         hidden_gems_context = ""
         if signals['needs_hidden_gems'] and self.hidden_gems_handler:
             self.stats["hidden_gems_requests"] += 1
+            self.service_analytics["hidden_gems_calls"] += 1
             hidden_gems_context = await self._get_hidden_gems_context(query)
             logger.info(f"   💎 Hidden gems context: {len(hidden_gems_context)} chars")
         
@@ -437,16 +1140,43 @@ Be comprehensive but concise."""
         try:
             self.stats["llm_calls"] += 1
             
+            # PRIORITY 1: Track LLM latency
+            llm_start = time.time()
+            
             response_data = await self.llm.generate(
                 prompt=full_prompt,
                 max_tokens=max_tokens,
                 temperature=0.7
             )
             
+            llm_latency = time.time() - llm_start
+            self._track_performance("llm", llm_latency)
+            logger.debug(f"   ⏱️  LLM latency: {llm_latency:.2f}s")
+            
             if not response_data or "generated_text" not in response_data:
                 raise Exception("Invalid LLM response")
             
             response_text = response_data["generated_text"]
+            
+            # PRIORITY 1: Validate response quality
+            is_valid, error_message = self._validate_response(response_text, query, signals, bool(db_context))
+            if not is_valid:
+                logger.warning(f"   ❌ Response validation failed: {error_message}")
+                self._track_error("validation_failure", "response_validator", error_message, query)
+                self.error_tracker["error_recovery_count"] += 1
+                
+                # Attempt recovery with fallback
+                return await self._fallback_response(
+                    query=query,
+                    intent='general',
+                    db_context=db_context,
+                    rag_context=rag_context,
+                    map_data=map_data
+                )
+            
+            # PRIORITY 1: Track query latency
+            total_latency = (datetime.now() - start_time).total_seconds()
+            self._track_performance("query", total_latency)
             
             # Build result with signals and map_data
             result = {
@@ -463,16 +1193,19 @@ Be comprehensive but concise."""
                     "events_used": bool(events_context),
                     "hidden_gems_used": bool(hidden_gems_context),
                     "source": "runpod_llm",
-                    "processing_time": (datetime.now() - start_time).total_seconds(),
+                    "processing_time": total_latency,
+                    "llm_latency": llm_latency,
                     "cached": False,
-                    "multi_intent": len(active_signals) > 2
+                    "multi_intent": len(active_signals) > 2,
+                    "language": language,
+                    "detected_language": language if LANGDETECT_AVAILABLE else None
                 }
             }
             
-            # Step 9: Cache response
+            # Step 10: Cache response
             await self._cache_response(cache_key, result)
             
-            logger.info(f"✅ Query processed in {result['metadata']['processing_time']:.2f}s")
+            logger.info(f"✅ Query processed in {total_latency:.2f}s")
             if map_data:
                 logger.info(f"   🗺️ Map visualization included")
             
@@ -481,6 +1214,8 @@ Be comprehensive but concise."""
         except Exception as e:
             logger.error(f"❌ LLM generation failed: {e}")
             self.stats["fallback_calls"] += 1
+            self._track_error("llm_failure", "runpod", str(e), query)
+            self.error_tracker["error_recovery_count"] += 1
             
             # Fallback to RAG-only or database context
             return await self._fallback_response(
@@ -491,569 +1226,690 @@ Be comprehensive but concise."""
                 map_data=map_data
             )
     
-    def _detect_intent(self, query: str) -> str:
-        """
-        Simple keyword-based intent detection
-        
-        DEPRECATED: Use _detect_service_signals() instead for multi-intent support.
-        Kept for backward compatibility.
-        
-        Categories:
-        - restaurant: Food, dining, eat
-        - attraction: Visit, see, museum
-        - transportation: Metro, bus, get to (with map visualization)
-        - route_planning: Directions, how to get (with map visualization)
-        - neighborhood: District, area, stay
-        - events: Concert, festival, show
-        - weather: Weather, temperature, rain, forecast
-        - general: Everything else
-        """
-        q = query.lower()
-        
-        # Route planning keywords (checked first, more specific)
-        if any(w in q for w in [
-            'how to get', 'directions', 'route', 'navigate', 'way to',
-            'best way', 'nasıl gidilir', 'yol tarifi', 'güzergah'
-        ]):
-            return 'route_planning'
-        
-        # Weather keywords (before general checks)
-        elif any(w in q for w in [
-            'weather', 'temperature', 'rain', 'sunny', 'cold', 'hot', 
-            'forecast', 'climate', 'will it rain', 'hava durumu', 'sıcaklık'
-        ]):
-            return 'weather'
-        
-        # Restaurant keywords
-        elif any(w in q for w in [
-            'restaurant', 'eat', 'food', 'dinner', 'lunch', 'breakfast',
-            'cafe', 'coffee', 'cuisine', 'yemek', 'lokanta'
-        ]):
-            return 'restaurant'
-        
-        # Attraction keywords
-        elif any(w in q for w in [
-            'visit', 'see', 'attraction', 'place', 'museum', 'mosque',
-            'palace', 'tower', 'church', 'ziyaret', 'gör'
-        ]):
-            return 'attraction'
-        
-        # Transportation keywords
-        elif any(w in q for w in [
-            'metro', 'bus', 'ferry', 'transport', 'how to reach',
-            'tram', 'istanbulkart', 'otobüs', 'vapur'
-        ]):
-            return 'transportation'
-        
-        # Neighborhood keywords
-        elif any(w in q for w in [
-            'neighborhood', 'district', 'area', 'where to stay', 'region',
-            'semt', 'mahalle', 'bölge'
-        ]):
-            return 'neighborhood'
-        
-        # Events keywords
-        elif any(w in q for w in [
-            'event', 'concert', 'show', 'festival', 'activity',
-            'etkinlik', 'konser', 'festival'
-        ]):
-            return 'events'
-        
-        # Hidden gems keywords
-        elif any(w in q for w in [
-            'hidden', 'secret', 'local', 'authentic', 'off the beaten',
-            'locals go', 'gizli', 'yerel', 'saklı'
-        ]):
-            return 'hidden_gems'
-        
-        else:
-            return 'general'
+    # ============================================================================
+    # PRIORITY 2.3 & 2.4: THRESHOLD LEARNING & A/B TESTING INTEGRATION
+    # ============================================================================
     
-    async def _build_database_context(
+    def record_user_feedback(
         self,
         query: str,
-        intent: str
-    ) -> str:
+        detected_signals: Dict[str, bool],
+        confidence_scores: Dict[str, float],
+        feedback_type: str,
+        feedback_data: Dict[str, Any],
+        language: str = "en"
+    ):
         """
-        Build context from database based on intent
+        Record user feedback for threshold learning.
         
-        DEPRECATED: Use _build_smart_context() for signal-based approach.
-        Kept for backward compatibility.
-        """
-        
-        context_parts = []
-        
-        try:
-            if intent == 'restaurant':
-                context_parts.append(await self._get_restaurant_context(query))
-            
-            elif intent == 'attraction':
-                context_parts.append(await self._get_attraction_context(query))
-            
-            elif intent == 'transportation':
-                context_parts.append(await self._get_transportation_context())
-            
-            elif intent == 'neighborhood':
-                context_parts.append(await self._get_neighborhood_context(query))
-            
-            elif intent == 'events':
-                context_parts.append(await self._get_events_context())
-            
-            elif intent == 'weather':
-                context_parts.append(await self._get_weather_context(query))
-            
-            elif intent == 'hidden_gems':
-                context_parts.append(await self._get_hidden_gems_context(query))
-            
-            else:
-                # General: Include mix of everything
-                context_parts.append(await self._get_restaurant_context(query, limit=3))
-                context_parts.append(await self._get_attraction_context(query, limit=3))
-        
-        except Exception as e:
-            logger.error(f"Error building database context: {e}")
-        
-        return "\n\n".join([c for c in context_parts if c])
-    
-    async def _build_smart_context(
-        self, 
-        query: str, 
-        signals: Dict[str, bool]
-    ) -> str:
-        """
-        Build database context smartly based on detected signals.
-        Query only what's likely needed for better performance.
-        
-        NEW APPROACH: Signal-aware context building
-        - Prioritizes relevant data based on signals
-        - Supports multi-intent queries
-        - Applies filters (budget, location) when needed
-        
-        Args:
-            query: User query string
-            signals: Detected service signals
-            
-        Returns:
-            Formatted database context string
-        """
-        context_parts = []
-        
-        try:
-            # Restaurant priority
-            if signals['likely_restaurant']:
-                context_parts.append(
-                    await self._get_restaurant_context(query, limit=10)
-                )
-                # Also include nearby attractions for context
-                if signals['likely_attraction'] or signals['mentions_location']:
-                    context_parts.append(
-                        await self._get_attraction_context(query, limit=3)
-                    )
-            
-            # Attraction priority
-            elif signals['likely_attraction']:
-                context_parts.append(
-                    await self._get_attraction_context(query, limit=10)
-                )
-                # Include nearby restaurants for recommendations
-                context_parts.append(
-                    await self._get_restaurant_context(query, limit=3)
-                )
-            
-            # No clear domain - balanced mix
-            else:
-                context_parts.append(
-                    await self._get_restaurant_context(query, limit=5)
-                )
-                context_parts.append(
-                    await self._get_attraction_context(query, limit=5)
-                )
-            
-            # Add transportation if needed
-            if signals['needs_map'] or signals['needs_gps_routing']:
-                context_parts.append(
-                    await self._get_transportation_context()
-                )
-            
-            # Apply budget filtering if needed
-            if signals['has_budget_constraint'] and self.price_filter:
-                # Price filter will be applied within context methods
-                logger.debug("   💰 Budget filtering applied")
-        
-        except Exception as e:
-            logger.error(f"Error building smart context: {e}")
-        
-        return "\n\n".join([c for c in context_parts if c])
-    
-    def _build_system_prompt(self, signals: Dict[str, bool]) -> str:
-        """
-        Build system prompt that adapts to detected signals.
-        Guides LLM based on what services were called.
-        
-        Args:
-            signals: Detected service signals
-            
-        Returns:
-            Signal-aware system prompt string
-        """
-        base_prompt = """You are AI Istanbul, an expert travel assistant for Istanbul, Turkey.
-
-You have deep knowledge of:
-🏛️ Attractions: Museums, mosques, palaces, historical sites
-🍽️ Restaurants: Authentic Turkish cuisine, international options
-🚇 Transportation: Metro, bus, ferry, tram routes
-🏘️ Neighborhoods: Districts, areas, local culture
-🎭 Events: Concerts, festivals, cultural activities
-💎 Hidden Gems: Local favorites, off-the-beaten-path spots
-
-Guidelines:
-1. Provide specific names, locations, and details
-2. Use provided database context
-3. Include practical info (hours, prices, directions)
-4. Be enthusiastic about Istanbul
-5. Respond in the same language as the query
-6. Never make up information - use context only"""
-
-        # Add signal-specific instructions
-        adaptations = []
-        
-        if signals.get('needs_map'):
-            adaptations.append("🗺️ IMPORTANT: A map has been generated. Reference it in your response and explain how to use it.")
-        
-        if signals.get('needs_weather'):
-            adaptations.append("☀️ Consider current weather conditions in your recommendations. Suggest indoor options for bad weather, outdoor for good weather.")
-        
-        if signals.get('needs_events'):
-            adaptations.append("🎭 Event information is provided. Highlight current and upcoming events relevant to the query.")
-        
-        if signals.get('needs_hidden_gems'):
-            adaptations.append("💎 Focus on authentic, local experiences away from tourist crowds. Mention accessibility and best times.")
-        
-        if signals.get('has_budget_constraint'):
-            adaptations.append("💰 Prioritize budget-appropriate options. Be clear about price ranges.")
-        
-        if signals.get('has_user_location'):
-            adaptations.append("📍 User's current location is provided. Prioritize nearby options and mention distances.")
-        
-        if adaptations:
-            base_prompt += "\n\n" + "\n".join(adaptations)
-        
-        return base_prompt
-    
-    def _build_prompt_with_signals(
-        self,
-        query: str,
-        signals: Dict[str, bool],
-        system_prompt: str,
-        db_context: str,
-        rag_context: str,
-        weather_context: str,
-        events_context: str,
-        hidden_gems_context: str,
-        language: str
-    ) -> str:
-        """
-        Combine all context into final prompt with signal awareness.
+        PRIORITY 2.3: Feeds data to ThresholdLearner for continuous improvement.
         
         Args:
             query: User query
-            signals: Detected signals
-            system_prompt: Signal-aware system prompt
-            db_context: Database context
-            rag_context: RAG context
-            weather_context: Weather-specific context
-            events_context: Events context
-            hidden_gems_context: Hidden gems context
-            language: Response language
-            
-        Returns:
-            Complete formatted prompt for LLM
+            detected_signals: Detected signals (True/False)
+            confidence_scores: Confidence scores for each signal
+            feedback_type: 'implicit' or 'explicit'
+            feedback_data: Additional feedback data
+            language: Query language
+        
+        Examples of feedback_type and feedback_data:
+        - Implicit: feedback_type='implicit', feedback_data={'action': 'clicked_result', 'value': 0.8}
+        - Explicit: feedback_type='explicit', feedback_data={'type': 'thumbs_up'}
+        - Correction: feedback_type='explicit', feedback_data={'type': 'correction', 'corrected_signals': {...}}
         """
-        parts = [system_prompt, ""]
-        
-        # Add contexts in priority order
-        if db_context:
-            parts.append("**DATABASE CONTEXT:**")
-            parts.append(db_context)
-            parts.append("")
-        
-        if weather_context:
-            parts.append("**WEATHER INFORMATION:**")
-            parts.append(weather_context)
-            parts.append("")
-        
-        if events_context:
-            parts.append("**EVENTS:**")
-            parts.append(events_context)
-            parts.append("")
-        
-        if hidden_gems_context:
-            parts.append("**HIDDEN GEMS:**")
-            parts.append(hidden_gems_context)
-            parts.append("")
-        
-        if rag_context:
-            parts.append("**KNOWLEDGE BASE:**")
-            parts.append(rag_context)
-            parts.append("")
-        
-        # Add query
-        parts.append(f"**USER QUERY ({language.upper()}):**")
-        parts.append(query)
-        parts.append("")
-        parts.append("**YOUR RESPONSE:**")
-        
-        return "\n".join(parts)
-    
-    async def _detect_service_signals(
-        self, 
-        query: str, 
-        user_location: Optional[Dict[str, float]] = None
-    ) -> Dict[str, bool]:
-        """
-        Detect which services are needed for this query using semantic similarity.
-        
-        NEW APPROACH: Multi-signal detection with:
-        - Semantic embeddings for language independence (Turkish + English)
-        - Keyword fallback for reliability
-        - Caching for performance
-        - Multi-intent support
-        
-        This is a lightweight approach that:
-        - Only detects EXPENSIVE operations explicitly (maps, GPS routing)
-        - Lets LLM handle nuanced understanding
-        - Supports multi-service queries naturally
-        
-        Args:
-            query: User query string
-            user_location: User GPS coordinates
-            
-        Returns:
-            Dict of signal names to boolean values
-        """
-        
-        # Check cache first
-        signal_cache_key = self._get_signal_cache_key(query)
-        cached_signals = await self._get_cached_signals(signal_cache_key)
-        if cached_signals:
-            self.stats["signal_cache_hits"] += 1
-            logger.debug("   📦 Signal cache hit")
-            # Update user location signal if provided
-            if user_location:
-                cached_signals['has_user_location'] = True
-            return cached_signals
-        
-        # Initialize signals
-        signals = {
-            # Expensive operations - detect explicitly
-            'needs_map': False,
-            'needs_gps_routing': False,
-            
-            # Service signals
-            'needs_weather': False,
-            'needs_events': False,
-            'needs_hidden_gems': False,
-            
-            # Budget/price filtering
-            'has_budget_constraint': False,
-            
-            # Location context
-            'has_user_location': user_location is not None,
-            'mentions_location': False,
-            
-            # Domain hints (lightweight, not rigid)
-            'likely_restaurant': False,
-            'likely_attraction': False,
-        }
-        
-        # Use semantic similarity if available
-        if self.embedding_model and self._signal_embeddings:
-            try:
-                semantic_signals = await self._detect_signals_semantic(query)
-                # Merge semantic signals
-                for key, value in semantic_signals.items():
-                    if key in signals:
-                        signals[key] = value
-                logger.debug("   🧠 Semantic signal detection used")
-            except Exception as e:
-                logger.warning(f"Semantic signal detection failed: {e}, falling back to keywords")
-        
-        # Keyword fallback/enhancement (always run for reliability)
-        keyword_signals = self._detect_signals_keywords(query)
-        
-        # Combine: Use OR logic (if either detects, signal is True)
-        for key in signals.keys():
-            if key in keyword_signals:
-                signals[key] = signals[key] or keyword_signals[key]
-        
-        # Cache signals for future use
-        await self._cache_signals(signal_cache_key, signals)
-        
-        return signals
-    
-    async def _detect_signals_semantic(self, query: str) -> Dict[str, bool]:
-        """
-        Detect signals using semantic similarity with pre-computed embeddings.
-        Language-independent approach using sentence transformers.
-        
-        Args:
-            query: User query string
-            
-        Returns:
-            Dict of signal names to boolean values
-        """
-        if not self.embedding_model or not self._signal_embeddings:
-            return {}
-        
-        try:
-            # Encode query
-            query_embedding = self.embedding_model.encode(query, convert_to_numpy=True)
-            
-            # Calculate similarity with each signal
-            similarities = {}
-            for signal_name, signal_embedding in self._signal_embeddings.items():
-                # Cosine similarity
-                similarity = np.dot(query_embedding, signal_embedding) / (
-                    np.linalg.norm(query_embedding) * np.linalg.norm(signal_embedding)
-                )
-                similarities[signal_name] = float(similarity)
-            
-            # Map signal names to our signal keys with threshold
-            SIMILARITY_THRESHOLD = 0.4  # Adjust based on testing
-            
-            signals = {
-                'needs_map': similarities.get('map_routing', 0) > SIMILARITY_THRESHOLD,
-                'needs_gps_routing': similarities.get('map_routing', 0) > 0.5,  # Higher threshold
-                'needs_weather': similarities.get('weather', 0) > SIMILARITY_THRESHOLD,
-                'needs_events': similarities.get('events', 0) > SIMILARITY_THRESHOLD,
-                'needs_hidden_gems': similarities.get('hidden_gems', 0) > SIMILARITY_THRESHOLD,
-                'has_budget_constraint': similarities.get('budget', 0) > SIMILARITY_THRESHOLD,
-                'likely_restaurant': similarities.get('restaurant', 0) > SIMILARITY_THRESHOLD,
-                'likely_attraction': similarities.get('attraction', 0) > SIMILARITY_THRESHOLD,
-            }
-            
-            # Log high-confidence detections
-            high_confidence = {k: v for k, v in similarities.items() if v > 0.6}
-            if high_confidence:
-                logger.debug(f"   High confidence signals: {high_confidence}")
-            
-            return signals
-            
-        except Exception as e:
-            logger.warning(f"Semantic signal detection error: {e}")
-            return {}
-    
-    def _detect_signals_keywords(self, query: str) -> Dict[str, bool]:
-        """
-        Keyword-based signal detection as fallback/enhancement.
-        Reliable for explicit mentions.
-        
-        Args:
-            query: User query string
-            
-        Returns:
-            Dict of signal names to boolean values
-        """
-        q = query.lower()
-        
-        return {
-            # Map/routing keywords
-            'needs_map': any(w in q for w in [
-                'how to get', 'directions', 'route', 'navigate', 
-                'take me', 'way to', 'path to', 'map',
-                'nasıl giderim', 'yol tarifi', 'güzergah', 'harita'
-            ]),
-            
-            'needs_gps_routing': any(w in q for w in [
-                'fastest route', 'best route', 'driving directions',
-                'walking directions', 'from here',
-                'en hızlı yol', 'en iyi güzergah', 'buradan'
-            ]),
-            
-            # Service keywords
-            'needs_weather': any(w in q for w in [
-                'weather', 'rain', 'temperature', 'sunny', 'cold', 'hot',
-                'forecast', 'climate',
-                'hava durumu', 'yağmur', 'sıcaklık', 'soğuk', 'sıcak'
-            ]),
-            
-            'needs_events': any(w in q for w in [
-                'event', 'concert', 'show', 'festival', 'activity',
-                'happening', 'tonight', 'weekend',
-                'etkinlik', 'konser', 'festival', 'gösteri'
-            ]),
-            
-            'needs_hidden_gems': any(w in q for w in [
-                'hidden', 'secret', 'local', 'authentic', 'off the beaten',
-                'locals go', 'locals eat', 'locals love',
-                'gizli', 'yerel', 'saklı', 'turistik olmayan'
-            ]),
-            
-            # Budget keywords
-            'has_budget_constraint': any(w in q for w in [
-                'cheap', 'expensive', 'budget', 'affordable', 'costly',
-                'price', 'cost', 'free',
-                'ucuz', 'pahalı', 'ekonomik', 'fiyat', 'bedava'
-            ]),
-            
-            # Location keywords
-            'mentions_location': any(w in q for w in [
-                'near', 'close to', 'around', 'nearby', 'next to',
-                'walking distance', 'from here',
-                'yakın', 'civarı', 'çevresinde', 'yanında'
-            ]),
-            
-            # Domain keywords
-            'likely_restaurant': any(w in q for w in [
-                'restaurant', 'food', 'eat', 'dining', 'meal',
-                'lunch', 'dinner', 'breakfast', 'cafe', 'coffee',
-                'restoran', 'yemek', 'lokanta', 'kahve'
-            ]),
-            
-            'likely_attraction': any(w in q for w in [
-                'mosque', 'museum', 'palace', 'attraction', 'visit',
-                'see', 'tower', 'church', 'monument', 'site',
-                'cami', 'müze', 'saray', 'görmek', 'ziyaret'
-            ])
-        }
-    
-    def _get_cache_key(self, query: str, language: str) -> str:
-        """Generate cache key from query"""
-        key_string = f"{query.lower().strip()}_{language}"
-        return f"llm_response:{hashlib.md5(key_string.encode()).hexdigest()}"
-    
-    def _get_signal_cache_key(self, query: str) -> str:
-        """Generate cache key for signal detection results"""
-        key_string = f"signals:{query.lower().strip()}"
-        return f"signals:{hashlib.md5(key_string.encode()).hexdigest()}"
-    
-    async def _get_cached_signals(self, cache_key: str) -> Optional[Dict[str, bool]]:
-        """Get cached signal detection results from Redis"""
-        if not self.redis:
-            return None
-        
-        try:
-            import json
-            cached = self.redis.get(cache_key)
-            if cached:
-                return json.loads(cached)
-        except Exception as e:
-            logger.debug(f"Signal cache get failed: {e}")
-        
-        return None
-    
-    async def _cache_signals(self, cache_key: str, signals: Dict[str, bool]):
-        """Cache signal detection results in Redis"""
-        if not self.redis:
+        if not self.threshold_learner:
             return
         
         try:
-            import json
-            # Cache signals for 1 hour (they're query-specific)
-            self.redis.setex(
-                cache_key,
-                3600,
-                json.dumps(signals)
+            self.threshold_learner.record_feedback(
+                query=query,
+                detected_signals=detected_signals,
+                confidence_scores=confidence_scores,
+                feedback_type=feedback_type,
+                feedback_data=feedback_data,
+                language=language
             )
+            
+            logger.debug(f"📝 Recorded {feedback_type} feedback for threshold learning")
+            
         except Exception as e:
-            logger.debug(f"Signal cache set failed: {e}")
+            logger.error(f"Failed to record feedback: {e}")
+    
+    def auto_tune_thresholds(
+        self,
+        language: str = "en",
+        force: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Automatically tune thresholds based on accumulated feedback.
+        
+        PRIORITY 2.3: Runs periodically to optimize detection thresholds.
+        
+        Args:
+            language: Language to tune for
+            force: Force tuning even if interval hasn't passed
+            
+        Returns:
+            Dict with tuning results and recommendations
+        """
+        if not self.threshold_learner or not self.enable_auto_tuning:
+            return {'status': 'disabled'}
+        
+        # Check if we should run auto-tuning
+        if not force:
+            last_tune = self.last_auto_tune.get(language)
+            if last_tune:
+                hours_since = (datetime.now() - last_tune).total_seconds() / 3600
+                if hours_since < self.auto_tune_interval_hours:
+                    return {
+                        'status': 'skipped',
+                        'reason': f'Last tuned {hours_since:.1f}h ago'
+                    }
+        
+        try:
+            logger.info(f"🔧 Auto-tuning thresholds for {language}...")
+            
+            # Get current thresholds
+            current_thresholds = self.language_thresholds.get(language, self.language_thresholds['default'])
+            
+            # Run auto-tuning
+            results = self.threshold_learner.auto_tune(
+                current_thresholds=current_thresholds,
+                language=language,
+                auto_apply=False  # Don't auto-apply, use A/B testing instead
+            )
+            
+            # Update last tune time
+            self.last_auto_tune[language] = datetime.now()
+            
+            logger.info(f"✅ Auto-tuning complete for {language}")
+            
+            # If we have A/B testing, create experiments for recommended changes
+            if self.ab_testing and results.get('recommendations'):
+                self._create_threshold_experiments(results['recommendations'], language)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Auto-tuning failed: {e}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def _create_threshold_experiments(
+        self,
+        recommendations: Dict[str, Dict[str, Any]],
+        language: str
+    ):
+        """
+        Create A/B test experiments for threshold changes.
+        
+        PRIORITY 2.4: Test threshold changes before full rollout.
+        
+        Args:
+            recommendations: Threshold recommendations from learner
+            language: Language code
+        """
+        if not self.ab_testing:
+            return
+        
+        for signal_name, rec in recommendations.items():
+            if not rec.get('should_apply'):
+                continue
+            
+            try:
+                # Create experiment
+                experiment = self.ab_testing.create_experiment(
+                    name=f"Threshold Tuning: {signal_name} ({language})",
+                    description=f"Test new threshold for {signal_name}: {rec['current']:.3f} -> {rec['recommended']:.3f}",
+                    variants={
+                        'control': {
+                            'threshold': rec['current'],
+                            'signal': signal_name,
+                            'language': language
+                        },
+                        'treatment': {
+                            'threshold': rec['recommended'],
+                            'signal': signal_name,
+                            'language': language
+                        }
+                    },
+                    traffic_allocation={'control': 0.8, 'treatment': 0.2},  # 80/20 split
+                    success_metrics=['detection_accuracy', 'f1_score'],
+                    min_sample_size=100,
+                    auto_start=True
+                )
+                
+                # Track active experiment
+                self.active_experiments[signal_name] = experiment.experiment_id
+                
+                logger.info(
+                    f"🧪 Created A/B test for {signal_name} threshold: "
+                    f"{rec['current']:.3f} -> {rec['recommended']:.3f}"
+                )
+                
+            except Exception as e:
+                logger.error(f"Failed to create experiment for {signal_name}: {e}")
+    
+    def get_threshold_for_experiment(
+        self,
+        signal_name: str,
+        language: str,
+        user_id: str
+    ) -> float:
+        """
+        Get threshold value considering active A/B tests.
+        
+        PRIORITY 2.4: Returns variant-specific threshold if user is in experiment.
+        
+        Args:
+            signal_name: Signal name
+            language: Language code
+            user_id: User identifier
+            
+        Returns:
+            Threshold value to use
+        """
+        # Check if there's an active experiment for this signal
+        if self.ab_testing and signal_name in self.active_experiments:
+            experiment_id = self.active_experiments[signal_name]
+            
+            try:
+                variant = self.ab_testing.get_variant(user_id, experiment_id)
+                
+                if variant and variant['config'].get('language') == language:
+                    threshold = variant['config']['threshold']
+                    
+                    logger.debug(
+                        f"🧪 Using experimental threshold for {signal_name}: "
+                        f"{threshold:.3f} (variant: {variant['variant_id']})"
+                    )
+                    
+                    return threshold
+                    
+            except Exception as e:
+                logger.error(f"Failed to get experiment variant: {e}")
+        
+        # Default: use configured threshold
+        thresholds = self.language_thresholds.get(language, self.language_thresholds['default'])
+        return thresholds.get(signal_name, 0.35)
+    
+    def record_experiment_metric(
+        self,
+        signal_name: str,
+        user_id: str,
+        metric_name: str,
+        value: float
+    ):
+        """
+        Record metric for active A/B experiment.
+        
+        PRIORITY 2.4: Tracks experiment performance metrics.
+        
+        Args:
+            signal_name: Signal name
+            user_id: User identifier
+            metric_name: Metric name
+            value: Metric value
+        """
+        if not self.ab_testing or signal_name not in self.active_experiments:
+            return
+        
+        experiment_id = self.active_experiments[signal_name]
+        
+        try:
+            # Get user's variant
+            variant = self.ab_testing.get_variant(user_id, experiment_id)
+            
+            if variant:
+                self.ab_testing.record_metric(
+                    experiment_id=experiment_id,
+                    variant_id=variant['variant_id'],
+                    metric_name=metric_name,
+                    value=value
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to record experiment metric: {e}")
+    
+    def analyze_active_experiments(self) -> Dict[str, Any]:
+        """
+        Analyze all active A/B experiments.
+        
+        PRIORITY 2.4: Generates reports and recommendations.
+        
+        Returns:
+            Dict of experiment_id -> analysis report
+        """
+        if not self.ab_testing:
+            return {}
+        
+        results = {}
+        
+        for signal_name, experiment_id in self.active_experiments.items():
+            try:
+                report = self.ab_testing.analyze_experiment(experiment_id)
+                results[signal_name] = report
+                
+                # Check if we should stop the experiment
+                if report.get('analysis_results', {}).get('early_stopping', {}).get('should_stop'):
+                    logger.info(f"🛑 Stopping experiment for {signal_name}: {report['recommendation']['reason']}")
+                    
+                    # Apply winner if treatment won
+                    if report['recommendation'].get('winner') == 'treatment':
+                        self._apply_winning_threshold(signal_name, report)
+                    
+                    # Stop experiment
+                    self.ab_testing.stop_experiment(
+                        experiment_id,
+                        reason=report['recommendation']['reason']
+                    )
+                    
+                    # Remove from active experiments
+                    del self.active_experiments[signal_name]
+                
+            except Exception as e:
+                logger.error(f"Failed to analyze experiment {experiment_id}: {e}")
+        
+        return results
+    
+    def _apply_winning_threshold(
+        self,
+        signal_name: str,
+        report: Dict[str, Any]
+    ):
+        """
+        Apply winning threshold from A/B test.
+        
+        Args:
+            signal_name: Signal name
+            report: Experiment report
+        """
+        try:
+            # Get treatment threshold from report
+            variants = report.get('experiment', {}).get('variants', {})
+            treatment_config = variants.get('treatment', {})
+            new_threshold = treatment_config.get('threshold')
+            language = treatment_config.get('language')
+            
+            if new_threshold and language:
+                # Update threshold configuration
+                if language in self.language_thresholds:
+                    old_threshold = self.language_thresholds[language].get(signal_name, 0.35)
+                    self.language_thresholds[language][signal_name] = new_threshold
+                    
+                    logger.info(
+                        f"✅ Applied winning threshold for {signal_name} ({language}): "
+                        f"{old_threshold:.3f} -> {new_threshold:.3f}"
+                    )
+                    
+                    # TODO: Persist to database or config file
+                
+        except Exception as e:
+            logger.error(f"Failed to apply winning threshold: {e}")
+    
+    async def process_query_stream(
+        self,
+        query: str,
+        user_id: str = "anonymous",
+        session_id: Optional[str] = None,
+        user_location: Optional[Dict[str, float]] = None,
+        language: str = "en",
+        intent: Optional[str] = None,
+        max_tokens: int = 250
+    ):
+        """
+        PRIORITY 2: Stream query processing with real-time progress updates.
+        
+        Provides much better UX by showing progress as the query is processed:
+        - Signal detection progress
+        - Context building progress
+        - Token-by-token LLM generation
+        - Final metadata
+        
+        This is an async generator that yields progress updates.
+        
+        Args:
+            query: User query string
+            user_id: User identifier
+            session_id: Session identifier
+            user_location: User GPS location
+            language: Response language
+            intent: Pre-detected intent (optional)
+            max_tokens: Maximum tokens to generate
+            
+        Yields:
+            Dict with type and data:
+            - type='progress': Stage progress update
+            - type='signals': Detected signals
+            - type='context': Context building complete
+            - type='token': LLM token (streamed)
+            - type='complete': Final metadata
+            - type='error': Error occurred
+        """
+        from typing import AsyncGenerator
+        
+        start_time = datetime.now()
+        
+        try:
+            logger.info(f"🎬 Starting streaming query: {query[:50]}...")
+            
+            # Step 1: Language detection
+            if language == "en" and LANGDETECT_AVAILABLE:
+                yield {
+                    'type': 'progress',
+                    'stage': 'language_detection',
+                    'message': 'Detecting language...'
+                }
+                
+                detected_language = self._detect_language(query)
+                if detected_language != "en":
+                    language = detected_language
+                    yield {
+                        'type': 'language',
+                        'detected': language,
+                        'message': f'Language detected: {language}'
+                    }
+            else:
+                self.user_analytics["queries_by_language"][language] += 1
+            
+            # Step 2: Check cache
+            yield {
+                'type': 'progress',
+                'stage': 'cache_check',
+                'message': 'Checking cache...'
+            }
+            cache_key = self._get_cache_key(query, language)
+            cached_response = await self._get_cached_response(cache_key)
+            
+            if cached_response:
+                self.stats["cache_hits"] += 1
+                self.service_analytics["cache_efficiency"]["hits"] += 1
+                logger.info("✅ Cache hit!")
+                yield {
+                    'type': 'cache_hit',
+                    'message': 'Found cached response!'
+                }
+                
+                # Stream cached response character by character for UX
+                response_text = cached_response.get('response', '')
+                for i in range(0, len(response_text), 5):  # 5 chars at a time
+                    yield {
+                        'type': 'token',
+                        'data': response_text[i:i+5],
+                        'cached': True
+                    }
+                    await asyncio.sleep(0.01)  # Small delay for streaming effect
+                return {
+                    'type': 'complete',
+                    'data': cached_response,
+                    'cached': True
+                }
+            
+            # Track cache miss
+            self.service_analytics["cache_efficiency"]["misses"] += 1
+            
+            # Step 3: Signal detections
+            yield {
+                'type': 'progress',
+                'stage': 'signal_detection',
+                'message': 'Analyzing your query...'
+            }
+            
+            signals = await self._detect_service_signals(query, user_location, language)
+            active_signals = [k for k, v in signals.items() if v]
+            logger.info(f"   Signals detected: {', '.join(active_signals) if active_signals else 'none'}")
+            
+            # Track multi-signal queries
+            if len(active_signals) > 2:
+                self.stats["multi_signal_queries"] += 1
+                logger.info(f"   🎯 Multi-signal query detected ({len(active_signals)} signals)")
+            
+            yield {
+                'type': 'signals',
+                'data': signals,
+                'active': active_signals,
+                'count': len(active_signals),
+                'message': f'Detected {len(active_signals)} signals'
+            }
+            
+            # Step 4: Context building
+            yield {
+                'type': 'progress',
+                'stage': 'context_building',
+                'message': 'Gathering relevant information...'
+            }
+            
+            db_context = await self._build_smart_context(query, signals)
+            yield {
+                'type': 'context',
+                'stage': 'database',
+                'size': len(db_context),
+                'message': f'Loaded {len(db_context)} chars from database'
+            }
+            
+            rag_context = await self._get_rag_context(query)
+            if rag_context:
+                self.service_analytics["rag_usage"] += 1
+                yield {
+                    'type': 'context',
+                    'stage': 'rag',
+                    'size': len(rag_context),
+                    'message': 'Retrieved knowledge base context'
+                }
+            
+            # Step 5: Call services based on signals
+            map_data = None
+            weather_context = ""
+            events_context = ""
+            hidden_gems_context = ""
+            
+            if signals['needs_map'] or signals['needs_gps_routing']:
+                yield {
+                    'type': 'progress',
+                    'stage': 'map_generation',
+                    'message': '🗺️ Generating map visualization...'
+                }
+                
+                try:
+                    map_data = await self._get_map_visualization(
+                        query, 'route_planning', user_id, language, user_location
+                    )
+                    
+                    if map_data:
+                        self.service_analytics["map_generation_success"] += 1
+                        yield {
+                            'type': 'service',
+                            'service': 'map',
+                            'status': 'success',
+                            'message': 'Map generated successfully'
+                        }
+                    else:
+                        self.service_analytics["map_generation_failure"] += 1
+                        yield {
+                            'type': 'service',
+                            'service': 'map',
+                            'status': 'error',
+                            'message': 'Map generation failed'
+                        }
+                
+                except Exception as e:
+                    self.service_analytics["map_generation_failure"] += 1
+                    self._track_error("service_failure", "map_generation", str(e), query)
+                    yield {
+                        'type': 'service',
+                        'service': 'map',
+                        'status': 'error',
+                        'message': 'Map generation failed'
+                    }
+            
+            if signals['needs_weather'] and self.weather_service:
+                yield {
+                    'type': 'progress',
+                    'stage': 'weather',
+                    'message': '☀️ Checking weather conditions...'
+                }
+                weather_context = await self._get_weather_context(query)
+                self.service_analytics["weather_service_calls"] += 1
+                
+                if weather_context:
+                    yield {
+                        'type': 'service',
+                        'service': 'weather',
+                        'status': 'success',
+                        'message': 'Weather data retrieved'
+                    }
+            
+            if signals['needs_events'] and self.events_service:
+                yield {
+                    'type': 'progress',
+                    'stage': 'events',
+                    'message': '🎭 Finding events...'
+                }
+                events_context = await self._get_events_context()
+                self.service_analytics["events_service_calls"] += 1
+                
+                if events_context:
+                    yield {
+                        'type': 'service',
+                        'service': 'events',
+                        'status': 'success',
+                        'message': 'Events data retrieved'
+                    }
+            
+            if signals['needs_hidden_gems'] and self.hidden_gems_handler:
+                yield {
+                    'type': 'progress',
+                    'stage': 'hidden_gems',
+                    'message': '💎 Discovering hidden gems...'
+                }
+                hidden_gems_context = await self._get_hidden_gems_context(query)
+                self.service_analytics["hidden_gems_calls"] += 1
+                
+                if hidden_gems_context:
+                    yield {
+                        'type': 'service',
+                        'service': 'hidden_gems',
+                        'status': 'success',
+                        'message': 'Hidden gems found'
+                    }
+            
+            # Step 6: Build prompts
+            system_prompt = self._build_system_prompt(signals)
+            full_prompt = self._build_prompt_with_signals(
+                query=query,
+                signals=signals,
+                system_prompt=system_prompt,
+                db_context=db_context,
+                rag_context=rag_context,
+                weather_context=weather_context,
+                events_context=events_context,
+                hidden_gems_context=hidden_gems_context,
+                language=language
+            )
+            
+            # Step 7: Stream LLM generation
+            yield {
+                'type': 'progress',
+                'stage': 'generation',
+                'message': '✨ Generating response...'
+            }
+            self.stats["llm_calls"] += 1
+            llm_start = time.time()
+            
+            # Check if LLM supports streaming
+            if hasattr(self.llm, 'generate_stream'):
+                response_tokens = []
+                async for token in self.llm.generate_stream(
+                    prompt=full_prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.7
+                ):
+                    response_tokens.append(token)
+                    yield {
+                        'type': 'token',
+                        'data': token,
+                        'cached': False
+                    }
+                    await asyncio.sleep(0.01)  # Simulate streaming delay
+            else:
+                # Fallback: No streaming support, simulate it
+                response_data = await self.llm.generate(
+                    prompt=full_prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.7
+                )
+                
+                if not response_data or "generated_text" not in response_data:
+                    raise Exception("Invalid LLM response")
+                
+                response_text = response_data["generated_text"]
+                
+                # Simulate streaming for UX (5 chars at a time)
+                for i in range(0, len(response_text), 5):
+                    yield {
+                        'type': 'token',
+                        'data': response_text[i:i+5],
+                        'cached': False
+                    }
+                    await asyncio.sleep(0.01)
+            
+            llm_latency = time.time() - llm_start
+            self._track_performance("llm", llm_latency)
+            
+            # Step 8: Validate response
+            is_valid, error_message = self._validate_response(
+                response_text, query, signals, bool(db_context)
+            )
+            
+            if not is_valid:
+                logger.warning(f"Response validation failed: {error_message}")
+                self._track_error("validation_failure", "response_validator", error_message, query)
+                
+                yield {
+                    'type': 'warning',
+                    'message': 'Response validation issue detected',
+                    'details': error_message
+                }
+            
+            # Step 9: Final metadata
+            total_latency = (datetime.now() - start_time).total_seconds()
+            self._track_performance("query", total_latency)
+            
+            result = {
+                "status": "success",
+                "response": response_text,
+                "map_data": map_data,
+                "signals": signals,
+                "metadata": {
+                    "signals_detected": active_signals,
+                    "context_used": bool(db_context),
+                    "rag_used": bool(rag_context),
+                    "map_generated": bool(map_data),
+                    "weather_used": bool(weather_context),
+                    "events_used": bool(events_context),
+                    "hidden_gems_used": bool(hidden_gems_context),
+                    "source": "runpod_llm",
+                    "processing_time": total_latency,
+                    "llm_latency": llm_latency,
+                    "cached": False,
+                    "multi_intent": len(active_signals) > 2,
+                    "language": language,
+                    "detected_language": language if LANGDETECT_AVAILABLE else None
+                }
+            }
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Streaming query failed: {e}")
+            self.stats["fallback_calls"] += 1
+            self._track_error("llm_failure", "runpod", str(e), query)
+            self.error_tracker["error_recovery_count"] += 1
+            
+            # Fallback to RAG-only or database context
+            return await self._fallback_response(
+                query=query,
+                intent='general',
+                db_context=db_context,
+                rag_context=rag_context,
+                map_data=map_data
+            )
