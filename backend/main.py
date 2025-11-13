@@ -1113,17 +1113,27 @@ async def startup_event():
             except Exception as e:
                 logger.warning(f"   ⚠️ RAG not available: {e}")
             
+            # Optional: Get Istanbul AI system for map visualization
+            istanbul_ai_for_maps = None
+            if ISTANBUL_DAILY_TALK_AVAILABLE and istanbul_daily_talk_ai:
+                istanbul_ai_for_maps = istanbul_daily_talk_ai
+                logger.info("   ✅ Istanbul AI system loaded for map visualization")
+            else:
+                logger.warning("   ⚠️ Istanbul AI not available - map visualization disabled")
+            
             # Create Pure LLM Handler
             pure_llm_handler = PureLLMHandler(
                 runpod_client=llm_client,
                 db_session=db,
                 redis_client=redis_client,
                 context_builder=context_builder,
-                rag_service=rag_service
+                rag_service=rag_service,
+                istanbul_ai_system=istanbul_ai_for_maps  # NEW: Pass Istanbul AI for maps
             )
             
             logger.info("✅ Pure LLM Handler initialized successfully")
             logger.info("   🎯 All queries will route through RunPod LLM")
+            logger.info("   🗺️ Map visualization enabled for transportation/routes")
             logger.info("   🚫 Rule-based fallbacks disabled")
             
         except Exception as e:
@@ -1814,7 +1824,7 @@ class PureLLMChatRequest(BaseModel):
 
 
 class PureLLMChatResponse(BaseModel):
-    """Response model for Pure LLM chat"""
+    """Response model for Pure LLM chat with map visualization support"""
     response: str = Field(..., description="LLM-generated response")
     intent: Optional[str] = Field(None, description="Detected or provided intent")
     confidence: float = Field(..., description="Response confidence (0-1)")
@@ -1823,6 +1833,7 @@ class PureLLMChatResponse(BaseModel):
     response_time: float = Field(..., description="Response generation time in seconds")
     cached: bool = Field(default=False, description="Whether response was cached")
     suggestions: List[str] = Field(default=[], description="Follow-up suggestions")
+    map_data: Optional[Dict[str, Any]] = Field(None, description="Map visualization data (for routes/transport)")
     metadata: Dict[str, Any] = Field(default={}, description="Additional metadata")
 
 
@@ -1883,6 +1894,9 @@ async def pure_llm_chat(
         # Build response
         response_time = time.time() - start_time
         
+        # Extract metadata
+        metadata = result.get('metadata', {})
+        
         return PureLLMChatResponse(
             response=result['response'],
             intent=result.get('intent', request.intent),
@@ -1890,12 +1904,14 @@ async def pure_llm_chat(
             method=result.get('method', 'pure_llm'),
             context_used=result.get('context_used', []),
             response_time=response_time,
-            cached=result.get('cached', False),
+            cached=result.get('cached', False) or metadata.get('cached', False),
             suggestions=result.get('suggestions', []),
+            map_data=result.get('map_data'),  # Include map visualization data
             metadata={
                 'llm_model': 'Llama 3.1 8B (4-bit)',
                 'context_count': len(result.get('context_used', [])),
-                'rag_used': result.get('rag_used', False),
+                'rag_used': metadata.get('rag_used', False),
+                'map_generated': metadata.get('map_generated', False),
                 'cache_key': result.get('cache_key', None)
             }
         )

@@ -109,17 +109,26 @@ try:
 except ImportError as e:
     logger.error(f"❌ Pure LLM Handler failed: {e}")
 
+# === RAG Service ===
+RAG_SERVICE_AVAILABLE = False
+try:
+    from services.rag_service import get_rag_instance
+    RAG_SERVICE_AVAILABLE = True
+    logger.info("✅ RAG Service loaded")
+except ImportError as e:
+    logger.error(f"❌ RAG Service failed: {e}")
+
 # =============================
 # STARTUP EVENT
 # =============================
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Pure LLM Handler"""
+    """Initialize Pure LLM Handler with RAG"""
     global pure_llm_handler
     
     logger.info("=" * 60)
-    logger.info("🚀 Starting Pure LLM Backend")
+    logger.info("🚀 Starting Pure LLM Backend with RAG")
     logger.info("=" * 60)
     
     if PURE_LLM_HANDLER_AVAILABLE and RUNPOD_LLM_AVAILABLE and pure_llm_enabled:
@@ -127,18 +136,30 @@ async def startup_event():
             # Get database session
             db = next(get_db())
             
-            # Initialize Pure LLM Handler
+            # Initialize RAG service (if available)
+            rag_service = None
+            if RAG_SERVICE_AVAILABLE:
+                try:
+                    logger.info("📚 Initializing RAG Service...")
+                    rag_service = get_rag_instance()
+                    logger.info("✅ RAG Service initialized")
+                except Exception as rag_error:
+                    logger.warning(f"⚠️ RAG Service initialization failed: {rag_error}")
+            
+            # Initialize Pure LLM Handler with RAG
             llm_client = get_llm_client()
             pure_llm_handler = PureLLMHandler(
                 runpod_client=llm_client,
                 db_session=db,
-                redis_client=redis_client if REDIS_AVAILABLE else None
+                redis_client=redis_client if REDIS_AVAILABLE else None,
+                rag_service=rag_service
             )
             
             logger.info("✅ Pure LLM Handler initialized")
             logger.info(f"   LLM Model: Llama 3.1 8B (4-bit)")
             logger.info(f"   Endpoint: {os.getenv('LLM_API_URL')}")
             logger.info(f"   Redis Cache: {'Enabled' if REDIS_AVAILABLE else 'Disabled'}")
+            logger.info(f"   RAG Service: {'Enabled' if rag_service else 'Disabled'}")
         except Exception as e:
             logger.error(f"❌ Pure LLM Handler initialization failed: {e}")
             pure_llm_handler = None
@@ -323,6 +344,91 @@ async def pure_llm_status():
             "available": False,
             "error": str(e)
         }
+
+
+# =============================
+# RAG SERVICE TEST ENDPOINTS
+# =============================
+
+class RAGTestRequest(BaseModel):
+    """Request model for RAG testing"""
+    query: str = Field(..., description="Query for RAG retrieval")
+    top_k: Optional[int] = Field(3, description="Number of results")
+    category_filter: Optional[str] = Field(None, description="Category filter")
+
+
+class RAGTestResponse(BaseModel):
+    """Response model for RAG testing"""
+    success: bool
+    query: str
+    results: List[Dict[str, Any]] = []
+    enhanced_prompt: Optional[str] = None
+    error: Optional[str] = None
+
+
+@app.get("/api/rag/health", tags=["RAG Service"])
+async def rag_health_check():
+    """Check RAG service health and statistics"""
+    if not RAG_SERVICE_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "message": "RAG Service not loaded"
+        }
+    
+    try:
+        rag = get_rag_instance()
+        stats = rag.get_category_stats()
+        
+        return {
+            "status": "healthy",
+            "statistics": stats,
+            "total_documents": sum(stats.values()),
+            "categories": list(stats.keys())
+        }
+    except Exception as e:
+        logger.error(f"RAG health check error: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
+@app.post("/api/rag/retrieve", response_model=RAGTestResponse, tags=["RAG Service"])
+async def rag_retrieve_test(request: RAGTestRequest):
+    """Test RAG retrieval system"""
+    if not RAG_SERVICE_AVAILABLE:
+        return RAGTestResponse(
+            success=False,
+            query=request.query,
+            error="RAG Service not available"
+        )
+    
+    try:
+        rag = get_rag_instance()
+        
+        # Retrieve relevant documents
+        results = rag.retrieve(
+            query=request.query,
+            top_k=request.top_k,
+            category_filter=request.category_filter
+        )
+        
+        # Get enhanced prompt
+        enhanced_prompt = rag.enhance_prompt(request.query, top_k=request.top_k)
+        
+        return RAGTestResponse(
+            success=True,
+            query=request.query,
+            results=results,
+            enhanced_prompt=enhanced_prompt
+        )
+    except Exception as e:
+        logger.error(f"RAG retrieval error: {e}")
+        return RAGTestResponse(
+            success=False,
+            query=request.query,
+            error=str(e)
+        )
 
 
 # =============================
