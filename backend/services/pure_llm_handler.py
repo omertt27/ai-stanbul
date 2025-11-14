@@ -93,6 +93,14 @@ except ImportError:
     SEMANTIC_CACHE_AVAILABLE = False
     logging.warning("SemanticCache not available. Semantic caching disabled.")
 
+# PRIORITY 3.5: Query Explanation System
+try:
+    from backend.services.query_explainer import QueryExplainer
+    QUERY_EXPLAINER_AVAILABLE = True
+except ImportError:
+    QUERY_EXPLAINER_AVAILABLE = False
+    logging.warning("QueryExplainer not available. Query explanation disabled.")
+
 logger = logging.getLogger(__name__)
 
 
@@ -204,6 +212,9 @@ class PureLLMHandler:
         # PRIORITY 3.4: Response Caching 2.0 (Semantic Cache)
         self._init_semantic_cache()
         
+        # PRIORITY 3.5: Query Explanation System
+        self._init_query_explainer()
+        
         logger.info("✅ Pure LLM Handler initialized")
         logger.info(f"   RunPod LLM: {'✅ Enabled' if self.llm.enabled else '❌ Disabled'}")
         logger.info(f"   Redis Cache: {'✅ Enabled' if self.redis else '❌ Disabled'}")
@@ -220,6 +231,8 @@ class PureLLMHandler:
         logger.info(f"   A/B Testing: {'✅ Enabled' if AB_TESTING_AVAILABLE else '❌ Disabled'}")
         logger.info(f"   Conversational Context: {'✅ Enabled' if CONVERSATION_MANAGER_AVAILABLE else '❌ Disabled'}")
         logger.info(f"   Query Rewriting: {'✅ Enabled' if QUERY_REWRITER_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   Semantic Cache: {'✅ Enabled' if SEMANTIC_CACHE_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   Query Explainer: {'✅ Enabled' if QUERY_EXPLAINER_AVAILABLE else '❌ Disabled'}")
     
     def _init_advanced_analytics(self):
         """
@@ -592,6 +605,62 @@ class PureLLMHandler:
         except Exception as e:
             logger.error(f"Failed to initialize semantic cache: {e}")
             self.semantic_cache = None
+    
+    def _init_query_explainer(self):
+        """
+        PRIORITY 3.5: Initialize query explanation system.
+        
+        Provides transparency in how queries are understood by explaining:
+        - Detected signals and intents
+        - Confidence scores
+        - Multi-intent handling
+        - What action will be taken
+        
+        Features:
+        - LLM-based natural language explanations
+        - Multilingual support (EN, TR, etc.)
+        - Redis caching for performance
+        - Simple fallback for reliability
+        - Debugging and transparency
+        
+        Benefits:
+        - User trust through transparency
+        - Better debugging and QA
+        - Improved user experience
+        - Educational for users
+        
+        Example:
+            Query: "How do I get to restaurants in Sultanahmet?"
+            Explanation: "You're asking about both transportation and restaurants.
+                         I detected high confidence (0.92) for transportation intent
+                         and medium confidence (0.75) for restaurant intent. I'll 
+                         provide route information to dining areas in Sultanahmet."
+        """
+        if not QUERY_EXPLAINER_AVAILABLE:
+            self.query_explainer = None
+            logger.warning("   ⚠️ QueryExplainer not available - skipping initialization")
+            return
+        
+        try:
+            # Detect default language from system (fallback to English)
+            default_lang = "en"  # Can be configured via environment
+            
+            self.query_explainer = QueryExplainer(
+                llm_client=self.llm,
+                redis_client=self.redis,
+                cache_ttl=3600,  # 1 hour cache
+                language=default_lang
+            )
+            
+            logger.info("   💡 Query explainer initialized (Priority 3.5)")
+            logger.info(f"      Default language: {default_lang}")
+            logger.info(f"      Cache TTL: 1 hour")
+            logger.info(f"      Supports: EN, TR, and auto-detection")
+            logger.info(f"      Target: 100% query coverage")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize query explainer: {e}")
+            self.query_explainer = None
     
     def _prewarm_model(self):
         """
@@ -1239,20 +1308,63 @@ Be comprehensive but concise."""
                 logger.warning(f"   ⚠️ Query rewriting failed: {e}")
                 query = original_query  # Fall back to original query
         
-        # Step 1: Check cache
+        # Step 1: Check cache (PRIORITY 3.4: Semantic Cache with similarity search)
         cache_start = time.time()
-        cache_key = self._get_cache_key(query, language)
-        cached_response = await self._get_cached_response(cache_key)
-        self._track_performance("cache", time.time() - cache_start)
         
-        if cached_response:
-            self.stats["cache_hits"] += 1
-            self.service_analytics["cache_efficiency"]["hits"] += 1
-            logger.info("✅ Cache hit!")
-            return cached_response
+        # Try semantic cache first (finds similar queries)
+        cached_response = None
+        if self.semantic_cache:
+            try:
+                context_for_cache = {
+                    'language': language,
+                    'user_id': user_id,
+                    'session_id': session_id
+                }
+                cached_response = await self.semantic_cache.get_similar_response(
+                    query=query,
+                    context=context_for_cache
+                )
+                
+                if cached_response:
+                    # Semantic cache hit - return cached response
+                    self.stats["cache_hits"] += 1
+                    self.service_analytics["cache_efficiency"]["hits"] += 1
+                    logger.info("✅ Semantic cache hit! (Similar query found)")
+                    
+                    self._track_performance("cache", time.time() - cache_start)
+                    
+                    # Return cached response with metadata
+                    return {
+                        "status": "success",
+                        "response": cached_response['response']['response'],
+                        "map_data": cached_response['response'].get('map_data'),
+                        "signals": cached_response['response'].get('signals', {}),
+                        "metadata": {
+                            **cached_response['response'].get('metadata', {}),
+                            "cached": True,
+                            "cache_type": "semantic",
+                            "original_cached_query": cached_response.get('query'),
+                            "cache_retrieval_time": (time.time() - cache_start) * 1000
+                        }
+                    }
+            except Exception as e:
+                logger.warning(f"   ⚠️ Semantic cache lookup failed: {e}")
+        
+        # Fallback to exact match cache (old system)
+        if not cached_response:
+            cache_key = self._get_cache_key(query, language)
+            cached_response = await self._get_cached_response(cache_key)
+            
+            if cached_response:
+                self.stats["cache_hits"] += 1
+                self.service_analytics["cache_efficiency"]["hits"] += 1
+                logger.info("✅ Exact cache hit!")
+                self._track_performance("cache", time.time() - cache_start)
+                return cached_response
         
         # Track cache miss
         self.service_analytics["cache_efficiency"]["misses"] += 1
+        self._track_performance("cache", time.time() - cache_start)
         
         # Step 2: Detect service signals (NEW: multi-intent, semantic, language-aware)
         signals = await self._detect_service_signals(query, user_location, language)
@@ -1403,12 +1515,54 @@ Be comprehensive but concise."""
                 }
             }
             
-            # Step 10: Cache response
+            # Step 10: Cache response (PRIORITY 3.4: Semantic Cache)
+            # Cache in both systems for redundancy
             await self._cache_response(cache_key, result)
+            
+            # Also cache in semantic cache for similarity search
+            if self.semantic_cache:
+                try:
+                    context_for_cache = {
+                        'language': language,
+                        'user_id': user_id,
+                        'session_id': session_id
+                    }
+                    self.semantic_cache.cache_response(
+                        query=query,
+                        response=result,
+                        ttl=3600,  # 1 hour
+                        context=context_for_cache
+                    )
+                    logger.info(f"   🗄️ Response cached in semantic cache")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Semantic cache storage failed: {e}")
             
             logger.info(f"✅ Query processed in {total_latency:.2f}s")
             if map_data:
                 logger.info(f"   🗺️ Map visualization included")
+            
+            # PRIORITY 3.5: Generate explanation (if enabled and requested)
+            if self.query_explainer:
+                try:
+                    # Generate explanation asynchronously
+                    conv_context = None
+                    if self.conversation_manager and session_id:
+                        conv_context = {
+                            "conversation_history": self.conversation_manager.get_history(session_id),
+                            "session_id": session_id
+                        }
+                    
+                    explanation = await self.query_explainer.explain_query(
+                        query=query,
+                        signals=signals,
+                        context=conv_context,
+                        language=language
+                    )
+                    result["explanation"] = explanation
+                    logger.info(f"   💡 Explanation generated")
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Explanation generation failed: {e}")
+                    # Don't fail the whole query if explanation fails
             
             return result
             
@@ -1775,6 +1929,7 @@ Be comprehensive but concise."""
             user_location: User GPS location
             language: Response language
             intent: Pre-detected intent (optional)
+           
             max_tokens: Maximum tokens to generate
             
         Yields:
@@ -1914,6 +2069,14 @@ Be comprehensive but concise."""
             
             db_context = await self._build_smart_context(query, signals)
             yield {
+                'type': 'context',
+                'data': db_context,
+                'message': 'Context built successfully'
+            }
+            
+            # Step 5: Map visualization (if needed)
+            map_data = None
+            if signals['needs_map'] or signals['needs_gps_routing']:
                 yield {
                     'type': 'progress',
                     'stage': 'map_generation',
