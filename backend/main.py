@@ -325,25 +325,25 @@ except ImportError as e:
     print("   System will run without RunPod LLM integration")
 
 # ═══════════════════════════════════════════════════════════════════
-# PURE LLM HANDLER INTEGRATION
+# PURE LLM HANDLER INTEGRATION (New Modular API)
 # ═══════════════════════════════════════════════════════════════════
-print("\n🎯 Initializing Pure LLM Handler...")
+print("\n🎯 Initializing Pure LLM Handler (Modular Architecture)...")
 
 try:
-    from backend.services.pure_llm_handler import PureLLMHandler
+    from backend.services.llm import create_pure_llm_core, PureLLMCore
     PURE_LLM_HANDLER_AVAILABLE = True
     pure_llm_enabled = os.getenv('PURE_LLM_MODE', 'false').lower() == 'true'
-    print("✅ Pure LLM Handler loaded")
+    print("✅ Pure LLM Handler (Modular API) loaded")
     print(f"   Mode: {'ENABLED ⚡' if pure_llm_enabled else 'Available (disabled)'}")
-    print(f"   Architecture: Pure LLM (no rule-based fallback)")
+    print(f"   Architecture: Pure LLM with 10 specialized modules")
 except ImportError as e:
     PURE_LLM_HANDLER_AVAILABLE = False
     pure_llm_enabled = False
     print(f"⚠️ Pure LLM Handler not available: {e}")
     print("   System will use legacy architecture")
 
-# Global Pure LLM Handler instance
-pure_llm_handler = None
+# Global Pure LLM Core instance
+pure_llm_core = None
 
 # Enhanced Authentication imports
 try:
@@ -1121,25 +1121,28 @@ async def startup_event():
             else:
                 logger.warning("   ⚠️ Istanbul AI not available - map visualization disabled")
             
-            # Create Pure LLM Handler
-            pure_llm_handler = PureLLMHandler(
-                runpod_client=llm_client,
-                db_session=db,
-                redis_client=redis_client,
-                context_builder=context_builder,
+            # Create Pure LLM Core using new modular API
+            pure_llm_core = create_pure_llm_core(
+                db=db,
                 rag_service=rag_service,
-                istanbul_ai_system=istanbul_ai_for_maps  # NEW: Pass Istanbul AI for maps
+                redis_client=redis_client,
+                enable_cache=True,
+                enable_analytics=True,
+                enable_experimentation=False,
+                enable_conversation=True,
+                enable_query_enhancement=True
             )
             
-            logger.info("✅ Pure LLM Handler initialized successfully")
+            logger.info("✅ Pure LLM Core initialized successfully (Modular Architecture)")
             logger.info("   🎯 All queries will route through RunPod LLM")
             logger.info("   🗺️ Map visualization enabled for transportation/routes")
             logger.info("   🚫 Rule-based fallbacks disabled")
+            logger.info("   📦 Modular System: Core + 9 specialized modules")
             
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Pure LLM Handler: {e}")
+            logger.error(f"❌ Failed to initialize Pure LLM Core: {e}")
             logger.error("   Falling back to legacy architecture")
-            pure_llm_handler = None
+            pure_llm_core = None
     
     # Initialize Contextual Bandit Recommendation Engine
     try:
@@ -1863,9 +1866,9 @@ async def pure_llm_chat(
     """
     start_time = time.time()
     
-    # Check if Pure LLM Handler is available
-    if not pure_llm_handler:
-        logger.error("❌ Pure LLM Handler not initialized")
+    # Check if Pure LLM Core is available
+    if not pure_llm_core:
+        logger.error("❌ Pure LLM Core not initialized")
         return PureLLMChatResponse(
             response="Pure LLM mode is not currently enabled. Please use /api/v1/chat endpoint instead.",
             intent=request.intent or "error",
@@ -1875,14 +1878,14 @@ async def pure_llm_chat(
             response_time=time.time() - start_time,
             cached=False,
             suggestions=["Try /api/v1/chat", "Contact support"],
-            metadata={"error": "Pure LLM Handler not initialized"}
+            metadata={"error": "Pure LLM Core not initialized"}
         )
     
     try:
         logger.info(f"🎯 Pure LLM Query: '{request.message[:100]}...'")
         
-        # Process query through Pure LLM Handler
-        result = await pure_llm_handler.process_query(
+        # Process query through Pure LLM Core (new modular API)
+        result = await pure_llm_core.process_query(
             query=request.message,
             user_id=request.user_id,
             session_id=request.session_id,

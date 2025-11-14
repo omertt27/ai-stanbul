@@ -97,15 +97,15 @@ try:
 except ImportError as e:
     logger.error(f"❌ RunPod LLM Client failed: {e}")
 
-# === Pure LLM Handler ===
+# === Pure LLM Handler (New Modular API) ===
 PURE_LLM_HANDLER_AVAILABLE = False
-pure_llm_handler = None
+pure_llm_core = None
 pure_llm_enabled = os.getenv("PURE_LLM_MODE", "false").lower() == "true"
 
 try:
-    from services.pure_llm_handler import PureLLMHandler
+    from services.llm import create_pure_llm_core, PureLLMCore
     PURE_LLM_HANDLER_AVAILABLE = True
-    logger.info("✅ Pure LLM Handler loaded")
+    logger.info("✅ Pure LLM Handler (Modular API) loaded")
 except ImportError as e:
     logger.error(f"❌ Pure LLM Handler failed: {e}")
 
@@ -124,11 +124,11 @@ except ImportError as e:
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Pure LLM Handler with RAG"""
-    global pure_llm_handler
+    """Initialize Pure LLM Core (New Modular API) with RAG"""
+    global pure_llm_core
     
     logger.info("=" * 60)
-    logger.info("🚀 Starting Pure LLM Backend with RAG")
+    logger.info("🚀 Starting Pure LLM Backend with RAG (Modular Architecture)")
     logger.info("=" * 60)
     
     if PURE_LLM_HANDLER_AVAILABLE and RUNPOD_LLM_AVAILABLE and pure_llm_enabled:
@@ -146,23 +146,27 @@ async def startup_event():
                 except Exception as rag_error:
                     logger.warning(f"⚠️ RAG Service initialization failed: {rag_error}")
             
-            # Initialize Pure LLM Handler with RAG
-            llm_client = get_llm_client()
-            pure_llm_handler = PureLLMHandler(
-                runpod_client=llm_client,
-                db_session=db,
+            # Initialize Pure LLM Core using new modular API
+            pure_llm_core = create_pure_llm_core(
+                db=db,
+                rag_service=rag_service,
                 redis_client=redis_client if REDIS_AVAILABLE else None,
-                rag_service=rag_service
+                enable_cache=REDIS_AVAILABLE,
+                enable_analytics=True,
+                enable_experimentation=False,
+                enable_conversation=True,
+                enable_query_enhancement=True
             )
             
-            logger.info("✅ Pure LLM Handler initialized")
+            logger.info("✅ Pure LLM Core initialized (Modular Architecture)")
             logger.info(f"   LLM Model: Llama 3.1 8B (4-bit)")
             logger.info(f"   Endpoint: {os.getenv('LLM_API_URL')}")
             logger.info(f"   Redis Cache: {'Enabled' if REDIS_AVAILABLE else 'Disabled'}")
             logger.info(f"   RAG Service: {'Enabled' if rag_service else 'Disabled'}")
+            logger.info(f"   Modular System: ✅ Core + 9 specialized modules")
         except Exception as e:
-            logger.error(f"❌ Pure LLM Handler initialization failed: {e}")
-            pure_llm_handler = None
+            logger.error(f"❌ Pure LLM Core initialization failed: {e}")
+            pure_llm_core = None
     else:
         logger.warning("⚠️ Pure LLM mode disabled or components unavailable")
     
@@ -181,11 +185,11 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "architecture": "Pure LLM",
+        "architecture": "Pure LLM (Modular)",
         "services": {
             "api": "healthy",
             "runpod_llm": "healthy" if RUNPOD_LLM_AVAILABLE else "unavailable",
-            "pure_llm_handler": "healthy" if pure_llm_handler else "unavailable",
+            "pure_llm_core": "healthy" if pure_llm_core else "unavailable",
             "redis": "healthy" if REDIS_AVAILABLE else "unavailable",
             "database": "healthy"
         }
@@ -241,9 +245,9 @@ async def pure_llm_chat(
     """
     start_time = time.time()
     
-    # Check if Pure LLM Handler is available
-    if not pure_llm_handler:
-        logger.error("❌ Pure LLM Handler not initialized")
+    # Check if Pure LLM Core is available
+    if not pure_llm_core:
+        logger.error("❌ Pure LLM Core not initialized")
         return PureLLMChatResponse(
             response="Pure LLM mode is not currently enabled. Please check system configuration.",
             intent=request.intent or "error",
@@ -253,14 +257,14 @@ async def pure_llm_chat(
             response_time=time.time() - start_time,
             cached=False,
             suggestions=["Contact support", "Check system status"],
-            metadata={"error": "Pure LLM Handler not initialized"}
+            metadata={"error": "Pure LLM Core not initialized"}
         )
     
     try:
         logger.info(f"🎯 Pure LLM Query: '{request.message[:100]}...'")
         
-        # Process query through Pure LLM Handler
-        result = await pure_llm_handler.process_query(
+        # Process query through Pure LLM Core (new modular API)
+        result = await pure_llm_core.process_query(
             query=request.message,
             user_id=request.user_id or "anonymous",
             language=request.language or "en",
@@ -310,12 +314,12 @@ async def pure_llm_chat(
 
 @app.get("/api/chat/status", tags=["Pure LLM Chat"])
 async def pure_llm_status():
-    """Get Pure LLM system status"""
-    if not pure_llm_handler:
+    """Get Pure LLM Core system status"""
+    if not pure_llm_core:
         return {
             "enabled": False,
             "available": PURE_LLM_HANDLER_AVAILABLE,
-            "reason": "Pure LLM Handler not initialized",
+            "reason": "Pure LLM Core not initialized",
             "config": {
                 "pure_llm_mode": pure_llm_enabled,
                 "runpod_available": RUNPOD_LLM_AVAILABLE,
@@ -324,11 +328,15 @@ async def pure_llm_status():
         }
     
     try:
-        stats = pure_llm_handler.get_stats()
+        # Get analytics from modular system
+        stats = {}
+        if pure_llm_core.analytics:
+            stats = pure_llm_core.analytics.get_analytics()
         
         return {
             "enabled": True,
             "available": True,
+            "architecture": "Modular (10 specialized modules)",
             "llm_model": "Llama 3.1 8B (4-bit)",
             "endpoint": "/api/chat",
             "statistics": stats,
