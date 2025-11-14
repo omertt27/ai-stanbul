@@ -101,6 +101,22 @@ except ImportError:
     QUERY_EXPLAINER_AVAILABLE = False
     logging.warning("QueryExplainer not available. Query explanation disabled.")
 
+# PRIORITY 4.1: Smart Query Suggestions
+try:
+    from backend.services.query_suggester import create_query_suggester
+    QUERY_SUGGESTER_AVAILABLE = True
+except ImportError:
+    QUERY_SUGGESTER_AVAILABLE = False
+    logging.warning("QuerySuggester not available. Smart suggestions disabled.")
+
+# PRIORITY 4.2: Query Validation & Quality
+try:
+    from backend.services.query_validator import create_query_validator
+    QUERY_VALIDATOR_AVAILABLE = True
+except ImportError:
+    QUERY_VALIDATOR_AVAILABLE = False
+    logging.warning("QueryValidator not available. Query validation disabled.")
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,6 +231,12 @@ class PureLLMHandler:
         # PRIORITY 3.5: Query Explanation System
         self._init_query_explainer()
         
+        # PRIORITY 4.1: Smart Query Suggestions
+        self._init_query_suggester()
+        
+        # PRIORITY 4.2: Query Validation & Quality
+        self._init_query_validator()
+        
         logger.info("✅ Pure LLM Handler initialized")
         logger.info(f"   RunPod LLM: {'✅ Enabled' if self.llm.enabled else '❌ Disabled'}")
         logger.info(f"   Redis Cache: {'✅ Enabled' if self.redis else '❌ Disabled'}")
@@ -233,6 +255,8 @@ class PureLLMHandler:
         logger.info(f"   Query Rewriting: {'✅ Enabled' if QUERY_REWRITER_AVAILABLE else '❌ Disabled'}")
         logger.info(f"   Semantic Cache: {'✅ Enabled' if SEMANTIC_CACHE_AVAILABLE else '❌ Disabled'}")
         logger.info(f"   Query Explainer: {'✅ Enabled' if QUERY_EXPLAINER_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   Query Suggester: {'✅ Enabled' if QUERY_SUGGESTER_AVAILABLE else '❌ Disabled'}")
+        logger.info(f"   Query Validator: {'✅ Enabled' if QUERY_VALIDATOR_AVAILABLE else '❌ Disabled'}")
     
     def _init_advanced_analytics(self):
         """
@@ -661,6 +685,114 @@ class PureLLMHandler:
         except Exception as e:
             logger.error(f"Failed to initialize query explainer: {e}")
             self.query_explainer = None
+    
+    def _init_query_suggester(self):
+        """
+        PRIORITY 4.1: Initialize smart query suggester.
+        
+        Provides intelligent query suggestions including:
+        - Autocomplete suggestions
+        - Spell correction
+        - Related queries
+        - Trending queries
+        - Popular queries
+        
+        Features:
+        - LLM-powered suggestions
+        - Multilingual support (EN, TR, AR, etc.)
+        - Redis caching for performance
+        - Real-time autocomplete
+        - Context-aware suggestions
+        
+        Benefits:
+        - Improved user experience
+        - Reduced typos and errors
+        - Query discovery
+        - Faster query input
+        - Better engagement
+        
+        Example:
+            Input: "restura"
+            Suggestions: ["restaurant", "restaurants near me", "restaurant recommendations"]
+        """
+        if not QUERY_SUGGESTER_AVAILABLE:
+            self.query_suggester = None
+            logger.warning("   ⚠️ QuerySuggester not available - skipping initialization")
+            return
+        
+        try:
+            self.query_suggester = create_query_suggester(
+                llm_client=self.llm,
+                redis_client=self.redis
+            )
+            
+            logger.info("   🔍 Query suggester initialized (Priority 4.1)")
+            logger.info(f"      Autocomplete: ✅ Enabled")
+            logger.info(f"      Spell correction: ✅ Enabled")
+            logger.info(f"      Related queries: ✅ Enabled")
+            logger.info(f"      Cache TTL: 1 hour")
+            logger.info(f"      Supports: EN, TR, AR, DE, RU, FR")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize query suggester: {e}")
+            self.query_suggester = None
+    
+    def _init_query_validator(self):
+        """
+        PRIORITY 4.2: Initialize query validation and quality system.
+        
+        Validates and improves query quality through:
+        - Pre-validation checks
+        - Complexity detection
+        - Clarification requests
+        - Quality scoring
+        - Safety checks
+        
+        Features:
+        - LLM-powered validation
+        - Multilingual support (EN, TR, AR, etc.)
+        - Redis caching for performance
+        - Proactive clarification
+        - Quality metrics
+        
+        Benefits:
+        - Better query understanding
+        - Reduced ambiguity
+        - Improved response quality
+        - User guidance
+        - Safety and moderation
+        
+        Example:
+            Query: "restaurant" (too vague)
+            Validation: {
+                "valid": True,
+                "needs_clarification": True,
+                "clarification": "Would you like restaurants in a specific area or cuisine type?",
+                "quality_score": 0.4
+            }
+        """
+        if not QUERY_VALIDATOR_AVAILABLE:
+            self.query_validator = None
+            logger.warning("   ⚠️ QueryValidator not available - skipping initialization")
+            return
+        
+        try:
+            self.query_validator = create_query_validator(
+                llm_client=self.llm,
+                redis_client=self.redis
+            )
+            
+            logger.info("   ✅ Query validator initialized (Priority 4.2)")
+            logger.info(f"      Pre-validation: ✅ Enabled")
+            logger.info(f"      Complexity detection: ✅ Enabled")
+            logger.info(f"      Clarification: ✅ Enabled")
+            logger.info(f"      Quality scoring: ✅ Enabled")
+            logger.info(f"      Cache TTL: 30 minutes")
+            logger.info(f"      Supports: EN, TR, AR, DE, RU, FR")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize query validator: {e}")
+            self.query_validator = None
     
     def _prewarm_model(self):
         """
@@ -1289,6 +1421,30 @@ Be comprehensive but concise."""
             # Track manually provided language
             self.user_analytics["queries_by_language"][language] += 1
         
+        # PRIORITY 4.2: Query validation (validate quality and check for clarification needs)
+        validation_result = None
+        if self.query_validator:
+            try:
+                validation_start = time.time()
+                validation_result = await self.query_validator.validate_query(query, language)
+                self._track_performance("query_validation", time.time() - validation_start)
+                
+                # Track validation metrics
+                if validation_result:
+                    quality_score = validation_result.get("quality_score", 0)
+                    needs_clarification = validation_result.get("needs_clarification", False)
+                    
+                    logger.info(f"   ✅ Query validated: quality={quality_score:.2f}, needs_clarification={needs_clarification}")
+                    
+                    # If query needs clarification, include it in response metadata
+                    if needs_clarification:
+                        clarification = validation_result.get("clarification")
+                        logger.info(f"      💡 Clarification suggestion: {clarification}")
+                        self.user_analytics["clarifications_suggested"] = self.user_analytics.get("clarifications_suggested", 0) + 1
+            except Exception as e:
+                logger.warning(f"   ⚠️ Query validation failed: {e}")
+                validation_result = None
+        
         # PRIORITY 3.3: Query rewriting (before cache check to cache rewritten queries)
         original_query = query
         if self.query_rewriter:
@@ -1511,7 +1667,9 @@ Be comprehensive but concise."""
                     "cached": False,
                     "multi_intent": len(active_signals) > 2,
                     "language": language,
-                    "detected_language": language if LANGDETECT_AVAILABLE else None
+                    "detected_language": language if LANGDETECT_AVAILABLE else None,
+                    "validation": validation_result if validation_result else None,
+                    "query_rewritten": query != original_query
                 }
             }
             
@@ -2579,4 +2737,265 @@ Be comprehensive but concise."""
             
         except Exception as e:
             logger.error(f"Failed to get conversation statistics: {e}")
+            return {'enabled': True, 'error': str(e)}
+    
+    # ============================================================================
+    # PRIORITY 4.1 & 4.2: QUERY SUGGESTER & VALIDATOR HELPER METHODS
+    # ============================================================================
+    
+    async def get_autocomplete_suggestions(
+        self,
+        partial_query: str,
+        language: str = "en",
+        max_suggestions: int = 5
+    ) -> List[str]:
+        """
+        Get autocomplete suggestions for a partial query.
+        
+        PRIORITY 4.1: Smart query suggestions for improved UX.
+        
+        Args:
+            partial_query: Partial user input
+            language: Query language
+            max_suggestions: Maximum number of suggestions
+            
+        Returns:
+            List of suggested completions
+        """
+        if not self.query_suggester:
+            return []
+        
+        try:
+            suggestions = await self.query_suggester.get_autocomplete(
+                partial_query=partial_query,
+                language=language,
+                max_suggestions=max_suggestions
+            )
+            return suggestions
+            
+        except Exception as e:
+            logger.error(f"Failed to get autocomplete suggestions: {e}")
+            return []
+    
+    async def get_spell_correction(
+        self,
+        query: str,
+        language: str = "en"
+    ) -> Dict[str, Any]:
+        """
+        Get spell correction for a query.
+        
+        PRIORITY 4.1: Correct typos and misspellings.
+        
+        Args:
+            query: User query
+            language: Query language
+            
+        Returns:
+            Dict with correction info:
+            {
+                "has_correction": bool,
+                "corrected_query": str,
+                "confidence": float
+            }
+        """
+        if not self.query_suggester:
+            return {"has_correction": False, "corrected_query": query, "confidence": 0.0}
+        
+        try:
+            correction = await self.query_suggester.correct_spelling(
+                query=query,
+                language=language
+            )
+            return correction
+            
+        except Exception as e:
+            logger.error(f"Failed to get spell correction: {e}")
+            return {"has_correction": False, "corrected_query": query, "confidence": 0.0}
+    
+    async def get_related_queries(
+        self,
+        query: str,
+        language: str = "en",
+        max_queries: int = 5
+    ) -> List[str]:
+        """
+        Get related queries for discovery.
+        
+        PRIORITY 4.1: Help users discover related topics.
+        
+        Args:
+            query: User query
+            language: Query language
+            max_queries: Maximum number of related queries
+            
+        Returns:
+            List of related queries
+        """
+        if not self.query_suggester:
+            return []
+        
+        try:
+            related = await self.query_suggester.get_related_queries(
+                query=query,
+                language=language,
+                max_queries=max_queries
+            )
+            return related
+            
+        except Exception as e:
+            logger.error(f"Failed to get related queries: {e}")
+            return []
+    
+    async def validate_query_quality(
+        self,
+        query: str,
+        language: str = "en"
+    ) -> Dict[str, Any]:
+        """
+        Validate query quality and get clarification suggestions.
+        
+        PRIORITY 4.2: Improve query understanding through validation.
+        
+        Args:
+            query: User query
+            language: Query language
+            
+        Returns:
+            Validation result dict:
+            {
+                "valid": bool,
+                "quality_score": float,
+                "needs_clarification": bool,
+                "clarification": str,
+                "complexity": str,
+                "issues": List[str]
+            }
+        """
+        if not self.query_validator:
+            return {
+                "valid": True,
+                "quality_score": 1.0,
+                "needs_clarification": False,
+                "clarification": None,
+                "complexity": "simple",
+                "issues": []
+            }
+        
+        try:
+            validation = await self.query_validator.validate_query(
+                query=query,
+                language=language
+            )
+            return validation
+            
+        except Exception as e:
+            logger.error(f"Failed to validate query: {e}")
+            return {
+                "valid": True,
+                "quality_score": 0.5,
+                "needs_clarification": False,
+                "clarification": None,
+                "complexity": "unknown",
+                "issues": [str(e)]
+            }
+    
+    async def get_trending_queries(
+        self,
+        language: str = "en",
+        limit: int = 10
+    ) -> List[str]:
+        """
+        Get trending queries from recent user activity.
+        
+        PRIORITY 4.1: Show users what others are searching for.
+        
+        Args:
+            language: Query language
+            limit: Maximum number of queries
+            
+        Returns:
+            List of trending queries
+        """
+        if not self.query_suggester:
+            return []
+        
+        try:
+            trending = await self.query_suggester.get_trending_queries(
+                language=language,
+                limit=limit
+            )
+            return trending
+            
+        except Exception as e:
+            logger.error(f"Failed to get trending queries: {e}")
+            return []
+    
+    async def get_popular_queries(
+        self,
+        language: str = "en",
+        limit: int = 10
+    ) -> List[str]:
+        """
+        Get popular queries of all time.
+        
+        PRIORITY 4.1: Show users commonly asked questions.
+        
+        Args:
+            language: Query language
+            limit: Maximum number of queries
+            
+        Returns:
+            List of popular queries
+        """
+        if not self.query_suggester:
+            return []
+        
+        try:
+            popular = await self.query_suggester.get_popular_queries(
+                language=language,
+                limit=limit
+            )
+            return popular
+            
+        except Exception as e:
+            logger.error(f"Failed to get popular queries: {e}")
+            return []
+    
+    def get_suggester_statistics(self) -> Dict[str, Any]:
+        """
+        Get QuerySuggester statistics.
+        
+        Returns:
+            Statistics dict
+        """
+        if not self.query_suggester:
+            return {'enabled': False}
+        
+        try:
+            stats = self.query_suggester.get_statistics()
+            stats['enabled'] = True
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Failed to get suggester statistics: {e}")
+            return {'enabled': True, 'error': str(e)}
+    
+    def get_validator_statistics(self) -> Dict[str, Any]:
+        """
+        Get QueryValidator statistics.
+        
+        Returns:
+            Statistics dict
+        """
+        if not self.query_validator:
+            return {'enabled': False}
+        
+        try:
+            stats = self.query_validator.get_statistics()
+            stats['enabled'] = True
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Failed to get validator statistics: {e}")
             return {'enabled': True, 'error': str(e)}
