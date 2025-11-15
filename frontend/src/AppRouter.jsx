@@ -14,6 +14,7 @@ import BlogPost from "./pages/BlogPost";
 import NewBlogPost from "./pages/NewBlogPost";
 import IntelligentRoutePlanner from "./pages/IntelligentRoutePlanner";
 import LLMAnalyticsDashboard from "./components/LLMAnalyticsDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import './App.css';
 
 function AppRouter() {
@@ -29,6 +30,7 @@ function AppRouter() {
             <Route path="/route-planner" element={<IntelligentRoutePlanner />} />
             <Route path="/analytics" element={<LLMAnalyticsDashboard />} />
             <Route path="/llm-analytics" element={<LLMAnalyticsDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />

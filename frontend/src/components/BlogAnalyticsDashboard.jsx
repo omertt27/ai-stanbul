@@ -43,7 +43,7 @@ const BlogAnalyticsDashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/blog/analytics/performance');
+      const response = await fetch('http://localhost:8001/blog/analytics/performance');
       const data = await response.json();
       
       if (data.success) {
@@ -59,7 +59,7 @@ const BlogAnalyticsDashboard = () => {
 
   const fetchRealtimeMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:8000/blog/analytics/realtime');
+      const response = await fetch('http://localhost:8001/blog/analytics/realtime');
       const data = await response.json();
       
       if (data.success) {

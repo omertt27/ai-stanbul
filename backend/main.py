@@ -1086,7 +1086,7 @@ else:
 @app.on_event("startup")
 async def startup_event():
     """Startup tasks - check ML service connection and initialize recommendation engine"""
-    global integrated_recommendation_engine, pure_llm_handler, pure_llm_core
+    global integrated_recommendation_engine, pure_llm_core
     
     logger.info("🚀 Starting AI Istanbul Backend")
     logger.info("=" * 60)
@@ -1439,6 +1439,75 @@ async def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed. Please try again."
         )
+
+
+@app.post("/api/auth/admin-login", tags=["Authentication"])
+async def admin_login(username: str = Body(...), password: str = Body(...)):
+    """
+    Admin login endpoint for dashboard access
+    Uses ADMIN_USERNAME and ADMIN_PASSWORD_HASH from environment
+    """
+    import bcrypt
+    
+    admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+    admin_password_hash = os.getenv('ADMIN_PASSWORD_HASH', '')
+    
+    if not admin_password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin authentication not configured"
+        )
+    
+    # Verify username
+    if username != admin_username:
+        logger.warning(f"❌ Admin login failed: invalid username '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+    
+    # Verify password with bcrypt
+    try:
+        password_bytes = password.encode('utf-8')
+        hash_bytes = admin_password_hash.encode('utf-8')
+        
+        if not bcrypt.checkpw(password_bytes, hash_bytes):
+            logger.warning(f"❌ Admin login failed: invalid password for user '{username}'")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+    except Exception as e:
+        logger.error(f"❌ Admin login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication error"
+        )
+    
+    # Generate token (simple JWT or session token)
+    import jwt
+    from datetime import datetime, timedelta
+    
+    jwt_secret = os.getenv('JWT_SECRET_KEY', os.getenv('SECRET_KEY', 'default-secret'))
+    
+    token_data = {
+        "username": username,
+        "role": "admin",
+        "exp": datetime.utcnow() + timedelta(hours=24)
+    }
+    
+    token = jwt.encode(token_data, jwt_secret, algorithm="HS256")
+    
+    logger.info(f"✅ Admin logged in successfully: {username}")
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "username": username,
+            "role": "admin"
+        }
+    }
 
 
 @app.post("/api/auth/refresh", response_model=TokenResponse, tags=["Authentication"])
@@ -1960,16 +2029,34 @@ async def pure_llm_chat(
 @app.get("/api/chat/status", tags=["Pure LLM Chat"])
 async def pure_llm_status():
     """Get Pure LLM system status"""
-    if not pure_llm_handler:
+    if not pure_llm_core:
         return {
             "enabled": False,
             "available": PURE_LLM_HANDLER_AVAILABLE,
-            "reason": "Pure LLM Handler not initialized or disabled",
+            "reason": "Pure LLM Core not initialized or disabled",
             "use_endpoint": "/api/v1/chat"
         }
     
     try:
-        stats = pure_llm_handler.get_stats()
+        # Get statistics from the modular core
+        stats = {
+            "architecture": "Modular (9 specialized modules)",
+            "llm_model": "Llama 3.1 8B (4-bit)",
+            "cache_enabled": pure_llm_core.cache is not None,
+            "analytics_enabled": pure_llm_core.analytics is not None,
+            "conversation_enabled": pure_llm_core.conversation is not None,
+            "query_enhancement_enabled": pure_llm_core.query_enhancer is not None,
+            "rag_enabled": pure_llm_core.rag_service is not None,
+            "modules": [
+                "SignalDetector",
+                "ContextBuilder", 
+                "PromptBuilder",
+                "AnalyticsManager",
+                "CacheManager",
+                "QueryEnhancer",
+                "ConversationManager"
+            ]
+        }
         
         return {
             "enabled": True,
@@ -2738,6 +2825,14 @@ try:
 except ImportError as e:
     print(f"⚠️ LLM Statistics routes not available: {e}")
 
+# Blog API with Analytics
+try:
+    from routes.blog import router as blog_router
+    app.include_router(blog_router)  # Blog router already has prefix="/blog"
+    print("✅ Blog API routes registered (with analytics)")
+except ImportError as e:
+    print(f"⚠️ Blog routes not available: {e}")
+
 print("✅ Week 3-4 APIs loaded\n")
 
 # ═══════════════════════════════════════════════════════════════════
@@ -2769,3 +2864,5 @@ if __name__ == "__main__":
         reload=False,
         log_level="info"
     )
+# ADMIN AUTHENTICATION ENDPOINTS
+# =============================

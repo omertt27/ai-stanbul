@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
-import BlogAnalyticsDashboard from '../components/BlogAnalyticsDashboard';
+import UnifiedAnalyticsDashboard from '../components/UnifiedAnalyticsDashboard';
 
 const AdminDashboard = () => {
   const { darkMode } = useTheme();
@@ -20,14 +20,14 @@ const AdminDashboard = () => {
     try {
       const API_BASE_URL = process.env.NODE_ENV === 'production' 
         ? 'https://ai-istanbul-backend.render.com'
-        : 'http://localhost:8000';
+        : 'http://localhost:8001';  // Backend runs on port 8001
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password }),  // Admin endpoint expects 'username' field
       });
 
       if (response.ok) {
@@ -193,103 +193,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Analytics Dashboard */}
-        <div className={`rounded-xl shadow-xl transition-colors duration-200 ${
-          darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-        }`}>
-          <BlogAnalyticsDashboard />
-        </div>
-
-        {/* Additional Admin Features */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
-          <div className={`p-6 rounded-xl shadow-xl transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-          }`}>
-            <h3 className={`text-xl font-bold mb-4 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full p-3 text-left rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200">
-                📝 Create New Post
-              </button>
-              <button className="w-full p-3 text-left rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors duration-200">
-                📊 Export Analytics
-              </button>
-              <button className="w-full p-3 text-left rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200">
-                🔧 Manage Content
-              </button>
-            </div>
-          </div>
-
-          {/* System Status */}
-          <div className={`p-6 rounded-xl shadow-xl transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-          }`}>
-            <h3 className={`text-xl font-bold mb-4 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              System Status
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>API Server</span>
-                <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full">Online</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Database</span>
-                <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full">Connected</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Weather API</span>
-                <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full">Active</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className={`p-6 rounded-xl shadow-xl transition-colors duration-200 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-          }`}>
-            <h3 className={`text-xl font-bold mb-4 transition-colors duration-200 ${
-              darkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Recent Activity
-            </h3>
-            <div className="space-y-3">
-              <div className={`p-3 rounded-lg transition-colors duration-200 ${
-                darkMode ? 'bg-gray-700' : 'bg-gray-50'
-              }`}>
-                <p className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  New blog post published
-                </p>
-                <p className={`text-xs transition-colors duration-200 ${
-                  darkMode ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  2 hours ago
-                </p>
-              </div>
-              <div className={`p-3 rounded-lg transition-colors duration-200 ${
-                darkMode ? 'bg-gray-700' : 'bg-gray-50'
-              }`}>
-                <p className={`text-sm transition-colors duration-200 ${
-                  darkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Analytics updated
-                </p>
-                <p className={`text-xs transition-colors duration-200 ${
-                  darkMode ? 'text-gray-500' : 'text-gray-500'
-                }`}>
-                  5 minutes ago
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Unified Analytics Dashboard */}
+        <UnifiedAnalyticsDashboard />
       </div>
     </div>
   );
