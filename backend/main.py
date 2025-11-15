@@ -1050,6 +1050,22 @@ app = FastAPI(
     version="2.1.0"  # Bumped version for infrastructure updates
 )
 
+# Add CORS middleware for frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3001",  # Vite dev server (primary)
+        "http://localhost:5173",  # Alternative Vite port
+        "http://localhost:3000",  # Alternative frontend port
+        "http://localhost:8080",  # Alternative frontend port
+        "https://ai-stanbul.vercel.app",  # Production frontend
+        "*"  # Allow all origins in development (remove in production!)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Initialize Authentication Manager
 auth_manager = None
 if ENHANCED_AUTH_AVAILABLE:
@@ -1070,7 +1086,7 @@ else:
 @app.on_event("startup")
 async def startup_event():
     """Startup tasks - check ML service connection and initialize recommendation engine"""
-    global integrated_recommendation_engine, pure_llm_handler
+    global integrated_recommendation_engine, pure_llm_handler, pure_llm_core
     
     logger.info("🚀 Starting AI Istanbul Backend")
     logger.info("=" * 60)
@@ -1871,6 +1887,7 @@ async def pure_llm_chat(
         logger.error("❌ Pure LLM Core not initialized")
         return PureLLMChatResponse(
             response="Pure LLM mode is not currently enabled. Please use /api/v1/chat endpoint instead.",
+           
             intent=request.intent or "error",
             confidence=0.0,
             method="error",
@@ -1887,11 +1904,10 @@ async def pure_llm_chat(
         # Process query through Pure LLM Core (new modular API)
         result = await pure_llm_core.process_query(
             query=request.message,
-            user_id=request.user_id,
+            user_id=request.user_id or "anonymous",
             session_id=request.session_id,
             user_location=request.user_location,
-            language=request.language,
-            intent=request.intent
+            language=request.language
         )
         
         # Build response
@@ -2713,6 +2729,14 @@ try:
     print("✅ Route Planner API routes registered")
 except ImportError as e:
     print(f"⚠️ Route Planner routes not available: {e}")
+
+# LLM Statistics API
+try:
+    from routes.llm_stats import router as llm_stats_router
+    app.include_router(llm_stats_router)
+    print("✅ LLM Statistics API routes registered")
+except ImportError as e:
+    print(f"⚠️ LLM Statistics routes not available: {e}")
 
 print("✅ Week 3-4 APIs loaded\n")
 

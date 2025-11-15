@@ -13,6 +13,7 @@ import BlogList from "./pages/BlogList";
 import BlogPost from "./pages/BlogPost";
 import NewBlogPost from "./pages/NewBlogPost";
 import IntelligentRoutePlanner from "./pages/IntelligentRoutePlanner";
+import LLMAnalyticsDashboard from "./components/LLMAnalyticsDashboard";
 import './App.css';
 
 function AppRouter() {
@@ -26,6 +27,8 @@ function AppRouter() {
             <Route path="/chat" element={<Chatbot />} />
             <Route path="/chatbot" element={<Chatbot />} />
             <Route path="/route-planner" element={<IntelligentRoutePlanner />} />
+            <Route path="/analytics" element={<LLMAnalyticsDashboard />} />
+            <Route path="/llm-analytics" element={<LLMAnalyticsDashboard />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />

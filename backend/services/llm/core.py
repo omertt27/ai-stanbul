@@ -947,23 +947,82 @@ class PureLLMCore:
 # ============================================================================
 
 def create_pure_llm_core(
-    llm_client,
-    db_connection,
+    db=None,
+    rag_service=None,
+    redis_client=None,
+    llm_client=None,
+    db_connection=None,
+    enable_cache: bool = True,
+    enable_analytics: bool = True,
+    enable_experimentation: bool = False,
+    enable_conversation: bool = True,
+    enable_query_enhancement: bool = True,
     config: Optional[Dict[str, Any]] = None
 ) -> PureLLMCore:
     """
     Factory function to create a PureLLMCore instance.
     
+    Supports both old and new calling patterns:
+    - Old: db, rag_service, redis_client, enable_*
+    - New: llm_client, db_connection, config
+    
     Args:
+        db: Database connection (legacy parameter)
+        rag_service: RAG service instance
+        redis_client: Redis client for caching
         llm_client: LLM API client
-        db_connection: Database connection
-        config: Configuration dictionary
+        db_connection: Database connection (new parameter)
+        enable_cache: Enable caching system
+        enable_analytics: Enable analytics tracking
+        enable_experimentation: Enable A/B testing
+        enable_conversation: Enable conversation management
+        enable_query_enhancement: Enable query enhancement
+        config: Configuration dictionary (overrides other parameters)
         
     Returns:
         Initialized PureLLMCore instance
     """
+    # Handle legacy parameters
+    if db and not db_connection:
+        db_connection = db
+    
+    # Build config from parameters if not provided
+    if config is None:
+        config = {}
+    
+    # Add services to config
+    if rag_service and 'rag_service' not in config:
+        config['rag_service'] = rag_service
+    
+    if redis_client and 'redis_client' not in config:
+        config['redis_client'] = redis_client
+    
+    # Add feature flags to config
+    config.setdefault('enable_cache', enable_cache)
+    config.setdefault('enable_semantic_cache', enable_cache)
+    config.setdefault('enable_analytics', enable_analytics)
+    config.setdefault('enable_detailed_tracking', enable_analytics)
+    config.setdefault('enable_ab_testing', enable_experimentation)
+    config.setdefault('enable_threshold_learning', enable_experimentation)
+    config.setdefault('enable_conversation', enable_conversation)
+    config.setdefault('enable_query_enhancement', enable_query_enhancement)
+    config.setdefault('enable_spell_check', enable_query_enhancement)
+    config.setdefault('enable_rewriting', enable_query_enhancement)
+    config.setdefault('enable_validation', enable_query_enhancement)
+    
+    # Initialize LLM client if not provided
+    if llm_client is None:
+        try:
+            from backend.services.runpod_llm_client import RunPodLLMClient
+            llm_client = RunPodLLMClient()
+            logger.info("✅ RunPod LLM Client initialized automatically")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to initialize LLM client: {e}")
+            llm_client = None
+    
     return PureLLMCore(
         llm_client=llm_client,
         db_connection=db_connection,
         config=config
     )
+

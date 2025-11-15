@@ -65,7 +65,7 @@ class CacheManager:
             'stores': 0
         }
         
-        logger.info(f"✅ Cache Manager initialized (semantic={'enabled' if enable_semantic else 'disabled'})")
+        logger.info(f"✅ Cache Manager initialized (semantic={'enabled' if enable_semantic_cache else 'disabled'})")
     
     async def get_cached_response(
         self,
