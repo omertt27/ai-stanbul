@@ -14,6 +14,9 @@ Supported Signals:
 - needs_map: Visual map generation
 - needs_gps_routing: GPS-based routing
 - needs_translation: Translation requests
+- needs_shopping: Shopping recommendations (PHASE 3)
+- needs_nightlife: Nightlife and entertainment (PHASE 3)
+- needs_family_friendly: Family-friendly activities (PHASE 3)
 
 Author: AI Istanbul Team
 Date: November 2025
@@ -75,7 +78,10 @@ class SignalDetector:
                 'needs_hidden_gems': 0.40,
                 'needs_map': 0.45,
                 'needs_gps_routing': 0.50,
-                'needs_translation': 0.35
+                'needs_translation': 0.35,
+                'needs_shopping': 0.35,  # PHASE 3
+                'needs_nightlife': 0.35,  # PHASE 3
+                'needs_family_friendly': 0.35  # PHASE 3
             },
             'en': {
                 'needs_restaurant': 0.30,
@@ -87,7 +93,10 @@ class SignalDetector:
                 'needs_hidden_gems': 0.35,
                 'needs_map': 0.40,
                 'needs_gps_routing': 0.45,
-                'needs_translation': 0.30
+                'needs_translation': 0.30,
+                'needs_shopping': 0.30,  # PHASE 3
+                'needs_nightlife': 0.30,  # PHASE 3
+                'needs_family_friendly': 0.30  # PHASE 3
             },
             'tr': {
                 'needs_restaurant': 0.35,
@@ -99,7 +108,10 @@ class SignalDetector:
                 'needs_hidden_gems': 0.40,
                 'needs_map': 0.45,
                 'needs_gps_routing': 0.50,
-                'needs_translation': 0.35
+                'needs_translation': 0.35,
+                'needs_shopping': 0.35,  # PHASE 3
+                'needs_nightlife': 0.35,  # PHASE 3
+                'needs_family_friendly': 0.35  # PHASE 3
             }
         }
     
@@ -218,6 +230,43 @@ class SignalDetector:
                 'tr': [
                     r'\b(çevir|çeviri|nasıl\s+denir|ne\s+demek)\b',
                     r'\b(türkçe|ingilizce|dil)\b'
+                ]
+            },
+            # PHASE 3: New Signals
+            'needs_shopping': {
+                'en': [
+                    r'\b(shop|shopping|mall|market|store|boutique|buy|purchase)\b',
+                    r'\b(grand\s+bazaar|spice\s+market|istiklal|shopping\s+street)\b',
+                    r'\b(souvenir|gift|clothes|fashion|retail)\b'
+                ],
+                'tr': [
+                    r'\b(alışveriş|mağaza|market|çarşı|pazar|dükkan|satın\s+al)\b',
+                    r'\b(kapalı\s+çarşı|mısır\s+çarşısı|istiklal)\b',
+                    r'\b(hediyelik|hediye|kıyafet|moda)\b'
+                ]
+            },
+            'needs_nightlife': {
+                'en': [
+                    r'\b(nightlife|bar|club|pub|party|drink|cocktail)\b',
+                    r'\b(night\s+out|going\s+out|evening|late\s+night)\b',
+                    r'\b(live\s+music|dj|dance|entertainment)\b'
+                ],
+                'tr': [
+                    r'\b(gece\s+hayatı|bar|kulüp|pub|parti|içki|kokteyl)\b',
+                    r'\b(gece\s+çıkma|eğlence|akşam)\b',
+                    r'\b(canlı\s+müzik|dj|dans)\b'
+                ]
+            },
+            'needs_family_friendly': {
+                'en': [
+                    r'\b(family|kid|child|children|baby|toddler)\b',
+                    r'\b(family.*friendly|kid.*friendly|with\s+kids|with\s+children)\b',
+                    r'\b(playground|aquarium|zoo|park|activity\s+for\s+kids)\b'
+                ],
+                'tr': [
+                    r'\b(aile|çocuk|bebek|küçük)\b',
+                    r'\b(aile\s+dostu|çocuklu|çocuklarla)\b',
+                    r'\b(oyun\s+alanı|akvaryum|hayvanat\s+bahçesi|park)\b'
                 ]
             }
         }

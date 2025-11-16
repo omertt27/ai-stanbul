@@ -11,12 +11,25 @@ Context Sources:
 - Hidden Gems: Off-the-beaten-path locations
 - Map Service: Visual maps and routing
 
+Features resilience patterns:
+- Circuit breakers for external services
+- Graceful degradation when services fail
+- Timeout management
+
 Author: AI Istanbul Team
 Date: November 2025
 """
 
 import logging
 from typing import Dict, Any, Optional, List
+import asyncio
+from .resilience import (
+    CircuitBreaker, 
+    CircuitBreakerError,
+    RetryStrategy,
+    TimeoutManager,
+    GracefulDegradation
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +49,10 @@ class ContextBuilder:
         weather_service=None,
         events_service=None,
         hidden_gems_service=None,
-        map_service=None
+        map_service=None,
+        circuit_breakers=None,
+        timeout_manager=None,
+        retry_strategy=None
     ):
         """
         Initialize context builder.
@@ -48,6 +64,9 @@ class ContextBuilder:
             events_service: Events service
             hidden_gems_service: Hidden gems service
             map_service: Map generation service
+            circuit_breakers: Dict of circuit breakers for services
+            timeout_manager: Timeout manager instance
+            retry_strategy: Retry strategy for transient failures
         """
         self.db = db_connection
         self.rag_service = rag_service
@@ -55,6 +74,9 @@ class ContextBuilder:
         self.events_service = events_service
         self.hidden_gems_service = hidden_gems_service
         self.map_service = map_service
+        self.circuit_breakers = circuit_breakers or {}
+        self.timeout_manager = timeout_manager
+        self.retry_strategy = retry_strategy or RetryStrategy(max_retries=2, base_delay=0.5)
         
         logger.info("✅ Context Builder initialized")
     
@@ -97,26 +119,56 @@ class ContextBuilder:
                 language=language
             )
         
-        # Get RAG context
+        # Get RAG context with retry and circuit breaker
         if self.rag_service:
             try:
-                context['rag'] = await self._get_rag_context(query, language)
+                rag_cb = self.circuit_breakers.get('rag')
+                if rag_cb:
+                    context['rag'] = await rag_cb.call(
+                        self._get_rag_context_with_retry, query, language
+                    )
+                else:
+                    context['rag'] = await self._get_rag_context_with_retry(query, language)
+            except CircuitBreakerError:
+                logger.warning("RAG circuit breaker is open, using fallback")
+                context['rag'] = GracefulDegradation.get_fallback_context('rag').get('message', '')
             except Exception as e:
                 logger.warning(f"RAG context failed: {e}")
+                context['rag'] = GracefulDegradation.get_fallback_context('rag').get('message', '')
         
-        # Get weather context
+        # Get weather context with retry and circuit breaker
         if signals.get('needs_weather') and self.weather_service:
             try:
-                context['services']['weather'] = await self._get_weather_context(query)
+                weather_cb = self.circuit_breakers.get('weather')
+                if weather_cb:
+                    context['services']['weather'] = await weather_cb.call(
+                        self._get_weather_context_with_retry, query
+                    )
+                else:
+                    context['services']['weather'] = await self._get_weather_context_with_retry(query)
+            except CircuitBreakerError:
+                logger.warning("Weather circuit breaker is open, using fallback")
+                context['services']['weather'] = GracefulDegradation.get_fallback_context('weather')
             except Exception as e:
                 logger.warning(f"Weather context failed: {e}")
+                context['services']['weather'] = GracefulDegradation.get_fallback_context('weather')
         
-        # Get events context
+        # Get events context with retry and circuit breaker
         if signals.get('needs_events') and self.events_service:
             try:
-                context['services']['events'] = await self._get_events_context()
+                events_cb = self.circuit_breakers.get('events')
+                if events_cb:
+                    context['services']['events'] = await events_cb.call(
+                        self._get_events_context_with_retry
+                    )
+                else:
+                    context['services']['events'] = await self._get_events_context_with_retry()
+            except CircuitBreakerError:
+                logger.warning("Events circuit breaker is open, using fallback")
+                context['services']['events'] = GracefulDegradation.get_fallback_context('events')
             except Exception as e:
                 logger.warning(f"Events context failed: {e}")
+                context['services']['events'] = GracefulDegradation.get_fallback_context('events')
         
         # Get hidden gems context
         if signals.get('needs_hidden_gems') and self.hidden_gems_service:
@@ -206,18 +258,27 @@ class ContextBuilder:
         user_location: Optional[Dict[str, float]],
         language: str
     ) -> str:
-        """Get restaurant data from database."""
+        """Get restaurant data from database with retry and timeout protection."""
         try:
-            # TODO: Implement actual database query
-            # This is a placeholder
-            cursor = await self.db.execute("""
-                SELECT name, cuisine, district, price_range, rating
-                FROM restaurants
-                WHERE language = ?
-                LIMIT 5
-            """, (language,))
+            # Database query with circuit breaker and timeout
+            async def _query_db():
+                cursor = await self.db.execute("""
+                    SELECT name, cuisine, district, price_range, rating
+                    FROM restaurants
+                    WHERE language = ?
+                    LIMIT 5
+                """, (language,))
+                return await cursor.fetchall()
             
-            rows = await cursor.fetchall()
+            # Apply timeout if timeout manager available
+            if self.timeout_manager:
+                rows = await self.timeout_manager.execute(
+                    'database_query',
+                    _query_db,
+                    timeout=3.0
+                )
+            else:
+                rows = await _query_db()
             
             if not rows:
                 return ""
@@ -242,17 +303,27 @@ class ContextBuilder:
         user_location: Optional[Dict[str, float]],
         language: str
     ) -> str:
-        """Get attraction data from database."""
+        """Get attraction data from database with retry and timeout protection."""
         try:
-            # TODO: Implement actual database query
-            cursor = await self.db.execute("""
-                SELECT name, category, district, description
-                FROM attractions
-                WHERE language = ?
-                LIMIT 5
-            """, (language,))
+            # Database query with timeout
+            async def _query_db():
+                cursor = await self.db.execute("""
+                    SELECT name, category, district, description
+                    FROM attractions
+                    WHERE language = ?
+                    LIMIT 5
+                """, (language,))
+                return await cursor.fetchall()
             
-            rows = await cursor.fetchall()
+            # Apply timeout if timeout manager available
+            if self.timeout_manager:
+                rows = await self.timeout_manager.execute(
+                    'database_query',
+                    _query_db,
+                    timeout=3.0
+                )
+            else:
+                rows = await _query_db()
             
             if not rows:
                 return ""
@@ -289,12 +360,19 @@ class ContextBuilder:
             return ""
     
     async def _get_rag_context(self, query: str, language: str) -> str:
-        """Get RAG context from embeddings."""
+        """Get RAG context from embeddings with circuit breaker protection."""
         if not self.rag_service:
             return ""
         
         try:
-            results = await self.rag_service.search(query, language=language, top_k=3)
+            # Use circuit breaker if available
+            if 'rag' in self.circuit_breakers:
+                async def _search():
+                    return await self.rag_service.search(query, language=language, top_k=3)
+                
+                results = await self.circuit_breakers['rag'].call(_search)
+            else:
+                results = await self.rag_service.search(query, language=language, top_k=3)
             
             if not results:
                 return ""
@@ -305,35 +383,55 @@ class ContextBuilder:
                 context_parts.append(f"[Score: {result.get('score', 0):.2f}] {result.get('text', '')[:200]}...")
             
             return "\n\n".join(context_parts)
-            
+        
         except Exception as e:
             logger.error(f"RAG search failed: {e}")
-            return ""
+            # Return graceful degradation message
+            from .resilience import GracefulDegradation
+            fallback = GracefulDegradation.get_fallback_context('rag')
+            return fallback.get('message', '')
     
     async def _get_weather_context(self, query: str) -> str:
-        """Get weather context."""
+        """Get weather context with circuit breaker protection."""
         if not self.weather_service:
             return ""
         
         try:
-            weather = await self.weather_service.get_current_weather("Istanbul")
+            # Use circuit breaker if available
+            if 'weather' in self.circuit_breakers:
+                async def _get_weather():
+                    return await self.weather_service.get_current_weather("Istanbul")
+                
+                weather = await self.circuit_breakers['weather'].call(_get_weather)
+            else:
+                weather = await self.weather_service.get_current_weather("Istanbul")
             
             return (
                 f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "
                 f"{weather.get('temperature', '?')}°C. {weather.get('description', '')}"
             )
-            
+        
         except Exception as e:
             logger.error(f"Weather service failed: {e}")
-            return ""
+            # Return graceful degradation message
+            from .resilience import GracefulDegradation
+            fallback = GracefulDegradation.get_fallback_context('weather')
+            return fallback.get('weather_info', '')
     
     async def _get_events_context(self) -> str:
-        """Get events context."""
+        """Get events context with circuit breaker protection."""
         if not self.events_service:
             return ""
         
         try:
-            events = await self.events_service.get_upcoming_events(limit=5)
+            # Use circuit breaker if available
+            if 'events' in self.circuit_breakers:
+                async def _get_events():
+                    return await self.events_service.get_upcoming_events(limit=5)
+                
+                events = await self.circuit_breakers['events'].call(_get_events)
+            else:
+                events = await self.events_service.get_upcoming_events(limit=5)
             
             if not events:
                 return ""
@@ -347,10 +445,13 @@ class ContextBuilder:
                 )
             
             return "\n".join(event_list)
-            
+        
         except Exception as e:
             logger.error(f"Events service failed: {e}")
-            return ""
+            # Return graceful degradation message
+            from .resilience import GracefulDegradation
+            fallback = GracefulDegradation.get_fallback_context('events')
+            return fallback.get('message', '')
     
     async def _get_hidden_gems_context(self, query: str) -> str:
         """Get hidden gems context."""
@@ -401,3 +502,54 @@ class ContextBuilder:
         except Exception as e:
             logger.error(f"Map generation failed: {e}")
             return None
+    
+    async def _get_rag_context_with_retry(self, query: str, language: str) -> str:
+        """Get RAG context with retry logic for transient failures."""
+        async def _get_rag():
+            if self.timeout_manager:
+                return await self.timeout_manager.execute(
+                    'rag_search',
+                    self._get_rag_context,
+                    query,
+                    language,
+                    timeout=4.0
+                )
+            return await self._get_rag_context(query, language)
+        
+        return await self.retry_strategy.execute(
+            _get_rag,
+            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
+        )
+    
+    async def _get_weather_context_with_retry(self, query: str) -> dict:
+        """Get weather context with retry logic for transient failures."""
+        async def _get_weather():
+            if self.timeout_manager:
+                return await self.timeout_manager.execute(
+                    'weather_api',
+                    self._get_weather_context,
+                    query,
+                    timeout=2.0
+                )
+            return await self._get_weather_context(query)
+        
+        return await self.retry_strategy.execute(
+            _get_weather,
+            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
+        )
+    
+    async def _get_events_context_with_retry(self) -> dict:
+        """Get events context with retry logic for transient failures."""
+        async def _get_events():
+            if self.timeout_manager:
+                return await self.timeout_manager.execute(
+                    'events_api',
+                    self._get_events_context,
+                    timeout=2.0
+                )
+            return await self._get_events_context()
+        
+        return await self.retry_strategy.execute(
+            _get_events,
+            retryable_exceptions=[ConnectionError, TimeoutError, asyncio.TimeoutError]
+        )

@@ -16,8 +16,8 @@ Author: AI Istanbul Team
 Date: November 2025
 """
 
-# Import core factory and orchestrator
-from .core import PureLLMCore, create_pure_llm_core
+# Import core orchestrator
+from .core import PureLLMCore
 
 # Import all individual modules for direct access
 from .signals import SignalDetector
@@ -32,7 +32,6 @@ from .experimentation import ExperimentationManager
 __all__ = [
     # Core
     'PureLLMCore',
-    'create_pure_llm_core',
     # Individual modules
     'SignalDetector',
     'ContextBuilder',

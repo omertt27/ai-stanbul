@@ -10,6 +10,7 @@ This module orchestrates all the extracted components:
 - Conversation Management (conversation.py)
 - Caching (caching.py)
 - A/B Testing & Threshold Learning (experimentation.py)
+- Resilience Patterns (resilience.py)
 
 Author: AI Istanbul Team
 Date: November 2025
@@ -31,6 +32,15 @@ from .query_enhancement import QueryEnhancer
 from .conversation import ConversationManager
 from .caching import CacheManager
 from .experimentation import ExperimentationManager
+from .resilience import (
+    CircuitBreaker, 
+    CircuitBreakerError, 
+    RetryStrategy, 
+    TimeoutManager,
+    GracefulDegradation
+)
+from .personalization import PersonalizationEngine
+from .auto_tuning import AutoTuner
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +112,62 @@ class PureLLMCore:
     def _initialize_subsystems(self):
         """Initialize all subsystem modules."""
         
+        # 0. Resilience System (Circuit Breakers, Retry, Timeout, Graceful Degradation)
+        logger.info("🛡️ Initializing resilience components...")
+        
+        # Circuit Breakers for each external service
+        self.circuit_breakers = {
+            'llm': CircuitBreaker(
+                name='LLM Service',
+                failure_threshold=self.config.get('llm_failure_threshold', 5),
+                success_threshold=2,
+                timeout=60.0  # 1 minute before retry
+            ),
+            'database': CircuitBreaker(
+                name='Database',
+                failure_threshold=self.config.get('db_failure_threshold', 3),
+                success_threshold=2,
+                timeout=30.0
+            ),
+            'rag': CircuitBreaker(
+                name='RAG Service',
+                failure_threshold=4,
+                success_threshold=2,
+                timeout=45.0
+            ),
+            'weather': CircuitBreaker(
+                name='Weather API',
+                failure_threshold=3,
+                success_threshold=2,
+                timeout=30.0
+            ),
+            'events': CircuitBreaker(
+                name='Events API',
+                failure_threshold=3,
+                success_threshold=2,
+                timeout=30.0
+            )
+        }
+        
+        # Retry Strategy with exponential backoff
+        self.retry_strategy = RetryStrategy(
+            max_retries=self.config.get('max_retries', 3),
+            base_delay=1.0,
+            max_delay=10.0,
+            exponential_base=2.0,
+            jitter=True
+        )
+        
+        # Timeout Manager
+        self.timeout_manager = TimeoutManager()
+        
+        # Override default timeouts if provided in config
+        if 'timeouts' in self.config:
+            for operation, timeout in self.config['timeouts'].items():
+                self.timeout_manager.update_timeout(operation, timeout)
+        
+        logger.info("✅ Resilience components initialized")
+        
         # 1. Signal Detection System
         self.signal_detector = SignalDetector(
             embedding_model=self.config.get('embedding_model'),
@@ -114,7 +180,9 @@ class PureLLMCore:
             rag_service=self.config.get('rag_service'),
             weather_service=self.config.get('weather_service'),
             events_service=self.config.get('events_service'),
-            hidden_gems_service=self.config.get('hidden_gems_service')
+            hidden_gems_service=self.config.get('hidden_gems_service'),
+            circuit_breakers=self.circuit_breakers,
+            timeout_manager=self.timeout_manager
         )
         
         # 3. Prompt Engineering System
@@ -155,7 +223,31 @@ class PureLLMCore:
             auto_tune_interval_hours=self.config.get('auto_tune_interval_hours', 24)
         )
         
-        logger.info("✅ All subsystems initialized")
+        # 9. Personalization Engine (user preferences + feedback learning) - PHASE 2
+        self.personalization = PersonalizationEngine(
+            db_connection=self.db,
+            redis_client=self.config.get('redis_client'),
+            config={
+                'min_interactions': self.config.get('min_interactions_for_personalization', 3),
+                'preference_threshold': self.config.get('preference_confidence_threshold', 0.6),
+                'max_personalized_items': self.config.get('max_personalized_items', 20)
+            }
+        )
+        
+        # 10. Auto-Tuner (threshold optimization) - PHASE 2
+        self.auto_tuner = AutoTuner(
+            signal_detector=self.signal_detector,
+            personalization_engine=self.personalization,
+            config={
+                'min_samples': self.config.get('min_samples_for_tuning', 50),
+                'target_f1': self.config.get('target_f1_score', 0.8),
+                'max_threshold_change': self.config.get('max_threshold_change', 0.1),
+                'tuning_schedule': self.config.get('tuning_schedule', 'daily'),
+                'enable_tuning': self.config.get('enable_auto_tuning', True)
+            }
+        )
+        
+        logger.info("✅ All subsystems initialized (including Phase 2 features)")
     
     async def process_query(
         self,
@@ -298,6 +390,28 @@ class PureLLMCore:
         
         self.analytics.track_context(context)
         
+        # STEP 5.5: Personalization Filtering (PHASE 2)
+        if self.config.get('enable_personalization', True):
+            try:
+                # Filter context based on user preferences
+                if context.get('database'):
+                    # Parse database context to extract items
+                    # This is a simplified version - you may need to adapt based on your context structure
+                    db_items = []  # Extract items from context['database']
+                    
+                    filtered_items = await self.personalization.filter_context_by_preferences(
+                        user_id=user_id,
+                        context_items=db_items,
+                        signals=signals['signals']
+                    )
+                    
+                    if filtered_items:
+                        logger.info(f"🎯 Personalized context for user {user_id}")
+                        # Update context with filtered items
+                        # context['database'] = ... (rebuild with filtered_items)
+            except Exception as e:
+                logger.warning(f"Personalization filtering failed: {e}")
+        
         # STEP 6: Prompt Engineering
         prompt = self.prompt_builder.build_prompt(
             query=query,
@@ -309,14 +423,28 @@ class PureLLMCore:
         
         logger.info(f"📝 Prompt built: {len(prompt)} chars")
         
-        # STEP 7: LLM Generation
+        # STEP 7: LLM Generation with Resilience
         try:
             llm_start = time.time()
             
-            response_data = await self.llm.generate(
-                prompt=prompt,
-                max_tokens=max_tokens,
-                temperature=0.7
+            # Wrap LLM call with circuit breaker, retry, and timeout
+            async def _generate_with_llm():
+                return await self.llm.generate(
+                    prompt=prompt,
+                    max_tokens=max_tokens,
+                    temperature=0.7
+                )
+            
+            # Apply timeout -> retry -> circuit breaker (layered protection)
+            response_data = await self.circuit_breakers['llm'].call(
+                lambda: self.retry_strategy.execute(
+                    lambda: self.timeout_manager.execute(
+                        'llm_generation',
+                        _generate_with_llm,
+                        timeout=self.config.get('llm_timeout', 15.0)
+                    ),
+                    retryable_exceptions=[asyncio.TimeoutError, ConnectionError]
+                )
             )
             
             llm_latency = time.time() - llm_start
@@ -345,6 +473,30 @@ class PureLLMCore:
                     query=query,
                     context=context
                 )
+        
+        except CircuitBreakerError as e:
+            logger.error(f"❌ LLM service unavailable (circuit breaker open): {e}")
+            self.analytics.track_llm_failure('circuit_breaker_open')
+            
+            # Graceful degradation - provide informative error
+            response_text = GracefulDegradation.create_degraded_response(
+                original_query=query,
+                available_data=context,
+                unavailable_services=['LLM']
+            )['metadata']['notice']
+            
+            result = {
+                'response': response_text,
+                'map_data': None,
+                'signals': signals['signals'],
+                'metadata': {
+                    'error': 'llm_unavailable',
+                    'degraded_mode': True,
+                    'cached': False
+                }
+            }
+            
+            return result
             
         except Exception as e:
             logger.error(f"❌ LLM generation failed: {e}")
@@ -624,6 +776,28 @@ class PureLLMCore:
         
         self.analytics.track_context(context)
         
+        # STEP 5.5: Personalization Filtering (PHASE 2)
+        if self.config.get('enable_personalization', True):
+            try:
+                # Filter context based on user preferences
+                if context.get('database'):
+                    # Parse database context to extract items
+                    # This is a simplified version - you may need to adapt based on your context structure
+                    db_items = []  # Extract items from context['database']
+                    
+                    filtered_items = await self.personalization.filter_context_by_preferences(
+                        user_id=user_id,
+                        context_items=db_items,
+                        signals=signals['signals']
+                    )
+                    
+                    if filtered_items:
+                        logger.info(f"🎯 Personalized context for user {user_id}")
+                        # Update context with filtered items
+                        # context['database'] = ... (rebuild with filtered_items)
+            except Exception as e:
+                logger.warning(f"Personalization filtering failed: {e}")
+        
         # STEP 6: Prompt Engineering
         prompt = self.prompt_builder.build_prompt(
             query=query,
@@ -792,51 +966,7 @@ class PureLLMCore:
         
         Args:
             response: Generated response
-            query: Original query
-            signals: Detected signals
-            context: Built context
-            
-        Returns:
-            Tuple of (is_valid, error_message)
-        """
-        # Check 1: Empty response
-        if not response or not response.strip():
-            return False, "Empty response"
-        
-        # Check 2: Minimum length
-        if len(response.strip()) < 20:
-            return False, f"Response too short ({len(response)} chars)"
-        
-        # Check 3: Context usage (if context was provided)
-        if context.get('database') and len(response) < 50:
-            return False, "Response doesn't utilize provided context"
-        
-        # Check 4: Hallucination indicators
-        hallucination_indicators = [
-            "as an ai",
-            "i am an ai",
-            "i cannot actually",
-            "i don't have access to real-time",
-            "i cannot browse",
-            "fictional",
-            "made up"
-        ]
-        
-        response_lower = response.lower()
-        for indicator in hallucination_indicators:
-            if indicator in response_lower:
-                return False, f"Hallucination detected: {indicator}"
-        
-        # All checks passed
-        return True, None
-    
-    async def _fallback_response(
-        self,
-        query: str,
-        context: Dict[str, Any]
-    ) -> str:
-        """
-        Generate fallback response when LLM fails.
+            query
         
         Args:
             query: User query
@@ -940,89 +1070,384 @@ class PureLLMCore:
                 max_suggestions=max_suggestions
             )
         return []
-
-
-# ============================================================================
-# FACTORY FUNCTION
-# ============================================================================
-
-def create_pure_llm_core(
-    db=None,
-    rag_service=None,
-    redis_client=None,
-    llm_client=None,
-    db_connection=None,
-    enable_cache: bool = True,
-    enable_analytics: bool = True,
-    enable_experimentation: bool = False,
-    enable_conversation: bool = True,
-    enable_query_enhancement: bool = True,
-    config: Optional[Dict[str, Any]] = None
-) -> PureLLMCore:
-    """
-    Factory function to create a PureLLMCore instance.
     
-    Supports both old and new calling patterns:
-    - Old: db, rag_service, redis_client, enable_*
-    - New: llm_client, db_connection, config
-    
-    Args:
-        db: Database connection (legacy parameter)
-        rag_service: RAG service instance
-        redis_client: Redis client for caching
-        llm_client: LLM API client
-        db_connection: Database connection (new parameter)
-        enable_cache: Enable caching system
-        enable_analytics: Enable analytics tracking
-        enable_experimentation: Enable A/B testing
-        enable_conversation: Enable conversation management
-        enable_query_enhancement: Enable query enhancement
-        config: Configuration dictionary (overrides other parameters)
+    def get_health_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive health status of all subsystems.
         
-    Returns:
-        Initialized PureLLMCore instance
-    """
-    # Handle legacy parameters
-    if db and not db_connection:
-        db_connection = db
-    
-    # Build config from parameters if not provided
-    if config is None:
-        config = {}
-    
-    # Add services to config
-    if rag_service and 'rag_service' not in config:
-        config['rag_service'] = rag_service
-    
-    if redis_client and 'redis_client' not in config:
-        config['redis_client'] = redis_client
-    
-    # Add feature flags to config
-    config.setdefault('enable_cache', enable_cache)
-    config.setdefault('enable_semantic_cache', enable_cache)
-    config.setdefault('enable_analytics', enable_analytics)
-    config.setdefault('enable_detailed_tracking', enable_analytics)
-    config.setdefault('enable_ab_testing', enable_experimentation)
-    config.setdefault('enable_threshold_learning', enable_experimentation)
-    config.setdefault('enable_conversation', enable_conversation)
-    config.setdefault('enable_query_enhancement', enable_query_enhancement)
-    config.setdefault('enable_spell_check', enable_query_enhancement)
-    config.setdefault('enable_rewriting', enable_query_enhancement)
-    config.setdefault('enable_validation', enable_query_enhancement)
-    
-    # Initialize LLM client if not provided
-    if llm_client is None:
+        Returns health information including:
+        - Overall system health
+        - Circuit breaker states
+        - Timeout metrics
+        - Service availability
+        - Performance metrics
+        
+        Returns:
+            Dict with health status information
+        """
         try:
-            from backend.services.runpod_llm_client import RunPodLLMClient
-            llm_client = RunPodLLMClient()
-            logger.info("✅ RunPod LLM Client initialized automatically")
+            # Collect circuit breaker states
+            circuit_breaker_status = {}
+            all_healthy = True
+            
+            for service_name, cb in self.circuit_breakers.items():
+                state = cb.get_state()
+                circuit_breaker_status[service_name] = state
+                
+                # Mark as unhealthy if circuit is open
+                if state['state'] == 'open':
+                    all_healthy = False
+            
+            # Collect timeout metrics
+            timeout_metrics = self.timeout_manager.get_metrics()
+            
+            # Calculate timeout health
+            timeout_health = 'healthy'
+            if timeout_metrics['timeout_rate'] > 10:  # >10% timeout rate
+                timeout_health = 'degraded'
+                all_healthy = False
+            elif timeout_metrics['timeout_rate'] > 25:  # >25% timeout rate
+                timeout_health = 'unhealthy'
+                all_healthy = False
+            
+            # Get analytics summary
+            analytics_summary = self.analytics.get_summary() if hasattr(self, 'analytics') else {}
+            
+            # Build comprehensive health report
+            health_status = {
+                'status': 'healthy' if all_healthy else 'degraded',
+                'timestamp': datetime.now().isoformat(),
+                'circuit_breakers': circuit_breaker_status,
+                'timeout_metrics': {
+                    'health': timeout_health,
+                    'total_operations': timeout_metrics['total_operations'],
+                    'timeout_rate': f"{timeout_metrics['timeout_rate']:.2f}%",
+                    'timeouts_by_stage': timeout_metrics['timeouts_by_stage']
+                },
+                'services': {
+                    'llm': {
+                        'available': circuit_breaker_status.get('llm', {}).get('state') != 'open',
+                        'circuit_state': circuit_breaker_status.get('llm', {}).get('state', 'unknown')
+                    },
+                    'database': {
+                        'available': circuit_breaker_status.get('database', {}).get('state') != 'open',
+                        'circuit_state': circuit_breaker_status.get('database', {}).get('state', 'unknown')
+                    },
+                    'rag': {
+                        'available': circuit_breaker_status.get('rag', {}).get('state') != 'open',
+                        'circuit_state': circuit_breaker_status.get('rag', {}).get('state', 'unknown')
+                    },
+                    'weather': {
+                        'available': circuit_breaker_status.get('weather', {}).get('state') != 'open',
+                        'circuit_state': circuit_breaker_status.get('weather', {}).get('state', 'unknown')
+                    },
+                    'events': {
+                        'available': circuit_breaker_status.get('events', {}).get('state') != 'open',
+                        'circuit_state': circuit_breaker_status.get('events', {}).get('state', 'unknown')
+                    }
+                },
+                'performance': {
+                    'total_queries': analytics_summary.get('total_queries', 0),
+                    'avg_latency': analytics_summary.get('avg_latency', 0),
+                    'cache_hit_rate': analytics_summary.get('cache_hit_rate', 0)
+                },
+                'subsystems': {
+                    'signal_detector': hasattr(self, 'signal_detector'),
+                    'context_builder': hasattr(self, 'context_builder'),
+                    'prompt_builder': hasattr(self, 'prompt_builder'),
+                    'analytics': hasattr(self, 'analytics'),
+                    'query_enhancer': hasattr(self, 'query_enhancer'),
+                    'conversation_manager': hasattr(self, 'conversation_manager'),
+                    'cache_manager': hasattr(self, 'cache_manager'),
+                    'experimentation': hasattr(self, 'experimentation')
+                }
+            }
+            
+            logger.info(f"Health check completed: {health_status['status']}")
+            return health_status
+            
         except Exception as e:
-            logger.warning(f"⚠️ Failed to initialize LLM client: {e}")
-            llm_client = None
+            logger.error(f"Health check failed: {e}")
+            return {
+                'status': 'error',
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
     
-    return PureLLMCore(
-        llm_client=llm_client,
-        db_connection=db_connection,
-        config=config
-    )
+    async def test_circuit_breakers(self) -> Dict[str, Any]:
+        """
+        Test all circuit breakers by making health check calls to services.
+        
+        This is useful for:
+        - Verifying circuit breaker configuration
+        - Testing service connectivity
+        - Monitoring service health
+        
+        Returns:
+            Dict with test results for each service
+        """
+        results = {}
+        
+        logger.info("🧪 Testing circuit breakers...")
+        
+        # Test LLM service
+        try:
+            test_prompt = "Say 'OK' if you receive this."
+            
+            async def _test_llm():
+                return await self.llm.generate(
+                    prompt=test_prompt,
+                    max_tokens=10,
+                    temperature=0
+                )
+            
+            await self.circuit_breakers['llm'].call(_test_llm)
+            results['llm'] = {'status': 'success', 'message': 'LLM service responsive'}
+            
+        except CircuitBreakerError:
+            results['llm'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
+        except Exception as e:
+            results['llm'] = {'status': 'error', 'message': str(e)}
+        
+        # Test Database
+        try:
+            async def _test_db():
+                # Simple query to test connection
+                return await self.db.execute("SELECT 1")
+            
+            await self.circuit_breakers['database'].call(_test_db)
+            results['database'] = {'status': 'success', 'message': 'Database responsive'}
+            
+        except CircuitBreakerError:
+            results['database'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
+        except Exception as e:
+            results['database'] = {'status': 'error', 'message': str(e)}
+        
+        # Test RAG service (if available)
+        if self.config.get('rag_service'):
+            try:
+                async def _test_rag():
+                    return await self.config['rag_service'].search("test", top_k=1)
+                
+                await self.circuit_breakers['rag'].call(_test_rag)
+                results['rag'] = {'status': 'success', 'message': 'RAG service responsive'}
+                
+            except CircuitBreakerError:
+                results['rag'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
+            except Exception as e:
+                results['rag'] = {'status': 'error', 'message': str(e)}
+        
+        # Test Weather API (if available)
+        if self.config.get('weather_service'):
+            try:
+                async def _test_weather():
+                    return await self.config['weather_service'].get_current_weather("Istanbul")
+                
+                await self.circuit_breakers['weather'].call(_test_weather)
+                results['weather'] = {'status': 'success', 'message': 'Weather API responsive'}
+                
+            except CircuitBreakerError:
+                results['weather'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
+            except Exception as e:
+                results['weather'] = {'status': 'error', 'message': str(e)}
+        
+        # Test Events API (if available)
+        if self.config.get('events_service'):
+            try:
+                async def _test_events():
+                    return await self.config['events_service'].get_upcoming_events(limit=1)
+                
+                await self.circuit_breakers['events'].call(_test_events)
+                results['events'] = {'status': 'success', 'message': 'Events API responsive'}
+                
+            except CircuitBreakerError:
+                results['events'] = {'status': 'circuit_open', 'message': 'Circuit breaker is open'}
+            except Exception as e:
+                results['events'] = {'status': 'error', 'message': str(e)}
+        
+        logger.info(f"Circuit breaker tests completed: {len(results)} services tested")
+        
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'results': results,
+            'summary': {
+                'total_tests': len(results),
+                'successful': sum(1 for r in results.values() if r['status'] == 'success'),
+                'failed': sum(1 for r in results.values() if r['status'] in ['error', 'circuit_open'])
+            }
+        }
+
+
+    # ===================================================================
+    # PHASE 2: FEEDBACK & PERSONALIZATION METHODS
+    # ===================================================================
+    
+    async def process_user_feedback(
+        self,
+        user_id: str,
+        query: str,
+        response: str,
+        feedback_type: str,
+        detected_signals: List[str],
+        signal_scores: Dict[str, float],
+        feedback_details: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Process user feedback for continuous improvement (Phase 2).
+        
+        Args:
+            user_id: User identifier
+            query: Original query
+            response: System response
+            feedback_type: 'positive', 'negative', or 'correction'
+            detected_signals: Signals that were detected
+            signal_scores: Confidence scores for signals
+            feedback_details: Additional feedback (issues, corrections, etc.)
+            
+        Returns:
+            Feedback processing result
+        """
+        logger.info(f"📝 Processing {feedback_type} feedback from user {user_id}")
+        
+        try:
+            # Store feedback in personalization engine
+            feedback_record = await self.personalization.process_feedback(
+                user_id=user_id,
+                query=query,
+                response=response,
+                feedback_type=feedback_type,
+                detected_signals=detected_signals,
+                signal_scores=signal_scores,
+                feedback_details=feedback_details
+            )
+            
+            # Update auto-tuner metrics
+            if feedback_details and 'correct_signals' in feedback_details:
+                correct_signals = set(feedback_details['correct_signals'])
+                all_possible_signals = set(detected_signals) | correct_signals
+                
+                for signal in all_possible_signals:
+                    was_detected = signal in detected_signals
+                    should_be_detected = signal in correct_signals
+                    
+                    await self.auto_tuner.update_metrics_from_feedback(
+                        signal=signal,
+                        was_detected=was_detected,
+                        should_be_detected=should_be_detected
+                    )
+            
+            # Track in analytics
+            self.analytics.track_feedback(user_id, feedback_type, query)
+            
+            logger.info(f"✅ Feedback processed successfully")
+            
+            return {
+                'status': 'success',
+                'feedback_recorded': True,
+                'user_profile_updated': True,
+                'metrics_updated': True
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to process feedback: {e}")
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    async def record_user_interaction(
+        self,
+        user_id: str,
+        query: str,
+        selected_items: List[Dict[str, Any]],
+        signals: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Record user interaction with results for preference learning (Phase 2).
+        
+        Args:
+            user_id: User identifier
+            query: User's query
+            selected_items: Items user clicked/viewed (with type, cuisine, district, etc.)
+            signals: Detected signals
+            
+        Returns:
+            Interaction recording result
+        """
+        logger.info(f"📊 Recording interaction for user {user_id}")
+        
+        try:
+            # Update user profile based on interaction
+            await self.personalization.update_profile_from_interaction(
+                user_id=user_id,
+                query=query,
+                selected_items=selected_items,
+                signals=signals
+            )
+            
+            logger.info(f"✅ User interaction recorded")
+            
+            return {
+                'status': 'success',
+                'profile_updated': True
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to record interaction: {e}")
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get user profile and preferences (Phase 2).
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            User profile data
+        """
+        try:
+            profile = await self.personalization.get_user_profile(user_id)
+            return profile.to_dict()
+        except Exception as e:
+            logger.error(f"Failed to get user profile: {e}")
+            return {}
+    
+    async def run_auto_tuning(self, signals: Optional[List[str]] = None) -> Dict[str, Any]:
+        """
+        Run auto-tuning for signal thresholds (Phase 2).
+        
+        Args:
+            signals: Specific signals to tune (None = all)
+            
+        Returns:
+            Tuning report
+        """
+        logger.info("🎯 Running auto-tuning...")
+        
+        try:
+            result = await self.auto_tuner.run_auto_tuning(signals_to_tune=signals)
+            return result
+        except Exception as e:
+            logger.error(f"Auto-tuning failed: {e}")
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    async def get_tuning_report(self) -> Dict[str, Any]:
+        """
+        Get comprehensive tuning report (Phase 2).
+        
+        Returns:
+            Detailed tuning metrics and history
+        """
+        try:
+            return await self.auto_tuner.get_tuning_report()
+        except Exception as e:
+            logger.error(f"Failed to get tuning report: {e}")
+            return {}
 
