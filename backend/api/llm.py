@@ -12,7 +12,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/llm", tags=["RunPod LLM"])
+router = APIRouter(prefix="/api/v1/llm", tags=["RunPod LLM"])
 
 
 # Request/Response Models
@@ -332,3 +332,382 @@ async def get_personalization_metrics():
     except Exception as e:
         logger.error(f"Metrics retrieval error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== ANALYTICS ENDPOINTS FOR ADMIN DASHBOARD =====
+
+@router.get("/stats")
+async def get_general_stats():
+    """
+    Get general LLM statistics for admin dashboard.
+    Returns: total queries, cache performance, LLM calls, etc.
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "message": "Analytics system not initialized",
+                "total_queries": 0,
+                "cache_hits": 0,
+                "cache_misses": 0,
+                "llm_calls": 0,
+                "cache_hit_rate": 0.0,
+                "unique_users": 0,
+                "error_rate": 0.0
+            }
+        
+        # Get comprehensive summary from analytics
+        summary = pure_llm_core.analytics.get_summary()
+        basic_stats = summary['basic_stats']
+        user_stats = summary['users']
+        error_stats = summary['errors']
+        cache_efficiency = pure_llm_core.analytics.get_cache_efficiency()
+        
+        return {
+            "status": "success",
+            "total_queries": basic_stats['total_queries'],
+            "cache_hits": basic_stats['cache_hits'],
+            "cache_misses": basic_stats['cache_misses'],
+            "llm_calls": basic_stats['llm_calls'],
+            "cache_hit_rate": round(cache_efficiency['hit_rate'] * 100, 2),
+            "unique_users": user_stats['unique_users'],
+            "error_rate": round(error_stats['error_rate'] * 100, 2),
+            "validation_failures": basic_stats.get('validation_failures', 0),
+            "avg_queries_per_user": round(user_stats['avg_queries_per_user'], 2)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting general stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "total_queries": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "llm_calls": 0,
+            "cache_hit_rate": 0.0
+        }
+
+
+@router.get("/stats/signals")
+async def get_signal_stats(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    signal_type: Optional[str] = None,
+    language: Optional[str] = None
+):
+    """
+    Get signal detection statistics.
+    Returns: signal detection counts, confidence scores, accuracy
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "total_detections": 0,
+                "by_signal": {},
+                "multi_intent_queries": 0,
+                "multi_intent_rate": 0.0
+            }
+        
+        summary = pure_llm_core.analytics.get_summary()
+        signal_stats = summary['signals']
+        
+        return {
+            "status": "success",
+            "total_detections": sum(signal_stats['detections_by_signal'].values()),
+            "by_signal": signal_stats['detections_by_signal'],
+            "multi_intent_queries": signal_stats['multi_intent_queries'],
+            "multi_intent_rate": round(signal_stats['multi_intent_rate'] * 100, 2)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting signal stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "total_detections": 0,
+            "by_signal": {}
+        }
+
+
+@router.get("/stats/performance")
+async def get_performance_stats(hours: int = 24):
+    """
+    Get performance statistics (response times, latencies).
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "avg_query_latency": 0.0,
+                "avg_llm_latency": 0.0,
+                "p50_latency": 0.0,
+                "p95_latency": 0.0,
+                "p99_latency": 0.0
+            }
+        
+        summary = pure_llm_core.analytics.get_summary()
+        performance = summary['performance']
+        
+        query_stats = performance['query_latency']
+        llm_stats = performance['llm_latency']
+        
+        return {
+            "status": "success",
+            "query_latency": {
+                "avg": round(query_stats['avg'] * 1000, 2) if query_stats['avg'] > 0 else 0,  # Convert to ms
+                "p50": round(query_stats['p50'] * 1000, 2) if query_stats['p50'] > 0 else 0,
+                "p95": round(query_stats['p95'] * 1000, 2) if query_stats['p95'] > 0 else 0,
+                "p99": round(query_stats['p99'] * 1000, 2) if query_stats['p99'] > 0 else 0,
+                "min": round(query_stats['min'] * 1000, 2) if query_stats['min'] > 0 else 0,
+                "max": round(query_stats['max'] * 1000, 2) if query_stats['max'] > 0 else 0
+            },
+            "llm_latency": {
+                "avg": round(llm_stats['avg'] * 1000, 2) if llm_stats['avg'] > 0 else 0,
+                "p50": round(llm_stats['p50'] * 1000, 2) if llm_stats['p50'] > 0 else 0,
+                "p95": round(llm_stats['p95'] * 1000, 2) if llm_stats['p95'] > 0 else 0,
+                "p99": round(llm_stats['p99'] * 1000, 2) if llm_stats['p99'] > 0 else 0
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "avg_query_latency": 0.0
+        }
+
+
+@router.get("/stats/cache")
+async def get_cache_stats():
+    """
+    Get cache performance statistics.
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "total_hits": 0,
+                "total_misses": 0,
+                "hit_rate": 0.0,
+                "total_entries": 0
+            }
+        
+        cache_efficiency = pure_llm_core.analytics.get_cache_efficiency()
+        
+        return {
+            "status": "success",
+            "total_hits": cache_efficiency['hits'],
+            "total_misses": cache_efficiency['misses'],
+            "hit_rate": round(cache_efficiency['hit_rate'] * 100, 2),
+            "miss_rate": round(cache_efficiency['miss_rate'] * 100, 2),
+            "total_checks": cache_efficiency['total_checks']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "total_hits": 0,
+            "total_misses": 0
+        }
+
+
+@router.get("/stats/users")
+async def get_user_stats(days: int = 7):
+    """
+    Get user behavior statistics.
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "total_users": 0,
+                "active_users": 0,
+                "queries_by_language": {},
+                "avg_queries_per_user": 0.0
+            }
+        
+        summary = pure_llm_core.analytics.get_summary()
+        user_stats = summary['users']
+        
+        return {
+            "status": "success",
+            "total_users": user_stats['unique_users'],
+            "active_users": user_stats['unique_users'],  # All are active in current session
+            "queries_by_language": user_stats['queries_by_language'],
+            "avg_queries_per_user": round(user_stats['avg_queries_per_user'], 2)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "total_users": 0
+        }
+
+
+@router.get("/stats/errors")
+async def get_error_stats():
+    """
+    Get error tracking statistics.
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "total_errors": 0,
+                "error_rate": 0.0,
+                "by_type": {},
+                "recent_errors": []
+            }
+        
+        summary = pure_llm_core.analytics.get_summary()
+        error_stats = summary['errors']
+        
+        return {
+            "status": "success",
+            "total_errors": error_stats['total'],
+            "error_rate": round(error_stats['error_rate'] * 100, 2),
+            "by_type": error_stats['by_type'],
+            "by_service": error_stats.get('by_service', {}),
+            "recent_errors": error_stats['recent']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting error stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "total_errors": 0
+        }
+
+
+@router.get("/stats/hourly")
+async def get_hourly_trends(hours: int = 24):
+    """
+    Get hourly trend data for charts.
+    """
+    try:
+        from core.startup import startup_manager
+        from datetime import datetime, timedelta
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            # Return empty but properly formatted data
+            now = datetime.now()
+            return {
+                "status": "unavailable",
+                "labels": [
+                    (now - timedelta(hours=hours-i-1)).strftime("%H:%M") 
+                    for i in range(hours)
+                ],
+                "queries": [0] * hours,
+                "errors": [0] * hours,
+                "avg_latency": [0.0] * hours
+            }
+        
+        summary = pure_llm_core.analytics.get_summary()
+        hourly_trends = summary['hourly_trends']
+        
+        # Extract data for charts
+        labels = [trend['hour'].split(' ')[1] for trend in hourly_trends]  # Get just time part
+        queries = [trend['queries'] for trend in hourly_trends]
+        errors = [trend['errors'] for trend in hourly_trends]
+        latencies = [round(trend['avg_latency'] * 1000, 2) for trend in hourly_trends]  # Convert to ms
+        
+        return {
+            "status": "success",
+            "labels": labels,
+            "queries": queries,
+            "errors": errors,
+            "avg_latency": latencies,
+            "error_rates": [round(trend['error_rate'] * 100, 2) for trend in hourly_trends]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting hourly trends: {e}")
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        return {
+            "status": "error",
+            "message": str(e),
+            "labels": [
+                (now - timedelta(hours=hours-i-1)).strftime("%H:%M") 
+                for i in range(hours)
+            ],
+            "queries": [0] * hours,
+            "errors": [0] * hours
+        }
+
+
+@router.get("/stats/export")
+async def export_stats(format: str = "json"):
+    """
+    Export statistics in JSON or CSV format.
+    """
+    try:
+        from core.startup import startup_manager
+        
+        pure_llm_core = startup_manager.get_pure_llm_core()
+        if not pure_llm_core or not pure_llm_core.analytics:
+            return {
+                "status": "unavailable",
+                "message": "Analytics not available"
+            }
+        
+        stats = pure_llm_core.analytics.get_analytics()
+        
+        if format.lower() == "csv":
+            # Convert to CSV format
+            import csv
+            import io
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            writer.writerow(["Metric", "Value"])
+            for key, value in stats.items():
+                if isinstance(value, (int, float, str)):
+                    writer.writerow([key, value])
+            
+            return {
+                "status": "success",
+                "format": "csv",
+                "data": output.getvalue()
+            }
+        else:
+            return {
+                "status": "success",
+                "format": "json",
+                "data": stats
+            }
+        
+    except Exception as e:
+        logger.error(f"Error exporting stats: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }

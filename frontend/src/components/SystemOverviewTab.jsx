@@ -31,11 +31,13 @@ import { useTheme } from '../contexts/ThemeContext';
 const SystemOverviewTab = () => {
   const { darkMode } = useTheme();
   const [systemStats, setSystemStats] = useState({
-    totalInteractions: 0,
-    activeSessions: 0,
-    blogPosts: 0,
+    total_queries: 0,
+    unique_users: 0,
+    cache_hit_rate: 0,
+    avg_queries_per_user: 0,
+    llm_calls: 0,
+    error_rate: 0,
     apiStatus: 'online',
-    responseTime: 0,
     uptime: '99.9%'
   });
   const [loading, setLoading] = useState(true);
@@ -155,8 +157,8 @@ const SystemOverviewTab = () => {
         {/* Total Interactions */}
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="Total LLM Interactions"
-            value={systemStats.totalInteractions.toLocaleString()}
+            title="Total LLM Queries"
+            value={(systemStats.total_queries || 0).toLocaleString()}
             icon={<PsychologyIcon sx={{ fontSize: 32, color: '#6366f1' }} />}
             color="#6366f1"
             trend="+12.5% this week"
@@ -166,8 +168,8 @@ const SystemOverviewTab = () => {
         {/* Active Sessions */}
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="Active Sessions"
-            value={systemStats.activeSessions}
+            title="Unique Users"
+            value={(systemStats.unique_users || 0).toLocaleString()}
             icon={<SpeedIcon sx={{ fontSize: 32, color: '#10b981' }} />}
             color="#10b981"
             trend="+5.2% today"
@@ -177,8 +179,8 @@ const SystemOverviewTab = () => {
         {/* Blog Posts */}
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="Published Blog Posts"
-            value={systemStats.blogPosts}
+            title="Cache Hit Rate"
+            value={`${((systemStats.cache_hit_rate || 0) * 100).toFixed(1)}%`}
             icon={<ArticleIcon sx={{ fontSize: 32, color: '#f59e0b' }} />}
             color="#f59e0b"
             trend="+3 this month"
@@ -188,8 +190,8 @@ const SystemOverviewTab = () => {
         {/* API Response Time */}
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="Avg Response Time"
-            value={`${systemStats.responseTime}ms`}
+            title="Avg Queries/User"
+            value={(systemStats.avg_queries_per_user || 0).toFixed(2)}
             icon={<SpeedIcon sx={{ fontSize: 32, color: '#8b5cf6' }} />}
             color="#8b5cf6"
             trend="-8% faster"
