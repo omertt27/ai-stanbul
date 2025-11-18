@@ -1,6 +1,9 @@
 """
-RunPod LLM Client
-Integrates with RunPod-hosted Llama 3.1 8B LLM for text generation
+LLM Client for RunPod and Hugging Face
+Supports:
+- RunPod-hosted models (vLLM, TGI)
+- Hugging Face Inference API
+- OpenAI-compatible endpoints
 """
 
 import os
@@ -15,34 +18,69 @@ logger = logging.getLogger(__name__)
 
 
 class RunPodLLMClient:
-    """Client for RunPod-hosted LLM API"""
+    """Client for LLM APIs (RunPod, Hugging Face, OpenAI-compatible)"""
     
     def __init__(
         self,
         api_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         timeout: float = 60.0,
         max_tokens: int = 250
     ):
         """
-        Initialize RunPod LLM client
+        Initialize LLM client
         
         Args:
-            api_url: RunPod LLM API URL (default: from LLM_API_URL env)
+            api_url: API URL (from LLM_API_URL env)
+                - RunPod: https://YOUR-POD-ID-8000.proxy.runpod.net/v1
+                - Hugging Face: https://api-inference.huggingface.co/models/MODEL_NAME
+                - OpenAI-compatible: http://localhost:8000/v1
+            api_key: API key (from RUNPOD_API_KEY or HUGGING_FACE_API_KEY env)
             timeout: Request timeout in seconds
             max_tokens: Maximum tokens to generate
         """
         self.api_url = api_url or os.getenv("LLM_API_URL")
-        self.timeout = timeout
-        self.max_tokens = max_tokens
+        
+        # Check for API keys (support both RunPod and Hugging Face)
+        self.api_key = (
+            api_key or 
+            os.getenv("RUNPOD_API_KEY") or 
+            os.getenv("HUGGING_FACE_API_KEY") or
+            os.getenv("HF_TOKEN")
+        )
+        
+        self.timeout = float(os.getenv("LLM_TIMEOUT", timeout))
+        self.max_tokens = int(os.getenv("LLM_MAX_TOKENS", max_tokens))
         self.enabled = bool(self.api_url)
         
+        # Detect API type
+        self.api_type = self._detect_api_type()
+        
         if self.enabled:
-            logger.info("🚀 RunPod LLM Client initialized")
+            logger.info("🚀 LLM Client initialized")
+            logger.info(f"   Type: {self.api_type}")
             logger.info(f"   URL: {self.api_url}")
+            logger.info(f"   API Key: {'***' + self.api_key[-4:] if self.api_key else 'None'}")
             logger.info(f"   Timeout: {self.timeout}s")
             logger.info(f"   Max Tokens: {self.max_tokens}")
         else:
-            logger.warning("⚠️ RunPod LLM Client disabled (no LLM_API_URL)")
+            logger.warning("⚠️ LLM Client disabled (no LLM_API_URL)")
+    
+    def _detect_api_type(self) -> str:
+        """Detect API type from URL"""
+        if not self.api_url:
+            return "unknown"
+        
+        url_lower = self.api_url.lower()
+        
+        if "huggingface.co" in url_lower or "hf.co" in url_lower:
+            return "huggingface"
+        elif "runpod" in url_lower:
+            return "runpod"
+        elif "/v1" in url_lower or "openai" in url_lower:
+            return "openai-compatible"
+        else:
+            return "generic"
     
     async def health_check(self) -> Dict[str, Any]:
         """
@@ -55,10 +93,30 @@ class RunPodLLMClient:
             return {"status": "disabled", "message": "LLM_API_URL not configured"}
         
         try:
+            headers = {}
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
+            
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.api_url}/health")
-                response.raise_for_status()
-                return response.json()
+                # Try common health check endpoints
+                for endpoint in ["/health", "/v1/models", "/"]:
+                    try:
+                        response = await client.get(
+                            f"{self.api_url}{endpoint}",
+                            headers=headers
+                        )
+                        if response.status_code == 200:
+                            logger.info(f"✅ RunPod health check OK via {endpoint}")
+                            return {
+                                "status": "healthy",
+                                "endpoint": self.api_url,
+                                "response": response.json() if response.headers.get("content-type", "").startswith("application/json") else "OK"
+                            }
+                    except:
+                        continue
+                
+                return {"status": "unknown", "message": "No valid health endpoint found"}
+                
         except Exception as e:
             logger.error(f"❌ RunPod LLM health check failed: {e}")
             return {"status": "unhealthy", "error": str(e)}
@@ -71,7 +129,7 @@ class RunPodLLMClient:
         top_p: float = 0.9
     ) -> Optional[Dict[str, Any]]:
         """
-        Generate text using RunPod LLM
+        Generate text using LLM (supports multiple API formats)
         
         Args:
             prompt: Input prompt for generation
@@ -83,44 +141,111 @@ class RunPodLLMClient:
             Generated response dict or None if failed
         """
         if not self.enabled:
-            logger.warning("RunPod LLM disabled - skipping generation")
+            logger.warning("LLM disabled - skipping generation")
             return None
         
         try:
-            payload = {
-                "model": "meta-llama/Llama-3.1-8B",
-                "prompt": prompt,
-                "max_tokens": max_tokens or self.max_tokens,
-                "temperature": temperature,
-                "top_p": top_p
-            }
-            
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.api_url}/v1/completions",
-                    json=payload
-                )
-                response.raise_for_status()
-                result = response.json()
-                
-                # Extract text from OpenAI format
-                if 'choices' in result and len(result['choices']) > 0:
-                    generated_text = result['choices'][0]['text']
-                    logger.info(f"✅ RunPod LLM generated {len(generated_text)} chars")
-                    return {"generated_text": generated_text, "raw": result}
-                else:
-                    logger.error("❌ Invalid response format from LLM")
-                    return None
+            if self.api_type == "huggingface":
+                return await self._generate_huggingface(prompt, max_tokens, temperature)
+            else:
+                return await self._generate_openai_compatible(prompt, max_tokens, temperature, top_p)
                 
         except httpx.TimeoutException:
-            logger.error(f"⏱️ RunPod LLM timeout after {self.timeout}s")
+            logger.error(f"⏱️ LLM timeout after {self.timeout}s")
             return None
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ RunPod LLM HTTP error: {e.response.status_code}")
+            logger.error(f"❌ LLM HTTP error: {e.response.status_code}")
             return None
         except Exception as e:
-            logger.error(f"❌ RunPod LLM generation failed: {e}")
+            logger.error(f"❌ LLM generation failed: {e}")
             return None
+    
+    async def _generate_huggingface(
+        self,
+        prompt: str,
+        max_tokens: Optional[int],
+        temperature: float
+    ) -> Optional[Dict[str, Any]]:
+        """Generate using Hugging Face Inference API format"""
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": max_tokens or self.max_tokens,
+                "temperature": temperature,
+                "return_full_text": False
+            }
+        }
+        
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(
+                self.api_url,
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Handle Hugging Face response format
+            if isinstance(result, list) and len(result) > 0:
+                generated_text = result[0].get('generated_text', '')
+                logger.info(f"✅ Hugging Face generated {len(generated_text)} chars")
+                return {"generated_text": generated_text, "raw": result}
+            elif isinstance(result, dict) and 'generated_text' in result:
+                generated_text = result['generated_text']
+                logger.info(f"✅ Hugging Face generated {len(generated_text)} chars")
+                return {"generated_text": generated_text, "raw": result}
+            else:
+                logger.error("❌ Invalid response format from Hugging Face")
+                return None
+    
+    async def _generate_openai_compatible(
+        self,
+        prompt: str,
+        max_tokens: Optional[int],
+        temperature: float,
+        top_p: float
+    ) -> Optional[Dict[str, Any]]:
+        """Generate using OpenAI-compatible API format (vLLM, RunPod, etc.)"""
+        payload = {
+            "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",  # Full model name for vLLM
+            "prompt": prompt,
+            "max_tokens": max_tokens or self.max_tokens,
+            "temperature": temperature,
+            "top_p": top_p
+        }
+        
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        
+        # Ensure URL ends with completions endpoint
+        url = self.api_url
+        if not url.endswith('/completions') and '/v1' in url:
+            url = url.rstrip('/') + '/completions'
+        elif not url.endswith('/completions') and not url.endswith('/generate'):
+            url = url.rstrip('/') + '/v1/completions'
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(
+                url,
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            result = response.json()
+            
+            # Extract text from OpenAI format
+            if 'choices' in result and len(result['choices']) > 0:
+                generated_text = result['choices'][0].get('text', '')
+                logger.info(f"✅ LLM generated {len(generated_text)} chars")
+                return {"generated_text": generated_text, "raw": result}
+            else:
+                logger.error("❌ Invalid response format from LLM")
+                return None
     
     async def generate_istanbul_response(
         self,

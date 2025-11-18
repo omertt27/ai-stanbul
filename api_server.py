@@ -14,7 +14,7 @@ Features:
 - Health checks
 """
 
-from fastapi import FastAPI, HTTPException, Depends, status, Request
+from fastapi import FastAPI, HTTPException, Depends, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -533,11 +533,11 @@ async def create_optimized_route(
     summary="Find nearby POIs"
 )
 async def get_nearby_pois(
-    latitude: float = Field(..., ge=-90, le=90),
-    longitude: float = Field(..., ge=-180, le=180),
-    radius_km: float = Field(default=2.0, ge=0.1, le=20.0),
-    category: Optional[str] = None,
-    limit: int = Field(default=20, ge=1, le=100)
+    latitude: float = Query(..., ge=-90, le=90),
+    longitude: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(default=2.0, ge=0.1, le=20.0),
+    category: Optional[str] = Query(None),
+    limit: int = Query(default=20, ge=1, le=100)
 ):
     """
     Find points of interest near a location
@@ -944,7 +944,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "api_server:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,  # Port 8001 for backend (vLLM tunnel uses 8000)
         reload=True,
         log_level="info"
     )
