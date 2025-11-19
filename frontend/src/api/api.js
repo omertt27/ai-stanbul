@@ -579,3 +579,152 @@ export const subscribeToNetworkStatus = (callback) => {
     }
   };
 };
+
+// ============================================
+// Pure LLM Backend Integration (Llama 3.1 8B)
+// ============================================
+
+const PURE_LLM_BASE_URL = import.meta.env.VITE_PURE_LLM_API_URL || 'http://localhost:8002';
+const PURE_LLM_CHAT_URL = `${PURE_LLM_BASE_URL}/api/chat`;
+const PURE_LLM_HEALTH_URL = `${PURE_LLM_BASE_URL}/health`;
+
+/**
+ * Send message to Pure LLM backend (Llama 3.1 8B)
+ * @param {string} message - User's message
+ * @param {Object} options - Options object
+ * @param {string} options.sessionId - Session ID
+ * @param {string} options.language - Language code ('en', 'tr', 'fr', 'ru', 'de', 'ar')
+ * @param {Object} options.gpsLocation - GPS location {lat, lon}
+ * @returns {Promise<Object>} Response from LLM
+ */
+export const fetchPureLLMChat = async (message, options = {}) => {
+  return chatCircuitBreaker.call(async () => {
+    try {
+      const sessionId = options.sessionId || getSessionId();
+      const language = options.language || 'en';
+      
+      console.log('🦙 Making Pure LLM request:', {
+        url: PURE_LLM_CHAT_URL,
+        messageLength: message.length,
+        sessionId,
+        language
+      });
+      
+      const requestBody = {
+        message: message.trim(),
+        session_id: sessionId,
+        language: language
+      };
+      
+      const startTime = Date.now();
+      
+      const response = await fetchWithRetry(PURE_LLM_CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        timeout: 60000 // 60 second timeout for LLM
+      }, {
+        maxAttempts: 2,
+        baseDelay: 2000
+      });
+      
+      const data = await response.json();
+      const responseTime = Date.now() - startTime;
+      
+      console.log('✅ Pure LLM response:', {
+        responseTime: `${responseTime}ms`,
+        method: data.method,
+        cached: data.cached,
+        confidence: data.confidence,
+        contextCount: data.context_used?.length || 0
+      });
+      
+      // Add frontend response time to metadata
+      if (data.metadata) {
+        data.metadata.frontend_response_time = responseTime;
+      }
+      
+      return {
+        success: true,
+        data,
+        responseTime
+      };
+      
+    } catch (error) {
+      console.error('❌ Pure LLM error:', error);
+      throw handleApiError(error, null, 'Pure LLM Chat');
+    }
+  });
+};
+
+/**
+ * Check Pure LLM backend health
+ * @returns {Promise<Object>} Health status
+ */
+export const checkPureLLMHealth = async () => {
+  try {
+    const response = await fetchWithRetry(PURE_LLM_HEALTH_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 5000
+    }, {
+      maxAttempts: 1
+    });
+    
+    const data = await response.json();
+    
+    console.log('✅ Pure LLM health check:', data);
+    
+    return {
+      healthy: response.ok && data.status === 'healthy',
+      data,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('❌ Pure LLM health check failed:', error);
+    return {
+      healthy: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+/**
+ * Unified chat function that can switch between backends
+ * Use this as a drop-in replacement for fetchUnifiedChat
+ * @param {string} query - User's query
+ * @param {Object} options - Options object
+ * @param {boolean} options.usePureLLM - Use Pure LLM backend (default: false)
+ * @returns {Promise<Object>} Chat response
+ */
+export const fetchUnifiedChatV2 = async (query, options = {}) => {
+  const usePureLLM = options.usePureLLM || false;
+  
+  if (usePureLLM) {
+    // Use Pure LLM backend
+    const result = await fetchPureLLMChat(query, options);
+    
+    // Transform response to match expected format
+    return {
+      response: result.data.response,
+      message: result.data.response,
+      session_id: result.data.session_id,
+      method: result.data.method,
+      cached: result.data.cached,
+      confidence: result.data.confidence,
+      suggestions: result.data.suggestions || [],
+      metadata: result.data.metadata,
+      context_used: result.data.context_used || [],
+      response_time: result.responseTime
+    };
+  } else {
+    // Use original backend
+    return fetchUnifiedChat(query, options);
+  }
+};

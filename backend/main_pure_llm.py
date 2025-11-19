@@ -254,7 +254,7 @@ class PureLLMChatRequest(BaseModel):
     user_id: Optional[str] = Field(None, description="User identifier")
     session_id: Optional[str] = Field(None, description="Session ID")
     user_location: Optional[Dict[str, float]] = Field(None, description="GPS location {lat, lon}")
-    language: str = Field(default="en", description="Response language (en/tr)")
+    language: str = Field(default="en", description="Response language (en/tr/fr/ru/de/ar)")
     intent: Optional[str] = Field(None, description="Pre-detected intent")
 
 

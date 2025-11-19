@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   fetchUnifiedChat,
+  fetchUnifiedChatV2,
   fetchRestaurantRecommendations, 
   fetchPlacesRecommendations, 
   extractLocationFromQuery,
@@ -24,8 +26,10 @@ import ChatHeader from './components/ChatHeader';
 import ChatSessionsPanel from './components/ChatSessionsPanel';
 import MapVisualization from './components/MapVisualization';
 import SimpleChatInput from './components/SimpleChatInput';
+import LLMBackendToggle from './components/LLMBackendToggle';
+import LanguageSelector from './components/LanguageSelector';
 
-console.log('🔄 Chatbot component loaded with restaurant functionality and comprehensive error handling');
+console.log('🔄 Chatbot component loaded with Pure LLM backend and multi-language support');
 
 // Input security and normalization functions - ENHANCED SECURITY
 const sanitizeInput = (input) => {
@@ -470,6 +474,20 @@ const isExplicitPlacesRequest = (userInput) => {
 };
 
 function Chatbot({ userLocation: propUserLocation }) {
+  // Initialize i18next for multi-language support
+  const { t, i18n } = useTranslation();
+  
+  // Pure LLM backend toggle state
+  const [usePureLLM, setUsePureLLM] = useState(() => {
+    try {
+      const saved = localStorage.getItem('use-pure-llm');
+      return saved ? JSON.parse(saved) : false;
+    } catch (error) {
+      console.error('Failed to load Pure LLM preference:', error);
+      return false;
+    }
+  });
+  
   // GPS location state (use prop if provided, otherwise null)
   const [userLocation] = useState(propUserLocation || null);
   
@@ -670,6 +688,16 @@ function Chatbot({ userLocation: propUserLocation }) {
 
   // Enhanced effect hooks
   useEffect(() => {
+    // Persist Pure LLM preference
+    try {
+      localStorage.setItem('use-pure-llm', JSON.stringify(usePureLLM));
+      console.log(`🦙 Pure LLM mode ${usePureLLM ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Failed to save Pure LLM preference:', error);
+    }
+  }, [usePureLLM]);
+
+  useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
     scrollToBottom();
   }, [messages, isTyping]);
@@ -855,9 +883,12 @@ function Chatbot({ userLocation: propUserLocation }) {
         console.log('Detected restaurant advice request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        console.log('🌍 Language:', i18n.language);
         
         // CRITICAL: Use sanitized input for API call
-        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput);
+        const restaurantData = await fetchRestaurantRecommendations(sanitizedInput, {
+          language: i18n.language
+        });
         console.log('Restaurant API response:', restaurantData);
         const formattedResponse = formatRestaurantRecommendations(restaurantData.restaurants);
         console.log('Formatted response:', formattedResponse);
@@ -865,7 +896,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         addMessage(formattedResponse, 'assistant', {
           type: 'restaurant-recommendation',
           dataSource: 'google-places',
-          resultCount: restaurantData.restaurants?.length || 0
+          resultCount: restaurantData.restaurants?.length || 0,
+          language: i18n.language
         });
         
         // Clear failed message on success
@@ -879,9 +911,12 @@ function Chatbot({ userLocation: propUserLocation }) {
         console.log('Detected places/attractions request, fetching recommendations...');
         console.log('Original input:', originalUserInput);
         console.log('🛡️ Sending SANITIZED input to backend:', sanitizedInput);
+        console.log('🌍 Language:', i18n.language);
         
         // CRITICAL: Use sanitized input for API call
-        const placesData = await fetchPlacesRecommendations(sanitizedInput);
+        const placesData = await fetchPlacesRecommendations(sanitizedInput, {
+          language: i18n.language
+        });
         console.log('Places API response:', placesData);
         const formattedResponse = formatPlacesRecommendations(placesData.places);
         console.log('Formatted response:', formattedResponse);
@@ -889,7 +924,8 @@ function Chatbot({ userLocation: propUserLocation }) {
         addMessage(formattedResponse, 'assistant', {
           type: 'places-recommendation',
           dataSource: 'database',
-          resultCount: placesData?.places?.length || 0
+          resultCount: placesData?.places?.length || 0,
+          language: i18n.language
         });
         
         // Clear failed message on success
@@ -901,18 +937,26 @@ function Chatbot({ userLocation: propUserLocation }) {
       setTypingMessage('KAM is thinking...');
       
       console.log('🛡️ Sending SANITIZED input to chat API:', sanitizedInput);
+      console.log('🌍 Current language:', i18n.language);
+      console.log('🦙 Using Pure LLM:', usePureLLM);
       
-      // Use unified chat API which supports GPS location and returns full response
-      const chatResponse = await fetchUnifiedChat(sanitizedInput, {
+      // Use unified chat API V2 which supports backend switching and language
+      const chatResponse = await fetchUnifiedChatV2(sanitizedInput, {
         sessionId: getSessionId(),
-        gpsLocation: userLocation // Pass GPS location if available
+        gpsLocation: userLocation, // Pass GPS location if available
+        language: i18n.language, // Pass current language from i18next
+        usePureLLM: usePureLLM // Use Pure LLM backend if enabled
       });
       
       // Add the response message
       addMessage(chatResponse.response || chatResponse.message, 'assistant', {
         type: chatResponse.intent || 'general',
         confidence: chatResponse.confidence,
-        mapData: chatResponse.map_data // Include map data if present
+        mapData: chatResponse.map_data, // Include map data if present
+        method: chatResponse.method, // Include LLM method (cached/fresh)
+        cached: chatResponse.cached,
+        responseTime: chatResponse.response_time,
+        backend: usePureLLM ? 'pure-llm' : 'standard'
       });
       
       // Clear failed message on success
@@ -958,6 +1002,15 @@ function Chatbot({ userLocation: propUserLocation }) {
         onNewSession={handleNewSession}
         onSelectSession={handleSelectSession}
       />
+      
+      {/* Pure LLM Backend Toggle - positioned at top right */}
+      <div className="fixed top-20 right-4 z-40 flex flex-col gap-3">
+        <LanguageSelector darkMode={darkMode} />
+        <LLMBackendToggle
+          usePureLLM={usePureLLM}
+          onToggle={setUsePureLLM}
+        />
+      </div>
       
       {/* Enhanced Header with chat management */}
       <ChatHeader
