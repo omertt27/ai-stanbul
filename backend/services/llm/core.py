@@ -181,6 +181,7 @@ class PureLLMCore:
             weather_service=self.config.get('weather_service'),
             events_service=self.config.get('events_service'),
             hidden_gems_service=self.config.get('hidden_gems_service'),
+            map_service=self.config.get('map_service') or self.config.get('routing_service'),
             circuit_breakers=self.circuit_breakers,
             timeout_manager=self.timeout_manager
         )
@@ -427,7 +428,7 @@ class PureLLMCore:
         try:
             llm_start = time.time()
             
-            # Wrap LLM call with circuit breaker, retry, and timeout
+            # Simplified LLM call with circuit breaker only
             async def _generate_with_llm():
                 return await self.llm.generate(
                     prompt=prompt,
@@ -435,17 +436,8 @@ class PureLLMCore:
                     temperature=0.7
                 )
             
-            # Apply timeout -> retry -> circuit breaker (layered protection)
-            response_data = await self.circuit_breakers['llm'].call(
-                lambda: self.retry_strategy.execute(
-                    lambda: self.timeout_manager.execute(
-                        'llm_generation',
-                        _generate_with_llm,
-                        timeout=self.config.get('llm_timeout', 15.0)
-                    ),
-                    retryable_exceptions=[asyncio.TimeoutError, ConnectionError]
-                )
-            )
+            # Apply circuit breaker protection
+            response_data = await self.circuit_breakers['llm'].call(_generate_with_llm)
             
             llm_latency = time.time() - llm_start
             
@@ -966,7 +958,31 @@ class PureLLMCore:
         
         Args:
             response: Generated response
-            query
+            query: User query
+            signals: Detected signals
+            context: Built context
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        # Check if response is empty or too short
+        if not response or len(response.strip()) < 10:
+            return False, "Response too short"
+        
+        # Check for generic error messages
+        if "error" in response.lower() or "sorry" in response.lower():
+            return False, "Generic error response"
+        
+        # Response is valid
+        return True, None
+    
+    async def _fallback_response(
+        self,
+        query: str,
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        Generate fallback response when LLM fails.
         
         Args:
             query: User query

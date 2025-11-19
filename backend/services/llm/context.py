@@ -397,14 +397,8 @@ class ContextBuilder:
             return ""
         
         try:
-            # Use circuit breaker if available
-            if 'weather' in self.circuit_breakers:
-                async def _get_weather():
-                    return await self.weather_service.get_current_weather("Istanbul")
-                
-                weather = await self.circuit_breakers['weather'].call(_get_weather)
-            else:
-                weather = await self.weather_service.get_current_weather("Istanbul")
+            # Weather service is sync, so we call it directly
+            weather = self.weather_service.get_current_weather("Istanbul")
             
             return (
                 f"Current weather in Istanbul: {weather.get('condition', 'Unknown')}, "

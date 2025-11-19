@@ -510,3 +510,4 @@ ai_stanbul
 # README.md, backend/, frontend/, requirements.txt, .env.example
 # Dockerfile, docker-compose.yml, .gitignore, package.json
 VM_LLAMA_SETUP_COMMANDS.md
+start_vllm_runpod.sh

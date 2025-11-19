@@ -118,6 +118,27 @@ try:
 except ImportError as e:
     logger.error(f"❌ RAG Service failed: {e}")
 
+# === Weather Service ===
+WEATHER_SERVICE_AVAILABLE = False
+try:
+    from api_clients.enhanced_weather import EnhancedWeatherClient
+    WEATHER_SERVICE_AVAILABLE = True
+    logger.info("✅ Weather Service loaded")
+except ImportError as e:
+    logger.error(f"❌ Weather Service failed: {e}")
+
+# === Map & Routing Services ===
+MAP_SERVICE_AVAILABLE = False
+ROUTING_SERVICE_AVAILABLE = False
+try:
+    from services.map_visualization_engine import MapVisualizationEngine
+    from services.osrm_routing_service import OSRMRoutingService
+    MAP_SERVICE_AVAILABLE = True
+    ROUTING_SERVICE_AVAILABLE = True
+    logger.info("✅ Map & Routing Services loaded")
+except ImportError as e:
+    logger.error(f"❌ Map & Routing Services failed: {e}")
+
 # =============================
 # STARTUP EVENT
 # =============================
@@ -146,11 +167,36 @@ async def startup_event():
                 except Exception as rag_error:
                     logger.warning(f"⚠️ RAG Service initialization failed: {rag_error}")
             
+            # Initialize Weather service (if available)
+            weather_service = None
+            if WEATHER_SERVICE_AVAILABLE:
+                try:
+                    logger.info("🌤️ Initializing Weather Service...")
+                    weather_service = EnhancedWeatherClient()
+                    logger.info("✅ Weather Service initialized")
+                except Exception as weather_error:
+                    logger.warning(f"⚠️ Weather Service initialization failed: {weather_error}")
+            
+            # Initialize Map & Routing services (if available)
+            map_service = None
+            routing_service = None
+            if MAP_SERVICE_AVAILABLE and ROUTING_SERVICE_AVAILABLE:
+                try:
+                    logger.info("🗺️ Initializing Map & Routing Services...")
+                    routing_service = OSRMRoutingService(profile='foot', use_cache=REDIS_AVAILABLE)
+                    map_service = MapVisualizationEngine(use_osrm=True)
+                    logger.info("✅ Map & Routing Services initialized")
+                except Exception as map_error:
+                    logger.warning(f"⚠️ Map & Routing Services initialization failed: {map_error}")
+            
             # Initialize Pure LLM Core using new modular API
             pure_llm_core = create_pure_llm_core(
                 db=db,
                 rag_service=rag_service,
                 redis_client=redis_client if REDIS_AVAILABLE else None,
+                weather_service=weather_service,
+                map_service=map_service,
+                routing_service=routing_service,
                 enable_cache=REDIS_AVAILABLE,
                 enable_analytics=True,
                 enable_experimentation=False,
@@ -163,6 +209,8 @@ async def startup_event():
             logger.info(f"   Endpoint: {os.getenv('LLM_API_URL')}")
             logger.info(f"   Redis Cache: {'Enabled' if REDIS_AVAILABLE else 'Disabled'}")
             logger.info(f"   RAG Service: {'Enabled' if rag_service else 'Disabled'}")
+            logger.info(f"   Weather Service: {'Enabled' if weather_service else 'Disabled'}")
+            logger.info(f"   Map & Routing: {'Enabled' if map_service and routing_service else 'Disabled'}")
             logger.info(f"   Modular System: ✅ Core + 9 specialized modules")
         except Exception as e:
             logger.error(f"❌ Pure LLM Core initialization failed: {e}")
@@ -521,7 +569,7 @@ async def llm_generate_test(request: LLMTestRequest):
 if __name__ == "__main__":
     import uvicorn
     
-    port = int(os.getenv("PORT", 8001))
+    port = int(os.getenv("PORT", 8002))
     host = os.getenv("HOST", "0.0.0.0")
     
     print("=" * 70)

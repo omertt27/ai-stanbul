@@ -28,8 +28,12 @@ try:
     import polyline as polyline_lib
 except ImportError:
     polyline_lib = None
-    
-from backend.services.redis_cache import RedisCache
+
+try:
+    from services.redis_cache import RedisCache
+except ImportError:
+    # Fallback if redis_cache is not available
+    RedisCache = None
 
 logger = logging.getLogger(__name__)
 

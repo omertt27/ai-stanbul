@@ -19,15 +19,15 @@ from dataclasses import dataclass
 from datetime import datetime
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 # Import OSRM routing service
 try:
-    from backend.services.osrm_routing_service import OSRMRoutingService, OSRMRoute
+    from services.osrm_routing_service import OSRMRoutingService, OSRMRoute
     OSRM_AVAILABLE = True
 except ImportError:
     OSRM_AVAILABLE = False
     logger.warning("OSRM routing service not available - will use straight-line routes")
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
