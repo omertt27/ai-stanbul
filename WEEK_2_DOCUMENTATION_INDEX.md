@@ -92,29 +92,29 @@ All documentation for Week 2 frontend deployment has been created and is ready t
 
 ---
 
-### 6. **DAY_6_DEPLOYMENT_CHECKLIST.md** ✅ DEPLOYMENT CHECKLIST
+### 6. **DAY_6_DEPLOYMENT_ACTION_PLAN.md** ⚡ QUICK ACTION PLAN
+**Purpose:** Simplified deployment action plan (created by you!)  
+**Read Time:** 3 minutes  
+**Use When:** Ready to deploy now - skip details, just deploy
+
+**Contains:**
+- Pre-deployment checklist
+- What happens during deployment
+- Quick step-by-step instructions
+- Troubleshooting for common issues
+- Success criteria
+- Your production URL placeholder
+
+**Why Use This:** Fast track to deployment when all prep is done
+
+---
+
+### 7. **DAY_6_DEPLOYMENT_CHECKLIST.md** ✅ DAY 6 CHECKLIST
 **Purpose:** Printable deployment day checklist  
 **Use When:** Day 6 - While deploying (print or have open)
 
 **Contains:**
 - Simple checkbox format for all deployment steps
-
----
-
-### 7. **DAY_6_DEPLOYMENT_ACTION_PLAN.md** ⭐ START HERE FOR DAY 6
-**Purpose:** Quick action plan for deploying to Vercel  
-**Read Time:** 3 minutes (+ 20 min to deploy)  
-**Use When:** Day 6 - Ready to deploy NOW
-
-**Contains:**
-- Pre-deployment checklist
-- What happens during deployment
-- Step-by-step instructions
-- Troubleshooting quick fixes
-- Success criteria
-- Next steps preview
-
-**Why Use This:** Fastest path to deployment with all key info in one place
 
 ---
 
