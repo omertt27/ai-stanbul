@@ -1,0 +1,99 @@
+# Copy these environment variables to Render Dashboard
+# Go to: Dashboard → Your Web Service → Environment → Add Environment Variable
+
+# ========================================
+# 🔴 REQUIRED - Core Configuration
+# ========================================
+
+ENVIRONMENT=production
+DEBUG=False
+LOG_LEVEL=INFO
+API_HOST=0.0.0.0
+API_PORT=10000
+
+# ========================================
+# 🔴 REQUIRED - Database & Cache
+# ========================================
+# Replace with your actual URLs from Day 1
+
+DATABASE_URL=<paste-your-postgresql-url-here>
+REDIS_URL=<paste-your-redis-url-here>
+
+# ========================================
+# 🔴 REQUIRED - Security Keys
+# ========================================
+# ✅ Pre-generated secure keys (you can use these or generate new ones)
+
+SECRET_KEY=O99HXP4Kn4hH17nkgrCYLq7cp4-s448ltDJYoLg9Eq0
+JWT_SECRET_KEY=de6H40USwp5no_xnkbJhK5mmboHa9_WTOBqlMX3dMLQ
+JWT_ALGORITHM=HS256
+
+# ========================================
+# 🔴 REQUIRED - CORS Settings
+# ========================================
+# Update after Vercel deployment with your actual frontend URL
+
+ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:5173"]
+
+# ========================================
+# 🟡 RECOMMENDED - Admin Configuration
+# ========================================
+
+ADMIN_USERNAME=admin
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# ========================================
+# 🟡 RECOMMENDED - Feature Flags
+# ========================================
+
+USE_NEURAL_RANKING=True
+ADVANCED_UNDERSTANDING_ENABLED=True
+RATE_LIMITING_ENABLED=True
+
+# ========================================
+# 🟡 RECOMMENDED - Rate Limiting
+# ========================================
+
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=3600
+
+# ========================================
+# 🟡 RECOMMENDED - Semantic Cache
+# ========================================
+
+SEMANTIC_CACHE_ENABLED=true
+SEMANTIC_CACHE_SIMILARITY_THRESHOLD=0.85
+SEMANTIC_CACHE_MAX_CACHE_SIZE=10000
+SEMANTIC_CACHE_TTL=86400
+SEMANTIC_CACHE_MODEL=all-MiniLM-L6-v2
+SEMANTIC_CACHE_TOP_K=5
+SEMANTIC_CACHE_BATCH_SIZE=32
+
+# ========================================
+# 🟢 OPTIONAL - External Services
+# ========================================
+# Uncomment and add if you have these services
+
+# LLM_API_URL=<your-llm-api-url>
+# LLM_API_KEY=<your-llm-api-key>
+# PURE_LLM_MODE=false
+# ML_SERVICE_URL=http://localhost:8000
+# ML_USE_LLM_DEFAULT=true
+
+# OPENWEATHER_API_KEY=<your-openweather-api-key>
+
+# SENTRY_DSN=<your-sentry-dsn>
+# SENTRY_ENVIRONMENT=production
+# SENTRY_TRACES_SAMPLE_RATE=0.1
+# SENTRY_PROFILES_SAMPLE_RATE=0.1
+
+# ========================================
+# ✅ INSTRUCTIONS
+# ========================================
+# 1. Replace DATABASE_URL with your PostgreSQL URL from Day 1
+# 2. Replace REDIS_URL with your Redis URL from Day 1
+# 3. The SECRET_KEY and JWT_SECRET_KEY are already generated (secure random values)
+# 4. Update ALLOWED_ORIGINS after deploying frontend to Vercel
+# 5. Copy each variable to Render: Dashboard → Environment → Add Environment Variable
+# 6. Save and deploy!

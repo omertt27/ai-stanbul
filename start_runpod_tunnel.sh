@@ -3,12 +3,12 @@
 # This creates a secure tunnel from your Mac (localhost:8000) to RunPod's vLLM (port 8000)
 
 echo "🔐 Starting SSH tunnel to RunPod vLLM server..."
-echo "🔌 Connecting to: 194.68.245.13:22162"
+echo "🔌 Connecting to: 194.68.245.173:22186"
 echo ""
 
-# RunPod SSH connection details (SSH over exposed TCP)
-RUNPOD_HOST="194.68.245.13"
-RUNPOD_PORT="22162"
+# RunPod SSH connection details (Updated: Nov 20, 2025)
+RUNPOD_HOST="194.68.245.173"
+RUNPOD_PORT="22186"
 SSH_KEY="~/.ssh/id_ed25519"
 
 echo "Current settings:"

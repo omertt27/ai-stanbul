@@ -1,0 +1,25 @@
+#!/bin/bash
+# 🚀 RunPod Direct URL Configuration
+# NO SSH TUNNEL NEEDED - RunPod provides direct HTTPS access!
+
+echo "🎉 GREAT NEWS: No SSH tunnel needed!"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📡 RunPod Direct URLs"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "✅ vLLM API (Port 8000):"
+echo "   https://pbvs3agzznvsgn-8000.proxy.runpod.net/v1"
+echo ""
+echo "✅ Web Terminal (Port 10022):"
+echo "   https://pbvs3agzznvsgn-10022.proxy.runpod.net"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "📋 Your backend is now configured to use:"
+echo "   LLM_API_URL=https://pbvs3agzznvsgn-8000.proxy.runpod.net/v1"
+echo ""
+echo "🧪 Test the connection:"
+echo "   curl https://pbvs3agzznvsgn-8000.proxy.runpod.net/v1/models"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

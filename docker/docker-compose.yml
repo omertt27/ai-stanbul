@@ -1,0 +1,118 @@
+# 🐳 Docker Compose - Development/Testing Environment
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-istanbul-postgres
+    environment:
+      POSTGRES_DB: ai_istanbul
+      POSTGRES_USER: ai_istanbul_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_istanbul_user -d ai_istanbul"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-istanbul-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme456}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: ai-istanbul-backend
+    environment:
+      # Database
+      DATABASE_URL: postgresql://ai_istanbul_user:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/ai_istanbul
+      
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme456}@redis:6379/0
+      
+      # LLM Configuration
+      LLM_API_URL: ${LLM_API_URL:-http://localhost:8000/v1}
+      LLM_MODEL: ${LLM_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+      
+      # Application
+      PORT: 8002
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      CORS_ORIGINS: http://localhost:3000,http://localhost:80
+      
+      # External APIs
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+    volumes:
+      - ../backend:/app
+      - backend_logs:/app/logs
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Frontend Web Server
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: ai-istanbul-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8002
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  default:
+    name: ai-istanbul-network
