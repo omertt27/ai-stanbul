@@ -6,7 +6,7 @@ All documentation for Week 2 frontend deployment has been created and is ready t
 
 ---
 
-## 📚 Documentation Files Created (9 files)
+## 📚 Documentation Files Created (10 files)
 
 ### 1. **WEEK_2_READY_TO_DEPLOY.md** ⭐ START HERE
 **Purpose:** Executive summary and overview  
@@ -98,17 +98,27 @@ All documentation for Week 2 frontend deployment has been created and is ready t
 
 **Contains:**
 - Simple checkbox format for all deployment steps
-- Space to write deployment URL
-- Visual checks list
-- Console error tracking
-- Success criteria boxes
-- Deployment summary form
-
-**Why Use This:** Track each deployment step, record your URL, ensure nothing missed
 
 ---
 
-### 7. **WEEK_2_PROGRESS_TRACKER.md** ✅ PROGRESS TRACKER
+### 7. **DAY_6_DEPLOYMENT_ACTION_PLAN.md** ⭐ START HERE FOR DAY 6
+**Purpose:** Quick action plan for deploying to Vercel  
+**Read Time:** 3 minutes (+ 20 min to deploy)  
+**Use When:** Day 6 - Ready to deploy NOW
+
+**Contains:**
+- Pre-deployment checklist
+- What happens during deployment
+- Step-by-step instructions
+- Troubleshooting quick fixes
+- Success criteria
+- Next steps preview
+
+**Why Use This:** Fastest path to deployment with all key info in one place
+
+---
+
+### 8. **WEEK_2_PROGRESS_TRACKER.md** ✅ PROGRESS TRACKER
 **Purpose:** Interactive progress tracker  
 **Use When:** Throughout Week 2 to track completion
 
@@ -123,7 +133,7 @@ All documentation for Week 2 frontend deployment has been created and is ready t
 
 ---
 
-### 8. **WEEK_2_COMMAND_REFERENCE.md** ⚡ QUICK LOOKUP
+### 9. **WEEK_2_COMMAND_REFERENCE.md** ⚡ QUICK LOOKUP
 **Purpose:** Fast reference for commands and URLs  
 **Use When:** Need to quickly find a command or variable
 
