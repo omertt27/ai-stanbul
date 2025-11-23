@@ -1,0 +1,95 @@
+# ===================================
+# FRONTEND ENVIRONMENT VARIABLES
+# ===================================
+# Copy these to Vercel Dashboard → Settings → Environment Variables
+
+# ============= CRITICAL - MUST SET =============
+
+# Backend API URL (your Render deployment)
+VITE_API_BASE_URL=https://api.aistanbul.net
+
+# Pure LLM API URL (same as API_BASE_URL for now)
+VITE_PURE_LLM_API_URL=https://api.aistanbul.net
+
+# WebSocket URL (for real-time features)
+VITE_WEBSOCKET_URL=wss://api.aistanbul.net
+
+# ============= MAP CONFIGURATION (FREE - NO API KEYS) =============
+
+# Map Provider (OpenStreetMap - 100% free)
+VITE_MAP_PROVIDER=openstreetmap
+
+# Tile Providers (Free)
+VITE_OSM_TILE_URL=https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+VITE_CARTO_TILE_URL=https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png
+VITE_ESRI_TILE_URL=https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}
+
+# Default Map Center (Istanbul)
+VITE_DEFAULT_MAP_CENTER_LAT=41.0082
+VITE_DEFAULT_MAP_CENTER_LNG=28.9784
+VITE_DEFAULT_MAP_ZOOM=13
+
+# Google Maps (Disabled - Free alternatives used)
+VITE_ENABLE_GOOGLE_MAPS=false
+
+# ============= GEOCODING & ROUTING (FREE - NO API KEYS) =============
+
+# Geocoding Provider (Nominatim - Free)
+VITE_GEOCODING_PROVIDER=nominatim
+VITE_NOMINATIM_URL=https://nominatim.openstreetmap.org
+
+# Routing Provider (OSRM - Free)
+VITE_ROUTING_PROVIDER=osrm
+VITE_OSRM_URL=https://router.project-osrm.org
+
+# ============= LOCATION SYSTEM =============
+
+# Location Features
+VITE_ENABLE_LOCATION_TRACKING=true
+VITE_ENABLE_OFFLINE_MODE=true
+VITE_MAX_POI_RECOMMENDATIONS=50
+VITE_DEFAULT_SEARCH_RADIUS=2.0
+
+# Privacy Settings
+VITE_LOCATION_PRIVACY_MODE=true
+VITE_SESSION_TIMEOUT_MINUTES=1440
+VITE_ENABLE_LOCATION_HISTORY=false
+
+# ============= FEATURE FLAGS =============
+
+VITE_ENABLE_BLOG=true
+VITE_ENABLE_CHAT=true
+VITE_ENABLE_MAPS=true
+
+# ============= ANALYTICS (OPTIONAL) =============
+
+# Google Analytics (Optional)
+VITE_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
+
+# Vercel Analytics
+VITE_VERCEL_ANALYTICS=true
+
+# ============= ENVIRONMENT =============
+
+VITE_ENVIRONMENT=production
+
+# ===================================
+# INSTRUCTIONS
+# ===================================
+# 
+# 1. Go to Vercel Dashboard: https://vercel.com/dashboard
+# 2. Select your project: ai-stanbul
+# 3. Go to Settings → Environment Variables
+# 4. Add each variable above (one by one)
+# 5. Select scope: Production ✓, Preview (optional), Development (optional)
+# 6. Click "Save"
+# 7. Go to Deployments → Latest → ⋯ → Redeploy
+# 8. Wait 2-3 minutes for deployment
+# 
+# VERIFICATION:
+# - Open https://aistanbul.net in browser
+# - Check browser console (F12) for errors
+# - Verify "Chatbot component loaded" message
+# - Test chat functionality
+# 
+# ===================================

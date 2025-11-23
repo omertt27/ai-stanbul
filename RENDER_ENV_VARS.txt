@@ -1,0 +1,141 @@
+# ===================================
+# BACKEND ENVIRONMENT VARIABLES
+# ===================================
+# Copy these to Render Dashboard → Environment
+
+# ============= CRITICAL - MUST SET =============
+
+# LLM Server Configuration
+# Get this from RunPod: Console → Pods → Your Pod → Connect → HTTP Service [8888]
+# Example: https://pbvs3agzznvsgn-8888.proxy.runpod.net/v1
+LLM_API_URL=https://ytc61lal7ag5sy-19123.proxy.runpod.net/2feph6uogs25wg1sc0i37280ah5ajfmm/v1
+
+# CORS Configuration (CRITICAL!)
+# Add ALL your frontend domains (comma-separated, JSON array format)
+ALLOWED_ORIGINS=["https://aistanbul.net","https://www.aistanbul.net","https://api.aistanbul.net","http://localhost:3000","http://localhost:5173"]
+
+# ============= DATABASE =============
+
+# PostgreSQL Database URL
+# Format: postgresql://username:password@host:port/database
+DATABASE_URL=postgresql://user:password@host:5432/ai_stanbul_prod
+
+# OR for SQLite (NOT recommended for production)
+# DATABASE_URL=sqlite:///./app_prod.db
+
+# ============= REDIS (RECOMMENDED) =============
+
+# Redis Connection (for caching, sessions, rate limiting)
+REDIS_URL=redis://your-redis-host:6379
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+
+# ============= ENVIRONMENT =============
+
+ENVIRONMENT=production
+DEBUG=False
+LOG_LEVEL=INFO
+
+# ============= SECURITY =============
+
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+SECRET_KEY=your_super_secret_key_here_CHANGE_THIS_RANDOM_32_CHARS
+JWT_SECRET_KEY=your_jwt_secret_key_here_CHANGE_THIS_RANDOM_32_CHARS
+
+# ============= RATE LIMITING =============
+
+RATE_LIMIT_ENABLED=True
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=3600
+
+# ============= FEATURE FLAGS =============
+
+USE_NEURAL_RANKING=True
+ADVANCED_UNDERSTANDING_ENABLED=True
+
+# ============= ERROR TRACKING (OPTIONAL) =============
+
+# Sentry (Optional - Sign up at https://sentry.io)
+SENTRY_DSN=https://your-key@sentry.io/project-id
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_PROFILES_SAMPLE_RATE=0.1
+
+# ============= EXTERNAL APIs (OPTIONAL) =============
+
+# Weather API (Optional)
+OPENWEATHER_API_KEY=your_openweather_api_key_optional
+
+# Events API (Optional)
+BILETIX_API_URL=https://api.biletix.com
+
+# ============= MONITORING (OPTIONAL) =============
+
+# Prometheus Metrics
+ENABLE_PROMETHEUS=True
+METRICS_PORT=9090
+
+# ============= CACHING (OPTIONAL - For Phase 2) =============
+
+# Semantic Cache Settings
+SEMANTIC_CACHE_ENABLED=True
+CACHE_TTL_SECONDS=3600
+CACHE_MAX_SIZE=10000
+
+# ===================================
+# INSTRUCTIONS
+# ===================================
+# 
+# 1. Get RunPod URL:
+#    - Go to https://www.runpod.io/console/pods
+#    - Find your active pod
+#    - Click "Connect" → "HTTP Service [Port 8888]"
+#    - Copy proxy URL (e.g., https://abc123-8888.proxy.runpod.net)
+#    - Add /v1 to end: https://abc123-8888.proxy.runpod.net/v1
+# 
+# 2. Go to Render Dashboard: https://dashboard.render.com
+# 
+# 3. Select your backend service: ai-stanbul-backend
+# 
+# 4. Go to Environment tab
+# 
+# 5. Add each variable above:
+#    - Paste variable name
+#    - Paste value
+#    - Click "Add"
+# 
+# 6. Click "Save Changes"
+# 
+# 7. Render will auto-redeploy (wait 3-5 minutes)
+# 
+# 8. Check logs for:
+#    ✅ "RunPod LLM Client loaded"
+#    ✅ "LLM Connection: Success"
+#    ✅ "Server started on 0.0.0.0:8000"
+# 
+# VERIFICATION:
+# curl https://api.aistanbul.net/health
+# 
+# Expected response:
+# {
+#   "status": "healthy",
+#   "version": "1.0.0",
+#   "environment": "production",
+#   "llm_status": "connected"
+# }
+# 
+# ===================================
+# SECURITY NOTES
+# ===================================
+# 
+# 1. NEVER commit .env files to git
+# 2. Generate unique SECRET_KEY and JWT_SECRET_KEY
+# 3. Use strong database passwords
+# 4. Rotate keys every 90 days
+# 5. Store backups in secure password manager
+# 6. Limit ALLOWED_ORIGINS to your actual domains
+# 7. Enable rate limiting in production
+# 8. Use HTTPS only (no HTTP)
+# 
+# ===================================
