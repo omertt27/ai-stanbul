@@ -511,3 +511,8 @@ ai_stanbul
 # Dockerfile, docker-compose.yml, .gitignore, package.json
 VM_LLAMA_SETUP_COMMANDS.md
 start_vllm_runpod.sh
+DOWNLOAD_AND_START_LLAMA.md
+FIX_PORT_8888_JUPYTER.md
+RUNPOD_FILE_NOT_FOUND.md
+RUNPOD_COMMANDS_NOW.md
+SERVER_START_NOW.md
