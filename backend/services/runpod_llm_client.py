@@ -40,6 +40,7 @@ class RunPodLLMClient:
             max_tokens: Maximum tokens to generate
         """
         self.api_url = api_url or os.getenv("LLM_API_URL")
+        self.model_name = os.getenv("LLM_MODEL_NAME", "/workspace/llama-3.1-8b")
         
         # Check for API keys (support both RunPod and Hugging Face)
         self.api_key = (
@@ -213,7 +214,7 @@ class RunPodLLMClient:
         
         # For Instruct models, use chat completions format
         payload = {
-            "model": "meta-llama/Llama-3.1-8B-Instruct",
+            "model": self.model_name,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens or self.max_tokens,
             "temperature": temperature,
