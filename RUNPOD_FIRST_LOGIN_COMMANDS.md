@@ -1,8 +1,31 @@
 # RunPod First Login Commands
 
-**You're now inside your RunPod pod!** 🎉
+**Connect to your RunPod pod first!** 🎉
 
-Your prompt looks like: `root@9575d6f75e8a:/#`
+---
+
+## 🔐 **Step 0: SSH into Your Pod**
+
+**⚠️ IMPORTANT: Run on YOUR LOCAL TERMINAL (Mac), not inside RunPod!**
+
+**Option A: SSH via RunPod Proxy (Recommended)**
+```bash
+ssh vn290bqt32835t-64410fd1@ssh.runpod.io -i ~/.ssh/id_ed25519
+```
+
+**Option B: Direct TCP Connection (Supports SCP & SFTP)**
+```bash
+ssh root@194.68.245.166 -p 22124 -i ~/.ssh/id_ed25519
+```
+
+**Option C: If SSH key not found, try without `-i` flag:**
+```bash
+ssh vn290bqt32835t-64410fd1@ssh.runpod.io
+```
+
+Use Option A for general terminal access. Use Option B if you need to transfer files.
+
+Once connected, your prompt looks like: `root@d39ec100f552:/#`
 
 ---
 

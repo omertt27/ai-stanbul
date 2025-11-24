@@ -16,9 +16,24 @@ Your previous attempt failed with: `OSError: [Errno 122] Disk quota exceeded`
 
 ### Step 1: SSH into RunPod
 
+**⚠️ IMPORTANT: Run on YOUR LOCAL TERMINAL (Mac), not inside RunPod!**
+
+**Option A: SSH via RunPod Proxy (Recommended)**
 ```bash
-ssh root@ssh.runpod.io -i ~/.ssh/id_ed25519 -p 19123
+ssh vn290bqt32835t-64410fd1@ssh.runpod.io -i ~/.ssh/id_ed25519
 ```
+
+**Option B: Direct TCP Connection (Supports SCP & SFTP)**
+```bash
+ssh root@194.68.245.166 -p 22124 -i ~/.ssh/id_ed25519
+```
+
+**Option C: If SSH key not found, try without `-i` flag:**
+```bash
+ssh vn290bqt32835t-64410fd1@ssh.runpod.io
+```
+
+Use Option A for general terminal access. Use Option B if you need to transfer files.
 
 ---
 
